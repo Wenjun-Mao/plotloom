@@ -38,6 +38,23 @@ class InvalidTransitionError(PlotloomError):
     pass
 
 
+class SamePersonReviewRequiredError(InvalidTransitionError):
+    """An identity-bound keyframe lacks an applicable production authorization."""
+
+    code = "same_person_review_required"
+    technical_message = "identity-aware keyframe requires a current production-eligible same-person review"
+
+    def __init__(self, *, shot_id: str, binding_id: str) -> None:
+        self.shot_id = shot_id
+        self.binding_id = binding_id
+        super().__init__(
+            "此关键帧没有适用于当前内容且允许投产的人物身份复核。"
+            "请展开“准备与参考 · 图片、角色、导入”，在“跨镜头同一人物视觉复核”中对照冻结参考图检查并记录结果。"
+            "无法确认身份时不要标记通过；请选择无法判断，并明确暂缓或说明构图与身份不确定性后授权投产。"
+            "不通过或暂缓时不能生成视频或创建连续静帧预览。"
+        )
+
+
 class KeyframeAspectMismatchError(InvalidTransitionError):
     """A new H3 job cannot hide aspect conversion inside gateway dispatch."""
 

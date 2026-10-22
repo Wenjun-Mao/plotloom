@@ -123,10 +123,7 @@ def build_runtime_app(
     from .codex_image_dispatch import NativeCodexImageDispatcher
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .video_backends.minimax_h3 import (
-        H3_CATALOG_ID,
-        H3_PROFILES_BY_ID,
         MiniMaxH3GatewayAdapter,
-        MiniMaxH3GatewayTransport,
     )
     from .pipeline import (
         RunSecretBroker,
@@ -145,18 +142,6 @@ def build_runtime_app(
     )
     from .generation.contracts import ReasoningMode, RequestExtension
 
-    storage = ProjectFolderStorage(
-        outputs_root=settings.outputs_dir,
-        application_data_root=settings.application_data_dir,
-    )
-    run_secrets = RunSecretBroker(
-        settings.text_api_key.get_secret_value() if settings.text_api_key else None,
-        server_key_resolver=lambda profile_id: (
-            key.get_secret_value()
-            if (key := settings.text_api_key_for_profile(profile_id)) is not None
-            else None
-        ),
-    )
     provider_defaults = ProviderSettings(
         text_provider=settings.text_provider,
         text_base_url=settings.text_base_url,
@@ -225,13 +210,26 @@ def build_runtime_app(
         text_profile_default = TextProviderProfileSnapshotV3.model_validate(
             text_profile_values
         )
-    except ValueError:
-        # Existing pre-M1.5 environment combinations remain valid, but they
-        # are explicitly frozen as custom instead of impersonating a preset.
-        text_profile_values["preset_id"] = PresetId.CUSTOM
-        text_profile_default = TextProviderProfileSnapshotV3.model_validate(
-            text_profile_values
-        )
+    except ValueError as exc:
+        raise ValueError(
+            "Invalid declared text execution profile. Correct the execution "
+            "fields for TEXT_PRESET_ID, or explicitly set TEXT_PRESET_ID=custom "
+            "for intentional non-preset fields; custom profiles must still "
+            "satisfy execution validation."
+        ) from exc
+    # Reject an invalid declaration before creating installation state or keys.
+    storage = ProjectFolderStorage(
+        outputs_root=settings.outputs_dir,
+        application_data_root=settings.application_data_dir,
+    )
+    run_secrets = RunSecretBroker(
+        settings.text_api_key.get_secret_value() if settings.text_api_key else None,
+        server_key_resolver=lambda profile_id: (
+            key.get_secret_value()
+            if (key := settings.text_api_key_for_profile(profile_id)) is not None
+            else None
+        ),
+    )
     profile_repository = ApplicationProfileRepository(storage.application, provider_defaults)
     profile_repository.bootstrap_default_text_provider_profile(text_profile_default)
     dispatcher = ProjectRunDispatcher(
@@ -267,25 +265,9 @@ def build_runtime_app(
         video_adapter = test_video_adapter or MiniMaxH3GatewayAdapter()
     elif test_video_probe is not None:
         raise ValueError("a test video probe requires a typed test video provider")
-    elif settings.h3_gateway_enabled:
-        if settings.video_api_key is None:
-            raise RuntimeError("H3 gateway requires VIDEO_MODEL_API_KEY")
-        if (
-            settings.video_provider != "minimax_h3_gateway"
-            or settings.video_model not in {
-                H3_CATALOG_ID,
-                *H3_PROFILES_BY_ID,
-            }
-        ):
-            raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 catalog")
-        video_provider = MiniMaxH3GatewayTransport(
-            settings.video_api_key.get_secret_value(),
-            base_url=settings.video_base_url,
-        )
-        video_adapter = MiniMaxH3GatewayAdapter()
     else:
-        video_provider = None
-        video_adapter = None
+        from .video_backends.minimax_h3.runtime import build_h3_backend
+        video_provider, video_adapter = build_h3_backend(settings, enabled=settings.h3_gateway_enabled)
 
     @asynccontextmanager
     async def runtime_lifespan(_app: Any):

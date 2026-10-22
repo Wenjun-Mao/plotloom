@@ -1,0 +1,51 @@
+import { Button } from "../../components";
+import type { RecommendedWorkflowModel, RecommendedWorkflowRoute } from "./recommendedWorkflow";
+import { useAutomaticGuidance } from "../../features/autopilot/guidance";
+import { AutopilotProgress, useAdoptionLabel, useAutopilot } from "../../features/autopilot/AutopilotWorkspace";
+
+export function RecommendedWorkflowGuide({ model, actionDisabled, onNavigate }: {
+  model: RecommendedWorkflowModel | null;
+  actionDisabled: boolean;
+  onNavigate: (route: RecommendedWorkflowRoute) => void;
+}) {
+  const automatic = useAutomaticGuidance();
+  const owner = useAutopilot();
+  const adoptionLabel = useAdoptionLabel();
+  if (!model) return owner?.run || owner?.busy || owner?.error ? <section className="recommended-workflow-guide" aria-label="自动素材进度"><AutopilotProgress /></section> : null;
+  const currentIndex = model.steps.findIndex(step => step.id === model.currentStep) + 1;
+  const action = model.action;
+  return <section className="recommended-workflow-guide" aria-label="推荐创作流程" data-testid="recommended-workflow">
+    <AutopilotProgress />
+    <div className="recommended-workflow-compact">
+      <div className="recommended-workflow-current">
+        <strong><span className="recommended-workflow-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="m16 8-2.5 5.5L8 16l2.5-5.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
+        </span>推荐创作流程</strong>
+        <span className="recommended-workflow-stage">当前 · {currentIndex}/{model.steps.length} {model.currentStepLabel}{model.currentViewLabel && ` · ${model.currentViewLabel}`}</span>
+      </div>
+      <details className="recommended-workflow-details">
+        <summary>查看六步状态</summary>
+        <div className="recommended-workflow-expanded">
+          <ol aria-label="推荐流程步骤">
+            {model.steps.map(step => <li key={step.id} aria-current={step.id === model.currentStep ? "step" : undefined}>
+              <strong>{step.label}</strong><span>{step.adoptedArtifact && owner && (owner.run || !owner.ready)
+                ? `${adoptionLabel(step.adoptedArtifact.operation, step.adoptedArtifact.revision, step.adoptedArtifact.contentHash)} r${step.adoptedArtifact.revision}` : step.adoptionUnknown && owner && (owner.run || !owner.ready) ? "已采用 · 来源待核实" : step.status}</span>
+            </li>)}
+          </ol>
+          <p>推荐顺序：{model.steps.map(step => step.label).join(" → ")}。序号表示当前工作步骤，不是完成比例；创作与专业视图同属剧情图编辑，切换不会退回前一步。可返回前序工作或直接手工编辑；保存、确认与应用仍由现有页面负责。</p>
+          <p>播放会在路线分歧处等待选择；静态报告只供阅读，不构成交互式播放。</p>
+          <p className="recommended-workflow-expanded-next"><strong>下一步建议：</strong>{automatic || model.nextText}</p>
+        </div>
+      </details>
+    </div>
+    {!automatic && model.statusText && <p className="recommended-workflow-status" role="status"><strong>当前状态：</strong>{model.statusText}</p>}
+    <div className="recommended-workflow-next">
+      <p><strong>下一步建议：</strong>{automatic || model.nextText}</p>
+      {action?.kind === "navigate" && <Button variant="quiet" disabled={actionDisabled} onClick={() => onNavigate(action.route)}>{automatic ? "查看对应工作区" : action.label}</Button>}
+      {action?.kind === "play" && <a className="button quiet" href={action.href} target="_blank" rel="noreferrer">{action.label}</a>}
+    </div>
+  </section>;
+}

@@ -22,15 +22,16 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByTestId("art-review")).toBeVisible();
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", firstProject);
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
-  await expect(page.getByLabel("来源正文或 treatment")).not.toBeVisible();
+  await expect(page.getByLabel("故事内容")).not.toBeVisible();
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
-  await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考研究在下方单独显示");
-  await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
+  const artReadingHelp = page.getByTestId("art-review").getByText("文本与原始报告可在这里审阅；参考图片在下方单独显示。", { exact: true });
+  await expect(artReadingHelp).toContainText("参考图片在下方单独显示");
+  await expect(artReadingHelp).not.toContainText("F3B");
   await expect(page.locator(".topbar")).not.toContainText("美术参考");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "剧本" })).not.toHaveAttribute("aria-current", "step");
 
-  await workflow.getByRole("link", { name: "剧本" }).click();
+  await page.getByRole("button", { name: "继续：剧本", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#script$`));
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
@@ -51,7 +52,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
 
-  await workflow.getByRole("link", { name: "分镜评审" }).click();
+  await page.getByRole("button", { name: "继续：分镜评审", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#storyboard-review$`));
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
@@ -66,8 +67,9 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.locator(".topbar")).not.toContainText("角色");
   await page.getByText("编辑与工具", { exact: true }).click();
   await page.getByRole("button", { name: "分镜工作台", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard$`));
+  await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard#video-batch-production$`));
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "批量制作视频", exact: true })).toBeInViewport();
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${secondProject}&stage=source#art`);
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", secondProject);
@@ -78,8 +80,8 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page).toHaveURL(new RegExp(`project=${secondProject}&stage=source#source$`));
   await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
-  await expect(page.getByText("由作者填写保存，不构成平台的法律确认。", { exact: true })).toBeVisible();
-  const sourceText = page.getByLabel("来源正文或 treatment");
+  await expect(page.getByRole("button", { name: "确认改编内容", exact: true })).toBeVisible();
+  const sourceText = page.getByLabel("故事内容");
   await sourceText.fill("保留的未保存来源草稿");
   await workflow.getByRole("link", { name: "美术参考" }).click();
   await expect(sourceText).not.toBeVisible();
@@ -97,17 +99,25 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#storyboard-review`);
   const review = page.getByTestId("storyboard-review");
-  await expect(review).toContainText("尚无 review");
-  await expect(review).toContainText("准备并复制 storyboard specialist handoff");
+  await expect(review).toContainText("尚无评审");
+  await expect(review).toContainText("准备分镜任务");
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
 
   await acceptStoryboardReview(request, workbench.apiOrigin, projectId);
+  const frozen = (await json(request.get(endpoint(workbench.apiOrigin, projectId)))).acceptedReview;
   await changeScript(request, workbench.apiOrigin, projectId);
+  const currentScript = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/script`))).acceptedScript;
+  const retained = (await json(request.get(endpoint(workbench.apiOrigin, projectId)))).acceptedReview;
+  expect(retained.binding).toEqual(frozen.binding);
+  expect(retained.revision).toBe(frozen.revision);
+  expect(retained.contentHash).toBe(frozen.contentHash);
+  expect(currentScript.revision).not.toBe(frozen.binding.scriptRevision);
+  expect(currentScript.contentHash).not.toBe(frozen.binding.scriptHash);
   await page.reload();
   await expect(review).toContainText("上下文已过期");
-  await expect(review).toContainText("已接受剧本 r");
+  await expect(review).toContainText(`评审 r${frozen.revision} · 来源剧本 r${frozen.binding.scriptRevision} · hash ${frozen.contentHash.slice(0, 12)}`);
   await expect(review).not.toContainText("F4 script r");
-  await expect(review).toContainText("不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可");
+  await expect(review).toContainText("确认方案不会自动建立镜头或生成媒体");
 });
 
 test("keeps an independent owner usable when the aggregate source read fails", async ({ page, request, workbench }) => {
@@ -120,7 +130,7 @@ test("keeps an independent owner usable when the aggregate source read fails", a
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
-  await expect(page.getByTestId("script-review")).toContainText("已接受 r1");
+  await expect(page.getByTestId("script-review")).toContainText("已确认 r1");
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
 });
 
@@ -139,7 +149,7 @@ test("clears an owner-local load error after its retry succeeds", async ({ page,
   await expect(script.getByRole("alert")).toBeVisible();
   failScriptReads = false;
   await script.getByRole("button", { name: "重试加载剧本" }).click();
-  await expect(script).toContainText("已接受 r1");
+  await expect(script).toContainText("已确认 r1");
   await expect(script.getByRole("alert")).toHaveCount(0);
 });
 
@@ -165,7 +175,12 @@ test("returns from the secondary workbench after an awaited offline project load
 
   await page.getByRole("button", { name: "刷新服务器版本" }).click();
   await expect.poll(() => rejectedLoads).toBe(1);
-  await expect(page.getByRole("alert")).toContainText(`无法加载项目 ${projectId}`);
+  await expect(page.getByRole("alert")).toContainText("暂时无法读取项目");
+  const details = page.locator(".project-load-details");
+  await details.getByText("查看读取详情", { exact: true }).click();
+  await expect(details).toContainText(projectId);
+  await expect(details.locator("pre")).toContainText("Failed to fetch");
+  await details.getByText("查看读取详情", { exact: true }).click();
   await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
   await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
@@ -181,16 +196,18 @@ test("returns from the secondary workbench after an awaited offline project load
     await retryRequest;
     await route.continue();
   });
-  await workflow.getByRole("link", { name: "美术参考" }).click();
-  await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#art$`));
-  await expect.poll(() => heldRetry).toBeTruthy();
-  await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
-  await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", projectId);
-  await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
-  await expect(page.getByTestId("art-review")).toBeVisible();
-  await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
-
-  releaseRetry?.();
+  try {
+    await workflow.getByRole("link", { name: "美术参考" }).click();
+    await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#art$`));
+    await expect.poll(() => heldRetry).toBeTruthy();
+    await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
+    await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", projectId);
+    await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
+    await expect(page.getByTestId("art-review")).toBeVisible();
+    await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
+  } finally {
+    releaseRetry?.();
+  }
   await expect(page.getByRole("alert")).toHaveCount(0);
   await expect(page.locator(".editor-host")).not.toHaveAttribute("disabled", "");
   await page.unroute(`**/api/v2/projects/${projectId}`);

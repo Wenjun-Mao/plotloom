@@ -2,8 +2,9 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
+import { fallbackProfiles } from "../src/app/workspace/useTextProviderProfiles";
 import { ApiError, plotloomApi } from "../src/api";
-import { defaultProviderSettings, demoProject, demoRun } from "../src/demo";
+import { demoProject, demoRun } from "../src/demo";
 import type { ProjectCreationResponse, ProjectListItem, RunProgress, ServerStageName, StageEnvelope } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -79,7 +80,11 @@ describe("M1-B1 App integration contracts", () => {
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [] });
     vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
     vi.spyOn(plotloomApi, "getStoryboardReview").mockRejectedValue(new ApiError("no storyboard review", 404));
-    vi.spyOn(plotloomApi, "getProviderSettings").mockResolvedValue(defaultProviderSettings);
+    vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({
+      durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: false,
+      portableSnapshots: false, apiTextPipeline: true,
+    });
   });
 
   afterEach(async () => {
@@ -124,7 +129,7 @@ describe("M1-B1 App integration contracts", () => {
     await act(async () => setInput(document.querySelector(".form-card input") as HTMLInputElement, localTitle));
     expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
 
-    await act(async () => button("保存简报").click());
+    await act(async () => button("保存修改").click());
     await flush();
 
     expect(document.body.textContent).toContain("草稿版本已过期");
@@ -133,9 +138,15 @@ describe("M1-B1 App integration contracts", () => {
     expect(button("丢弃冲突草稿")).toBeTruthy();
     expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
 
-    vi.mocked(plotloomApi.getProject).mockResolvedValue(resource(projectId, "服务器并发版本", 2));
+    let releaseRead!: (value: ProjectListItem) => void;
+    vi.mocked(plotloomApi.getProject).mockReturnValueOnce(new Promise(resolve => { releaseRead = resolve; }));
     await act(async () => button("重新加载服务器版本").click());
     await flush();
+    expect(button("正在重新加载…").disabled).toBe(true);
+    expect(button("复制草稿为新项目").disabled).toBe(true);
+    expect(document.body.textContent).not.toContain("已重新加载服务器");
+    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    await act(async () => releaseRead(resource(projectId, "服务器并发版本", 2)));
     await flush();
 
     expect(button("已加载服务器版本").disabled).toBe(true);
@@ -181,14 +192,16 @@ describe("M1-B1 App integration contracts", () => {
 
     const inspector = document.querySelector('[data-testid="workspace-inspector"]');
     expect(inspector?.textContent).toContain("validation.canonical_rejected");
-    expect(inspector?.textContent).toContain("scene_beats · #2");
-    expect(inspector?.textContent).toContain("quarantined · seal yes");
-    expect(inspector?.textContent).toContain("Attempt 2/3");
-    expect(inspector?.textContent).toContain("token 120/44");
+    expect(inspector?.textContent).toContain("场景节拍 · #2");
+    expect(inspector?.textContent).toContain("输出未通过校验（已隔离） · 已封存");
+    expect(inspector?.textContent).toContain("执行次数 2/3");
+    expect(inspector?.textContent).toContain("令牌用量 120/44");
     expect(inspector?.textContent).toContain("SCENE_DURATION");
   });
 
-  it("does not auto-resume a bearer run until its exact frozen profile has a key", async () => {
+  it.each([false, true])("does not auto-resume a bearer run until its exact frozen profile has a key with durable drafts %s", async durable => {
+    vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({ durableProjectDrafts: durable, durableMediaDrafts: durable, explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: true });
+    vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
     const projectId = "frozen-key-project";
     const frozenProfileId = "locked_profile";
     const frozenRun = {
@@ -203,13 +216,14 @@ describe("M1-B1 App integration contracts", () => {
       },
     };
     const profile = {
+      ...fallbackProfiles().profiles[0],
       profileId: frozenProfileId,
       displayName: "Locked profile",
       revision: 1,
       createdAt: "2026-09-04T00:00:00Z",
       updatedAt: "2026-09-04T00:00:00Z",
       serverKeyAvailable: false,
-      configuration: { profileId: frozenProfileId, textAuthMode: "bearer" },
+      configuration: { ...fallbackProfiles().profiles[0].configuration, profileId: frozenProfileId, textAuthMode: "bearer" },
     } as never;
     const progress: RunProgress = {
       runId: frozenRun.id,
@@ -225,6 +239,7 @@ describe("M1-B1 App integration contracts", () => {
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [frozenRun] });
     vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue(progress);
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({
+      ...fallbackProfiles(),
       profiles: [profile], activeProfileId: frozenProfileId, selectionRevision: 1, presets: {},
     } as never);
     const resume = vi.spyOn(plotloomApi, "resumeRun");
@@ -234,8 +249,8 @@ describe("M1-B1 App integration contracts", () => {
     await flush();
 
     expect(resume).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain(`运行冻结在 Profile ${frozenProfileId}`);
-    expect(document.body.textContent).toContain("为冻结 Profile 补 Key");
+    expect(document.body.textContent).toContain(`配置标识：${frozenProfileId}`);
+    expect(document.body.textContent).toContain("查看此任务的模型配置");
     expect(document.body.textContent).toContain("不会自动切换模型");
   });
 });

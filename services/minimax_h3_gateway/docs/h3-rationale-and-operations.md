@@ -29,7 +29,7 @@ audio's FP32 checkpoint/**BF16 computation** stay unchanged. A maintained small
 loader owns the video-only precision and disk-backed clone/reload factory;
 this is not a global dtype monkeypatch. All qualities 1/2/3/8 and Ref2VA share
 it without changing their samplers, shifts, steps or frame conditioning.
-See [ADR 0098](../../../docs/adr/0098-h3-video-only-vae-precision.md) and the
+See [ADR 0213](../../../docs/adr/0213-h3-video-only-vae-precision.md) and the
 [D receipt](../../../docs/verification/2026-10-06-h3-vae-d-adoption.md).
 
 The owner saw no quality difference in the three matched A/D pairs. The bounded
@@ -84,7 +84,7 @@ portrait 5/8-second trials and landscape 8-second trials were human-reviewed,
 but do not establish general voice identity, perfect dialogue or lip-sync.
 The gateway therefore exposes a separate bounded route and per-job audio
 binding; Plotloom's later stable Voice IDs belong above that service boundary.
-See [ADR 0090](../../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+See [ADR 0205](../../../docs/adr/0205-h3-ref2va-per-job-voice-reference.md).
 
 ## 3. Runtime policy versus inference profile
 
@@ -236,7 +236,7 @@ decode is still not whole-video seam, acting, speech or identity acceptance.
 Runtime startup is also a data operation. The candidate's catalog migration
 discards some metadata even though all inference calls succeeded. Use an
 isolated user-directory copy and preserved baseline container; decide catalog
-disposition before promotion. See [ADR 0095](../../../docs/adr/0095-h3-runtime-qualification-and-catalog-isolation.md).
+disposition before promotion. See [ADR 0210](../../../docs/adr/0210-h3-runtime-qualification-and-catalog-isolation.md).
 
 For input-conditioned comparisons, review prepared image pixels together with
 the prompt before spending calls. The 2026-09-30 landscape pair accidentally

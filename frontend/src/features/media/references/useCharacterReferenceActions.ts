@@ -2,10 +2,11 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   CharacterReferenceState,
   ReviewedKeyframe,
-  SamePersonComparison,
   VisualWorkbench,
 } from "../../../types";
 import { plotloomApi } from "../../../api";
+import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
+import { completeSamePersonComparisons } from "./same-person-draft";
 
 export function useCharacterReferenceActions({
   projectId,
@@ -20,12 +21,6 @@ export function useCharacterReferenceActions({
   setReferenceNotes,
   setReferenceComplementaryAssetIds,
   refresh,
-  proposalCharacterId,
-  castRevision,
-  proposalDirection,
-  proposalParentCandidateAssetId,
-  setProposalDirection,
-  setProposalParentCandidateAssetId,
   selectedBinding,
   selectedIdentityMapping,
   samePersonReviewer,
@@ -46,17 +41,11 @@ export function useCharacterReferenceActions({
   setReferenceNotes: Dispatch<SetStateAction<string>>;
   setReferenceComplementaryAssetIds: Dispatch<SetStateAction<string[]>>;
   refresh: (signal?: AbortSignal) => Promise<void>;
-  proposalCharacterId: string;
-  castRevision?: number;
-  proposalDirection: string;
-  proposalParentCandidateAssetId: string;
-  setProposalDirection: Dispatch<SetStateAction<string>>;
-  setProposalParentCandidateAssetId: Dispatch<SetStateAction<string>>;
   selectedBinding: ReviewedKeyframe | undefined;
   selectedIdentityMapping: unknown[];
   samePersonReviewer: string;
   samePersonNotes: string;
-  samePersonComparisons: SamePersonComparison[];
+  samePersonComparisons: SamePersonComparisonDraft[];
   workbench: VisualWorkbench;
   setSamePersonNotes: Dispatch<SetStateAction<string>>;
 }) {
@@ -112,83 +101,14 @@ export function useCharacterReferenceActions({
       setBusy(false);
     }
   };
-  const prepareCharacterReferenceProposal = async () => {
-    if (
-      !projectId ||
-      !proposalCharacterId ||
-      !castRevision ||
-      !proposalDirection.trim()
-    )
-      return;
-    setBusy(true);
-    setError("");
-    try {
-      await plotloomApi.prepareCharacterReferenceProposal(projectId, {
-        characterId: proposalCharacterId,
-        castRevision,
-        visualDirection: proposalDirection.trim(),
-        parentCandidateAssetId: proposalParentCandidateAssetId || undefined,
-      });
-      setProposalDirection("");
-      setProposalParentCandidateAssetId("");
-      await refresh();
-    } catch (proposalError) {
-      setError(
-        proposalError instanceof Error
-          ? proposalError.message
-          : "无法准备角色参考 proposal",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const sendCharacterReferenceProposal = async (proposalId: string) => {
-    if (!projectId) return;
-    setBusy(true);
-    setError("");
-    try {
-      await plotloomApi.sendCharacterReferenceProposal(
-        projectId,
-        proposalId,
-      );
-      await refresh();
-    } catch (proposalError) {
-      setError(
-        proposalError instanceof Error
-          ? proposalError.message
-          : "无法发送角色参考提案给 specialist",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-  const refreshCharacterReferenceProposal = async (proposalId: string) => {
-    if (!projectId) return;
-    setBusy(true);
-    setError("");
-    try {
-      await plotloomApi.refreshCharacterReferenceProposal(
-        projectId,
-        proposalId,
-      );
-      await refresh();
-    } catch (proposalError) {
-      setError(
-        proposalError instanceof Error
-          ? proposalError.message
-          : "无法检查角色参考 delivery",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
   const recordSamePersonReview = async () => {
+    const comparisons = completeSamePersonComparisons(samePersonComparisons);
     if (
       !projectId ||
       !selectedBinding ||
       !selectedIdentityMapping.length ||
       !samePersonReviewer.trim() ||
-      !samePersonNotes.trim()
+      !samePersonNotes.trim() || !comparisons
     )
       return;
     setBusy(true);
@@ -198,7 +118,7 @@ export function useCharacterReferenceActions({
         bindingId: selectedBinding.id,
         expectedReviewRevision: workbench.samePersonReviews.revision,
         reviewer: samePersonReviewer.trim(),
-        comparisons: samePersonComparisons,
+        comparisons,
         notes: samePersonNotes.trim(),
       });
       setSamePersonNotes("");
@@ -218,9 +138,6 @@ export function useCharacterReferenceActions({
   return {
     selectCharacterReference,
     revokeCharacterReference,
-    prepareCharacterReferenceProposal,
-    sendCharacterReferenceProposal,
-    refreshCharacterReferenceProposal,
     recordSamePersonReview,
   };
 }

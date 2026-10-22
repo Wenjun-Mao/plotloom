@@ -7,6 +7,7 @@ import type {
 } from "../../../types";
 import { plotloomApi } from "../../../api";
 import { useVisualIntentDraft } from "../../../visual-intent-drafts";
+import { ownsOrdinaryIntent } from "../keyframes/visual-intent-ownership";
 
 type IntentEditor = ReturnType<typeof useVisualIntentDraft>;
 
@@ -21,6 +22,7 @@ export function useAssetKeyframeActions({
   setBusy,
   setError,
   refresh,
+  refreshAfterProjectWrite,
   setCandidates,
   setKeptAssetId,
   setPreviewId,
@@ -36,9 +38,10 @@ export function useAssetKeyframeActions({
   activeIntent,
   compatibility,
   workbench,
-  setWorkbench,
+  acknowledgeSelectionRevision,
   previewShotIds,
   missingPreviewShotIds,
+  presentationRevision,
 }: {
   projectId?: string;
   origin: string;
@@ -46,6 +49,7 @@ export function useAssetKeyframeActions({
   setBusy: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
   refresh: (signal?: AbortSignal) => Promise<void>;
+  refreshAfterProjectWrite: () => Promise<void>;
   setCandidates: Dispatch<SetStateAction<string[]>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setPreviewId: Dispatch<SetStateAction<string>>;
@@ -61,9 +65,10 @@ export function useAssetKeyframeActions({
   activeIntent: VisualIntent | undefined;
   compatibility: string;
   workbench: VisualWorkbench;
-  setWorkbench: Dispatch<SetStateAction<VisualWorkbench>>;
+  acknowledgeSelectionRevision: (revision: number) => Promise<void>;
   previewShotIds: string[];
   missingPreviewShotIds: string[];
+  presentationRevision?: number;
 }) {
   const chooseCandidate = (id: string) =>
     setCandidates((current) =>
@@ -96,7 +101,7 @@ export function useAssetKeyframeActions({
           .map((item) => item.trim())
           .filter(Boolean),
       });
-      await refresh();
+      await refreshAfterProjectWrite();
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "导入失败");
     } finally {
@@ -107,6 +112,12 @@ export function useAssetKeyframeActions({
     if (!projectId || !keptAssetId || (mediaDraftsEnabled && !selectedShot)) return;
     if (intentEditor.stale) {
       setError("已保存意图已有新版本；草稿仍保留，请先检查并重新载入。");
+      return;
+    }
+    const ownsCurrentIntent = ownsOrdinaryIntent(activeIntent, selectedShot?.id, workbench.reviewedKeyframes);
+    const needsExplicitUse = activeIntent?.intent.targetUse || (!ownsCurrentIntent && workbench.reviewedKeyframes.some((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id));
+    if (!intentDraft.sourceBindingId && needsExplicitUse) {
+      setError("这张图片已用于其他镜头；请明确选择来源绑定，保存当前镜头独立意图。");
       return;
     }
     const sourceRefs = intentDraft.sourceRefs
@@ -133,6 +144,8 @@ export function useAssetKeyframeActions({
         compositionIntent: intentDraft.compositionIntent || undefined,
         styleIntent: intentDraft.styleIntent || undefined,
         sourceRefs,
+        sourceBindingId: intentDraft.sourceBindingId || undefined,
+        retainedVisualIntentId: intentDraft.retainedVisualIntentId || undefined,
         ...(mediaDraftsEnabled ? {
           shotId: selectedShot!.id,
           consumedDraft: {
@@ -184,19 +197,9 @@ export function useAssetKeyframeActions({
         compatibilityNote: compatibility.trim(),
         visualIntentId: activeIntent.id,
         visualIntentRevision: activeIntent.revision,
+        expectedPresentationRevision: presentationRevision ?? 0,
       });
-      // A shot change can supersede the read refresh that follows a successful
-      // selection. The mutation response is the authoritative revision, so
-      // advance the local concurrency token before enabling the next shot.
-      // The full refresh below still owns bindings, intents, and preview state.
-      setWorkbench((current) => ({
-        ...current,
-        selectionRevision: Math.max(
-          current.selectionRevision,
-          selected.selectionRevision,
-        ),
-      }));
-      await refresh();
+      await acknowledgeSelectionRevision(selected.selectionRevision);
     } catch (selectionError) {
       setError(
         selectionError instanceof Error ? selectionError.message : "选择失败",

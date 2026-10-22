@@ -3,12 +3,12 @@ import type { Dispatch, SetStateAction } from "react";
 import type {
   ApprovalDecision,
   ImageJob,
-  SamePersonComparison,
   Shot,
   StoryBible,
   Storyboard,
   VisualIntent,
   VisualWorkbench,
+  ReviewedKeyframe,
 } from "../../../types";
 import {
   type ImageJobDraftTarget,
@@ -17,6 +17,11 @@ import {
   type IntentDraft,
 } from "../../../visual-intent-drafts";
 import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
+import type { MediaReadPhase } from "../useMediaWorkbenchData";
+import { currentProductionReferences } from "../references/production-reference";
+import { newSamePersonComparisons, latestCurrentReviewsByBinding } from "../references/same-person-draft";
+import type { SamePersonComparisonDraft } from "../../../same-person-review-types";
+import { ownsOrdinaryIntent } from "./visual-intent-ownership";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -28,6 +33,8 @@ function draftFor(
       intent?.intent.compositionIntent ?? shot?.composition ?? "",
     styleIntent: intent?.intent.styleIntent ?? shot?.visualIntent ?? "",
     sourceRefs: intent?.intent.sourceRefs.join("\n") ?? "",
+    sourceBindingId: intent?.intent.targetUse?.source.bindingId,
+    retainedVisualIntentId: intent?.intent.targetUse ? intent.id : undefined,
   };
 }
 
@@ -54,6 +61,7 @@ export function useMediaSelectionContext({
   draftQuiescence,
   currentApproval,
   workbench,
+  mediaReadPhase,
   imageJobs,
   imageExchangeConfigured,
   imageJobTarget,
@@ -63,10 +71,8 @@ export function useMediaSelectionContext({
   playing,
   frameIndex,
   referenceCharacterId,
-  proposalCharacterId,
   setPreviewLength,
   setReferenceCharacterId,
-  setProposalCharacterId,
   setSamePersonComparisons,
   setKeptAssetId,
   setFrameIndex,
@@ -80,6 +86,7 @@ export function useMediaSelectionContext({
   draftQuiescence?: ProjectDraftQuiescence;
   currentApproval: ApprovalDecision | undefined;
   workbench: VisualWorkbench;
+  mediaReadPhase: MediaReadPhase;
   imageJobs: ImageJob[];
   imageExchangeConfigured: boolean;
   imageJobTarget: ImageJobDraftTarget;
@@ -89,15 +96,19 @@ export function useMediaSelectionContext({
   playing: boolean;
   frameIndex: number;
   referenceCharacterId: string;
-  proposalCharacterId: string;
   setPreviewLength: Dispatch<SetStateAction<number>>;
   setReferenceCharacterId: Dispatch<SetStateAction<string>>;
-  setProposalCharacterId: Dispatch<SetStateAction<string>>;
-  setSamePersonComparisons: Dispatch<SetStateAction<SamePersonComparison[]>>;
+  setSamePersonComparisons: Dispatch<SetStateAction<SamePersonComparisonDraft[]>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setFrameIndex: Dispatch<SetStateAction<number>>;
 }) {
-  const priorProjectId = useRef(projectId);
+  const retainedSelection = useRef<{
+    projectId?: string;
+    shotId?: string;
+    bindingId?: string;
+    initialized: boolean;
+  }>({ projectId, shotId: selectedShot?.id, initialized: false });
+  const pendingCrossShotUse = useRef<ReviewedKeyframe | null>(null);
   const sceneShots = useMemo(
     () =>
       selectedShot
@@ -152,29 +163,26 @@ export function useMediaSelectionContext({
     [workbench.characterReferences.states],
   );
   const currentReferenceByCharacter = useMemo(
-    () =>
-      new Map(
-        workbench.characterReferences.decisions
-          .filter((decision) => decision.current)
-          .map((decision) => [decision.characterId, decision]),
-      ),
-    [workbench.characterReferences.decisions],
+    () => currentProductionReferences(workbench.characterReferences),
+    [workbench.characterReferences],
   );
-  const selectedIdentityMapping = useMemo(
-    () => identityMappingForAsset(selectedBinding?.assetId, imageJobs),
-    [imageJobs, selectedBinding?.assetId],
-  );
-  const retainedIdentityMapping = useMemo(
-    () => identityMappingForAsset(keptAssetId, imageJobs),
-    [imageJobs, keptAssetId],
-  );
+  const currentMappingForShot = (shot: Shot | undefined) => {
+    return (shot?.characterIds ?? []).flatMap((characterId) => {
+      const reference = currentReferenceByCharacter.get(characterId);
+      return reference ? [{ characterId, referenceDecisionId: reference.id,
+        referenceRevision: reference.referenceRevision, characterContextHash: reference.characterContextHash,
+        assets: reference.assetHashes.map((asset, index) => ({ ...asset, view: index === 0 ? "primary" as const : "complementary" as const })) }] : [];
+    });
+  };
+  const mappingForBinding = (binding: typeof selectedBinding) => {
+    const intent = workbench.visualIntents.find((item) => item.id === binding?.visualIntentId);
+    if (!intent?.intent.targetUse) return identityMappingForAsset(binding?.assetId, imageJobs);
+    return currentMappingForShot(storyboard.shots.find((item) => item.id === binding?.shotId));
+  };
+  const selectedIdentityMapping = mappingForBinding(selectedBinding);
   const currentReviewByBinding = useMemo(
     () =>
-      new Map(
-        workbench.samePersonReviews.reviews
-          .filter((item) => item.current)
-          .map((item) => [item.bindingId, item]),
-      ),
+      latestCurrentReviewsByBinding(workbench.samePersonReviews.reviews),
     [workbench.samePersonReviews.reviews],
   );
   const identityReviewMissingShotIds = previewShotIds.filter((shotId) => {
@@ -182,13 +190,19 @@ export function useMediaSelectionContext({
       (item) => item.shotId === shotId,
     );
     return (
-      identityMappingForAsset(binding?.assetId, imageJobs).length > 0 &&
-      !currentReviewByBinding.has(binding?.id ?? "")
+      mappingForBinding(binding).length > 0 &&
+      !currentReviewByBinding.get(binding?.id ?? "")?.productionEligible
     );
   });
-  const activeIntent = workbench.visualIntents.find(
+  const originJob = imageJobs.find((job) => job.deliveries.some((delivery) => delivery.candidates.some((candidate) => candidate.assetId === keptAssetId)));
+  const foreignOrigin = (originJob?.request.frozenSnapshot?.shot?.id && originJob.request.frozenSnapshot.shot.id !== selectedShot?.id)
+    || workbench.reviewedKeyframes.some((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id);
+  const activeIntent = workbench.visualIntents.find((intent) => intent.assetId === keptAssetId &&
+    intent.intent.role === "shot_keyframe" && intent.intent.targetUse?.targetShotId === selectedShot?.id
+  ) ?? workbench.visualIntents.find(
     (intent) =>
-      intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe",
+      intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe" &&
+      !intent.intent.targetUse && (!foreignOrigin || ownsOrdinaryIntent(intent, selectedShot?.id, workbench.reviewedKeyframes)),
   );
   const intentEditor = useVisualIntentDraft(
     projectId,
@@ -201,6 +215,19 @@ export function useMediaSelectionContext({
     draftQuiescence,
   );
   const intentDraft = intentEditor.value;
+  const retainedIdentityMapping = intentDraft.sourceBindingId
+    ? currentMappingForShot(selectedShot) : identityMappingForAsset(keptAssetId, imageJobs);
+  const retainCrossShotFrame = (binding: ReviewedKeyframe) => {
+    if (binding.assetId === keptAssetId) intentEditor.update((value) => ({ ...value, sourceBindingId: binding.id, retainedVisualIntentId: undefined }));
+    else { pendingCrossShotUse.current = binding; setKeptAssetId(binding.assetId); }
+  };
+  useEffect(() => {
+    const source = pendingCrossShotUse.current;
+    if (source?.assetId === keptAssetId) {
+      pendingCrossShotUse.current = null;
+      intentEditor.update((value) => ({ ...value, sourceBindingId: source.id, retainedVisualIntentId: undefined }));
+    }
+  }, [keptAssetId]);
   const setIntentDraft = intentEditor.update;
   const eligibleRefinementCandidates = useMemo(
     () =>
@@ -222,7 +249,7 @@ export function useMediaSelectionContext({
   const imageJobContextId = [
     currentApproval?.id ?? "no-approval",
     `storyboard-${storyboardRevision ?? 0}`,
-    imageJobTarget.kind === "original" ? "original" : imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : imageJobTarget.profileId,
+    imageJobTarget.kind === "original" ? imageJobTarget.sceneContinuityBindingId ?? "original" : imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : imageJobTarget.profileId,
     selectedBinding?.id ?? "no-binding",
     `selection-${selectedBinding?.selectionRevision ?? 0}`,
     `intent-${selectedBinding?.visualIntentRevision ?? 0}`,
@@ -247,7 +274,7 @@ export function useMediaSelectionContext({
           : selectedShot.characterIds.some(
                 (characterId) => !currentReferenceByCharacter.has(characterId),
               )
-            ? `当前 Shot 的可见角色缺少已选择的身份参考：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。`
+            ? `请在“角色身份参考”区域为当前制作角色明确选用参考图：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。角色页的外观选择不会自动作为制作参考。`
             : imageJobTarget.kind === "refinement" && !targetCandidate
               ? "参考细化只能使用当前镜头已审核选择的当前 P1 候选。"
               : imageJobTarget.kind === "keyframe_adaptation" && !selectedBinding
@@ -262,30 +289,40 @@ export function useMediaSelectionContext({
   useEffect(() => {
     if (!referenceCharacterId && bible.characters[0])
       setReferenceCharacterId(bible.characters[0].id);
-    if (!proposalCharacterId && bible.characters[0])
-      setProposalCharacterId(bible.characters[0].id);
-  }, [bible.characters, proposalCharacterId, referenceCharacterId]);
+  }, [bible.characters, referenceCharacterId]);
+  const samePersonIdentityBasis = JSON.stringify([projectId, selectedShot?.id, selectedBinding?.id, selectedIdentityMapping]);
+  const samePersonDraftBasis = useRef<string | null>(null);
   useEffect(() => {
-    setSamePersonComparisons(
-      selectedIdentityMapping.map((item) => ({
-        characterId: item.characterId,
-        judgment: "pass",
-        identityNotes:
-          "Face, build, and stable visual anchors match the selected reference.",
-        stateNotes:
-          "Current shot state is judged separately from durable identity.",
-      })),
-    );
-  }, [selectedBinding?.id, selectedIdentityMapping]);
-  // A reviewed binding is durable per Shot. Restore it after a reload or a
-  // parent review refresh rather than making the creator rediscover which
-  // candidate and intent revision were already selected.
+    // Read withdrawal is unknown, not a new target. Only a ready exact binding
+    // or frozen identity change resets the reviewer's authored observations.
+    if (mediaReadPhase !== "ready" || samePersonDraftBasis.current === samePersonIdentityBasis) return;
+    samePersonDraftBasis.current = samePersonIdentityBasis;
+    setSamePersonComparisons(newSamePersonComparisons(JSON.parse(samePersonIdentityBasis)[3]));
+  }, [mediaReadPhase, samePersonIdentityBasis]);
+  // Read withdrawal means unknown, not a binding change. Keep explicit creator
+  // retention through refresh, and restore only on navigation or an actual
+  // authoritative binding transition (ADR 0103).
   useEffect(() => {
-    const changedProject = priorProjectId.current !== projectId;
-    priorProjectId.current = projectId;
-    if (selectedBinding) setKeptAssetId(selectedBinding.assetId);
-    else if (changedProject) setKeptAssetId("");
-  }, [projectId, selectedBinding?.id]);
+    const prior = retainedSelection.current;
+    const changedScope = prior.projectId !== projectId
+      || prior.shotId !== selectedShot?.id;
+    if (changedScope) {
+      retainedSelection.current = { projectId, shotId: selectedShot?.id, initialized: false };
+      setKeptAssetId("");
+    }
+    if (mediaReadPhase !== "ready") return;
+    const current = retainedSelection.current;
+    const targetDraft = activeIntent?.intent.targetUse;
+    const staleTargetDraft = !selectedBinding && targetDraft
+      && (targetDraft.targetShotId !== selectedShot?.id || activeIntent?.targetUseCurrent !== true);
+    if (!current.initialized || current.bindingId !== selectedBinding?.id || staleTargetDraft) {
+      const keepCurrentTargetDraft = current.initialized && !selectedBinding
+        && activeIntent?.intent.targetUse?.targetShotId === selectedShot?.id
+        && activeIntent?.targetUseCurrent === true;
+      if (!keepCurrentTargetDraft) setKeptAssetId(selectedBinding?.assetId ?? "");
+      retainedSelection.current = { ...current, bindingId: selectedBinding?.id, initialized: true };
+    }
+  }, [projectId, selectedShot?.id, mediaReadPhase, selectedBinding?.id, activeIntent?.id, activeIntent?.targetUseCurrent]);
   useEffect(() => {
     if (!playing || !preview) return;
     const frame = preview.manifest.frames[frameIndex];
@@ -317,6 +354,7 @@ export function useMediaSelectionContext({
     activeIntent,
     intentEditor,
     intentDraft,
+    retainCrossShotFrame,
     eligibleRefinementCandidates,
     targetCandidate,
     imageJobContextId,

@@ -20,13 +20,11 @@ from plotloom.domain import (
     ProjectBrief,
     PropV2,
     RequiredEntityState,
-    SceneBeatPlanV1,
     SceneBeatPlanV2,
     StoryEdgeV2,
     JoinContractV2,
     ShotBeatLinkV2,
     ShotV2,
-    StoryBibleV1,
     StoryBibleV2,
     StoryboardV2,
     StoryGraphV2,
@@ -87,20 +85,13 @@ def _authoring_fixture() -> tuple[StoryBibleV2, SceneBeatPlanV2, StoryboardV2, D
     return bible, plan, board, profile
 
 
-def test_schema_dispatch_keeps_v1_read_and_v2_authoring_separate() -> None:
-    assert stage_payload_model("story_bible", schema_version=1) is StoryBibleV1
-    assert stage_payload_model("scene_beats", schema_version=1) is SceneBeatPlanV1
+def test_schema_dispatch_rejects_retired_versions() -> None:
     assert stage_payload_model("story_bible", schema_version=2) is StoryBibleV2
     assert stage_payload_model("scene_beats", schema_version=2) is SceneBeatPlanV2
-
-    # V2 does not fabricate anchors, allowed states, or dialogue ownership from
-    # a minimal legacy bible.  Conversely V1 rejects V2-only authoring fields.
+    with pytest.raises(ValueError, match="unsupported canonical schema version"):
+        stage_payload_model("story_bible", schema_version=1)
     with pytest.raises(ValidationError):
         StoryBibleV2.model_validate({"logline": "old", "premise": "old"})
-    with pytest.raises(ValidationError):
-        StoryBibleV1.model_validate(
-            {"logline": "new", "premise": "new", "characters": [{"id": "m", "name": "M", "visualAnchors": []}]}
-        )
 
 
 def test_canonical_scene_validation_rejects_nonfinite_continuity_delta() -> None:
@@ -139,7 +130,7 @@ def test_v2_gate_and_integer_timeline_are_deterministic() -> None:
     nodes = derive_node_timecodes(plan, board)
     graph = StoryGraphV2(
         start_node_id="node-1",
-        nodes=[StoryNodeV2(id="node-1", title="Decision", summary="choose", kind="ending")],
+        nodes=[StoryNodeV2(footage_mode="footage", id="node-1", title="Decision", summary="choose", kind="ending")],
         edges=[],
         join_contracts=[],
     )
@@ -169,13 +160,13 @@ def test_v2_gate_and_integer_timeline_are_deterministic() -> None:
 
 def test_shot_count_preference_is_warning_only_when_advisory() -> None:
     bible, plan, board, profile = _authoring_fixture()
-    legacy = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=2, shots_per_scene_min=2, shots_per_scene_max=4)
-    strict = StoryboardGateEvaluator().evaluate(board, plan, bible, legacy, timing_profile=profile)
+    strict_brief = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=2, shots_per_scene_min=2, shots_per_scene_max=4, shot_count_policy="strict")
+    strict = StoryboardGateEvaluator().evaluate(board, plan, bible, strict_brief, timing_profile=profile)
     assert strict.passed is False
     strict_count = next(item for item in strict.results if item.gate_id.startswith("shot.count."))
     assert strict_count.required and strict_count.status.value == "fail"
 
-    advisory = legacy.model_copy(update={"shot_count_policy": "advisory"})
+    advisory = strict_brief.model_copy(update={"shot_count_policy": "advisory"})
     warned = StoryboardGateEvaluator().evaluate(board, plan, bible, advisory, timing_profile=profile)
     assert warned.passed is True
     warning = next(item for item in warned.results if item.gate_id.startswith("shot.count."))
@@ -183,14 +174,15 @@ def test_shot_count_preference_is_warning_only_when_advisory() -> None:
     assert warning.severity.value == "warning"
     assert warning.evaluated_input_hash != strict_count.evaluated_input_hash
 
-    explicitly_strict = legacy.model_copy(update={"shot_count_policy": "strict"})
-    assert StoryboardGateEvaluator().evaluate(board, plan, bible, explicitly_strict, timing_profile=profile).evaluated_input_hash != strict.evaluated_input_hash
+    implicit_advisory = ProjectBrief.model_validate(strict_brief.model_dump(exclude={"shot_count_policy"}))
+    assert implicit_advisory.shot_count_policy == "advisory"
+    assert StoryboardGateEvaluator().evaluate(board, plan, bible, implicit_advisory, timing_profile=profile).evaluated_input_hash == warned.evaluated_input_hash
 
     ten_shots = board.model_copy(update={"shots": [
         board.shots[0].model_copy(update={"id": f"shot-{index}", "order": index, "duration_units": 33})
         for index in range(1, 11)
     ]})
-    ten_strict = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, legacy, timing_profile=profile)
+    ten_strict = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, strict_brief, timing_profile=profile)
     ten_advisory = StoryboardGateEvaluator().evaluate(ten_shots, plan, bible, advisory, timing_profile=profile)
     assert next(item for item in ten_strict.results if item.gate_id.startswith("shot.count.")).status.value == "fail"
     assert next(item for item in ten_advisory.results if item.gate_id.startswith("shot.count.")).status.value == "not_applicable"
@@ -258,7 +250,7 @@ def test_default_timing_profile_supports_non_chinese_dialogue_explicitly() -> No
             graph=StoryGraphV2(
                 start_node_id="node-1",
                 nodes=[
-                    StoryNodeV2(
+                    StoryNodeV2(footage_mode="footage",
                         id="node-1", title="Decision", summary="choose", kind="start"
                     )
                 ],
@@ -436,7 +428,7 @@ def test_v2_scene_beats_rejects_unordered_scenes_and_unallowed_continuity_states
     )
     graph = StoryGraphV2(
         start_node_id="node-1",
-        nodes=[StoryNodeV2(id="node-1", title="Decision", summary="choose", kind="start")],
+        nodes=[StoryNodeV2(footage_mode="footage", id="node-1", title="Decision", summary="choose", kind="start")],
         edges=[],
         join_contracts=[],
     )
@@ -503,7 +495,7 @@ def test_beat_continuity_sequence_is_required_at_scene_beats_and_storyboard() ->
     )
     graph = StoryGraphV2(
         start_node_id="node-1",
-        nodes=[StoryNodeV2(id="node-1", title="Decision", summary="choose", kind="start")],
+        nodes=[StoryNodeV2(footage_mode="footage", id="node-1", title="Decision", summary="choose", kind="start")],
         edges=[],
         join_contracts=[],
     )
@@ -605,9 +597,9 @@ def test_v2_graph_rejects_duplicate_directed_connections() -> None:
     graph = StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="Start", summary="begin", kind="start"),
-            StoryNodeV2(id="decision", title="Decision", summary="choose", kind="decision"),
-            StoryNodeV2(id="end", title="End", summary="finish", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="Start", summary="begin", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="decision", title="Decision", summary="choose", kind="decision"),
+            StoryNodeV2(footage_mode="footage", id="end", title="End", summary="finish", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(id="e-start", source_node_id="start", target_node_id="decision", kind="continuation", choice_text=None, state_effects={}),
@@ -639,8 +631,8 @@ def test_v2_graph_preseal_rejects_entity_state_effect_outside_frozen_bible() -> 
     graph = StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="Start", summary="begin", kind="start"),
-            StoryNodeV2(id="end", title="End", summary="finish", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="Start", summary="begin", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="end", title="End", summary="finish", kind="ending"),
         ],
         edges=[StoryEdgeV2(
             id="edge", source_node_id="start", target_node_id="end", kind="continuation",
@@ -728,9 +720,9 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
         return StoryGraphV2(
             start_node_id="left",
             nodes=[
-                StoryNodeV2(id="left", title="Left", summary="left", kind="start"),
-                StoryNodeV2(id="right", title="Right", summary="right", kind="scene"),
-                StoryNodeV2(id="join", title="Join", summary="join", kind="ending"),
+                StoryNodeV2(footage_mode="footage", id="left", title="Left", summary="left", kind="start"),
+                StoryNodeV2(footage_mode="footage", id="right", title="Right", summary="right", kind="scene"),
+                StoryNodeV2(footage_mode="footage", id="join", title="Join", summary="join", kind="ending"),
             ],
             edges=[
                 StoryEdgeV2(id="left-join", source_node_id="left", target_node_id="join", kind="choice", choice_text="join", state_effects={"channel": left_effect}),
@@ -812,7 +804,7 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
     over_budget_plan = variant_plan.model_copy(
         update={
             "scenes": [
-                variant_plan.scenes[0].model_copy(update={"duration_budget_units": 60_001}),
+                variant_plan.scenes[0].model_copy(update={"duration_budget_units": brief.target_playthrough_seconds * 1000 + 1}),
                 *variant_plan.scenes[1:],
             ]
         }
@@ -827,7 +819,7 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
             graph=variant_graph,
         )
     assert any(
-        issue["code"] == "scene_node_budget_exceeded"
+        issue["code"] == "scene_route_budget_exceeded"
         for issue in captured.value.issues
     )
 
@@ -844,8 +836,8 @@ def test_typed_direct_edge_state_is_required_only_at_the_target_first_scene_entr
     graph = StoryGraphV2(
         start_node_id="source",
         nodes=[
-            StoryNodeV2(id="source", title="Source", summary="source", kind="start"),
-            StoryNodeV2(id="node-1", title="Target", summary="target", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="source", title="Source", summary="source", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="node-1", title="Target", summary="target", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(

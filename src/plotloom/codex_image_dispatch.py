@@ -9,8 +9,9 @@ import fcntl
 import json
 import os
 import subprocess
+from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .image_job_contracts import ImageJobError
@@ -23,8 +24,9 @@ class NativeCodexImageDispatcher:
     task_id: str
     state_root: Path
     executable: str = "codex"
+    environment: dict[str, str] | None = field(default=None, repr=False)
 
-    def dispatch(self, *, job_id: str, package_path: str, delivery_path: str) -> None:
+    def dispatch(self, *, job_id: str, package_path: str, delivery_path: str, assignment: str | None = None, before_send: Callable[[], None] | None = None) -> None:
         self.state_root.mkdir(parents=True, exist_ok=True)
         root = self.state_root / job_id
         active = self.state_root / "inflight.json"
@@ -34,6 +36,8 @@ class NativeCodexImageDispatcher:
                     "image_dispatch_already_attempted",
                     "this image job already has a native dispatch attempt; it will not be resent automatically",
                 )
+            if active.exists():
+                raise ImageJobError("image_dispatch_busy", "a native specialist job is already in flight")
             try:
                 descriptor = os.open(
                     active, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -53,8 +57,20 @@ class NativeCodexImageDispatcher:
                     "image_dispatch_already_attempted",
                     "this image job already has a native dispatch attempt; it will not be resent automatically",
                 ) from error
+            # Reserve first, then atomically export, then queue. A failed
+            # precondition has not sent anything and can release this empty slot.
+            try:
+                delivery = Path(delivery_path)
+                if delivery.exists() or delivery.is_symlink():
+                    raise ImageJobError("delivery_conflict", "已有交付或执行暂存；请检查原任务，不要重复发送。")
+                if before_send is not None:
+                    before_send()
+            except Exception:
+                root.rmdir()
+                self._release_if_owner_locked(active, job_id)
+                raise
         receipt = root / "receipt.json"
-        message = (
+        message = assignment or (
             f"Frozen Plotloom image package assignment for {job_id}. Read and obey the "
             f"project-local plotloom-image-specialist skill. The package is complete authority: "
             f"{package_path}. Deliver only under {delivery_path}. Do not modify Plotloom code, "
@@ -64,6 +80,7 @@ class NativeCodexImageDispatcher:
             completed = subprocess.run(
                 [self.executable, "queue", "--thread", self.task_id, "--message", message],
                 capture_output=True, text=True, timeout=30, check=False,
+                env=self.environment,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             receipt.write_text(json.dumps({"jobId": job_id, "taskId": self.task_id, "state": "outcome_unknown"}), encoding="utf-8")
@@ -81,7 +98,16 @@ class NativeCodexImageDispatcher:
                 "image_dispatch_outcome_unknown",
                 "native image dispatch outcome is unknown; Plotloom will not retry this job",
             )
-        receipt.write_text(json.dumps({"jobId": job_id, "taskId": self.task_id, "state": "queued"}), encoding="utf-8")
+        record = {"jobId": job_id, "taskId": self.task_id, "state": "queued"}
+        wake_state = _bridge_wake_state(completed.stdout)
+        if wake_state is not None:
+            record["wakeState"] = wake_state
+        receipt.write_text(json.dumps(record), encoding="utf-8")
+        if wake_state == "open_unconfirmed":
+            raise ImageJobError(
+                "image_dispatch_wake_unconfirmed",
+                "任务已入队，但无法确认助手聊天已打开。请在 Codex 中打开对应助手；请勿重复发送。",
+            )
 
     def complete(self, job_id: str) -> None:
         """Release the one-job gate only after terminal repository handling."""
@@ -108,3 +134,15 @@ class NativeCodexImageDispatcher:
             return
         if record == {"jobId": job_id, "taskId": self.task_id}:
             active.unlink()
+
+
+def _bridge_wake_state(stdout: str | None) -> str | None:
+    """Read only the Mac shim's bounded acknowledgement, not native CLI prose."""
+    try:
+        value = json.loads(stdout)
+    except (ValueError, TypeError):
+        return None
+    for state in ("open_requested", "open_unconfirmed"):
+        if value == {"protocol": "plotloom.native-queue.v1", "wakeState": state}:
+            return state
+    return None

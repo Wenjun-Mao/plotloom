@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
+from ..delegated_qa_contracts import AgentQaAttribution
+from ..human_confirmation_contracts import UnnamedCreatorConfirmation
 
 from ..domain import (
     STAGE_ORDER,
@@ -71,7 +73,9 @@ class ProjectDuplicateRequest(LifecycleRequest):
 
 
 class ProjectPermanentDeleteRequest(LifecycleRequest):
+    expected_project_revision: int = Field(ge=1)
     confirmation_title: str = Field(min_length=1, max_length=200)
+    scope_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @field_validator("confirmation_title")
     @classmethod
@@ -79,6 +83,17 @@ class ProjectPermanentDeleteRequest(LifecycleRequest):
         if not value.strip():
             raise ValueError("confirmationTitle must not be blank")
         return value
+
+
+class ProjectAbandonDeleteRequest(ProjectPermanentDeleteRequest):
+    preview_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    acknowledge_unknown_remote: bool = False
+
+
+class ProjectDeletionStopRequest(ProjectPermanentDeleteRequest):
+    scope_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_run_id: str = Field(min_length=1)
+    expected_run_revision: int = Field(ge=1)
 
 
 class ProjectListResponse(CamelModel):
@@ -152,20 +167,15 @@ class StoryboardApprovalRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     decision: Literal["approve", "revoke"]
-    reviewer: str = Field(
-        min_length=1,
-        max_length=256,
-        description="User-supplied local-workbench label; not an authenticated identity.",
-    )
+    attribution: UnnamedCreatorConfirmation | AgentQaAttribution
     gate_set_version: str = Field(min_length=1, max_length=128)
-    note: str | None = Field(default=None, max_length=4_000)
 
-    @field_validator("reviewer", "gate_set_version")
+    @field_validator("gate_set_version")
     @classmethod
     def reject_blank_review_fields(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("reviewer and gateSetVersion must not be blank")
+            raise ValueError("gateSetVersion must not be blank")
         return normalized
 
 
@@ -181,6 +191,7 @@ class ApprovalDecisionView(CamelModel):
     gate_set_version: str
     decision: Literal["approve", "revoke"]
     reviewer: str
+    attribution: UnnamedCreatorConfirmation | AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     note: str | None
     created_at: datetime
 

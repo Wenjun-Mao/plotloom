@@ -80,7 +80,7 @@ one unauthenticated health route. Ordinary FL2VA creation uses a required exact
    Plotloom does not expose it as an authoring mode.
 3. `POST /v1/video-jobs/from-image-with-voice` accepts one first frame and one
    short voice-reference WAV for the separate Ref2VA Base-20 path. It does not
-   accept FL2VA `quality` or an end frame; see [ADR 0090](../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+   accept FL2VA `quality` or an end frame; see [ADR 0205](../../docs/adr/0205-h3-ref2va-per-job-voice-reference.md).
 4. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
    frame count, actual duration, and backend elapsed timing.
 5. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
@@ -99,7 +99,7 @@ The gateway owns one FIFO dispatch worker. Its queue is intentionally not
 length-capped: one H3, Qwen image **or** Voice Lab generation runs at a time while
 further jobs remain durably queued. All Lab creation/clone/take entrypoints register
 through the same lane. Unknown outcomes and unproven child release block dispatch,
-without replay. See [ADR 0097](../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md).
+without replay. See [ADR 0212](../../docs/adr/0212-published-voice-performance-takes-and-shared-admission.md).
 
 The authenticated `/v1/voice-takes` facade delegates voice resolution and durable
 audio ownership to the CPU Voice Lab control service, not gateway media tables.

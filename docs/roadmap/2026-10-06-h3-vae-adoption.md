@@ -3,7 +3,7 @@
 Owner approved maintained video-only precision, reload/clone correction,
 focused lifecycle tests, audio BF16 confirmation and deployment. Root is sole
 writer; independent review is read-only. Baseline: `e422b4e` on the specialist
-branch. [ADR 0098](../adr/0098-h3-video-only-vae-precision.md) owns the contract.
+branch. [ADR 0213](../adr/0213-h3-video-only-vae-precision.md) owns the contract.
 
 1. Implement maintained Comfy loader and frozen gateway VAE binding. Test all
    qualities, Ref2VA, rejection of missing runtime policy and old snapshots.

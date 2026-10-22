@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import Response
+from ..exceptions import InvalidTransitionError
 
 from ..project_storage.application_store import ApplicationStore
 from ..project_storage.project_handle import ProjectStore
@@ -17,8 +18,9 @@ from ..video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
 from ..video_contracts import (
     VideoDiscardRequest,
     VideoDiscardUnselectedRequest,
-    VideoJobRequest,
     VideoEndFrameDecisionRequest,
+    VideoJobRequest,
+    VideoReviewReopenRequest,
     VideoReviewRequest,
     VideoSegmentPrepareRequest,
     VideoSegmentSelectRequest,
@@ -164,13 +166,32 @@ def register_project_folder_video_routes(
     def review_video_job(
         project_id: str, video_job_id: str, body: VideoReviewRequest
     ) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
+            if body.attribution and body.reviewer:
+                raise InvalidTransitionError("QA attribution cannot also claim a human reviewer")
             return _local_repository(store).review_video_job(
                 project_id,
                 video_job_id,
-                reviewer=body.reviewer,
+                reviewer=body.attribution or body.reviewer,
                 decision=body.decision,
                 note=body.note,
+                expected_selection_revision=body.expected_selection_revision,
+            )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/video-jobs/{video_job_id}/review/reopen",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def reopen_video_job_review(
+        project_id: str, video_job_id: str, body: VideoReviewReopenRequest
+    ) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return _local_repository(store).reopen_video_job_review(
+                project_id,
+                video_job_id,
+                reviewer=body.reviewer,
+                reason=body.reason,
                 expected_selection_revision=body.expected_selection_revision,
             )
 
@@ -229,7 +250,8 @@ def register_project_folder_video_routes(
             job = next((item for item in _local_repository(store).list_video_jobs(project_id) if item["id"] == video_job_id), None)
             if job is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="video discard candidate not found")
-            shot = job.get("snapshot", {}).get("shot", {})
+            snapshot = job.get("snapshot")
+            shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
             shot_id = shot.get("id") if isinstance(shot, dict) else None
             if not isinstance(shot_id, str):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="video candidate has no valid frozen shot")

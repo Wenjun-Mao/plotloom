@@ -2,11 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
 import { plotloomApi } from "./api";
 import { Button } from "./components";
+import { humanReviewLabel } from "./human-review-attribution";
+import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
+import { shotLabel, storyShotLabel } from "./shot-label";
+import { nodeFootageGaps } from "./node-footage";
+import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
 
-type FrozenShot = { id?: string; title?: string; sceneId?: string };
+type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
 function frozenShot(job: VideoJob): FrozenShot {
-  const candidate = job.snapshot.shot;
+  const candidate = frozenVideoSnapshot(job)?.shot;
   return candidate && typeof candidate === "object" ? candidate as FrozenShot : {};
 }
 
@@ -42,10 +47,10 @@ export function branchingPreviewManifest(
   });
   const nodes = new Map<string, BranchingPreviewNode>();
   graph.nodes.forEach((node) => {
-    const shots = sceneBeats.scenes
+    const nodeScenes = sceneBeats.scenes
       .filter((scene) => scene.storyNodeId === node.id)
-      .sort((left, right) => left.order - right.order)
-      .flatMap((scene) => storyboard.shots
+      .sort((left, right) => left.order - right.order);
+    const shots = nodeScenes.flatMap((scene) => storyboard.shots
         .filter((shot) => shot.sceneId === scene.id)
         .sort((left, right) => left.order - right.order));
     const jobsForNode = shots.flatMap((shot) => (selectedByShot.get(shot.id) || [])
@@ -54,7 +59,8 @@ export function branchingPreviewManifest(
     const missingShots = shots.filter((shot) => !(selectedByShot.get(shot.id) || []).some(
       (job) => frozenShot(job).sceneId === shot.sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits,
     ));
-    const missingShotTitles = missingShots.map((shot) => shot.title || shot.id);
+    const missingShotTitles = missingShots.map((shot) => shotLabel(shot));
+    missingShotTitles.push(...nodeFootageGaps(node, sceneBeats, storyboard));
     const missingShotIds = missingShots.map((shot) => shot.id);
     nodes.set(node.id, {
       node,
@@ -67,7 +73,7 @@ export function branchingPreviewManifest(
   const identity = JSON.stringify({
     projectId,
     start: graph.startNodeId,
-    nodes: graph.nodes.map(({ id, kind }) => [id, kind]),
+    nodes: graph.nodes.map(({ id, kind, footageMode }) => [id, kind, footageMode]),
     edges: graph.edges.map(({ id, sourceNodeId, targetNodeId, kind, choiceText }) => [id, sourceNodeId, targetNodeId, kind, choiceText]),
     scenes: sceneBeats.scenes.map(({ id, storyNodeId, order }) => [id, storyNodeId, order]),
     shots: storyboard.shots.map(({ id, sceneId, order }) => [id, sceneId, order]),
@@ -89,6 +95,9 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     () => branchingPreviewManifest(projectId, jobs, storyboard, sceneBeats, graph),
     [projectId, jobs, storyboard, sceneBeats, graph],
   );
+  const playbackJobs = [...manifest.nodes.values()].flatMap(node => node.jobs);
+  const bridgeOwned = playbackJobs.some(job => (frozenVideoSnapshot(job)?.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
+  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, frozenVideoSnapshot(job)?.sourceTiming]), scope: manifest.identity, edges: graph.edges });
   const player = useRef<HTMLVideoElement>(null);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");
@@ -96,6 +105,9 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const mediaFailureRef = useRef<string | null>(null);
   const currentMediaIdentityRef = useRef("");
   const [nodeId, setNodeId] = useState(graph.startNodeId);
+  const choiceRead = useBridgeChoiceRead(projectId, choiceIdentity, bridgeOwned, graph.edges, nodeId);
+  const runtimeChoice = choiceRead.choice;
+  const choiceReady = !bridgeOwned || choiceRead.status === "ready";
   const [episode, setEpisode] = useState(0);
   const [visit, setVisit] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
@@ -160,7 +172,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
 
   useEffect(() => {
-    if (!node || node.jobs.length || incompleteShots.length) return;
+    if (!node || node.node.footageMode !== "route_only" || node.jobs.length || incompleteShots.length) return;
     // An empty structural chain may select the first playable node, but it
     // never manufactures the initial user gesture required to start media.
     finishNode(false);
@@ -187,9 +199,14 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   }
   const isDecision = node.node.kind === "decision" || node.outgoing.length > 1;
   const isEnding = node.node.kind === "ending" || node.outgoing.length === 0;
+  const choiceLabels = history.flatMap((edgeId) => {
+    const edge = graph.edges.find((item) => item.id === edgeId);
+    return edge?.kind === "choice" ? [edge.choiceText || manifest.nodes.get(edge.targetNodeId)?.node.title || "继续"] : [];
+  });
   const missingMedia = [...new Set([...incompleteShots, ...(mediaFailure ? [mediaFailure] : [])])];
   const failedShotId = mediaFailure && current ? frozenShot(current).id : undefined;
   const returnShotIds = [...new Set([...missingShotIds, ...(failedShotId ? [failedShotId] : [])])];
+  const footageGaps = graph.nodes.flatMap(item => nodeFootageGaps(item, sceneBeats, storyboard));
   const play = () => {
     const active = player.current;
     if (!active || !mediaIdentity) {
@@ -231,12 +248,14 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
   return <section className="video-sequence" data-testid="branching-video-preview">
     <strong>{title}</strong>
-    <small>当前节点：{node.node.title || node.node.id}。选择历史：{history.length ? history.join(" → ") : "尚未选择"}</small>
-    {missingMedia.length > 0 && <div className="notice warning" data-testid="branching-missing-media">
-      <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : `故事还不能播放：${missingMedia.join("、")} 缺少当前已确认的播放片段。`}待审原片不会自动用于故事。</small>
-      {returnShotIds.map((shotId) => <a key={shotId} href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyboard.shots.find((shot) => shot.id === shotId)?.title || shotId} 审核片段</a>)}
+    <small>当前段落：{node.node.title || node.node.id}。选择历史：{choiceLabels.length ? choiceLabels.join(" → ") : "尚未选择"}</small>
+    {missingMedia.length > 0 && <div className="notice warning branching-missing-media" data-testid="branching-missing-media">
+      <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : returnShotIds.length ? `故事还不能播放：${returnShotIds.length} 个镜头缺少当前已确认的播放片段。` : "故事还不能播放：请先处理下方的画面编排问题。"}待审原片不会自动用于故事。</small>
+      {footageGaps.length > 0 && <ul>{footageGaps.map((gap, index) => <li key={index}>{gap}</li>)}</ul>}
+      <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyShotLabel(shotId, storyboard, sceneBeats, graph)} 审核片段</a></li>)}</ul>
     </div>}
     {!missingMedia.length && current && <>
+      {current.playbackSegment?.attribution?.kind === "agent_operated_qa" && <small role="status">{humanReviewLabel({ reviewer: "", attribution: current.playbackSegment.attribution })} · 一次性测试素材</small>}
       <video
         key={mediaIdentity}
         controls
@@ -248,18 +267,23 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
         onEnded={(event) => advanceClip(event.currentTarget.dataset.playbackIdentity)}
         onError={(event) => {
           if (event.currentTarget.dataset.playbackIdentity !== mediaIdentity || currentMediaIdentityRef.current !== mediaIdentity) return;
-          const failure = frozenShot(current).title || frozenShot(current).id || current.id;
+          const failure = shotLabel(frozenShot(current), current.id);
           mediaFailureRef.current = failure;
           setShouldAutoplay(false);
           setMediaFailure(failure);
         }}
       />
-      <small>节点镜头 {clipIndex + 1}/{node.jobs.length}。{isDecision || isEnding ? "最后一帧停留，等待明确操作。" : "单一路径完成后继续。"}</small>
+      <small>本段镜头 {clipIndex + 1}/{node.jobs.length}。{isDecision || isEnding ? "最后一帧停留，等待明确操作。" : "单一路径完成后继续。"}</small>
       <div className="button-row"><Button onClick={play}>播放当前</Button></div>
     </>}
-    {!missingMedia.length && !current && <small>此节点没有已编排镜头。</small>}
+    {!missingMedia.length && !current && <small>{node.node.footageMode === "route_only" ? "此节点只控制故事路线，无需播放画面。" : "此节点没有已编排镜头。"}</small>}
+    {bridgeOwned && !choiceReady && <div role="status">
+      <small>{choiceRead.status === "loading" ? "正在核对当前来源的选择界面；未确认时不能选择分支。" : choiceRead.status === "failed" ? `选择界面读取失败：${choiceRead.error}。可重试核对。` : "选择界面与当前来源、路线或片段不一致；请核对投产提案与媒体后重试。"}</small>
+      {choiceRead.status !== "loading" && <Button onClick={choiceRead.retry}>重试核对选择界面</Button>}
+    </div>}
     {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
-    {!missingMedia.length && nodeComplete && isDecision && <div className="button-row" data-testid="branching-choices">
+    {!missingMedia.length && nodeComplete && isDecision && choiceReady && <div className="button-row" data-testid="branching-choices">
+      {runtimeChoice?.sectionId === node.node.id && <p data-testid="branching-choice-question">{runtimeChoice.prompt}</p>}
       {node.outgoing.map((edge) => <Button key={edge.id} onClick={() => moveTo(edge, true)}>{edge.choiceText || `前往 ${manifest.nodes.get(edge.targetNodeId)?.node.title || edge.targetNodeId}`}</Button>)}
     </div>}
     {!missingMedia.length && nodeComplete && isEnding && <div className="button-row"><Button onClick={restart}>{restartLabel}</Button></div>}

@@ -137,7 +137,7 @@ owner's subsequent testing/downtime permission covers one further cold D smoke
 after a checkpoint-storage guard correction (six total including the precursor
 A and preserved first D). They do not produce extra full clips or a tuning sweep.
 
-Respect the [shared dispatch boundary](../adr/0097-published-voice-performance-takes-and-shared-admission.md):
+Respect the [shared dispatch boundary](../adr/0212-published-voice-performance-takes-and-shared-admission.md):
 do not bypass the generation lane because Comfy's queue looks empty. Enter a
 verified maintenance window: stop new managed dispatch, drain/reconcile all
 H3/Qwen-Image/Voice Lab jobs and grants, and exclude direct backend callers.
@@ -213,5 +213,5 @@ it does not authorize another writer or additional calls.
 state accounted for, and a recommendation awaiting owner review. No director
 message, production switch, merge or push.
 
-Related decisions: [runtime isolation](../adr/0095-h3-runtime-qualification-and-catalog-isolation.md)
-and [shared admission](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
+Related decisions: [runtime isolation](../adr/0210-h3-runtime-qualification-and-catalog-isolation.md)
+and [shared admission](../adr/0212-published-voice-performance-takes-and-shared-admission.md).

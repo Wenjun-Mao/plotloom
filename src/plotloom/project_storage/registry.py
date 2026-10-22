@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
+from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -13,17 +14,14 @@ from ..domain import (
     ProjectBrief,
     ProjectCreation,
     ProjectDuplicateResult,
-    ProjectLifecycleStatus,
     InitialStage,
     STAGE_ORDER,
     StageName,
     StageStatus,
-    brief_for_new_project,
     validate_initial_stage_prefix,
 )
 from ..exceptions import (
     InvalidTransitionError,
-    ProjectManagedAssetsPresentError,
     RevisionConflictError,
 )
 from .format import (
@@ -40,32 +38,35 @@ from .format import (
     parse_project_manifest,
 )
 from .project_handle import ProjectStore
-from .recovery_validation import database_state
-from .video_candidate_transition import (
-    ProjectSchemaTransitionRequiredError,
-    project_schema_status,
-)
+from .project_home import ProjectHome, find_project_home
+from .deletion import permanently_delete_home
+from .write_admission import ProjectWriteAdmission
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
     ProjectClosedError,
     close_blockers,
+    retained_specialist_job_ids,
+    specialist_publication_blockers,
 )
-
-
-@dataclass(frozen=True)
-class ProjectHome:
-    """One discovered project directory and its immutable manifest."""
-
-    path: Path
-    manifest: ProjectManifest
 
 
 class ProjectDirectoryRegistry:
     """Rebuildable project catalog derived only from validated manifests."""
 
-    def __init__(self, outputs_root: Path) -> None:
+    def __init__(self, outputs_root: Path, *, native_ownership: Callable[[str, set[str]], list[str]] | None = None,
+                 require_admitted: Callable[[str], None] | None = None) -> None:
         self.outputs_root = _require_real_directory(outputs_root, label="outputs root")
+        self._native_ownership = native_ownership
+        self.admission = ProjectWriteAdmission(require_admitted)
+
+    def native_blockers(self, store: ProjectStore) -> list[str]:
+        if self._native_ownership is None:
+            return []
+        return self._native_ownership(store.manifest.project_id, retained_specialist_job_ids(store))
+
+    def specialist_blockers(self, store: ProjectStore) -> list[str]:
+        return specialist_publication_blockers(store) + self.native_blockers(store)
 
     def _new_home(self, project: Project) -> Path:
         directory_name = f"{_utc_folder_timestamp(project.created_at)}__{project.id}"
@@ -90,7 +91,6 @@ class ProjectDirectoryRegistry:
         # This keeps an idempotent retry reservation recoverable only after a
         # complete project initialization can actually begin.
         validate_initial_stage_prefix(initial_stages)
-        brief = brief_for_new_project(brief)
         values: dict[str, object] = {"brief": brief}
         if project_id is not None:
             values["id"] = project_id
@@ -98,6 +98,7 @@ class ProjectDirectoryRegistry:
             values["created_at"] = created_at
             values["updated_at"] = created_at
         project = Project(**values)
+        self.admission.require_admitted(project.id)
         home = self._new_home(project)
         manifest = ProjectManifest(project_id=project.id, created_at=project.created_at)
         _write_new_file(
@@ -106,7 +107,7 @@ class ProjectDirectoryRegistry:
                 _canonical_json(manifest.model_dump(mode="json", by_alias=True)) + "\n"
             ).encode("utf-8"),
         )
-        lease = ProjectAccessLease.acquire(home, mode="shared")
+        lease = self.admission.lease(home, project.id, mode="shared")
         try:
             return ProjectStore.initialize(
                 home,
@@ -136,7 +137,7 @@ class ProjectDirectoryRegistry:
         """
 
         validate_initial_stage_prefix(initial_stages)
-        brief = brief_for_new_project(brief)
+        self.admission.require_admitted(project_id)
         project = Project(
             id=project_id,
             brief=brief,
@@ -159,7 +160,7 @@ class ProjectDirectoryRegistry:
             raise ProjectStorageCorruptionError(
                 "reserved project manifest does not match its idempotency reservation"
             )
-        lease = ProjectAccessLease.acquire(home, mode="shared")
+        lease = self.admission.lease(home, project_id, mode="shared")
         try:
             try:
                 return ProjectStore.initialize(
@@ -180,7 +181,7 @@ class ProjectDirectoryRegistry:
                 lease.close()
             raise
 
-    def discover(self) -> list[ProjectHome]:
+    def discover(self, *, passive: bool = False) -> list[ProjectHome]:
         homes: list[ProjectHome] = []
         for candidate in sorted(
             self.outputs_root.iterdir(), key=lambda path: path.name
@@ -197,18 +198,15 @@ class ProjectDirectoryRegistry:
             try:
                 manifest = parse_project_manifest(_read_json(manifest_path))
                 lease = ProjectAccessLease.acquire(
-                    candidate, mode="shared", create=False
+                    candidate, mode="shared", create=False, passive=passive
                 )
                 try:
                     store = ProjectStore.open(
-                        candidate, read_only=True, access_lease=lease
+                        candidate, read_only=True, admission="inspection", access_lease=lease
                     )
-                except ProjectSchemaTransitionRequiredError:
-                    # Keep this known legacy folder discoverable so an admitted
-                    # writable open can perform its one-time transition.
+                except BaseException:
                     lease.close()
-                    homes.append(ProjectHome(path=candidate.resolve(), manifest=manifest))
-                    continue
+                    raise
                 store.close()
             except (ProjectStorageError, ValueError, SQLAlchemyError):
                 continue
@@ -219,31 +217,7 @@ class ProjectDirectoryRegistry:
         """Open an admitted shared handle; closed homes never reopen implicitly."""
 
         home = self._project_home(project_id)
-        if (
-            project_schema_status(
-                home.path / home.manifest.database_path, home.manifest.project_id
-            )
-            != "current"
-        ):
-            if database_state(
-                home.path / home.manifest.database_path, home.manifest.project_id
-            ) != "open":
-                raise ProjectClosedError(
-                    "project_closed: reopen it explicitly before editing"
-                )
-            # The only project-schema mutation is serialized under an
-            # exclusive folder lease. The returned handle below is a fresh,
-            # ordinary shared lease after the transaction commits.
-            transition_lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
-            try:
-                transitioned = ProjectStore.open(
-                    home.path, defer_wal=True, access_lease=transition_lease
-                )
-            except BaseException:
-                transition_lease.close()
-                raise
-            transitioned.close()
-        lease = ProjectAccessLease.acquire(home.path, mode="shared")
+        lease = self.admission.lease(home.path, project_id, mode="shared")
         try:
             store = ProjectStore.open(
                 home.path, defer_wal=True, access_lease=lease
@@ -259,19 +233,35 @@ class ProjectDirectoryRegistry:
                 lease.close()
             raise
 
-    def inspect(self, project_id: str) -> ProjectStore:
-        """Open a shared read handle without changing closed-project admission."""
+    def inspect(self, project_id: str, *, passive: bool = False,
+                admission: Literal["inspection", "authority"] = "inspection") -> ProjectStore:
+        """Read with explicit admission, without reopening closed projects."""
 
         home = self._project_home(project_id)
         lease = ProjectAccessLease.acquire(
-            home.path, mode="shared", create=False
+            home.path, mode="shared", create=False, passive=passive
         )
         try:
             return ProjectStore.open(
-                home.path, read_only=True, access_lease=lease
+                home.path, read_only=True, admission=admission, access_lease=lease
             )
         except BaseException:
             lease.close()
+            raise
+
+    def read_open(self, project_id: str) -> ProjectStore:
+        """Inspect raw data while retaining open/deletion admission obligations."""
+        store = self.inspect(project_id)
+        try:
+            # The shared lease is already held: deletion cannot acknowledge
+            # between this predicate and the requested confined read.
+            self.admission.require_admitted(project_id)
+            state, _revision = store.repository.operational_state()
+            if state != "open":
+                raise ProjectClosedError("project_closed: reopen it explicitly before reading workspace media")
+            return store
+        except BaseException:
+            store.close()
             raise
 
     def close_project(self, project_id: str) -> int:
@@ -280,6 +270,9 @@ class ProjectDirectoryRegistry:
         store = self._exclusive_store(project_id)
         try:
             state, revision = store.repository.operational_state()
+            native = self.native_blockers(store)
+            if native:
+                raise ProjectBusyError("project_busy: " + ", ".join(native))
             if state == "open":
                 blockers = close_blockers(store)
                 if blockers:
@@ -307,22 +300,16 @@ class ProjectDirectoryRegistry:
         """Explicitly reopen a closed folder without dispatching or replaying work."""
 
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        lease = self.admission.lease(home.path, project_id, mode="exclusive")
         try:
-            store = ProjectStore.open(
-                home.path, access_lease=lease, apply_project_schema_transition=False
-            )
+            store = ProjectStore.open(home.path, access_lease=lease)
         except BaseException:
             lease.close()
             raise
         try:
             state, revision = store.repository.operational_state()
             if state == "open":
-                store.transition_project_schema()
                 return revision
-            # Reopening is the sole explicit operation allowed to advance a
-            # closed legacy folder before it can accept ordinary writes.
-            store.transition_project_schema(allow_closed=True)
             _state, revision = store.repository.set_operational_state(
                 expected_revision=revision, state="open"
             )
@@ -446,76 +433,36 @@ class ProjectDirectoryRegistry:
         self,
         project_id: str,
         *,
+        expected_project_revision: int,
         expected_lifecycle_revision: int,
         confirmation_title: str,
+        scope_hash: str | None = None,
     ) -> None:
-        """Remove one archived, media-free home after exact confirmation."""
-
-        store = self._exclusive_store(project_id)
-        removed = False
-        try:
-            project = store.project()
-            if project.lifecycle_revision != expected_lifecycle_revision:
-                raise RevisionConflictError(
-                    "project-lifecycle",
-                    expected_lifecycle_revision,
-                    project.lifecycle_revision,
-                )
-            if project.lifecycle_status != ProjectLifecycleStatus.ARCHIVED:
-                raise InvalidTransitionError(
-                    "only archived projects can be permanently deleted"
-                )
-            if confirmation_title != project.brief.title:
-                raise InvalidTransitionError(
-                    "confirmation title does not match the project title"
-                )
-            self._require_lifecycle_quiescence(store)
-            if store.media.list_managed_assets(project_id):
-                raise ProjectManagedAssetsPresentError()
-            store.remove_home()
-            removed = True
-        finally:
-            if not removed:
-                store.close()
+        permanently_delete_home(
+            self._exclusive_store(project_id),
+            native_blockers=self.native_blockers,
+            outputs_root=self.outputs_root,
+            expected_project_revision=expected_project_revision,
+            expected_lifecycle_revision=expected_lifecycle_revision,
+            confirmation_title=confirmation_title,
+            scope_hash=scope_hash,
+        )
 
     def _project_home(self, project_id: str) -> ProjectHome:
-        matches = [
-            home for home in self.discover() if home.manifest.project_id == project_id
-        ]
-        if not matches:
-            # A rejected manifest must remain diagnosable by its known project
-            # identity. In particular, format-9 is not silently hidden as a
-            # missing folder: callers receive its reset-required admission
-            # failure before any schema-opening path can mutate it.
-            for candidate in self.outputs_root.iterdir():
-                manifest_path = candidate / PROJECT_MANIFEST_FILENAME
-                if candidate.is_symlink() or not candidate.is_dir() or manifest_path.is_symlink() or not manifest_path.is_file():
-                    continue
-                raw = _read_json(manifest_path)
-                if raw.get("projectId") == project_id or raw.get("project_id") == project_id:
-                    parse_project_manifest(raw)
-            raise ProjectStorageError(
-                f"project not found in outputs root: {project_id}"
-            )
-        if len(matches) > 1:
-            raise ProjectStorageCorruptionError(
-                f"multiple project homes share identity: {project_id}"
-            )
-        return matches[0]
+        return find_project_home(self.outputs_root, project_id)
 
     def _exclusive_store(self, project_id: str) -> ProjectStore:
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        lease = self.admission.lease(home.path, project_id, mode="exclusive")
         try:
             return ProjectStore.open(home.path, access_lease=lease)
         except BaseException:
             lease.close()
             raise
 
-    @staticmethod
-    def _require_lifecycle_quiescence(store: ProjectStore) -> None:
+    def _require_lifecycle_quiescence(self, store: ProjectStore) -> None:
         """Apply the same external-publication guard used by folder close."""
 
-        blockers = close_blockers(store)
+        blockers = close_blockers(store) + self.native_blockers(store)
         if blockers:
             raise ProjectBusyError("project_busy: " + ", ".join(blockers))

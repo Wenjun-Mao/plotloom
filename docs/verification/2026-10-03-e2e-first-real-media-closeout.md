@@ -1,0 +1,480 @@
+# E2E-first real-media continuation
+
+Owner authority: [eight-hour continuation](../roadmap/2026-10-03-e2e-first-continuation.md),
+starting 2026-10-03 18:43:28 UTC. The outcome is a usable complete creator/player
+journey with acceptable media, not final-film approval. The owner expressly
+authorized labeled provisional selections in the isolated copy and kept new
+sound acceptance pending personal listening initially. The owner listening
+follow-up below now accepts the six exact remaining cuts. This receipt supplements the
+earlier [reference/script/storyboard loop](2026-10-02-stage23-live-completion.md).
+
+Source candidate starts at `e65830033edf248d22e7a6d8286f0c65e1c29698` on retained
+`main`. Root is the sole live/UI/provider writer. Source handoffs were serial;
+Sol/Medium implemented presentation ownership, Luna/Max implemented explicit
+reopening, and root integrated and independently reviewed both. Actual native
+finals were collected; no worker identity or Stop was synthesized.
+
+## Durable implementation and observed usability repairs
+
+- [ADR 0107](../adr/0107-shot-production-presentation.md): append-only,
+  source-hash/CAS-bound shot presentation review. Exact nonspoken Chinese is
+  selected from current-shot or immediate same-scene predecessor authority,
+  never typed into a provider-only override. Image/H3 use one effective
+  projection. Only the amended shot is invalidated; unaffected selections and
+  immutable historical requests remain intact. Additive schema admission is
+  limited to the exact predecessor layout.
+- [ADR 0108](../adr/0108-explicit-h3-rejected-take-reconsideration.md): an
+  attributed explicit reopening preserves rejection history, requires current
+  H3 output and revision CAS, and does not generate, prepare or select media.
+  A2 was reopened through that UI and selected only after normal playback.
+- Independent review found a nonspoken/spoken ownership conflict in a synthetic
+  case. The shared presentation boundary now rejects exact literals contained
+  in canonical dialogue before appending a decision. It preserves unrelated
+  dialogue rather than silently deleting cues. Focused and independent tests
+  cover all presentation modes, contained literals and source immutability.
+- Loading/failed media reads are unknown, not confirmed missing configuration,
+  references, jobs or previews. Mutations remain withdrawn until authoritative
+  reads recover. Current unbound image deliveries no longer appear falsely
+  stale. Image history defaults to the selected shot; full-project history is
+  explicit and every card retains its originating shot label.
+- Bounded display-only shot titles avoid paragraph-sized selectors/cards without
+  changing source IDs or frozen narrative text. Candidate controls now say
+  `用此图审阅关键帧` / `当前待审关键帧候选`, and selection says
+  `审核为当前镜头关键帧`. Rejected-take wording explains reopening explicitly.
+- The real reader exposed raw `path-a` / `path-b` history. Display now maps
+  authored choice labels and excludes automatic continuation edges; routing
+  history still stores the original IDs. Reader labels use `当前段落` and
+  `本段镜头`. This is presentation only, not a new branch state machine.
+
+The two worker [presentation](2026-10-03-shot-presentation-contract.md) and
+[reopening](2026-10-03-h3-rejected-take-reopen.md) receipts retain their own
+earlier source checkpoints. They are not substituted for root's live evidence.
+
+## Twelve current selected real-media segments
+
+All cuts are 60 frames / 2.5 seconds at 24 fps, with 80,000 presented native
+audio samples at 32 kHz. Selection and currentness were independently read
+after final isolated backend activation: **12 selected / 12 current**.
+
+| Cut | Video job | Selected segment | Acceptance boundary |
+| --- | --- | --- | --- |
+| C1 | `vj_4d259d91e0c049f985aedcfbd12ac469` | `7b204194-18a8-4758-bcb3-b7eb714f6ea1` | Prior owner visual/sound review |
+| C2 | `vj_9d1efcc0a49349c4b2500b1b5cb05d91` | `9f324db4-aa18-4e1a-adc0-bc5e08165e06` | Prior owner visual/sound review |
+| C3 | `vj_bcbe9aa2672c4a76800dc3df7c6ec649` | `4e9a6989-b094-46ce-8a68-ae93ca44a428` | Prior owner visual/sound review |
+| C4 | `vj_dd35c39fd80241c08c5d772e913427cd` | `8a7d7670-05f9-4bb5-8a11-f6f5918573ea` | Prior owner visual/sound review |
+| C5 | `vj_76a72a982acb44058115e67aa963d523` | `4d75aa82-2929-4a09-9bfa-499c5da00413` | Prior owner visual/sound review |
+| A1 | `vj_177a64801d574581b42698d2308b19a6` | `9c0561ab-f133-412b-8682-476a9c420f14` | Prior owner visual/sound review |
+| A2 | `vj_c30ca3742a6f4d9ab4a4f60c0e91ad08` | `e65d7e1d-138a-494e-bdb1-4bd780d7e26a` | Owner accepts following camera and sound; final-film approval separate |
+| A3 | `vj_ded2a1acb90e4ebfadc20ba58ba6d265` | `27256d30-7715-429d-aa78-61ef6a540bae` | Provisional visual/technical selection; owner sound approved |
+| B1 | `vj_4c0cb2112d6f4e82b4bba18fb75e50af` | `819da93e-0851-4451-b756-86e991cdf0c2` | Owner accepts wider geography and sound; final-film approval separate |
+| B2 | `vj_4f61075ac4de4f26abf8d55c8de6ec69` | `2ad3b943-569d-4e74-ad73-f3da1b4bb944` | New canonical popped-out draft; provisional visual selection, owner sound approved |
+| B3 | `vj_8498e30b3ae44f34a9c81c9b5bc9b2a2` | `61168c76-ecdf-497b-95d5-9bdca3edc7a8` | New canonical send state; provisional visual selection, owner sound approved |
+| B4 | `vj_4946a84ef11043fc985da24237fc6489` | `062d8f5d-48f1-4f1c-be9a-588348c0f0e6` | Provisional visual/technical selection; owner sound approved |
+
+Five fresh H3 jobs were submitted once each: B1, A3, B2, B4, B3. A2 reused
+its retained owner-viewed retry without changing original bytes. All five
+requested quality 8, 832×480, five seconds / 124 frames; measured outputs are
+5.167 seconds, H.264/AAC. Explicit no-end-frame decisions and reviewed prompt
+previews were saved before submission. B1/B2 use reviewed center crop for
+1672×941 input; A3/B3/B4 use matching 832×480 input with mismatch refusal.
+No fresh ImageGen call or alternate provider was used. No measured financial
+cost delta is available.
+
+| New cut | Seed | Request SHA-256 | Original SHA-256 | Segment SHA-256 |
+| --- | --- | --- | --- | --- |
+| B1 | `7540316614097988` | `6e2e21cb904b95e58dbd89545672f7ae2c99ce66732042ba93705306be7450ff` | `5db42efc4dd7f9cba7f2ec6aeaa9452ef1c8f0bc0242b4d67547ce9324946176` | `a7c422ba891c1f08aeffad121a3797af31cac979f2b98bae933ecea0234815a2` |
+| A3 | `261169646671148` | `c86adaccc0866ad3b6d8f67bf645743b6150a03d905afc943a8bd8a1af59d5d5` | `a6cd13162a45fef672777dba4c862c79f115b305be455a961608e33cb3094964` | `db5e36dd1e12651dba8d62b000c739e5fb3906181ae724881fca12b253ff39d5` |
+| B2 | `2363661064327674` | `f0e145c2a403f305fe28b49a1dc9a6217ab14ca6f6109110cfda14831cf13272` | `6afbe72c299dd8a3853cd2ebc4d71d9f7e08cb482914704250914d1b56640d7d` | `f093a2f5e3c92907f398e548ae27d3760813a11a8c74651a1259e9413e89d26f` |
+| B3 | `1611691850115216` | `ab71d45c82cd84605e807ab877db19cd14f6ac6ebd0eac45bd14edc49c588b08` | `78ed626ceb52b42a5b22dd94d377a0516ae1136807377d13f42bded1f3424ef3` | `37b805f733241a1125f18868f69dcf6945b686bdc2012f1819f6a46536b37aaa` |
+| B4 | `7170378655818814` | `0b70743a5eff94be988d6fa2e70770574c010e54d371aab86e19ecbba7835a01` | `bc34ed14b8229a16959f31b9aa10dbe4489bed64a89a03f9a160742506fc2c7d` | `b56041c6a6553cba51bb68fbdec236930b4814c3f385b1b8c8069b71d3d44393` |
+
+B2 presentation r1 is `0476c3ef-63dc-4371-af40-8384714618a3`; B3 r1 is
+`51b1be49-274a-427c-a5b5-52f6324cb9e3`. B3 inherits the exact nonspoken literal
+`今晚不去了，明天见。` from adjacent B2. Its first frame is an unedited decode
+of B2 selected frame59, hash
+`99d3dee28bb235de4e91611dfd671fb5f81fc40b5fc72d15b78ddf60336179de`.
+Its reviewed compiled prompt hash is
+`d47ac957734fbb8ca8a3f2331313ddeef1e8b8589298f987586d5fed336dd8d0`.
+Normal playback shows a white unsent draft becoming pale cyan-blue, with the
+keyboard closing and sent state present by the 2.5-second segment end. The
+large original message remains intelligible; no new reply is shown.
+
+Output limits remain explicit: B2 has incidental tiny phone marks. B3 also
+generates a smaller same-message bubble and UI marks on the phone, contrary
+to the no-readable-phone-text direction. These are not new narrative facts,
+and the copy review records this as an acceptable E2E imperfection, not full
+instruction compliance or pixel-perfect/final-film approval. Camera/geography
+polishing is deferred under the owner's revised criterion. The bounded popped-out
+method is captured in the [H3 playbook](../operations/h3-prompt-writing-playbook.md).
+
+## Actual UI and route evidence
+
+CUA drove the real Codex in-app browser and the shipped static workbench on
+8851. Read-only DOM media observations verified natural playback; no seeking,
+synthetic `ended` event, fixture substitution or hidden application-state edit
+was used for the real routes.
+
+The creator flow exercised managed imports, intent/review binding, authored
+presentation review, H3 quality/dimension/end-frame controls, six source-bound
+English fields, complete prompt preview, one-shot submit/retrieve, 60-frame
+segment preparation and attributed provisional selection. A2 rejection →
+explicit reopen → playback → select preserves its history and selection r2.
+Missing B3/B4 route warnings and return-to-review links were visible before
+selection; they disappeared only when actual current segments were selected.
+
+The standalone reader played C1–C5 in order, paused at the final frame, and
+showed `林遥要如何回应这条消息？`, with `去咖啡馆赴约` / `今晚先回家`.
+The café choice advanced automatically through A1–A3 and held its ending at
+3/3; the home choice advanced through B1–B4 and held at 4/4. Each final player
+reported `ended=true`, `paused=true`, `time=duration=2.5`, `readyState=4`,
+`error=null`. Restart reset the opening to frame0, paused, with no choice history.
+Return to the creator workbench preserved media selections. Authored route
+durations are **20 seconds / 22.5 seconds**, excluding the user's choice pause;
+these are not a claim of 30-second production pacing or personal audio audition.
+
+Local exact screenshots/media are under
+`.local/unattended-2026-10-02/stage4-live/`. `runtime-choice-proof.jpg` is a
+494×188 crop of the actual choice controls, SHA-256
+`4438e27ea5c17133dff7dc114c63ba3077a3410ce8a3d9cd0dbb26dc7febab7f`.
+`home-route-end-proof.jpg` preserves the first complete reader ending screenshot;
+`final-home-route-proof.jpg` and `final-cafe-route-proof.jpg` preserve both
+endings after the display-label repair and repeated natural route playback.
+These are original CUA JPEG bytes, not reconstructed UI. New MP4 mirrors retain
+their managed hashes; the original independent bubble experiment is not relabeled
+as a canonical job.
+
+## First stable checkpoint: verification, activation and preservation
+
+- Full backend after the final shared conflict guard: **1,047 passed**;
+  one existing Starlette/httpx deprecation warning.
+- Full frontend: **413 passed / 54 files**; app and E2E TypeScript checks passed.
+  The latest display-history slice additionally passed 29 focused regressions.
+- Required API F401 and new/extracted backend/test scoped Ruff passed;
+  whitespace check passed. A broad legacy persistence lint probe is not clean
+  and was not silently reformatted; no repository-wide Ruff-clean claim is made.
+- Deterministic static build passed, with the existing large-chunk advisory.
+  Served 8851 JS matches source bytes, SHA-256
+  `12db0b2ca0ef7bcd89de429392be414fb0a2fcb06160cc9fc71d2f4e219388e5`.
+- Wheel build and installed-wheel smoke passed. Local terminal browser fixtures
+  are not represented as executed real-media proof; manual CI status is separate.
+- Independent native reviews covered presentation/reopening, immutable image
+  instruction changes and the nonspoken-dialogue guard. No demonstrated
+  correctness blocker remained at the stable checkpoint.
+
+The owned isolated runtime alone was refreshed at a quiet checkpoint: no active
+H3 jobs, specialist `busy=false`, `activeTasks=[]`. Candidate backend PID78264
+serves 8851/8852; health is OK and all12 selections remain current. The isolated
+process retains its explicit catalogv7 override. Normal 8841/8842, global
+settings, credentials, original project and historical receipts were untouched.
+The rebuilt static bytes are also visible on normal8841 through its pre-existing
+read-only checkout mount. Its cached Python process was not refreshed: a
+read-only probe of the new presentation endpoint returns404 there. This is a
+known normal-installation activation mismatch, not hidden backward compatibility
+or a verified normal deployment. The usable walkthrough target is8851. Original
+activation needs a deliberate additive schema upgrade (73→74 tables), outside
+the unchanged-original boundary; the owner has been asked separately whether
+to authorize it. No such upgrade/restart is inferred from provisional-copy
+selection permission.
+
+Original preflight and final captures compare byte-identically: **73 table
+facts, 67 file hashes and seven API projections**. Evidence:
+`evidence/manager-e2e-first-preflight-original.json` and
+`evidence/manager-e2e-first-final-original.json` under the same local run root.
+The copy alone admitted the additive presentation table (74 tables). No unknown
+dispatch was re-sent, no protected original/segment was deleted, and no blanket
+currentness/hash update or lease-release shortcut was used.
+
+Release revision, final UI recheck, remote CI result and heartbeat closure are
+recorded below when complete. New sound/final-film acceptance remains pending
+the owner even when this E2E implementation is complete.
+
+### Release-gate recovery
+
+Implementation `d228ca28c823bd80a6186ef474529f8cfe960de7` was pushed cleanly,
+but [CI run 37154439070](https://github.com/Wenjun-Mao/plotloom/actions/runs/37154439070)
+failed nine audio-timing cases (1,038 passed). Frontend contracts, archived
+prompt-reader verification, deterministic build and checked bundle passed;
+wheel/browser steps did not execute. This failure is retained, not represented
+as a green release.
+
+Root reproduced the exact FFmpeg 6.1.1 behavior in a disposable Ubuntu24
+container using the locked Python dependencies. The shared probe counted AAC
+codec padding rather than reconciling its shortened final packet with the
+MP4's exact stream endpoint. [ADR 0082](../adr/0082-proposed-production-playback-timing.md)
+records the measured discrepancy and the bounded reconciliation; no exactness
+tolerance was widened. A separately broken shifted-PTS fixture now explicitly
+preserves timestamps and asserts 192 frames/origin1 before derivation.
+The four affected test modules pass **66 tests** on both Linux FFmpeg6.1.1
+and Mac FFmpeg9.0.2. The revised probe also checks all12 retained selected
+segments without changing bytes, selections, hashes or historical evidence.
+
+Normal container inspection additionally found no FFmpeg executable. A separate
+candidate image now includes/build-checks FFmpeg and ffprobe, and its Debian
+FFmpeg5.1.9 successfully derives real B1 to60 frames/80,000 presented samples
+(80,896 decoded, 896 explained tail padding). This is temporary derivation from
+read-only media, not a new managed proposal or sound acceptance. The existing
+normal container was not replaced. Independent Sol/Medium review found that
+`start` could still reuse a cached container after mounted-only Python edits;
+explicit start now forces recreation, with an order/argument regression.
+Independent review of that fix found no remaining concrete blocker.
+The service's documented module-based test invocation passes47 tests; a direct
+`pytest` entrypoint invocation failed collection because its module path omitted
+the repository root, and is not counted as a passed check.
+The recovered candidate passes the complete local backend suite: **1,054 tests**,
+one existing deprecation warning, 298.49 seconds. Scoped Ruff/API F401,
+whitespace, wheel build and installed-wheel smoke pass. The stable candidate
+image was rebuilt under its separate test tag after the activation fix; neither
+the normal image tag nor its running container was replaced.
+
+Recovered implementation: `c2c3588c3de3a32ec77ad9ce7669cd028ccc3661`,
+cleanly pushed to `origin/main`. Fresh
+[CI run37156656232](https://github.com/Wenjun-Mao/plotloom/actions/runs/37156656232)
+targets that exact SHA. It passed frontend/Python/wheel gates but was cancelled
+at22:25UTC on the30-minute job limit during browser tests; it is not a green
+release receipt. Persistent browser failures include branching preview,
+exact-repair, first-save and frozen-profile journeys. No report artifact was
+uploaded because cancellation skipped the upload steps.
+Only the idle isolated runtime was reactivated (PID1865, 8851/8852): all17 H3
+jobs were already ingested and specialists had no active tasks. Health, served
+static SHA and all12 selected/current identities were rechecked. Both real
+routes then replayed naturally to their3/3 and4/4 endings, with native
+`ended=true`, `time=duration=2.5`, `readyState=4`, `error=null`. Restart reset
+time and choice history. `release-cafe-route-proof.jpg` and
+`release-home-route-proof.jpg` retain the post-activation original CUA captures.
+The original baseline still compares byte-identically; no normal upgrade
+approval has arrived, so this remains an intentionally copy-only handoff.
+
+### Requirement-by-requirement completion audit
+
+The original walkthrough and latest eight-hour continuation were read together;
+the revised E2E criterion supersedes film-polish gates, not source/dispatch or
+original-project protection. This is not a newly authored blank-project demo:
+the accepted initial source/outline was explicitly prepopulated from the verified
+owner-approved copy, as the original plan permits.
+
+| Required milestone | Authoritative evidence and current recheck |
+| --- | --- |
+| Isolation and preserved original | Supported snapshot/restore and confinement receipt; final original capture matches all73 table facts,67 managed-file hashes and7 API projections. Normal8841 health is OK. |
+| Reference requirements/review loop | Actual cancellation → distinct prepare/send → delivery/enlarge/compare → explicit reference decisions in the stages2–3 receipt and retained screenshots. Current API reports C01r3 and P01/S01/S02r2 all current. |
+| Script/storyboard review and currentness | Live source-bound Script/Storyboard review, scoped edit, stale-state refresh/reopen and both section readers in the stages2–3 receipt. Current Cast r3/Art r2/Script r3/Storyboard r2 remain accepted with no stale reasons/candidate. |
+| Canonical production and real media | Production bridge accepted/current, no simulation label; installed Bible/beat/storyboard heads r1. Current canonical Storyboard Approval exists, with all268 required gates passing (270 pass and1 not-applicable overall). All12 immutable real take/segment selections are current. |
+| Both route playbacks and recovery | Real CUA creator/player actions, missing-media review links, natural question pause, both authored choices, café/home endings, restart and return-to-workbench. Fresh post-activation playback and screenshots confirm both endings with no media error. |
+| Durable repairs, review and delivery | ADRs0107/0108/0109 and0081/0082/0095 amendments, focused/full regressions, fresh static, independent actual native finals and pushed implementation24d9acc. Its non-browser CI passed, but shard2 found obsolete H3 fixture setup; the repaired candidate and full browser closeout remain pending. |
+
+New audio audition/final-film acceptance is expressly deferred by the owner;
+normal schema/service upgrade is an optional unapproved deployment, not a hidden
+part of the copy-only completion claim. Private remote viewing was conditional
+on need in the original plan and was not needed for the owner's working local
+browser. No alternate provider, public exposure or system-power change was needed.
+
+### Browser-gate reassessment
+
+After the unsuccessful release attempts, root preserved both receipts and
+changed the diagnostic method instead of repeating an unchanged broad run.
+Read-only Sol/Medium review found removed navigation/candidate labels and a
+new presentation panel preceding the preparation disclosure; positional test
+setup now opened the wrong panel. This is evidence of stale browser setup,
+not proof that every failure has that cause. First-save assertions remain
+unexplained until exact error output is available.
+
+Pushed9b42140 separates two one-worker browser shards after the non-browser
+gate, with Playwright/step/job deadline separation and per-shard uploads
+(ADR0109). Three contract guards passed, and independent test enumeration
+covered66+65=131 cases without overlap. A scoped diagnostic
+[run37158965049](https://github.com/Wenjun-Mao/plotloom/actions/runs/37158965049)
+uses `browser_grep=first-save project bootstrap|cast-only fixture`; only the
+first-save titles match that literal filter. It is diagnostic only and cannot
+establish the full release gate. It completed with two passed/two failed
+first-save cases and retained the per-shard reports/results. Both failures show
+the exact11 missing `visibleTexts: []` defaults in the sample shot seed. Root's
+independent frontend→Python schema roundtrip reproduced those11 field-presence
+differences; after adding the canonical empty value at the seed layer, allfour
+stage payloads roundtrip identically. The equality assertions were not loosened.
+
+Sol/Medium independently reviewed the current-control helpers/spec repairs and
+seed fix; actual finals were collected and their concrete disclosure/count-label
+findings resolved. Pushed implementation24d9acc includes those repairs, a sample
+serialization regression and fresh static bundle SHA
+`7191a2ee2dbef4840e91c42be9fb3db2a9190776189766124d5f9bc496afa2a7`.
+Local frontend passed414 tests/54 files, app and E2E types, build and diff checks;
+the three CI contract guards and scoped Ruff passed. No Python production code
+changed after c2c3588's1054-test backend receipt; the diagnostic CI's non-browser
+gate also passed with the three additional CI guards.
+
+Fresh CUA playback after loading the rebuilt bundle again reached the home4/4
+ending without error, and restart reset time0/paused/empty choice history.
+`bundle-home-route-proof.jpg` is an original CUA JPEG,45750 bytes, SHA
+`d8c5010e05b83c6d349a2db79c3ba42e02b9ddcfb2eacd193a36821efbfd6079`.
+No media, acceptance history, original-project data or normal backend activation
+was changed by this browser-gate recovery.
+
+The alternate café route also reached3/3 with native `ended=true`,
+`time=duration=2.5`, paused, readyState4 and no error.
+`bundle-cafe-route-proof.jpg` is an original CUA JPEG,48195 bytes, SHA
+`acfd772aeed00efc4e510a5467299f7c84e46512e9413159ca6f45c350a98c32`.
+The refreshed original capture still matches all73 table facts,67 file hashes
+and7 API projections byte-for-byte. The player tab remains a deliverable.
+
+The fresh **unfiltered**
+[release run37160134124](https://github.com/Wenjun-Mao/plotloom/actions/runs/37160134124)
+targets exact implementation SHA `24d9acc5af7346bdbcfdf26e2976731072ce5bd3`.
+Its non-browser job completed successfully in13m28s:1057 backend tests passed
+(one existing deprecation warning),414 frontend tests/54 files passed, and
+types, archived-reader, static-drift, wheel build and installed-wheel smoke
+passed. Shard2 completed with2 persistent failures,3 flaky and60 passed; shard1
+completed with8 persistent failures,2 flaky,1 skipped and55 passed at its40-minute
+suite bound. Both shards uploaded retained reports/results. No green
+full-browser or completed release claim is made.
+
+The two persistent failures call the direct-freeze button rendered only for
+non-H3 providers. H3 requires source-bound English review and full prompt
+preview; the affected P2 and interactive fixtures now use the existing faithful
+review helper. Retained shard2 traces also prove a fixture lifetime race: all
+stale-script assertions completed before an overlapping availability route
+finished after context disposal. The shared page fixture now drains route work
+before disposal, without ignoring errors; all12 held-gate sites found by
+independent inventory release in `finally` even after an assertion failure.
+Three unit regressions cover waiting, preserved test error and surfaced drain
+error. Source-outline reload now establishes initial hydration first. The
+compound stale-review journey was split into prepared and ready/accepted cases
+without removing its original refusal, cancellation, invalidation or r4 binding
+checks or increasing assertion/test deadlines. The exact cause of the second
+source-outline hydration stall remains unproven; its corrected ordering is not
+represented as a proven runtime fix.
+
+The current test-only repair passes417 frontend tests/55 files, both type
+checks, production build and static-drift/diff checks; application/backend/media
+bytes remain unchanged. Independent final review and focused/full CI precede
+publication of a successful repair receipt. Both shards' test results are
+retained on the run and locally under `ci-37160134124/shard-{1,2}/` in this run root.
+
+Shard1 reassessment found current-contract mismatches in exact wrapper-label
+matching, collapsed approved review, shot-local retained images, query parameter
+order and the retired image `/copy`/clipboard flow. These now use accessible
+textbox names, normal review/retain controls, parsed identity parameters and
+native `/send` receipts respectively. The image journey's immutable package,
+original/refinement acceptance, provenance/pin, stale-intent no-publication,
+tamper rejection and historic reference assertions remain. Its synthetic
+tampered error intentionally retains the worker-owned dispatch reservation.
+The previously skipped retired proposal test and its unused helpers were
+removed; extracting active fixtures leaves481/220-line cohesive files.
+Current enumeration is131 supported cases in41 files, including the additional
+split stale-review case and excluding that one retired skipped case.
+
+One historical restart404 exposed a real classification defect: known-ID lookup
+used availability-filtered discovery. A disposable exclusive-lease reproduction
+returned not-found while the valid-manifest home still existed. ADR0110 separates
+manifest identity from target-home admission without changing catalog filtering,
+leases, confinement or schema rules. Five focused regressions cover busy API409,
+corrupt admission, unrelated-store isolation, absence and duplicates; the38-test
+storage/recovery group passed. The exact suppressed historical restart reason
+and the separate held-gallery read stall remain unproven.
+
+CI screencasts also show original-video expansion when metadata arrives. The
+original/segment review boxes now reserve verified dimensions with contain
+fitting before metadata, preventing that observed layout jump. Four frontend
+regressions cover valid/missing dimensions and both pre-metadata players. This
+is a layout-stability repair, not a proven explanation of the historical
+successful-click/no-segment-request event. Fresh build, independent review and
+full candidate CI remain required before release closure. The stable candidate
+passes421 frontend tests/56 files, both type checks, the deterministic build,
+scoped API Ruff and diff checks. Sol/Medium's actual independent final reports
+no concrete publication blocker. Rebuilt `workbench.js` SHA is
+`70b352e2921b5a01c35da42296e94fdd1c789158661a95333cbb0a685c0628db`.
+The full local backend suite passes1062 tests (one existing deprecation warning)
+in292.77 seconds. Implementation
+`93002f4da53d2c8f0db067667998309edbb6e7a7` is pushed on clean retained `main`;
+the unfiltered [candidate run37164168705](https://github.com/Wenjun-Mao/plotloom/actions/runs/37164168705)
+targets that exact SHA. Its non-browser and shard2 gates passed, but shard1
+failed; this candidate does not establish full release acceptance.
+
+At a confirmed quiet specialist checkpoint (`busy=false`, no active tasks),
+root restarted only isolated8851/8852 against the same retained data roots.
+Served bundle SHA matches the new build. Natural opening → question → home4/4
+playback finished with `ended=true`,2.5-second endpoint, paused/readyState4 and
+no error; restart returned to frame0, paused, empty choice history. The original
+`manager-93002f4-original` capture still matches all73 table facts,67 file hashes
+and7 projections against this window's preflight. Normal8841 was not restarted.
+
+The alternate café route also ended naturally at3/3 with the same native
+endpoint/error observations. `93002f4-home-route-proof.jpg` and
+`93002f4-cafe-route-proof.jpg` preserve the fresh CUA captures; their hashes
+match the earlier identical ending views. Returning to the creator retained
+B2's selected/current segment and its authored draft presentation r1. Both
+original and segment players reserved `832 / 480` with `objectFit=contain`
+while `readyState=0`, and remained exactly440×253.84375 and406×234.2265625
+after metadata reached `readyState=4` with832×480 media dimensions. This is
+actual layout evidence, not proof of the unrelated historical click cause.
+`93002f4-b2-review-proof.jpg` has SHA-256
+`d2eee6252c111027144a9b25a8c0c40c1bb34ae5a144d300d7e4a766ae40fed2`.
+No generate/reselect/reject control was used during this recheck. The standalone
+player is left ready at opening1/5 with no choice history as a deliverable.
+
+Candidate CI's non-browser job111323579176 passed in13m16s:1062 backend tests
+(one warning),421 frontend tests/56 files, types, archived reader, static-drift,
+wheel and installed-wheel smoke. Unfiltered browser shard2 (job111325613114)
+passed all65 tests in7.9m with no failures, skips or flaky retries; the job
+completed in8m59s and uploaded report/results11288938529/11289122626.
+Shard1 ended with3 persistent failures,3 flaky and60 passed, with retained
+report/results11289173476/11289078612. The
+[browser closeout](2026-10-04-e2e-browser-closeout.md) owns exact failure
+diagnoses, the test-lifetime repair and the next candidate's release result.
+A fresh read after returning to
+the workbench reports17 ingested jobs and12 selected/current jobs/segments;
+their segment IDs,0–60 frame ranges and verified timing remain unchanged.
+
+## Completed E2E-first release · 02:24 UTC
+
+The full unfiltered
+[release run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+passed on `e835d0f3a2cd8daa52257503c8d1dd1b810d32e2`:1062 backend tests,
+421 frontend/56 files and133 E2E cases/42 files (including two API-only fixture
+isolation regressions). Both browser shards passed without failed/flaky/skipped
+cases; types, archived reader, build/static-drift, wheel and installed-wheel
+smoke also passed. The linked browser closeout preserves both preceding failed
+candidates, exact diagnostic boundaries, serial repairs and independent finals.
+This later documentation-only receipt does not change the CI-tested SHA or
+the verified production/runtime bytes.
+
+The final `manager-e835d0f-final-original` capture is byte-identical with the
+preflight:73 table facts,67 file hashes and7 API projections. Both local services
+are healthy, isolated specialists are idle, and all17 ingested jobs/12 current
+selected segments retain the identities and timing above. The actual player
+is left ready at opening1/5 with no choice history and marked as a deliverable.
+The continuation heartbeat is verified paused through the app.
+
+This closes the authorized usable E2E-first pass within its eight-hour window.
+C1–C5/A1 keep prior owner visual/sound approval. A2/A3/B1–B4 remain provisional
+with owner listening pending; no final-film approval is inferred. The isolated
+copy is retained. Normal backend activation/schema migration remain a separate,
+unanswered owner choice, not an action performed during this closeout.
+
+## Owner listening follow-up · October 3, 22:40 Toronto
+
+After the six exact selected2.5-second MP4s with native audio were presented
+inline, the owner replied **“all six sound good”**. Their local hashes matched
+the current managed segments before presentation. The supported segment-select
+API on isolated8851 appended attributed listening approvals while reconfirming
+the same segment IDs/hashes; no original/job/request/media bytes were rewritten.
+Record timestamps are2026-10-04T02:40:18.959–02:40:21.007Z, not an invented
+timestamp for the owner's message.
+
+| Cut | Appended review ID | Selection revision |
+| --- | --- | --- |
+| A2 | `bd992946-0b03-4b54-8753-db800122ba57` | 3 |
+| A3 | `2f3d6c94-097e-4364-8770-00da2bb125a7` | 2 |
+| B1 | `561a2b11-396b-4dff-a69b-84aad400c331` | 2 |
+| B2 | `78378c73-34d2-419e-b0e4-c7a9026170b2` | 2 |
+| B3 | `1c7ea2f3-6cc9-4197-ad66-0fc561c3f2ff` | 2 |
+| B4 | `d45f3050-c419-4239-92c2-bb04db16baea` | 2 |
+
+A fresh read verifies12 selected/current segments, the same six hashes and
+all earlier reviews preserved (A2 reject → reopen → provisional select → owner
+listening approval). All12 selected cuts now have owner individual-cut sound
+approval. This does not infer new final-film visual approval, assembled-route
+sound approval, regeneration authority or normal-project activation.
+
+The owner later separately authorized normal backend/schema activation. The
+[deployment receipt](2026-10-03-normal-backend-activation.md) records the healthy
+normal installation, exact new empty table and preserved original/copy data;
+H3 remains disabled and the completed copy has not been transferred.

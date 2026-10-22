@@ -9,7 +9,6 @@ from sqlalchemy import select
 from ...domain import StageName, utc_now, new_id
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
-from ...keyframe_preparation import has_matching_aspect
 from ..codec import stable_hash
 from ..schema import (
     ImageJobCandidateRow,
@@ -20,6 +19,8 @@ from ..schema import (
     VisualIntentRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
+from .image_adaptation_source import prepare_adaptation_source
 from .canonical import ProjectCanonicalPersistence
 from .drafts import ProjectDraftPersistence
 from .media_admission import KeyframeAdmission
@@ -50,11 +51,13 @@ class ImageJobPreparationPersistence:
         self,
         project_id: str,
         *,
-        approval_id: str,
+        approval_id: str | None = None,
+        machine_decision_id: str | None = None,
         shot_id: str,
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
         keyframe_adaptation: dict[str, Any] | None = None,
+        scene_continuity_binding_id: str | None = None,
         presentation_change: str,
         contract_version: int = 2,
         consumed_draft: tuple[str, int, dict[str, Any]] | None = None,
@@ -64,7 +67,9 @@ class ImageJobPreparationPersistence:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
-            approval = self._admission.approval_is_active_in_session(session, approval_id)
+            from .image_authority import resolve_image_authority
+            approval = resolve_image_authority(session, self._access, self._admission, project_id,
+                approval_id=approval_id, machine_decision_id=machine_decision_id, preparing=True)
             if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
                 raise InvalidTransitionError("image job approval does not match the requested storyboard revision")
             storyboard = self._canonical._load_stage_payload(session, project_id, StageName.STORYBOARD)
@@ -91,6 +96,11 @@ class ImageJobPreparationPersistence:
 
             if contract_version not in {2, 3}:
                 raise InvalidTransitionError("image job contract version is unsupported")
+            if scene_continuity_binding_id is not None and (
+                parent_candidate_asset_id is not None or keyframe_adaptation is not None
+                or contract_version != 3 or machine_decision_id is not None
+            ):
+                raise InvalidTransitionError("scene continuity is a manual original-image operation")
             if keyframe_adaptation is not None and (
                 parent_candidate_asset_id is not None or contract_version != 3
             ):
@@ -151,7 +161,6 @@ class ImageJobPreparationPersistence:
                 asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
                 if (
                     candidate is None or parent_job is None or asset is None or asset.project_id != project_id
-                    or not self._currentness.image_job_is_current_in_session(session, parent_job)
                 ):
                     raise InvalidTransitionError("refinement must name a current Plotloom image-job candidate")
                 binding = session.scalar(
@@ -193,64 +202,19 @@ class ImageJobPreparationPersistence:
 
             adaptation_snapshot: dict[str, Any] | None = None
             if keyframe_adaptation is not None:
-                binding = session.scalar(
-                    select(ReviewedShotBindingRow)
-                    .where(
-                        ReviewedShotBindingRow.project_id == project_id,
-                        ReviewedShotBindingRow.shot_id == shot_id,
-                    )
-                    .order_by(ReviewedShotBindingRow.selection_revision.desc())
-                    .limit(1)
-                )
-                if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(
-                    session, project_id, binding, approval=approval
-                ):
-                    raise InvalidTransitionError(
-                        "keyframe adaptation needs the current reviewed selected keyframe"
-                    )
-                asset = session.get(ManagedAssetRow, binding.asset_id)
-                intent = session.get(VisualIntentRow, binding.visual_intent_id)
-                if (
-                    asset is None
-                    or asset.project_id != project_id
-                    or intent is None
-                    or intent.project_id != project_id
-                    or intent.asset_id != asset.id
-                    or intent.revision != binding.visual_intent_revision
-                ):
-                    raise InvalidTransitionError(
-                        "keyframe adaptation source is unavailable or no longer reviewable"
-                    )
-                target_width = int(keyframe_adaptation["targetProfile"]["width"])
-                target_height = int(keyframe_adaptation["targetProfile"]["height"])
-                if has_matching_aspect(asset.width, asset.height, target_width, target_height):
-                    raise InvalidTransitionError(
-                        "reviewed keyframe already matches the requested adaptation profile"
-                    )
-                references.append({
-                    "assetId": asset.id,
-                    "role": "source_keyframe",
-                    "required": True,
-                    "originalHash": asset.original_hash,
-                    "mimeType": asset.mime_type,
-                    "byteSize": asset.byte_size,
-                    "width": asset.width,
-                    "height": asset.height,
-                })
-                adaptation_snapshot = {
-                    "sourceBindingId": binding.id,
-                    "sourceSelectionRevision": binding.selection_revision,
-                    "sourceAssetId": asset.id,
-                    "sourceOriginalHash": asset.original_hash,
-                    "sourceVisualIntentId": intent.id,
-                    "sourceVisualIntentRevision": intent.revision,
-                    "targetProfile": dict(keyframe_adaptation["targetProfile"]),
-                    "outputContract": {
-                        "width": target_width,
-                        "height": target_height,
-                        "mimeTypes": ["image/jpeg", "image/png"],
-                    },
-                }
+                reference, adaptation_snapshot = prepare_adaptation_source(
+                    session, self._access, self._admission, self._currentness, project_id, shot_id, approval, keyframe_adaptation)
+                references.append(reference)
+
+            continuity = None
+            if scene_continuity_binding_id is not None:
+                from .image_reviewed_use import freeze_reviewed_source
+                source, asset = freeze_reviewed_source(session, project_id, scene_continuity_binding_id,
+                    shot_id, self._admission, self._currentness)
+                continuity = source.model_dump(mode="json", by_alias=True)
+                references.append({"assetId": asset.id, "role": "scene_continuity", "required": True,
+                    "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                    "byteSize": asset.byte_size, "width": asset.width, "height": asset.height})
 
             if len(references) > 9:
                 raise ImageJobError(
@@ -258,21 +222,23 @@ class ImageJobPreparationPersistence:
                     "identity-aware job has more than nine frozen reference attachments; reduce the authored visible cast or reference views",
                 )
 
+            resolved_context = self._currentness.image_job_resolved_context(
+                shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats,
+            )
+            shot, resolved_context, presentation = self._currentness.presentations.project(
+                session, project_id, shot, resolved_context
+            )
             shot_payload = shot.model_dump(mode="json", by_alias=True)
             visual_proposal = {
                 "title": shot.title, "action": shot.action, "composition": shot.composition,
+                "visibleTexts": [item.model_dump(mode="json", by_alias=True) for item in shot.visible_texts],
                 "visualIntent": shot.visual_intent, "cameraAngle": shot.camera_angle,
                 "cameraMovement": shot.camera_movement,
             }
-            resolved_context = self._currentness.image_job_resolved_context(
-                shot=shot,
-                storyboard=storyboard,
-                story_bible=story_bible,
-                scene_beats=scene_beats,
-            )
             snapshot = {
-                "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}",
-                "projectId": project_id, "approvalId": approval.id,
+                "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}-presentation.v1",
+                "presentationContract": "physical-visible-runtime.v1",
+                "projectId": project_id, "approvalId": approval.approval_id,
                 "approvalGateSetVersion": approval.gate_set_version,
                 "storyboardEntityRevisionId": approval.entity_revision_id,
                 "storyboardRevision": storyboard_revision,
@@ -283,17 +249,31 @@ class ImageJobPreparationPersistence:
                 "references": references,
                 "audioContext": shot_payload.get("audioPlan", {}),
             }
+            if presentation is not None:
+                snapshot["shotPresentation"] = presentation
+                snapshot["compilerVersion"] += "-shot-presentation.v1"
+                snapshot["visualProposal"]["messagePresentation"] = presentation["review"]["messagePresentation"]
             if contract_version == 3:
                 snapshot["visibleCharacterIds"] = list(shot.character_ids)
                 snapshot["characterIdentity"] = identity_mappings
+            if approval.machine_decision_id is not None:
+                snapshot.pop("approvalId")
+                snapshot["canonicalGateSetVersion"] = snapshot.pop("approvalGateSetVersion")
+                snapshot["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": approval.machine_decision_id}
+                from ..schema import AutopilotRunRow, AutopilotDecisionRow
+                decision = session.get(AutopilotDecisionRow, approval.machine_decision_id)
+                policy = session.get(AutopilotRunRow, decision.run_id).policy
+                snapshot["requestedGeometry"] = {"width": policy["imageWidth"], "height": policy["imageHeight"], "aspectRatio": policy["brief"]["aspect_ratio"]}
             if reviewed_visual_intent is not None:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             if adaptation_snapshot is not None:
                 snapshot["keyframeAdaptation"] = adaptation_snapshot
+            if continuity is not None:
+                snapshot["sceneContinuity"] = continuity
             snapshot_hash = stable_hash(snapshot)
             now = utc_now()
             unit = ProductionUnitRow(
-                id=new_id(), project_id=project_id, approval_id=approval.id,
+                id=new_id(), project_id=project_id, approval_id=approval.approval_id, machine_decision_id=approval.machine_decision_id,
                 storyboard_entity_revision_id=approval.entity_revision_id, shot_id=shot.id,
                 scene_id=shot.scene_id, storyboard_revision=storyboard_revision,
                 snapshot=snapshot, snapshot_hash=snapshot_hash, created_at=now,
@@ -301,10 +281,14 @@ class ImageJobPreparationPersistence:
             session.add(unit)
             session.flush()
             job_id = self._currentness.image_job_id()
+            preflight = image_preflight(self._access, session) if contract_version == 3 else None
             request = {
                 "schemaVersion": contract_version, "jobId": job_id, "productionUnitId": unit.id,
                 "productionSnapshotHash": snapshot_hash,
-                "executionContract": "codex_specialist.v2" if contract_version == 3 else "codex_specialist.v1",
+                "executionContract": (
+                    preflight.get("executionContract", "codex_specialist.v3")
+                    if preflight is not None else "codex_specialist.v1"
+                ),
                 "kind": (
                     "keyframe_adaptation"
                     if adaptation_snapshot is not None
@@ -312,8 +296,8 @@ class ImageJobPreparationPersistence:
                 ),
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
-            if contract_version == 3:
-                request["specialistPreflight"] = {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"}
+            if preflight is not None:
+                request["specialistPreflight"] = preflight
             job = ImageJobRow(
                 id=job_id, project_id=project_id, production_unit_id=unit.id,
                 parent_job_id=parent_job_id, parent_candidate_asset_id=parent_candidate_asset_id,

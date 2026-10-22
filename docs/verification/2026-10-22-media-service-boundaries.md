@@ -3,7 +3,7 @@
 Status: **IMPLEMENTED, VERIFIED AND DEPLOYED.** Implementation source `37828fd3`.
 Baseline `5fd5128b`, retained `codex/h3-ref2va-gateway` specialist checkout.
 The [approved plan](../roadmap/2026-10-22-media-service-boundaries.md) and
-[decision](../adr/media-services-monorepo-boundaries.md) define scope.
+[decision](../adr/0216-media-services-monorepo-boundaries.md) define scope.
 
 ## Root cause and change
 

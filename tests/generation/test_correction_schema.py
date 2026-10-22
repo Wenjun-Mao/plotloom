@@ -410,19 +410,16 @@ def test_fact_order_does_not_change_projected_schema() -> None:
     assert forward.schema_hash == reverse.schema_hash
 
 
-def test_legacy_incomplete_join_array_fact_fails_closed() -> None:
-    legacy = JoinAllowedDifferencesRepairFact(
-        code="semantic.join_allowed_differences_must_be_required",
-        path=("joinContracts", "join-a", "allowedDifferences"),
-        join_contract_id="join-a",
-        missing_required_state_keys=("variant",),
-    )
+def test_incomplete_current_join_array_fact_is_rejected() -> None:
+    from pydantic import ValidationError
 
-    with pytest.raises(
-        CorrectionResponseSchemaError,
-        match="no complete replacement arrays",
-    ):
-        compile_correction_response_schema(_base_schema(), [legacy])
+    with pytest.raises(ValidationError, match="expectedRequiredStateKeys"):
+        JoinAllowedDifferencesRepairFact(
+            code="semantic.join_allowed_differences_must_be_required",
+            path=("joinContracts", "join-a", "allowedDifferences"),
+            join_contract_id="join-a",
+            missing_required_state_keys=("variant",),
+        )
 
 
 def test_conflicting_exact_state_values_fail_closed() -> None:

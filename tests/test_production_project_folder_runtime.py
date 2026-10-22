@@ -123,10 +123,10 @@ def _activate_fixture_profile(client: TestClient) -> None:
     ).status_code == 200
 
 
-def test_runtime_startup_admits_the_known_writable_selection_transition(
+def test_runtime_startup_rejects_retired_schema_without_migrating_project(
     tmp_path: Path,
 ) -> None:
-    """Startup must not inspect a known active legacy folder before admitting it."""
+    """Startup indexing never backfills unsupported project folders."""
 
     settings = _settings(tmp_path)
     app = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
@@ -143,20 +143,25 @@ def test_runtime_startup_admits_the_known_writable_selection_transition(
         finally:
             store.close()
 
-    # This is the exact immediately preceding schema, not an arbitrary DB
-    # mutation supported by runtime. The next production startup must route it
-    # through the registry's admitted writable transition before recovery reads.
     with sqlite3.connect(database) as connection:
         connection.execute("DROP TABLE v2_video_candidate_selections")
         connection.commit()
+    original_database = database.read_bytes()
+    manifest = database.parent / "project.json"
+    original_manifest = manifest.read_bytes()
 
     restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
     with TestClient(restarted) as client:
-        assert client.get(f"/api/v2/projects/{project_id}").status_code == 200
+        response = client.get(f"/api/v2/projects/{project_id}")
+        assert response.status_code == 422
+        assert "current schema required" in response.text
+        assert restarted.state.project_folder_storage.projects.discover() == []
+    assert database.read_bytes() == original_database
+    assert manifest.read_bytes() == original_manifest
     with sqlite3.connect(database) as connection:
         assert connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'v2_video_candidate_selections'"
-        ).fetchone() == ("v2_video_candidate_selections",)
+        ).fetchone() is None
 
 
 def _png() -> bytes:
@@ -288,6 +293,7 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
             json={
                 "expectedLifecycleRevision": 2,
                 "confirmationTitle": "The wrong project title",
+                "expectedProjectRevision": archived_duplicate.json()["revision"],
             },
         )
         assert wrong_confirmation.status_code == 409
@@ -297,6 +303,7 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
             json={
                 "expectedLifecycleRevision": 2,
                 "confirmationTitle": duplicate_body["title"],
+                "expectedProjectRevision": archived_duplicate.json()["revision"],
             },
         )
         assert deleted.status_code == 204
@@ -355,6 +362,7 @@ def test_production_runtime_rejects_lifecycle_transitions_with_manual_publicatio
                 json={
                     "expectedLifecycleRevision": 2,
                     "confirmationTitle": FIXED_CHINESE_BRIEF.title,
+                    "expectedProjectRevision": archived.json()["revision"],
                 },
             )
         assert deletion.status_code == 409
@@ -373,20 +381,6 @@ def test_production_runtime_preserves_structured_domain_validation_issues(
     app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
     with TestClient(app) as client:
         bible = all_stage_payloads()[0]
-        created = client.post(
-            "/api/v2/projects",
-            json={
-                "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
-                "initialStages": [
-                    {
-                        "stage": "story_bible",
-                        "payload": bible.model_dump(mode="json", by_alias=True),
-                    }
-                ],
-            },
-        )
-        assert created.status_code == 201
-        project_id = created.json()["id"]
         invalid_graph = {
             "startNodeId": "arrival",
             "nodes": [
@@ -394,16 +388,19 @@ def test_production_runtime_preserves_structured_domain_validation_issues(
                     "id": "arrival",
                     "title": "Arrival",
                     "summary": "No path leaves this non-ending node.",
-                    "kind": "start",
+                    "kind": "start", "footageMode": "footage",
                 }
             ],
             "edges": [],
             "joinContracts": [],
         }
-        response = client.patch(
-            f"/api/v2/projects/{project_id}/stages/story_graph",
-            json={"expectedRevision": 0, "payload": invalid_graph},
-        )
+        response = client.post("/api/v2/projects", json={
+            "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+            "initialStages": [
+                {"stage": "story_bible", "payload": bible.model_dump(mode="json", by_alias=True)},
+                {"stage": "story_graph", "payload": invalid_graph},
+            ],
+        })
         assert response.status_code == 422
         assert response.json()["code"] == "domain_validation"
         assert {
@@ -504,7 +501,7 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
                 "expectedRevision": board.revision,
                 "contentHash": board.content_hash,
                 "decision": "approve",
-                "reviewer": "runtime H3 fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )

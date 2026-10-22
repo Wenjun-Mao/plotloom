@@ -1,4 +1,4 @@
-import type { APIRequestContext } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixture";
 
 test("turns a synopsis into a reviewable Bible/Graph proposal without entering downstream production", async ({ page, request, workbench }) => {
@@ -11,7 +11,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
     && new URL(response.url()).pathname === "/api/v2/projects");
   const started = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   const creation = await created;
   expect(creation.ok()).toBeTruthy();
   expect(creation.request().postDataJSON()).toMatchObject({
@@ -29,7 +29,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   await pollRun(request, workbench.apiOrigin, run.id, "succeeded");
 
   await expect(page.getByTestId("story-proposal-review")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("Story Bible 与剧情 DAG 已审阅", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("story-proposal-review").locator(".section-title > span").filter({ hasText: /^故事设定与分支图$/ })).toBeVisible();
   const stageResponse = await readJson<{ stages: Array<{ head: { stage: string; revision: number; status: string } }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`);
   const stages = stageResponse.stages;
   expect(stages.map((item) => item.head.stage)).toEqual(["story_bible", "story_graph", "scene_beats", "storyboard"]);
@@ -45,28 +45,28 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
 
   const initialBrief = await readJson<{ revision: number }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}`);
   const readyRunCount = await requestCount(request, workbench.apiOrigin, projectId);
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   await expect(page.getByText("当前故事提案已经是最新版本；可直接细化内容或进入分镜规划。", { exact: true })).toBeVisible();
   expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(readyRunCount);
   expect((await readJson<{ revision: number }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}`)).revision).toBe(initialBrief.revision);
 
   await page.getByRole("button", { name: "细化人物与设定" }).click();
-  await page.getByLabel("Logline").fill("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
+  await page.getByLabel("一句话概述（Logline）").fill("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
   const authoredBible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(authoredBible).toMatchObject({ head: { revision: 2 }, payload: { logline: "夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。" } });
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("story-proposal-review")).toContainText("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
-  await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
+  await expect(page.getByText("提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "进入场景编辑" })).toBeDisabled();
   const graphOnly = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   const graphOnlyRun = await graphOnly;
   expect(graphOnlyRun.request().postDataJSON()).toMatchObject({ stages: ["story_graph"] });
   await pollRun(request, workbench.apiOrigin, (await graphOnlyRun.json() as { id: string }).id, "succeeded");
@@ -78,11 +78,11 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect(savedBible).toEqual(authoredBible);
 
   await page.getByLabel("片名").fill("风暴回声");
-  await page.getByRole("button", { name: "保存简报" }).click();
-  await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "保存修改" }).click();
+  await expect(page.getByText("提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   const refreshedRun = await refreshed;
   expect(refreshedRun.request().postDataJSON()).toMatchObject({ stages: ["story_bible", "story_graph"] });
   await pollRun(request, workbench.apiOrigin, (await refreshedRun.json() as { id: string }).id, "succeeded");
@@ -101,10 +101,10 @@ test("keeps the saved synopsis and shows an actionable proposal-admission failur
   const synopsis = "一名调音师在停电的剧院里听见未来演出的回声。";
   await page.getByLabel("故事梗概").fill(synopsis);
   await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
-    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端尚未就绪；请在供应商与会话 Key 中测试连接后重试。" }) });
+    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端尚未就绪；请在供应商与会话密钥 中测试连接后重试。" }) });
   });
-  await page.getByRole("button", { name: "生成故事提案" }).click();
-  await expect(page.getByText("文本后端尚未就绪；请在供应商与会话 Key 中测试连接后重试。", { exact: true })).toBeVisible();
+  await generateLegacyProposal(page);
+  await expect(page.getByText("文本后端尚未就绪；请在供应商与会话密钥 中测试连接后重试。", { exact: true })).toBeVisible();
   await expect(page.getByLabel("故事梗概")).toHaveValue(synopsis);
 });
 
@@ -115,7 +115,7 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
   await page.getByLabel("故事梗概").fill("一位海关译员发现一封未寄出的信能改写港口的潮汐。 ");
   const initialRun = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   const initial = await initialRun;
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("proposal creation did not bind a project ID");
@@ -123,18 +123,18 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
 
   await page.getByRole("button", { name: "细化人物与设定" }).click();
   const authoredLogline = "海关译员必须决定让港口记住真相，还是让她失踪的弟弟回家。";
-  await page.getByLabel("Logline").fill(authoredLogline);
+  await page.getByLabel("一句话概述（Logline）").fill(authoredLogline);
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   await page.reload();
-  await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
+  await expect(page.getByText("提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
     await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端尚未就绪；请稍后重试。" }) });
   });
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   await expect(page.getByText("文本后端尚未就绪；请稍后重试。", { exact: true })).toBeVisible();
   const bible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: { logline?: string } }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(bible).toMatchObject({ head: { revision: 2 }, payload: { logline: authoredLogline } });
@@ -147,7 +147,7 @@ test("continues a current proposal through the smallest editable storyboard rang
   await page.getByLabel("故事梗概").fill("一名港口口译员发现潮汐会抹去未被说出的证词，她必须在弟弟归来前公开真相。 ");
   const proposalRequest = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await generateLegacyProposal(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("proposal creation did not bind a project ID");
@@ -188,7 +188,7 @@ test("continues a current proposal through the smallest editable storyboard rang
     && /\/api\/v2\/projects\/[^/]+\/stages\/scene_beats$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存节拍计划" }).click();
   expect((await sceneSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   const storyboardOnlyRequest = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
@@ -201,6 +201,23 @@ test("continues a current proposal through the smallest editable storyboard rang
   await expect(page.getByText("场景与分镜已经是最新版本；不会创建替换运行。", { exact: true })).toBeVisible();
   expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(runCount);
 });
+
+async function generateLegacyProposal(page: Page): Promise<void> {
+  const disclosure = page.locator(".brief-alternate-workflow details");
+  const action = disclosure.locator("button");
+  // A completed backend run may still be refreshing the creator view. Wait
+  // for its actual action state before opening a revision-keyed disclosure.
+  await expect(action).toHaveText("生成故事提案");
+  await expect(action).toBeEnabled();
+  if (!(await disclosure.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await disclosure.locator("summary").click();
+  }
+  await disclosure.getByRole("button", { name: "生成故事提案", exact: true }).click();
+}
+
+async function openBriefTool(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+}
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {
   const catalog = await readJson<{ profiles: Array<{ profileId: string; revision: number; configuration: Record<string, unknown> }> }>(request, `${apiOrigin}/api/v2/text-provider-profiles`);

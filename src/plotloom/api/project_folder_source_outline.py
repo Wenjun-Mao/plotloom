@@ -2,23 +2,40 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
-from uuid import uuid4
+from typing import Any, Callable, Literal
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 
-from ..creative_handoff_contracts import CreativeHandoffRequest
+from ..outline_preparation import outline_request
 from ..source_outline_contracts import (
     OutlineAcceptRequest,
     OutlineCandidate,
     OutlineCandidatePreparation,
     OutlineReopenRequest,
+    OutlineReturnRequest,
     SectionMapGraphInstallRequest,
     SectionMapSaveRequest,
     SourceOutlineReviewState,
     SourceSaveRequest,
 )
+
+
+def _outline_assignment(candidate: OutlineCandidate, paths: dict[str, str]) -> OutlineCandidatePreparation:
+    payload = candidate.model_dump(mode="python", by_alias=False)
+    payload.update(
+        package_path=paths["packagePath"],
+        delivery_path=paths["deliveryPath"],
+        assignment=(
+            f"请执行这份 Plotloom 大纲任务（{candidate.job_id}）。\n"
+            f"先阅读 {paths['packagePath']}/request.json，\n"
+            f"并遵循 {paths['packagePath']}/COPY_ASSIGNMENT.txt 中的要求。\n"
+            "只交付候选大纲、派生报告和完成回执，文件名、格式及验证要求以任务文件为准。\n"
+            f"所有交付文件只写入 {paths['deliveryPath']}。\n"
+            "不要替我接受大纲，不要修改已确认内容或项目状态。完成后报告交付位置和验证结果。"
+        ),
+    )
+    return OutlineCandidatePreparation.model_validate(payload)
 
 
 def register_project_folder_source_outline_routes(
@@ -54,41 +71,28 @@ def register_project_folder_source_outline_routes(
     )
     def prepare_source_outline_candidate(project_id: str) -> OutlineCandidatePreparation:
         with opened_project(project_id) as store:
-            state = store.source_outline_state()
-            if state.source is None:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="save an accepted source before preparing an outline candidate",
-                )
-            request = CreativeHandoffRequest(
-                job_id=f"ch_{uuid4().hex}",
-                project_id=project_id,
-                section_id="story",
-                stage="outline",
-                expected_stage_revision=state.accepted_outline.revision if state.accepted_outline else 0,
-                source=state.source.material.model_dump(mode="json", by_alias=True),
-                input_artifacts={},
-                creative_brief=(
-                    "Create one reviewable upstream outline.json candidate from the accepted "
-                    "author source. Preserve source attribution and adaptation intent as supplied; "
-                    "do not claim approval or edit project canon."
-                ),
-            )
+            request = outline_request(store)
             candidate = store.prepare_outline_candidate(request)
             exchange = store.creative_handoff_exchange()
-            paths = exchange.write_package(request)
+            paths = exchange.write_package(request, store.creative_handoff_execution_pin(request))
             # The assignment is deliberately returned only after project state
             # reserves the exact job identity; the specialist cannot choose it.
-            candidate_payload = candidate.model_dump(mode="python", by_alias=False)
-            candidate_payload["package_path"] = paths["packagePath"]
-            candidate_payload["delivery_path"] = paths["deliveryPath"]
-            candidate_payload["assignment"] = (
-                f"Plotloom outline assignment for {request.job_id}: read "
-                f"{paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. "
-                f"Write only the candidate, derived report, and completion receipt under "
-                f"{paths['deliveryPath']}. This cannot accept or alter project canon."
-            )
-            return OutlineCandidatePreparation.model_validate(candidate_payload)
+            return _outline_assignment(candidate, paths)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/assignment",
+        response_model=OutlineCandidatePreparation,
+    )
+    def get_source_outline_assignment(project_id: str, job_id: str) -> OutlineCandidatePreparation:
+        with opened_project(project_id) as store:
+            candidate = store.source_outline_state().candidate
+            if candidate is None or candidate.job_id != job_id:
+                raise HTTPException(status_code=404, detail="outline handoff not found")
+            if candidate.status != "prepared":
+                raise HTTPException(status_code=409, detail="outline handoff is no longer awaiting execution")
+            request = store.outline_candidate_request(job_id)
+            paths = store.creative_handoff_exchange().verified_package_paths(request, store.creative_handoff_execution_pin(request))
+            return _outline_assignment(candidate, paths)
 
     @app.post(
         "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/refresh",
@@ -97,7 +101,7 @@ def register_project_folder_source_outline_routes(
     def refresh_source_outline_candidate(project_id: str, job_id: str) -> OutlineCandidate:
         with opened_project(project_id) as store:
             request = store.outline_candidate_request(job_id)
-            delivery = store.creative_handoff_exchange().read_delivery(request)
+            delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             if delivery is None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
@@ -125,8 +129,14 @@ def register_project_folder_source_outline_routes(
         return HTMLResponse(
             report,
             headers={
-                "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;",
+                "Content-Security-Policy": (
+                    "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; "
+                    "style-src 'unsafe-inline'; img-src data:; connect-src 'none'; "
+                    "form-action 'none'; base-uri 'none'; frame-src 'none'; "
+                    "object-src 'none'; frame-ancestors 'self';"
+                ),
                 "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
             },
         )
 
@@ -169,3 +179,50 @@ def register_project_folder_source_outline_routes(
     ) -> SourceOutlineReviewState:
         with opened_project(project_id) as store:
             return store.install_section_map_graph(body)
+
+
+    @app.post("/api/v2/projects/{project_id}/source-outline/return", response_model=SourceOutlineReviewState)
+    def return_to_accepted(project_id: str, body: OutlineReturnRequest):
+        with opened_project(project_id) as store:
+            return store.return_to_accepted_outline(body)
+
+    @app.get("/api/v2/projects/{project_id}/branch-suggestions")
+    def branch_state(project_id: str):
+        with opened_project(project_id) as store:
+            return store.branch_state()
+
+    @app.post("/api/v2/projects/{project_id}/branch-suggestions", status_code=201)
+    def prepare_branch(project_id: str):
+        with opened_project(project_id) as store:
+            store.prepare_branch_candidate()
+            return store.branch_state()
+
+    @app.get("/api/v2/projects/{project_id}/branch-suggestions/{job_id}/draft")
+    def branch_draft(project_id: str, job_id: str):
+        with opened_project(project_id) as store:
+            return store.branch_draft(job_id)
+
+    @app.post("/api/v2/projects/{project_id}/branch-suggestions/{job_id}/cancel")
+    def cancel_branch(project_id: str, job_id: str):
+        with opened_project(project_id) as store:
+            return store.cancel_branch_candidate(job_id)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/branch-suggestions/{job_id}/report",
+        response_class=HTMLResponse,
+    )
+    def branch_candidate_report(
+        project_id: str, job_id: str, presentation: Literal["static"]
+    ) -> HTMLResponse:
+        with opened_project(project_id) as store:
+            report = store.branch_candidate_report(job_id)
+        return HTMLResponse(
+            report,
+            headers={
+                "Content-Security-Policy": (
+                    "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;"
+                ),
+                "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
+            },
+        )

@@ -55,7 +55,7 @@ unchanged:
   qualityOneLoraInventory: h3-turbo4-v12-evaluation.v1.yaml
   qualityThreeLoraInventory: h3-8step-sampling-evaluation.v1.yaml
   baseTwentyRecipe: h3-base20-evaluation.v1.yaml
-  voiceReferenceIdentity: ../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md
+  voiceReferenceIdentity: ../../docs/adr/0205-h3-ref2va-per-job-voice-reference.md
   gatewayContractVersion: 6
   gatewayAndVoiceLabData: preserved
   w6a8: not installed or tested

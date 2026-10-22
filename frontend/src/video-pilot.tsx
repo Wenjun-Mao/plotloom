@@ -1,21 +1,41 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
+import { humanReviewLabel } from "./human-review-attribution";
+import type { ManagedAsset, ReviewedKeyframe, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
 import type { VideoEndFrameDecision } from "./api";
-import { Button, Panel } from "./components";
+import { Button, Panel, Spinner } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
+import { useH3MediaIdentity } from "./h3-review-context";
+import type { MediaReadPhase } from "./features/media/useMediaWorkbenchData";
 import { VideoEndFrameChoice } from "./video-end-frame";
+import { useConfirmation } from "./confirmation";
+import { h3Timing } from "./video-backends/minimax-h3-timing";
+import { shotLabel } from "./shot-label";
+import { nodeFootageGaps } from "./node-footage";
+import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
+import { ReviewedVideoPlayer } from "./features/media/ReviewedVideoPlayer";
+import { isCurrentVideoSelection, videoNextAction } from "./features/media/video-next-action";
+import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
+import { videoJobLabel } from "./features/media/video-job-label";
+import { useReportReviewWorkflowRead } from "./app/workspace/ReviewWorkflowReadContext";
+import { shotWorkflowNextText } from "./app/workspace/recommendedShotWorkflow";
 
-type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
+type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
 function frozenShot(job: VideoJob): FrozenShot {
-  const candidate = job.snapshot.shot;
+  const candidate = frozenVideoSnapshot(job)?.shot;
   return candidate && typeof candidate === "object" ? candidate as FrozenShot : {};
+}
+
+// ADR 0082 retains every proposed derivative and its original, even when
+// neither is currently selected. The server remains the deletion authority.
+function canDiscard(job: VideoJob): boolean {
+  return job.state === "ingested" && !job.selected && !job.segments?.length;
 }
 
 /**
@@ -49,7 +69,7 @@ export function selectedRouteVideos(
   const selectedByShotId = new Map<string, VideoJob[]>();
   jobs.forEach((job) => {
     const frozen = frozenShot(job);
-    if (job.state !== "ingested" || !job.current || !job.selected || !job.playbackSegment?.current || !job.playbackSegment.selected || !frozen.id || !frozen.sceneId) return;
+    if (!isCurrentVideoSelection(job) || !frozen.id || !frozen.sceneId) return;
     selectedByShotId.set(frozen.id, [...(selectedByShotId.get(frozen.id) || []), job]);
   });
   const sequence = routeShots.flatMap(({ shot, sceneId }) => (
@@ -59,37 +79,42 @@ export function selectedRouteVideos(
   ));
   const missingShotTitles = routeShots
     .filter(({ shot, sceneId }) => !(selectedByShotId.get(shot.id) || []).some((job) => frozenShot(job).sceneId === sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits))
-    .map(({ shot }) => shot.title || shot.id);
+    .map(({ shot }) => shotLabel(shot));
+  const routeNodes = graph.nodes.filter(node => route.nodeIds.includes(node.id));
+  missingShotTitles.push(...routeNodes.flatMap(node => nodeFootageGaps(node, sceneBeats, storyboard)));
   return {
     jobs: sequence,
     missingShotTitles,
-    sourceIdentity: `${route.id}:${routeShots.map(({ shot, sceneId }) => `${sceneId}/${shot.id}/${shot.order}`).join("|")}:${sequence.map((job) => `${job.playbackSegment?.id}/${job.playbackSegment?.derivativeHash}`).join("|")}`,
+    sourceIdentity: `${route.id}:${routeNodes.map(node => `${node.id}/${node.footageMode}`).join("|")}:${routeShots.map(({ shot, sceneId }) => `${sceneId}/${shot.id}/${shot.order}`).join("|")}:${sequence.map((job) => `${job.playbackSegment?.id}/${job.playbackSegment?.derivativeHash}`).join("|")}`,
   };
 }
 
 function jobStatus(job: VideoJob): string {
   if (job.cancelRequestedAt) return "取消意图已记录：保留已知远端任务，但不会采用输出";
-  if (!job.current) return "冻结输入已失效";
-  if (job.selected) return "当前镜头的已显式选择";
+  if (job.lifecycleStatus === "archived") return "项目已归档 · 保留媒体证据";
+  if (job.inputStatus === "invalid") return "冻结输入证据未通过核验";
+  if (job.inputStatus === "stale") return "冻结输入与当前内容不一致";
+  if (isCurrentVideoSelection(job)) return "已为当前镜头选择播放片段";
+  if (job.selected) return job.current
+    ? "已选原片，但尚无当前可用的播放片段；暂不能用于故事播放"
+    : "保留先前选择记录，不用于当前故事播放";
   if (job.state === "discard_pending") return "正在永久删除候选媒体；可安全重试";
   if (job.state === "discarded") return "已永久删除候选媒体；仅保留最小记录";
   return "当前";
 }
 
 function isH3Job(job: VideoJob): boolean {
-  const provider = job.snapshot.provider;
+  const provider = frozenVideoSnapshot(job)?.provider;
   return typeof provider === "object" && provider !== null
     && (provider as Record<string, unknown>).adapterId === "minimax_h3_gateway";
 }
 
 function frozenH3Quality(job: VideoJob): string {
-  const request = job.snapshot.request;
+  const request = frozenVideoSnapshot(job)?.request;
   if (!request || typeof request !== "object") return "未知";
   const frozen = request as Record<string, unknown>;
   if (frozen.quality === 1 || frozen.quality === 8) return String(frozen.quality);
-  // Quality-1 V1 jobs predate an explicit quality field. Their profile ID
-  // preserves its meaning; it is never inferred from today's UI selection.
-  return typeof frozen.profileId === "string" && frozen.profileId.includes("_quality1_") ? "1" : "未知";
+  return "未知";
 }
 
 function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: string; jobs: VideoJob[]; sourceIdentity: string }) {
@@ -158,7 +183,7 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   const shot = frozenShot(current);
   return <section className="video-sequence" data-testid="video-sequence-player">
     <strong>已选择镜头顺序播放</strong>
-    <small>{jobs.map((item) => frozenShot(item).title || frozenShot(item).id || item.id).join(" → ")}</small>
+    <small>{jobs.map((item) => shotLabel(frozenShot(item), item.id)).join(" → ")}</small>
     <video
       key={currentIdentity}
       controls
@@ -169,7 +194,7 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
       data-playback-identity={currentIdentity}
       onEnded={(event) => advance(event.currentTarget.dataset.playbackIdentity)}
     />
-    <small>当前 {index + 1}/{jobs.length}：{shot.title || shot.id}。最后一帧停留，需明确重启才会从头播放。</small>
+    <small>当前 {index + 1}/{jobs.length}：{shotLabel(shot)}。最后一帧停留，需明确重启才会从头播放。</small>
     {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
     <div className="button-row">
       <Button onClick={() => play(false)}>播放当前</Button>
@@ -180,40 +205,66 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, storyboard, sceneBeats, graph, routeId, readOnly }: {
+export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
+  videoReadVersion?: number;
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
+  lifecycleRevision?: number;
+  projectRevision?: number;
+  approvalCurrent?: boolean;
+  lifecycleStatus?: "active" | "archived";
   keyframe?: ManagedAsset; storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId?: string; readOnly: boolean;
+  reviewedBinding?: ReviewedKeyframe; samePersonReviewId?: string; mediaReadPhase: MediaReadPhase;
 }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
-  const [jobs, setJobs] = useState<VideoJob[]>([]);
+  const [loadedJobs, setJobs] = useState<VideoJob[]>([]);
+  const videoContext = JSON.stringify([projectId, projectRevision, lifecycleRevision, videoReadVersion]);
+  const [loadedContext, setLoadedContext] = useState<string>();
+  const [loadedProjectId, setLoadedProjectId] = useState<string>();
+  const videoReadCurrent = loadedContext === videoContext;
+  const jobs = videoReadCurrent ? loadedJobs : [];
+  const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, shot?.id, selectionRevision, jobs.map(job => [job.id, job.selectionRevision, job.state, job.selected, job.current, job.segments?.map(segment => segment.id)])]), readOnly);
   const [h3ProfileId, setH3ProfileId] = useState("");
   const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
   const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
-  const [endFrameState, setEndFrameState] = useState<{ projectId: string; shotId: string; approvalId?: string; decision: VideoEndFrameDecision } | null>(null);
-  const [endFrameDraftState, setEndFrameDraftState] = useState<{ projectId: string; shotId: string; approvalId?: string; dirty: boolean } | null>(null);
+  const endFrameScope = JSON.stringify([projectId, shot?.id, approvalId, storyboardRevision]);
+  const [endFrameState, setEndFrameState] = useState<{ scope: string; decision: VideoEndFrameDecision } | null>(null);
+  const [endFrameDraftState, setEndFrameDraftState] = useState<{ scope: string; dirty: boolean } | null>(null);
+  const [endFrameReadiness, setEndFrameReadiness] = useState<{ scope: string; ready: boolean } | null>(null);
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
-  const currentProjectRef = useRef(projectId);
-  currentProjectRef.current = projectId;
+  const currentContextRef = useRef(videoContext);
+  currentContextRef.current = videoContext;
   const refresh = async () => {
     if (!projectId) return;
     const requestedProjectId = projectId;
-    if (requestedProjectId !== currentProjectRef.current) return;
+    if (videoContext !== currentContextRef.current) return;
     const token = ++refreshToken.current;
-    const [nextBudget, nextBackend, nextJobs] = await Promise.all([
-      plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoBackend(), plotloomApi.getVideoJobs(requestedProjectId),
-    ]);
-    // A slow response from a formerly selected project cannot replace the
-    // currently visible project's recovery controls or budget.
-    if (token !== refreshToken.current || requestedProjectId !== currentProjectRef.current) return;
-    setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
+    setLoadedContext(undefined);
+    setError("");
+    try {
+      const [nextBudget, nextBackend, nextJobs] = await Promise.all([
+        plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoBackend(), plotloomApi.getVideoJobs(requestedProjectId),
+      ]);
+      // Archive/restore changes read authority without remounting the editor.
+      if (token !== refreshToken.current || videoContext !== currentContextRef.current) return;
+      setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
+      setLoadedContext(videoContext);
+      setLoadedProjectId(requestedProjectId);
+    } catch (reason) {
+      if (token === refreshToken.current && videoContext === currentContextRef.current) throw reason;
+    }
   };
   useEffect(() => {
-    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
-    void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
-    return () => { refreshToken.current += 1; };
+    setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
   }, [projectId]);
+  useEffect(() => {
+    setLoadedContext(undefined); setError("");
+    void refresh().catch((reason) => {
+      if (videoContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : "无法读取视频试点状态");
+    });
+    return () => { refreshToken.current += 1; };
+  }, [videoContext]);
   useEffect(() => {
     if (!isMiniMaxH3Backend(backend)) return;
     const profiles = h3Profiles(backend);
@@ -227,10 +278,11 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     const h3 = isMiniMaxH3Backend(backend);
     const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
     if (h3 && !profile) throw new Error("请先选择 H3 视频规格");
+    if (h3 && !currentH3Timing.playbackIntent) throw new Error("当前 H3 请求目录、原稿帧网格或请求容量不适用");
     return {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
-      playbackIntent: h3 && h3RequestedFrames * 1000 !== shot.durationUnits * 24 ? "segment_required" as const : "source_exact" as const,
+      playbackIntent: h3 ? currentH3Timing.playbackIntent! : "source_exact",
       ...(backend?.enabled ? {
         requestedDurationSeconds: h3 ? h3DurationSeconds : profile?.durationSeconds ?? backend.durationSeconds,
         resolution: profile ? `${profile.width}x${profile.height}` : backend.resolution,
@@ -253,19 +305,20 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       await plotloomApi.prepareVideoJob(projectId, request);
       await refresh();
     }
-    catch (reason) { setError(reason instanceof Error ? reason.message : "无法冻结视频请求"); }
+    catch (reason) { if (videoContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : "无法冻结视频请求"); }
   };
   const act = async (operation: () => Promise<unknown>, fallback: string) => {
-    const actionProjectId = projectId;
+    const actionContext = videoContext;
     setError("");
     try {
       await operation();
-      if (actionProjectId !== currentProjectRef.current) return;
+      if (actionContext !== currentContextRef.current) return;
       await refresh();
     }
-    catch (reason) { setError(reason instanceof Error ? reason.message : fallback); }
+    catch (reason) { if (actionContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : fallback); }
   };
   const visibleJobs = shot ? jobs.filter((job) => frozenShot(job).id === shot.id) : [];
+  const unassignedInvalidJobs = jobs.filter(job => job.inputStatus === "invalid" && !frozenShot(job).id);
   const navigableSegmentJob = visibleJobs.find((job) => isH3Job(job) && job.state === "ingested"
     && job.current && job.reviews.at(-1)?.decision !== "reject"
     && job.segments?.some((segment) => segment.current));
@@ -275,13 +328,8 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const segmentAnchorJobId = navigationJob?.id;
   const hasReviewableSegment = Boolean(navigationJob?.segments?.some((segment) => segment.current)
     && navigationJob?.current && navigationJob?.reviews.at(-1)?.decision !== "reject");
-  const nextAction = visibleJobs.some((job) => job.selected)
-    ? "当前镜头已有用于故事的片段；可在下方检查路径预览。"
-    : visibleJobs.some((job) => job.state === "ingested" && job.segments?.some((segment) => segment.current))
-      ? "下一步：听看待审片段，再明确确认用于故事。"
-      : visibleJobs.some((job) => job.state === "ingested")
-        ? "下一步：从原片选择连续帧，生成待审片段。"
-        : "下一步：展开准备区，检查关键帧与视频请求。";
+  const hasPreviewSegment = Boolean(navigationJob?.segments?.some(segment => segment.previewEligible));
+  const nextAction = videoNextAction(visibleJobs, shot?.durationUnits);
   // State refreshes are asynchronous. Never use an old project's retained
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedRouteVideos(jobs.filter((job) => job.projectId === projectId), storyboard, sceneBeats, graph, routeId);
@@ -295,31 +343,59 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       && keyframe.width * selectedProfile.height !== keyframe.height * selectedProfile.width,
   );
   const requestAspectPolicy = h3InputFrameMode;
-  const currentEndFrame = endFrameState && endFrameState.projectId === projectId
-    && endFrameState.shotId === shot?.id && endFrameState.approvalId === approvalId
-    ? endFrameState.decision : null;
-  const endFrameDraftDirty = Boolean(endFrameDraftState && endFrameDraftState.projectId === projectId
-    && endFrameDraftState.shotId === shot?.id && endFrameDraftState.approvalId === approvalId
-    && endFrameDraftState.dirty);
+  const currentEndFrame = endFrameState?.scope === endFrameScope ? endFrameState.decision : null;
+  const endFrameDraftDirty = endFrameDraftState?.scope === endFrameScope && endFrameDraftState.dirty;
+  const endFrameReady = endFrameReadiness?.scope === endFrameScope && endFrameReadiness.ready;
   const endFrameAspectReady = !currentEndFrame?.assetId || currentEndFrame.aspectPolicy === requestAspectPolicy;
   const endFrameApprovalReady = !currentEndFrame?.revision || (currentEndFrame.approvalId === approvalId && currentEndFrame.storyboardRevision === storyboardRevision);
-  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
-  const h3RequestedFrames = h3DurationSeconds * 24 + (5 - h3DurationSeconds * 24 % 17) % 17;
-  const h3TimingMismatch = Boolean(h3 && shot && (
-    shot.durationUnits <= 0 || shot.durationUnits * 24 % 1000 !== 0
-    || h3RequestedFrames * 1000 < shot.durationUnits * 24
-  ));
+  const mediaReady = mediaReadPhase === "ready" && videoReadCurrent;
+  const mediaIdentity = useH3MediaIdentity({ projectId, shotId: shot?.id, ready: mediaReady,
+    binding: reviewedBinding, keyframe, samePersonReviewId });
+  const cannotPrepare = readOnly || !mediaReady || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || !endFrameReady || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
+  const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
+  const h3RequestedFrames = currentH3Timing.requestFrames;
+  const h3TimingMismatch = h3 && !currentH3Timing.playbackIntent;
+  const routes = deriveRoutes(graph);
+  const allRoutesReady = mediaReady && routes.length > 0 && routes.every(route => {
+    const sequence = selectedRouteVideos(jobs.filter(job => job.projectId === projectId), storyboard, sceneBeats, graph, route.id);
+    return sequence !== null && sequence.jobs.length > 0 && sequence.missingShotTitles.length === 0;
+  });
+  useReportReviewWorkflowRead(projectId ?? "", Boolean(projectId), {
+    stage: "shot-media", status: videoReadCurrent && mediaReadPhase === "ready" ? "ready" : error || mediaReadPhase === "error" ? "failed" : "loading",
+    busy: false, dirty: readOnly, shotId: shot?.id, allRoutesReady,
+    nextText: shotWorkflowNextText({ videoReady: videoReadCurrent, videoError: Boolean(error), mediaPhase: mediaReadPhase,
+      shot, availableShots: storyboard.shots.length, readOnly, approvalCurrent: approvalCurrent === true, keyframeReady: Boolean(keyframe && reviewedBinding), identityReviewed: Boolean(samePersonReviewId),
+      backendEnabled: backend?.enabled, h3: h3 || h3Unavailable, jobs: visibleJobs, allRoutesReady }),
+  });
+  // Empty jobs mean "none" only after an owned, complete project read. Do not
+  // expose missing-media advice or production actions from an unknown snapshot.
+  if (!projectId || loadedProjectId !== projectId) return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
+    <strong>镜头视频</strong>
+    {!projectId ? <p>先保存项目，再查看或准备镜头视频。</p> : error ? <>
+      <p className="notice warning" role="alert">无法读取镜头视频状态：{error}</p>
+      <Button variant="quiet" onClick={() => void refresh().catch(reason => { if (videoContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : "读取失败"); })}>重新读取镜头视频状态</Button>
+    </> : <Spinner label="正在读取镜头视频状态" />}
+  </Panel>;
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
-      <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
-      <small className="video-next-action">{nextAction}</small>
-      <nav className="video-workflow-nav" aria-label="镜头视频工作流">
-        {visibleJobs.length ? <a href="#shot-original">原片</a> : <a href="#video-production">准备原片</a>}
+      <small>{!videoReadCurrent ? "正在重新核实镜头视频；先前的选择和播放资格暂不使用。" : visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 条视频请求记录；请求不代表原片已生成。只有明确选择的播放片段会进入故事。` : unassignedInvalidJobs.length ? "未找到可确认归属于当前镜头的原片候选；另有冻结证据损坏的请求记录。" : "当前镜头还没有原片候选。"}</small>
+      <small className="video-next-action">{videoReadCurrent ? nextAction : error ? "视频读取未完成，请重新读取。" : <Spinner label="正在读取镜头视频状态" />}</small>
+      {videoReadCurrent && <nav className="video-workflow-nav" aria-label="镜头视频工作流">
+        {visibleJobs.length ? <a href="#shot-original">请求与原片</a> : <a href="#video-production">准备原片</a>}
         {navigationJob ? <a href={`#video-segment-review-${navigationJob.id}`}>调整片段</a> : <span aria-disabled="true">调整片段 · 待原片</span>}
-        {hasReviewableSegment && navigationJob ? <a href={`#video-segment-preview-${navigationJob.id}`}>预览片段</a> : <span aria-disabled="true">预览片段 · 待准备</span>}
-        {hasReviewableSegment && navigationJob ? <a href={`#video-segment-confirm-${navigationJob.id}`}>用于故事 · 确认</a> : <span aria-disabled="true">用于故事 · 待审核</span>}
-        {visibleJobs.some((job) => job.selected) && <a href="#shot-story-preview">故事播放</a>}
-      </nav></header>
+        {hasPreviewSegment && navigationJob ? <a href={`#video-segment-preview-${navigationJob.id}`}>预览片段</a> : <span aria-disabled="true">预览片段 · 待准备</span>}
+        {lifecycleStatus === "archived" ? <span aria-disabled="true">用于故事 · 已停用</span>
+          : hasReviewableSegment && navigationJob ? <a href={`#video-segment-confirm-${navigationJob.id}`}>用于故事 · 确认</a> : <span aria-disabled="true">用于故事 · 待审核</span>}
+        {visibleJobs.some(isCurrentVideoSelection) && <a href="#shot-story-preview">故事播放</a>}
+      </nav>}</header>
+    {!videoReadCurrent && error && <Button variant="quiet" onClick={() => void refresh().catch(reason => { if (videoContext === currentContextRef.current) setError(reason instanceof Error ? reason.message : "读取失败"); })}>重新读取镜头视频状态</Button>}
+    {unassignedInvalidJobs.length > 0 && <div className="notice warning" role="alert">
+      <strong>有 {unassignedInvalidJobs.length} 条视频请求的冻结证据未通过核验，无法确认镜头归属。</strong>
+      <small>这些记录不会进入当前故事播放，也不会被自动删除或重新派发。</small>
+      <details><summary>无法确认归属的请求详情</summary>{unassignedInvalidJobs.map(job => <div key={job.id}>
+        <strong>{job.id}</strong><pre>{JSON.stringify(job.snapshot, null, 2)}</pre>
+      </div>)}</details>
+    </div>}
     <details id="video-production" className="video-production"><summary>{h3 || h3Unavailable ? "准备或生成新的 MiniMax H3 原片" : "准备或生成新的视频原片"}</summary>
     {h3 && backend
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
@@ -330,24 +406,25 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && shot && <small className={h3TimingMismatch ? "notice warning" : "notice"} data-testid="h3-authored-timing">
-      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames} 帧（约 {(h3RequestedFrames / 24).toFixed(2)} 秒）。
-      {h3TimingMismatch ? "当前请求无法覆盖 24 fps 帧网格上的原稿时长，请修改请求或明确修订原稿。" : `原稿需要 ${shot.durationUnits * 24 / 1000} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
+      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames ?? "未知"} 帧{h3RequestedFrames !== undefined && `（约 ${(h3RequestedFrames / 24).toFixed(2)} 秒）`}。
+      {h3TimingMismatch ? "当前请求目录不适用，或无法覆盖 24 fps 帧网格上的原稿时长，请审阅请求与原稿。" : `原稿需要 ${currentH3Timing.sourceFrames} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
     </small>}
-    {h3 && projectId && shot && <VideoEndFrameChoice key={`${projectId}:${shot.id}:${approvalId ?? ""}`} projectId={projectId} shotId={shot.id}
+    {h3 && projectId && shot && <VideoEndFrameChoice key={endFrameScope} projectId={projectId} shotId={shot.id}
       approvalId={approvalId} storyboardRevision={storyboardRevision} profile={selectedProfile}
       requestAspectPolicy={requestAspectPolicy} readOnly={readOnly}
-      onDecision={(decision) => setEndFrameState({ projectId, shotId: shot.id, approvalId, decision })}
-      onDraftChange={(dirty) => setEndFrameDraftState({ projectId, shotId: shot.id, approvalId, dirty })} />}
+      onDecision={(decision) => setEndFrameState({ scope: endFrameScope, decision })}
+      onDraftChange={(dirty) => setEndFrameDraftState({ scope: endFrameScope, dirty })}
+      onReadinessChange={(ready) => setEndFrameReadiness({ scope: endFrameScope, ready })} />}
     {h3 && selectedProfile && keyframe && !h3AspectMismatch && <div className="notice" data-testid="h3-aspect-ready"><small>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配。</small>
       <label>首帧与末帧统一输入处理<select value={h3InputFrameMode} disabled={readOnly} onChange={(event) => setH3InputFrameMode(event.target.value as typeof h3InputFrameMode)}>
         <option value="reject_mismatch">比例不符则拒绝</option><option value="contain_pad">黑边画布</option><option value="cover_center_crop">居中裁切</option>
       </select></label></div>}
-    {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
+    {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning h3-aspect-options" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>
       <small>默认拒绝比例不符。以下选择只会冻结对原审核关键帧的网关输入处理，不会替换原始字节、来源、审核选择或当前性检查。</small>
       <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "reject_mismatch"} disabled={readOnly} onChange={() => setH3InputFrameMode("reject_mismatch")} /> 保持拒绝比例不符（默认）</label>
       <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "cover_center_crop"} disabled={readOnly || backend?.allowsCenterCrop === false} onChange={() => setH3InputFrameMode("cover_center_crop")} /> 允许网关居中裁切（保留原审核关键帧）</label>
-      <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "contain_pad"} disabled={readOnly || backend?.allowsLetterbox === false} onChange={() => setH3InputFrameMode("contain_pad")} /> 允许黑边画布（保留当前横幅构图）</label>
+      <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "contain_pad"} disabled={readOnly || backend?.allowsLetterbox === false} onChange={() => setH3InputFrameMode("contain_pad")} /> 允许黑边画布（完整保留已审核图）</label>
       {h3InputFrameMode === "cover_center_crop"
         ? <small data-testid="h3-center-crop-allowed">将以 cover_center_crop 冻结：仅网关对冻结的原图执行居中裁切；不会创建本地裁切或 ImageGen 比例适配。</small>
         : h3InputFrameMode === "contain_pad"
@@ -359,36 +436,41 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3ReviewNotice />}
     {h3 && projectId && shot
       ? <H3DirectionsReview projectId={projectId}
-          sourceIdentity={`${shot.id}:${approvalId ?? ""}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${currentEndFrame?.revision ?? "loading"}:${currentEndFrame?.originalHash ?? ""}:${endFrameDraftDirty}:${visibleJobs.length}`}
+          sourceIdentity={JSON.stringify([shot.id, approvalId, storyboardRevision, mediaIdentity, h3ProfileId, h3DurationSeconds, h3InputFrameMode, currentEndFrame?.revision, currentEndFrame?.originalHash, endFrameDraftDirty, loadedJobs.filter(job => job.projectId === projectId && frozenShot(job).id === shot.id).length])}
+          sourceReady={mediaReady && Boolean(endFrameReady)}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
           keyframeHash={keyframe?.originalHash ?? ""} endFrameHash={currentEndFrame?.originalHash ?? null} quality={selectedProfile?.quality ?? 0}
-          requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames}
+          requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames ?? 0}
           onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
-      : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
+      : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>准备新视频任务（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
-    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {frozenShot(job).title || "当前镜头"}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>
+    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {shotLabel(frozenShot(job))}</strong><span>{videoJobLabel(job)}</span></header>
       <small>{isH3Job(job) ? `质量 ${frozenH3Quality(job)} · ` : ""}请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
       <small> · {jobStatus(job)}</small>
       <details className="video-technical-history"><summary>审核历史与技术详情</summary>
         <small>选择版本 {job.selectionRevision} · 原片编号 {job.id}</small>
-        <pre>{JSON.stringify(job.snapshot.request || {}, null, 2)}</pre>
-        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
+        <pre>{JSON.stringify(frozenVideoSnapshot(job)?.request ?? job.snapshot, null, 2)}</pre>
+        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : review.decision === "reopen" ? "重新开放审阅" : "拒绝"} · {humanReviewLabel(review)}{review.note ? ` · ${review.note}` : ""}</small>)}
       </details>
-      {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />}
+      {job.state === "ingested" && projectId && <ReviewedVideoPlayer kind="原片" style={verifiedVideoGeometry(job.observed)}
+        src={plotloomApi.videoJobMediaUrl(projectId, job.id)} testId={`video-job-player-${job.id}`} />}
       <div className="button-row">
         {job.state === "prepared" && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.submitVideoJob(projectId!, job.id), "提交未完成")}>提交一次</Button>}
         {(job.state === "submitted" || job.state === "retrieve_needed") && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.reconcileVideoJob(projectId!, job.id), "获取结果未完成")}>获取结果</Button>}
         {["prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown"].includes(job.state) && !job.cancelRequestedAt && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.cancelVideoJob(projectId!, job.id), "取消意图未记录")}>记录取消意图</Button>}
         {job.state === "ingested" && !isH3Job(job) && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "", "", job.selectionRevision), "选择未完成")}>选择此候选</Button>}
-        {job.state === "ingested" && !job.selected && <Button variant="danger" disabled={readOnly} onClick={() => {
-          if (window.confirm("永久删除此未选择视频候选？此操作不可撤销。")) void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成");
+        {canDiscard(job) && <Button variant="danger" disabled={readOnly} onClick={() => {
+          requestConfirmation({ title: "永久删除", message: "永久删除此未选择视频候选？此操作不可撤销。", details: `原片：${job.id}`, action: () => act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成") });
         }}>永久删除</Button>}
         {job.state === "discard_pending" && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "重试删除未完成")}>重试永久删除</Button>}
       </div>
+      {job.state === "ingested" && !job.selected && Boolean(job.segments?.length) && <small>此原片已有保留片段，不能永久删除；原片与片段证据会保留。</small>}
       {isH3Job(job) && projectId && job.state === "ingested" && <div id={job.id === segmentAnchorJobId ? "shot-segment" : undefined}><VideoSegmentReview key={`${projectId}:${job.id}`} projectId={projectId} job={job} readOnly={readOnly} onRefresh={refresh} /></div>}
       {job.error && <small>{job.error}</small>}</article>)}
     <section id="shot-story-preview" className="story-playback-section"><strong>预览 · 用于故事</strong>
+      {!videoReadCurrent ? <p role="status">视频状态尚未核实，故事播放暂不可用。</p> : lifecycleStatus === "archived"
+        ? <p>项目已归档，故事播放已停用；可在上方查看保留片段。恢复项目后需重新核对播放资格。</p> : <>
       <small>只有当前、已明确选择且可核验的播放片段会进入故事；待审原片不会自动播放。</small>
       {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
         <strong>已选择路径片段</strong>
@@ -397,12 +479,14 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       </section>}
       {projectId && selectedSequence && selectedSequence.jobs.length > 0 && selectedSequence.missingShotTitles.length === 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
       {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
+      </>}
     </section>
-    {shot && visibleJobs.length === 0 && <small>当前镜头尚无冻结的视频请求。</small>}
-    {shot && visibleJobs.some((job) => job.state === "ingested" && !job.selected) && <Button variant="danger" disabled={readOnly} onClick={() => {
+    {videoReadCurrent && shot && visibleJobs.length === 0 && !unassignedInvalidJobs.length && <small>当前镜头尚无冻结的视频请求。</small>}
+    {shot && visibleJobs.some(canDiscard) && <Button variant="danger" disabled={readOnly} onClick={() => {
       const revision = visibleJobs[0]?.selectionRevision ?? 0;
-      const ids = visibleJobs.filter((job) => job.state === "ingested" && !job.selected).map((job) => job.id);
-      if (window.confirm(`永久删除这 ${ids.length} 个未选择视频候选？此操作不可撤销。`)) void act(() => plotloomApi.discardUnselectedVideoJobs(projectId!, shot.id, ids, revision), "批量删除未完成");
-    }}>删除全部未选择候选</Button>}
+      const ids = visibleJobs.filter(canDiscard).map((job) => job.id);
+      requestConfirmation({ title: "批量永久删除", message: `永久删除这 ${ids.length} 个未选择且无保留片段的视频候选？此操作不可撤销。`, details: `镜头：${shot.id}\n原片：${ids.join("\n")}`, action: () => act(() => plotloomApi.discardUnselectedVideoJobs(projectId!, shot.id, ids, revision), "批量删除未完成") });
+    }}>删除可清理的未选择候选</Button>}
+    {confirmation}
   </Panel>;
 }

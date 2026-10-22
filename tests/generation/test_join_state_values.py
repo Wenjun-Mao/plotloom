@@ -43,12 +43,12 @@ def _graph(
     return StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="开始", summary="开始", kind="start"),
-            StoryNodeV2(id="decision", title="选择", summary="选择", kind="decision"),
-            StoryNodeV2(id="left", title="左路", summary="左路", kind="scene"),
-            StoryNodeV2(id="right", title="右路", summary="右路", kind="scene"),
-            StoryNodeV2(id="join", title="汇流", summary="汇流", kind="join"),
-            StoryNodeV2(id="ending", title="结局", summary="结局", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="开始", summary="开始", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="decision", title="选择", summary="选择", kind="decision"),
+            StoryNodeV2(footage_mode="footage", id="left", title="左路", summary="左路", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="right", title="右路", summary="右路", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="join", title="汇流", summary="汇流", kind="join"),
+            StoryNodeV2(footage_mode="footage", id="ending", title="结局", summary="结局", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(id="start-decision", source_node_id="start", target_node_id="decision", kind="continuation", choice_text=None, state_effects={}),
@@ -231,7 +231,7 @@ def test_graph_admission_rejects_path_dependent_typed_entry_state_before_scene_b
         RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
     ]
     with pytest.raises(DomainValidationError) as rejected:
-        validate_story_graph(graph, _brief(), strict_v2=True)
+        validate_story_graph(graph, _brief())
 
     issue = next(item for item in rejected.value.issues if item["code"] == "edge_entry_entity_state_incomplete")
     assert issue["path"] == "nodes.join.entityStateEffects.character.mira"
@@ -243,7 +243,7 @@ def test_graph_admission_rejects_path_dependent_typed_entry_state_before_scene_b
 def test_graph_admission_examples_match_typed_direct_incoming_prompt_rule() -> None:
     """Omission and equal assignments pass; partial and conflicting ones fail."""
 
-    validate_story_graph(_graph(), _brief(), strict_v2=True)
+    validate_story_graph(_graph(), _brief())
 
     equal = _graph()
     for edge in equal.edges[3:5]:
@@ -254,7 +254,7 @@ def test_graph_admission_examples_match_typed_direct_incoming_prompt_rule() -> N
                 state="calm",
             )
         ]
-    validate_story_graph(equal, _brief(), strict_v2=True)
+    validate_story_graph(equal, _brief())
 
     incomplete = _graph()
     incomplete.edges[3].entity_state_effects = [
@@ -265,7 +265,7 @@ def test_graph_admission_examples_match_typed_direct_incoming_prompt_rule() -> N
         )
     ]
     with pytest.raises(DomainValidationError) as partial_rejection:
-        validate_story_graph(incomplete, _brief(), strict_v2=True)
+        validate_story_graph(incomplete, _brief())
     assert {issue["code"] for issue in partial_rejection.value.issues} >= {
         "edge_entry_entity_state_incomplete"
     }
@@ -286,7 +286,7 @@ def test_graph_admission_examples_match_typed_direct_incoming_prompt_rule() -> N
         )
     ]
     with pytest.raises(DomainValidationError) as conflict_rejection:
-        validate_story_graph(conflicting, _brief(), strict_v2=True)
+        validate_story_graph(conflicting, _brief())
     assert {issue["code"] for issue in conflict_rejection.value.issues} >= {
         "edge_entry_entity_state_conflict"
     }

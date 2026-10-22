@@ -8,6 +8,27 @@ The retained U4 lighthouse has one F4 scene occurrence and nine authored F5 cuts
 
 ## Decision
 
+### Current default and evidence contract — superseding 2026-10-07
+
+The owner requested removal of encountered compatibility behavior. `ProjectBrief`
+now has one current default, **advisory**, for every absent policy, whether read or
+created. Explicit `strict` remains strict. Read/open never writes missing fields,
+Brief bytes, revisions or stored evidence. This supersedes only the old/new
+field-absence interpretation and pre-policy hash preservation below; those dated
+clauses are retained as history, not current behavior.
+
+Gate input hashes always include the effective policy. Implicit advisory and
+explicit advisory have identical semantic hashes; strict differs. Pre-policy
+evidence cannot remain current merely because its original field was absent.
+No migration, read-time stamping, generation bypass or absence-based adapter is
+introduced. Protected owners have explicit advisory and retain that meaning.
+Rejected: preserving separate read/create defaults, helper stamping, or excluding
+an effective policy from evidence identity. Guardrails cover missing-field read
+without persisted mutation, explicit strict creation/reopen, count refusal vs
+advisory warning, and implicit/explicit policy hash equivalence.
+
+### Original decision — 2026-09-22 (default/hash clauses superseded above)
+
 `ProjectBrief` owns one `shotCountPolicy` value: `advisory` or `strict`. The stored absence of this field means **strict** for existing projects; read/open must not rewrite old Brief bytes, project revisions, hashes, or accepted bindings. New project creation must explicitly persist `advisory` when the caller omits the field, including idempotent creation. An explicit `strict` remains available in the Brief editor and API. The numeric min/max range remains a preference in advisory mode and a required bound in strict mode. It is not a provider capability, duration limit, or universal shot ceiling.
 
 Canonical V1/V2 storyboard validation and the bridge use the same Brief policy. Strict out-of-range counts block; advisory counts do not. The current V2 gate and bridge proposal are the review surfaces that display nonblocking advisory evidence. V1 is a retained validation-only contract with no warning result or review UI; this decision does not add a new legacy review channel. All other coverage, timing, entity, resource, and provider-duration checks remain mandatory. The bridge retains one F4 scene occurrence per canonical scene and one F5 cut per canonical shot with exact source coordinates and milliseconds. It never splits or omits cuts to satisfy guidance. The existing gate-set version remains valid for legacy strict projects, with their pre-policy input hashes preserved; advisory evaluation records a warning-shaped, nonblocking result under a distinct Brief input hash. Storyboard generation continues to show the preferred range in its prompt, but its response schema and semantic count check use only the strict range when strict is chosen; advisory mode uses hard timing/resource feasibility rather than quietly imposing the preferred maximum. Frozen jobs preserve their own contract.

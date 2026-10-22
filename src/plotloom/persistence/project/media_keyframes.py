@@ -7,7 +7,12 @@ from typing import Any
 from sqlalchemy import select
 
 from ...domain import StageName, new_id, utc_now
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    RevisionConflictError,
+    SamePersonReviewRequiredError,
+)
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ImageJobCandidateRow,
@@ -56,8 +61,17 @@ class ReviewedKeyframePersistence:
         compatibility_note: str,
         visual_intent_id: str,
         visual_intent_revision: int,
+        expected_presentation_revision: int = 0,
+        attribution=None,
+        bulk_basis=None,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
+        if bulk_basis is not None:
+            bulk_basis.require(self._access)
+        elif not compatibility_note.strip():
+            raise InvalidTransitionError("manual frame compatibility requires an authored observation")
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -75,18 +89,6 @@ class ReviewedKeyframePersistence:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
-            generated_candidate = session.scalar(
-                select(ImageJobCandidateRow)
-                .where(ImageJobCandidateRow.asset_id == asset_id)
-                .order_by(ImageJobCandidateRow.created_at.desc())
-                .limit(1)
-            )
-            if generated_candidate is not None:
-                generated_job = session.get(ImageJobRow, generated_candidate.job_id)
-                if generated_job is None or not self._image_currentness.image_job_is_current_in_session(session, generated_job):
-                    raise InvalidTransitionError(
-                        "image-job candidate is no longer applicable and cannot be selected"
-                    )
             intent = session.get(VisualIntentRow, visual_intent_id)
             if (
                 intent is None or intent.project_id != project_id or intent.asset_id != asset_id
@@ -94,14 +96,28 @@ class ReviewedKeyframePersistence:
             ):
                 raise InvalidTransitionError("reviewed keyframe must bind an exact current-project visual intent")
             latest_intent = self._admission.latest_visual_intent_for_role_in_session(
-                session, project_id, asset_id, intent.intent.get("role")
+                session, project_id, asset_id, intent.intent.get("role"),
+                (intent.intent.get("targetUse") or {}).get("targetShotId")
             )
             if latest_intent is None or latest_intent.id != intent.id:
                 raise InvalidTransitionError("reviewed keyframe must bind the current visual intent revision")
+            from ...delegated_qa import binding_attribution, require_qa_write
+            from ...delegated_qa_contracts import AgentQaAttribution
+            if attribution is not None:
+                attribution = AgentQaAttribution.model_validate(attribution).model_dump(mode="json", by_alias=True)
+            actor = binding_attribution(project_id, approval, intent.intent, asset_id=asset_id, shot_id=shot_id)
+            if actor != attribution:
+                raise InvalidTransitionError("reviewed selection requires its explicit matching QA attribution")
+            if actor:
+                require_qa_write(session, project_id, actor, asset_id=asset_id, shot_id=shot_id)
             storyboard = self._canonical._load_stage_payload(session, project_id, StageName.STORYBOARD)
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None or shot.scene_id != scene_id:
                 raise InvalidTransitionError("reviewed keyframe must target a current shot in its declared scene")
+            presentation = self._image_currentness.presentations.current(session, project_id, shot_id)
+            presentation_revision = presentation["revision"] if presentation else 0
+            if presentation_revision != expected_presentation_revision:
+                raise RevisionConflictError("shot-presentation", expected_presentation_revision, presentation_revision)
             state.revision += 1
             state.updated_at = now
             binding = ReviewedShotBindingRow(
@@ -113,13 +129,18 @@ class ReviewedKeyframePersistence:
                 selection_revision=state.revision, compatibility_note=compatibility_note,
                 created_at=now,
             )
+            from .image_reviewed_use import use_in_session
+            use_in_session(session, binding, currentness=self._image_currentness)
             session.add(binding)
             session.flush()
+            if bulk_basis is not None:
+                session.info.setdefault("pending_bulk_bindings", {})[binding.id] = bulk_basis
             return {
                 "id": binding.id, "assetId": asset_id, "shotId": shot_id,
                 "sceneId": scene_id, "selectionRevision": state.revision,
                 "storyboardRevision": storyboard_revision, "visualIntentId": intent.id,
                 "visualIntentRevision": intent.revision,
+                **({"attribution": actor} if actor else {}),
             }
 
     def create_still_preview(
@@ -195,10 +216,8 @@ class ReviewedKeyframePersistence:
                 identity_mapping = self._same_person.identity_mapping_for_binding_in_session(session, binding)
                 if identity_mapping:
                     review = self._same_person.current_same_person_review_for_binding(session, project_id, binding)
-                    if review is None:
-                        raise InvalidTransitionError(
-                            "identity-aware reviewed keyframe needs a current explicit same-person review before preview admission"
-                        )
+                    if review is None or not self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review):
+                        raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
                     frame["identityReviewId"] = review.id
                     frame["identityReferenceDecisionIds"] = [item["referenceDecisionId"] for item in identity_mapping]
                 frames.append(frame)
@@ -263,4 +282,5 @@ class ReviewedKeyframePersistence:
                 # review attached during preview admission.
                 return not self._same_person.identity_mapping_for_binding_in_session(session, binding)
             review = session.get(SamePersonReviewRow, review_id)
-            return review is not None and self._same_person.same_person_review_is_current_in_session(session, project_id, review)
+            return (review is not None and review.binding_id == binding.id
+                    and self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review))

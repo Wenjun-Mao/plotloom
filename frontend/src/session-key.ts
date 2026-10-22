@@ -1,15 +1,11 @@
 const STORAGE_KEY = "plotloom:provider-session-keys";
-const LEGACY_STORAGE_KEY = "plotloom:provider-session-key";
 
 type SessionKeyMap = Record<string, string>;
 
 function readMap(): SessionKeyMap {
   try {
     const stored = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      const legacy = window.sessionStorage.getItem(LEGACY_STORAGE_KEY)?.trim();
-      return legacy ? { default: legacy } : {};
-    }
+    if (!stored) return {};
     const parsed: unknown = JSON.parse(stored);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
     return Object.fromEntries(Object.entries(parsed).flatMap(([profileId, value]) =>
@@ -24,9 +20,6 @@ function writeMap(keys: SessionKeyMap): void {
   try {
     if (Object.keys(keys).length) window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
     else window.sessionStorage.removeItem(STORAGE_KEY);
-    // The former single-key entry is intentionally migrated out of the current
-    // session rather than copied to durable storage.
-    window.sessionStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     // A disabled storage implementation must not block the workbench.
   }
@@ -45,18 +38,5 @@ export const providerSessionKeys = {
   },
   clear(profileId: string): void {
     this.write(profileId, "");
-  },
-};
-
-/** @deprecated Use the profile-scoped providerSessionKeys API. */
-export const providerSessionKey = {
-  read(): string {
-    return providerSessionKeys.read("default");
-  },
-  write(value: string): void {
-    providerSessionKeys.write("default", value);
-  },
-  clear(): void {
-    providerSessionKeys.clear("default");
   },
 };

@@ -111,7 +111,7 @@ def _copy_regular(source: Path, destination: Path) -> _Payload:
 
 def _copy_payload(root: Path, destination_root: Path, relative_path: PurePosixPath) -> _Payload:
     source = _source_file(root, relative_path)
-    if relative_path.parts[:1] == ("runs",):
+    if relative_path.parts[:1] in {("runs",), ("outputs",)}:
         _assert_exchange_file_is_secret_free(source)
     target = destination_root.joinpath(*relative_path.parts)
     copied = _copy_regular(source, target)
@@ -121,7 +121,7 @@ def _copy_payload(root: Path, destination_root: Path, relative_path: PurePosixPa
 def _assert_exchange_file_is_secret_free(path: Path) -> None:
     """Reject credential material in published human-readable exchange evidence."""
 
-    if path.suffix not in {".json", ".txt"}:
+    if path.suffix not in {".json", ".txt", ".html"}:
         return
     raw = path.read_text(encoding="utf-8")
     try:

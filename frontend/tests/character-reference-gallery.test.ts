@@ -47,12 +47,12 @@ function pendingGallery(): PendingGallery {
 }
 
 function galleryResponse(projectId: string, title: string, options: { characters?: { id: string; name: string }[]; decisions?: any[]; referenceStates?: any[]; proposals?: any[]; assets?: any[] } = {}) {
-  const characters = options.characters ?? [{ id: "keeper", name: "Mira" }];
+  const characters = (options.characters ?? [{ id: "keeper", name: "Mira" }]).map((character) => ({ ...character, persona: { personality: ["Careful"], appearance: "Weathered beacon coat" } }));
   const asset = { id: "same-asset", projectId, originalHash: "original", displayHash: "display", mimeType: "image/png", byteSize: 20, width: 64, height: 48, createdAt: "2026-09-20T00:00:00Z", provenance: null };
   const decisions = options.decisions ?? characters.map((character) => ({ id: character.id, projectId, characterId: character.id, referenceRevision: 1, characterContext: {}, characterContextHash: character.id, primaryAssetId: asset.id, complementaryAssetIds: [], assetHashes: [], reviewer: "reviewer", notes: "test", current: true, revokedAt: null, revokedBy: null, revocationReason: null, createdAt: "2026-09-20T00:00:00Z" }));
   return {
     project: { id: projectId, brief: { title } },
-    cast: { candidate: null, acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, acceptedAt: "2026-09-20T00:00:00Z", cast: { characters }, consumerMappings: characters.map((character) => ({ castCharacterId: character.id, consumerCharacterId: character.id })) }, status: "accepted", staleReasons: [] },
+    cast: { acceptedReviewState: { status: "current", staleReasons: [] }, candidate: null, acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, acceptedAt: "2026-09-20T00:00:00Z", cast: { characters }, consumerMappings: characters.map((character) => ({ castCharacterId: character.id, consumerCharacterId: character.id })) }, status: "accepted", staleReasons: [] },
     references: { states: options.referenceStates ?? [], decisions },
     proposals: { configured: true, proposals: options.proposals ?? [] },
     workbench: { assets: options.assets ?? [asset], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], characterReferences: { states: [], decisions: [] }, samePersonReviews: { revision: 0, reviews: [] }, previews: [] },
@@ -159,11 +159,16 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue({ ...response.cast, status: "reopened" } as any);
 
   await renderProject("project");
+  for (const label of ["图片标签", "来源声明", "PNG 或 JPEG", "想法"]) {
+    const field = [...host.querySelectorAll(".character-reference-review .field")].find(item => item.querySelector("label")?.textContent === `${label} *`)!;
+    expect(field.querySelector("input,textarea")?.getAttribute("aria-required")).toBe("true");
+    expect(field.querySelector("input,textarea")?.hasAttribute("required")).toBe(false);
+  }
   await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(button("编辑角色设定").disabled).toBe(false);
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色已过期");
+  expect(host.textContent).toContain("角色设定需重新确认");
   const galleryReadsBeforeOldSuccess = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
 
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
@@ -183,17 +188,35 @@ it("does not retain an in-flight specialist send from a cast session invalidated
 
   proposal.deliveries = []; proposal.state = "prepared";
   await renderProject("project");
-  await act(async () => { button("发送给 specialist").click(); await Promise.resolve(); });
+  await act(async () => { button("发送给图像生成助手").click(); await Promise.resolve(); });
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("角色文字正在更新");
-  expect(button("发送给 specialist").disabled).toBe(true);
+  expect(button("发送给图像生成助手").disabled).toBe(true);
   await act(async () => { copied.resolve({}); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).not.toContain("角色参考操作失败");
   await act(async () => { reopening.resolve({ ...response.cast, status: "reopened" }); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色已过期");
+  expect(host.textContent).toContain("角色设定需重新确认");
+});
+
+it("reads the exported character handoff after a wake warning and preserves that warning", async () => {
+  const { asset, proposal } = candidateProposal("project");
+  proposal.deliveries = []; proposal.state = "prepared";
+  installResolvedGallery(galleryResponse("project", "Wake warning fixture", { proposals: [proposal], assets: [asset] }));
+  const warning = "任务已入队，请打开已有助手，不要重复发送。";
+  const send = vi.spyOn(plotloomApi, "sendCharacterReferenceProposal").mockImplementation(async () => {
+    proposal.state = "exported";
+    throw new Error(warning);
+  });
+  await renderProject("project");
+  await act(async () => button("发送给图像生成助手").click());
+  await flushReact();
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(host.textContent).toContain(warning);
+  expect([...host.querySelectorAll("button")].some((entry) => entry.textContent === "发送给图像生成助手")).toBe(false);
+  expect(vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length).toBeGreaterThan(1);
 });
 
 it("replaces a held initial gallery read after reopen and save settle a newer same-subject cast session", async () => {
@@ -215,10 +238,10 @@ it("replaces a held initial gallery read after reopen and save settle a newer sa
   await flushReact();
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("Current live gallery evidence");
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
 
   await resolveGallery(held, initial);
   expect(host.textContent).toContain("Current live gallery evidence");
@@ -274,7 +297,7 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
   phase = "newer";
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已选择身份参考 r2");
 
@@ -316,7 +339,7 @@ it("rejects an old held refresh error after the same subject reaches a newer acc
   phase = "newer";
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已选择身份参考 r2");
 
@@ -343,13 +366,13 @@ it("rejects a late image-mutation error after the same subject is reopened and s
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
 
   await act(async () => { selection.reject(new Error("old image mutation rejected")); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).toContain("已接受角色 r2");
+  expect(host.textContent).toContain("已确认角色设定 r2");
   expect(host.textContent).not.toContain("old image mutation rejected");
   expect(ideaInput().disabled).toBe(false);
 });
@@ -373,7 +396,7 @@ it("remounts same-subject controls across a reopened-and-saved cast session", as
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   const freshDirection = ideaInput();
   expect(freshDirection.disabled).toBe(false);

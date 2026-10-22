@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
@@ -34,6 +35,19 @@ class ImageJobError(ValueError):
         self.publication_phase = publication_phase
 
 
+class NativeTaskBinding(CamelModel):
+    """Transport-only destination identity for a native ImageGen handoff."""
+
+    mode: Literal["configured_task", "current_task"]
+    task_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def mode_has_the_right_identity(self) -> NativeTaskBinding:
+        if (self.mode == "configured_task") != (self.task_id is not None):
+            raise ValueError("configured task bindings require exactly one native task UUID")
+        return self
+
+
 class ImageJobCreateRequest(CamelModel):
     """Browser input for one frozen, creator-reviewed image-job brief."""
 
@@ -41,6 +55,7 @@ class ImageJobCreateRequest(CamelModel):
     shot_id: str = Field(min_length=1, max_length=100)
     storyboard_revision: int = Field(ge=1)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
+    scene_continuity_binding_id: str | None = Field(default=None, min_length=1, max_length=36)
     # An aspect-adaptation job starts from the current reviewed keyframe,
     # including an imported keyframe that has no prior image-job candidate.
     # The API resolves this opaque ID against the reviewed H3 catalog; callers
@@ -68,6 +83,11 @@ class ImageJobCreateRequest(CamelModel):
 
     @model_validator(mode="after")
     def adaptation_request_has_one_source_mode(self) -> "ImageJobCreateRequest":
+        if self.scene_continuity_binding_id is not None and (
+            self.parent_candidate_asset_id is not None or self.keyframe_adaptation_profile_id is not None
+            or self.contract_version != 3
+        ):
+            raise ValueError("scene continuity requires an independent identity-aware original job")
         if self.keyframe_adaptation_profile_id is not None:
             if self.parent_candidate_asset_id is not None:
                 raise ValueError("keyframe adaptation cannot also name a refinement parent")
@@ -162,28 +182,6 @@ class ArtReferenceDecisionRequest(CamelModel):
     expected_reference_revision: int = Field(ge=0)
 
 
-class SamePersonReviewItem(CamelModel):
-    character_id: str = Field(min_length=1, max_length=128)
-    judgment: Literal["pass", "fail"]
-    identity_notes: str = Field(min_length=1, max_length=2_000)
-    state_notes: str = Field(min_length=1, max_length=2_000)
-
-
-class SamePersonReviewRequest(CamelModel):
-    binding_id: str = Field(min_length=1, max_length=36)
-    expected_review_revision: int = Field(ge=0)
-    reviewer: str = Field(min_length=1, max_length=160)
-    comparisons: list[SamePersonReviewItem] = Field(min_length=1, max_length=8)
-    notes: str = Field(min_length=1, max_length=2_000)
-
-    @model_validator(mode="after")
-    def character_reviews_are_distinct(self) -> "SamePersonReviewRequest":
-        character_ids = [item.character_id for item in self.comparisons]
-        if len(character_ids) != len(set(character_ids)):
-            raise ValueError("same-person comparisons must name each character once")
-        return self
-
-
 class ImageJobOutput(CamelModel):
     filename: str = Field(min_length=1, max_length=180)
     sha256: str = Field(pattern=SHA256_PATTERN)
@@ -202,19 +200,27 @@ class ImageJobOutput(CamelModel):
 
 class ImageToolEvidence(CamelModel):
     tool: Literal["codex_imagegen"]
-    task_id: str = Field(min_length=1, max_length=160)
+    # ``taskId`` remains required only for historical schemas 1 and 2. Schema
+    # 3 uses separate typed identities so an ImageGen execution ID cannot be
+    # mistaken for the native Codex task that owns a dispatched job.
+    task_id: str | None = Field(default=None, min_length=1, max_length=160)
+    native_task_id: UUID | None = None
+    image_gen_execution_id: str | None = Field(default=None, min_length=1, max_length=160)
+    executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    codex_session_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    image_gen_call_id: str | None = Field(default=None, min_length=1, max_length=160, exclude_if=lambda value: value is None)
+    image_gen_event_id: str | None = Field(default=None, min_length=1, max_length=160, exclude_if=lambda value: value is None)
     # A P1 candidate is specifically evidence of an observed built-in-imagegen
     # run. A no-tool manifest is not a weaker success state; it is invalid.
     available: Literal[True] = True
 
 
 class ImageReferenceUse(CamelModel):
-    """A specialist attestation, never a substitute for creator visual review."""
+    """Evidence of frozen references supplied or viewed, never creator approval."""
 
-    # The field is optional for an original job with no identity references.
-    # Delivery admission separately requires the exact frozen identity hashes
-    # whenever the package supplied any, so permitting an explicit empty
-    # attestation cannot weaken identity-bound jobs.
+    # The field is optional when no frozen references exist. Admission checks
+    # exact identity hashes for older specialist manifests and every frozen
+    # reference hash for the trusted Codex Exec schema.
     viewed_reference_hashes: list[str] = Field(default_factory=list, max_length=24)
     identity_notes: str = Field(min_length=1, max_length=2_000)
 
@@ -241,7 +247,7 @@ class ImageExecutorProvenance(CamelModel):
 class ImageDeliveryManifest(CamelModel):
     """The specialist's completion declaration; bytes remain untrusted."""
 
-    schema_version: Literal[1, 2] = 1
+    schema_version: Literal[1, 2, 3, 4, 5] = 1
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
@@ -250,6 +256,7 @@ class ImageDeliveryManifest(CamelModel):
     tool_evidence: ImageToolEvidence
     reference_use: ImageReferenceUse | None = None
     executor_provenance: ImageExecutorProvenance | None = None
+    executor_profile_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
     limitations: list[str] = Field(default_factory=list, max_length=32)
 
     @field_validator("limitations")
@@ -269,10 +276,75 @@ class ImageDeliveryManifest(CamelModel):
             raise ValueError("outputs must not declare the same bytes twice")
         return self
 
+    @model_validator(mode="after")
+    def tool_identity_matches_schema(self) -> ImageDeliveryManifest:
+        evidence = self.tool_evidence
+        exec_fields = (evidence.executor_attempt_id, evidence.codex_session_id, evidence.image_gen_call_id, evidence.image_gen_event_id)
+        if self.schema_version in {1, 2}:
+            if (evidence.task_id is None or evidence.native_task_id is not None or evidence.image_gen_execution_id is not None
+                    or any(value is not None for value in exec_fields) or self.executor_profile_hash is not None):
+                raise ValueError("legacy image manifests require taskId and cannot mix identity fields")
+        elif self.schema_version == 3 and (
+            evidence.task_id is not None
+            or evidence.native_task_id is None
+            or evidence.image_gen_execution_id is None
+            or evidence.image_gen_execution_id == str(evidence.native_task_id)
+            or any(value is not None for value in exec_fields)
+            or self.executor_profile_hash is not None
+        ):
+            raise ValueError("schema-v3 image manifests require distinct native and ImageGen execution identities")
+        elif self.schema_version == 4 and (
+            evidence.task_id is not None or evidence.native_task_id is not None
+            or evidence.image_gen_execution_id is not None
+            or any(value is None for value in exec_fields)
+            or self.executor_profile_hash is None
+        ):
+            raise ValueError("schema-v4 image manifests require Codex Exec attempt, session, call, event and profile identities")
+        elif self.schema_version == 5 and (
+            evidence.task_id is not None or evidence.native_task_id is not None
+            or evidence.image_gen_execution_id is not None
+            or any(value is None for value in exec_fields)
+            or self.executor_profile_hash is None
+        ):
+            raise ValueError("schema-v5 image manifests require Codex Exec attempt, session, call, event and profile identities")
+        return self
+
+    @property
+    def native_task_identity(self) -> str | None:
+        """Return the schema-owned Codex task identity without guessing fields."""
+
+        if self.schema_version == 3:
+            return str(self.tool_evidence.native_task_id) if self.tool_evidence.native_task_id is not None else None
+        return self.tool_evidence.task_id
+
+    def canonical_payload(self) -> dict:
+        """Serialize with the exact identity fields owned by this manifest schema."""
+
+        payload = self.model_dump(mode="json", by_alias=True)
+        if self.schema_version in {1, 2}:
+            # Retained schema-v1/v2 delivery hashes predate these identity
+            # members. Omitting them keeps their canonical bytes unchanged.
+            evidence = payload["toolEvidence"]
+            evidence.pop("nativeTaskId", None)
+            evidence.pop("imageGenExecutionId", None)
+            evidence.pop("executorAttemptId", None)
+            evidence.pop("codexSessionId", None)
+            evidence.pop("imageGenCallId", None)
+            evidence.pop("imageGenEventId", None)
+            payload.pop("executorProfileHash", None)
+        elif self.schema_version == 3:
+            evidence = payload["toolEvidence"]
+            evidence.pop("executorAttemptId", None)
+            evidence.pop("codexSessionId", None)
+            evidence.pop("imageGenCallId", None)
+            evidence.pop("imageGenEventId", None)
+            payload.pop("executorProfileHash", None)
+        return payload
+
     def assert_secret_free(self) -> None:
         """Reject specialist-controlled text before it can enter project history."""
 
-        payload = self.model_dump(mode="json", by_alias=True)
+        payload = self.canonical_payload()
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ImageJobError(
                 "delivery_manifest_secret",

@@ -4,6 +4,30 @@
 
 Accepted.
 
+## Amendment: authored route timing (2026-10-08)
+
+A native script handoff exposed an invalid ownership boundary: a 15-second
+story explicitly called for a 10-second opening and either five-second ending,
+but importing the generation planner imposed 7.5-second section ceilings.
+The story satisfies the author's maximum; equal-depth timing is a generation
+strategy, not a universal restriction on authored content.
+
+Canonical authored scenes now obey the complete-route maximum. Trusted code
+sums scene durations by node and computes the longest complete DAG path;
+shared and reconverged nodes count once per traversal, mutually exclusive
+branches are not summed, and route-only nodes consume zero time. Script and
+Storyboard review use the same route invariant. No timing is extracted from
+prose, no target is raised, and no content is padded or rewritten.
+
+The Scene Beats generation planner, frozen allocation, dialogue capacity and
+weighted binder keep their existing policy. Generated work must still satisfy
+its frozen plan; author edits may redistribute time while preserving the route
+maximum and all dialogue/shot constraints. This supersedes the node-cap rule
+for canonical manual saves, not generation-plan integrity.
+
+Regression coverage must include uneven 10+5-second routes, over-limit paths,
+joins, skipped levels, multiple scenes per node, and zero-footage nodes.
+
 ## Context
 
 The first M1-C live-model preflight exposed two related contract errors. Scene

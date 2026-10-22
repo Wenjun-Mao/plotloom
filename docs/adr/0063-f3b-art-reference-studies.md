@@ -44,3 +44,8 @@ art acceptance, production selection, a Shot, an Approval, or F5/F7 proof.
   receives one exclusive-lease, additive transition that creates only the
   three empty F3B proposal tables and validates the exact result. It does not
   rewrite project rows, replay work, or support older mixed schemas.
+# Amendment — 2026-09-29
+
+ADR 0094 resolves render style in F3A before acceptance. F3B inherits the
+accepted subject's matching prompts; an overlay is no longer a workaround
+for a contradictory painterly base. Existing reference evidence is unchanged.

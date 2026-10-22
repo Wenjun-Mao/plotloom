@@ -7,7 +7,6 @@ from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, Response
-from fastapi.staticfiles import StaticFiles
 
 from ..domain import (
     AuthoringDraft,
@@ -18,7 +17,6 @@ from ..domain import (
     ProjectDuplicateResult,
     ProjectLifecycleStatus,
     ProjectSummary,
-    brief_for_new_project,
     StageHead,
     StageName,
 )
@@ -32,6 +30,7 @@ from ..exceptions import (
     ProjectBusyError as LifecycleProjectBusyError,
 )
 from ..creative_handoff_contracts import CreativeHandoffError
+from ..graph_safety_diagnostics import transition_error_content
 from ..project_storage import (
     ProjectFolderStorage,
     ProjectBusyError,
@@ -72,7 +71,11 @@ from .models import (
     _normalize_idempotency_key,
 )
 from .project_folder_source_outline import register_project_folder_source_outline_routes
+from .project_folder_graph import register_project_folder_graph_routes
 from .project_folder_cast import register_project_folder_cast_routes
+from .project_folder_specialists import register_specialist_routes
+from .project_folder_autopilot import register_autopilot_runtime
+from ..specialist_settings import SpecialistRegistry, ImageSpecialist
 from .project_folder_art import register_project_folder_art_routes
 from .project_folder_script import register_project_folder_script_routes
 from .project_folder_storyboard_review import register_project_folder_storyboard_review_routes
@@ -86,6 +89,7 @@ from ..persistence import stable_hash
 from .project_folder_generation import register_project_folder_generation_routes
 from .text_admission import TextAdmissionService
 from .text_backends import register_text_profile_routes
+from .static_assets import RevalidatingStaticFiles
 
 
 def create_project_folder_authoring_app(
@@ -99,6 +103,8 @@ def create_project_folder_authoring_app(
     bridge_intent_service: Any | None = None,
     bridge_simulation_label: str | None = None,
     image_dispatcher: NativeCodexImageDispatcher | None = None,
+    specialist_executable: str | None = None,
+    specialist_environment: dict[str, str] | None = None,
     static_dir: Path | None = None,
     lifespan: Any | None = None,
 ) -> FastAPI:
@@ -149,15 +155,25 @@ def create_project_folder_authoring_app(
 
     @contextmanager
     def opened_project(project_id: str):
-        store = storage.projects.open(project_id)
+        from ..project_storage.proof_scope import proof_scope
+        with proof_scope():
+            store = storage.projects.open(project_id)
+            try:
+                yield store
+            finally:
+                store.close()
+
+    @contextmanager
+    def inspected_project(project_id: str):
+        store = storage.projects.inspect(project_id)
         try:
             yield store
         finally:
             store.close()
 
     @contextmanager
-    def inspected_project(project_id: str):
-        store = storage.projects.inspect(project_id)
+    def inspected_open_project(project_id: str):
+        store = storage.projects.read_open(project_id)
         try:
             yield store
         finally:
@@ -206,7 +222,7 @@ def create_project_folder_authoring_app(
             return f"refinement:{body.parent_candidate_asset_id}"
         if body.keyframe_adaptation_profile_id is not None:
             return f"keyframe_adaptation:{body.keyframe_adaptation_profile_id}"
-        return "original"
+        return f"scene_continuity:{body.scene_continuity_binding_id}" if body.scene_continuity_binding_id else "original"
 
     @app.exception_handler(ProjectStorageConflictError)
     async def project_storage_conflict_handler(
@@ -278,7 +294,7 @@ def create_project_folder_authoring_app(
     ) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            content={"code": "invalid_transition", "message": str(error)},
+            content=transition_error_content(error),
         )
 
     @app.exception_handler(CreativeHandoffError)
@@ -353,13 +369,14 @@ def create_project_folder_authoring_app(
             content={"code": "authoring_draft_invalid", "message": str(error)},
         )
 
-    @app.get("/api/v2/authoring-draft-capabilities")
-    def authoring_draft_capabilities() -> dict[str, bool]:
+    @app.get("/api/v2/runtime-capabilities")
+    def runtime_capabilities() -> dict[str, bool]:
         return {
             "durableProjectDrafts": True,
             "durableMediaDrafts": True,
             "explicitProjectClose": True,
             "portableSnapshots": True,
+            "apiTextPipeline": text_admission is not None and run_dispatcher is not None,
         }
 
     @app.post(
@@ -371,7 +388,7 @@ def create_project_folder_authoring_app(
         body: ProjectCreateRequest,
         idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     ) -> ProjectCreation:
-        brief = brief_for_new_project(body.brief)
+        brief = body.brief
         key = _normalize_idempotency_key(idempotency_key)
         if key is None:
             store = storage.projects.create(
@@ -497,8 +514,10 @@ def create_project_folder_authoring_app(
     ) -> None:
         storage.lifecycle.permanently_delete(
             project_id,
+            expected_project_revision=body.expected_project_revision,
             expected_lifecycle_revision=body.expected_lifecycle_revision,
             confirmation_title=body.confirmation_title,
+            scope_hash=body.scope_hash,
         )
 
     @app.post(
@@ -698,15 +717,15 @@ def create_project_folder_authoring_app(
     def decide_project_storyboard_approval(
         project_id: str, body: StoryboardApprovalRequest
     ) -> ApprovalClosureView:
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, storage.application, body.attribution):
             decision = store.authoring.decide_storyboard_approval(
                 project_id,
                 expected_revision=body.expected_revision,
                 expected_content_hash=body.content_hash,
                 decision=body.decision,
-                reviewer=body.reviewer,
+                reviewer=body.attribution,
                 gate_set_version=body.gate_set_version,
-                note=body.note,
             )
             return _approval_closure_view(
                 store.authoring.get_approval_closure(decision.id)
@@ -728,15 +747,33 @@ def create_project_folder_authoring_app(
         app,
         opened_project,
         require_media_draft_scope=require_media_draft_scope,
+        inspected_project=inspected_open_project,
     )
+    specialists = SpecialistRegistry(
+        storage.application.root, image_dispatcher,
+        executable=specialist_executable, environment=specialist_environment,
+    )
+    app.state.specialists = specialists
+    from ..native_bridge_intent_service import NativeBridgeIntentService
+    native_intent_service = NativeBridgeIntentService(storage, specialists)
+    app.state.native_bridge_intent_service = native_intent_service
+    from ..native_bridge_presentation_service import NativeBridgePresentationService
+    native_presentation_service = NativeBridgePresentationService(storage, specialists)
+    app.state.native_bridge_presentation_service = native_presentation_service
+    register_specialist_routes(app, opened_project, specialists)
+    register_autopilot_runtime(app, opened_project, specialists)
+    from .project_folder_abandonment import register_abandonment_routes
+    register_abandonment_routes(app, storage, specialists)
     register_project_folder_image_job_routes(
         app,
         opened_project,
         image_job_target_id=image_job_target_id,
         require_media_draft_scope=require_media_draft_scope,
         project_h3_target=_project_h3_target,
-        image_dispatcher=image_dispatcher,
+        image_dispatcher=ImageSpecialist(specialists),
     )
+    from .project_folder_video_batch import register_video_batch_runtime
+    register_video_batch_runtime(app, storage, specialists, video_service)
     register_project_folder_video_routes(
         app,
         opened_project,
@@ -744,13 +781,16 @@ def create_project_folder_authoring_app(
         service=video_service,
     )
     register_project_folder_source_outline_routes(app, opened_project)
+    register_project_folder_graph_routes(app, opened_project)
     register_project_folder_cast_routes(app, opened_project)
-    register_project_folder_art_routes(app, opened_project)
+    register_project_folder_art_routes(app, opened_project, ImageSpecialist(specialists))
     register_project_folder_script_routes(app, opened_project)
     register_project_folder_storyboard_review_routes(app, opened_project)
     register_project_folder_production_bridge_routes(
         app, opened_project, intent_service=bridge_intent_service, text_admission=text_admission,
         simulation_label=bridge_simulation_label,
+        native_intent_service=native_intent_service,
+        native_presentation_service=native_presentation_service,
     )
     if run_dispatcher is not None and text_admission is not None:
         register_project_folder_generation_routes(
@@ -762,7 +802,7 @@ def create_project_folder_authoring_app(
     if static_dir is not None:
         app.mount(
             "/v2",
-            StaticFiles(directory=static_dir, html=True, check_dir=False),
+            RevalidatingStaticFiles(directory=static_dir, html=True, check_dir=False),
             name="v2-static",
         )
     return app

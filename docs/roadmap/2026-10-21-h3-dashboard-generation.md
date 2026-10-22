@@ -26,7 +26,7 @@ retry, cancellation/deletion, batch, T2V, voice or Qwen generation control.
 
 ## Execution and verification
 
-1. Record the newly approved write boundary in ADR 0100, leaving ADR 0099 as history.
+1. Record the newly approved write boundary in ADR 0215, leaving ADR 0214 as history.
 2. Implement bounded, validated JSON/multipart forwarding to exactly the existing
    H3 image admission route. Require same-origin browser POST; never replay a
    submission with unknown outcome. Keep upstream credentials/errors private.

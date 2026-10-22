@@ -9,21 +9,32 @@ import errno
 import json
 import os
 import stat
+from collections.abc import Iterable
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Iterable
+from uuid import UUID
 
 from pydantic import ValidationError
 
-from .image_job_contracts import ImageDeliveryManifest, ImageExecutorProvenance, ImageJobError, is_image_job_id
+from .codex_exec_contracts import (
+    CodexExecAttempt,
+    CodexExecProfile,
+    CodexExecReceipt,
+    assert_receipt_matches_attempt,
+)
+from .image_exchange_packages import ImagePackageCommands
+from .image_job_contracts import (
+    ImageDeliveryManifest,
+    ImageExecutorProvenance,
+    ImageJobError,
+    NativeTaskBinding,
+    is_image_job_id,
+)
+from .image_job_package import canonical_json as _canonical_json
 from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
 
-
-PACKAGE_VERSION = 3
-PINNED_PACKAGE_VERSION = 4
 COMPLETION_FILENAME = "completion.json"
-COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
 EXECUTOR_PIN_FILENAME = "executor-pin.json"
 
 
@@ -50,11 +61,7 @@ class ValidatedDelivery:
     outputs: tuple[ValidatedOutput, ...]
 
 
-def _canonical_json(value: Any) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-
-
-class ImageJobExchange:
+class ImageJobExchange(ImagePackageCommands):
     """A one-root, per-job exchange with no path authority from callers."""
 
     def __init__(self, root: Path | None, *, limits: ManagedMediaLimits) -> None:
@@ -121,7 +128,12 @@ class ImageJobExchange:
                             raise ImageJobError("package_conflict", "existing package directory is incomplete")
                         raise ImageJobError("delivery_incomplete", "delivery directory is not present")
                     try:
-                        os.mkdir(part, dir_fd=directory_fd)
+                        try:
+                            os.mkdir(part, dir_fd=directory_fd)
+                        except FileExistsError:
+                            # A cooperating publisher may create this ancestor
+                            # before our per-job lock. Reopen with no-follow.
+                            pass
                         child_fd = os.open(part, cls._no_follow_flags(directory=True), dir_fd=directory_fd)
                     except OSError as error:
                         raise cls._path_open_error(error, package=package) from error
@@ -148,7 +160,10 @@ class ImageJobExchange:
                     raise ImageJobError("package_conflict", "existing package directory is incomplete")
                 raise ImageJobError("delivery_incomplete", "delivery directory is not present")
             try:
-                os.mkdir(name, dir_fd=parent_fd)
+                try:
+                    os.mkdir(name, dir_fd=parent_fd)
+                except FileExistsError:
+                    pass
                 return os.open(name, cls._no_follow_flags(directory=True), dir_fd=parent_fd)
             except OSError as error:
                 raise cls._path_open_error(error, package=package) from error
@@ -184,11 +199,26 @@ class ImageJobExchange:
             os.close(file_fd)
 
     @classmethod
-    def _directory_names(cls, directory_fd: int, *, package: bool = False) -> set[str]:
+    def _directory_names(
+        cls,
+        directory_fd: int,
+        *,
+        package: bool = False,
+        allow_disappearing: frozenset[str] = frozenset(),
+    ) -> set[str]:
         try:
             names = set(os.listdir(directory_fd))
-            for name in names:
-                mode = os.stat(name, dir_fd=directory_fd, follow_symlinks=False).st_mode
+            for name in tuple(names):
+                try:
+                    mode = os.stat(name, dir_fd=directory_fd, follow_symlinks=False).st_mode
+                except FileNotFoundError:
+                    # Directory listings are not snapshots. The publisher
+                    # unlinks this known staging file after linking the final
+                    # completion marker, so omit it if it vanishes mid-scan.
+                    if name not in allow_disappearing:
+                        raise
+                    names.discard(name)
+                    continue
                 if stat.S_ISLNK(mode):
                     raise ImageJobError("delivery_symlink", "image-job paths must not traverse symlinks")
         except ImageJobError:
@@ -227,335 +257,6 @@ class ImageJobExchange:
             except FileNotFoundError:
                 pass
 
-    @staticmethod
-    def _package_version(request: dict[str, Any]) -> int:
-        """Keep copied v1 packages readable while making v2 self-contained."""
-
-        schema_version = request.get("schemaVersion")
-        if schema_version == 1:
-            return 1
-        if schema_version == 2:
-            return 2
-        if schema_version == 3:
-            return PINNED_PACKAGE_VERSION if request.get("specialistPreflight", {}).get("version") == "p1.5-pin.v1" else PACKAGE_VERSION
-        raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
-
-    @classmethod
-    def _package_projection(
-        cls,
-        *,
-        root: Path,
-        job_id: str,
-        request: dict[str, Any],
-        request_hash: str,
-        reference_entries: list[dict[str, str]],
-    ) -> tuple[dict[str, Any], bytes, bytes | None, set[str]]:
-        """Derive the complete, recheckable package from frozen database data."""
-
-        package_version = cls._package_version(request)
-        job_root = root / "jobs" / job_id
-        package = job_root / "package"
-        if package_version == 1:
-            delivery_instruction = (
-                "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. "
-                "Do not write SQLite, modify this package, or include sensitive values."
-            )
-            instructions = (
-                f"Plotloom image job {job_id}\n"
-                f"Read: {package / 'request.json'}\n"
-                f"Deliver only under: {job_root / 'delivery'}\n"
-                "Use Codex built-in image generation. Preserve the supplied narrative facts, disclose the actual prompt, "
-                "and publish completion.json only after every declared output is complete.\n"
-            ).encode("utf-8")
-            template: bytes | None = None
-        elif package_version == 2:
-            delivery_instruction = (
-                "Read completion-manifest.example.json before preparing delivery. Write complete JPEG or PNG files to "
-                "delivery/outputs, then use that exact field shape to publish delivery/completion.json once. Do not write "
-                "SQLite, modify this package, or include sensitive values."
-            )
-            instructions = (
-                f"Plotloom image job {job_id}\n"
-                f"Read: {package / 'request.json'}\n"
-                f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
-                f"Deliver only under: {job_root / 'delivery'}\n"
-                "Use Codex built-in image generation. The request contains the frozen creator direction, selected reviewed "
-                "VisualIntent when this is a refinement, and the resolved authored shot context. Preserve those facts, disclose "
-                "the exact actual prompt, and publish completion.json only after every declared output is complete.\n"
-            ).encode("utf-8")
-            template = _canonical_json({
-                "schemaVersion": 1,
-                "jobId": job_id,
-                "requestHash": request_hash,
-                "deliveryId": "replace-with-specialist-delivery-id",
-                "actualPrompt": "replace-with-the-exact-prompt-submitted-to-Codex-imagegen",
-                "outputs": [{
-                    "filename": "candidate.png",
-                    "sha256": "0" * 64,
-                    "role": request.get("kind", "original"),
-                }],
-                "toolEvidence": {
-                    "tool": "codex_imagegen",
-                    "taskId": "replace-with-Codex-task-id",
-                    "available": True,
-                },
-                "limitations": [],
-            })
-        else:
-            proposal = request.get("target") in {
-                "character_reference_proposal", "art_reference_proposal"
-            }
-            art_reference = request.get("target") == "art_reference_proposal"
-            adaptation = request.get("kind") == "keyframe_adaptation"
-            adaptation_contract = request.get("frozenSnapshot", {}).get("keyframeAdaptation", {}).get("outputContract", {})
-            adaptation_instruction = (
-                f" Adapt the supplied source_keyframe into one complete {adaptation_contract.get('width')}x{adaptation_contract.get('height')} "
-                "composition. Preserve the reviewed person, setting, and camera intent; do not preserve, add, or treat padding as content. "
-                "Every delivered output must use that exact geometry and the keyframe_adaptation role."
-                if adaptation else ""
-            )
-            delivery_instruction = (
-                "Read completion-manifest.example.json before preparing delivery. "
-                + (
-                    "View every role-mapped character_identity reference before generation and report its hashes in referenceUse. "
-                    if not proposal else
-                    (
-                        "This is an exploratory art-reference study; it cannot replace accepted art or create a creative approval. "
-                        if art_reference else
-                        "This is an exploratory character-reference proposal; it cannot approve or select a reference. "
-                    )
-                )
-                + adaptation_instruction
-                + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
-                "SQLite, modify this package, or include sensitive values."
-            )
-            instructions = (
-                f"Plotloom {'art-reference study' if art_reference else 'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
-                f"Read: {package / 'request.json'}\n"
-                f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
-                + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if package_version == PINNED_PACKAGE_VERSION else "")
-                + f"Deliver only under: {job_root / 'delivery'}\n"
-                + (
-                    "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
-                    "that person. When characterIdentity[].acceptedCast is present, preserve its appearance/image direction "
-                    "as cast-owned identity facts; do not replace it with freeform invention. The frozen canonical shot state "
-                    "still controls costume, pose, expression, lighting, and camera. parent_output is a separate edit guide "
-                    "and never replaces character identity. "
-                    if not proposal else
-                    (
-                        "Use Codex built-in image generation for the frozen accepted-art subject. This result is an "
-                        "exploratory candidate only: do not claim currentness, art acceptance, or a selected production asset. "
-                        if art_reference else
-                        "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
-                        "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
-                    )
-                )
-                + adaptation_instruction
-                + "Disclose the "
-                "exact actual prompt and publish completion.json only after every declared output is complete.\n"
-            ).encode("utf-8")
-            template_payload: dict[str, Any] = {
-                "schemaVersion": 2,
-                "jobId": job_id,
-                "requestHash": request_hash,
-                "deliveryId": "replace-with-specialist-delivery-id",
-                "actualPrompt": "replace-with-the-exact-prompt-submitted-to-Codex-imagegen",
-                "outputs": [{
-                    "filename": "candidate.png",
-                    "sha256": "0" * 64,
-                    "role": request.get("kind", "original"),
-                }],
-                "toolEvidence": {
-                    "tool": "codex_imagegen",
-                    "taskId": "replace-with-Codex-task-id",
-                    "available": True,
-                },
-                "executorProvenance": {
-                    "codeRevision": "replace-with-pinned-commit",
-                    "skillVersion": request.get("specialistPreflight", {}).get("skillVersion", "plotloom-image-specialist.v1"),
-                    "skillHash": "0" * 64,
-                    "model": None,
-                    "reasoningEffort": None,
-                },
-                "limitations": [],
-            }
-            if any(item["role"].startswith("character_identity") for item in reference_entries):
-                template_payload["referenceUse"] = {
-                    "viewedReferenceHashes": ["replace-with-every-character-identity-hash"],
-                    "identityNotes": "describe how identity was preserved; this attestation is not creator approval",
-                }
-            template = _canonical_json(template_payload)
-        package_request = dict(request)
-        package_request.update({
-            "packageVersion": package_version,
-            "requestHash": request_hash,
-            "references": reference_entries,
-            "deliveryInstruction": delivery_instruction,
-        })
-        expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
-        if template is not None:
-            expected_entries.add(COMPLETION_TEMPLATE_FILENAME)
-        if reference_entries:
-            expected_entries.add("references")
-        return package_request, instructions, template, expected_entries
-
-    def write_package(
-        self,
-        *,
-        job_id: str,
-        request: dict[str, Any],
-        request_hash: str,
-        references: Iterable[PackageReference],
-    ) -> dict[str, str]:
-        """Publish an immutable specialist-readable package once.
-
-        A repeated Copy may observe the original package but can never replace a
-        frozen request or a reference byte set.
-        """
-
-        root = self._root()
-        if not is_image_job_id(job_id):
-            raise ImageJobError("invalid_job_id", "image job identifier is invalid")
-        job_root = root / "jobs" / job_id
-        package = job_root / "package"
-        reference_values = tuple(references)
-        reference_entries: list[dict[str, str]] = []
-        for reference in reference_values:
-            if sha256(reference.content).hexdigest() != reference.content_hash:
-                raise ImageJobError("reference_integrity", "frozen reference bytes do not match their declared hash")
-            if "/" in reference.filename or "\\" in reference.filename or reference.filename.startswith("."):
-                raise ImageJobError("reference_filename", "frozen reference filename is invalid")
-            reference_entries.append({
-                "role": reference.role,
-                "filename": f"references/{reference.filename}",
-                "sha256": reference.content_hash,
-            })
-        # The request hash covers the immutable request itself, not this mutable
-        # transport projection. Verify it before writing or trusting a prior Copy.
-        if sha256(_canonical_json(request)).hexdigest() != request_hash:
-            raise ImageJobError("request_integrity", "frozen image request hash is invalid")
-        package_request, instructions, template, expected_entries = self._package_projection(
-            root=root,
-            job_id=job_id,
-            request=request,
-            request_hash=request_hash,
-            reference_entries=reference_entries,
-        )
-        package_fd = self._open_directory(root, ("jobs", job_id, "package"), create=True, package=True)
-        try:
-            names = self._directory_names(package_fd, package=True)
-            if "request.json" in names:
-                if names != expected_entries:
-                    raise ImageJobError("package_conflict", "existing package has unexpected entries")
-                try:
-                    existing_request = json.loads(self._read_regular_at(
-                        package_fd, "request.json", max_bytes=1_000_000, package=True
-                    ))
-                except json.JSONDecodeError as error:
-                    raise ImageJobError("package_conflict", "existing package request is malformed") from error
-                if existing_request != package_request:
-                    raise ImageJobError("package_conflict", "existing package does not match the frozen image request")
-                if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
-                    raise ImageJobError("package_conflict", "existing package instructions do not match the frozen image request")
-                if template is not None and self._read_regular_at(
-                    package_fd, COMPLETION_TEMPLATE_FILENAME, max_bytes=20_000, package=True
-                ) != template:
-                    raise ImageJobError("package_conflict", "existing package completion template does not match the frozen request")
-                if reference_values:
-                    references_fd = self._open_child_directory(package_fd, "references", package=True)
-                    try:
-                        if self._directory_names(references_fd, package=True) != {item.filename for item in reference_values}:
-                            raise ImageJobError("package_conflict", "existing package reference set does not match the frozen request")
-                        for reference in reference_values:
-                            content = self._read_regular_at(references_fd, reference.filename, max_bytes=self.limits.max_import_bytes, package=True)
-                            if sha256(content).hexdigest() != reference.content_hash:
-                                raise ImageJobError("package_conflict", "existing package reference bytes do not match the frozen request")
-                    finally:
-                        os.close(references_fd)
-                return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
-            if names:
-                raise ImageJobError("package_conflict", "incomplete package cannot be safely resumed")
-            if reference_values:
-                references_fd = self._open_child_directory(package_fd, "references", create=True, package=True)
-                try:
-                    for reference in reference_values:
-                        self._atomic_write_at(references_fd, reference.filename, reference.content)
-                finally:
-                    os.close(references_fd)
-            if template is not None:
-                self._atomic_write_at(package_fd, COMPLETION_TEMPLATE_FILENAME, template)
-            self._atomic_write_at(package_fd, "COPY_ASSIGNMENT.txt", instructions)
-            self._atomic_write_at(package_fd, "request.json", _canonical_json(package_request))
-        finally:
-            os.close(package_fd)
-        return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
-
-    def verify_package(
-        self,
-        *,
-        job_id: str,
-        request: dict[str, Any],
-        request_hash: str,
-        references: Iterable[tuple[str, str, str]],
-    ) -> None:
-        """Recheck a copied package before accepting its untrusted delivery.
-
-        Same-user same-host handoff cannot make a readable file permanently
-        immutable with POSIX mode bits. Trusted Refresh therefore revalidates
-        the complete transport projection against the database-frozen request.
-        """
-
-        root = self._root()
-        if not is_image_job_id(job_id):
-            raise ImageJobError("invalid_job_id", "image job identifier is invalid")
-        reference_values = tuple(references)
-        if sha256(_canonical_json(request)).hexdigest() != request_hash:
-            raise ImageJobError("request_integrity", "frozen image request hash is invalid")
-        reference_entries = [
-            {"role": role, "filename": f"references/{filename}", "sha256": content_hash}
-            for role, filename, content_hash in reference_values
-        ]
-        package_request, instructions, template, expected_entries = self._package_projection(
-            root=root,
-            job_id=job_id,
-            request=request,
-            request_hash=request_hash,
-            reference_entries=reference_entries,
-        )
-        package_fd = self._open_directory(root, ("jobs", job_id, "package"), package=True)
-        try:
-            if self._directory_names(package_fd, package=True) != expected_entries:
-                raise ImageJobError("package_conflict", "existing package has unexpected entries")
-            try:
-                existing_request = json.loads(self._read_regular_at(
-                    package_fd, "request.json", max_bytes=1_000_000, package=True
-                ))
-            except json.JSONDecodeError as error:
-                raise ImageJobError("package_conflict", "existing package request is malformed") from error
-            if existing_request != package_request:
-                raise ImageJobError("package_conflict", "existing package does not match the frozen image request")
-            if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
-                raise ImageJobError("package_conflict", "existing package instructions do not match the frozen image request")
-            if template is not None and self._read_regular_at(
-                package_fd, COMPLETION_TEMPLATE_FILENAME, max_bytes=20_000, package=True
-            ) != template:
-                raise ImageJobError("package_conflict", "existing package completion template does not match the frozen request")
-            if reference_values:
-                references_fd = self._open_child_directory(package_fd, "references", package=True)
-                try:
-                    if self._directory_names(references_fd, package=True) != {filename for _, filename, _ in reference_values}:
-                        raise ImageJobError("package_conflict", "existing package reference set does not match the frozen request")
-                    for _, filename, content_hash in reference_values:
-                        content = self._read_regular_at(
-                            references_fd, filename, max_bytes=self.limits.max_import_bytes, package=True
-                        )
-                        if sha256(content).hexdigest() != content_hash:
-                            raise ImageJobError("package_conflict", "existing package reference bytes do not match the frozen request")
-                finally:
-                    os.close(references_fd)
-        finally:
-            os.close(package_fd)
-
     def read_delivery(
         self,
         *,
@@ -565,6 +266,14 @@ class ImageJobExchange:
         require_executor_provenance: bool = False,
         require_executor_pin: bool = False,
         expected_executor_skill_version: str | None = None,
+        expected_executor_contract: str = "codex_specialist.v2",
+        expected_native_task_binding: NativeTaskBinding | dict | None = None,
+        expected_codex_attempt: CodexExecAttempt | None = None,
+        expected_codex_profile: CodexExecProfile | None = None,
+        expected_codex_receipt: CodexExecReceipt | None = None,
+        expected_codex_references: Iterable[tuple[str, str, str]] = (),
+        expected_codex_execution_pin: dict[str, str] | None = None,
+        expected_codex_output_role: str | None = None,
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
@@ -590,7 +299,9 @@ class ImageJobExchange:
             raise
         completion_marker_observed = False
         try:
-            names = self._directory_names(delivery_fd)
+            names = self._directory_names(
+                delivery_fd, allow_disappearing=frozenset({"completion-draft.json"})
+            )
             if not names:
                 return None
             if COMPLETION_FILENAME not in names:
@@ -610,14 +321,35 @@ class ImageJobExchange:
             manifest.assert_secret_free()
             if manifest.job_id != job_id or manifest.request_hash != request_hash:
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
+            if manifest.schema_version == 3 and not require_executor_pin:
+                raise ImageJobError("delivery_executor_pin_missing", "schema-v3 delivery requires its pre-generation executor pin")
+            if manifest.schema_version == 5 and expected_executor_contract != "codex_exec.v1":
+                raise ImageJobError("delivery_execution_mismatch", "schema-v5 delivery requires its exact Codex Exec attempt receipt")
+            if expected_executor_contract == "codex_exec.v1":
+                self._validate_codex_exec_delivery(
+                    manifest,
+                    job_id=job_id,
+                    request_hash=request_hash,
+                    expected_references=tuple(expected_codex_references),
+                    required_identity_hashes=tuple(required_reference_hashes),
+                    execution_pin=expected_codex_execution_pin,
+                    expected_output_role=expected_codex_output_role,
+                    attempt=expected_codex_attempt,
+                    profile=expected_codex_profile,
+                    receipt=expected_codex_receipt,
+                )
+            elif manifest.schema_version in {4, 5}:
+                raise ImageJobError("delivery_execution_mismatch", "Codex Exec delivery requires its exact attempt receipt")
             required_hashes = tuple(required_reference_hashes)
             if required_hashes:
-                if manifest.schema_version != 2 or manifest.reference_use is None:
+                if manifest.schema_version not in {2, 3, 4, 5} or manifest.reference_use is None:
                     raise ImageJobError(
                         "delivery_reference_use_missing",
                         "identity-aware delivery must attest to every viewed character reference",
                     )
-                if set(manifest.reference_use.viewed_reference_hashes) != set(required_hashes):
+                viewed_hashes = set(manifest.reference_use.viewed_reference_hashes)
+                required_match = set(required_hashes) <= viewed_hashes if manifest.schema_version == 5 else viewed_hashes == set(required_hashes)
+                if not required_match:
                     raise ImageJobError(
                         "delivery_reference_use_mismatch",
                         "identity-aware delivery reference attestation does not match the frozen identity set",
@@ -638,16 +370,34 @@ class ImageJobExchange:
                 pin = self._validated_executor_pin(
                     delivery_fd, job_id=job_id, request_hash=request_hash,
                     expected_skill_version=expected_executor_skill_version,
+                    expected_execution_contract=expected_executor_contract,
                 )
                 provenance = manifest.executor_provenance
                 expected_pin = {
                     "jobId": job_id,
                     "requestHash": request_hash,
-                    "executionContract": "codex_specialist.v2",
+                    "executionContract": expected_executor_contract,
                     "skillVersion": provenance.skill_version,
                     "codeRevision": provenance.code_revision,
                     "skillHash": provenance.skill_hash,
                 }
+                if expected_executor_contract == "codex_specialist.v3":
+                    try:
+                        binding = NativeTaskBinding.model_validate(expected_native_task_binding)
+                    except (TypeError, ValueError) as error:
+                        raise ImageJobError(
+                            "delivery_native_task_binding_missing",
+                            "schema-v3 delivery requires the package's expected native task binding",
+                        ) from error
+                    if manifest.schema_version != 3 or manifest.tool_evidence.native_task_id is None:
+                        raise ImageJobError("delivery_native_task_identity_missing", "schema-v3 delivery must name its native task UUID")
+                    if pin["nativeTaskId"] != str(manifest.tool_evidence.native_task_id):
+                        raise ImageJobError("delivery_native_task_identity_mismatch", "completion native task UUID differs from the pre-generation pin")
+                    if binding.mode == "configured_task" and pin["nativeTaskId"] != str(binding.task_id):
+                        raise ImageJobError("delivery_native_task_identity_mismatch", "completion native task UUID differs from the configured specialist binding")
+                    expected_pin["nativeTaskId"] = pin["nativeTaskId"]
+                elif manifest.schema_version == 3:
+                    raise ImageJobError("delivery_executor_pin_invalid", "schema-v3 delivery requires codex_specialist.v3")
                 if pin != expected_pin:
                     raise ImageJobError(
                         "delivery_executor_pin_mismatch",
@@ -656,6 +406,33 @@ class ImageJobExchange:
             expected_delivery_names = {COMPLETION_FILENAME, "outputs"}
             if require_executor_pin:
                 expected_delivery_names.add(EXECUTOR_PIN_FILENAME)
+            if manifest.schema_version == 3 and "completion-draft.json" in names:
+                try:
+                    draft_payload = json.loads(self._read_regular_at(
+                        delivery_fd, "completion-draft.json", max_bytes=1_000_000
+                    ))
+                    draft = ImageDeliveryManifest.model_validate(draft_payload)
+                except ImageJobError:
+                    # The publisher removes this known staging file after the
+                    # atomic marker link. Recheck the directory to distinguish
+                    # that cleanup race from a still-present invalid entry.
+                    current_names = self._directory_names(
+                        delivery_fd, allow_disappearing=frozenset({"completion-draft.json"})
+                    )
+                    if "completion-draft.json" in current_names:
+                        raise
+                    names = current_names
+                except (json.JSONDecodeError, ValidationError) as error:
+                    raise ImageJobError(
+                        "delivery_partial", "staged completion draft is invalid", publication_phase="final"
+                    ) from error
+                else:
+                    if draft.canonical_payload() != manifest.canonical_payload():
+                        raise ImageJobError(
+                            "delivery_partial", "staged completion draft differs from the published manifest",
+                            publication_phase="final",
+                        )
+                    expected_delivery_names.add("completion-draft.json")
             if names != expected_delivery_names:
                 raise ImageJobError(
                     "delivery_partial", "delivery contains undeclared files", publication_phase="final"
@@ -699,13 +476,80 @@ class ImageJobExchange:
             os.close(delivery_fd)
         return ValidatedDelivery(
             manifest=manifest,
-            manifest_hash=sha256(_canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),
+            manifest_hash=sha256(_canonical_json(manifest.canonical_payload())).hexdigest(),
             outputs=tuple(outputs),
         )
+
+    @staticmethod
+    def _validate_codex_exec_delivery(
+        manifest: ImageDeliveryManifest,
+        *,
+        job_id: str,
+        request_hash: str,
+        expected_references: tuple[tuple[str, str, str], ...],
+        required_identity_hashes: tuple[str, ...],
+        execution_pin: dict[str, str] | None,
+        expected_output_role: str | None,
+        attempt: CodexExecAttempt | None,
+        profile: CodexExecProfile | None,
+        receipt: CodexExecReceipt | None,
+    ) -> None:
+        expected_package_views = tuple(
+            (role, f"references/{filename}", reference_hash)
+            for role, filename, reference_hash in expected_references
+        )
+        if attempt is None or profile is None or receipt is None:
+            raise ImageJobError("delivery_executor_evidence_missing", "Codex Exec image delivery requires its exact project attempt and host receipt")
+        try:
+            assert_receipt_matches_attempt(attempt, receipt)
+        except (TypeError, ValueError) as error:
+            raise ImageJobError("delivery_executor_evidence_invalid", "Codex Exec image receipt is invalid") from error
+        tool = manifest.tool_evidence
+        if (
+            manifest.schema_version != 5
+            or attempt.domain != "image"
+            or attempt.job_id != job_id
+            or attempt.request_hash != request_hash
+            or attempt.profile_hash != profile.profile_hash
+            or attempt.plotloom_code_revision != (execution_pin or {}).get("codeRevision")
+            or manifest.executor_profile_hash != profile.profile_hash
+            or tool.executor_attempt_id != attempt.attempt_id
+            or tool.codex_session_id != receipt.session_id
+            or receipt.expected_image_outputs != 1
+            or len(receipt.image_evidence) != 1
+            or tool.image_gen_call_id != receipt.image_evidence[0].call_id
+            or tool.image_gen_event_id != receipt.image_evidence[0].event_id
+            or manifest.actual_prompt == ""
+            or sha256(manifest.actual_prompt.encode("utf-8")).hexdigest()
+                != receipt.image_evidence[0].prompt_hash
+            or receipt.image_evidence[0].reference_hashes != tuple(item[2] for item in expected_references)
+            or tuple((item.role, item.package_relative_path, item.reference_hash) for item in receipt.reference_views)
+                != expected_package_views
+            or ((manifest.reference_use is not None) != bool(expected_references))
+            or (manifest.reference_use is not None and
+                manifest.reference_use.viewed_reference_hashes != list(dict.fromkeys(item[2] for item in expected_references)))
+            or manifest.executor_provenance is None
+            or manifest.executor_provenance.model != profile.model
+            or manifest.executor_provenance.reasoning_effort != profile.reasoning_effort
+            or execution_pin is None
+            or manifest.executor_provenance.code_revision != execution_pin.get("codeRevision")
+            or manifest.executor_provenance.skill_version != execution_pin.get("skillVersion")
+            or manifest.executor_provenance.skill_hash != execution_pin.get("skillHash")
+            or not set(required_identity_hashes) <= {item[2] for item in expected_references}
+        ):
+            raise ImageJobError("delivery_execution_mismatch", "image delivery differs from its exact Codex Exec attempt, profile or host receipt")
+        event = receipt.image_evidence[0]
+        if len(manifest.outputs) != 1 or (
+            manifest.outputs[0].filename != event.output_relative_path.rsplit("/", 1)[-1]
+            or manifest.outputs[0].sha256 != event.output_hash
+            or manifest.outputs[0].role != expected_output_role
+        ):
+            raise ImageJobError("delivery_executor_evidence_invalid", "image output differs from the exact Codex Exec event bytes")
 
     def _validated_executor_pin(
         self, delivery_fd: int, *, job_id: str, request_hash: str,
         expected_skill_version: str | None,
+        expected_execution_contract: str = "codex_specialist.v2",
     ) -> dict[str, str]:
         """Validate the narrow v4 pre-generation marker before accepting waiting."""
 
@@ -719,11 +563,13 @@ class ImageJobExchange:
             "jobId", "requestHash", "executionContract", "skillVersion",
             "codeRevision", "skillHash",
         }
+        if expected_execution_contract == "codex_specialist.v3":
+            expected_keys.add("nativeTaskId")
         if not isinstance(pin, dict) or set(pin) != expected_keys:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported shape")
         if pin.get("jobId") != job_id or pin.get("requestHash") != request_hash:
             raise ImageJobError("delivery_executor_pin_mismatch", "executor pin does not belong to this frozen image job")
-        if pin.get("executionContract") != "codex_specialist.v2":
+        if pin.get("executionContract") != expected_execution_contract:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported execution contract")
         if expected_skill_version is not None and pin.get("skillVersion") != expected_skill_version:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported specialist skill version")
@@ -734,4 +580,9 @@ class ImageJobExchange:
             })
         except (KeyError, ValidationError) as error:
             raise ImageJobError("delivery_executor_pin_invalid", "executor pin provenance is invalid") from error
+        if expected_execution_contract == "codex_specialist.v3":
+            try:
+                pin["nativeTaskId"] = str(UUID(pin["nativeTaskId"]))
+            except (KeyError, TypeError, ValueError) as error:
+                raise ImageJobError("delivery_executor_pin_invalid", "executor pin native task UUID is invalid") from error
         return pin

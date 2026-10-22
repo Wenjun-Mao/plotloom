@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 import plotloom.config as config_module
 from plotloom.config import PlotloomSettings
 from plotloom.runtime import build_runtime_app, select_available_port
-from plotloom.video_backends import minimax_h3
+from plotloom.video_backends.minimax_h3 import runtime as h3_runtime
 from plotloom.video_backends.minimax_h3 import (
     DEFAULT_H3_PROFILE_ID,
     H3_CATALOG_ID,
@@ -191,7 +191,7 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(
                 "test_h3_transport_v1", {"configured": True}
             )
 
-    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", FakeH3Transport)
+    monkeypatch.setattr(h3_runtime, "MiniMaxH3GatewayTransport", FakeH3Transport)
     static_dir = tmp_path / "static"
     static_dir.mkdir()
     (static_dir / "index.html").write_text("<h1>Plotloom</h1>", encoding="utf-8")
@@ -228,7 +228,7 @@ def test_runtime_admits_an_explicit_reviewed_h3_profile(tmp_path: Path, monkeypa
                 "test_h3_profile_transport_v1", {"configured": True}
             )
 
-    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", FakeH3Transport)
+    monkeypatch.setattr(h3_runtime, "MiniMaxH3GatewayTransport", FakeH3Transport)
     settings = PlotloomSettings(
         repo_root=tmp_path,
         outputs_dir=tmp_path / "outputs",
@@ -255,7 +255,7 @@ def test_runtime_rejects_h3_profile_drift_before_serving(
     def unexpected_transport(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("invalid H3 admission must reject before transport construction")
 
-    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    monkeypatch.setattr(h3_runtime, "MiniMaxH3GatewayTransport", unexpected_transport)
     settings = PlotloomSettings(
         repo_root=tmp_path,
         outputs_dir=tmp_path / "outputs",
@@ -277,7 +277,7 @@ def test_runtime_rejects_missing_h3_credential_before_transport_construction(
     def unexpected_transport(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("missing H3 credentials must reject before transport construction")
 
-    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    monkeypatch.setattr(h3_runtime, "MiniMaxH3GatewayTransport", unexpected_transport)
     settings = PlotloomSettings(
         repo_root=tmp_path,
         outputs_dir=tmp_path / "outputs",
@@ -298,7 +298,7 @@ def test_runtime_keeps_h3_disabled_without_constructing_a_transport(
     def unexpected_transport(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("disabled H3 must not construct a transport")
 
-    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    monkeypatch.setattr(h3_runtime, "MiniMaxH3GatewayTransport", unexpected_transport)
     settings = PlotloomSettings(
         repo_root=tmp_path,
         outputs_dir=tmp_path / "outputs",

@@ -13,8 +13,7 @@ from plotloom.domain import (
     default_dialogue_timing_profile,
 )
 from plotloom.generation.dialogue_capacity import (
-    DIALOGUE_CAPACITY_POLICY_V1,
-    DIALOGUE_CAPACITY_POLICY_V2,
+    DIALOGUE_CAPACITY_POLICY_VERSION,
     DialogueCapacityPlan,
     DialogueCapacityPlanningError,
     plan_dialogue_capacity,
@@ -45,8 +44,8 @@ def _graph() -> StoryGraphV2:
     return StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="开始", summary="警报响起", kind="start"),
-            StoryNodeV2(id="ending", title="结局", summary="决定离开", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="开始", summary="警报响起", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="ending", title="结局", summary="决定离开", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(
@@ -81,7 +80,7 @@ def test_capacity_plan_is_deterministic_and_projects_each_timing_rule() -> None:
     start = first.guidance_for("start")
     assert start.duration_budget_units == 2_000
     assert start.max_scenes == 2
-    assert first.policy_version == DIALOGUE_CAPACITY_POLICY_V2
+    assert first.policy_version == DIALOGUE_CAPACITY_POLICY_VERSION
     assert first.authoring_language == "zh-CN"
     assert start.max_dialogue_cues == 2
     assert start.per_cue_duration_budget_units == 999
@@ -99,7 +98,7 @@ def test_capacity_plan_is_deterministic_and_projects_each_timing_rule() -> None:
 def test_capacity_plan_rejects_a_node_that_cannot_fund_scene_and_cue_slots() -> None:
     allocation = SceneTimingAllocation.model_construct(
         node_allocations=(
-            SceneTimingNodeAllocation(node_id="tiny", depth=0, duration_budget_units=3),
+            SceneTimingNodeAllocation(node_id="tiny", depth=0, duration_budget_units=3, footage_mode="footage"),
         )
     )
 
@@ -127,21 +126,13 @@ def test_capacity_plan_hash_rejects_tampered_guidance() -> None:
         DialogueCapacityPlan.model_validate(payload)
 
 
-def test_v1_plan_replays_its_original_serialized_hash_without_v2_defaults() -> None:
+def test_capacity_plan_rejects_retired_policy() -> None:
     allocation = plan_scene_timing_allocation(graph=_graph(), brief=_brief())
-    legacy = plan_dialogue_capacity(
-        scene_timing_allocation=allocation,
-        dialogue_timing_profile=default_dialogue_timing_profile(),
-        policy_version=DIALOGUE_CAPACITY_POLICY_V1,
-    )
-
-    historic_payload = legacy.model_dump(mode="json", by_alias=True, exclude_none=True)
-    restored = DialogueCapacityPlan.model_validate(historic_payload)
-
-    assert restored == legacy
-    assert restored.policy_version == DIALOGUE_CAPACITY_POLICY_V1
-    assert restored.max_dialogue_cues_per_node == 4
-    assert restored.authoring_language is None
+    current = plan_dialogue_capacity(scene_timing_allocation=allocation, dialogue_timing_profile=default_dialogue_timing_profile(), authoring_language="zh-CN")
+    payload = current.model_dump(mode="json", by_alias=True)
+    payload["policyVersion"] = "dialogue_capacity.v1"
+    with pytest.raises(ValueError):
+        DialogueCapacityPlan.model_validate(payload)
 
 
 def test_v2_marks_dialogue_unavailable_when_no_authoring_delivery_has_capacity() -> None:
@@ -190,7 +181,7 @@ def test_v2_rejects_an_incomplete_authoring_language_timing_profile() -> None:
     assert failure.value.code == "dialogue_capacity.timing_profile_incomplete"
 
 
-def test_new_scene_beats_stage_plan_freezes_capacity_but_legacy_shape_keeps_its_hash() -> None:
+def test_scene_beats_stage_plan_requires_current_frozen_capacity() -> None:
     graph = _graph()
     bible = {
         "logline": "l",
@@ -229,24 +220,8 @@ def test_new_scene_beats_stage_plan_freezes_capacity_but_legacy_shape_keeps_its_
     assert stage_plan.dialogue_timing_profile is not None
     assert stage_plan.dialogue_capacity_plan is not None
 
-    legacy_draft = StagePlan.model_construct(
-        run_id=stage_plan.run_id,
-        stage=stage_plan.stage,
-        generation_plan_hash=stage_plan.generation_plan_hash,
-        dependency_hash=stage_plan.dependency_hash,
-        scene_timing_allocation=stage_plan.scene_timing_allocation,
-        work_units=stage_plan.work_units,
-        stage_plan_hash="",
-    )
-    legacy_hash = _stage_plan_hash(legacy_draft)
-    legacy_payload = legacy_draft.model_dump(
-        mode="json",
-        by_alias=False,
-        exclude={"stage_plan_hash"},
-        exclude_none=True,
-    )
-    legacy = StagePlan.model_validate({**legacy_payload, "stage_plan_hash": legacy_hash})
-
-    assert legacy.dialogue_timing_profile is None
-    assert legacy.dialogue_capacity_plan is None
-    assert legacy.stage_plan_hash == legacy_hash
+    retired = stage_plan.model_dump(mode="json")
+    retired.pop("dialogue_timing_profile")
+    retired.pop("dialogue_capacity_plan")
+    with pytest.raises(ValueError):
+        StagePlan.model_validate(retired)

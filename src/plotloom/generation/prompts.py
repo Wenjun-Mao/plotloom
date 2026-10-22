@@ -48,6 +48,9 @@ def canonical_json(value: Any) -> str:
 
 
 def _json_default(value: Any) -> Any:
+    from ..domain import ProjectBrief
+    if isinstance(value, ProjectBrief):
+        return value.generation_input()
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json", by_alias=True)
     raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")

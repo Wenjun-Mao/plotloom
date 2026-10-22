@@ -49,9 +49,28 @@ next action, and available usage deltas. Use the completion plan's active record
 instead of creating a separate reporting system. The capability matrix remains
 the product-level progress authority.
 
-GPT-5.6 Terra is the user's default for subagents. Primary-model choice is based
-on measured cost per accepted result and the reasoning needed; this ADR does
-not assert that a cheaper model or lower effort is always cheaper overall.
+On 2026-10-02, the user explicitly replaced the former GPT-5.6 Terra delegation
+default with Relay's **Manager model choice** guide, for coordinators, executors
+and native subagents alike:
+
+| Work | Model / reasoning |
+|---|---|
+| Clear bounded implementation, routine coordination, focused verification | GPT-6 Luna / Max |
+| Challenging coding, integration or coordination with meaningful ambiguity | GPT-6.1 Sol / Medium |
+| Difficult architecture, high-risk decisions or persistent reasoning failures | GPT-6.1 Sol / High |
+
+Choose directly by difficulty, not role or an escalation ladder. Explicit user
+choices take precedence. Set supported native model/effort fields at dispatch,
+announce actual settings, and disclose unavailable choices or inherited defaults.
+Sol also supports Xhigh; reserve Astra for demonstrated need or user request.
+Do not change active tasks or global defaults. Escalate for inadequate reasoning,
+not missing tools, authority or inputs. This replaces the unconditional Terra
+default rather than adding a parallel policy. `AGENTS.md` carries the same rule
+so future assignments do not silently revert to the old choice.
+
+Primary-model choice remains based on measured cost per accepted result and
+the reasoning needed; this ADR does not assert that a cheaper model or lower
+effort is always cheaper overall.
 Use existing usage data. If delayed or absent, report that limitation rather
 than blocking product work to build a meter. Spend or response guardrails may
 be agreed for a task, but must not be described as enforced without a mechanism.
@@ -61,6 +80,44 @@ reassess the contract, ownership, and smallest useful experiment. Another
 general review or another full pipeline run requires an explicit causal reason.
 Unknown submission outcomes continue to follow existing recovery policy and
 must not be blindly replayed.
+
+### October 18, 2026: small real E2E before qualification detours
+
+The batch-video retrospective found that the corrected feature checkpoint was
+ready around 12:42 EDT, but activation completed at 22:01. Much of the later
+work repaired test/runtime portability; expensive hosted failures had poor
+diagnostic context, and a historical-process revocation investigation preceded
+discovery of the supported ordinary idle-deletion path. Real H3 E2E remained
+unexercised because no current, already owner-reviewed fixture was available.
+Elapsed windows include waiting/coordination and are not active-work percentages.
+
+Prioritize one small authorized real user journey before broad qualification:
+establish its fixture, schema, review/dispatch authority, runtime and finite
+resource limits early; run focused safety checks, then prove real output/readback
+before scaling. Resolve the fixture transition before a breaking reset. If an
+external prerequisite is missing, report it at the outset rather than hiding it
+behind test totals. Never synthesize human approval or weaken dispatch guards.
+
+Preflight expensive execution environments with existing bounded probes, retain
+useful private failure context, and reuse unchanged evidence. Classify failures
+by their owner and distinguish product blockers from separate infrastructure
+work. Return to the product outcome after a bounded infrastructure repair; a
+material scope expansion requires user direction. Use the least-powerful
+applicable native lifecycle operation, not a guard bypass. One qualification
+executor and risk-targeted independent review replace routine duplicated runs.
+
+GitHub CI is off unless Wenjun directly makes a new explicit request, including
+for diagnostics/retries or pushes that trigger CI. Implementation, manager or
+ordinary publication approval does not imply CI authority. Do not prepare or
+publish CI changes, dispatch runs, create substitute watchers, disable workflows
+or add skip markers to work around that boundary. A held/failed hosted gate
+stays unqualified; it need not stop independent authorized local/E2E work.
+
+Rejected alternatives: weakening final release coverage to show progress;
+repairing every infrastructure failure before attempting a product slice;
+removing useful independent review; and introducing another tracking/provisioning
+framework. Root `AGENTS.md` carries the operational rules. This changes delivery
+sequencing and reporting, not production admission or creative-acceptance policy.
 
 ## Rejected alternatives
 

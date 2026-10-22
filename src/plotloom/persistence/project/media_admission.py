@@ -18,17 +18,19 @@ from ..schema import (
     VisualSelectionStateRow,
 )
 from .access import ProjectPersistenceAccess
+from .media_shot_presentations import ShotPresentations
 
 
 class KeyframeAdmission:
     """Own session-local reviewed-keyframe currentness and approval admission."""
 
-    def __init__(self, access: ProjectPersistenceAccess) -> None:
+    def __init__(self, access: ProjectPersistenceAccess, *, generated_source_currentness) -> None:
         self._access = access
+        self._generated_source_currentness = generated_source_currentness
 
     @staticmethod
     def latest_visual_intent_for_role_in_session(
-        session: Session, project_id: str, asset_id: str, role: str | None
+        session: Session, project_id: str, asset_id: str, role: str | None, target_shot_id: str | None = None
     ) -> VisualIntentRow | None:
         """Return the latest intent in the asset's role-specific stream."""
 
@@ -44,6 +46,7 @@ class KeyframeAdmission:
                     .order_by(VisualIntentRow.revision.desc())
                 )
                 if candidate.intent.get("role") == role
+                and (candidate.intent.get("targetUse") or {}).get("targetShotId") == target_shot_id
             ),
             None,
         )
@@ -65,6 +68,10 @@ class KeyframeAdmission:
 
         if binding.project_id != project_id:
             return False
+        try:
+            self._generated_source_currentness(session, binding)
+        except (InvalidTransitionError, NotFoundError):
+            return False
         latest_binding = session.scalar(
             select(ReviewedShotBindingRow)
             .where(
@@ -76,6 +83,16 @@ class KeyframeAdmission:
         )
         if latest_binding is None or latest_binding.id != binding.id:
             return False
+        return self.reviewed_binding_context_current_in_session(session, project_id, binding, approval=approval)
+
+    def reviewed_binding_context_current_in_session(self, session, project_id, binding, *, approval=None):
+        """Exact frozen intent/presentation/approval; selection position is separate."""
+        if binding.project_id != project_id or not ShotPresentations.binding_matches(session, binding):
+            return False
+        if not binding.compatibility_note.strip():
+            from .bulk_handoff_basis import binding_has_basis
+            if not binding_has_basis(session, binding):
+                return False
         intent = session.get(VisualIntentRow, binding.visual_intent_id)
         if (
             intent is None
@@ -84,8 +101,16 @@ class KeyframeAdmission:
             or intent.revision != binding.visual_intent_revision
         ):
             return False
+        if "sourceEndorsement" in intent.intent:
+            from .handoff_intent_context import assert_source_intent
+            try:
+                assert_source_intent(session.connection().connection.driver_connection, project_id,
+                    {key: value for key, value in intent.intent.items() if key != "targetUse"})
+            except (ValueError, TypeError, KeyError):
+                return False
         latest_intent = self.latest_visual_intent_for_role_in_session(
-            session, project_id, binding.asset_id, intent.intent.get("role")
+            session, project_id, binding.asset_id, intent.intent.get("role"),
+            (intent.intent.get("targetUse") or {}).get("targetShotId")
         )
         if (
             latest_intent is None
@@ -98,6 +123,16 @@ class KeyframeAdmission:
                 approval = self.approval_is_active_in_session(session, binding.approval_id)
             except (InvalidTransitionError, NotFoundError):
                 return False
+        from ...delegated_qa import binding_attribution
+        try:
+            # Image adaptation consumes a narrowed ImageAuthorityBinding. Actor
+            # facts belong to its exact retained approval, not that projection.
+            attributed_approval = session.get(ApprovalDecisionRow, binding.approval_id)
+            if attributed_approval is None:
+                return False
+            binding_attribution(project_id, attributed_approval, intent.intent, asset_id=binding.asset_id, shot_id=binding.shot_id)
+        except (InvalidTransitionError, ValueError):
+            return False
         return (
             approval.project_id == project_id
             and binding.approval_id == approval.id
@@ -116,7 +151,7 @@ class KeyframeAdmission:
             latest: dict[str, ReviewedShotBindingRow] = {}
             for row in rows:
                 latest.setdefault(row.shot_id, row)
-            return [
+            result = [
                 {
                     "id": row.id, "assetId": row.asset_id, "shotId": row.shot_id,
                     "sceneId": row.scene_id, "selectionRevision": row.selection_revision,
@@ -127,6 +162,15 @@ class KeyframeAdmission:
                 for row in latest.values()
                 if self.reviewed_binding_admission_eligible_in_session(session, project_id, row)
             ]
+            from .bulk_handoff_basis import receipt_basis
+            for item in result:
+                intent = session.get(VisualIntentRow, item["visualIntentId"])
+                if intent.intent.get("attribution"):
+                    item["attribution"] = intent.intent["attribution"]
+                basis = receipt_basis(session, project_id, item["id"])
+                if basis is not None:
+                    item["confirmationBasis"] = basis
+            return result
 
 
     def approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:
@@ -156,13 +200,8 @@ class KeyframeAdmission:
             or revision.revision != decision.subject_revision
         ):
             raise InvalidTransitionError("reviewed selection approval is stale")
-        gates = session.scalars(
-            select(GateResultRow).where(
-                GateResultRow.entity_revision_id == decision.entity_revision_id,
-                GateResultRow.gate_set_version == decision.gate_set_version,
-            )
-        ).all()
-        if not gates or any(not self._access.codecs.gate_result(gate).passed for gate in gates):
+        from .canonical_gate_evidence import gates_pass
+        if not gates_pass(session, self._access.codecs, decision.entity_revision_id, gate_set_version=decision.gate_set_version):
             raise InvalidTransitionError("reviewed selection approval gates are no longer passing")
         return decision
 

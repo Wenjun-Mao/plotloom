@@ -1,0 +1,54 @@
+# ADR 0134: Typed creative-review currentness diagnostics
+
+Status: Accepted, 2026-10-08; extended to Script/Storyboard 2026-10-09.
+
+## Problem
+
+Art delegates shared source/map/graph checks to Cast. Its successful stale-state
+read flattened exceptions into strings, losing prerequisite ownership and showing
+“before preparing cast” in Art. The preparation-refusal path exposed the same
+raw message. A status-only StageGuide could recommend updating Art while the
+actual prerequisite belonged to Source or Characters.
+
+## Decision
+
+Cast/Art `staleReasons` is a current-contract list of typed diagnostics: stable
+code, preparation owner, exact technical message and optional binding field.
+The original string-list contract is replaced, with no compatibility union,
+string-matching translation or retained schema adapter. The shared prerequisite
+exception carries the same diagnostic through a structured409 refusal.
+
+Cast/Art present Chinese guidance from codes, link to the indicated owner in a
+new page so existing dirty drafts remain protected, and keep raw evidence under
+technical details. Busy/failed/dirty guidance retains its existing precedence.
+Generic HTTP transport remains unchanged.
+
+The revised-story E2E run reproduced the same raw-string defect in Script and
+Storyboard. These owners now use the same typed diagnostic list and structured
+preparation refusal. An explicit field-owner registry covers timing, section
+membership, render contract and Script/Art bindings; unknown future binding fields
+must receive an ownership decision rather than falling back to English text.
+Missing/unconfirmed upstream reviews point to their owning stage; changed
+bindings keep the next action in the outdated review. No string-list compatibility
+union is retained. Frozen generation packages, stored review JSON and archived
+reports do not change; the diagnostic is a current read projection only.
+
+Currentness comparisons, action eligibility, CAS, pins, frozen requests,
+report bytes and persistence remain unchanged. A combined prerequisite failure
+does not invent which individual prerequisite is missing. Binding differences
+retain their exact fields, order and raw text.
+
+Render-contract inequality can mean an implementation pin changed, not that the
+author changed style or direction. Presentation and technical diagnostics must
+state the review requirement neutrally unless an exact field difference proves
+the cause. Generic stale guidance likewise describes current review requirements,
+not presumed story changes. Replacement is optional only for a current accepted
+review; stale evidence requires new preparation and explicit confirmation.
+
+## Rejected alternatives and guardrails
+
+Reject per-panel exception-text translation and a second readiness model.
+Test successful stale reads and failed preparations, Source versus Characters
+ownership, binding/style differences, original evidence/content retention and
+unchanged stale refusal boundaries. Directly inspect supported desktop pixels;
+the new typed diagnostic is not an approval or automatic regeneration request.

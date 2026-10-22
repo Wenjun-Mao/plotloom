@@ -1,3 +1,4 @@
+import { openMediaPreparation } from "../../workbench-controls";
 import { expect, checkedStaticTest as test } from "../../fixture";
 import { demoProject } from "../../../src/demo";
 import path from "node:path";
@@ -24,13 +25,11 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_01#shot-keyframe-review`);
-  await page.getByLabel("审核人标签").fill("Synthetic browser fixture");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
-  const preparation = page.locator("details.workbench-support").first();
-  if (!await preparation.evaluate((element) => (element as HTMLDetailsElement).open)) await preparation.locator("summary").click();
+  await openMediaPreparation(page);
   await page.getByLabel("来源声明").fill("Synthetic offline image fixture; not creative approval.");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
-  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic browser fixture source.");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("Technical fixture prerequisite only.");
@@ -103,7 +102,7 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
   await expect(review).toBeVisible();
   await review.getByLabel("片段入点（帧）").fill("6");
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   await expect(review).toContainText("6–186 帧");
   await expect(review.locator('video[data-testid^="video-segment-preview-"]')).toBeVisible();
   await review.getByRole("button", { name: "确认用于故事" }).click();

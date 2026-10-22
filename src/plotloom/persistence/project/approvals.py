@@ -31,6 +31,8 @@ from ..schema import (
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
+from ...human_confirmation_contracts import UnnamedCreatorConfirmation
+from .human_attribution import stored_storyboard_reviewer
 
 @dataclass(frozen=True)
 class ApprovalDecision:
@@ -79,6 +81,8 @@ class ProjectApprovalPersistence:
         subject_id: str = "storyboard",
     ) -> ApprovalDecision:
         """Append (never update) an approval or revocation over an exact board."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -105,11 +109,13 @@ class ProjectApprovalPersistence:
         expected_revision: int,
         expected_content_hash: str,
         decision: str,
-        reviewer: str,
+        reviewer: str | UnnamedCreatorConfirmation,
         gate_set_version: str,
         note: str | None = None,
     ) -> ApprovalDecision:
         """Append a decision only if the exact current storyboard still matches."""
+        from .autopilot_authority import require_human_command
+        require_human_command(self._access)
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -155,19 +161,25 @@ class ProjectApprovalPersistence:
         revision: EntityRevisionRow,
         *,
         decision: str,
-        reviewer: str,
+        reviewer: str | UnnamedCreatorConfirmation,
         gate_set_version: str,
         note: str | None,
         subject_type: str,
         subject_id: str,
     ) -> ApprovalDecision:
         normalized_decision = decision.strip().lower()
-        normalized_reviewer = reviewer.strip()
+        from ...delegated_qa_contracts import AgentQaAttribution
+        from ...delegated_qa import require_qa_write, reviewer_for
+        if isinstance(reviewer, AgentQaAttribution):
+            require_qa_write(session, project_id, reviewer, board_hash=revision.content_hash)
+            normalized_reviewer = reviewer_for(reviewer)
+        else:
+            normalized_reviewer = stored_storyboard_reviewer(self._access, reviewer)
         normalized_gate_set_version = gate_set_version.strip()
         if normalized_decision not in {"approve", "revoke"}:
             raise ValueError("approval decision must be approve or revoke")
-        if not normalized_reviewer or not normalized_gate_set_version:
-            raise ValueError("reviewer and gate_set_version must not be blank")
+        if not normalized_gate_set_version:
+            raise ValueError("gate_set_version must not be blank")
         if normalized_gate_set_version != STORYBOARD_GATE_SET_VERSION:
             raise InvalidTransitionError(
                 "approval requires the current canonical storyboard gate set"

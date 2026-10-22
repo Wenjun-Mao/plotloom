@@ -14,11 +14,11 @@ import re
 import stat
 import subprocess
 from pathlib import Path
+from uuid import UUID
 
-
-SUPPORTED_EXECUTION_CONTRACT = "codex_specialist.v2"
-SUPPORTED_PREFLIGHT_VERSION = "p1.5-pin.v1"
-SUPPORTED_SKILL_VERSION = "plotloom-image-specialist.v3"
+SUPPORTED_EXECUTION_CONTRACT = "codex_specialist.v3"
+SUPPORTED_PREFLIGHT_VERSION = "p1.5-pin.v2"
+SUPPORTED_SKILL_VERSION = "plotloom-image-specialist.v4"
 SKILL_PATH = Path(".agents/skills/plotloom-image-specialist/SKILL.md")
 _BYTECODE_CACHE_NAME = re.compile(
     r"[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z0-9_-]+(?:\.opt-[0-9]+)?\.pyc\Z"
@@ -26,13 +26,25 @@ _BYTECODE_CACHE_NAME = re.compile(
 PINNED_SOURCES = (
     SKILL_PATH,
     Path("scripts/cleanup_imagegen_staging.py"),
+    Path("scripts/publish_image_completion.py"),
     Path("scripts/pin_image_specialist.py"),
     # API and persistence used to be monolith modules.  They are now package
     # owners, so pin their implementations recursively rather than pretending
     # their package façades attest the route and delivery code beneath them.
     Path("src/plotloom/api"),
     Path("src/plotloom/image_job_exchange.py"),
+    Path("src/plotloom/image_exchange_packages.py"),
+    Path("src/plotloom/image_package_publication.py"),
+    Path("src/plotloom/package_publication_lock.py"),
+    Path("src/plotloom/image_job_package.py"),
     Path("src/plotloom/image_job_contracts.py"),
+    Path("src/plotloom/image_terminal_outcome.py"),
+    Path("src/plotloom/specialist_settings.py"),
+    Path("src/plotloom/codex_image_dispatch.py"),
+    Path("src/plotloom/production_presentation.py"),
+    Path("src/plotloom/shot_presentation.py"),
+    Path("src/plotloom/production_timing.py"),
+    Path("src/plotloom/canonical_schema.py"),
     Path("src/plotloom/persistence"),
 )
 
@@ -199,8 +211,8 @@ def main() -> int:
     preflight = request.get("specialistPreflight")
     if not isinstance(preflight, dict):
         raise SystemExit("Unsupported package: missing specialistPreflight.")
-    if request.get("schemaVersion") != 3 or request.get("packageVersion") != 4:
-        raise SystemExit("Unsupported package: expected schema version 3 and package version 4.")
+    if request.get("schemaVersion") != 3 or request.get("packageVersion") != 6:
+        raise SystemExit("Unsupported package: expected schema version 3 and package version 6.")
     if preflight.get("version") != SUPPORTED_PREFLIGHT_VERSION or preflight.get("skillVersion") != SUPPORTED_SKILL_VERSION:
         raise SystemExit("Unsupported specialist preflight version or skill version.")
     if request.get("executionContract") != SUPPORTED_EXECUTION_CONTRACT or preflight.get("executionContract") != SUPPORTED_EXECUTION_CONTRACT:
@@ -208,19 +220,39 @@ def main() -> int:
     skill_version = preflight.get("skillVersion")
     if skill_version != SUPPORTED_SKILL_VERSION:
         raise SystemExit("Unsupported package: unsupported specialist skill version.")
+    binding = request.get("nativeTaskBinding")
+    if not isinstance(binding, dict):
+        raise SystemExit("Unsupported package: missing nativeTaskBinding.")
+    try:
+        if binding.get("mode") == "configured_task" and set(binding) == {"mode", "taskId"}:
+            bound_task_id = str(UUID(binding["taskId"]))
+        elif binding == {"mode": "current_task"}:
+            bound_task_id = None
+        else:
+            raise ValueError("unsupported native task binding")
+        native_task_id = str(UUID(os.environ["CODEX_THREAD_ID"]))
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        raise SystemExit("Unsupported package or task environment: native Codex task UUID is missing or invalid.") from error
+    if bound_task_id is not None and native_task_id != bound_task_id:
+        raise SystemExit("Unsupported task: CODEX_THREAD_ID does not match the configured image-specialist task.")
     repository = Path(__file__).resolve().parents[1]
     skill = repository / SKILL_PATH
     if not skill.is_file():
         raise SystemExit("Unsupported checkout: Plotloom image-specialist skill is missing.")
     revision = _command(repository, "rev-parse", "HEAD").decode().strip()
     _verify_pinned_sources(repository, revision)
+    actual_skill_hash = hashlib.sha256(skill.read_bytes()).hexdigest()
+    if ((preflight.get("codeRevision") is not None and preflight["codeRevision"] != revision)
+            or (preflight.get("skillHash") is not None and preflight["skillHash"] != actual_skill_hash)):
+        raise SystemExit("Unsupported checkout: execution differs from the frozen image policy; do not generate.")
     pin = {
         "jobId": request["jobId"],
         "requestHash": request["requestHash"],
         "executionContract": SUPPORTED_EXECUTION_CONTRACT,
         "skillVersion": skill_version,
         "codeRevision": revision,
-        "skillHash": hashlib.sha256(skill.read_bytes()).hexdigest(),
+        "skillHash": actual_skill_hash,
+        "nativeTaskId": native_task_id,
     }
     delivery = package.parent / "delivery"
     _private_directory(delivery, label="delivery")

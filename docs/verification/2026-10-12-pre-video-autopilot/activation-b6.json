@@ -1,0 +1,140 @@
+{
+  "passed": true,
+  "source": "b6f0525da5c19d572aa64946bad8339fe2f44c7e",
+  "containerImage": "sha256:bf13cf64601f0ab26905d099f2c3ee3ed5aeee7e2edf4566739fe99fb38ffe2c",
+  "containerStartedAt": "2026-10-13T02:28:16.742591744Z",
+  "projects": [
+    {
+      "id": "a2bef822-9069-4d47-b966-aae6f2a9160f",
+      "retainedRowsHash": "92dc348a38976a926450a458efc3fee25040def466cac6ac38ba6b06bb89ce60",
+      "priorOperationalStates": [
+        [
+          "a2bef822-9069-4d47-b966-aae6f2a9160f",
+          "open"
+        ]
+      ],
+      "upgraded": false
+    },
+    {
+      "id": "8204819e-da63-46b7-b2ca-0ce64f6e1ef0",
+      "retainedRowsHash": "f7b644e4344a0991c7445e21ddd0f10422134ff6293b2292c607aa1cdad92ec7",
+      "priorOperationalStates": [
+        [
+          "8204819e-da63-46b7-b2ca-0ce64f6e1ef0",
+          "open"
+        ]
+      ],
+      "upgraded": false
+    },
+    {
+      "id": "9d90f17a-0c55-4fe6-9417-4834a8c5e45b",
+      "retainedRowsHash": "0a88154739a3437c95d922892b7d646dd1b7c4ce369d91ec2ecd59e8d15b4eb6",
+      "priorOperationalStates": [
+        [
+          "9d90f17a-0c55-4fe6-9417-4834a8c5e45b",
+          "open"
+        ]
+      ],
+      "upgraded": false
+    },
+    {
+      "id": "dbf1e542-b783-4ffb-a9f1-64fb7def6ef0",
+      "retainedRowsHash": "136b49df90cfdc4196884ecaed116b9c5306c636d39577660bb8cf6feef98659",
+      "priorOperationalStates": [
+        [
+          "dbf1e542-b783-4ffb-a9f1-64fb7def6ef0",
+          "open"
+        ]
+      ],
+      "upgraded": false
+    },
+    {
+      "id": "69530c91-2154-45cb-85f7-2e0b4078d27e",
+      "retainedRowsHash": "e6ef768731f4f594642bd3041cbcdcd52b30989737227fc1787564807afc9ca1",
+      "priorOperationalStates": [
+        [
+          "69530c91-2154-45cb-85f7-2e0b4078d27e",
+          "closed"
+        ]
+      ],
+      "upgraded": true
+    },
+    {
+      "id": "a46790f2-981d-4454-a9f4-8679d70e65e5",
+      "retainedRowsHash": "337e324939e5e7b7dc1d35038fb3b63cf09c9f8d079f93862eadd3ea0d89888a",
+      "priorOperationalStates": [
+        [
+          "a46790f2-981d-4454-a9f4-8679d70e65e5",
+          "open"
+        ]
+      ],
+      "upgraded": true
+    },
+    {
+      "id": "63e4851b-3af2-40cd-839c-501470c691de",
+      "retainedRowsHash": "b3d4ab25897e6c5b320271d0c1da7750267bfb06d496078f10be9391f990ab0d",
+      "priorOperationalStates": [
+        [
+          "63e4851b-3af2-40cd-839c-501470c691de",
+          "open"
+        ]
+      ],
+      "upgraded": true
+    },
+    {
+      "id": "160554c7-f021-40b0-b218-b9d53412b75c",
+      "retainedRowsHash": "1cf80fa8f00789ce832ad36d6a5d30f5914ac678167842d6f4edadf8d3c5a245",
+      "priorOperationalStates": [
+        [
+          "160554c7-f021-40b0-b218-b9d53412b75c",
+          "closed"
+        ]
+      ],
+      "upgraded": true
+    }
+  ],
+  "nativeJobs": 57,
+  "newRunAndHumanFactTablesEmpty": true,
+  "allOldRowsAndPayloadsPreserved": true,
+  "onlyNewRuntimeFile": "application/.autopilot-controller.lock",
+  "deploymentControlsUnchanged": {
+    "deployment.json": true,
+    "bridge.plist": true,
+    "bridge-token": true,
+    "h3-config": true
+  },
+  "endpoints": {
+    "http://127.0.0.1:8841": {
+      "healthy": true,
+      "controllerBlocker": null,
+      "visibleProjects": 4,
+      "staticFiles": 7,
+      "staticHashes": {
+        "assets/CreatorWorkflowNavigation-DBxiDIR6.js": "95ed4a1787f9c39a40839b2ae55e12ee867266636a35528ca2658d0b9368459c",
+        "e2e/u1a-workflow-navigation-demo.html": "99c705b1da23aa1323a5f02cb34e54b27e0b282f3d749c964aa724309d605b34",
+        "e2e/u1a-workflow-navigation-demo.js": "01ce42d3f27b5b0cafdce1f1c65b82ec4a0a0f63090d63438141c6f31d486ba4",
+        "index.html": "614765e288d549bade7deaf004bac56bdda1fe9b7cc5747568c1e674b7a6b2b6",
+        "workbench.css": "7e4441a27f7c8d4dfd00f7653b491ede15ad651796a726390ee7043d5ca4e310",
+        "workbench.js": "d589679ae2ed3b92a0e0dfcdcc31fbea7bd8d5788b70446ad7990d045a526dd5",
+        "workbench2.css": "a544ea83ad14575901cfa3402735f49a2c5dae03633b61c3b42fa97bd989f95a"
+      },
+      "nativeBusy": false
+    },
+    "https://plotloom.tail6040ad.ts.net": {
+      "healthy": true,
+      "controllerBlocker": null,
+      "visibleProjects": 4,
+      "staticFiles": 7,
+      "staticHashes": {
+        "assets/CreatorWorkflowNavigation-DBxiDIR6.js": "95ed4a1787f9c39a40839b2ae55e12ee867266636a35528ca2658d0b9368459c",
+        "e2e/u1a-workflow-navigation-demo.html": "99c705b1da23aa1323a5f02cb34e54b27e0b282f3d749c964aa724309d605b34",
+        "e2e/u1a-workflow-navigation-demo.js": "01ce42d3f27b5b0cafdce1f1c65b82ec4a0a0f63090d63438141c6f31d486ba4",
+        "index.html": "614765e288d549bade7deaf004bac56bdda1fe9b7cc5747568c1e674b7a6b2b6",
+        "workbench.css": "7e4441a27f7c8d4dfd00f7653b491ede15ad651796a726390ee7043d5ca4e310",
+        "workbench.js": "d589679ae2ed3b92a0e0dfcdcc31fbea7bd8d5788b70446ad7990d045a526dd5",
+        "workbench2.css": "a544ea83ad14575901cfa3402735f49a2c5dae03633b61c3b42fa97bd989f95a"
+      },
+      "nativeBusy": false
+    }
+  }
+}

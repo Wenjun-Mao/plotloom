@@ -1,3 +1,5 @@
+import { VideoBatchPanel } from "../features/video-batch/VideoBatchPanel";
+import { revealWorkspaceTarget } from "../app/workspace/completionReveal";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ApprovalDecision,
@@ -14,8 +16,10 @@ import type {
   ValidationIssue,
 } from "../types";
 import { plotloomApi } from "../api";
+import { StoryboardApprovalControls } from "./storyboard/StoryboardApprovalControls";
 import type { ProjectDraftQuiescence } from "../features/authoring/projectDraftQuiescence";
 import { deriveRoutes, groupStoryboard } from "../model";
+import { shotLabel } from "../shot-label";
 import {
   addAudioEvent,
   addShot,
@@ -51,7 +55,9 @@ import {
   type EntityOption,
 } from "../structured-fields";
 import { Badge, Button, EmptyState, Field, PageHeader, Panel } from "../components";
-import { ManagedMediaWorkbench } from "../managed-media";
+import { useConfirmation } from "../confirmation";
+import { ManagedMediaWorkbench } from "../features/media/ManagedMediaWorkbench";
+import { GateStatusBadge, ShotDeletionConfirmation, ShotMigrationConfirmation } from "./storyboard/StoryboardFeedback";
 
 const shotSizes: Array<{ value: Shot["shotSize"]; label: string }> = [
   { value: "extreme_wide", label: "大远景" },
@@ -83,28 +89,6 @@ function referenceOptions(bible: StoryBible): EntityOption[] {
   ];
 }
 
-function GateStatusBadge({ status }: { status: "pass" | "fail" | "skipped" | "not_applicable" }) {
-  const tone = status === "pass" ? "ok" : status === "fail" ? "danger" : "warning";
-  return <Badge tone={tone}>{status.toUpperCase()}</Badge>;
-}
-
-function ShotMigrationConfirmation({ impact, onCancel, onConfirm }: { impact: ShotSceneMigrationImpact; onCancel: () => void; onConfirm: () => void }) {
-  return <Panel className="notice warning" data-testid="shot-scene-migration-impact"><strong>镜头关系迁移确认</strong><p>将 Shot {impact.shotId} 从 {impact.fromSceneId} 迁移到 {impact.toSceneId}。Shot ID 不变，两个场景的镜头顺序会确定性归一化。</p><small>不会自动删除或迁移关联关系。迁移后跨场景的 cue 调度：{impact.crossSceneCueIds.join(", ") || "无"}；ShotBeatLink：{impact.crossSceneLinkKeys.join(", ") || "无"}。请在确认后显式调整这些关系。</small><div className="page-actions"><Button type="button" variant="primary" onClick={onConfirm}>确认迁移</Button><Button type="button" onClick={onCancel}>取消</Button></div></Panel>;
-}
-
-function ShotDeletionConfirmation({ impact, title, onCancel, onConfirm }: { impact: ShotRemovalImpact; title: string; onCancel: () => void; onConfirm: () => void }) {
-  return <Panel className="notice error" data-testid="shot-deletion-impact" role="alertdialog" aria-label="镜头删除影响确认">
-    <strong>删除镜头“{title}”</strong>
-    <p>镜头 {impact.shotId} 将被删除；同场景镜头顺序会重新编号。以下关系不会被隐藏处理：</p>
-    <ul>
-      {impact.linkBeatIds.map((beatId) => <li key={`link:${beatId}`}>删除 ShotBeatLink：{impact.shotId} → {beatId}</li>)}
-      {impact.unscheduledCueIds.map((cueId) => <li key={`cue:${cueId}`}>DialogueCue 将变为未调度：{cueId}</li>)}
-      {!impact.linkBeatIds.length && !impact.unscheduledCueIds.length && <li>没有 ShotBeatLink 或 DialogueCue 调度关系。</li>}
-    </ul>
-    <div className="page-actions"><Button type="button" variant="danger" data-testid="confirm-shot-delete" onClick={onConfirm}>确认删除</Button><Button type="button" onClick={onCancel}>取消</Button></div>
-  </Panel>;
-}
-
 export function StoryboardPage({
   bible,
   graph,
@@ -113,7 +97,9 @@ export function StoryboardPage({
   stale,
   mediaTasks,
   saving,
+  readOnly,
   entityId,
+  navigationTarget,
   issues = [],
   onEntitySelect,
   onNavigateIssue,
@@ -123,8 +109,10 @@ export function StoryboardPage({
   onSave,
   onDraftChange,
   projectId,
+  lifecycleRevision,
+  projectRevision,
+  lifecycleStatus,
   revision,
-  storyBibleRevision,
   contentHash,
   mediaDraftsEnabled = false,
   mediaDraftQuiescence,
@@ -136,7 +124,9 @@ export function StoryboardPage({
   stale: boolean;
   mediaTasks: Record<string, MediaTask>;
   saving: boolean;
+  readOnly: boolean;
   entityId?: string;
+  navigationTarget?: string;
   issues?: ValidationIssue[];
   onEntitySelect?: (entityId: string) => void;
   onNavigateIssue?: (stage: "beats" | "storyboard", entityId: string) => void;
@@ -148,19 +138,32 @@ export function StoryboardPage({
   onSave: (storyboard: Storyboard) => Promise<void>;
   onDraftChange?: (storyboard: Storyboard) => void;
   projectId?: string;
+  lifecycleRevision?: number;
+  projectRevision?: number;
+  lifecycleStatus?: "active" | "archived";
   revision?: number;
-  storyBibleRevision?: number;
   contentHash?: string | null;
   mediaDraftsEnabled?: boolean;
   mediaDraftQuiescence?: ProjectDraftQuiescence;
 }) {
   const [storyboard, setStoryboard] = useState(value);
+  const [videoReadVersion, setVideoReadVersion] = useState(0);
+  useEffect(() => {
+    if (entityId || navigationTarget !== "video-batch-production" || issues.length) return;
+    const frame = requestAnimationFrame(() => { const target = document.getElementById("video-batch-production"); if (target) revealWorkspaceTarget(target); });
+    return () => cancelAnimationFrame(frame);
+  }, [projectId, entityId, navigationTarget]);
   const routes = useMemo(() => deriveRoutes(graph), [graph]);
   const [routeId, setRouteId] = useState("");
   const [selectedShotId, setSelectedShotId] = useState(value.shots[0]?.id ?? "");
   const [reviewError, setReviewError] = useState("");
-  const [reviewer, setReviewer] = useState("");
-  const [reviewNote, setReviewNote] = useState("");
+  const [approvalPending, setApprovalPending] = useState(false);
+  const approvalInFlight = useRef(false);
+  const approvalProject = useRef(projectId);
+  useEffect(() => {
+    approvalProject.current = projectId;
+    return () => { approvalProject.current = undefined; };
+  }, [projectId]);
   const [localError, setLocalError] = useState("");
   const [newLinkBeatId, setNewLinkBeatId] = useState("");
   const [newLinkRole, setNewLinkRole] = useState<ShotBeatLink["role"]>("supporting");
@@ -169,10 +172,16 @@ export function StoryboardPage({
   const [issueFocus, setIssueFocus] = useState<StoryboardIssueTarget | null>(null);
   const lastIssueSignature = useRef<string | undefined>(undefined);
   const storyboardDetails = useRef<HTMLDetailsElement>(null);
-  const approvalActions = useRef<HTMLDetailsElement>(null);
   const enteredUnapprovedEditing = useRef(false);
   const reviewProjectId = useRef(projectId);
   const issueSignature = JSON.stringify(issues);
+  const actionsLocked = saving || readOnly || approvalPending;
+
+  useEffect(() => {
+    if (!actionsLocked) return;
+    setPendingSceneMigration(null);
+    setPendingShotDeletion(null);
+  }, [actionsLocked]);
 
   useEffect(() => {
     if (reviewProjectId.current !== projectId) {
@@ -183,16 +192,15 @@ export function StoryboardPage({
     if (!review.activeApproval) {
       enteredUnapprovedEditing.current = true;
       if (storyboardDetails.current) storyboardDetails.current.open = true;
-      if (approvalActions.current) approvalActions.current.open = true;
     } else if (!enteredUnapprovedEditing.current) {
       // Reopening an already-approved board starts at media review. A creator
       // who just approved an open edit session does not lose their draft view.
       if (storyboardDetails.current) storyboardDetails.current.open = false;
-      if (approvalActions.current) approvalActions.current.open = false;
     }
   }, [projectId, Boolean(review), review?.activeApproval?.id, review?.gateEvaluation?.gateSetVersion]);
 
   const update = (next: Storyboard | ((current: Storyboard) => Storyboard)) => {
+    if (actionsLocked) return;
     setStoryboard((current) => {
       const updated = typeof next === "function" ? next(current) : next;
       onDraftChange?.(updated);
@@ -308,7 +316,7 @@ export function StoryboardPage({
     selectShot(shot.id);
   };
   const requestShotSceneMigration = (sceneId: string) => {
-    if (!selectedShot || selectedShot.sceneId === sceneId) return;
+    if (actionsLocked || !selectedShot || selectedShot.sceneId === sceneId) return;
     try {
       setPendingSceneMigration(shotSceneMigrationImpact(storyboard, sceneBeats, selectedShot.id, sceneId));
       setLocalError("");
@@ -317,11 +325,11 @@ export function StoryboardPage({
     }
   };
   const deleteSelectedShot = () => {
-    if (!selectedShot) return;
+    if (actionsLocked || !selectedShot) return;
     setPendingShotDeletion(shotRemovalImpact(storyboard, selectedShot.id));
   };
   const confirmShotDeletion = () => {
-    if (!pendingShotDeletion) return;
+    if (actionsLocked || !pendingShotDeletion) return;
     const removed = storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId);
     if (!removed) { setPendingShotDeletion(null); return; }
     const next = removeShot(storyboard, removed.id);
@@ -355,22 +363,25 @@ export function StoryboardPage({
     }
   };
   const decide = async (decision: ApprovalDecision["decision"]) => {
-    if (!projectId || !contentHash || revision === undefined || !review?.gateEvaluation || !reviewer.trim()) return;
+    if (actionsLocked || approvalInFlight.current || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation) return;
+    if (decision === "approve" && (stale || !requiredGatesPass || JSON.stringify(storyboard) !== JSON.stringify(value) || review.activeApproval)) return;
+    if (decision === "revoke" && !review.activeApproval) return;
+    approvalInFlight.current = true;
+    setApprovalPending(true);
     setReviewError("");
     try {
       await plotloomApi.decideStoryboardApproval(projectId, {
-        expectedRevision: revision,
-        contentHash,
-        decision,
-        reviewer,
+        expectedRevision: revision, contentHash, decision,
+        attribution: { kind: "unnamed_creator" },
         gateSetVersion: review.gateEvaluation.gateSetVersion,
-        note: reviewNote.trim() || undefined,
       });
       const nextReview = await plotloomApi.getStoryboardReview(projectId);
-      onReviewChange?.(nextReview);
-      setReviewNote("");
+      if (approvalProject.current === projectId) onReviewChange?.(nextReview);
     } catch (error) {
-      setReviewError(error instanceof Error ? error.message : "Approval 决定未保存");
+      if (approvalProject.current === projectId) setReviewError(error instanceof Error ? error.message : "批准决定未保存");
+    } finally {
+      approvalInFlight.current = false;
+      setApprovalPending(false);
     }
   };
   const navigateGate = (path: Array<string | number>) => {
@@ -389,19 +400,22 @@ export function StoryboardPage({
       onNavigateIssue?.("beats", `cue:${identity}`);
     }
   };
+  const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, revision, storyboard, selectedShot?.id]), actionsLocked);
+
   const requiredGatesPass = Boolean(review?.gateEvaluation?.results.every((gate) => !gate.required || gate.status === "pass"));
 
   return <div className="page storyboard-page" data-testid="storyboard-editor">
-    <PageHeader title="分镜工作台" description="镜头、对白、声音、实体状态与节拍覆盖都在同一份可审计合同中。" actions={<>
+    {confirmation}
+    <PageHeader title="分镜工作台" description="在这里编辑镜头、安排对白和声音，并检查人物与物品的状态及节拍覆盖。" actions={<>
       <Field label="路径过滤"><select value={routeId} onChange={(event) => setRouteId(event.target.value)}><option value="">全部场景</option>{routes.map((item, index) => <option key={item.id} value={item.id}>路径 {index + 1} · {item.label}</option>)}</select></Field>
-      <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
+      <Button variant="primary" disabled={actionsLocked} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />
-    {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
+    {stale && <div className="notice warning"><strong>分镜已过期</strong><span>前面的设定发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
+    <VideoBatchPanel onChanged={async () => { setVideoReadVersion(value => value + 1); }} projectId={projectId} disabled={actionsLocked} dirty={JSON.stringify(storyboard) !== JSON.stringify(value)} onStory={() => { const target = document.getElementById("shot-story-preview"); if (target) revealWorkspaceTarget(target); }} />
+    <ManagedMediaWorkbench videoReadVersion={videoReadVersion} projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={actionsLocked} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
       if (storyboardDetails.current) storyboardDetails.current.open = true;
-      if (approvalActions.current) approvalActions.current.open = true;
       requestAnimationFrame(() => {
         const panel = document.getElementById("storyboard-review");
         panel?.scrollIntoView({ block: "start" });
@@ -410,23 +424,23 @@ export function StoryboardPage({
     }} />
     {(issues.length > 0 || localError) && <Panel className="issue-summary"><strong>需要修正</strong>{localError && <p role="alert">{localError}</p>}{issues.map((issue) => <button key={`${issue.code}:${issue.path}`} onClick={() => focusIssue(issue)}>{issue.code} · {issue.path}<small>{issue.message}</small></button>)}</Panel>}
 
-    {pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
-    {pendingShotDeletion && <ShotDeletionConfirmation impact={pendingShotDeletion} title={storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId)?.title ?? pendingShotDeletion.shotId} onCancel={() => setPendingShotDeletion(null)} onConfirm={confirmShotDeletion} />}
+    {!actionsLocked && pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
+    {!actionsLocked && pendingShotDeletion && <ShotDeletionConfirmation impact={pendingShotDeletion} title={storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId)?.title ?? pendingShotDeletion.shotId} onCancel={() => setPendingShotDeletion(null)} onConfirm={confirmShotDeletion} />}
     <details className="storyboard-editor-disclosure" id="storyboard-structure" ref={storyboardDetails}>
       <summary>分镜结构与详细编辑 · {storyboard.shots.length} 个镜头</summary>
-    <div className="storyboard-layout">
+    <fieldset className="storyboard-layout" disabled={actionsLocked}>
       <div className="shot-groups">
-        {!visible.length && <EmptyState title="这条路径没有分镜">切换到“全部场景”或先生成 storyboard 阶段。</EmptyState>}
+        {!visible.length && <EmptyState title="这条路径没有分镜">切换到“全部场景”，或先准备分镜。</EmptyState>}
         {visible.map((group, groupIndex) => <section className="shot-group" key={group.sceneId}>
-          <header><div><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.title}</strong></div><div><small>{group.shots.length} shots · node {group.storyNodeId}</small><Button variant="quiet" data-testid={`add-shot-${group.sceneId}`} onClick={() => addShotToScene(group.sceneId)}>＋ 镜头</Button></div></header>
+          <header><div><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.title}</strong></div><div><small>{group.shots.length} 个镜头 · 故事节点 {group.storyNodeId}</small><Button variant="quiet" data-testid={`add-shot-${group.sceneId}`} onClick={() => addShotToScene(group.sceneId)}>＋ 镜头</Button></div></header>
           <div className="shot-strip">
             {group.shots.map((shot) => {
               const imageTask = mediaTasks[`${shot.id}:image`];
               const shotLinks = storyboard.shotBeatLinks.filter((link) => link.shotId === shot.id);
               return <article key={shot.id} data-entity-key={encodeStoryboardEntity({ kind: "shot", shotId: shot.id })} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => editShot(shot.id)}>
-                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={(event) => { event.stopPropagation(); editShot(shot.id); }}>
-                  <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">STALE</Badge>}</div>
-                  <div className="shot-copy"><strong>{shot.title}</strong><small>{shot.shotSize} · {shot.durationUnits}ms · {shotLinks.length} links</small><p>{shot.action}</p></div>
+                <button className="shot-select" aria-label={`编辑镜头 ${shotLabel(shot)}`} onClick={(event) => { event.stopPropagation(); editShot(shot.id); }}>
+                  <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shotLabel(shot)} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">已过期</Badge>}</div>
+                  <div className="shot-copy"><strong>{shotLabel(shot)}</strong><small>{shotSizes.find((size) => size.value === shot.shotSize)?.label} · {shot.durationUnits} 毫秒 · {shotLinks.length} 项节拍覆盖</small><p>{shot.action}</p></div>
                 </button>
                 <div className="media-controls"><small>图片：查看关键帧与参考素材</small><small>视频：在上方工作台审核片段</small></div>
               </article>;
@@ -436,7 +450,7 @@ export function StoryboardPage({
       </div>
 
       <Panel className="shot-inspector" data-focus-key={selectedShot ? storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "entity" }) : undefined} tabIndex={selectedShot ? -1 : undefined}>
-        <div className="section-title"><span>Shot inspector</span><strong>{selectedShot?.title || "选择镜头"}</strong></div>
+        <div className="section-title"><span>镜头细节</span><strong>{selectedShot ? shotLabel(selectedShot) : "选择镜头"}</strong></div>
         {selectedShot && <>
           <Field label="镜头 ID"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "id" })} readOnly value={selectedShot.id} /></Field>
           <Field label="所属场景"><select data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "sceneId" })} aria-label="迁移镜头到场景" value={selectedShot.sceneId} onChange={(event) => requestShotSceneMigration(event.target.value)}>{sceneBeats.scenes.map((scene) => <option key={scene.id} value={scene.id}>{scene.title || scene.id} · {scene.id}</option>)}</select></Field>
@@ -460,34 +474,26 @@ export function StoryboardPage({
             const scheduledBy = schedule.get(cue.id) ?? [];
             const elsewhere = scheduledBy.some((shotId) => shotId !== selectedShot.id);
             return <label className="check-row" key={cue.id}><input type="checkbox" checked={selectedShot.cueIds.includes(cue.id)} disabled={elsewhere} onChange={(event) => toggleCue(cue.id, event.target.checked)} /><span>{cueLabel(cue)}{elsewhere ? ` · 已由 ${scheduledBy.join(", ")} 调度` : ""}</span></label>;
-          })}{!sceneCues.length && <small>此场景没有 DialogueCue。</small>}<small>已调度对白 {selectedShot.cueIds.reduce((total, id) => total + (sceneBeats.dialogueCues.find((cue) => cue.id === id)?.estimatedDurationUnits ?? 0), 0)} / {selectedShot.durationUnits}ms</small></fieldset>
+          })}{!sceneCues.length && <small>此场景没有对白。</small>}<small>已调度对白 {selectedShot.cueIds.reduce((total, id) => total + (sceneBeats.dialogueCues.find((cue) => cue.id === id)?.estimatedDurationUnits ?? 0), 0)} / {selectedShot.durationUnits}ms</small></fieldset>
 
-          <fieldset className="structured-editor" data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "audioPlan" })} tabIndex={-1}><legend>AudioPlan</legend>{selectedShot.audioPlan.events.map((event) => <div className="audio-event-card" key={event.id}><Field label="事件 ID"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.id` })} readOnly value={event.id} /></Field><Field label="类型"><select data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.kind` })} value={event.kind} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { kind: change.target.value as AudioEvent["kind"] }))}>{audioKinds.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}</select></Field><Field label="描述"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.description` })} value={event.description} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { description: change.target.value }))} /></Field><div className="field-grid two compact"><Field label="开始（毫秒）"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.startOffsetUnits` })} type="number" min={0} value={event.startOffsetUnits} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { startOffsetUnits: Math.max(0, Number(change.target.value)) }))} /></Field><Field label="时长（毫秒）"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.durationUnits` })} type="number" min={1} value={event.durationUnits} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { durationUnits: Math.max(1, Number(change.target.value)) }))} /></Field></div><Button variant="quiet" onClick={() => applyShotTransform((shot) => removeAudioEvent(shot, event.id))}>删除声音事件</Button></div>)}<Button variant="quiet" onClick={() => applyShotTransform((shot) => addAudioEvent(shot, { id: stableId("audio"), kind: "ambience", description: "新声音事件", startOffsetUnits: 0, durationUnits: Math.min(1000, shot.durationUnits) }))}>＋ 声音事件</Button></fieldset>
+          <fieldset className="structured-editor" data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: "audioPlan" })} tabIndex={-1}><legend>声音计划</legend>{selectedShot.audioPlan.events.map((event) => <div className="audio-event-card" key={event.id}><Field label="事件 ID"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.id` })} readOnly value={event.id} /></Field><Field label="类型"><select data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.kind` })} value={event.kind} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { kind: change.target.value as AudioEvent["kind"] }))}>{audioKinds.map((kind) => <option key={kind.value} value={kind.value}>{kind.label}</option>)}</select></Field><Field label="描述"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.description` })} value={event.description} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { description: change.target.value }))} /></Field><div className="field-grid two compact"><Field label="开始（毫秒）"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.startOffsetUnits` })} type="number" min={0} value={event.startOffsetUnits} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { startOffsetUnits: Math.max(0, Number(change.target.value)) }))} /></Field><Field label="时长（毫秒）"><input data-focus-key={storyboardFocusKey({ entity: { kind: "shot", shotId: selectedShot.id }, field: `audioPlan.events.${event.id}.durationUnits` })} type="number" min={1} value={event.durationUnits} onChange={(change) => applyShotTransform((shot) => patchAudioEvent(shot, event.id, { durationUnits: Math.max(1, Number(change.target.value)) }))} /></Field></div><Button variant="quiet" onClick={() => applyShotTransform((shot) => removeAudioEvent(shot, event.id))}>删除声音事件</Button></div>)}<Button variant="quiet" onClick={() => applyShotTransform((shot) => addAudioEvent(shot, { id: stableId("audio"), kind: "ambience", description: "新声音事件", startOffsetUnits: 0, durationUnits: Math.min(1000, shot.durationUnits) }))}>＋ 声音事件</Button></fieldset>
 
-          <fieldset className="structured-editor"><legend>ShotBeatLink</legend>{linksForShot.map((link) => <div className="coverage-link" key={`${link.shotId}:${link.beatId}`} data-entity-key={encodeStoryboardEntity({ kind: "link", shotId: link.shotId, beatId: link.beatId })} data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "entity" })} tabIndex={-1}><strong>{link.beatId}</strong><select data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "role" })} value={link.role} onChange={(event) => { try { update((current) => patchShotBeatLink(current, link.shotId, link.beatId, { role: event.target.value as ShotBeatLink["role"] })); setLocalError(""); } catch (error) { setLocalError(error instanceof Error ? error.message : "覆盖角色修改失败"); } }}><option value="primary">PRIMARY</option><option value="supporting">SUPPORTING</option></select><input data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "coverageWeight" })} aria-label="覆盖权重" type="number" min={0} max={1} step={0.1} value={link.coverageWeight} onChange={(event) => update((current) => patchShotBeatLink(current, link.shotId, link.beatId, { coverageWeight: Number(event.target.value) }))} /><Button variant="quiet" onClick={() => { if (window.confirm(`移除 ${link.shotId} → ${link.beatId} 的 ${link.role.toUpperCase()} 覆盖？`)) update((current) => removeShotBeatLink(current, link.shotId, link.beatId)); }}>移除</Button></div>)}<div className="structured-row"><select aria-label="新增覆盖的节拍" value={newLinkBeatId} onChange={(event) => setNewLinkBeatId(event.target.value)}><option value="">选择同场景 Beat</option>{sceneBeatsForShot.map((beat) => <option key={beat.id} value={beat.id}>{beat.order}. {beat.description} · {beat.id}</option>)}</select><select aria-label="新增覆盖角色" value={newLinkRole} onChange={(event) => setNewLinkRole(event.target.value as ShotBeatLink["role"])}><option value="primary">PRIMARY</option><option value="supporting">SUPPORTING</option></select><Button variant="quiet" disabled={!newLinkBeatId} onClick={addCoverageLink}>添加覆盖</Button></div></fieldset>
+          <fieldset className="structured-editor"><legend>镜头与节拍覆盖</legend>{linksForShot.map((link) => <div className="coverage-link" key={`${link.shotId}:${link.beatId}`} data-entity-key={encodeStoryboardEntity({ kind: "link", shotId: link.shotId, beatId: link.beatId })} data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "entity" })} tabIndex={-1}><strong>{link.beatId}</strong><select data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "role" })} value={link.role} onChange={(event) => { try { update((current) => patchShotBeatLink(current, link.shotId, link.beatId, { role: event.target.value as ShotBeatLink["role"] })); setLocalError(""); } catch (error) { setLocalError(error instanceof Error ? error.message : "覆盖类型修改失败"); } }}><option value="primary">主要覆盖</option><option value="supporting">辅助覆盖</option></select><input data-focus-key={storyboardFocusKey({ entity: { kind: "link", shotId: link.shotId, beatId: link.beatId }, field: "coverageWeight" })} aria-label="覆盖权重" type="number" min={0} max={1} step={0.1} value={link.coverageWeight} onChange={(event) => update((current) => patchShotBeatLink(current, link.shotId, link.beatId, { coverageWeight: Number(event.target.value) }))} /><Button variant="quiet" onClick={() => { requestConfirmation({ title: "移除覆盖", message: `移除 ${link.shotId} → ${link.beatId} 的 ${link.role === "primary" ? "主要" : "辅助"}覆盖？`, details: `镜头：${link.shotId}\n节拍：${link.beatId}`, action: () => update((current) => removeShotBeatLink(current, link.shotId, link.beatId)) }); }}>移除</Button></div>)}<div className="structured-row"><select aria-label="新增覆盖的节拍" value={newLinkBeatId} onChange={(event) => setNewLinkBeatId(event.target.value)}><option value="">选择同场景节拍</option>{sceneBeatsForShot.map((beat) => <option key={beat.id} value={beat.id}>{beat.order}. {beat.description} · {beat.id}</option>)}</select><select aria-label="新增覆盖类型" value={newLinkRole} onChange={(event) => setNewLinkRole(event.target.value as ShotBeatLink["role"])}><option value="primary">主要覆盖</option><option value="supporting">辅助覆盖</option></select><Button variant="quiet" disabled={!newLinkBeatId} onClick={addCoverageLink}>添加覆盖</Button></div></fieldset>
 
-          <details className="prompt-details"><summary>历史关键帧任务 Prompt</summary><textarea readOnly rows={6} value={selectedImageTask?.derivedPrompt || "ProductionSnapshot 流程开放后，服务端派生 Prompt 才会显示在这里。"} /></details>
-          <details className="prompt-details"><summary>历史视频任务 Prompt</summary><textarea readOnly rows={6} value={selectedVideoTask?.derivedPrompt || "ProductionSnapshot 流程开放后，服务端派生 Prompt 才会显示在这里。"} /></details>
+          <details className="prompt-details"><summary>历史关键帧任务提示词</summary><textarea readOnly rows={6} value={selectedImageTask?.derivedPrompt || "尚无可查看的历史关键帧任务提示词。"} /></details>
+          <details className="prompt-details"><summary>历史视频任务提示词</summary><textarea readOnly rows={6} value={selectedVideoTask?.derivedPrompt || "尚无可查看的历史视频任务提示词。"} /></details>
           {selectedVideoTask?.outputUri && <a className="output-link" href={selectedVideoTask.outputUri} target="_blank" rel="noreferrer">打开历史生成视频</a>}
         </>}
       </Panel>
 
       <Panel className="shot-inspector review-inspector" id="storyboard-review" tabIndex={-1}>
-        <div className="section-title"><span>Coverage & review</span><strong>{review?.activeApproval ? "已批准" : "等待批准"}</strong></div>
-        {reviewError && <div className="notice warning" role="alert">{reviewError}</div>}
-        {!review?.gateEvaluation && <div className="notice"><strong>尚无 Gate receipt</strong><span>保存有效的 V2 分镜后，服务端会原子生成评审门。</span></div>}
-        {review?.activeApproval && <div className="notice"><strong>当前批准：{review.activeApproval.reviewer}</strong><span>revision {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
-        {review?.decisions.length ? <details><summary>Approval 历史 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision.toUpperCase()} · {closure.decision.reviewer}</strong><small>{closure.active ? "ACTIVE" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
-        <details className="approval-actions" ref={approvalActions}><summary>批准或撤销分镜 · 需填写本地审核人标签</summary>
-          <small>这是对当前分镜版本的独立批准决定，不是播放片段的可选审核记录。</small>
-          <Field label="审核人标签" hint="此标签用于批准记录，必须填写；它不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>
-          <Field label="评审备注（可选）"><textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></Field>
-          <div className="button-row"><Button variant="primary" disabled={!reviewer.trim() || stale || !requiredGatesPass || Boolean(review?.activeApproval)} onClick={() => void decide("approve")}>批准当前分镜</Button><Button variant="quiet" disabled={!reviewer.trim() || !review?.activeApproval} onClick={() => void decide("revoke")}>撤销批准</Button></div>
-        </details>
-        <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>PRIMARY {item.primaryShotIds.length}</Badge><small>SUPPORTING {item.supportingShotIds.length}</small></div>)}</div></details>
-        {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量门详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需门已通过" : "必需门未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
+        <StoryboardApprovalControls review={review} error={reviewError} pending={approvalPending}
+          locked={actionsLocked || !projectId || !contentHash || revision === undefined || !review?.gateEvaluation} canApprove={!stale && requiredGatesPass && Boolean(contentHash) && revision !== undefined && JSON.stringify(storyboard) === JSON.stringify(value)}
+          onDecide={decision => void decide(decision)} />
+        <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>主要覆盖 {item.primaryShotIds.length}</Badge><small>辅助覆盖 {item.supportingShotIds.length}</small></div>)}</div></details>
+        {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量检查详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需检查已通过" : "必需检查未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
       </Panel>
-    </div>
+    </fieldset>
     </details>
   </div>;
 }

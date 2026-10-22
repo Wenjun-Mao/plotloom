@@ -50,7 +50,7 @@ method; an observer failure is not permission to replay accepted inference.
 
 This is a specialist slice, not a reopening of the implemented
 [multi-engine Lab plan](2026-09-29-voice-lab-multi-engine-plan.md).
-The adopted durable boundary is [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
+The adopted durable boundary is [ADR 0212](../adr/0212-published-voice-performance-takes-and-shared-admission.md).
 
 ## Outcome
 
@@ -77,7 +77,7 @@ Further quality tuning and historical CUDA investigation remain parked.
   own input/output retention. No H3 renderer/model change is necessary.
 - The gateway's durable FIFO currently covers H3 and Qwen-Image. Voice Lab has
   a separate in-process queue for all four voice engines. Advisory idle/memory
-  checks do not prevent overlapping admissions; see [ADR 0096](../adr/0096-voice-lab-shared-host-operating-boundary.md).
+  checks do not prevent overlapping admissions; see [ADR 0211](../adr/0211-voice-lab-shared-host-operating-boundary.md).
 - The preferred original MOSS D remains retained experimental audio. Existing
   technical publication `voice_5689e99835494d2f8024485523c4dbf6` is **not** that
   reference. Do not fabricate its publication lineage or substitute it for D.
@@ -183,7 +183,7 @@ not just new takes, must enter the same lane as H3/Qwen-Image.
 
 ## Ordered implementation checkpoints
 
-1. **Durable take domain, offline first.** Review/accept ADR 0097; add strict
+1. **Durable take domain, offline first.** Review/accept ADR 0212; add strict
    schemas, repositories, preservation migrations, voice-ID resolution,
    frozen reference copying, native/H3 media publication and deletion guards.
    Preserve all existing IDs, hashes and user-valued assets. Retain current

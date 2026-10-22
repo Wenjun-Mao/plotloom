@@ -1,5 +1,6 @@
 import type { APIRequestContext, Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, test } from "./fixture";
+import { navigateToSecondaryTool } from "./workbench-controls";
 
 type StageName = "story_bible" | "story_graph" | "scene_beats" | "storyboard";
 type ProviderStatus = {
@@ -10,7 +11,11 @@ type ProviderStatus = {
   requests: Array<{ type: string; target: string | null; failed: boolean; contentHash: string }>;
 };
 
-test("repairs exactly one late scene-beats shard through the real browser and public contracts", async ({ page, request, workbench }) => {
+test("repairs exactly one late scene-beats shard through the real browser and public contracts", async ({ page, request, workbench }, info) => {
+  // The current nine-node seed has six footage nodes. Route-only decisions
+  // and joins produce no scene shard, so fault the final actual work request.
+  const footageCount = 6;
+  expect((await request.post(`${workbench.providerOrigin}/control/scene-failure`, { data: { ordinal: footageCount } })).ok()).toBeTruthy();
   await configurePublicNoAuthProfile(request, workbench.apiOrigin, workbench.providerOrigin);
   const projectId = await createDemoProject(page, workbench.frontendOrigin);
 
@@ -33,15 +38,28 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect(successfulSiblingResponse).toBeTruthy();
   const providerBeforeRepair = await providerStatus(request, workbench.providerOrigin);
   expect(providerBeforeRepair.failedSceneAttempts).toBe(3);
-  expect(providerBeforeRepair.sceneTargets).toHaveLength(9);
-  expect(providerBeforeRepair.requests.filter((entry) => entry.type === "scene_beats" && !entry.failed)).toHaveLength(8);
+  expect(providerBeforeRepair.sceneTargets).toHaveLength(footageCount);
+  expect(providerBeforeRepair.requests.filter((entry) => entry.type === "scene_beats" && !entry.failed)).toHaveLength(footageCount - 1);
 
   await navigateToStage(page, "07 隔离修复");
-  const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "修复这个 work unit" });
+  const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "重新执行此子任务" });
   // The API has already proved the quarantined unit. Under the four-worker
   // suite, give the independently fetched repair projection time to hydrate
   // rather than treating the default locator timeout as product behavior.
   await expect(exactRepair).toBeVisible({ timeout: 30_000 });
+  await expect(exactRepair).toBeEnabled({ timeout: 30_000 });
+  // Inspect the actual failed-unit UI before recovery. These are offline
+  // provider-fault fixtures, not evidence of a native provider failure.
+  for (const viewport of [
+    { width: 1700, height: 900 },
+    { width: 1280, height: 768 },
+    { width: 1280, height: 460 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await exactRepair.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: info.outputPath(`repair-eligible-${viewport.width}x${viewport.height}-viewport.png`) });
+  }
   const repairResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/runs/${sourceRun.id}/work-units/${failedUnit!.workUnitId}/repairs`);
   await exactRepair.click();
@@ -49,7 +67,7 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect(repairRun).toMatchObject({ parentRunId: sourceRun.id, kind: "repair" });
 
   const repaired = await pollProgress(request, workbench.apiOrigin, repairRun.id, "succeeded");
-  expect(repaired.workUnits.filter((unit) => unit.stage === "scene_beats" && unit.status === "succeeded")).toHaveLength(9);
+  expect(repaired.workUnits.filter((unit) => unit.stage === "scene_beats" && unit.status === "succeeded")).toHaveLength(footageCount);
   const providerAfterRepair = await providerStatus(request, workbench.providerOrigin);
   const callsDuringRepair = providerAfterRepair.requests.slice(providerBeforeRepair.totalRequests);
   const repairedSceneCalls = callsDuringRepair.filter((entry) => entry.type === "scene_beats");
@@ -69,7 +87,6 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
 
   await page.reload();
   await navigateToStage(page, "05 分镜工作台");
-  await page.getByLabel("审核人标签").fill("Exact repair browser reviewer");
   const approvalResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/storyboard-approval`);
   await expect(page.getByRole("button", { name: "批准当前分镜" })).toBeEnabled();
@@ -77,11 +94,12 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
   expect((await approvalResponse).status()).toBe(201);
 
   await page.reload();
-  await expect(page.getByText("当前批准：Exact repair browser reviewer", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "查看分镜批准", exact: true }).click();
+  await expect(page.getByText("当前批准：创作者确认（未署名）", { exact: true })).toBeVisible();
   const persistedRepair = await json<{ parentRunId: string | null; kind: string }>(await request.get(`${workbench.apiOrigin}/api/v2/runs/${repairRun.id}`));
   expect(persistedRepair).toMatchObject({ parentRunId: sourceRun.id, kind: "repair" });
   const review = await json<{ activeApproval: { reviewer: string; decision: string } | null }>(await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/storyboard-review`));
-  expect(review.activeApproval).toMatchObject({ reviewer: "Exact repair browser reviewer", decision: "approve" });
+  expect(review.activeApproval).toMatchObject({ reviewer: "", attribution: { kind: "unnamed_creator" }, decision: "approve" });
 });
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {
@@ -120,9 +138,7 @@ async function createDemoProject(page: Page, frontendOrigin: string): Promise<st
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
   const label = name.replace(/^\d+\s+/, "");
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", {
-    name: new RegExp(escapeRegex(label)),
-  }).click();
+  await navigateToSecondaryTool(page, label);
 }
 
 async function pollProgress(request: APIRequestContext, apiOrigin: string, runId: string, status: string): Promise<{ workUnits: Array<{ workUnitId: string; stage: string; status: string; maxAttempts: number; latestAttempt: Record<string, unknown> | null }> }> {
@@ -157,8 +173,4 @@ async function stages(request: APIRequestContext, apiOrigin: string, projectId: 
 async function json<T>(response: PlaywrightResponse | Awaited<ReturnType<APIRequestContext["get"]>>): Promise<T> {
   expect(response.ok(), `${response.status()} ${await response.text()}`).toBeTruthy();
   return response.json() as Promise<T>;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

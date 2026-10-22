@@ -2,6 +2,10 @@
 
 Status: Accepted, 2026-09-17.
 
+The declaration requirement in this record is superseded by
+[ADR 0085](0085-brief-to-source-entry-and-optional-declarations.md). The
+review and acceptance boundaries below remain in force.
+
 ## Context
 
 F0 can freeze and validate a Shuohao outline delivery, but deliberately does
@@ -63,3 +67,7 @@ it is out of scope here.
   still publish.
 - Rights and attribution are captured verbatim as supplied.  The product makes
   no clearance or ownership assertion from them.
+
+The 2026-10-04 recovery amendment (ADR 0116) exposes new preparation after first
+candidate cancellation, preserving confirmed Source, old candidate/pin history and
+independent native execution ownership (ADR 0093). Preparation never resends or accepts.

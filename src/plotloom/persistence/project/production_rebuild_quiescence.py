@@ -1,0 +1,55 @@
+"""Refuse authority changes while current external work can still deliver."""
+from sqlalchemy import select
+
+from ...exceptions import InvalidTransitionError
+from ..schema import (
+    ArtCandidateRow,
+    ArtReferenceProposalRow,
+    CastCandidateRow,
+    CharacterReferenceProposalRow,
+    ImageJobRow,
+    ProductionBridgeIntentJobRow,
+    ScriptCandidateRow,
+    SourceOutlineCandidateRow,
+    StoryboardReviewCandidateRow,
+    VideoBatchRow,
+    VideoJobRow,
+)
+from .first_install_references import first_install_reference_is_independent
+
+
+def assert_production_quiescent(access, session, project_id):
+    if access.guards.busy(session, project_id):
+        raise InvalidTransitionError("active project work prevents production rebuild")
+    owners = (
+        (VideoBatchRow, "state", ("setup", "drafting", "ready", "running", "paused", "blocked", "awaiting_review")),
+        (ProductionBridgeIntentJobRow, "status", ("queued", "dispatched", "outcome_unknown")),
+        (VideoJobRow, "state", ("prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown")),
+        (ImageJobRow, "state", ("prepared", "exported")),
+        (CharacterReferenceProposalRow, "state", ("prepared", "exported")),
+        (ArtReferenceProposalRow, "state", ("prepared", "exported")),
+        *((owner, "status", ("prepared",)) for owner in (
+            SourceOutlineCandidateRow, CastCandidateRow, ArtCandidateRow,
+            ScriptCandidateRow, StoryboardReviewCandidateRow,
+        )),
+    )
+    for owner, field, states in owners:
+        pending = session.scalars(select(owner).where(
+            owner.project_id == project_id, getattr(owner, field).in_(states),
+        )).all()
+        for proposal in pending:
+            if isinstance(proposal, (SourceOutlineCandidateRow, CastCandidateRow, ArtCandidateRow)):
+                from .autopilot_text_correction import terminal_content_rejection
+                if terminal_content_rejection(session.connection().connection.driver_connection,
+                        project_id, proposal.__tablename__, proposal.job_id):
+                    continue
+            if not first_install_reference_is_independent(access, session, project_id, proposal):
+                raise InvalidTransitionError("unresolved publication or execution prevents production rebuild")
+    if session.scalar(select(ProductionBridgeIntentJobRow).where(
+        ProductionBridgeIntentJobRow.project_id == project_id,
+        ProductionBridgeIntentJobRow.transport == "codex_native",
+        ProductionBridgeIntentJobRow.status == "cancelled",
+        ProductionBridgeIntentJobRow.dispatched_at.is_not(None),
+        ProductionBridgeIntentJobRow.response_evidence.is_(None),
+    ).limit(1)) is not None:
+        raise InvalidTransitionError("cancelled native intent still awaits terminal delivery")

@@ -8,10 +8,9 @@ from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from sqlalchemy import create_engine
-
 from ..domain import contains_secret_value, is_secret_setting_name
-from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, Base
+from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES
+from .current_schema import assert_current_review_bindings, assert_current_schema
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
@@ -28,7 +27,6 @@ from .snapshot_files import (
     _sha256_path,
     _source_file,
 )
-from .video_candidate_transition import expected_project_schema_objects
 
 _ASSET_PREFIX = PurePosixPath("assets")
 
@@ -56,92 +54,40 @@ def database_connection(path: Path) -> sqlite3.Connection:
     return connection
 
 
-def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]]:
-    query = getattr(connection, "exec_driver_sql", None)
-    rows = (
-        query(
-            "SELECT type, name, tbl_name, sql FROM sqlite_master "
-            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
-        )
-        if query is not None
-        else connection.execute(
-            "SELECT type, name, tbl_name, sql FROM sqlite_master "
-            "WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
-        )
-    )
-    return [
-        (str(kind), str(name), str(table_name), sql if isinstance(sql, str) else None)
-        for kind, name, table_name, sql in rows
-    ]
-
-
-def _expected_schema_objects() -> list[tuple[str, str, str, str | None]]:
-    engine = create_engine("sqlite://")
-    try:
-        Base.metadata.create_all(
-            engine,
-            tables=[Base.metadata.tables[name] for name in PROJECT_TEXT_PIPELINE_TABLE_NAMES],
-        )
-        with engine.connect() as connection:
-            return _schema_objects(connection)
-    finally:
-        engine.dispose()
-
-
-_EXPECTED_SCHEMA_OBJECTS = _expected_schema_objects()
-_PRE_SELECTION_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=False
-)
-_PRE_ART_REFERENCE_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=True,
-    include_art_reference_proposals=False,
-)
-_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS = expected_project_schema_objects(
-    include_video_candidate_selection=True,
-    include_video_segments=False,
-)
-
-
-def _assert_schema_contract(connection: sqlite3.Connection) -> None:
-    """Reject schema objects before reading any application-controlled table."""
-
-    actual = _schema_objects(connection)
-    if actual == list(_PRE_SELECTION_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable video selection transition before restore"
-        )
-    if actual == list(_PRE_ART_REFERENCE_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable art reference transition before restore"
-        )
-    if actual == list(_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS):
-        raise ProjectStorageCorruptionError(
-            "project snapshot requires a writable reviewed video segment transition before restore"
-        )
-    prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
-    if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:
-        raise ProjectStorageCorruptionError(
-            "project database schema is unsupported by this restore format"
-        )
-
-
-def _database_strings(connection: sqlite3.Connection) -> Iterable[str]:
+def _database_strings(connection: sqlite3.Connection, table_names=PROJECT_TEXT_PIPELINE_TABLE_NAMES) -> Iterable[str]:
     """Read only known, prevalidated tables; names never come from imported SQL."""
 
-    for table in sorted(PROJECT_TEXT_PIPELINE_TABLE_NAMES):
+    for table in sorted(table_names):
         for row in connection.execute(f'SELECT * FROM "{table}"'):
             for value in row:
                 if isinstance(value, str):
                     yield value
 
 
-def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
+def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_previous: bool = False, asset_home: Path | None = None) -> None:
     """Validate integrity, exact schema, identity, and secret-free contents."""
 
     try:
         connection = database_connection(path)
         try:
-            _assert_schema_contract(connection)
+            from .schema_upgrade import (
+                PRIOR_LAYOUTS,
+                assert_prior_database,
+                classify_layout,
+                prior_schema_objects,
+            )
+            layout = classify_layout(connection)
+            previous = allow_previous and layout in PRIOR_LAYOUTS
+            if previous:
+                assert_prior_database(connection, manifest.project_id, layout=layout)
+            else:
+                assert_current_schema(connection)
+            assert_current_review_bindings(
+                connection,
+                asset_home=asset_home,
+                continuation=not previous,
+                batch_layout="prior_without_video_batches" if previous else "current",
+            )
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
             project_rows = list(connection.execute("SELECT id FROM v2_projects"))
@@ -151,7 +97,8 @@ def assert_database_contract(path: Path, manifest: ProjectManifest) -> None:
                     (manifest.project_id,),
                 )
             )
-            values = list(_database_strings(connection))
+            table_names = {name for kind, name, _, _ in prior_schema_objects(layout) if kind == "table"} if previous else PROJECT_TEXT_PIPELINE_TABLE_NAMES
+            values = list(_database_strings(connection, table_names))
         finally:
             connection.close()
     except sqlite3.Error as error:
@@ -327,16 +274,22 @@ def published_run_directories(database: Path) -> set[str]:
     return result
 
 
-def payload_paths(root: Path, database: Path) -> list[PurePosixPath]:
+def payload_paths(root: Path, database: Path, *, prior_snapshot_omissions=None) -> list[PurePosixPath]:
     paths = {
         PurePosixPath(PROJECT_MANIFEST_FILENAME),
         PurePosixPath(PROJECT_DATABASE_RELATIVE_PATH),
     }
     paths.update(referenced_asset_paths(database))
+    from .creative_evidence_inventory import creative_evidence_paths
+    paths.update(creative_evidence_paths(root, database, prior_snapshot_omissions=prior_snapshot_omissions))
     for run_name in published_run_directories(database):
         paths.update(_published_files(root, run_name))
     if (root / RECOVERY_CONTROL_FILENAME).exists() or (root / RECOVERY_CONTROL_FILENAME).is_symlink():
         paths.add(PurePosixPath(RECOVERY_CONTROL_FILENAME))
+    from .schema_transition import schema_transition_path
+    transition = schema_transition_path(root)
+    if transition is not None:
+        paths.add(transition)
     return sorted(paths, key=lambda item: item.as_posix())
 
 
@@ -357,7 +310,7 @@ def assert_payload_inventory(
         )
 
 
-def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) -> None:
+def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest, *, allow_previous: bool = False) -> None:
     declared = {PurePosixPath(item.relative_path): item for item in manifest.files}
     required = {
         PurePosixPath(PROJECT_MANIFEST_FILENAME),
@@ -388,7 +341,7 @@ def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) ->
         raise ProjectStorageCorruptionError(
             "snapshot database hash does not match its manifest"
         )
-    assert_database_contract(database, manifest.project_manifest)
+    assert_database_contract(database, manifest.project_manifest, allow_previous=allow_previous)
     validate_recovery_control(
         root,
         database,
@@ -396,7 +349,14 @@ def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) ->
         required=True,
         snapshot=True,
     )
-    if set(declared) != set(payload_paths(root, database)):
+    omissions = None
+    if allow_previous:
+        from .schema_upgrade import classify_layout
+        with database_connection(database) as connection:
+            if classify_layout(connection) == "prior":
+                from .creative_evidence_inventory import missing_completed_jobs
+                omissions = missing_completed_jobs(root, database)
+    if set(declared) != set(payload_paths(root, database, prior_snapshot_omissions=omissions)):
         raise ProjectStorageCorruptionError(
             "snapshot manifest does not exactly cover retained project bytes"
         )

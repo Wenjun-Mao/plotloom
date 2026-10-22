@@ -1,3 +1,4 @@
+import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./fixtures/graph-authoring";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -5,12 +6,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { APIRequestContext, APIResponse, Page, Locator } from "@playwright/test";
 import { demoProject } from "../src/demo";
+import type { ProjectBrief, StageName } from "../src/types";
+import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
+const fixtureSpokenLanguage: ProjectBrief["language"] = "en";
 export const fixtureDirectory = path.join(directory, "fixtures/f5a");
 const validator = path.resolve(directory, "../../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
 export type Preparation = { jobId: string; packagePath: string; deliveryPath: string; assignment: string; binding: any; expectedReviewRevision: number };
+export type ScriptProjectOptions = {
+  briefOverrides?: Partial<ProjectBrief>;
+  initialStages?: Array<{ stage: StageName; payload: unknown }>;
+};
 export async function json<T = any>(pending: Pick<APIResponse, "ok" | "text" | "json"> | Promise<Pick<APIResponse, "ok" | "text" | "json">>): Promise<T> {
   const response = await pending;
   expect(response.ok(), await response.text()).toBeTruthy();
@@ -19,12 +27,27 @@ export async function json<T = any>(pending: Pick<APIResponse, "ok" | "text" | "
 export async function fixture(name: string): Promise<any> {
   return JSON.parse(await readFile(path.join(fixtureDirectory, name), "utf8"));
 }
+
+/** Availability-only transport fixture: durable review state stays on the real API. */
+export async function availableSpecialistWithoutSend(page: Page, id: string, stage: string, jobId: string) {
+  const root = `**/api/v2/projects/${id}/specialist-tasks/${stage}/${jobId}`;
+  let sends = 0;
+  await page.route(root, async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...await response.json(), configured: true } });
+  });
+  await page.route(`${root}/send`, async route => {
+    sends++;
+    await route.fulfill({ status: 409, json: { detail: "Availability fixture forbids dispatch." } });
+  });
+  return () => sends;
+}
 export function endpoint(origin: string, projectId: string): string {
   return `${origin}/api/v2/projects/${projectId}/storyboard-source-review`;
 }
-export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}): Promise<string> {
+export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"], options: ScriptProjectOptions = {}): Promise<string> {
   const root = `${origin}/api/v2/projects`;
-  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
+  const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, language: fixtureSpokenLanguage, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180, ...options.briefOverrides }, initialStages: options.initialStages ?? [] } }));
   const id = created.id;
   const url = `${root}/${id}`;
   const source = await json(request.put(`${url}/source-outline/source`, { data: { expectedSourceRevision: 0, material: {
@@ -35,14 +58,18 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   await writeDelivery(outline, "outline", await fixture("outline.json"));
   await json(request.post(`${url}/source-outline/candidates/${outline.jobId}/refresh`));
   const accepted = await json(request.post(`${url}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: source.source.revision, expectedOutlineRevision: 0 } }));
-  const map = await json(request.put(`${url}/source-outline/section-map`, { data: { expectedSectionMapRevision: 0, expectedSourceRevision: 1, expectedOutlineRevision: 1, expectedOutlineContentHash: accepted.acceptedOutline.contentHash, mapping: await fixture("section-map.json") } }));
+  const mapping = await currentFixtureMapping(request, url, beaconMap());
+  const draftRevision = await acknowledgeGraphMapping(request, url, mapping);
+  const map = await json(request.put(`${url}/source-outline/section-map`, { data: { expectedSectionMapRevision: 0, expectedSourceRevision: 1, expectedOutlineRevision: 1, expectedOutlineContentHash: accepted.acceptedOutline.contentHash, mapping, expectedGraphDraftRevision: draftRevision } }));
   await json(request.post(`${url}/source-outline/section-map/install-graph`, { data: {
     expectedSourceRevision: 1, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: 1, expectedOutlineContentHash: map.acceptedOutline.contentHash,
-    expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0,
+    expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, url),
   } }));
-  for (const stage of ["cast", "art", "script"] as const) {
-    const prepared = await json(request.post(`${url}/${stage}/candidates`));
-    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidates[stage] ?? await fixture(`${stage}.json`));
+  for (const stage of stages) {
+    const candidate = candidates[stage] ?? await fixture(`${stage}.json`);
+    const preparation = stage === "art" ? { data: { renderStyle: (candidate as { style: string }).style } } : stage === "cast" ? { data: { renderStyle: "realistic" } } : undefined;
+    const prepared = await json(request.post(`${url}/${stage}/candidates`, preparation));
+    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidate);
     const ready = await json(request.post(`${url}/${stage}/candidates/${prepared.jobId}/refresh`));
     const body: Record<string, unknown> = { jobId: prepared.jobId, binding: prepared.binding, [`expected${stage[0].toUpperCase()}${stage.slice(1)}Revision`]: 0 };
     if (stage === "cast") body.consumerMappings = ready.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id }));
@@ -50,20 +77,23 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   }
   return id;
 }
-export async function writeDelivery(prepared: Preparation, stage = "storyboard", candidate?: any): Promise<void> {
+export async function writeDelivery(prepared: Preparation, stage = "storyboard", candidate?: any, reportOverride?: Buffer): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
   const filename = `${stage === "characters" ? "cast" : stage}.json`;
-  const content = candidate ? Buffer.from(JSON.stringify(candidate)) : await readFile(path.join(fixtureDirectory, filename));
+  const content = stage === "characters"
+    ? Buffer.from(JSON.stringify(styledCastFixture(candidate ?? await fixture(filename), request.inputArtifacts["cast-style-contract.json"])))
+    : candidate ? Buffer.from(JSON.stringify(candidate)) : await readFile(path.join(fixtureDirectory, filename));
   await mkdir(prepared.deliveryPath, { recursive: true });
   const candidatePath = path.join(prepared.deliveryPath, filename);
   await writeFile(candidatePath, content);
-  let report = Buffer.from("<!doctype html><html><body>Deterministic upstream-context fixture report</body></html>");
+  let report: Buffer = Buffer.from("<!doctype html><html><body>Deterministic upstream-context fixture report</body></html>");
   if (stage === "storyboard") {
     const inputs = path.join(prepared.packagePath, "inputs");
     const args = [candidatePath, "--script", path.join(inputs, "script.json"), "--outline", path.join(inputs, "outline.json"), "--cast", path.join(inputs, "cast.json")];
     execFileSync(process.execPath, [validator, "validate", ...args, "--no-log"]);
     report = execFileSync(process.execPath, [validator, "render", ...args, "--art", path.join(inputs, "art.json"), "--html"]);
   }
+  if (reportOverride) report = reportOverride;
   await writeFile(path.join(prepared.deliveryPath, "report.html"), report);
   await writeFile(path.join(prepared.deliveryPath, "completion.json"), JSON.stringify({
     schemaVersion: 1, jobId: prepared.jobId, requestHash: request.requestHash, deliveryId: `deterministic-${prepared.jobId}`, stage,
@@ -74,14 +104,14 @@ export async function writeDelivery(prepared: Preparation, stage = "storyboard",
 }
 export async function prepare(page: Page, panel: Locator, id: string): Promise<Preparation> {
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates`);
-  await panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" }).click();
+  await panel.getByRole("button", { name: "准备分镜任务" }).click();
   return json(await response);
 }
 export async function refresh(page: Page, panel: Locator, id: string, jobId: string): Promise<void> {
-  const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates/${jobId}/refresh`);
-  await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();
+  const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/specialist-tasks/storyboard/${jobId}/check`);
+  await panel.getByRole("button", { name: "立即检查" }).click();
   await json(await response);
-  await expect(panel.getByRole("button", { name: "显式接受 review revision" })).toBeEnabled();
+  await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();
 }
 export async function changeScript(request: APIRequestContext, origin: string, id: string): Promise<void> {
   const url = `${origin}/api/v2/projects/${id}/script`;

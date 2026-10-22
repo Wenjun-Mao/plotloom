@@ -28,6 +28,9 @@ frontend/test-results/
 secrets.json
 /data/
 /outputs/
+/output/
+/test-results/
+/.gates.jsonl
 /.local/
 
 # Generated reading artifacts

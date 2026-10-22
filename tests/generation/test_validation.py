@@ -93,7 +93,7 @@ def test_canonical_adapter_applies_semantic_validation_after_schema() -> None:
     invalid_graph = {
         "startNodeId": "missing",
         "nodes": [
-            {"id": "end", "title": "结局", "summary": "结束", "kind": "ending"}
+            {"id": "end", "title": "结局", "summary": "结束", "kind": "ending", "footageMode": "footage"}
         ],
         "edges": [],
         "joinContracts": [],
@@ -108,8 +108,8 @@ def test_canonical_adapter_applies_semantic_validation_after_schema() -> None:
     valid_graph = {
         "startNodeId": "start",
         "nodes": [
-            {"id": "start", "title": "开始", "summary": "苏醒", "kind": "start"},
-            {"id": "end", "title": "结局", "summary": "离开", "kind": "ending"},
+            {"id": "start", "title": "开始", "summary": "苏醒", "kind": "start", "footageMode": "footage"},
+            {"id": "end", "title": "结局", "summary": "离开", "kind": "ending", "footageMode": "footage"},
         ],
         "edges": [
             {

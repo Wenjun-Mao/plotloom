@@ -1,9 +1,12 @@
+import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./graph-authoring";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { demoProject } from "../../src/demo";
+import { styledCastFixture } from "./cast-style";
+import { writeImageDeliveryFromPackage } from "./image-delivery";
 import { expect } from "../fixture";
 
 const repositoryRoot = path.resolve(
@@ -62,7 +65,7 @@ export async function createCastReadyProject(
 ): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, title: `F2B cast-only ${label}` } },
+    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
   const saved = await request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
@@ -75,13 +78,16 @@ export async function createCastReadyProject(
   const acceptedOutline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/accept`, {
     data: { jobId: outlinePrepared.jobId, expectedSourceRevision: sourceState.source.revision, expectedOutlineRevision: 0 },
   }));
+  const projectUrl = `${apiOrigin}/api/v2/projects/${projectId}`;
+  const mapping = await currentFixtureMapping(request, projectUrl, beaconMap());
+  const draftRevision = await acknowledgeGraphMapping(request, projectUrl, mapping);
   const mapSaved = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map`, {
     data: {
       expectedSectionMapRevision: 0,
       expectedSourceRevision: acceptedOutline.source.revision,
       expectedOutlineRevision: acceptedOutline.acceptedOutline.revision,
       expectedOutlineContentHash: acceptedOutline.acceptedOutline.contentHash,
-      mapping: sectionMap(),
+      mapping, expectedGraphDraftRevision: draftRevision,
     },
   }));
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map/install-graph`, {
@@ -92,10 +98,10 @@ export async function createCastReadyProject(
       expectedOutlineContentHash: mapSaved.acceptedOutline.contentHash,
       expectedSectionMapRevision: mapSaved.acceptedSectionMap.revision,
       expectedSectionMapContentHash: mapSaved.acceptedSectionMap.contentHash,
-      expectedGraphRevision: 0,
+      expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl),
     },
   }));
-  const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
+  const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`, { data: { renderStyle: "realistic" } }));
   await writeCastDelivery(castPrepared);
   const readyCast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates/${castPrepared.jobId}/refresh`));
   return { projectId, castPrepared, readyCast };
@@ -107,10 +113,10 @@ export async function sendProposalFromBrowser(
   proposalId: string,
 ): Promise<PackagePaths> {
   const proposalCard = page.locator(`[data-proposal-id="${proposalId}"]`);
-  await expect(proposalCard.getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
+  await expect(proposalCard.getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   const sent = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/send`);
-  await proposalCard.getByRole("button", { name: "发送给 specialist" }).click();
+  await proposalCard.getByRole("button", { name: "发送给图像生成助手" }).click();
   const response = await sent;
   expect(response.ok(), await response.text()).toBeTruthy();
   return response.json() as Promise<PackagePaths>;
@@ -128,7 +134,7 @@ export async function prepareProposalFromBrowser(
   await panel.getByRole("button", { name: "创建提案" }).click();
   expect((await prepared).status()).toBe(201);
   const latest = await latestProposal(request, apiOrigin, projectId);
-  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
+  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
   return latest;
 }
 
@@ -162,24 +168,22 @@ export async function proposal(
 }
 
 export async function writeProposalDelivery(
-  deliveryPath: string,
+  packagePaths: PackagePaths,
   proposal: Proposal,
   deliveryId: string,
   role: "original" | "refinement",
+  stillPath = retainedStill,
 ): Promise<void> {
-  const content = await readFile(retainedStill);
-  await mkdir(path.join(deliveryPath, "outputs"), { recursive: true });
-  await writeFile(path.join(deliveryPath, "outputs", "candidate.png"), content);
-  const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };
-  await writeFile(path.join(deliveryPath, "executor-pin.json"), JSON.stringify({ jobId: proposal.id, requestHash: proposal.requestHash, executionContract: "codex_specialist.v2", ...provenance }));
-  await writeFile(path.join(deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 2, jobId: proposal.id, requestHash: proposal.requestHash, deliveryId,
-    actualPrompt: "Retained P0 image fixture for F2B browser regression; no ImageGen call was made.",
-    outputs: [{ filename: "candidate.png", sha256: hash(content), role }],
-    toolEvidence: { tool: "codex_imagegen", taskId: "f2b-retained-fixture", available: true },
-    executorProvenance: provenance,
-    limitations: ["Retained test-only raster fixture; no image was generated."],
-  }));
+  const content = await readFile(stillPath);
+  await writeImageDeliveryFromPackage({
+    ...packagePaths,
+    jobId: proposal.id,
+    requestHash: proposal.requestHash,
+    deliveryId,
+    actualPrompt: "Offline retained fixture only; no ImageGen prompt was submitted.",
+    outputs: [{ filename: "candidate.png", content, role }],
+    limitations: ["Retained test-only raster fixture; no ImageGen call was made."],
+  });
 }
 
 export async function writeProposalPartialDelivery(deliveryPath: string): Promise<void> {
@@ -235,24 +239,6 @@ function sourceMaterial(label: string) {
   };
 }
 
-function sectionMap() {
-  return {
-    sections: [
-      { sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false },
-      { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides the sailors through the storm.", ending: true },
-      { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes the boats while the beacon goes dark.", ending: true },
-    ],
-    choice: {
-      choiceId: "power-choice",
-      sectionId: "opening",
-      prompt: "Where should the keeper send the cable?",
-      outcomes: [
-        { outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" },
-        { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" },
-      ],
-    },
-  };
-}
 
 async function writeOutlineDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
@@ -269,9 +255,9 @@ async function writeOutlineDelivery(prepared: any): Promise<void> {
   }));
 }
 
-async function writeCastDelivery(prepared: any): Promise<void> {
+export async function writeCastDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const cast = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", persona: { motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }));
+  const cast = Buffer.from(JSON.stringify(styledCastFixture({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }, request.inputArtifacts["cast-style-contract.json"])));
   const report = Buffer.from("<!doctype html><title>F2B cast fixture</title><p>Candidate only.</p>");
   await mkdir(prepared.deliveryPath, { recursive: true });
   await writeFile(path.join(prepared.deliveryPath, "cast.json"), cast);

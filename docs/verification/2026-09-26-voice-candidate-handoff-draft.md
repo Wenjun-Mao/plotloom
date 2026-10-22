@@ -7,7 +7,7 @@ specialist-side choices are settled.
 
 ## What the specialist has established
 
-- The gateway's accepted [Ref2VA contract](../adr/0090-h3-ref2va-per-job-voice-reference.md)
+- The gateway's accepted [Ref2VA contract](../adr/0205-h3-ref2va-per-job-voice-reference.md)
   consumes one frozen 32-kHz mono PCM16 WAV per image-and-voice job. It does not
   generate voices, manage Voice IDs, guarantee exact spoken words, or perform
   lip-sync measurement. Its admitted bounds are 1–10 seconds and at most 2 MiB
@@ -116,10 +116,10 @@ Entry point: [Voice Lab README](../../services/qwen3_tts_voice_lab/README.md).
 Its [pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
 explains author behavior; [reproduction/operations](../../services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md)
 pins models, environments, licenses, deployment and recovery. Follow
-[ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md)
+[ADR 0212](../adr/0212-published-voice-performance-takes-and-shared-admission.md)
 for current managed shared admission. H3, Qwen-Image and all Lab synthesis now
 share one durable FIFO; direct backend clients/unrelated GPU services remain
-outside that guarantee. ADR 0096 remains historical evidence of the prior
+outside that guarantee. ADR 0211 remains historical evidence of the prior
 operator-serial boundary, not the current managed dispatch design.
 
 | Concern | Existing contract | Future Plotloom ownership |

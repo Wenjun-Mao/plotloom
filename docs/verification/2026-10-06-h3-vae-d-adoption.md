@@ -3,7 +3,7 @@
 **Status: D adopted and serving; both managed canaries and idle restart passed.**
 Owner approved video-only precision, durable reload/clone behavior, focused
 verification and deployment. Specialist source baseline: `e422b4e`.
-[ADR 0098](../adr/0098-h3-video-only-vae-precision.md) and the
+[ADR 0213](../adr/0213-h3-video-only-vae-precision.md) and the
 [bounded plan](../roadmap/2026-10-06-h3-vae-adoption.md) are the authority.
 Plotloom integration/director contact, merge and push remain held.
 

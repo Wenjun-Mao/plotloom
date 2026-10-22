@@ -2,6 +2,16 @@
 
 ## Product flow
 
+Creator authoring requires a desktop browser window at least **1280px wide**.
+Phone, narrow-window and 1024px authoring are unsupported. Short desktop windows
+remain supported: the page scrolls vertically, wide graph rows pan horizontally,
+and the node inspector stays within the visible workspace.
+
+Every creator UI delivery follows the permanent
+[graph workbench acceptance contract](creative-workflow/graph-workbench-acceptance.md),
+with candidate-bound functional evidence, directly inspected desktop viewport
+captures and an independent review. Author acceptance is recorded separately.
+
 ```text
 ProjectBrief
   -> StoryBible
@@ -51,8 +61,9 @@ file picker:
 uv run plotloom restore --source /absolute/path/to/snapshot-or-closed-project --outputs-dir /absolute/path/to/outputs
 ```
 
-It restores only a format-6 closed project folder or a verified format-1
-snapshot, preserves the project ID, and refuses an existing identity. The
+It restores only a closed project folder in the current storage format or a
+verified format-1 snapshot containing that format. Older project formats are
+refused, not migrated. Restore preserves the project ID and refuses an existing identity. The
 operator supplies no provider credentials or application database; restore
 never dispatches or replays remote work.
 
@@ -108,9 +119,11 @@ never dispatches or replays remote work.
   storyboard Approval. A still preview can cover any nonempty contiguous subset
   of one scene; the authored frame duration is played unchanged. The four-image/
   three-shot P0 scenario is test evidence, not a runtime limit.
-- Media-bearing projects cannot be permanently deleted yet: the API refuses
-  with `project_managed_assets_present` before mutation. Do not attempt manual
-  blob cleanup; media-aware erasure is a follow-up.
+- The current project-folder runtime permanently deletes one exact idle project
+  home, including its media, only after matching revisions and full-title
+  confirmation. Busy or publishing projects are refused before mutation.
+  Never manually remove blobs or use row-only persistence erasure as a substitute
+  for this project-owned filesystem operation.
 
 ### Manual Codex image jobs (P1)
 
@@ -181,15 +194,19 @@ The operator and maintainer entry point is the
   and [ADR 0034](adr/0034-provider-neutral-video-adapters-and-local-h3.md).
 - Enable exactly one reviewed video backend at a time. For H3, set
   `PLOTLOOM_ENABLE_H3_GATEWAY=true`, `VIDEO_PROVIDER=minimax_h3_gateway`,
-  `VIDEO_MODEL=minimax_h3_gateway_catalog_v6` (or an explicit reviewed H3
+  `VIDEO_MODEL=minimax_h3_gateway_catalog_v7` (or an explicit reviewed H3
   profile ID), the private Tailnet
   `VIDEO_BASE_URL`, and a server-only `VIDEO_MODEL_API_KEY`; restart Plotloom.
   The browser never sees or stores that key.
 - H3 uses the reviewed catalog in [ADR 0036](adr/0036-minimax-h3-profile-catalog.md):
   832x480, 960x544 and 1280x704 landscape; 576x1024 (the default), 608x1088
-  and 704x1280 portrait. Plotloom currently qualifies five seconds/124 frames
-  or eight seconds/192 frames at 24 fps, with native audio; five seconds is the
-  default. The frozen job duration, not profile geometry alone, determines the
+  and 704x1280 portrait. Plotloom supports integer requested durations 5–15
+  seconds at 24 fps, snapped upward to the `17k + 5` frame grid; five seconds
+  freezes 124 frames (about 5.167 seconds) and is the default. Catalog identity
+  is distinct from gateway protocol v6. The current duration/frame contract is
+  owned by `H3_QUALIFIED_DURATION_FRAMES` in
+  `src/plotloom/video_backends/minimax_h3/adapter.py` and the operations manual.
+  The frozen job duration, not profile geometry alone, determines the
   expected frame count. A new job defaults to an aspect-matched reviewed
   keyframe and rejects a mismatch before reservation or provider contact.
   The author can prepare a matching crop/adapted still, or explicitly choose
@@ -274,24 +291,181 @@ The operator and maintainer entry point is the
 - Exact work-unit repair is an immutable child execution defined by
   [ADR 0015](adr/0015-exact-work-unit-repair.md). The server alone decides
   eligibility, freezes the failed unit and reusable fragments, and re-plans
-  every downstream stage. The legacy stage-level repair endpoint remains only
-  for compatibility and must not be presented as exact repair.
+  every downstream stage. Complete stage rebuilding is a new current execution,
+  not exact repair or a compatibility endpoint.
 
-## Verification order
+## Local verification tiers
+
+Install the locked development and frontend dependencies once, then use
+`scripts/verify.py` for quick, focused, module, and full local verification:
 
 ```sh
-uv lock --check
-uv run ruff check src/plotloom/api --select F401
-uv run pytest -q
+uv sync --all-groups --frozen
+npm --prefix frontend ci
+npm --prefix docs/prompt-pipeline-lab ci
+```
+
+`quick` checks the lock, API-scoped unused imports, frontend unit tests, and both
+application and browser-fixture type contracts. It does not run Python
+integration or browser tests, the archived prompt reader, a bundle build/parity
+check, or wheel packaging. It is development feedback, never backend or release
+acceptance.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py quick
+```
+
+`focused` requires explicit pytest case/file selectors, Vitest files, and/or
+Playwright specs. It validates paths, asks pytest to collect each requested
+selector, then runs the native test commands unchanged. Map each changed owner
+to its relevant families; there is no automatic changed-file selection or
+second test registry.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_cast_style.py::test_preparation_has_no_implicit_preset \
+  --vitest tests/app-state-opening.test.ts \
+  --playwright e2e/creator-confirmation.spec.ts
+```
+
+Use `module` when the changed contract has a reviewed owner in
+`scripts/testing/module-ownership.json`. `contract` runs that module's pytest
+and Vitest files, `browser` runs its Playwright specs, and `complete` runs all
+nonempty native suites for the selected modules. Repeating `--module` builds a
+deduplicated union. The complete depth also runs shared gates explicitly
+assigned to those owners in the same manifest; verification-tooling currently
+owns the lock check, generated-bundle parity, browser-allocation guard and
+wheel/package smoke. Frontend type contracts run for selected TypeScript suites.
+
+Every module run first checks the complete native case inventories and their
+exact owner union without running test bodies. Module selectors use whole test
+files so the native runners retain every collected parameter row. Ambient
+pytest, Vitest and browser filters are refused. `--show` (`--plan`) prints the
+owner rationale, selected files, shared dependencies, included gates, omitted
+checks and exact commands without launching checks.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --depth contract
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --module story-authoring --depth browser --show
+uv run --locked --no-sync python scripts/verify.py module \
+  --module verification-tooling --depth complete
+```
+
+Choose `contract` for affected backend/frontend unit and integration contracts,
+`browser` for affected user journeys, and `complete` when all of one or more
+owners' test suites and their declared shared gates should run. A module result
+is scoped development evidence. It does not qualify the full local release
+candidate. Hosted CI is optional, not a stable/general-availability release
+prerequisite; see [ADR 0199](adr/0199-local-release-qualification.md).
+
+`full` runs the complete Python, frontend, archived-reader and unfiltered
+browser suites; application type contracts; scoped lint and lock checks; the
+deterministic bundle and parity check; wheel build and installed-wheel smoke.
+It refuses ambient diagnostic grep, shard, or pytest filter settings. The
+browser suite is local and unsharded; hosted CI runs four duration-balanced
+whole-spec shards with one worker per runner. The Python full step discovers
+the native case set and assigns whole test files across two processes using
+captured duration predictions. A same-host manifest with overlapping files can
+still predict scheduling after source or inventory changes: changed-count rows
+are scaled and new files use the median overlapping per-case estimate. The log
+labels this `historical-duration`, lists every mismatch and reports retained,
+scaled, estimated and ignored file counts. Removed files never select tests.
+Only an exact provenance match is labelled `duration`; neither label is a fresh
+performance measurement. Missing history, host/Python drift, empty rows or no
+overlap use deterministic case-count allocation with an explicit reason.
+Malformed or numerically unsafe history fails before dispatch. Timings include
+setup, call and teardown; captured fingerprints remain unchanged. The timing
+plugin emits rows only after a successful complete worker run.
+The runner gives each process a separate temporary root, refuses ambient
+pytest options and fails if collection is empty, duplicated, unsafe, or either
+worker fails. SIGTERM and interruption clean up both worker process groups
+before the runner exits. Full verification records each command's elapsed time
+and exit status, and does not establish product or creative acceptance.
+
+```sh
+uv run --locked --no-sync python scripts/verify.py full
+```
+
+Each successful Python worker must emit one complete, versioned case-ID proof
+matching its exact coordinator assignment. Missing or mismatched proof fails
+the suite even when pytest exits zero. The released full gate remains two
+workers. The owner-approved bounded concurrency experiment uses the same runner:
+
+```sh
+uv run --locked --no-sync python scripts/testing/experiment_python_workers.py --workers 4
+```
+
+The explicit choices are two, four and eight; eight is allowed only after
+measured memory and isolation headroom. This command runs the complete Python
+suite, not other release gates. Compare identical candidate/inventory/schedule
+inputs in a quiet window and record aggregate owned-process memory and cleanup;
+do not call added-compute gains the original fixed-resource speed target.
+
+### Risk-scoped local frontend qualification
+
+For a bounded frontend presentation or navigation change consuming unchanged
+APIs, a local frontend qualification can establish the affected local software
+result without rerunning the full local Python/release suite. This is a scope
+decision, not a new `verify.py` tier. Review and record the actual diff and
+dependency surface against a trusted revision. Confirm that backend/API
+schemas and request payloads, persistence, admission, authentication,
+provider/prompt behavior, package and build dependencies, and build tooling are
+unchanged; a list of frontend paths alone does not establish this boundary.
+
+Run the unfiltered frontend unit suite and both type checks, then build the
+static assets twice and compare the sorted SHA-256 manifests:
+
+```sh
 npm --prefix frontend test
 npm --prefix frontend run typecheck
+npm --prefix frontend run typecheck:e2e
 npm --prefix frontend run build:deterministic
-git diff --exit-code -- src/plotloom/static
-npm --prefix frontend run test:e2e
-wheel_dir="$(mktemp -d /tmp/plotloom-wheel.XXXXXX)"
-uv build --wheel --out-dir "$wheel_dir"
-uv run python scripts/smoke_installed_wheel.py "$wheel_dir"
+find src/plotloom/static -type f -print | sort | xargs shasum -a 256 > /tmp/plotloom-static-first.sha256
+npm --prefix frontend run build:deterministic
+find src/plotloom/static -type f -print | sort | xargs shasum -a 256 > /tmp/plotloom-static-second.sha256
+diff -u /tmp/plotloom-static-first.sha256 /tmp/plotloom-static-second.sha256
 ```
+
+Keep the first build's generated files in the candidate and review them with
+the source diff. The full runner's current bundle-parity step compares
+`src/plotloom/static/` to Git; an expected generated change in an uncommitted
+candidate can therefore stop that step even when the build itself succeeded.
+The two-build comparison above checks that the intended candidate generates
+stable bytes without discarding those assets or rerunning unaffected suites.
+
+Run explicitly selected Playwright regressions for every affected navigation
+and state contract, inspect the supported desktop captures at 1280×768,
+1280×460 and 1700×900 when the layout is affected, and run shared-contract or
+package checks if the actual diff reaches those owners. Use `focused` for
+selected tests during edits. If the diff changes one of the contracts or
+dependencies above, broadens into a cross-layer runtime/refactor, or leaves
+impact uncertain, run the complete unfiltered `full` gate instead.
+
+Hosted CI is optional and separate from this local result. It requires Wenjun's
+new explicit request; an unrequested run is not a pending release blocker.
+If complete hosted qualification is explicitly requested, retain its unfiltered
+coverage and report the actual outcome. Historical failures stay failed, and
+concrete unresolved defects still need resolution. Local frontend qualification
+is not full local release qualification or product acceptance. Reuse evidence for
+unchanged source/dependency inputs. After diagnosing a failed step, rerun that
+step and its affected downstream checks; invalidate earlier evidence only when
+the inputs it covers changed. Do not repeat expensive unaffected integration
+checks because generated assets changed alone.
+
+Install Chromium once before the first local browser run with
+`cd frontend && npx playwright install chromium`. The Python suite's media
+probes require `ffmpeg` and `ffprobe` on `PATH`.
+
+When splitting collected test modules, compare the expanded case IDs, including
+`pytest.mark.parametrize` rows and Vitest `it.each` cases, not just function or
+registration-expression counts. Search the whole repository, including E2E
+fixture packages, for consumers importing helpers from collected test modules;
+move reusable setup into non-collected fixture modules and update every
+consumer.
+Before committing, run `git diff --cached --check` on the staged candidate;
+unstaged diff checks alone do not cover newly added, untracked test files.
 
 The E2E fixture uses temporary SQLite and artifact storage, empties provider keys, and never contacts a live provider. Install Chromium once with `cd frontend && npx playwright install chromium`.
 
@@ -299,6 +473,10 @@ The distribution contract builds and probes a wheel in isolation. It verifies
 that all twelve prompt templates, the production UI, the current migration
 head, LICENSE, and NOTICE are packaged, and that an installed release ignores
 an unrelated working-directory `.env`.
+
+Serialize frontend builds before wheel creation. The build rewrites the static
+directory; packaging concurrently can capture a missing entry HTML or mixed
+bundle. Finish the build, freeze its output, then build and smoke-test the wheel.
 
 ### Checked static bundle browser smoke
 
@@ -321,7 +499,7 @@ npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/static" 
 npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/vite" e2e/production-bridge-shot-handoff.spec.ts
 ```
 
-The default Vite fixture also covers two legacy-editor journeys. Their
+The default Vite fixture also covers two professional-workspace journeys. Their
 navigation targets live under the folded `编辑与工具` menu; the first keeps the
 Brief-prefix and later Story Bible persistence assertions, and opens the folded
 `服务状态` disclosure before checking its connection badge. The second keeps

@@ -1,3 +1,5 @@
+import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
@@ -16,8 +18,8 @@ function openingWalkthroughProject() {
   project.storyGraph = {
     startNodeId: "start",
     nodes: [
-      { id: "start", title: "开场", kind: "start", summary: "合成媒体检查镜头。" },
-      { id: "ending", title: "完成", kind: "ending", summary: "片段检查完成。" },
+      { id: "start", title: "开场", kind: "start", footageMode: "footage", summary: "合成媒体检查镜头。" },
+      { id: "ending", title: "完成", kind: "ending", footageMode: "footage", summary: "片段检查完成。" },
     ],
     edges: [{ id: "finish", sourceNodeId: "start", targetNodeId: "ending", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] }],
     joinContracts: [],
@@ -52,15 +54,14 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_01#shot-keyframe-review`);
-  await page.getByLabel("审核人标签").fill("Synthetic fixture setup");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(page.getByTestId("video-pilot-panel")).toBeVisible();
-  const preparation = page.locator("details.workbench-support").first();
-  if (!await preparation.evaluate((element) => (element as HTMLDetailsElement).open)) await preparation.locator("summary").click();
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
 
   await page.getByLabel("来源声明").fill("Synthetic offline browser fixture; not creator-approved source media.");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
-  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic test-only opening still.");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("Technical fixture prerequisite for segment UI; not creative acceptance.");
@@ -87,8 +88,8 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
 
 async function selectEndingKeyframe(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string) {
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_09#shot-keyframe-review`);
-  const preparation = page.locator("details.workbench-support").first();
-  if (!await preparation.evaluate((element) => (element as HTMLDetailsElement).open)) await preparation.locator("summary").click();
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByLabel("来源声明").fill("Synthetic offline ending still; isolated fixture data only.");
   const importResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/managed-assets`);
@@ -96,7 +97,7 @@ async function selectEndingKeyframe(page: Page, request: APIRequestContext, work
   const imported = await importResponse;
   expect(imported.ok(), await imported.text()).toBeTruthy();
   const assetId = (await imported.json() as { id: string }).id;
-  await page.getByRole("button", { name: new RegExp(`Imported candidate ${assetId}`) }).click();
+  await page.getByRole("button", { name: new RegExp(`^候选图片 ${assetId}`) }).click();
   await page.getByTestId(`keep-candidate-${assetId}`).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic test-only ending still.");
   const intentResponse = page.waitForResponse((response) => response.request().method() === "POST"
@@ -125,10 +126,10 @@ async function openShotForReview(page: Page, workbench: Workbench, projectId: st
 async function ingestEightSecondOriginal(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string): Promise<string> {
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("details.video-production > summary").click();
-  const letterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  const letterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcile = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
@@ -146,7 +147,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
 async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number, annotation = "") {
   const review = page.getByTestId(`video-segment-review-${jobId}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);
@@ -243,8 +244,8 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   await expect(storyboardDisclosure).not.toHaveAttribute("open", "");
   await page.getByRole("button", { name: "查看分镜批准" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");
-  await expect(page.locator("details.approval-actions")).toHaveAttribute("open", "");
-  await expect(page.getByLabel("审核人标签")).toBeVisible();
+  await expect(page.locator(".approval-actions")).toBeVisible();
+  await expect(page.getByRole("button", { name: "撤销批准" })).toBeVisible();
   await storyboardDisclosure.locator(":scope > summary").click();
   await page.getByRole("button", { name: "编辑镜头细节" }).click();
   await expect(storyboardDisclosure).toHaveAttribute("open", "");
@@ -261,10 +262,82 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     for (const disclosure of await page.locator("details.workbench-support").all()) {
-      if (!await disclosure.evaluate((element) => (element as HTMLDetailsElement).open)) await disclosure.locator("summary").click();
+      if (!await disclosure.evaluate((element) => (element as HTMLDetailsElement).open)) await disclosure.locator(":scope > summary").click();
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
   }
   console.log(`INTERACTIVE_EXERCISE_PROJECT=${exerciseProject}`);
   console.log(`INTERACTIVE_READY_PROJECT=${readyProject}`);
+});
+
+test("shows exact original and segment read failures and reloads media without provider or selection writes", async ({ page, request, workbench }) => {
+  const projectId = await createAndApprove(page, request, workbench);
+  const jobId = await ingestEightSecondOriginal(page, request, workbench, projectId);
+  const card = page.getByTestId(`video-job-${jobId}`);
+  const original = card.getByTestId(`video-job-player-${jobId}`);
+  const review = card.getByTestId(`video-segment-review-${jobId}`);
+  const prepared = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs/${jobId}/segments`);
+  await review.getByRole("button", { name: "准备播放片段" }).click();
+  const response = await prepared;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const segment = await response.json() as { id: string };
+  const preview = review.getByTestId(`video-segment-preview-${segment.id}`);
+  const writes: string[] = [];
+  page.on("request", request => { if (request.method() !== "GET") writes.push(request.url()); });
+  for (const [player, kind] of [[original, "原片"], [preview, "播放片段"]] as const) {
+    const sourceAttribute = await player.getAttribute("src");
+    const mediaUrl = await player.evaluate(video => (video as HTMLVideoElement).src);
+    expect(mediaUrl).toBeTruthy();
+    await page.route(mediaUrl, route => route.abort("failed"));
+    const failedRead = page.waitForEvent("requestfailed", request => request.url() === mediaUrl);
+    // Fault injection is explicit: it exercises native read failure, not a provider error.
+    await player.evaluate(video => (video as HTMLVideoElement).load());
+    await failedRead;
+    const owner = player.locator("..");
+    await expect(owner.getByRole("alert")).toContainText(`浏览器未能播放这份${kind}`);
+    const nativeError = await player.evaluate(video => ({
+      code: (video as HTMLVideoElement).error?.code,
+      message: (video as HTMLVideoElement).error?.message,
+    }));
+    expect(nativeError.code).toBeGreaterThan(0);
+    await expect(owner.getByRole("alert")).toContainText(`媒体错误代码：${nativeError.code}`);
+    for (const [width, height] of [[1700, 900], [1280, 768], [1280, 460]]) {
+      await page.setViewportSize({ width, height });
+      const retry = owner.getByRole("button", { name: `重新加载${kind}`, exact: true });
+      const alert = owner.getByRole("alert");
+      await alert.evaluate(element => element.scrollIntoView({ block: "center" }));
+      await expect(retry).toBeVisible();
+      expect(await alert.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(58);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height);
+      for (const control of [retry, owner.locator("summary")]) {
+        expect(await control.evaluate(element => {
+          const range = document.createRange(); range.selectNodeContents(element);
+          return new Set([...range.getClientRects()].map(rect => Math.round(rect.top))).size;
+        })).toBe(1);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      await page.screenshot({ path: test.info().outputPath(`media-read-error-${kind}-${width}x${height}.png`) });
+      await owner.locator("summary").click();
+      await alert.evaluate(element => element.scrollIntoView({ block: "center" }));
+      if (nativeError.message) await expect(owner.locator("pre")).toHaveText(nativeError.message);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(58);
+      expect(await alert.evaluate(element => element.getBoundingClientRect().bottom)).toBeLessThanOrEqual(height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+      await page.screenshot({ path: test.info().outputPath(`media-read-error-details-${kind}-${width}x${height}.png`) });
+      await owner.locator("summary").click();
+    }
+    await page.unroute(mediaUrl);
+    await owner.getByRole("button", { name: `重新加载${kind}`, exact: true }).click();
+    await expect(owner.getByRole("alert")).toHaveCount(0);
+    await expect.poll(() => player.evaluate(video => (video as HTMLVideoElement).readyState)).toBeGreaterThan(0);
+    expect(await player.getAttribute("src")).toBe(sourceAttribute);
+    expect(await player.evaluate(video => (video as HTMLVideoElement).src)).toBe(mediaUrl);
+    expect(await player.evaluate(video => (video as HTMLVideoElement).paused)).toBe(true);
+  }
+  expect(writes).toEqual([]);
+  const jobs = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
+  expect(jobs.ok()).toBeTruthy();
+  expect((await jobs.json() as { jobs: Array<{ id: string; selected: boolean; selectionRevision: number }> }).jobs
+    .find(job => job.id === jobId)).toMatchObject({ selected: false, selectionRevision: 0 });
 });

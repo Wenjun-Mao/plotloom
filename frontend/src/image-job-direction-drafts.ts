@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
+import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
 export type ImageJobDraftTarget =
-  | { kind: "original" }
+  | { kind: "original"; sceneContinuityBindingId?: string }
   | { kind: "refinement"; parentCandidateAssetId: string }
   | { kind: "keyframe_adaptation"; profileId: string; profileLabel: string };
 
@@ -17,6 +18,8 @@ type DurableWriterState = {
   serverReady: boolean;
   serverConflict: boolean;
   requestEpoch: number;
+  abandoning?: boolean;
+  suspended?: boolean;
 };
 const imageJobStorageKey = "plotloom:image-job-direction-drafts:v1";
 
@@ -46,6 +49,7 @@ function readImageJobDrafts(): ImageJobDrafts {
 export function imageJobTargetId(target: ImageJobDraftTarget): string {
   if (target.kind === "refinement") return `refinement:${target.parentCandidateAssetId}`;
   if (target.kind === "keyframe_adaptation") return `keyframe_adaptation:${target.profileId}`;
+  if (target.sceneContinuityBindingId) return `scene_continuity:${target.sceneContinuityBindingId}`;
   return "original";
 }
 
@@ -60,6 +64,7 @@ export function useImageJobDirectionDraft(
   quiescence?: ProjectDraftQuiescence,
 ) {
   const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
+  useMediaDraftErasure(imageJobStorageKey, setDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
   const [serverRevision, setServerRevision] = useState(0);
   const [serverReady, setServerReady] = useState(false);
@@ -92,6 +97,7 @@ export function useImageJobDirectionDraft(
       return;
     }
     writerState.serverRevision = 0;
+    writerState.abandoning = false;
     writerState.acknowledgedPayload = undefined;
     writerState.persistence = undefined;
     writerState.serverConflict = false;
@@ -128,6 +134,8 @@ export function useImageJobDirectionDraft(
   }, [activeWriterKey, baseCanonicalRevision, contextId, entityId, key, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   const flush = useCallback(async (): Promise<boolean> => {
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -136,6 +144,8 @@ export function useImageJobDirectionDraft(
     if (!writerState.serverReady || writerState.serverConflict) return false;
     const existing = writerState.persistence;
     if (existing) await existing;
+    if (quiescence && !quiescence.canWrite(projectId)) return false;
+    if (writerState.abandoning || writerState.suspended) return false;
     if (writerState.serverConflict) return false;
     if (!entry.value.trim()) {
       const expectedDraftRevision = writerState.serverRevision;
@@ -205,7 +215,7 @@ export function useImageJobDirectionDraft(
     const saved = await persistence;
     if (writerState.persistence === pendingPersistence) writerState.persistence = undefined;
     return saved;
-  }, [activeWriterKey, baseCanonicalRevision, entityId, entry, projectId, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
+  }, [activeWriterKey, baseCanonicalRevision, entityId, entry, projectId, quiescence, serverDraftsEnabled, shotId, targetId, writerKey, writerState]);
 
   useEffect(() => {
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry || !serverReady || serverConflict) return;
@@ -220,7 +230,27 @@ export function useImageJobDirectionDraft(
   }, [baseCanonicalRevision, entry, flush, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId, writerState]);
   useEffect(() => {
     if (!quiescence || !serverDraftsEnabled || !projectId || !shotId) return;
-    return quiescence.register(projectId, `image_direction:${entityId}`, flush, { retainOnUnmount: dirty });
+    return quiescence.register(projectId, `image_direction:${entityId}`, flush, {
+      retainOnUnmount: dirty,
+      suspendWrites: async () => {
+        writerState.suspended = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        return () => {
+          writerState.suspended = false;
+          if (!writerState.abandoning && quiescence.canWrite(projectId)) writerState.timer = window.setTimeout(() => { writerState.timer = undefined; void flush(); }, 750);
+        };
+      },
+      discardUnsent: async () => {
+        writerState.abandoning = true;
+        if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
+        writerState.timer = undefined;
+        await writerState.persistence;
+        writerState.requestEpoch += 1;
+        discardMediaDraftEntry(imageJobStorageKey, key);
+      },
+    });
   }, [dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
   useEffect(() => {
     if (!Object.keys(drafts).length) return;
@@ -230,7 +260,7 @@ export function useImageJobDirectionDraft(
   }, [drafts]);
 
   const update = (next: string) => {
-    if (!projectId || !shotId || quiescence?.isClosing(projectId)) return;
+    if (!projectId || !shotId || quiescence?.isClosing(projectId) || (quiescence && !quiescence.canWrite(projectId))) return;
     setDrafts((current) => {
       if (!next.trim()) {
         // Before a durable draft exists, empty text is clean. Once the server
@@ -249,6 +279,7 @@ export function useImageJobDirectionDraft(
     const buffered = entry;
     if (!buffered) return true;
     await writerState.persistence;
+    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
       const next = { ...current };

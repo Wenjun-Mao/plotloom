@@ -9,20 +9,19 @@ made discoverable under ``outputs``.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
-from pathlib import Path, PurePosixPath
 import shutil
 import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
 
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
-    ProjectManifest,
-    ProjectStorageConflictError,
     ProjectStorageConfinementError,
+    ProjectStorageConflictError,
     ProjectStorageCorruptionError,
     ProjectStorageError,
     _canonical_json,
@@ -35,11 +34,6 @@ from .format import (
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
-    art_publication_blockers,
-    cast_publication_blockers,
-    script_publication_blockers,
-    storyboard_review_publication_blockers,
-    source_outline_publication_blockers,
 )
 from .recovery_control import (
     ProjectRecoveryControl,
@@ -56,6 +50,16 @@ from .recovery_validation import (
     snapshot_inventory,
     validate_snapshot_payloads,
 )
+from .snapshot_contract import (
+    SNAPSHOT_FORMAT_VERSION as SNAPSHOT_FORMAT_VERSION,
+)
+from .snapshot_contract import (
+    SNAPSHOT_MANIFEST_FILENAME,
+    ProjectSnapshotManifest,
+    ProjectSnapshotReceipt,
+    SnapshotFile,
+    _Payload,
+)
 from .snapshot_files import (
     _assert_closed_project_tree,
     _assert_snapshot_tree,
@@ -63,14 +67,6 @@ from .snapshot_files import (
     _safe_directory,
     _safe_regular,
     _sha256_path,
-)
-from .snapshot_contract import (
-    SNAPSHOT_FORMAT_VERSION,
-    SNAPSHOT_MANIFEST_FILENAME,
-    ProjectSnapshotManifest,
-    ProjectSnapshotReceipt,
-    SnapshotFile,
-    _Payload,
 )
 
 
@@ -94,7 +90,7 @@ def _backup_database(source: Path, destination: Path) -> _Payload:
     return _Payload(PurePosixPath(PROJECT_DATABASE_RELATIVE_PATH), digest, size)
 
 
-def _read_snapshot(root: Path) -> ProjectSnapshotManifest:
+def _read_snapshot(root: Path, *, allow_previous=False) -> ProjectSnapshotManifest:
     manifest_path = root / SNAPSHOT_MANIFEST_FILENAME
     if manifest_path.is_symlink() or not manifest_path.is_file():
         raise ProjectStorageCorruptionError("snapshot has no regular recovery manifest")
@@ -106,7 +102,7 @@ def _read_snapshot(root: Path) -> ProjectSnapshotManifest:
         raise ProjectStorageCorruptionError("snapshot identity does not match its project manifest")
     declared = [PurePosixPath(item.relative_path) for item in manifest.files]
     _assert_snapshot_tree(root, [*declared, PurePosixPath(SNAPSHOT_MANIFEST_FILENAME)])
-    validate_snapshot_payloads(root, manifest)
+    validate_snapshot_payloads(root, manifest, allow_previous=allow_previous)
     return manifest
 
 
@@ -145,7 +141,10 @@ class ProjectRecoveryService:
         try:
             store = self.registry._exclusive_store(project_id)
             try:
-                blockers = self._specialist_blockers(store)
+                blockers = self.registry.specialist_blockers(store)
+                with store.repository.engine.connect() as connection:
+                    if connection.exec_driver_sql("SELECT 1 FROM v2_autopilot_runs WHERE state IN ('running','waiting') LIMIT 1").first():
+                        blockers.append("active_autopilot_run")
                 if blockers:
                     raise ProjectBusyError("project_busy: " + ", ".join(blockers))
                 snapshot_parent = self.outputs_root / ".snapshots" / project_id
@@ -156,7 +155,7 @@ class ProjectRecoveryService:
                 copied.append(_copy_payload(store.home, temporary, PurePosixPath(PROJECT_MANIFEST_FILENAME)))
                 copied.append(_backup_database(store.database_path, temporary / PROJECT_DATABASE_RELATIVE_PATH))
                 database = temporary / PROJECT_DATABASE_RELATIVE_PATH
-                assert_database_contract(database, store.manifest)
+                assert_database_contract(database, store.manifest, asset_home=store.home)
                 for relative in payload_paths(store.home, database):
                     if relative in {
                         PurePosixPath(PROJECT_MANIFEST_FILENAME),
@@ -237,18 +236,27 @@ class ProjectRecoveryService:
             location=str(location), manifest=manifest,
         )
 
-    def restore(self, source: Path) -> Path:
+    def restore(self, source: Path, *, upgrade_previous=False) -> Path:
         root = _safe_directory(source.expanduser(), label="restore source")
         incoming_snapshot = root / SNAPSHOT_MANIFEST_FILENAME
         source_lease: ProjectAccessLease | None = None
         temporary: Path | None = None
+        prior_omissions = None
         try:
             if incoming_snapshot.exists() or incoming_snapshot.is_symlink():
-                snapshot = _read_snapshot(root)
+                snapshot = _read_snapshot(root, allow_previous=upgrade_previous)
                 manifest = snapshot.project_manifest
                 files = [PurePosixPath(item.relative_path) for item in snapshot.files]
                 frozen_inventory = snapshot_inventory(snapshot)
                 control_required = True
+                if upgrade_previous:
+                    from .schema_upgrade import classify_layout
+                    with sqlite3.connect(root / PROJECT_DATABASE_RELATIVE_PATH) as connection:
+                        if classify_layout(connection) == "prior":
+                            from .creative_evidence_inventory import (
+                                missing_completed_jobs,
+                            )
+                            prior_omissions = missing_completed_jobs(root, root / PROJECT_DATABASE_RELATIVE_PATH)
             else:
                 # A closed direct project remains an active local filesystem
                 # object. Hold its existing cross-process barrier from source
@@ -260,7 +268,7 @@ class ProjectRecoveryService:
                 except ValueError as error:
                     raise ProjectStorageCorruptionError("restore source has no supported project manifest") from error
                 database = root / PROJECT_DATABASE_RELATIVE_PATH
-                assert_database_contract(database, manifest)
+                assert_database_contract(database, manifest, allow_previous=upgrade_previous)
                 if database_state(database, manifest.project_id) != "closed":
                     raise ProjectBusyError("project_busy: a direct folder must be explicitly closed before restore")
                 files = payload_paths(root, database)
@@ -276,6 +284,7 @@ class ProjectRecoveryService:
                 )
                 frozen_inventory = payload_inventory(root, files)
                 control_required = PurePosixPath("recovery.json") in frozen_inventory
+            self.registry.admission.require_admitted(manifest.project_id)
             if any(home.manifest.project_id == manifest.project_id for home in self.registry.discover()):
                 raise ProjectStorageConflictError("restore would overwrite an existing project identity")
             final = self.outputs_root / f"{_utc_folder_timestamp(manifest.created_at)}__{manifest.project_id}"
@@ -296,7 +305,7 @@ class ProjectRecoveryService:
             if copied_manifest != manifest:
                 raise ProjectStorageCorruptionError("restore manifest changed while it was copied")
             destination_database = temporary / PROJECT_DATABASE_RELATIVE_PATH
-            assert_database_contract(destination_database, manifest)
+            assert_database_contract(destination_database, manifest, allow_previous=upgrade_previous)
             from .recovery_control import validate_recovery_control
 
             validate_recovery_control(
@@ -306,10 +315,30 @@ class ProjectRecoveryService:
                 required=control_required,
                 snapshot=False,
             )
-            expected = set(payload_paths(temporary, destination_database))
+            expected = set(payload_paths(temporary, destination_database, prior_snapshot_omissions=prior_omissions))
             if set(files) != expected:
                 raise ProjectStorageCorruptionError("restore source omits referenced project bytes")
+            if upgrade_previous:
+                from .schema_transition import (
+                    RestoredSchemaTransition,
+                    write_schema_transition,
+                )
+                from .schema_upgrade import upgrade_database
+                connection = sqlite3.connect(destination_database)
+                try:
+                    transition = upgrade_database(connection, manifest.project_id, require_idle=False)
+                finally:
+                    connection.close()
+                if transition["changed"]:
+                    write_schema_transition(temporary, RestoredSchemaTransition(project_id=manifest.project_id,
+                        prior_layout_hash=transition["priorLayoutHash"],
+                        source_database_hash=frozen_inventory[PurePosixPath(PROJECT_DATABASE_RELATIVE_PATH)].content_hash,
+                        current_layout_hash=transition["currentLayoutHash"], retained_rows_hash=transition["retainedRowsHash"],
+                        omitted_creative_manifests=prior_omissions or {}))
+                assert_database_contract(destination_database, manifest)
+                _assert_snapshot_tree(temporary, payload_paths(temporary, destination_database))
             _sync_directory(temporary)
+            self.registry.admission.require_admitted(manifest.project_id)
             os.replace(temporary, final)
             _sync_directory(self.outputs_root)
             temporary = None
@@ -328,19 +357,3 @@ class ProjectRecoveryService:
             return acknowledge_recovery_control(store.home, project_id)
         finally:
             store.close()
-
-    @staticmethod
-    def _specialist_blockers(store: Any) -> list[str]:
-        image_busy = [job for job in store.media.list_image_jobs(store.manifest.project_id) if job.get("state") not in {"delivered", "rejected", "cancelled"}]
-        reference_busy = [proposal for proposal in store.media.list_character_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected", "cancelled"}]
-        art_reference_busy = [proposal for proposal in store.media.list_art_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected", "cancelled"}]
-        return (
-            (["image_publication_active"] if image_busy else [])
-            + (["character_reference_publication_active"] if reference_busy else [])
-            + (["art_reference_publication_active"] if art_reference_busy else [])
-            + source_outline_publication_blockers(store)
-            + cast_publication_blockers(store)
-            + art_publication_blockers(store)
-            + script_publication_blockers(store)
-            + storyboard_review_publication_blockers(store)
-        )

@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   ApprovalDecision,
-  SamePersonComparison,
   SceneBeatPlan,
   Shot,
   StoryBible,
@@ -19,17 +18,29 @@ import { ImageJobPanel } from "./image-jobs/ImageJobPanel";
 import { AssetImportPanel } from "./assets/AssetImportPanel";
 import { SamePersonReviewPanel } from "./references/SamePersonReviewPanel";
 import { KeyframeAndPreviewPanel } from "./keyframes/KeyframeAndPreviewPanel";
+import { ShotPresentationReview } from "./keyframes/ShotPresentationReview";
+import { generatedCandidateState } from "./keyframes/shot-presentation";
+import { shotLabel } from "../../shot-label";
 import { VideoPilotPanel } from "../../video-pilot";
+import { hasCurrentStoryboardApproval } from "./current-storyboard-approval";
 import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
+import { ownsOrdinaryIntent } from "./keyframes/visual-intent-ownership";
+import { useKeyframeCompatibilityDraft } from "./keyframes/useKeyframeCompatibilityDraft";
 import { ShotPreparationSummary } from "./ShotPreparationSummary";
+import { revealMediaOwner } from "./media-owner-navigation";
 import { useMediaWorkbenchData } from "./useMediaWorkbenchData";
 import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
+import type { SamePersonComparisonDraft } from "../../same-person-review-types";
 
 export function ManagedMediaWorkbench({
   projectId,
+  videoReadVersion,
+  lifecycleRevision,
+  projectRevision,
+  lifecycleStatus,
   storyboard,
   bible,
   graph,
@@ -37,7 +48,6 @@ export function ManagedMediaWorkbench({
   routeId,
   selectedShot,
   storyboardRevision,
-  storyBibleRevision,
   mediaDraftsEnabled,
   draftQuiescence,
   review,
@@ -49,6 +59,10 @@ export function ManagedMediaWorkbench({
   draftChanged = false,
 }: {
   projectId?: string;
+  videoReadVersion?: number;
+  lifecycleRevision?: number;
+  projectRevision?: number;
+  lifecycleStatus?: "active" | "archived";
   storyboard: Storyboard;
   bible: StoryBible;
   graph: StoryGraph;
@@ -56,7 +70,6 @@ export function ManagedMediaWorkbench({
   routeId?: string;
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
-  storyBibleRevision?: number;
   mediaDraftsEnabled: boolean;
   draftQuiescence?: ProjectDraftQuiescence;
   review: StoryboardReview | null | undefined;
@@ -68,18 +81,20 @@ export function ManagedMediaWorkbench({
   draftChanged?: boolean;
 }) {
   const currentApproval: ApprovalDecision | undefined = review?.activeApproval ?? undefined;
+  const approvalCurrent = hasCurrentStoryboardApproval(review, storyboardRevision, draftChanged);
   const {
-    workbench, setWorkbench, imageJobs, characterProposals, imageExchangeConfigured,
+    workbench, acknowledgeSelectionRevision, refreshAfterProjectWrite, imageJobs, imageExchangeConfigured,
     previewId, setPreviewId, refresh, mediaReadPhase,
   } = useMediaWorkbenchData({
-    projectId, approvalId: currentApproval?.id,
+    projectId, projectRevision, lifecycleRevision, approvalId: currentApproval?.id,
     approvalRevision: currentApproval?.subjectRevision, storyboardRevision,
     shotId: selectedShot?.id,
   });
   const mediaOwnerReadOnly = readOnly || mediaReadPhase !== "ready";
-  // Durable media drafts share this read's project/approval context. A failed
-  // refresh must suspend their autosave and quiescence writers too.
-  const mediaDraftsReady = mediaDraftsEnabled && mediaReadPhase === "ready";
+  // Read readiness does not grant archived authoring permission. Keep local
+  // buffers mounted while suspending autosave and quiescence writers.
+  const mediaDraftsReady = mediaDraftsEnabled && lifecycleStatus !== "archived"
+    && mediaReadPhase === "ready";
   const [imageJobTarget, setImageJobTarget] = useState<ImageJobDraftTarget>({
     kind: "original",
   });
@@ -90,37 +105,26 @@ export function ManagedMediaWorkbench({
   const [keptAssetId, setKeptAssetId] = useState("");
   const [origin, setOrigin] = useState("Local creator import");
   const [declaredAdditions, setDeclaredAdditions] = useState("reference only");
-  const [compatibility, setCompatibility] = useState("");
   const [referenceCharacterId, setReferenceCharacterId] = useState("");
   const [referencePrimaryAssetId, setReferencePrimaryAssetId] = useState("");
   const [referenceComplementaryAssetIds, setReferenceComplementaryAssetIds] =
     useState<string[]>([]);
   const [referenceReviewer, setReferenceReviewer] = useState("creator");
   const [referenceNotes, setReferenceNotes] = useState("");
-  const [proposalCharacterId, setProposalCharacterId] = useState("");
-  const [proposalDirection, setProposalDirection] = useState("");
-  const [proposalParentCandidateAssetId, setProposalParentCandidateAssetId] =
-    useState("");
   const [samePersonReviewer, setSamePersonReviewer] = useState("creator");
   const [samePersonNotes, setSamePersonNotes] = useState("");
   const [samePersonComparisons, setSamePersonComparisons] = useState<
-    SamePersonComparison[]
+    SamePersonComparisonDraft[]
   >([]);
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [presentationReview, setPresentationReview] = useState<{ shotId: string; revision: number }>();
   const [playing, setPlaying] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
-  const preparationDetails = useRef<HTMLDetailsElement>(null);
-  const keyframeDetails = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     const openDeepLink = () => {
-      const targetId = window.location.hash.slice(1);
-      if (targetId === "shot-character-references" && preparationDetails.current) preparationDetails.current.open = true;
-      if (targetId === "shot-keyframe-review" && keyframeDetails.current) keyframeDetails.current.open = true;
-      if (["shot-workbench", "shot-original", "shot-segment", "shot-story-preview", "shot-character-references", "shot-keyframe-review"].includes(targetId)) {
-        requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
-      }
+      revealMediaOwner(window.location.hash.slice(1), "auto");
     };
     openDeepLink();
     window.addEventListener("hashchange", openDeepLink);
@@ -143,6 +147,7 @@ export function ManagedMediaWorkbench({
     activeIntent,
     intentEditor,
     intentDraft,
+    retainCrossShotFrame,
     eligibleRefinementCandidates,
     targetCandidate,
     imageJobContextId,
@@ -158,6 +163,7 @@ export function ManagedMediaWorkbench({
     draftQuiescence,
     currentApproval,
     workbench,
+    mediaReadPhase,
     imageJobs,
     imageExchangeConfigured,
     imageJobTarget,
@@ -167,13 +173,15 @@ export function ManagedMediaWorkbench({
     playing,
     frameIndex,
     referenceCharacterId,
-    proposalCharacterId,
     setPreviewLength,
     setReferenceCharacterId,
-    setProposalCharacterId,
     setSamePersonComparisons,
     setKeptAssetId,
     setFrameIndex,
+  });
+  const { compatibility, setCompatibility } = useKeyframeCompatibilityDraft({
+    projectId, shot: selectedShot, assetId: keptAssetId, approval: currentApproval,
+    storyboardRevision, intent: activeIntent, asset: assetById.get(keptAssetId), mediaReadPhase,
   });
   const {
     chooseCandidate,
@@ -190,6 +198,7 @@ export function ManagedMediaWorkbench({
     setBusy,
     setError,
     refresh,
+    refreshAfterProjectWrite,
     setCandidates,
     setKeptAssetId,
     setPreviewId,
@@ -205,9 +214,10 @@ export function ManagedMediaWorkbench({
     activeIntent,
     compatibility,
     workbench,
-    setWorkbench,
+    acknowledgeSelectionRevision,
     previewShotIds,
     missingPreviewShotIds,
+    presentationRevision: presentationReview?.shotId === selectedShot?.id ? presentationReview?.revision : 0,
   });
   const {
     prepareImageJob,
@@ -255,9 +265,6 @@ export function ManagedMediaWorkbench({
   const {
     selectCharacterReference,
     revokeCharacterReference,
-    prepareCharacterReferenceProposal,
-    sendCharacterReferenceProposal,
-    refreshCharacterReferenceProposal,
     recordSamePersonReview,
   } = useCharacterReferenceActions({
     projectId,
@@ -272,12 +279,6 @@ export function ManagedMediaWorkbench({
     setReferenceNotes,
     setReferenceComplementaryAssetIds,
     refresh,
-    proposalCharacterId,
-    castRevision: undefined,
-    proposalDirection,
-    proposalParentCandidateAssetId,
-    setProposalDirection,
-    setProposalParentCandidateAssetId,
     selectedBinding,
     selectedIdentityMapping,
     samePersonReviewer,
@@ -293,11 +294,16 @@ export function ManagedMediaWorkbench({
       data-testid="managed-media-workbench"
     >
       <div className="section-title">
-        <span>Shot media workbench</span>
+        <span>为当前镜头制作并审核图片和视频</span>
         <strong>镜头媒体工作台</strong>
       </div>
+      {projectId && selectedShot && mediaDraftsEnabled && <ShotPresentationReview
+        key={`${projectId}:${selectedShot.id}`} projectId={projectId} shotId={selectedShot.id}
+        approval={currentApproval} storyboardRevision={storyboardRevision} readOnly={mediaOwnerReadOnly || busy}
+        onLoaded={revision => setPresentationReview({ shotId: selectedShot.id, revision })} onSaved={refresh} quiescence={draftQuiescence}
+      />}
       <div className="button-row">
-        <Field label="当前媒体镜头">
+        <Field label="当前镜头">
           <select
             value={selectedShot?.id ?? ""}
             onChange={(event) => onSelectShot?.(event.target.value)}
@@ -306,19 +312,19 @@ export function ManagedMediaWorkbench({
             {!selectedShot && <option value="">{storyboard.shots.length ? "未打开镜头 · 请明确选择" : "尚无镜头"}</option>}
             {storyboard.shots.map((shot) => (
               <option key={shot.id} value={shot.id}>
-                {shot.title} · {shot.id}
+                {shotLabel(shot)} · {shot.id}
               </option>
             ))}
           </select>
         </Field>
         <Button variant="quiet" onClick={onReview}>
-          {currentApproval ? "查看分镜批准" : "前往分镜审核"}
+          {approvalCurrent ? "查看分镜批准" : "前往分镜审核"}
         </Button>
         <Button variant="quiet" disabled={!selectedShot} onClick={onEditShot}>编辑镜头细节</Button>
       </div>
       {selectedShot && (
         <small>
-          当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms
+          镜头动作：{selectedShot.action} · {selectedShot.durationUnits}ms
         </small>
       )}
       {error && (
@@ -327,20 +333,20 @@ export function ManagedMediaWorkbench({
         </div>
       )}
       <div className="shot-workbench-focus">
-        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot?.title || "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
-        <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
+        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
+        <VideoPilotPanel videoReadVersion={videoReadVersion} projectId={projectId} projectRevision={projectRevision} lifecycleRevision={lifecycleRevision} lifecycleStatus={lifecycleStatus} shot={selectedShot} approvalId={review?.activeApproval?.id} approvalCurrent={approvalCurrent}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
+          reviewedBinding={selectedBinding} samePersonReviewId={selectedBinding ? currentReviewByBinding.get(selectedBinding.id)?.id : undefined}
+          mediaReadPhase={mediaReadPhase}
           storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} routeId={routeId} readOnly={mediaOwnerReadOnly} />
       </div>
-      <details className="workbench-support" ref={preparationDetails}><summary>准备与参考 · 图片、角色、导入</summary>
+      <details className="workbench-support"><summary>准备与参考 · 图片、角色、导入</summary>
       {selectedShot && <ShotPreparationSummary projectId={projectId} shot={selectedShot} storyboardRevision={storyboardRevision} draftChanged={draftChanged} review={review} workbench={workbench} mediaReadPhase={mediaReadPhase} onRetryMedia={() => void refresh().catch(() => undefined)} onReview={onReview} onReturnToBridge={onReturnToBridge} />}
       <div id="shot-character-references"><CharacterReferencesPanel
         projectId={projectId}
         bible={bible}
-        storyBibleRevision={storyBibleRevision}
         workbench={workbench}
-        proposals={characterProposals}
         assetById={assetById}
         referenceStateByCharacter={referenceStateByCharacter}
         currentReferenceByCharacter={currentReferenceByCharacter}
@@ -350,29 +356,20 @@ export function ManagedMediaWorkbench({
           complementaryAssetIds: referenceComplementaryAssetIds,
           reviewer: referenceReviewer,
           notes: referenceNotes,
-          proposalCharacterId,
-          proposalDirection,
-          proposalParentCandidateAssetId,
           setCharacterId: setReferenceCharacterId,
           setPrimaryAssetId: setReferencePrimaryAssetId,
           setComplementaryAssetIds: setReferenceComplementaryAssetIds,
           setReviewer: setReferenceReviewer,
           setNotes: setReferenceNotes,
-          setProposalCharacterId,
-          setProposalDirection,
-          setProposalParentCandidateAssetId,
         }}
         readOnly={mediaOwnerReadOnly}
+        mediaReadPhase={mediaReadPhase}
         busy={busy}
         onSelectReference={() => void selectCharacterReference()}
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
-        onPrepareProposal={() => void prepareCharacterReferenceProposal()}
-        onSendProposal={(proposalId) => void sendCharacterReferenceProposal(proposalId)}
-        onRefreshProposal={(proposalId) =>
-          void refreshCharacterReferenceProposal(proposalId)
-        }
       /></div>
       <ImageJobPanel
+        reviewedKeyframes={workbench.reviewedKeyframes}
         imageExchangeConfigured={imageExchangeConfigured}
         prerequisite={imageJobPrerequisite}
         target={imageJobTarget}
@@ -383,6 +380,8 @@ export function ManagedMediaWorkbench({
         readOnly={mediaOwnerReadOnly}
         busy={busy}
         imageJobs={imageJobs}
+        shotId={selectedShot?.id}
+        mediaReadPhase={mediaReadPhase}
         imageJobRefreshNotice={imageJobRefreshNotice}
         selectedBinding={selectedBinding}
         onPrepare={() => void prepareImageJob()}
@@ -391,7 +390,10 @@ export function ManagedMediaWorkbench({
         onCancel={(jobId) => void cancelImageJob(jobId)}
       />
       <AssetImportPanel
+        onReuseFrame={retainCrossShotFrame}
+        reviewedKeyframes={workbench.reviewedKeyframes}
         projectId={projectId}
+        shotId={selectedShot?.id}
         assets={workbench.assets}
         origin={origin}
         declaredAdditions={declaredAdditions}
@@ -403,7 +405,12 @@ export function ManagedMediaWorkbench({
         onDeclaredAdditions={setDeclaredAdditions}
         onImport={(file) => void importFile(file)}
         onChooseCandidate={chooseCandidate}
-        onKeepCandidate={keepCandidate}
+        onKeepCandidate={(assetId) => {
+          const targetUse = workbench.visualIntents.some((intent) => intent.assetId === assetId && intent.intent.targetUse?.targetShotId === selectedShot?.id);
+          const source = workbench.reviewedKeyframes.find((binding) => binding.assetId === assetId && binding.shotId !== selectedShot?.id);
+          const ordinaryOwned = workbench.visualIntents.some((intent) => intent.assetId === assetId && ownsOrdinaryIntent(intent, selectedShot?.id, workbench.reviewedKeyframes));
+          if (source && !targetUse && !ordinaryOwned) retainCrossShotFrame(source); else keepCandidate(assetId);
+        }}
         onClear={() => {
           setCandidates([]);
           setKeptAssetId("");
@@ -411,7 +418,7 @@ export function ManagedMediaWorkbench({
       />
       {selectedBinding && (
         <small data-testid="current-reviewed-keyframe">
-          当前 Shot 已保存资产 {selectedBinding.assetId.slice(0, 8)} · intent r
+          当前镜头已保存图片 {selectedBinding.assetId.slice(0, 8)} · 画面意图 r
           {selectedBinding.visualIntentRevision ?? "—"}
         </small>
       )}
@@ -433,7 +440,7 @@ export function ManagedMediaWorkbench({
         onRecord={() => void recordSamePersonReview()}
       />
       </details>
-      <details className="workbench-support" ref={keyframeDetails}><summary>关键帧与静帧预览</summary>
+      <details className="workbench-support"><summary>关键帧与静帧预览</summary>
       <div id="shot-keyframe-review"><KeyframeAndPreviewPanel
         projectId={projectId}
         workbench={workbench}
@@ -441,6 +448,7 @@ export function ManagedMediaWorkbench({
         selectedBinding={selectedBinding}
         keptAssetId={keptAssetId}
         retainedIdentityMapping={retainedIdentityMapping}
+        candidateState={generatedCandidateState(keptAssetId, imageJobs)}
         assetById={assetById}
         intentEditor={intentEditor}
         activeIntent={activeIntent}
@@ -449,6 +457,7 @@ export function ManagedMediaWorkbench({
         readOnly={mediaOwnerReadOnly}
         busy={busy}
         mediaDraftsEnabled={mediaDraftsReady}
+        mediaReadPhase={mediaReadPhase}
         review={review}
         maxPreviewLength={maxPreviewLength}
         previewLength={previewLength}

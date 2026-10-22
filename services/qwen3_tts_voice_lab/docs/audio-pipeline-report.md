@@ -1,8 +1,8 @@
 # Voice Lab audio pipeline and intended use
 
 Scope: the specialist Spark Lab, separate from Plotloom authoring.
-[ADR 0094](../../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
-defines the multi-engine contract; [ADR 0097](../../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md)
+[ADR 0209](../../../docs/adr/0209-voice-lab-independent-engines-and-delivery.md)
+defines the multi-engine contract; [ADR 0212](../../../docs/adr/0212-published-voice-performance-takes-and-shared-admission.md)
 adds published-identity takes and shared admission.
 
 ## Two separate decisions

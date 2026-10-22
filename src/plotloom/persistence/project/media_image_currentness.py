@@ -5,17 +5,19 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
 from ..codec import _stored_utc
-from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow
+from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow, ManagedAssetRow
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_identifiers import new_image_job_id
+from .media_shot_presentations import ShotPresentations
 
 
 class ImageJobCurrentness:
@@ -32,6 +34,7 @@ class ImageJobCurrentness:
         self._canonical = canonical
         self._admission = admission
         self._references = references
+        self.presentations = ShotPresentations(access, canonical, admission)
 
     @staticmethod
     def image_job_id() -> str:
@@ -52,14 +55,28 @@ class ImageJobCurrentness:
 
     @staticmethod
     def production_unit_dict(row: ProductionUnitRow) -> dict[str, Any]:
-        return {
+        result = {
             "id": row.id, "projectId": row.project_id, "approvalId": row.approval_id,
             "shotId": row.shot_id, "sceneId": row.scene_id,
             "storyboardRevision": row.storyboard_revision, "snapshot": row.snapshot,
             "snapshotHash": row.snapshot_hash, "createdAt": _stored_utc(row.created_at).isoformat(),
         }
+        if row.machine_decision_id is not None:
+            result.pop("approvalId")
+            result["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": row.machine_decision_id}
+        return result
 
     def image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
+        return self._image_dependencies_current(session, job, ancestors=frozenset(), historical_source=False)
+
+    def image_source_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
+        """Frozen independently reviewed use does not depend on later source selection."""
+        return self._image_dependencies_current(session, job, ancestors=frozenset(), historical_source=True)
+
+    def _image_dependencies_current(self, session, job, *, ancestors, historical_source):
+        if job.id in ancestors:
+            return False
+        ancestors = ancestors | {job.id}
         if job.state == "cancelled":
             return False
         project = session.get(ProjectRow, job.project_id)
@@ -69,7 +86,9 @@ class ImageJobCurrentness:
         if unit is None or unit.project_id != job.project_id:
             return False
         try:
-            approval = self._admission.approval_is_active_in_session(session, unit.approval_id)
+            from .image_authority import resolve_image_authority
+            approval = resolve_image_authority(session, self._access, self._admission, job.project_id,
+                approval_id=unit.approval_id, machine_decision_id=unit.machine_decision_id)
         except (InvalidTransitionError, NotFoundError):
             return False
         if not (
@@ -78,6 +97,59 @@ class ImageJobCurrentness:
             and approval.subject_revision == unit.storyboard_revision
         ):
             return False
+
+        if not self.presentations.matches(session, job.project_id, unit.shot_id, unit.snapshot.get("shotPresentation")):
+            return False
+
+        continuity = unit.snapshot.get("sceneContinuity")
+        if continuity is not None:
+            from .image_reviewed_use import connection_for, validate_reviewed_source, require_use_current
+            from ..schema import VisualIntentRow
+            try:
+                source = validate_reviewed_source(connection_for(session), job.project_id, continuity)
+                binding = session.get(ReviewedShotBindingRow, continuity["bindingId"])
+                if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding):
+                    return False
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+                if source:
+                    source_job = session.get(ImageJobRow, source.job_id)
+                    if source_job is None or source_job.state != "delivered" or not self._image_dependencies_current(
+                        session, source_job, ancestors=ancestors, historical_source=True):
+                        return False
+            except (ValueError, TypeError, KeyError, InvalidTransitionError, NotFoundError):
+                return False
+
+        adaptation = unit.snapshot.get("keyframeAdaptation", {})
+        if adaptation.get("sourceAuthority", {}).get("actor") == "machine_provisional":
+            source = session.get(ImageJobRow, adaptation.get("sourceJobId"))
+            asset = session.get(ManagedAssetRow, adaptation.get("sourceAssetId"))
+            if (source is None or source.request.get("kind") != "original" or asset is None
+                    or source.project_id != job.project_id or asset.project_id != job.project_id
+                    or asset.original_hash != adaptation.get("sourceOriginalHash")
+                    or not self._image_dependencies_current(session, source, ancestors=ancestors, historical_source=True)):
+                return False
+        elif adaptation.get("sourceBindingId") is not None:
+            binding = session.get(ReviewedShotBindingRow, adaptation["sourceBindingId"])
+            asset = session.get(ManagedAssetRow, adaptation.get("sourceAssetId"))
+            if (binding is None or asset is None or binding.project_id != job.project_id
+                    or binding.shot_id != unit.shot_id or binding.asset_id != asset.id
+                    or binding.selection_revision != adaptation.get("sourceSelectionRevision")
+                    or binding.visual_intent_id != adaptation.get("sourceVisualIntentId")
+                    or binding.visual_intent_revision != adaptation.get("sourceVisualIntentRevision")
+                    or asset.original_hash != adaptation.get("sourceOriginalHash")
+                    or not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval)):
+                return False
+            from .image_reviewed_use import require_use_current, use_in_session
+            from ..schema import VisualIntentRow
+            try:
+                source = use_in_session(session, binding)
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+                if source:
+                    parent = session.get(ImageJobRow, source.job_id)
+                    if parent is None or not self._image_dependencies_current(session, parent, ancestors=ancestors, historical_source=True):
+                        return False
+            except (ValueError, InvalidTransitionError, NotFoundError):
+                return False
 
         # V1 original jobs predate the reviewed-keyframe refinement binding and
         # intentionally retain their historical currentness rule.  V2
@@ -103,9 +175,31 @@ class ImageJobCurrentness:
                 or binding.visual_intent_revision != reviewed_intent.get("visualIntentRevision")
             ):
                 return False
-            if not self._admission.reviewed_binding_admission_eligible_in_session(
-                session, job.project_id, binding, approval=approval
-            ):
+            if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval):
+                return False
+            from .image_reviewed_use import require_use_current
+            from ..schema import VisualIntentRow
+            try:
+                require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
+            except (ValueError, InvalidTransitionError, NotFoundError):
+                return False
+            # Before selection the frozen parent must remain selected. Once this
+            # delivered output is reviewed/selected, that new selection correctly
+            # supersedes its parent without erasing the immutable source context.
+            latest = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == job.project_id,
+                ReviewedShotBindingRow.shot_id == unit.shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
+            from .image_reviewed_use import use_in_session
+            try:
+                parent_source = use_in_session(session, binding)
+                selected_source = use_in_session(session, latest) if latest else None
+            except InvalidTransitionError:
+                return False
+            parent_job = session.get(ImageJobRow, parent_source.job_id) if parent_source else None
+            if parent_job is None or parent_job.id != job.parent_job_id or not self._image_dependencies_current(
+                    session, parent_job, ancestors=ancestors, historical_source=True):
+                return False
+            if not historical_source and (latest is None or (latest.id != binding.id and (job.state != "delivered" or selected_source is None
+                    or selected_source.job_id != job.id or not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, latest, approval=approval)))):
                 return False
 
         # V3 freezes one explicit reference decision per visible character.
@@ -213,8 +307,12 @@ class ImageJobCurrentness:
         locations_by_id = {item.id: item for item in story_bible.locations}
 
         return {
-            "scene": dump(scene) if scene is not None else None,
-            "beats": [dump(item) for item in beats],
+            # Semantic objectives/purposes and raw evidence are reviewed narrative
+            # context, not active image/H3 physical or runtime presentation authority.
+            "scene": {key: value for key, value in dump(scene).items() if key != "objective"} if scene is not None else None,
+            "beats": [{"id": item.id, "sceneId": item.scene_id, "order": item.order,
+                       "visibleEvent": item.visible_event, "entryState": dump(item.entry_state),
+                       "exitState": dump(item.exit_state)} for item in beats],
             "dialogueCues": [dump(item) for item in cues],
             "characters": [dump(characters_by_id[item_id]) for item_id in character_ids if item_id in characters_by_id],
             "locations": [dump(locations_by_id[item_id]) for item_id in location_ids if item_id in locations_by_id],

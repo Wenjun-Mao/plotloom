@@ -5,7 +5,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
@@ -107,3 +115,16 @@ class SourceOutlineGraphAdmissionRow(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     installed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SourceGraphIdentityRow(Base):
+    """Immutable source-owned authored identity for one canonical binding."""
+
+    __tablename__ = "v2_source_graph_identities"
+    entity_revision_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    canonical_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    authored_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_binding: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    admitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

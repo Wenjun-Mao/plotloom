@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
+import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
+import { AppearanceModeSelector } from "./AppearanceModeSelector";
+import { ManagedAssetProvenanceFields } from "../features/media/assets/ManagedAssetProvenanceFields";
+import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
+import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { AssetZoomDialog, ManagedAssetImage as AssetPresentation, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { AcceptedCastRevision, CastReviewState, CharacterImportedAppearance, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
@@ -31,10 +36,13 @@ type Candidate = {
  * reads until a creator deliberately invokes one of the supplied operations.
  */
 export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, castSession, castSessionOwner, castTransitionPending }: { projectId: string; readOnly: boolean; castState: CastReviewState | undefined; castSession: string; castSessionOwner: Readonly<{ current: string }>; castTransitionPending: boolean }) {
+  const adoptionLabel = useAdoptionLabel();
   const [data, setData] = useState<GalleryData>();
   const [error, setError] = useState("");
+  const [retryPending, setRetryPending] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const requestOwner = useRef(0);
+  const retryOperationOwner = useRef(0);
   const observedProjectId = useRef("");
 
   const refresh = useCallback(async (expectedSession: string, signal?: AbortSignal) => {
@@ -67,6 +75,8 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
 
   useEffect(() => {
     if (!projectId) return;
+    retryOperationOwner.current += 1;
+    setRetryPending(false);
     const projectChanged = observedProjectId.current !== projectId;
     observedProjectId.current = projectId;
     if (projectChanged) { setData(undefined); setError(""); setSelectedSubjectId(""); }
@@ -75,6 +85,7 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
     return () => {
       controller.abort();
       requestOwner.current += 1;
+      retryOperationOwner.current += 1;
     };
   }, [castSession, projectId, refresh]);
 
@@ -82,7 +93,7 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
   // through its existing hash/currentness admission endpoint.  Queue success
   // is not delivery success, and a package conflict stops repeat observation.
   useEffect(() => {
-    if (!data) return;
+    if (!data || readOnly || error) return;
     const timer = window.setInterval(() => {
       const outstanding = data.proposals.filter((proposal) =>
         proposal.current && proposal.state === "exported" && !proposal.deliveries.some(
@@ -94,27 +105,37 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
         .catch(() => refresh(castSession).catch(() => false));
     }, 3_000);
     return () => window.clearInterval(timer);
-  }, [castSession, data, projectId, refresh]);
+  }, [castSession, data, error, projectId, readOnly, refresh]);
 
   const subjects = useMemo(() => data ? gallerySubjects(castState?.acceptedCast ?? null, data.proposals) : [], [data, castState?.acceptedCast]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subject.id === selectedSubjectId)) setSelectedSubjectId(subjects[0].id);
   }, [subjects, selectedSubjectId]);
   const selected = subjects.find((subject) => subject.id === selectedSubjectId) || subjects[0];
+  const retry = async () => {
+    if (castSessionOwner.current !== castSession) return;
+    const operation = ++retryOperationOwner.current;
+    setRetryPending(true);
+    await refresh(castSession);
+    // Background reads may supersede the result, but must not own this button's pending state.
+    if (castSessionOwner.current === castSession && retryOperationOwner.current === operation) setRetryPending(false);
+  };
+  const readError = error && <section className="reference-read-error"><ErrorNotice message={error} /><p>重新读取只检查当前角色参考，不会准备或发送任务，也不会改变图片选择。</p><Button variant="quiet" busy={retryPending} disabled={retryPending} onClick={() => void retry()}>重新读取角色参考</Button></section>;
 
-  if (error) return <section className="character-reference-review"><ErrorNotice message={error} /></section>;
+  if (error && !data) return <section className="character-reference-review">{readError}</section>;
   if (!data || !castState) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
-  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚无已接受角色" message="先在上方审核并接受角色文字提案；图像选择不会创建角色或示例图像。" /></section>;
-  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="当前已接受角色未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
+  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚无可用角色设定" message="先在上方准备并采用角色设定；图像选择不会创建角色或示例图像。" /></section>;
+  if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="保留的角色设定未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
 
   return <section className="character-reference-review" data-testid="character-reference-gallery">
+    {readError}
     <section className="reference-gallery-intro">
-      <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · 先比较已有图片，再明确选用身份参考；也可基于当前查看图片探索调整。创建提案只冻结请求；必须明确发送给 specialist，且不会自动选择。</p></div>
-      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已接受角色 r${castState.acceptedCast.revision}` : "已接受角色已过期"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新接受角色前不能选择、细化、准备或发送新提案。"}</span></div>
+      <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · {readOnly ? "这里展示已保留的外观图片和选用记录，不会改变选择或启动图像任务。" : "先比较已有图片，再明确选用身份参考；也可基于当前查看图片探索调整。创建提案只冻结请求；必须明确发送给图像生成助手，且不会自动选择。"}</p></div>
+      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `${adoptionLabel("characters", castState.acceptedCast.revision, castState.acceptedCast.contentHash)}角色设定 r${castState.acceptedCast.revision}` : "角色设定需重新确认"}</strong><span>{readOnly ? "此项目为只读；不能选用图片或准备、发送新提案。" : error ? "角色参考读取失败；保留图片仅供核对，请先重新读取。" : castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新确认角色设定前不能选择、细化、准备或发送新提案。"}</span></div>
     </section>
     <div className="reference-gallery-layout">
-      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已接受角色" : "仅保留的历史主体"}</small></button>)}</nav>
-      <SubjectGallery key={`${castSession}:${selected.id}`} projectId={projectId} subject={selected} data={data} readOnly={readOnly || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} castSessionOwner={castSessionOwner} onRefresh={refresh} />
+      <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "设定中的角色" : "仅保留的历史主体"}</small></button>)}</nav>
+      <SubjectGallery key={`${castSession}:${selected.id}`} projectId={projectId} subject={selected} data={data} readOnly={readOnly || Boolean(error) || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} castSessionOwner={castSessionOwner} onRefresh={refresh} />
     </div>
   </section>;
 }
@@ -133,6 +154,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importLabel, setImportLabel] = useState("");
   const [importOrigin, setImportOrigin] = useState("");
+  useExplicitReviewCloseGuard(projectId, `character_reference:${subject.id}`, Boolean(direction || importLabel || importOrigin || importFile), busy,
+    () => { setDirection(""); setImportLabel(""); setImportOrigin(""); setImportFile(null); }, "角色图片想法或导入输入");
   const active = useRef(true); const sessionRef = useRef(session);
   const operationOwner = useRef(0);
   sessionRef.current = session;
@@ -182,7 +205,12 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   // Imported managed assets are deliberately membership records, not
   // specialist-delivery candidates. They can be selected as identity, but
   // the proposal contract must not claim they are valid refinement parents.
-  const refinementAllowed = Boolean(effectiveViewedAssetId && viewedCandidate && !viewedCandidate.imported);
+  const refinementAllowed = Boolean(effectiveViewedAssetId && viewedCandidate && !viewedCandidate.imported
+    && viewedCandidate.proposal.state === "delivered" && viewedCandidate.delivery.state === "accepted"
+    && viewedCandidate.outputHash === viewedAsset?.originalHash);
+  const refinementHint = viewedCandidate && !viewedCandidate.proposal.current
+    ? "这张图来自旧版角色设定，仅作为修改依据。新提案会使用当前已确认的角色设定、这张图和你的想法；不会恢复旧提案或自动选用图片。"
+    : "会冻结当前已确认的角色设定、当前查看的图片与这段文字；不会改变当前身份参考。";
   const { comparisonCandidates, comparisonAssetIds, comparisonAtCapacity, toggleComparison, clearComparison } = useBoundedAssetComparison(viewableCandidates);
   const referenceState = data.referenceStates.find((state) => state.characterId === subject.id);
   const act = async <T,>(operation: (isCurrent: () => boolean) => Promise<T>, applyResult?: (result: T) => void) => {
@@ -206,8 +234,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const prepare = () => void act(async () => {
     await plotloomApi.prepareCharacterReferenceProposal(projectId, { characterId: subject.id, castRevision, visualDirection: direction.trim(), parentCandidateAssetId: ideaMode === "refine" ? effectiveViewedAssetId || undefined : undefined });
   }, () => { setDirection(""); setIdeaMode("fresh"); });
-  const send = (proposal: CharacterReferenceProposal) => void act(async () => {
-    await plotloomApi.sendCharacterReferenceProposal(projectId, proposal.id);
+  const send = (proposal: CharacterReferenceProposal) => void act(async (isCurrent) => {
+    await reconcileFailedSend(() => plotloomApi.sendCharacterReferenceProposal(projectId, proposal.id), async () => { if (isCurrent()) await onRefresh(rootSession); });
   });
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
@@ -225,19 +253,19 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
     <header className="reference-subject-heading"><div><span className="eyebrow">当前主体</span><h2 id="reference-subject-title">{subject.name}</h2><p>{selectedDecision?.current ? `已选择身份参考 r${selectedDecision.referenceRevision}；查看图片不会改变选择。` : "尚未选择身份参考。查看或比较图片不会自动成为选择。"}</p></div><span className={selectedDecision?.current ? "reference-state selected" : "reference-state missing"}>{selectedDecision?.current ? "已选择" : "未选择"}</span></header>
     <section className="appearance-workspace" aria-label={`${subject.name} 的外观工作区`}>
       <div className="appearance-viewer" data-testid="appearance-viewer">
-        <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{viewedCandidate ? viewedCandidate.imported ? "导入图片" : viewedCandidate.role === "refinement" ? "细化候选" : "候选图片" : "当前身份参考"}</strong></div>{selectedDecision && <span className={selectedDecision.primaryAssetId === effectiveViewedAssetId ? "reference-state selected" : "reference-state historical"}>{selectedDecision.primaryAssetId === effectiveViewedAssetId ? "这张图已被选用" : "当前身份参考在另一张图"}</span>}</div>
-        {effectiveViewedAssetId ? <AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt={`${subject.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" /> : <div className="reference-no-image" data-testid="reference-no-image"><strong>尚无可显示的图像</strong><p>此主体还没有既有候选或已选择参考。</p></div>}
-        <div className="button-row"><Button variant="primary" disabled={readOnly || busy || !viewedCandidate || selectedDecision?.primaryAssetId === effectiveViewedAssetId} onClick={() => viewedCandidate && selectCandidate(viewedCandidate)}>{selectedDecision?.primaryAssetId === effectiveViewedAssetId ? "当前已选用" : "选用当前图片"}</Button><Button variant="quiet" disabled={!effectiveViewedAssetId} onClick={() => setExpanded(true)}>放大查看</Button></div>
-        {viewedCandidate?.imported ? <ImportedAppearanceDetails candidate={viewedCandidate} /> : viewedCandidate && <ProposalDetails proposal={viewedCandidate.proposal} delivery={viewedCandidate.delivery} outputHash={viewedCandidate.outputHash} provenance={viewedCandidate.asset?.provenance?.origin} direction={frozenDirection(viewedCandidate.proposal)} />}
+        <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{viewedCandidate ? viewedCandidate.imported ? "导入图片" : viewedCandidate.role === "refinement" ? "细化候选" : "候选图片" : selectedDecision ? "当前身份参考" : "尚无参考图片"}</strong></div>{selectedDecision && <span className={selectedDecision.primaryAssetId === effectiveViewedAssetId ? "reference-state selected" : "reference-state historical"}>{selectedDecision.primaryAssetId === effectiveViewedAssetId ? "这张图已被选用" : "当前身份参考在另一张图"}</span>}</div>
+        {effectiveViewedAssetId ? <AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt={`${subject.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" onZoom={() => setExpanded(true)} /> : <div className="reference-no-image" data-testid="reference-no-image"><strong>尚无可显示的图片</strong><p>这个角色还没有候选图片或已选用的参考图片。</p></div>}
+        <div className="button-row"><Button variant="primary" disabled={readOnly || busy || !viewedCandidate || selectedDecision?.primaryAssetId === effectiveViewedAssetId} onClick={() => viewedCandidate && selectCandidate(viewedCandidate)}>{selectedDecision?.primaryAssetId === effectiveViewedAssetId ? "当前已选用" : "选用当前图片"}</Button></div>
+        {viewedCandidate?.imported ? <ImportedAppearanceDetails candidate={viewedCandidate} /> : viewedCandidate && <ProposalDetails proposal={viewedCandidate.proposal} delivery={viewedCandidate.delivery} assetId={viewedCandidate.assetId} outputHash={viewedCandidate.outputHash} provenance={viewedCandidate.asset?.provenance} direction={frozenDirection(viewedCandidate.proposal)} />}
       </div>
       <div className="appearance-thumbnails" aria-label="已有图片">
         {viewableCandidates.map((candidate) => <button key={candidate.id} type="button" className={`appearance-thumbnail${candidate.assetId === effectiveViewedAssetId ? " viewing" : ""}${selectedAssetIds.has(candidate.assetId) ? " selected" : ""}`} aria-pressed={candidate.assetId === effectiveViewedAssetId} onClick={() => setViewedAssetId(candidate.assetId)}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}缩略图`} unavailableLabel="候选图片不可用" /><span>{candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</span></button>)}
         {!viewableCandidates.length && <p className="reference-empty-list">没有可浏览的候选图片。</p>}
       </div>
-      {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant={compared ? "primary" : "quiet"} disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
+      {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant="quiet" aria-pressed={compared} className="selection-toggle" disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="appearance-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>当前查看：{viewedImageLabel}；对比不会选用身份参考。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === effectiveViewedAssetId ? "当前查看" : "对比图片"} · {candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))} 比较图片`} unavailableLabel="对比图片不可用" /></figure>)}</div>}
-      <section className="appearance-import"><span className="eyebrow">导入已有图片</span><p>导入会保留来源与权利声明，并只作为未选用的 {subject.name} 外观选项。</p><Field label="图片标签"><input value={importLabel} disabled={readOnly || busy} onChange={(event) => setImportLabel(event.target.value)} /></Field><Field label="来源声明"><input value={importOrigin} disabled={readOnly || busy} onChange={(event) => setImportOrigin(event.target.value)} /></Field><label>PNG 或 JPEG<input type="file" accept="image/png,image/jpeg" disabled={readOnly || busy} onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} /></label><Button variant="quiet" disabled={readOnly || busy || !importFile || !importLabel.trim() || !importOrigin.trim()} onClick={importAppearance}>导入为外观选项</Button></section>
-      <section className="appearance-ideas"><span className="eyebrow">新想法</span><h3>用文字探索下一张图片</h3><div className="appearance-mode" role="group" aria-label="提案模式"><Button variant={ideaMode === "refine" ? "primary" : "quiet"} disabled={readOnly || busy || !refinementAllowed} onClick={() => setIdeaMode("refine")}>基于当前图片修改</Button><Button variant={ideaMode === "fresh" ? "primary" : "quiet"} disabled={readOnly || busy} onClick={() => setIdeaMode("fresh")}>尝试全新方案</Button></div><p>{ideaMode === "refine" ? "会冻结当前查看的图片与这段文字；不会改变当前身份参考。" : viewedCandidate?.imported ? "导入图片可浏览、比较或选用，但不是 specialist 交付候选，不能作为调整父项。" : "只使用这段文字，不引用当前查看图片；不会改变当前身份参考。"}</p><Field label="想法"><textarea rows={3} value={direction} disabled={readOnly || busy} placeholder="描述希望保留、调整或探索的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim() || (ideaMode === "refine" && !refinementAllowed)} onClick={prepare}>{busy ? "正在创建…" : "创建提案"}</Button><small>创建后可在下方提案状态中发送；返回图片会加入这里，但不会自动选用。</small></div></section>
+      <section className="appearance-import"><span className="eyebrow">导入已有图片</span><p>导入会保留来源与权利声明，并只作为未选用的 {subject.name} 外观选项。* 为本操作的必填项。</p><Field label="图片标签" required><input aria-required="true" value={importLabel} disabled={readOnly || busy} onChange={(event) => setImportLabel(event.target.value)} /></Field><Field label="来源声明" required><input aria-required="true" value={importOrigin} disabled={readOnly || busy} onChange={(event) => setImportOrigin(event.target.value)} /></Field><Field label="PNG 或 JPEG" required><input aria-required="true" type="file" accept="image/png,image/jpeg" disabled={readOnly || busy} onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} /></Field><Button variant="quiet" disabled={readOnly || busy || !importFile || !importLabel.trim() || !importOrigin.trim()} onClick={importAppearance}>导入为外观选项</Button></section>
+      <section className="appearance-ideas"><span className="eyebrow">新想法</span><h3>用文字探索下一张图片</h3><AppearanceModeSelector value={ideaMode} disabled={readOnly || busy} refinementAllowed={refinementAllowed} onChange={setIdeaMode} /><p>{ideaMode === "refine" ? refinementHint : viewedCandidate?.imported ? "导入图片可浏览、比较或选用，但不是图像生成助手交付的候选，不能作为调整父项。" : "只使用这段文字，不引用当前查看图片；不会改变当前身份参考。"}</p><Field label="想法" required><textarea aria-required="true" rows={3} value={direction} disabled={readOnly || busy} placeholder="描述希望保留、调整或探索的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim() || (ideaMode === "refine" && !refinementAllowed)} onClick={prepare}>{busy ? "正在创建…" : "创建提案"}</Button><small>创建后可在下方提案状态中发送；返回图片会加入这里，但不会自动选用。</small></div></section>
       {actionError && <ErrorNotice message={actionError} />}
     </section>
     {effectiveViewedAssetId && <AssetZoomDialog open={expanded} onClose={() => setExpanded(false)} label="放大查看图片"><AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt={`${subject.name} 放大图片`} unavailableLabel="当前查看图片不可用" /></AssetZoomDialog>}
@@ -258,7 +286,7 @@ function ProposalLifecycle({ proposal, actions }: { proposal: CharacterReference
   const canRefresh = proposal.state === "exported";
   const canCancel = proposal.state === "prepared" || proposal.state === "exported";
   if (!canSend && !canRefresh && !canCancel) return <small className="proposal-lifecycle-status">{proposal.state === "cancelled" ? "提案已取消。" : proposal.current ? "提案已完成；返回图片会出现在上方。" : "这是保留的历史提案。"}</small>;
-  return <div className="reference-card-actions">{canSend && <Button variant="quiet" disabled={actions.readOnly} onClick={actions.onSend}>发送给 specialist</Button>}{canRefresh && <Button variant="quiet" disabled={actions.readOnly} onClick={actions.onRefresh}>立即检查交付</Button>}{canCancel && <Button variant="danger" disabled={actions.readOnly} onClick={actions.onCancel}>取消提案</Button>}</div>;
+  return <div className="reference-card-actions">{canSend && <Button variant="quiet" disabled={actions.readOnly} onClick={actions.onSend}>发送给图像生成助手</Button>}{canRefresh && <Button variant="quiet" disabled={actions.readOnly} onClick={actions.onRefresh}>立即检查交付</Button>}{canCancel && <Button variant="danger" disabled={actions.readOnly} onClick={actions.onCancel}>取消提案</Button>}</div>;
 }
 
 function DeliveryEvidenceCard({ projectId, subjectId, proposal, delivery, parent, actions }: { projectId: string; subjectId: string; proposal: CharacterReferenceProposal; delivery: CharacterReferenceProposal["deliveries"][number]; parent: Candidate | undefined; actions: ProposalActions }) {
@@ -280,8 +308,8 @@ function HistoricalSelectionCard({ projectId, subjectId, decision, asset, assetI
   return <article className="reference-card historical-selection"><AssetPresentation projectId={projectId} subjectId={subjectId} asset={asset} assetId={assetId} alt="历史身份参考，当前不可用" unavailableLabel="历史身份参考图像不可用" /><div className="reference-card-body"><span className="reference-state historical">历史选择，当前不可用</span><strong>身份参考 r{decision.referenceRevision}</strong><small>{asset ? `${asset.width} × ${asset.height}` : "已选择资产缺失"}</small><details className="reference-technical"><summary>技术详情</summary><dl><div><dt>选择</dt><dd>{decision.id}</dd></div><div><dt>状态</dt><dd>{decision.revokedAt ? "revoked" : "superseded_or_stale"}</dd></div><div><dt>备注</dt><dd>{decision.notes}</dd></div>{asset?.provenance && <div><dt>来源</dt><dd>{asset.provenance.origin}</dd></div>}</dl></details></div></article>;
 }
 
-function ProposalDetails({ proposal, delivery, outputHash, provenance, direction }: { proposal: CharacterReferenceProposal; delivery?: CharacterReferenceProposal["deliveries"][number]; outputHash?: string; provenance?: string; direction?: string }) {
-  return <details className="reference-technical"><summary>查看生成指令与技术详情</summary>{direction && <><strong>冻结方向</strong><pre>{direction}</pre></>}<dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>提案状态</dt><dd>{proposal.state}</dd></div>{delivery && <div><dt>交付状态</dt><dd>{delivery.state}</dd></div>}{outputHash && <div><dt>输出标识</dt><dd>{outputHash}</dd></div>}{delivery?.diagnosticCode && <div><dt>诊断</dt><dd>{delivery.diagnosticCode}</dd></div>}{delivery?.manifestHash && <div><dt>交付清单</dt><dd>{delivery.manifestHash}</dd></div>}{provenance && <div><dt>来源</dt><dd>{provenance}</dd></div>}</dl></details>;
+function ProposalDetails({ proposal, delivery, assetId, outputHash, provenance, direction }: { proposal: CharacterReferenceProposal; delivery?: CharacterReferenceProposal["deliveries"][number]; assetId?: string; outputHash?: string; provenance?: ManagedAsset["provenance"]; direction?: string }) {
+  return <details className="reference-technical"><summary>查看生成指令与技术详情</summary>{direction && <><strong>冻结方向</strong><pre>{direction}</pre></>}<dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>提案状态</dt><dd>{proposal.state}</dd></div>{delivery && <div><dt>交付状态</dt><dd>{delivery.state}</dd></div>}{assetId && <><div><dt>资产</dt><dd>{assetId}</dd></div><ManagedAssetProvenanceFields provenance={provenance} /></>}{outputHash && <div><dt>输出标识</dt><dd>{outputHash}</dd></div>}{delivery?.diagnosticCode && <div><dt>诊断</dt><dd>{delivery.diagnosticCode}</dd></div>}{delivery?.manifestHash && <div><dt>交付清单</dt><dd>{delivery.manifestHash}</dd></div>}</dl></details>;
 }
 
 function ImportedAppearanceDetails({ candidate }: { candidate: Candidate }) {

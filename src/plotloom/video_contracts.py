@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from .domain import CamelModel
+from .delegated_qa_contracts import AgentQaAttribution
 
 
 class H3DirectionField(CamelModel):
@@ -68,6 +69,7 @@ class VideoEndFrameDecisionRequest(CamelModel):
     aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] | None = None
 
 class VideoReviewRequest(CamelModel):
+    attribution: AgentQaAttribution | None = None
     reviewer: str = Field(default="", max_length=160)
     decision: Literal["select", "reject"]
     note: str = Field(default="", max_length=2_000)
@@ -77,6 +79,20 @@ class VideoReviewRequest(CamelModel):
     @classmethod
     def trim_review_annotation(cls, value: str) -> str:
         return value.strip()
+
+
+class VideoReviewReopenRequest(CamelModel):
+    reviewer: str = Field(min_length=1, max_length=160)
+    reason: str = Field(min_length=1, max_length=2_000)
+    expected_selection_revision: int = Field(ge=0)
+
+    @field_validator("reviewer", "reason")
+    @classmethod
+    def require_nonblank_annotation(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("reviewer and reason must not be blank")
+        return value
 
 
 class VideoDiscardRequest(CamelModel):

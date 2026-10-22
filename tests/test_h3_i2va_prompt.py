@@ -169,3 +169,26 @@ def test_reviewed_directions_cannot_inject_h3_structure(injected: str) -> None:
     reviewed = _review(snapshot, {"shot.action": injected})
     with pytest.raises(ValueError, match="reserved markup|prompt sections"):
         compile_i2va_prompt(snapshot, reviewed)
+
+
+def test_visible_phone_words_are_exact_nonspoken_and_source_bound():
+    snapshot = _snapshot()
+    snapshot["resolvedContext"]["dialogueCues"] = []
+    snapshot["shot"]["visibleTexts"] = [{"text": "我还在老地方。", "sourceCoordinates": {"flowIndex": 2}, "sourceContentHash": "a"*64}, {"text": "今晚不去了，明天见。", "sourceCoordinates": {"flowIndex": 3}, "sourceContentHash": "b"*64}]
+    prompt = compile_i2va_prompt(snapshot, _review(snapshot))
+    assert prompt.count("我还在老地方。") == 1 and prompt.count("今晚不去了，明天见。") == 1
+    assert "without speaking it" in prompt and "<d>" not in prompt
+    package = _review(snapshot)
+    snapshot["shot"]["visibleTexts"][0]["text"] = "changed"
+    with pytest.raises(ValueError, match="source changed"):
+        compile_i2va_prompt(snapshot, package)
+
+
+@pytest.mark.parametrize("text", ["In", "I", "a"])
+def test_diegetic_words_can_overlap_legitimate_physical_direction(text):
+    snapshot = _snapshot(); snapshot["resolvedContext"]["dialogueCues"] = []
+    snapshot["shot"]["visibleTexts"] = [{"text": text}]
+    prompt = compile_i2va_prompt(snapshot, _review(snapshot))
+    assert "Push In" in prompt
+    assert f'visible text, without speaking it or adding captions: "{text}".' in prompt
+    assert "<d>" not in prompt

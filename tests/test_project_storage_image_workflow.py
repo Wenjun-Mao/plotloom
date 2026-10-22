@@ -40,7 +40,7 @@ def _approve(client: TestClient, project_id: str, storage: ProjectFolderStorage)
             "expectedRevision": board.revision,
             "contentHash": board.content_hash,
             "decision": "approve",
-            "reviewer": "offline fixture",
+            "attribution": {"kind": "unnamed_creator"},
             "gateSetVersion": "storyboard.v2",
         },
     )
@@ -87,11 +87,12 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     second.close()
 
     client = TestClient(create_project_folder_authoring_app(storage))
-    assert client.get("/api/v2/authoring-draft-capabilities").json() == {
+    assert client.get("/api/v2/runtime-capabilities").json() == {
         "durableProjectDrafts": True,
         "durableMediaDrafts": True,
         "explicitProjectClose": True,
         "portableSnapshots": True,
+        "apiTextPipeline": False,
     }
     approval = _approve(client, first_id, storage)
     _approve(client, second_id, storage)

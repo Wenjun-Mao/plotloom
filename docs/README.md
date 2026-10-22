@@ -1,5 +1,9 @@
 # Plotloom documentation
 
+## Creator guide
+
+- [中文创作者手册](creator/manual.zh-CN.md) — 从故事想法、审阅和双结局分支，到镜头媒体选择与播放检查。
+
 ## Current product contracts
 
 - [Development and operations](development.md)

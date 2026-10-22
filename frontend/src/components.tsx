@@ -1,9 +1,9 @@
-import type { HTMLAttributes, PropsWithChildren, ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useId, type HTMLAttributes, type PropsWithChildren, type ReactNode } from "react";
 import type { ServerStageName } from "./types";
 import { stageLabels } from "./model";
 
-export function Button({ variant = "default", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "danger" | "quiet" }) {
-  return <button {...props} className={`button ${variant} ${className}`.trim()} />;
+export function Button({ variant = "default", className = "", busy, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "primary" | "danger" | "quiet"; busy?: boolean }) {
+  return <button {...props} aria-busy={busy || undefined} className={`button ${variant} ${className}`.trim()} />;
 }
 
 export function Panel({ children, className = "", ...props }: PropsWithChildren<HTMLAttributes<HTMLElement>>) {
@@ -31,8 +31,30 @@ export function StageStatus({ staleStages, stage }: { staleStages: ServerStageNa
     : <Badge tone="ok">{stageLabels[stage]}已同步</Badge>;
 }
 
-export function Field({ label, hint, children }: PropsWithChildren<{ label: string; hint?: string }>) {
-  return <label className="field"><span>{label}</span>{children}{hint && <small>{hint}</small>}</label>;
+export function RequiredMark() {
+  return <span className="required-mark" aria-hidden="true"> *</span>;
+}
+
+export function Field({ label, hint, required, children }: PropsWithChildren<{ label: string; hint?: string; required?: boolean }>) {
+  const id = useId();
+  const labelId = `${id}-label`;
+  const hintId = `${id}-hint`;
+  const fieldChildren = Children.toArray(children);
+  const controls = fieldChildren.filter((child) =>
+    isValidElement<React.AriaAttributes & { id?: string }>(child)
+    && ["input", "select", "textarea"].includes(String(child.type)));
+  const control = controls.length === 1 && isValidElement<React.AriaAttributes & { id?: string }>(controls[0]) ? controls[0] : undefined;
+  const controlId = control?.props.id || `${id}-control`;
+  // Only a single native control owns this label. Helper text stays outside it,
+  // and compound/custom children retain their own names inside a labelled group.
+  const content = fieldChildren.map((child) => control && child === control ? cloneElement(control, {
+    id: controlId,
+    "aria-describedby": [control.props["aria-describedby"], hint ? hintId : undefined].filter(Boolean).join(" ") || undefined,
+  }) : child);
+  return <div className="field" role={control ? undefined : "group"} aria-labelledby={control ? undefined : labelId} aria-describedby={!control && hint ? hintId : undefined}>
+    {control ? <label id={labelId} htmlFor={controlId}>{label}{required && <RequiredMark />}</label> : <span id={labelId}>{label}{required && <RequiredMark />}</span>}
+    {content}{hint && <small id={hintId}>{hint}</small>}
+  </div>;
 }
 
 export function JsonPreview({ value }: { value: unknown }) {

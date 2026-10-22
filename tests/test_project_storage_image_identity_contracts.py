@@ -2,94 +2,26 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
-from io import BytesIO
 import json
+from hashlib import sha256
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
-from plotloom.project_generation_storage import ProjectPipelineExecutor
-from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.persistence.project.cast import ProjectCastPersistence
-
-from tests.project_storage_fixtures import FixtureResolver, fixture_profile
-
-
-def _png(color: tuple[int, int, int]) -> bytes:
-    output = BytesIO()
-    Image.new("RGB", (24, 16), color).save(output, format="PNG")
-    return output.getvalue()
-
-
-def _install_visible_fixture_character(store: ProjectStore) -> None:
-    """Make the fixture's first shot require one explicit identity decision."""
-
-    project_id = store.manifest.project_id
-    hero = CharacterV2(
-        id="fixture-hero",
-        name="Fixture hero",
-        role="lead",
-        description="A deterministic identity-reference fixture.",
-        visual_anchors=["red coat"],
-        sound_anchors=[],
-        allowed_states=["alert"],
-        continuity_rules=["The red coat remains visible."],
-        goal="Keep the fixture coherent.",
-        traits=["steady"],
-        voice_anchors=[],
-    )
-    bible = store.authoring.get_stage_payload(project_id, StageName.STORY_BIBLE)
-    store.update_stage(
-        StageName.STORY_BIBLE,
-        bible.model_copy(update={"characters": [hero]}),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORY_BIBLE
-        ).revision,
-    )
-    graph = store.authoring.get_stage_payload(project_id, StageName.STORY_GRAPH)
-    store.update_stage(
-        StageName.STORY_GRAPH,
-        graph,
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORY_GRAPH
-        ).revision,
-    )
-    plan = store.authoring.get_stage_payload(project_id, StageName.SCENE_BEATS)
-    store.update_stage(
-        StageName.SCENE_BEATS,
-        plan.model_copy(
-            update={
-                "scenes": [
-                    scene.model_copy(update={"character_ids": [hero.id]})
-                    for scene in plan.scenes
-                ]
-            }
-        ),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.SCENE_BEATS
-        ).revision,
-    )
-    storyboard = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
-    store.update_stage(
-        StageName.STORYBOARD,
-        storyboard.model_copy(
-            update={
-                "shots": [
-                    shot.model_copy(update={"character_ids": [hero.id]})
-                    for shot in storyboard.shots
-                ]
-            }
-        ),
-        expected_revision=store.authoring.get_stage_head(
-            project_id, StageName.STORYBOARD
-        ).revision,
-    )
+from plotloom.project_generation_storage import ProjectPipelineExecutor
+from plotloom.project_storage import ProjectFolderStorage
+from tests.image_identity_fixtures import (
+    install_visible_fixture_character as _install_visible_fixture_character,
+)
+from tests.image_identity_fixtures import png as _png
+from tests.project_storage_fixtures import (
+    FixtureResolver,
+    fixture_profile,
+)
 
 
 def _direction_draft(
@@ -117,9 +49,10 @@ def _direction_draft(
 def _identity_delivery(
     path: Path, job: dict, reference_hash: str, content: bytes
 ) -> None:
+    native_task_id = "01a1357a-249d-7e73-81fa-5e337d7bdfe5"
     provenance = {
         "codeRevision": "a" * 40,
-        "skillVersion": "plotloom-image-specialist.v3",
+        "skillVersion": "plotloom-image-specialist.v4",
         "skillHash": "b" * 64,
     }
     path.mkdir(parents=True, exist_ok=True)
@@ -128,7 +61,8 @@ def _identity_delivery(
             {
                 "jobId": job["id"],
                 "requestHash": job["requestHash"],
-                "executionContract": "codex_specialist.v2",
+                "executionContract": "codex_specialist.v3",
+                "nativeTaskId": native_task_id,
                 **provenance,
             }
         ),
@@ -140,7 +74,7 @@ def _identity_delivery(
     (path / "completion.json").write_text(
         json.dumps(
             {
-                "schemaVersion": 2,
+                "schemaVersion": 3,
                 "jobId": job["id"],
                 "requestHash": job["requestHash"],
                 "deliveryId": "identity-001",
@@ -154,7 +88,8 @@ def _identity_delivery(
                 ],
                 "toolEvidence": {
                     "tool": "codex_imagegen",
-                    "taskId": "identity-currentness-fixture",
+                    "nativeTaskId": native_task_id,
+                    "imageGenExecutionId": "exec-identity-currentness-fixture",
                     "available": True,
                 },
                 "referenceUse": {
@@ -169,7 +104,8 @@ def _identity_delivery(
 
 
 def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement(
-    tmp_path: Path, monkeypatch,
+    tmp_path: Path,
+    monkeypatch,
 ) -> None:
     accepted_cast = {
         "revision": 2,
@@ -193,10 +129,30 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
     project_id = store.manifest.project_id
     ProjectPipelineExecutor(FixtureResolver()).execute(store, profile=fixture_profile())
     _install_visible_fixture_character(store)
+    board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    board.shots[0].duration_units = 5_000
+    store.update_stage(
+        StageName.STORYBOARD,
+        board,
+        expected_revision=store.authoring.get_stage_head(
+            project_id, StageName.STORYBOARD
+        ).revision,
+    )
+    database_path = store.database_path
     store.close()
-    client = TestClient(create_project_folder_authoring_app(storage))
+    from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+    from tests.video_storage_fixtures import FakeH3
+
+    provider = FakeH3()
+    client = TestClient(
+        create_project_folder_authoring_app(
+            storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter()
+        )
+    )
     try:
-        storyboard = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"][-1]
+        storyboard = client.get(f"/api/v2/projects/{project_id}/stages").json()[
+            "stages"
+        ][-1]
         shot = storyboard["payload"]["shots"][0]
         approval = client.post(
             f"/api/v2/projects/{project_id}/storyboard-approval",
@@ -204,7 +160,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
                 "expectedRevision": storyboard["head"]["revision"],
                 "contentHash": storyboard["head"]["contentHash"],
                 "decision": "approve",
-                "reviewer": "identity fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )
@@ -273,16 +229,28 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         job = job_response.json()["job"]
         frozen = job["request"]["frozenSnapshot"]
         assert frozen["visibleCharacterIds"] == ["fixture-hero"]
-        assert frozen["characterIdentity"][0]["referenceDecisionId"] == selected_reference.json()["id"]
+        assert (
+            frozen["characterIdentity"][0]["referenceDecisionId"]
+            == selected_reference.json()["id"]
+        )
         assert frozen["characterIdentity"][0]["acceptedCast"] == accepted_cast
-        assert [entry["role"] for entry in frozen["references"]] == ["character_identity"]
+        assert [entry["role"] for entry in frozen["references"]] == [
+            "character_identity"
+        ]
 
-        copied = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/copy")
+        copied = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/copy"
+        )
         assert copied.status_code == 200, copied.text
         package = Path(copied.json()["packagePath"])
-        package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
-        assert package_request["packageVersion"] == 4
-        assert package_request["references"][0]["role"] == "character_identity:fixture-hero"
+        package_request = json.loads(
+            (package / "request.json").read_text(encoding="utf-8")
+        )
+        assert package_request["packageVersion"] == 6
+        assert (
+            package_request["references"][0]["role"]
+            == "character_identity:fixture-hero"
+        )
         assert "characterIdentity[].acceptedCast" in (
             package / "COPY_ASSIGNMENT.txt"
         ).read_text(encoding="utf-8")
@@ -290,17 +258,25 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         pin = {
             "jobId": job["id"],
             "requestHash": job["requestHash"],
-            "executionContract": "codex_specialist.v2",
-            "skillVersion": "plotloom-image-specialist.v3",
+            "executionContract": "codex_specialist.v3",
+            "nativeTaskId": "01a1357a-249d-7e73-81fa-5e337d7bdfe5",
+            "skillVersion": "plotloom-image-specialist.v4",
             "codeRevision": "a" * 40,
             "skillHash": "b" * 64,
         }
         delivery.mkdir(parents=True)
         (delivery / "executor-pin.json").write_text(json.dumps(pin), encoding="utf-8")
-        awaiting = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
+        awaiting = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh"
+        )
         assert awaiting.status_code == 200
         assert awaiting.json()["state"] == "awaiting_delivery"
-        assert client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"][0]["deliveries"] == []
+        assert (
+            client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"][0][
+                "deliveries"
+            ]
+            == []
+        )
 
         _identity_delivery(
             delivery,
@@ -367,9 +343,14 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             "storyboardRevision": storyboard["head"]["revision"],
             "approvalId": approval.json()["decision"]["id"],
         }
-        assert client.post(
+        refused = client.post(
             f"/api/v2/projects/{project_id}/still-previews", json=preview_payload
-        ).status_code == 409
+        )
+        assert refused.status_code == 409
+        assert refused.json()["code"] == "same_person_review_required"
+        assert refused.json()["shotId"] == shot["id"]
+        assert refused.json()["bindingId"] == binding.json()["id"]
+        assert "无法确认身份时不要标记通过" in refused.json()["message"]
         review = client.post(
             f"/api/v2/projects/{project_id}/same-person-reviews",
             json={
@@ -392,7 +373,23 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             f"/api/v2/projects/{project_id}/still-previews", json=preview_payload
         )
         assert preview.status_code == 201
-        assert preview.json()["manifest"]["frames"][0]["identityReviewId"] == review.json()["id"]
+        assert (
+            preview.json()["manifest"]["frames"][0]["identityReviewId"]
+            == review.json()["id"]
+        )
+        from tests.identity_review_assertions import assert_explicit_identity_decisions
+
+        assert_explicit_identity_decisions(
+            client,
+            project_id,
+            preview_payload,
+            binding.json(),
+            review.json(),
+            preview.json(),
+            provider,
+            database_path,
+            accepted_cast,
+        )
 
         replacement_asset = client.post(
             f"/api/v2/projects/{project_id}/managed-assets",
@@ -417,9 +414,31 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             },
         )
         assert replaced.status_code == 201, replaced.text
-        assert client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"][0]["current"] is False
-        assert client.get(f"/api/v2/projects/{project_id}/same-person-reviews").json()["reviews"][0]["current"] is False
-        assert client.get(f"/api/v2/projects/{project_id}/still-previews").json()["previews"][0]["state"] == "stale"
-        assert len(client.get(f"/api/v2/projects/{project_id}/character-references").json()["decisions"]) == 2
+        assert (
+            client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"][0][
+                "current"
+            ]
+            is False
+        )
+        assert (
+            client.get(f"/api/v2/projects/{project_id}/same-person-reviews").json()[
+                "reviews"
+            ][0]["current"]
+            is False
+        )
+        assert (
+            client.get(f"/api/v2/projects/{project_id}/still-previews").json()[
+                "previews"
+            ][0]["state"]
+            == "stale"
+        )
+        assert (
+            len(
+                client.get(
+                    f"/api/v2/projects/{project_id}/character-references"
+                ).json()["decisions"]
+            )
+            == 2
+        )
     finally:
         client.close()

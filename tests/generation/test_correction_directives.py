@@ -471,22 +471,6 @@ def test_current_model_correctable_semantic_families_are_registered() -> None:
     assert "semantic.v2_projection_invalid" not in SUPPORTED_CORRECTION_ISSUE_CODES
 
 
-def test_retired_dialogue_timing_fact_is_read_only_not_current_authority() -> None:
-    fact = parse_semantic_repair_fact(
-        {
-            "code": "semantic.cue_duration_underestimated",
-            "path": ["dialogueCues", 0, "estimatedDurationUnits"],
-            "timingProfileVersion": "dialogue.default.v1",
-            "matchedRuleLanguage": "zh-CN",
-            "delivery": "natural",
-            "textCharacterCount": 2,
-            "unitsPerCharacter": 330,
-            "minimumDurationUnits": 660,
-            "currentEstimatedDurationUnits": 1,
-        }
-    )
-    issue = _issue(fact.code, fact.path)
-
-    assert fact.code not in SUPPORTED_CORRECTION_ISSUE_CODES
-    with pytest.raises(CorrectionDirectivePlanError, match="not supported"):
-        compile_correction_instruction_plan([issue], [fact])
+def test_retired_dialogue_timing_fact_is_rejected() -> None:
+    with pytest.raises(ValueError):
+        parse_semantic_repair_fact({"code": "semantic.cue_duration_underestimated", "path": ["dialogueCues", 0, "estimatedDurationUnits"]})

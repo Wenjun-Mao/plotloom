@@ -1,0 +1,236 @@
+# Eight-hour E2E-first creator continuation
+
+Status: completed for the revised E2E-first scope on 2026-10-04; owner authorized
+with Relay Direct on 2026-10-03. Individual-cut owner listening is now complete;
+final-film approval remains a separate decision.
+Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
+Starting source: `e65830033edf248d22e7a6d8286f0c65e1c29698`, clean `main`.
+
+## Window and revised outcome
+
+Start: **2026-10-03 14:43:28 America/Toronto / 18:43:28 UTC**.
+Reassess progress by **16:43:28 Toronto / 20:43:28 UTC**.
+Stop new provider/native submissions by **22:13:28 Toronto / 02:13:28 UTC Oct 4**.
+Handoff no later than **22:43:28 Toronto / 02:43:28 UTC Oct 4**.
+Finish earlier if the scoped journey and verification are covered.
+
+The owner changed the priority: establish a smooth, clear, intuitive creator
+UI and reliable E2E process/code with acceptable real media. Final-production
+cinematic quality is a later pass, not this run's blocking criterion. The
+eight-hour allowance also accommodates observed slow model throughput; no
+measured tokens/second value or guaranteed completion time is asserted.
+
+This supersedes the closed
+[evening window](2026-10-02-stage4-evening-continuation.md) and its strict
+shot-level creative stopping criteria. The original-project protection,
+source ownership, dispatch safety and truthful evidence boundaries of the
+[walkthrough](2026-10-02-unattended-creator-walkthrough.md) remain in force.
+
+## Owner decisions now settled
+
+- The owner viewed A2's quality-8 following-camera trial and B1's delivered
+  initial-pivot keyframe beside C5, and judged both visually acceptable, even
+  potentially for final production. Do not continue regenerating solely for
+  A2's static-camera fidelity or B1's wider-angle geography.
+- The owner viewed the real B2 popped-out text trial and judged its readable
+  Chinese and walking-like wobble acceptable. It is a useful candidate method,
+  not a universal H3 capability claim. Preserve exact `今晚不去了，明天见。`.
+- B2/B3 may use this explicitly reviewed presentation treatment: a complete
+  unsent draft preview during composing/reviewing, followed by a separate send
+  action. Character-by-character text generation is not a walkthrough gate.
+  Record necessary source/presentation decisions; do not hide an override in
+  English H3 prose or pretend the independent trial has canonical provenance.
+- Six selected C1–C5/A1 clips and previous owner sound approvals remain valid.
+  A2/B1/bubble approvals are visual; no new listening verdict is inferred.
+  Historical rejections and immutable job/request receipts remain evidence.
+- The owner explicitly permits labeled provisional visual/technical selections
+  in the isolated copy to test both routes. Record that scope in attributed
+  reviews; new sound acceptance remains pending owner listening. Selection is
+  not final-production approval.
+- Subsequently, after hearing the six exact selected cuts, the owner said
+  “all six sound good” on October3 Toronto. The linked real-media receipt now
+  records appended A2/A3/B1–B4 listening approvals, unchanged segment hashes
+  and preserved earlier review history. All12 selected cuts have individual
+  owner sound approval; no additional final-film or assembled-route verdict.
+
+## Ordered work
+
+1. Revalidate the original semantic/file baseline, copy confinement, idle
+   specialist leases and current source/static bytes. Restore only the owned
+   isolated runtime if stopped, using the committed launcher and retained
+   private credential. No normal service/global settings restart.
+2. Identify the smallest durable supported UI/source contract for the author
+   choices above. Re-review A2 through supported controls while preserving the
+   earlier rejection; bind B1 through its own reference/intent review. Any
+   missing revision/re-review path is a workflow defect, not permission to
+   clear tombstones or rewrite old evidence.
+3. Adopt the bubble through a source-bound author presentation/review path and
+   frozen image/H3 contracts. Prefer the existing controls where sufficient;
+   repair a demonstrated model/contract gap with a concise ADR and focused
+   regressions if needed. Preserve unaffected source/media, or disclose any
+   genuine supported invalidation/rebinding rather than bypass currentness.
+4. Finish A3 and home B1–B4 real-media steps using retained acceptable assets
+   where supported. New jobs have fresh identities and execution pins. No
+   historical package replay, invented completion or duplicate uncertain send.
+5. Exercise both actual reader/player routes with selected real media, the
+   runtime question/options, normal transitions and recoverable missing/stale
+   states. Diagnose and fix usability/code failures in bounded serial slices.
+6. Verify proportionally, refresh shipped static assets where required,
+   independently review stable source candidates, commit/push scoped work and
+   leave a usable copy plus honest handoff before the cutoff.
+
+## Review and completion standard
+
+Use normal playback and inspect frames only for a noticeable comprehension
+problem or a concrete diagnostic need. Small camera/geography/typography
+variations are not routine blockers after owner acceptance. Required story
+meaning, readable message text, coherent identity and playable media still
+matter. Do not call broken workflow, wrong ownership or stale source acceptable.
+
+Report separately: implemented/tested code; actual creator UI actions; real
+generated/ingested/selected media; both route playbacks; owner visual approvals;
+pending sound/final-production creative review. Fixtures, contact sheets,
+provider success and agent statements cannot substitute for actual E2E playback.
+Final-production polishing and unrelated features are deferred.
+
+Root owns UI/provider writes on retained `main`. Source writing is serial:
+Sol/Medium implemented the ambiguous presentation contract, Luna/Max the bounded
+H3 review reopen path, and root then resumed sole source ownership. Every handoff
+was explicit; native read-only reviews found no correctness blocker. Relay Direct's
+model guide applies: Luna/Max for clear bounded work; Sol/Medium for ambiguous
+integration; Sol/High for demonstrated difficult architecture. Read-only native
+subagents remain attended and their actual finals are collected. No active
+task/global model changes, competing writer or default worktree switch.
+
+Use the existing reporting heartbeat, not a duplicate. Keep it quiet unless
+completion, failure, required user action or another actionable change occurs;
+it is continuation insurance, not a second writer. Pause it on completion or at
+the cutoff. Respect the provider stop/reassessment rules, preserve unfinished
+work and do not mark the whole goal complete merely because the window ends.
+
+## First stable continuation checkpoint
+
+Original preflight matched all 73 table, 67 file and seven API-projection facts.
+The owned 8851/8852 runtime resumed; normal services and global settings were
+not restarted. B1 was bound/reviewed, generated once at quality8 and provisionally
+selected: job `vj_4c0cb2112d6f4e82b4bba18fb75e50af`, segment
+`819da93e-0851-4451-b756-86e991cdf0c2`. A3 independently imported A2 segment
+frame59, generated once at quality8 and provisionally selected: job
+`vj_ded2a1acb90e4ebfadc20ba58ba6d265`, segment
+`27256d30-7715-429d-aa78-61ef6a540bae`. Both actual UI segment playbacks ended
+normally; both reviews explicitly leave sound acceptance pending. Eight of
+twelve clips are selected; A2/B2/B3/B4 and both complete route playbacks remain.
+
+ADRs 0107/0108 and focused regression evidence cover the new source and review
+contracts. Observed UI repairs distinguish unknown/loading from confirmed
+absence, use bounded display-only shot labels and scope image history to its
+shot while retaining an explicit full-project history. These do not modify
+frozen narrative/media authority. Candidate activation and real UI validation
+follow source verification; rebuilt frontend alone is not a runtime receipt.
+
+## E2E outcome checkpoint · 21:08 UTC
+
+Steps 1–5 are now covered in the isolated copy. All twelve real-media cuts are
+selected/current; six retain prior owner visual/sound decisions and the six
+route-finishing cuts have attributed provisional selections with new listening
+acceptance pending. A2 retains reject → reopen → select history. B2/B3 have
+fresh canonical source-bound draft/send jobs; B3's blue sent state and closed
+keyboard make sending intelligible. Smaller duplicate phone text/marks remain
+explicit output imperfections, not hidden claims of exact instruction compliance.
+
+The real standalone reader played opening → question/options → café ending and
+restart → opening → home ending. Both held their final frames without playback
+error. Return to the creator workbench preserved selections. Normal original
+backend services/project data remain unchanged. Its shared static mount exposes
+the new UI, but the cached normal backend lacks the new presentation endpoint;
+normal activation/schema upgrade is a separately requested owner choice.
+Latest backend passed 1,047 tests;
+frontend passed 413, both type checks, deterministic build and installed-wheel
+smoke. The final reader-label repair is independently reviewed and undergoing
+one shipped-UI recheck. Step6 release/CI/reporting-guard closure is the only
+remaining closeout work; no additional media generation is planned.
+
+The [real-media closeout receipt](../verification/2026-10-03-e2e-first-real-media-closeout.md)
+owns exact media identities, hashes, actual UI coverage and acceptance limits.
+Final-film polish and owner listening are subsequent reviews, not unfinished
+scope silently accepted by this checkpoint.
+
+## Release verification checkpoint
+
+Implementation `24d9acc5af7346bdbcfdf26e2976731072ce5bd3` is pushed on retained
+`main`. The final bundle has been loaded in the real isolated player; both
+routes again ended naturally, and the original baseline still matches. The
+source/static, sample-seed roundtrip and browser-control repairs retain their
+independent reviews and regression assertions. Local frontend now passes414
+tests; the backend production change passed1054 before the three CI contract
+guards were added. The unfiltered
+[release run37160134124](https://github.com/Wenjun-Mao/plotloom/actions/runs/37160134124)
+has passed its non-browser job (1057 backend and414 frontend tests, types,
+static-drift, archived reader and wheel/smoke). Both browser shards failed;
+their reports/results are preserved and current-control fixture repairs retain
+the supported assertions without increasing deadlines. Root also reproduced
+known busy-home misclassification and repaired identity-before-admission
+(ADR0110), and reserved verified video review geometry before metadata. Focused
+storage/recovery and frontend regressions pass. Independently reviewed candidate
+`93002f4da53d2c8f0db067667998309edbb6e7a7` is pushed;1062 backend and421 frontend
+tests pass locally, with both type checks and fresh static. Only the quiet
+isolated runtime was activated; both real routes ended naturally again, and
+the review geometry stayed stable before/after metadata. The original baseline
+still matches. The unfiltered
+[candidate run37164168705](https://github.com/Wenjun-Mao/plotloom/actions/runs/37164168705)
+passed its non-browser job and all65 shard2 browser tests without retries.
+Shard1 ended with3 persistent failures,3 flaky and60 passed. Exact traces
+identify three stale test expectations and shared mutable fixture state;
+the [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
+records the owning-layer repairs and preserved failure evidence. The new
+API-only isolation regression passes both cases, frontend passes421 tests,
+both type checks/build pass, and133 supported cases enumerate in42 files.
+Repair11a113e's full run passes the non-browser gate and all66 shard2 cases,
+but shard1 exposes two later transition failures and one Close/readiness flaky
+case. The same browser-closeout record owns those precise diagnoses and the
+next bounded repair; no complete release is implied by the passed gates.
+Step6 remains open until the repaired candidate passes the full unfiltered
+gate, closeout records are pushed and the
+existing reporting heartbeat is paused. No further media generation,
+normal backend activation or final-film/sound acceptance is implied.
+
+## Completed closeout · 02:24 UTC
+
+All six ordered steps are covered. The real copy contains12 selected/current
+clips, both routes have played naturally through their endings, and the player
+is left ready at the opening. The full unfiltered
+[release run37169099225](https://github.com/Wenjun-Mao/plotloom/actions/runs/37169099225)
+passed on `e835d0f3a2cd8daa52257503c8d1dd1b810d32e2` at02:23:16Z:1062 backend,
+421 frontend/56 files and133 E2E cases/42 files, with no browser failures,
+flaky retries or skips. Types, archived reader, static-drift, wheel and
+installed-wheel smoke passed. Exact failures, owning-layer fixes, independent
+reviews and terminal artifacts remain in the linked browser closeout.
+
+The final original capture still matches all73 table facts,67 file hashes and
+7 projections. Isolated specialists are idle, the bridge is current, and the
+served production bundle remains the verified93002f4 build; later commits are
+test/docs-only. The existing continuation heartbeat was paused through the
+app and its persisted `PAUSED` state verified at02:24 UTC. This completion
+record and its linked receipts are published as a documentation-only closeout;
+the CI-tested implementation SHA is not relabeled as that later documentation
+commit. Completion is within the hard02:43:28Z window, with no new provider or
+native assignment after the02:13:28Z submission boundary.
+
+At closeout, listening to A2/A3/B1–B4 remained the next owner action; the owner
+has since completed that review and approved all six cuts' sound, recorded in
+the linked receipt. Their visual/technical and final-film boundaries remain.
+At that closeout, original/normal backend activation and its additive schema
+upgrade remained unapproved and unperformed. Final-film polishing is deferred,
+not silently accepted.
+
+## Authorized normal activation follow-up · October 3, 22:56 Toronto
+
+The owner subsequently said “go ahead” to normal backend/schema activation.
+The [activation receipt](../verification/2026-10-03-normal-backend-activation.md)
+records the recreated healthy normal container and supported73→74-table
+transition: only an empty `v2_shot_presentations` table was added. All73 old
+table rows,67 managed file hashes and7 original API projections are unchanged.
+Native bridge, current endpoint/static bytes and a fresh actual UI reload pass.
+H3 remains disabled; no test-copy story/media was transferred and no new
+generation was dispatched. This separately authorized deployment does not
+reopen the completed generation window or expand creative acceptance.

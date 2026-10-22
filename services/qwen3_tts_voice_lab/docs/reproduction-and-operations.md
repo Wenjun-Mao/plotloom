@@ -165,7 +165,7 @@ and once after a real Ref2VA job (30.553 GiB host MemAvailable before Index).
 No resource thresholds, inference packages or cache policies were changed.
 The old allocation cause remains unresolved, not silently credited to 0.38.
 
-The new [ADR 0097](../../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md)
+The new [ADR 0212](../../../docs/adr/0212-published-voice-performance-takes-and-shared-admission.md)
 contract routes all Lab admissions through the gateway-owned durable lane.
 Direct Comfy/SGLang calls and unrelated GPU containers remain outside it; reserve
 operator windows for those. Advisory headroom checks are not a memory guarantee.

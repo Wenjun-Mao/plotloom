@@ -5,16 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator, model_serializer, model_validator
 
-from .canonical_schema import (
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-    V2StoryEdgeKind,
-    V2StoryNodeKind,
-)
+from .canonical_schema import StoryGraphV2
+from .generation.story_graph_topology import StoryGraphTopology
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .source_structures import MAX_SOURCE_OPTIONS
+from .source_graph_structure import SourceStructure, structure_from_seed
 
 
 SourceKind = Literal["synopsis", "imported_text", "existing_work"]
@@ -23,24 +20,58 @@ OutlineReviewStatus = Literal["missing", "candidate_ready", "accepted", "reopene
 SectionMapStatus = Literal["missing", "current", "stale"]
 
 
-class SourceMaterial(CamelModel):
-    """Author-declared source facts; declarations are not rights clearance."""
+class BriefSourceOrigin(CamelModel):
+    kind: Literal["saved_brief"] = "saved_brief"
+    revision: int = Field(ge=1)
+    content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
 
+
+class SourceMaterial(CamelModel):
+    """Accepted source content; optional metadata never establishes clearance."""
+
+    brief_origin: BriefSourceOrigin | None = None
     kind: SourceKind
     title: str = Field(min_length=1, max_length=300)
     text: str = Field(min_length=1, max_length=1_000_000)
-    attribution: str = Field(min_length=1, max_length=4_000)
-    rights_declaration: str = Field(min_length=1, max_length=4_000)
-    adaptation_intent: str = Field(min_length=1, max_length=8_000)
+    attribution: str | None = Field(default=None, max_length=4_000)
+    rights_declaration: str | None = Field(default=None, max_length=4_000)
+    adaptation_intent: str = Field(default="", max_length=8_000)
     invented_additions: str | None = Field(default=None, max_length=8_000)
 
-    @field_validator("title", "text", "attribution", "rights_declaration", "adaptation_intent")
+    @field_validator("title", "text")
     @classmethod
-    def require_nonblank(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
+    def require_nonblank(cls, value: str, info: ValidationInfo) -> str:
+        if not value.strip():
             raise ValueError("source fields must not be blank")
-        return value
+        return value if info.data.get("brief_origin") else value.strip()
+
+    @model_serializer(mode="wrap")
+    def serialize_source(self, handler):
+        result = handler(self)
+        if self.brief_origin is None:
+            result.pop("briefOrigin", None)
+            result.pop("brief_origin", None)
+        return result
+
+    @field_validator("adaptation_intent")
+    @classmethod
+    def trim_direction(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def require_imported_adaptation_goal(self) -> "SourceMaterial":
+        if self.brief_origin is not None and (self.kind != "synopsis" or self.attribution is not None or self.rights_declaration is not None or self.adaptation_intent or self.invented_additions is not None):
+            raise ValueError("Brief-derived source contains only the exact synopsis and origin")
+        if self.kind != "synopsis" and not self.adaptation_intent:
+            raise ValueError("imported stories require an explicit adaptation goal")
+        return self
+
+    @field_validator("attribution", "rights_declaration")
+    @classmethod
+    def normalize_optional_metadata(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
 
     def assert_safe(self) -> None:
         if contains_secret_setting(self.model_dump(mode="json", by_alias=True)) or contains_secret_value(self.model_dump(mode="json", by_alias=True)):
@@ -83,16 +114,17 @@ class AcceptedOutlineRevision(CamelModel):
 
 
 class StorySection(CamelModel):
-    """One explicitly authored, stable source section; this is not a graph node."""
+    """Reviewed prose for one stable routing section."""
 
     section_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     title: str = Field(min_length=1, max_length=300)
     summary: str = Field(min_length=1, max_length=8_000)
     ending: bool = False
+    footage_mode: Literal["footage", "route_only"]
 
 
 class BranchOutcome(CamelModel):
-    """A labelled author choice and the explicit consequence/ending it reaches."""
+    """A labelled option and the explicit consequence/next section it reaches."""
 
     outcome_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     label: str = Field(min_length=1, max_length=300)
@@ -104,14 +136,18 @@ class SectionChoice(CamelModel):
     choice_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     section_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     prompt: str = Field(min_length=1, max_length=2_000)
-    outcomes: list[BranchOutcome] = Field(min_length=2, max_length=2)
+    outcomes: list[BranchOutcome] = Field(min_length=2, max_length=MAX_SOURCE_OPTIONS)
 
 
 class SectionMap(CamelModel):
-    """The F1B bounded branch map: sections plus exactly one binary decision."""
+    """One reviewed author structure with the original immutable planner seed."""
 
-    sections: list[StorySection] = Field(min_length=3, max_length=3)
-    choice: SectionChoice
+    sections: list[StorySection] = Field(min_length=1, max_length=128)
+    seed_topology: StoryGraphTopology
+    topology_origin: Literal["planner", "author"]
+    topology: SourceStructure
+    choices: list[SectionChoice]
+    join_reconciliations: dict[str, str]
 
     @field_validator("sections")
     @classmethod
@@ -120,95 +156,52 @@ class SectionMap(CamelModel):
             raise ValueError("section IDs must be unique")
         return sections
 
-    @field_validator("choice")
+    @field_validator("choices")
     @classmethod
-    def require_unique_outcomes(cls, choice: SectionChoice) -> SectionChoice:
-        if len({outcome.outcome_id for outcome in choice.outcomes}) != len(choice.outcomes):
-            raise ValueError("outcome IDs must be unique")
-        return choice
+    def require_unique_outcomes(cls, choices: list[SectionChoice]) -> list[SectionChoice]:
+        for choice in choices:
+            if len({outcome.outcome_id for outcome in choice.outcomes}) != len(choice.outcomes):
+                raise ValueError("outcome IDs must be unique")
+        return choices
 
     def validate_links(self) -> None:
-        sections = {section.section_id: section for section in self.sections}
-        if self.choice.section_id not in sections:
-            raise ValueError("choice section must be an explicit section")
-        if sections[self.choice.section_id].ending:
-            raise ValueError("an ending section cannot own the choice")
-        ending_ids = [outcome.ending_section_id for outcome in self.choice.outcomes]
-        if len(set(ending_ids)) != 2:
-            raise ValueError("each outcome must lead to a distinct ending section")
-        if any(section_id not in sections or not sections[section_id].ending for section_id in ending_ids):
-            raise ValueError("each outcome must lead to an explicit ending section")
-        if len(sections) != 3 or len([section for section in sections.values() if section.ending]) != 2:
-            raise ValueError("F1B requires exactly one entry section and exactly two ending sections")
-        if set(ending_ids) != {section.section_id for section in sections.values() if section.ending}:
-            raise ValueError("the two outcomes must reach every explicit ending section")
+        from .source_structure_validation import validate_structure_links
+        validate_structure_links(self)
+        planner_membership = [(node.id, node.footage_mode) for node in self.seed_topology.nodes]
+        authored_membership = [(section.section_id, section.footage_mode) for section in self.sections]
+        if self.topology_origin == "planner" and (
+            self.topology != structure_from_seed(self.seed_topology)
+            or authored_membership != planner_membership
+        ):
+            raise ValueError("author-edited structure must declare author provenance")
+
+    @model_validator(mode="after")
+    def require_complete_structure(self) -> "SectionMap":
+        self.validate_links()
+        return self
 
 
 def compile_section_map_graph(mapping: SectionMap) -> StoryGraphV2:
-    """Compile the bounded author map into the canonical graph owner.
-
-    This is not a general map-to-graph converter. Its exact three-node shape
-    preserves author IDs and routes only the F1B pilot's declared choice.
-    """
+    """Compile only the admitted structure into the canonical routing owner."""
 
     mapping.validate_links()
-    sections = {section.section_id: section for section in mapping.sections}
-    entry = sections[mapping.choice.section_id]
-    return StoryGraphV2(
-        start_node_id=entry.section_id,
-        nodes=[
-            StoryNodeV2(
-                id=section.section_id,
-                title=section.title,
-                summary=section.summary,
-                kind=V2StoryNodeKind.START if section.section_id == entry.section_id else V2StoryNodeKind.ENDING,
-            )
-            for section in mapping.sections
-        ],
-        edges=[
-            StoryEdgeV2(
-                id=outcome.outcome_id,
-                source_node_id=entry.section_id,
-                target_node_id=outcome.ending_section_id,
-                kind=V2StoryEdgeKind.CHOICE,
-                choice_text=outcome.label,
-                state_effects={
-                    "sourceMapChoiceId": mapping.choice.choice_id,
-                    "sourceMapOutcomeId": outcome.outcome_id,
-                    "sourceMapConsequence": outcome.consequence,
-                },
-                entity_state_effects=[],
-            )
-            for outcome in mapping.choice.outcomes
-        ],
-        join_contracts=[],
-    )
+    from .source_structures import compile_structure
+    return compile_structure(mapping)
 
 
-def validate_section_map_graph(graph: StoryGraphV2, brief: Any) -> None:
-    """Reuse graph structural validation for the map-owned binary envelope.
+def validate_section_map_graph(graph: StoryGraphV2, brief: Any, bible: Any = None) -> None:
+    """Validate actual viewer choices and endings against the saved Brief."""
 
-    F1B's entry node is intentionally also the binary branch point. The normal
-    authoring contract counts only explicit ``decision`` nodes, so applying it
-    verbatim would require a synthetic fourth node the player does not need.
-    This narrow admission has no Bible or entity effects and only changes that
-    count for this exact, already-compiled source-map graph.
-    """
+    from .validation import DomainValidationError, validate_story_graph
+    from .node_footage import route_only_state_issues
+    issues = route_only_state_issues(graph)
+    if issues:
+        raise DomainValidationError(issues)
+    if any(edge.entity_state_effects for edge in graph.edges) and bible is None:
+        raise ValueError("typed entity state effects require a current accepted Story Bible")
 
-    if any(edge.entity_state_effects for edge in graph.edges):
-        raise ValueError("source-map graph admission forbids entity state effects")
-    from .validation import validate_story_graph
+    validate_story_graph(graph, brief, bible=bible)
 
-    validate_story_graph(
-        graph,
-        brief.model_copy(update={
-            "decision_points_per_path": 0,
-            "ending_count": 2,
-            "desired_join_count": 0,
-        }),
-        strict_v2=True,
-        bible=None,
-    )
 
 
 class AcceptedSectionMapRevision(CamelModel):
@@ -263,7 +256,14 @@ class OutlineReopenRequest(CamelModel):
     expected_outline_revision: int = Field(ge=1)
 
 
+class OutlineReturnRequest(OutlineReopenRequest):
+    expected_source_revision: int = Field(ge=1)
+    expected_outline_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_candidate_job_id: str | None = None
+
+
 class SectionMapSaveRequest(CamelModel):
+    expected_graph_draft_revision: int = Field(ge=1)
     expected_section_map_revision: int = Field(ge=0)
     expected_source_revision: int = Field(ge=1)
     expected_outline_revision: int = Field(ge=1)
@@ -279,3 +279,4 @@ class SectionMapGraphInstallRequest(CamelModel):
     expected_section_map_revision: int = Field(ge=1)
     expected_section_map_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     expected_graph_revision: int = Field(ge=0)
+    expected_graph_draft_revision: int = Field(ge=1)

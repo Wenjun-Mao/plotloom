@@ -1,4 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
+import { specialistsApi } from "../../specialists/api";
+import { reconcileFailedSend } from "../../specialists/reconcileFailedSend";
 import type {
   ApprovalDecision,
   ReviewedKeyframe,
@@ -63,7 +65,7 @@ export function useImageJobActions({
     }
     if (imageJobDirection.stale) {
       setError(
-        "这个方向草稿来自旧的 Approval、分镜或参考上下文；请显式恢复或放弃它。",
+        "这个方向草稿来自旧的分镜批准、镜头或参考上下文；请明确恢复或放弃它。",
       );
       return;
     }
@@ -75,7 +77,7 @@ export function useImageJobActions({
       mediaDraftsEnabled
       && (!imageJobDirection.serverReady || imageJobDirection.serverRevision < 1 || imageJobDirection.serverConflict)
     ) {
-      setError("等待当前 image 方向草稿得到项目 CAS 确认后再准备 job。");
+      setError("请等待当前图片方向草稿保存到项目后，再准备任务。");
       return;
     }
     setBusy(true);
@@ -85,6 +87,7 @@ export function useImageJobActions({
         approvalId: currentApproval.id,
         shotId: selectedShot.id,
         storyboardRevision,
+        sceneContinuityBindingId: imageJobTarget.kind === "original" ? imageJobTarget.sceneContinuityBindingId : undefined,
         parentCandidateAssetId:
           imageJobTarget.kind === "refinement"
             ? imageJobTarget.parentCandidateAssetId
@@ -109,7 +112,7 @@ export function useImageJobActions({
       await refresh();
     } catch (jobError) {
       setError(
-        jobError instanceof Error ? jobError.message : "无法准备 image job",
+        jobError instanceof Error ? jobError.message : "无法准备图片任务",
       );
     } finally {
       setBusy(false);
@@ -133,17 +136,17 @@ export function useImageJobActions({
     setBusy(true);
     setError("");
     try {
-      const copied = await plotloomApi.copyImageJob(projectId, jobId);
+      await reconcileFailedSend(() => specialistsApi.sendImage(projectId, jobId), refresh);
       setImageJobRefreshNotice((current) => ({
         ...current,
-        [jobId]: "已发送给专用 specialist；队列接受不代表生成或 delivery。完成后将自动检查 receipt。",
+        [jobId]: "已发送给图像生成助手；排队不代表生成完成或交付。完成后将自动检查交付记录。",
       }));
       await refresh();
     } catch (jobError) {
       setError(
         jobError instanceof Error
           ? jobError.message
-          : "无法发送 specialist image job",
+          : "无法发送图片任务",
       );
     } finally {
       setBusy(false);
@@ -159,15 +162,15 @@ export function useImageJobActions({
         ...current,
         [jobId]:
           result.state === "awaiting_delivery"
-            ? "尚未收到 delivery。specialist 完成 JPEG/PNG 与 completion.json 后再检查；这不是失败或已选择。"
-            : "已检查 delivery receipt。",
+            ? "尚未收到交付。请等待图像生成助手完成图片与交付记录后再检查；等待不代表失败，也不代表已选择。"
+            : "已检查交付记录；候选仍需审核选择。",
       }));
       await refresh();
     } catch (jobError) {
       setError(
         jobError instanceof Error
           ? jobError.message
-          : "无法刷新 specialist delivery",
+          : "无法检查图片交付",
       );
     } finally {
       setBusy(false);
@@ -186,7 +189,7 @@ export function useImageJobActions({
       await refresh();
     } catch (jobError) {
       setError(
-        jobError instanceof Error ? jobError.message : "无法取消 image job",
+        jobError instanceof Error ? jobError.message : "无法取消图片任务",
       );
     } finally {
       setBusy(false);

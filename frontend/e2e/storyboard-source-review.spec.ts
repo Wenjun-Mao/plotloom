@@ -7,26 +7,40 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   test("freezes/reloads/re-copies, validates real upstream content, accepts read-only review and persists restart", async ({ page, request, workbench }) => {
     test.setTimeout(90_000);
     const id = await createScriptProject(request, workbench.apiOrigin, "accept");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
     const prepared = await prepare(page, panel, id);
     const frozen = await readFile(path.join(prepared.packagePath, "request.json"));
     const admission = JSON.parse(await readFile(path.join(prepared.packagePath, "inputs/storyboard-admission.json"), "utf8"));
+    const acceptedScript = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`))).acceptedScript;
+    expect(prepared.binding.dialogueTimingContract.language).toBe("en");
+    expect(prepared.binding.scriptRevision).toBe(acceptedScript.revision);
+    expect(prepared.binding.scriptContentHash).toBe(acceptedScript.contentHash);
+    expect(prepared.binding.dialogueTimingContract.scriptContentHash).toBe(acceptedScript.contentHash);
+    expect(prepared.binding).toMatchObject({
+      reviewMinCutSeconds: 2, reviewMaxCutSeconds: 8, reviewMaxSegmentSeconds: 15,
+      targetPlaythroughSeconds: 180, routeOnlySectionIds: ["power-choice"],
+      completeRouteSectionIds: [["opening", "power-choice", "beacon"], ["opening", "power-choice", "dock"]],
+    });
+    const timing = JSON.parse(await readFile(path.join(prepared.packagePath, "inputs/dialogue-timing-contract.json"), "utf8"));
+    expect(timing).toEqual(prepared.binding.dialogueTimingContract);
+    expect(timing.lines).toHaveLength(22);
     expect(admission.reviewTiming).toEqual({ minCutSeconds: 2, maxCutSeconds: 8, maxSegmentSeconds: 15 });
     expect(admission.sectionBindings.map((entry: any) => entry.sectionId)).toEqual(["opening", "beacon", "dock"]);
     await page.reload();
+    await panel.getByText("查看任务说明（手动方式）", { exact: true }).click();
     const copied = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${prepared.jobId}/handoff`));
-    await panel.getByRole("button", { name: "重新复制冻结 handoff" }).click();
+    await panel.getByRole("button", { name: "恢复分镜任务" }).click();
     const recovered = await json(await copied);
     expect(recovered.assignment).toBe(prepared.assignment);
     expect(recovered.packagePath).toBe(prepared.packagePath);
     expect(recovered.deliveryPath).toBe(prepared.deliveryPath);
     expect(await readFile(path.join(prepared.packagePath, "request.json"))).toEqual(frozen);
-    await expect(panel.getByLabel("复制给 specialist 的冻结任务")).toHaveValue(prepared.assignment);
+    await expect(panel.getByLabel("分镜完整任务")).toHaveValue(prepared.assignment);
     await writeDelivery(prepared);
-    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("50165863d45e678c28bcf794c6f9f5444b6aa45eef2caa446595dd638313578a");
+    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("c3961f73e063aeb361ec44c8a86d8215d6b0f118bd608e867a2b60d60923eb63");
     await refresh(page, panel, id, prepared.jobId);
-    await panel.getByText("查看待接受 storyboard", { exact: true }).click();
+    await panel.getByText("查看待审阅分镜", { exact: true }).click();
     await expect(panel.getByTestId("storyboard-cut").first()).toContainText("wide shot of a lone beacon keeper");
     await expect(panel.getByTestId("storyboard-cut").first()).toBeVisible();
     await expect(panel).toContainText("Characters: keeper");
@@ -35,14 +49,14 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     const script = await fixture("script.json");
     const lines = script.episodes.flatMap((episode: any) => episode.scenes.flatMap((scene: any) => scene.flow.filter((beat: any) => beat.line).map((beat: any) => ({ ...beat, ep: episode.ep }))));
     expect(lines).toHaveLength(22);
-    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[Chinese] ${line.line}</d>` })).toHaveCount(1);
-    await panel.getByRole("button", { name: "显式接受 review revision" }).click();
-    await expect(panel).toContainText("已接受 review r1");
-    await panel.getByText("查看当前已接受 storyboard", { exact: true }).click();
+    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[English] ${line.line}</d>` })).toHaveCount(1);
+    await panel.getByRole("button", { name: "确认此分镜评审方案" }).click();
+    await expect(panel).toContainText("已确认评审 r1");
+    await panel.getByText("查看当前已确认分镜", { exact: true }).click();
     await expect(panel.getByTestId("storyboard-cut").first()).toContainText("wide shot of a lone beacon keeper");
     await expect(panel.getByTestId("storyboard-cut").first()).toBeVisible();
     expect(await panel.locator("textarea:not([readonly])").count()).toBe(0);
-    await panel.getByText("打开原始只读上游报告", { exact: true }).click();
+    await panel.getByText("阅读原始分镜报告（只读）", { exact: true }).click();
     await expect(panel.frameLocator("iframe").locator("body")).toContainText("One cable. Two places need it.");
     const report = await request.get(`${endpoint(workbench.apiOrigin, id)}/candidates/${prepared.jobId}/report`);
     expect(await report.body()).toEqual(await readFile(path.join(prepared.deliveryPath, "report.html")));
@@ -50,9 +64,9 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     const state = await json(request.get(endpoint(workbench.apiOrigin, id)));
     expect(state.acceptedReview.storyboard).toEqual(await fixture("storyboard.json"));
     await workbench.restartBackend(); await page.reload();
-    await expect(panel).toContainText("已接受 review r1");
-    await panel.getByText("查看当前已接受 storyboard", { exact: true }).click();
-    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[Chinese] ${line.line}</d>` })).toHaveCount(1);
+    await expect(panel).toContainText("已确认评审 r1");
+    await panel.getByText("查看当前已确认分镜", { exact: true }).click();
+    for (const line of lines) await expect(panel.locator(`[data-episode="${line.ep}"]`).getByTestId("storyboard-h3-direction").filter({ hasText: `<d>[English] ${line.line}</d>` })).toHaveCount(1);
     expect((await json(request.get(endpoint(workbench.apiOrigin, id)))).acceptedReview).toEqual(state.acceptedReview);
     const stages = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/stages`));
     expect(stages.stages.filter((stage: any) => stage.payload).map((stage: any) => stage.head.stage)).toEqual(["story_graph"]);
@@ -61,40 +75,58 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   test("rejects ready review, replaces it, blocks snapshots until cancellation, and refuses late delivery", async ({ page, request, workbench }) => {
     const id = await createScriptProject(request, workbench.apiOrigin, "cancel");
     const root = endpoint(workbench.apiOrigin, id);
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
     const first = await prepare(page, panel, id);
     await writeDelivery(first); await refresh(page, panel, id, first.jobId);
     expect((await request.post(`${root}/candidates`)).status()).toBe(409);
-    await panel.getByRole("button", { name: "拒绝并取消此 review" }).click();
-    await expect(panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" })).toBeEnabled();
+    await panel.getByRole("button", { name: "拒绝并取消此评审" }).click();
+    await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
     const next = await prepare(page, panel, id);
     expect(next.jobId).not.toBe(first.jobId);
-    await expect(panel.getByRole("button", { name: "取消 handoff" })).toBeEnabled();
+    await expect(panel.getByRole("button", { name: "取消此任务" })).toBeEnabled();
     const lifecycle = `${workbench.apiOrigin}/api/v2/projects/${id}`;
     expect((await request.post(`${lifecycle}/snapshots`)).status()).toBe(409);
     expect((await request.post(`${lifecycle}/close`)).status()).toBe(409);
-    await panel.getByRole("button", { name: "取消 handoff" }).click();
-    await expect(panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" })).toBeEnabled();
+    await panel.getByRole("button", { name: "取消此任务" }).click();
+    await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
     await writeDelivery(next);
     expect((await request.post(`${root}/candidates/${next.jobId}/refresh`)).ok()).toBeFalsy();
-    const snapshot = await request.post(`${lifecycle}/snapshots`);
+    // Exercise the requesting client's read-settlement boundary (ADR 0124).
+    // A direct API write here races the mounted specialist status readers.
+    const snapshotResponse = page.waitForResponse(response => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${id}/snapshots`);
+    await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
+    const snapshot = await snapshotResponse;
     expect(snapshot.ok(), await snapshot.text()).toBeTruthy();
     expect((await json(request.get(root))).candidate).toBeNull();
   });
 
-  test("upstream edits refuse prepared re-copy and ready replay/acceptance; cancelled stale review can be replaced", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "stale");
+  test("upstream edits refuse prepared re-copy; cancellation permits a source-current replacement", async ({ page, request, workbench }) => {
+    const id = await createScriptProject(request, workbench.apiOrigin, "stale-prepared");
     const root = endpoint(workbench.apiOrigin, id);
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
     const first = await prepare(page, panel, id);
     await changeScript(request, workbench.apiOrigin, id);
     const recopy = await request.get(`${root}/candidates/${first.jobId}/handoff`);
     expect(recopy.status(), await recopy.text()).toBe(409);
     await page.reload(); await expect(panel).toContainText("上下文已过期");
-    await panel.getByRole("button", { name: "取消 handoff" }).click();
-    await expect(panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" })).toBeEnabled();
+    await panel.getByRole("button", { name: "取消此任务" }).click();
+    await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
+    const next = await prepare(page, panel, id);
+    expect(next.binding.scriptRevision).toBe(2);
+    await expect(panel.getByRole("button", { name: "取消此任务" })).toBeEnabled();
+  });
+
+  test("upstream edits refuse ready replay/acceptance and invalidate accepted review; stale review can be replaced", async ({ page, request, workbench }) => {
+    const id = await createScriptProject(request, workbench.apiOrigin, "stale-ready-accepted");
+    const root = endpoint(workbench.apiOrigin, id);
+    // Begin at the same r2 source as the prepared-replacement journey, while
+    // keeping its repeated hydration work outside this distinct ready-state case.
+    await changeScript(request, workbench.apiOrigin, id);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
+    const panel = page.getByTestId("storyboard-review");
     const next = await prepare(page, panel, id);
     await writeDelivery(next); await refresh(page, panel, id, next.jobId);
     await changeScript(request, workbench.apiOrigin, id);
@@ -102,17 +134,17 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     expect(replay.status(), await replay.text()).toBe(409);
     expect((await request.post(`${root}/accept`, { data: { jobId: next.jobId, expectedReviewRevision: next.expectedReviewRevision, binding: next.binding } })).status()).toBe(409);
     await page.reload(); await expect(panel).toContainText("上下文已过期");
-    await panel.getByRole("button", { name: "拒绝并取消此 review" }).click();
-    await expect(panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" })).toBeEnabled();
+    await panel.getByRole("button", { name: "拒绝并取消此评审" }).click();
+    await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
     const replacement = await prepare(page, panel, id);
     await writeDelivery(replacement); await refresh(page, panel, id, replacement.jobId);
-    await panel.getByRole("button", { name: "显式接受 review revision" }).click();
-    await expect(panel).toContainText("已接受 review r1");
+    await panel.getByRole("button", { name: "确认此分镜评审方案" }).click();
+    await expect(panel).toContainText("已确认评审 r1");
     await changeScript(request, workbench.apiOrigin, id); await page.reload();
     await expect(panel).toContainText("上下文已过期");
     const current = await prepare(page, panel, id);
     expect(current.binding.scriptRevision).toBe(4);
-    await expect(panel.getByRole("button", { name: "取消 handoff" })).toBeEnabled();
+    await expect(panel.getByRole("button", { name: "取消此任务" })).toBeEnabled();
   });
 
   test("ready replay rechecks current upstream binding before idempotent return", async ({ request, workbench }) => {
@@ -139,10 +171,17 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     for (const changed of [
       (board: any) => { board.params.maxCutSeconds = 9; },
       (board: any) => { board.params.minCutSeconds = 1; },
-      (board: any) => { board.episodes[0].segments[0].h3Prompt = board.episodes[0].segments[0].h3Prompt.replace("<d>[Chinese] One cable. Two places need it.</d>", ""); },
+      (board: any) => {
+        const block = "<d>[English] One cable. Two places need it.</d>";
+        const segment = board.episodes[0].segments[0];
+        expect(segment.h3Prompt).toContain(block);
+        segment.h3Prompt = segment.h3Prompt.replace(block, "");
+        expect(segment.h3Prompt).not.toContain(block);
+      },
     ]) {
       const board = JSON.parse(original.toString()); changed(board);
       const content = Buffer.from(JSON.stringify(board)); await writeFile(file, content);
+      expect(content).not.toEqual(original);
       await writeFile(manifestFile, JSON.stringify({ ...manifest, candidate: { ...manifest.candidate, sha256: hash(content) } }));
       const response = await request.post(`${root}/candidates/${prepared.jobId}/refresh`);
       expect(response.ok(), await response.text()).toBeFalsy();

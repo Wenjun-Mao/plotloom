@@ -25,12 +25,14 @@ from ...exceptions import (
 )
 from ...validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
 from ..codec import _stored_utc, stable_hash
+from ...review_drafts import ReviewBufferPayload
 from ..schema import (
     ApprovalDecisionRow, AuthoringDraftRow, EntityRevisionRow, GateResultRow,
     GenerationRunRow, GenerationWorkUnitRow, ManagedAssetRow, MediaTaskRow,
     ProjectCreationIdempotencyRow, ProjectDuplicateIdempotencyRow, ProjectRow,
     StageHeadRow,
 )
+from .autopilot_authority import require_manual_command
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
 
@@ -67,6 +69,18 @@ class ProjectDraftPersistence:
         self, session: Session, project_id: str, before: ProjectBrief,
         after: ProjectBrief, now: datetime,
     ) -> None:
+        structural_fields = {"decision_points_per_path", "ending_count", "node_budget", "max_out_degree", "desired_join_count"}
+        if any(getattr(before, name) != getattr(after, name) for name in structural_fields):
+            from ..schema import SourceOutlineSectionMapHeadRow, SourceOutlineGraphAdmissionRow
+            mapping = session.get(SourceOutlineSectionMapHeadRow, project_id)
+            if mapping and mapping.revision:
+                mapping.status = "stale"
+                mapping.stale_reasons = ["剧情结构设置已变化，请按当前简报重新审阅分支。"]
+                mapping.updated_at = now
+            admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
+            if admission:
+                admission.status = "stale"
+                admission.stale_reasons = ["剧情结构设置已变化，请重新确认分支与故事路线。"]
         for stage in self._brief_dependent_stages(before, after):
             head = self._access.rows.stage(session, project_id, stage)
             if head.status != StageStatus.MISSING.value:
@@ -75,6 +89,7 @@ class ProjectDraftPersistence:
                 head.updated_at = now
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
+        require_manual_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)
@@ -148,6 +163,7 @@ class ProjectDraftPersistence:
         """Atomically save a brief and consume the exact acknowledged draft."""
 
         canonical_payload = brief.model_dump(mode="json", by_alias=True)
+        require_manual_command(self._access)
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)
@@ -173,6 +189,9 @@ class ProjectDraftPersistence:
 
     @staticmethod
     def _authoring_draft(row: AuthoringDraftRow) -> AuthoringDraft:
+        ProjectDraftPersistence._validate_authoring_draft_identity(row.editor_scope, row.entity_id)
+        if row.editor_scope == "story_graph":
+            ProjectDraftPersistence._validate_authoring_draft_payload(row.editor_scope, row.payload)
         return AuthoringDraft(
             project_id=row.project_id,
             editor_scope=row.editor_scope,
@@ -182,6 +201,11 @@ class ProjectDraftPersistence:
             payload=row.payload,
             updated_at=_stored_utc(row.updated_at),
         )
+
+    @staticmethod
+    def _validate_authoring_draft_identity(editor_scope: AuthoringDraftScope, entity_id: str) -> None:
+        if editor_scope == "story_graph" and entity_id != "root":
+            raise ValueError("the shared story graph draft must use the root identity")
 
     @staticmethod
     def _validate_authoring_draft_payload(
@@ -198,6 +222,11 @@ class ProjectDraftPersistence:
             return VisualIntentDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         if editor_scope == "image_direction":
             return ImageDirectionDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "review_buffer":
+            return ReviewBufferPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "story_graph":
+            from ...graph_authoring_drafts import GraphAuthoringDraft
+            return GraphAuthoringDraft.model_validate(payload).model_dump(mode="json", by_alias=True)
         stage = StageName(editor_scope)
         return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
             payload
@@ -209,7 +238,7 @@ class ProjectDraftPersistence:
         project: ProjectRow,
         editor_scope: AuthoringDraftScope,
     ) -> int:
-        if editor_scope == "brief":
+        if editor_scope in {"brief", "review_buffer"}:
             return project.revision
         if editor_scope in {"visual_intent", "image_direction"}:
             return self._access.rows.stage(session, project.id, StageName.STORYBOARD).revision
@@ -237,7 +266,10 @@ class ProjectDraftPersistence:
     ) -> AuthoringDraft:
         """CAS one bounded editor buffer against its exact canonical owner."""
 
+        self._validate_authoring_draft_identity(editor_scope, entity_id)
         validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
+        if editor_scope == "review_buffer" and entity_id != validated_payload["editor"]:
+            raise ValueError("review draft identity does not match its editor")
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
@@ -283,6 +315,19 @@ class ProjectDraftPersistence:
                     expected_draft_revision,
                     current_draft_revision,
                 )
+            if editor_scope == "story_graph":
+                from ...graph_authoring_drafts import GraphAuthoringDraft
+                from .graph_draft_context import assert_graph_draft_context, assert_graph_draft_seed
+                draft = GraphAuthoringDraft.model_validate(validated_payload)
+                prior = GraphAuthoringDraft.model_validate(row.payload) if row else None
+                if prior is not None:
+                    assert_graph_draft_context(session, self._access, project_id, prior)
+                assert_graph_draft_context(session, self._access, project_id, draft)
+                assert_graph_draft_seed(session, self._access, project_id, draft, prior)
+                from ...graph_edit_safety import assert_edit_safe
+                from ...graph_draft_creation import create_graph_draft
+                baseline = prior or create_graph_draft(binding_hash=draft.binding_hash, seed=draft.mapping.seed_topology)
+                assert_edit_safe(baseline, draft, ProjectBrief.model_validate(project.brief))
             now = utc_now()
             if row is None:
                 row = AuthoringDraftRow(

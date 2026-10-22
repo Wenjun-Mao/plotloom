@@ -1,0 +1,7 @@
+**
+!pyproject.toml
+!uv.lock
+!services
+!services/creator_workbench
+!services/creator_workbench/**
+services/creator_workbench/__pycache__

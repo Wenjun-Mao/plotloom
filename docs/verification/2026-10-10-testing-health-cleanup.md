@@ -1,0 +1,1991 @@
+# Testing health cleanup
+
+Status of the original cleanup: implemented, independently reviewed, locally/
+hosted qualified and published on the isolated branch. This receipt retains
+baseline and failed attempts separately from the corrected combined gate. Normal
+cutover is not authorized by this performance follow-up.
+
+## Performance follow-up P0–P4 (local and hosted qualification complete)
+
+### P0 — same-host baseline and safety map
+
+Baseline source revision is `dbd0e246cd2280a1fdcb06a5e31d262ba23fa921`; the
+only pre-existing worktree edits are the owner-approved roadmap plan and index.
+The tested source, Python, Node, CI and lock inputs match that revision. Samples
+ran serially on an Apple M5 Pro, macOS 27.0.1 arm64, using Python 3.12.13,
+`uv 0.12.19`, Node v24.18.0 and npm 11.16.0. The pinned Shuohao submodule is
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`. Each sample used a new pytest
+`--basetemp` under the system temporary directory; no owner project or service
+was opened or changed.
+
+The two approved pair cases are exactly:
+
+- `tests/test_production_rebuild_freshness.py::test_target_drift_is_visible_and_fresh_preparation_recovers_without_borrowing_reviews`
+- `tests/test_production_bridge_runtime_http.py::test_runtime_http_fake_inference_review_edit_save_then_explicit_install`
+
+The preselected additional four-case bridge/rebuild/currentness family is exactly:
+
+- `tests/test_production_bridge.py::test_bridge_rejects_stale_brief_and_stale_f4_inputs`
+- `tests/test_production_bridge.py::test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails`
+- `tests/test_production_rebuild_freshness.py::test_target_drift_blocks_model_dispatch_or_late_adoption[queued]`
+- `tests/test_production_rebuild_freshness.py::test_target_drift_blocks_model_dispatch_or_late_adoption[dispatched]`
+
+Commands for each unprofiled sample used
+`uv run --locked --no-sync pytest -q <exact selectors> --basetemp <fresh temporary root>`.
+The pair passed three times in **47.261s, 46.946s and 46.964s** (median
+**46.964s**); the four-case family passed three times in **49.575s, 49.647s and
+49.493s** (median **49.575s**). All six commands exited 0. Complete command
+lines and pytest output are retained in `/tmp/plotloom-p0-baseline-20261010.log`
+and its JSON summary.
+
+A separate profiled pair run passed in 50.774s wall time. cProfile counted
+1,026 calls through `cast_style._run` (28.260s cumulative) and 513 through
+`art_style._run` (14.090s cumulative): **1,539 Node starts** in the pair. It
+counted 1,008 Cast and 501 Art currentness comparisons. Each calls contract
+derivation; preparation adds two derivations per style, while the four Cast and
+four Art `validate_*_style` calls remain separate Node validations. It also
+counted 1,571 total `subprocess.run` calls (42.776s cumulative); these nested
+figures are attribution, not additive wall-time estimates. The profile is
+`/tmp/plotloom-p0-profile-20261010.pstats`, with command and console result in
+`/tmp/plotloom-p0-profile-20261010.log`.
+
+The imported rule dependency closure is `scripts/cast-style.mjs` plus the pinned
+`novel-characters/scripts/novel-characters.mjs`, and `scripts/art-style.mjs` plus
+`novel-art/scripts/novel-art.mjs` and its local `gate-summary.mjs` import. The
+upstream modules use Node built-ins and have no further local imports. The
+currentness owners in `persistence/project/cast.py` and `art.py` read current
+project direction and compare each stored binding with a freshly derived
+contract. Admission/edit validators call the Node `check-style`/`validate`
+paths separately. The safe optimization boundary is therefore deterministic
+contract derivation only; project state, candidate validation, CAS/rollback and
+dispatch decisions stay live. The profile confirms sufficient startup cost to
+probe this boundary.
+
+### P1 — bounded cache probe
+
+The process-local LRU is in `src/plotloom/style_contract_cache.py` and is used
+only by the two `freeze_*_style` functions. `cast_style_current` and
+`art_style_current` still compare each stored binding with the derived contract;
+the Node `check-style`/`validate` candidate calls remain uncached. The cache
+fingerprints exact file bytes and filesystem identity for each rule dependency,
+checks resolved Node identity and PATH on every lookup, bypasses reuse whenever
+`NODE_OPTIONS` is non-empty, checks inputs again after a miss, serializes
+concurrent cache operations, and holds at most64 immutable JSON strings. No Node
+rule owner, project persistence, schema, candidate validation or dispatch code
+changed.
+
+The first same-host probe used the same commands and fresh temporary roots as
+P0. The pair passed in **4.273s, 4.304s and 4.344s** (median **4.304s**, 90.8%
+below the P0 median); the four-case family passed in **5.484s, 5.317s and
+5.347s** (median **5.347s**, 89.2% below P0). All six commands exited0. Detailed
+commands and raw output are in `/tmp/plotloom-p1-probe-20261010.log` and its JSON
+summary. This probe is on the P1 working-tree content, whose four implementation
+file SHA-256 values are:
+
+- `src/plotloom/style_contract_cache.py`: `d09fe042a3f5ff7894273cfb5f57664cdb487993bfb61e26ea2c216c57fde903`
+- `src/plotloom/cast_style.py`: `e1c400c09055e2ff841cbb2a27b7a99edd6df5bb88955f0b6ad604f3c159d65c`
+- `src/plotloom/art_style.py`: `c5cf44d0e76f4785e5f5120b454d66aac95c615fac66285fb537a2f0401e511f`
+- `tests/test_style_contract_cache.py`: `51f04ee8e88d2b17ba94368a4624ec8e26010f2a59f6156992de3553ae946c80`
+
+A separate P1 profile passed in7.028s wall time. It counted two successful
+contract derivations and four uncached Cast plus four uncached Art validator
+calls: **10 Node starts**, versus1,539 in P0. This profile's 42 total Python
+`subprocess.run` calls also include non-Node work. Profile and console evidence
+are in `/tmp/plotloom-p1-profile-20261010.pstats` and
+`/tmp/plotloom-p1-profile-20261010.log`.
+
+Focused checks passed: the new cache regression module passed10 cases, and the
+new module plus existing Cast/Art suites passed45 cases with one existing
+Starlette deprecation warning. Guards cover independent returned JSON,
+`None`/empty direction and owner key separation, complete local import closure,
+same-size/same-timestamp preset replacement, a mid-derivation rule edit, Node
+unavailability/PATH/executable identity, post-warmup `NODE_OPTIONS` failure,
+invalid JSON, LRU/concurrency, real stale-candidate validator refusal and live
+currentness comparison. One initial combined focused run failed28 cases because
+the refactor briefly removed the `json` import still used by the unchanged
+validators; restoring it fixed the cause, and the full focused suites then
+passed. No assertions or coverage were changed. The P1 probe met both
+performance targets.
+
+### P2/P3 implementation and initial checks — 2026-10-10
+
+P2 adds `scripts/verify.py` with explicit `quick`, `focused` and `full` tiers;
+the root README and development guide document setup, selectors, limitations and
+commands. The entrypoint prints each command, per-step duration/exit code and a
+tier summary. Focused selection validates project-local paths and asks pytest to
+collect each case before native execution. Full refuses ambient diagnostic
+filters and performs deterministic bundle/parity before wheel build and smoke.
+The 62-case focused suite covering the cache, CLI and hosted-workflow contracts
+passed; a real CLI selection collected and ran one exact pytest case, also
+passing.
+
+P3 removes the browser job's `needs: verify` dependency while making both jobs'
+checkout ref explicitly `${{ github.sha }}`. Verify keeps its build/parity then
+wheel/smoke order. The amended ADR0109 and workflow test preserve default
+unfiltered acceptance, all required jobs and both current browser groups.
+The workflow test also rejects job/step-level `continue-on-error` and limits
+step conditions to the two report uploads, each using `${{ !cancelled() }}`.
+A read-only review found that this step-level guard was initially missing; the
+test was strengthened, 62 focused tests and Ruff passed, and the reviewer
+confirmed the follow-up. The sole unfiltered hosted run passed; see the result
+record below.
+
+### P4 — repeated measurements, review and local qualification
+
+The final fixed-pair samples passed in **4.391s, 4.275s and 4.325s**, median
+**4.325s** versus the P0 median **46.964s** (90.8% lower). The preselected
+four-case family passed in **5.333s, 5.346s and 5.345s**, median **5.345s**
+versus P0's **49.575s** (89.2% lower). Each sample used a fresh temporary
+pytest root, ran serially and exited 0. The host and toolchain match P0. Raw
+commands/results are in `/tmp/plotloom-p4-final-baseline-20261010.log` and
+`/tmp/plotloom-p4-final-baseline-20261010.json`.
+
+The final `quick` tier passed in **9.940s, 9.565s and 9.510s**, median
+**9.565s**, in `/tmp/plotloom-p4-quick-final-20261010.log`. A final cProfile pair
+passed in 7.050s; the cache path derived contracts twice and live Cast/Art
+validators ran eight times, for **10 Node starts**. See
+`/tmp/plotloom-p4-profile-final-20261010.pstats` and
+`/tmp/plotloom-p4-profile-final-20261010.log`.
+
+Independent read-only review found no runtime blocker. It identified one P3
+regression-guard gap: step-level failure overrides and conditional skips were
+not prohibited by the job-level assertion. The current workflow had no such
+override. The guard now rejects any job- or step-level `continue-on-error`,
+rejects job-level `if`, and permits step-level conditions only on the two
+`actions/upload-artifact@v4` steps with their exact `${{ !cancelled() }}` value.
+The reviewer confirmed the follow-up. The focused cache/CLI/CI contract suites
+passed 62 tests, and Ruff plus `git diff --check` passed.
+
+An initial unfiltered local Playwright run timed out waiting for the Source
+retry button in `graph-read-recovery.spec.ts` at 1700x900. The trace showed two
+startup Source-outline GETs returning 503, then a third returning 200 after the
+test's mutable route flag changed but before the retry locator appeared. The
+exact case passed in isolation. The correction is at the test route boundary:
+wait for startup network activity to settle while the route still fails, then
+enable success immediately before the explicit retry click. The focused spec
+passed 9/9; independent review confirmed the failure state and GET-only and
+persistence assertions remain intact.
+
+The final stable candidate passed `uv run --locked --no-sync python
+scripts/verify.py full` with `VERIFY_SUMMARY tier=full elapsed_seconds=732.075
+exit_code=0`. It included the archived prompt reader, API Ruff check, ffmpeg/
+ffprobe probes, 132 frontend unit files / 1,047 cases, frontend and E2E
+typechecks, 1,492 Python tests, deterministic bundle build and parity, the
+unfiltered browser manifest (84 specs and 278 cases split 122/156), all 278 local
+unsharded Playwright cases, wheel build and installed-wheel smoke. Python took
+320.90s; Playwright took392.242s. One existing Starlette deprecation warning
+appeared. Complete log: `/tmp/plotloom-p4-full-qualified-20261010.log`.
+
+### Hosted qualification
+
+One default-unfiltered `workflow_dispatch` run was made after publication:
+[main CI run 38081918996](https://github.com/Wenjun-Mao/plotloom/actions/runs/38081918996).
+It tested exact head `b47e8d7952fc21ba38ceb90f28f35b858255e2b2` on branch `main`
+with `browser_grep='.*'`, and concluded `success`. The verify job and both
+browser jobs all started at 19:58:58Z on the same SHA, proving actual overlap.
+Verify passed at 20:14:07Z in 15m09s. Browser shard 1 passed **122/122** cases
+in 27.9m and its job completed at 20:28:04Z; shard 2 passed **156/156** in
+30.3m and completed at 20:30:26Z. The manifest check had already confirmed 84
+specs and exactly 278 selected cases split 122/156 with no overlap or omissions.
+The two test logs contain no failure, flaky or retry entries.
+
+The workflow run interval was 19:58:55Z–20:30:27Z: **31m32s total**, including
+about 3s from dispatch creation to first job start. Browser setup finished at
+19:59:51Z/19:59:54Z (53/56s after their job starts). The Playwright steps
+reported 27.9m/30.3m separately from setup and uploads. This meets the planned
+under-40m hosted target versus the historical 59.5m total, but that is not a
+controlled same-runner comparison. The local unsharded Playwright suite took
+392.242s; the hosted single-worker shards took 27.9m/30.3m on different
+runners/configuration, so this is not causal speedup evidence.
+
+Both shard test-result and HTML-report artifacts were uploaded and are available
+from the run. GitHub annotations were nonblocking: the current actions declare
+Node.js 20 but were forced onto Node.js 24, and `ubuntu-latest` is scheduled to
+move to Ubuntu 26 beginning October 19, 2026. All hosted gates passed.
+
+The P0–P4 change was published on `main` and `origin/main` at
+`b47e8d7952fc21ba38ceb90f28f35b858255e2b2`; the worktree was clean after push.
+No normal runtime restart/cutover or owner project/database/service state change
+was made. Product/creative acceptance was not part of this engineering pass.
+
+After the P2/P3 edits, the preselected six-case bridge/rebuild integration
+selection passed 6/6 in 8.89s pytest time (12.975s including the focused selector
+collection steps). This includes stale brief/F4 rejection, atomic rollback,
+target drift while queued/dispatched, fresh preparation recovery and explicit
+install. Three serial `quick` invocations all exited 0 and each ran 1,047 frontend
+tests across 132 files plus both typechecks and the lock/API lint. Entry-point
+elapsed times were **10.141s, 9.620s and 9.881s** (median **9.881s**). The
+existing Starlette deprecation warning appeared in Python focused runs.
+
+## Baseline and scope
+
+- Candidate: `codex/one-current-story-rebuild`; worktree:
+  `/private/tmp/plotloom-one-story-rebuild.gfnqlc`.
+- Before restructuring, `uv run pytest --collect-only -q` collected **1,469**
+  cases in 1.41 seconds.
+- Named-family baseline: 70 Python case IDs: 43 from
+  `tests/generation/test_work_unit_contracts.py` (34 functions before parameter
+  expansion) and 27 from `tests/test_project_storage_video.py` (23 functions
+  before parameter expansion); frontend static tests expanded to 42 app-state
+  cases and 34 video-pilot cases (32 registration expressions, including two
+  two-row `it.each` registrations), 76 total.
+- Production setup baseline was captured serially on this host in
+  `/private/tmp/plotloom-test-health-baseline-20261010.pstats` using the exact
+  two-test command described in the approved roadmap: 2 PASS in 53.06 seconds
+  (freshness rebuild 28.16s; runtime HTTP intent 23.77s). Profiling attributed
+  45.08s cumulative to 1,551 primitive / 1,579 total `subprocess.run` calls,
+  mostly real currentness work in `cast_style._run` (30.34s cumulative) and
+  `art_style._run` (14.77s cumulative). Runtime HTTP cleanup accounted
+  for 23.60s in Starlette `TestClient`/AnyIO shutdown; this lifecycle remains
+  real and will not be bypassed.
+- Browser baseline from hosted CI38009336409: 276 selected cases, shard 1
+  143 PASS / 34.6 minutes and shard 2 132 PASS / 17.9 minutes, with one flaky
+  overall. The exact prior workflow used Playwright file sharding with
+  `BROWSER_GREP` passed unchanged as `--grep`.
+- No collected behavior is approved for deletion. The audit established no
+  safe duplicate/retired-contract target; no tests are being removed.
+- Current existing changed/untracked Python SHA-256 aggregate (70 files):
+  `5fca2793a89c3d796bb2a39acff79ce68c9281b1e30f32c08048bb3df5d5b90d`.
+  `tests/test_ci_browser_contract.py` is
+  `e92d9a9fd843c7c18b5cd9cc38037633b55d3fc27eeb1e80b2921acc0d181556`;
+  `frontend/e2e/fixtures/bridge_handoff_project.py` is
+  `4470309fbf6667492c5eb263c58daae7b04c449694fdeaa897bfa17139dbe344`;
+  `tests/test_native_bridge_intent.py` remains
+  `92c3bdc7d5c728e6420403b06178c6e1b074573006acff46924530990950a781`.
+  No Python product or dependency lock files changed.
+
+## Pre-change behavior-to-module map
+
+- `tests/generation/test_work_unit_contracts.py` (43 case IDs): scene facts
+  and timing 269-654 -> `test_work_unit_scene_facts.py`; prompt contracts
+  655-1005 -> `test_work_unit_prompts.py`; scene-fragment contracts
+  1006-1328 -> `test_scene_fragment_contracts.py`; storyboard-fragment
+  contracts 1329-1573 -> `test_storyboard_fragment_contracts.py`;
+  continuity contracts 1574-1883 -> `test_storyboard_continuity_contracts.py`.
+  Pure builders move to a non-collected fixture module; assertions and
+  parameter cases remain intact.
+- `tests/test_project_storage_video.py` (27 case IDs): review/predispatch
+  contracts 41-379 -> `test_project_storage_video_review.py`; retained review
+  recovery 380-523 -> `test_project_storage_video_recovery.py`; disposal
+  524-785 -> `test_project_storage_video_disposal.py`; submission
+  786-1019 -> `test_project_storage_video_submission.py`; reconciliation
+  1020-1246 -> `test_project_storage_video_reconciliation.py`; dispatch
+  faults/safety 1247-1551 -> `test_project_storage_video_dispatch.py`.
+  Fake gateway and video fixture builders move to
+  `tests/video_storage_fixtures.py`; image identity setup moves out of its
+  collected test module to a non-collected fixture module. Existing external
+  consumers in video review, retained evidence, and presentation integration
+  now import fixtures, not collected test modules.
+- `frontend/tests/app-state.test.ts` (42 registered cases): opening/drafts
+  140-359 -> `app-state-opening.test.ts`; save lifecycle 360-607 ->
+  `app-state-save.test.ts`; navigation/history 608-898 ->
+  `app-state-navigation.test.ts`; generation/trace ownership 899-1204 ->
+  `app-state-generation.test.ts`. Each module retains independent hooks,
+  roots, mocks, and awaited unmount.
+- `frontend/tests/video-pilot.test.ts` (34 expanded cases across 32 registration
+  expressions): base candidates
+  50-295 -> `video-pilot-candidates.test.ts`; route/branch playback 296-459
+  -> `video-pilot-routes.test.ts`; review lifecycle 460-642 ->
+  `video-pilot-review.test.ts`; session playback 643-874 ->
+  `video-pilot-playback.test.ts`. Each module retains its own DOM/media/dialog
+  isolation and cleanup. The disabled rejected-take reopening two-row case
+  remains in the review module; bridge-history's stale/foreign-current two-row
+  case remains in playback.
+- The creator-confirmation spec uses only a static HTML fixture and validates
+  DOM confirmation, keyboard focus, cancel/reload, and no native dialogs. It
+  now uses the Vite-only fixture; API-backed creator specs remain on the full
+  workbench.
+- `test_production_bridge_intent._pending_project` uses a 9-cut/3-scene
+  review board to test bridge semantics; preserve it. The setup helper
+  `_accepted_f4_script` currently calls `_prepare_art_context`, which prepares
+  then cancels a dummy Art candidate immediately before preparing the actual
+  Art candidate. The accepted-source/outline/map/Cast prefix now has a
+  purpose-specific helper for callers that immediately prepare Art, retaining
+  the cancel-history helper for tests that exercise that history.
+
+## Collected-case reconciliation
+
+- A full `uv run pytest --collect-only -q` after the split temporarily reported
+  **1,466**, not the 1,469 baseline. The three-case reduction was real coverage
+  loss, not duplicate test-function collection: the `test_exact_ms` extraction
+  omitted its attached four-row `@pytest.mark.parametrize("seconds,units", …)`
+  decorator. Without it pytest collected one unresolved-fixture node instead
+  of four valid cases. The body remained present, so searching only test
+  definitions did not expose the omission.
+- Restored the original parameter rows from the pre-change test at HEAD
+  `bd04778` (`tests/test_production_presentation.py`, original lines 22–24).
+  The expected baseline IDs and restored current IDs are exactly:
+
+  ```text
+  tests/test_production_presentation.py::test_exact_ms[2.5-2500]
+  tests/test_production_presentation.py::test_exact_ms[1.001-1001]
+  tests/test_production_presentation.py::test_exact_ms[5-5000]
+  tests/test_production_presentation.py::test_exact_ms[100000000000000000000000000000000001-100000000000000000000000000000000001000]
+  ```
+
+- Verification after restoration: `uv run pytest --collect-only -q
+  tests/test_production_presentation.py` collected 28 cases; `uv run pytest -q
+  tests/test_production_presentation.py -k test_exact_ms` passed all four rows
+  (24 deselected), exit 0. The full `uv run pytest --collect-only -q` then
+  returned **1,469** cases in 1.19 seconds, exit 0. The intermediate 1,466
+  result is retained here as a failed reconciliation observation, not a
+  passing result.
+- Independent source comparison at HEAD `bd04778` confirmed no other missing
+  top-level test definitions or imported `test_*` bindings in the relevant
+  source; a complete moved-test body and decorator/parameter-row comparison is
+  now complete. The reviewer matched all 895 original top-level tests, found
+  all 77 moved functions exactly once (75 AST-identical; two presentation
+  integration bodies differ only in fixture import redirection), and found no
+  missing definitions or imported `test_*` duplicates. Moved-case map:
+  work-unit 34; video storage 23; Art-to-script 5; review reopen 2;
+  bridge-intent HTTP 1; presentation-to-rebuild 1 plus integration 5; rebuild
+  to dependencies 2 plus guards 4. The reviewer executed no tests and made no
+  edits. This reconciliation demonstrates why AST/test collection equivalence
+  must include decorators and parameter IDs, not just function bodies or
+  aggregate counts.
+- In the corrective review, all 32 original video-pilot registration
+  expressions matched HEAD exactly once, including both two-row `it.each`
+  chains. The E2E fixture's function bodies/main AST are unchanged apart from
+  fixture import redirection; 214 moved-helper bindings across 58 Python
+  consumer modules resolve, with no retired collected-owner import or
+  compatibility re-export remaining.
+
+## Browser allocation evidence
+
+- Hosted attempt-level duration evidence contains 276 rows (143 on shard 1,
+  133 on shard 2 including the flaky retry), totaling 1,633.000 and 781.534
+  test-seconds respectively. Rows are attributed to their whole spec file;
+  they are not shard wall times and omit runner/setup overhead.
+- Current unfiltered Playwright collection reports 278 cases in 84 spec files.
+  A longest-processing-time greedy bin pack assigns whole files into 42 specs
+  per group. It estimates 1,212.434 seconds and 1,212.900 seconds of historical
+  case time, with 122 and 156 cases respectively. The two newly added listener
+  cases have no hosted timing and are imputed at the 5.4-second historical
+  median per case (10.8 seconds total). These are estimates, not measured new
+  hosted durations; global fixture/setup overhead and new-case behavior remain
+  unknown, so this does not claim a hosted wall-time speedup.
+- `frontend/e2e/browser-shard-manifest.json` is the explicit two-group file
+  allocation. Playwright's supported `testMatch` file patterns select a group
+  only when CI sets `BROWSER_SHARD=1` or `2`; local runs without that variable
+  still select the complete suite. `fullyParallel: false` preserves default
+  within-file order, while CI keeps `--workers=1`, so each runner owns at most
+  one service stack at a time. Built-in `--shard` is removed to avoid a second
+  partition.
+- `frontend/scripts/check_browser_shard_manifest.mjs` fails closed if current
+  spec files are missing, unexpected, or assigned more than once. It also runs
+  Playwright `--list` for the unsharded suite and both manifest groups using
+  the same `BROWSER_GREP`, then requires exact set union and zero overlap.
+  With `BROWSER_GREP='.*'` it passed: 84 specs, 278 cases, 122/156, zero
+  overlap or missing; the full-suite guard also explicitly requires both groups
+  to be nonempty. With diagnostic `BROWSER_GREP='currentness'` it passed: 20
+  cases, 14/6 across groups, zero overlap or missing. A one-case diagnostic
+  passed as 1/0. The corresponding empty-group Playwright command exited 1
+  without `--pass-with-no-tests`, then exited 0 with that public option and ran
+  no test body. The guard independently refused a globally empty grep with
+  exit 1. CI now uses that option only after the guard proves global nonempty
+  selection and exact disjoint group union; the default `.*` guard additionally
+  requires each group populated. These are local checks, not hosted runtime
+  qualification.
+- The creator-confirmation spec is the only reviewed API-in-memory journey
+  using the Vite-only fixture; API-backed creator journeys remain on the
+  provider/backend fixture. Its focused no-retry run passed once and left no
+  Vite child process. No hosted rerun has been dispatched.
+
+- Before the corrective restoration, the split-family Vitest run reported 72
+  passes across eight files and the full frontend run reported 1,043 passes
+  across 132 files. Both exited successfully but omitted the two `it.each`
+  registrations/four expanded cases from HEAD, so neither is accepted as
+  complete coverage. The restored expressions match HEAD exactly; independent
+  review confirmed all 32 video-pilot registration expressions exactly once,
+  including both chains and all four rows.
+- The owner's attempted full browser run was interrupted after 8.8 minutes:
+  179 passed, 9 failed, 2 interrupted, and 88 not run (exit 130). All nine
+  failures stopped during fixture import on the same missing
+  `_review_fixture_presentation` export from collected
+  `tests.test_production_bridge`; no product assertion failed before setup.
+  The consumer search also found stale imports from
+  `tests.test_project_storage_art`. The two interrupted tests were caused by
+  the intentional SIGINT. This
+  is a red, unqualified full browser result, not a pass. The fixture now imports
+  directly from `tests.production_bridge_fixtures` and
+  `tests.creative_delivery_fixtures`.
+- Corrected verification: the eight split Vitest files passed 76/76; the full
+  frontend suite passed 1,047/1,047 in 132 files; `npm --prefix frontend run
+  typecheck` and `npm --prefix frontend run typecheck:e2e` both passed. The six
+  affected Playwright files were observed by the worker to pass 11/11 with
+  `--workers=1 --retries=0` in 5.0 minutes. The retained
+  `/tmp/plotloom-corrected-affected-e2e/.last-run.json` records `passed` and
+  no failed IDs, but no complete console log was retained; that artifact alone
+  does not prove the case count, duration or execution settings.
+  `bridge_handoff_project.py --help` imports successfully, and a
+  repository search found no remaining imports from the two retired collected
+  fixture modules. The corrected frontend and focused browser results do not
+  substitute for the owner's fresh combined browser/package qualification below.
+- Frozen corrective source hashes: `frontend/tests/video-pilot-review.test.ts`
+  `744ed8a152938c594be9a9ef006f309cedb6b8a144d2ff240bd2ef659239dfd4`;
+  `frontend/tests/video-pilot-playback.test.ts`
+  `926b3ac8cdd8f27f4eeabfb4c46a5bd59beaf87e332b024838027156f8ee7a60`;
+  `frontend/e2e/fixtures/bridge_handoff_project.py`
+  `4470309fbf6667492c5eb263c58daae7b04c449694fdeaa897bfa17139dbe344`.
+- The only Python source changed in this corrective turn is the E2E seed helper
+  `frontend/e2e/fixtures/bridge_handoff_project.py`, whose setup-function
+  imports now point at non-collected fixture owners; its function bodies/main
+  AST are otherwise unchanged. It is not a pytest test module. The serial full
+  1,469-case Python gate is reused only within its verified input boundary;
+  this helper's `--help` import smoke and the affected browser cases provide
+  direct coverage of the changed import path. The later full browser gate also
+  qualifies all current consumers.
+
+## Production setup measurement
+
+- The exact approved serial cProfile pair was rerun with the same command and
+  method, writing `/private/tmp/plotloom-test-health-after-20261010.pstats`:
+  2 passed in 55.76 seconds (freshness rebuild 29.57s; runtime HTTP intent
+  25.10s), compared with the pre-change 2 passed in 53.06 seconds
+  (28.16s; 23.77s). This does not demonstrate a latency improvement. The
+  profile had 8 fewer `subprocess.run` calls, and `_accepted_f4_script` no
+  longer performs a dummy Art prepare/cancel before preparing the actual Art
+  candidate. Cumulative `subprocess.run` time nevertheless increased
+  45.08s -> 47.31s; the evidence does not establish why.
+- The real accepted-source/outline/map/Cast preparation, actual Art validation,
+  freshness/currentness checks, TestClient lifespan, rollback/CAS and dispatch
+  behavior are retained. The change removes only redundant setup in the
+  accepted-script path; paths that verify canceled-Art history continue to use
+  the history-building helper.
+
+## Scoped local checks and evidence limits
+
+- `npm --prefix frontend test -- tests/app-state-opening.test.ts
+  tests/app-state-save.test.ts tests/app-state-navigation.test.ts
+  tests/app-state-generation.test.ts tests/video-pilot-candidates.test.ts
+  tests/video-pilot-routes.test.ts tests/video-pilot-review.test.ts
+  tests/video-pilot-playback.test.ts`: the initial split reported 72 passed but
+  was incomplete against HEAD; after restoring the four expanded parameter
+  rows, the same eight files passed 76/76, exit 0.
+- E2E typecheck passed with `npm run typecheck:e2e`; the focused
+  `creator-confirmation.spec.ts` run passed once with `--workers=1
+  --retries=0`, and `pgrep` found no remaining `vite-runtime.mjs` process.
+- `BROWSER_GREP='.*' node scripts/check_browser_shard_manifest.mjs` passed:
+  84 specs and 278 selected cases, 122/156, zero overlap or missing. The same
+  guard passed with `BROWSER_GREP='currentness'`: 20 selected cases, 14/6,
+  zero overlap or missing. The later interrupted full browser attempt and the
+  corrected 11-case affected-spec run are recorded above; the owner retains
+  the fresh combined browser qualification.
+- `uv run pytest tests/test_ci_browser_contract.py -q`: 4 passed, exit 0. The
+  updated contract asserts matrix-to-`BROWSER_SHARD` selection, absence of a
+  second CLI shard, guarded `--pass-with-no-tests`, default-full nonempty shard
+  checks, pre-run manifest guard and unchanged grep wiring, along with the
+  original one-worker, artifact-upload, and deadline checks.
+- The focused Python batch
+  `uv run pytest tests/test_project_storage_art.py
+  tests/test_project_storage_script.py tests/test_production_bridge.py
+  tests/test_production_bridge_intent.py
+  tests/test_production_bridge_runtime_http.py
+  tests/test_production_rebuild_freshness.py
+  tests/test_production_rebuild.py -q` used exec session19676. The last
+  recorded poll showed continued dots; the process later disappeared and the
+  session returned an unknown process ID without final output or a persisted
+  log. This run is unqualified, not counted as pass or failure, and was not
+  repeated. The subsequent full manager Python gate covers these modules; its
+  terminal result and unchanged-input reuse boundary are recorded below.
+- `git diff --check` passed after the reviewed browser adjustment. Ruff `check
+  --select I,F401,F821` passed on the
+  previously scoped changed Python modules. At that scoped checkpoint, combined
+  gates and owner-controlled exact hosted qualification remained pending; the
+  subsequent local closure is below. Ruff
+  `check --select I,F401,F821` passed for the restored native-intent test and
+  updated browser workflow contract. `python
+  scripts/retained_runtime_coverage_inventory.py --check` passed after updating
+  references and the source hash; original baseline/disposition/review/rationale
+  were preserved. The focused multi-module Python session19676 remains
+  unqualified because final output was lost; it was not repeated. The manager's
+  later full gate and bounded reuse supersede that missing focused result without
+  converting it into a pass.
+
+## Manager combined qualification
+
+The corrected frozen candidate is based on prior branch HEAD
+`bd04778af90c958dc630aa9f5d0e9db8dac26eb9`; final executable/test commit
+`0b71359923a5cbe92ff2c15cf06c30b6b9c175de` is pushed on
+`codex/one-current-story-rebuild`. All 19 checks in
+`/private/tmp/plotloom-corrected-qualification.WIAV60` ended with explicit
+`QUALIFICATION_EXIT_CODE=0` markers. Complete logs remain in that directory.
+
+- Python: **1,469 PASS /one existing Starlette warning in1,407.58s**. The original
+  serial gate is `/private/tmp/plotloom-combined-qualification.EfhrzC/python.log`,
+  terminal exit0. Independent review and the manager compare the original/current
+  **515** input records under `src/`, `tests/`, `scripts/`, `manage.py`,
+  `pyproject.toml`, `uv.lock`, `.github/` and `.gitmodules`: exact equality.
+  No product, pytest, dependency or workflow input changed after that gate. The
+  E2E seed-helper import correction is outside that Python reuse boundary and
+  covered directly by the fresh full browser gate, not silently inherited.
+- Frontend: **1,047 PASS /132 files in4.38s**; application and E2E typechecks PASS.
+- Browser: **278 PASS in14.7m**, two workers, zero retries, unfiltered `--grep=.*`,
+  exit0. No skipped, failed or flaky cases are reported. The command/header and
+  terminal result are retained in `browser.log`. The allocation guard separately
+  verifies all84 specs, disjoint122/156 hosted case groups and exact complete union.
+  Local two-worker wall time is not a measurement of the hosted one-worker shards.
+- Lock, scoped API F401 lint, compile, retained-runtime inventory, deterministic
+  frontend build, checked static parity and archived prompt-reader verify PASS.
+- Wheel build and installed-wheel smoke PASS using the external
+  `wheel/plotloom-0.1.0-py3-none-any.whl`; no wheel artifact was added to the source
+  root. The build retains the existing large-chunk warning, not a new failure.
+- The1002-file executable/test input manifests before/after are byte-identical;
+  both aggregate SHA256 values are
+  `3c012e632927893b38c47a6bd3d7ce2695ba8c1440b215a1e308b46d38589c81`.
+  Diff hygiene PASS; the pinned renderer submodule remains clean.
+
+Source equivalence and evidence review are closed. The worker's missing four
+frontend parameter cases and stale E2E helper imports were real cleanup regressions;
+their red attempts above remain visible. The corrected full result does not erase
+them or claim a measured setup speedup.
+
+The native Create → Revise → Recover and finite E22 evidence remains separately
+qualified by the Board3/presentation receipts. A fresh read-only native comparison
+at `2026-10-10T03:59:25.903Z` again found eight equal endpoint projections,58 equal
+asset hashes, four equal selected records and no differing endpoints;
+`/private/tmp/plotloom-post-cleanup-readback.iHCqCu/readback.json` records r2 /
+lifecycle9 active. Cleanup changed no application bytes, generation, reviews or
+selection. Normal checkout remains clean and its checked JS is still
+`3a8843193da3df6852f8b12731e33c90961dbe1339a9882b30fb2e03290555d5`;
+the candidate JS remains
+`0a4fd0e721b819da4ffec7d946e0af8f7c9ae3a90e9c4d473972951ac3ace160`.
+Exact hosted qualification is now PASS; normal/main cutover still requires
+the separately requested retained-demo choice. No schema adapter or owner reset.
+
+### Publication hygiene delta
+
+The first staged `git diff --cached --check` refused95 whitespace-only blank lines
+in the four newly split `app-state-*.test.ts` files. The earlier unstaged diff check
+did not include untracked files; its PASS is not complete new-file hygiene proof.
+The worker removed only blank-line whitespace. Manager and independent review
+compare staged/worktree lines:95 changes, unchanged line counts, no non-whitespace
+or other source delta; `git diff --ignore-space-at-eol --exit-code` PASS.
+
+After formatting, all **1,047 frontend tests /132 files PASS in4.81s**, and both
+typechecks PASS with explicit exit0 markers. Logs and before/after hashes are in
+`/tmp/plotloom-final-hygiene.qMZDrK`. The original Python/browser/package gates are
+reused only because application, E2E, package and Python inputs remain exact and
+the four unit-test deltas are proved semantically unchanged. The final1002-input
+publication manifest differs from the full-gate manifest only at those four files:
+`/tmp/plotloom-final-hygiene.qMZDrK/publish-inputs.sha256`, SHA256
+`880a19c371bfafea6644dda771bff4fb95869b1f932056580ee09f83fc68911e`.
+This is the formatted-tree fingerprint, not a claim that the original whole-tree
+hash stayed identical through formatting. The final staged hygiene check is
+required before commit; no gate is bypassed.
+
+A further read-only native comparison at `2026-10-10T04:28:39.188Z` again matches
+all eight projections,58 asset hashes and four selected records with zero differing
+endpoints, r2/lifecycle9 active. Artifact:
+`/private/tmp/plotloom-prepublish-readback.OB7m17/readback.json`.
+
+### Exact hosted qualification
+
+After staged hygiene and final input verification passed, root committed and
+pushed `0b71359923a5cbe92ff2c15cf06c30b6b9c175de`; the remote branch was read back
+at that exact SHA. Remote `main` remains `7d79d18b502746ba42642befce8e4510172949c8`.
+One unfiltered `browser_grep=.*` dispatch created
+[CI38024405822](https://github.com/Wenjun-Mao/plotloom/actions/runs/38024405822)
+at `2026-10-10T04:32:06Z`, event `workflow_dispatch`, exact `headSha=0b713599…`.
+Verify job `114132052924` ran 04:32:10–05:06:32 UTC and completed SUCCESS.
+Its actual completed-job log records 1,469 Python PASS /one existing Starlette
+warning in 1,930.78s and 1,047 frontend PASS /132 files in 59.01s. Types, archived
+prompt verification, build/checked-bundle parity, wheel and installed smoke pass.
+Both browser jobs started 05:06:34 UTC. Job `114137988779` completed SUCCESS at
+05:27:59 UTC: 122 PASS in 20.5m. Job `114137988824` completed SUCCESS at 05:31:37 UTC:
+156 PASS in 24.0m. Both actual logs show one worker, unfiltered `--grep=.*`, the
+84-spec/278-case exact-union allocation guard and no flaky/failed/skipped summary
+or retry execution. The workflow completed SUCCESS at 05:31:38 UTC, attempt 1.
+The Playwright-reported durations changed from 34.6/17.9m to 20.5/24.0m; the
+imbalance is smaller and the observed test critical path is 10.6m shorter. These
+are test-reported durations, not complete job elapsed times. This single
+hosted sample is not a guaranteed speedup or causal production-setup benchmark.
+Completed-job logs are read through `gh api .../actions/jobs/<id>/logs` with its
+documented `--allow-escape-sequences` flag and ANSI stripping. That flag is not a
+`gh run view` option; run-level log retrieval is unavailable before run completion.
+The existing chunk/Starlette warnings and runner/action/uv-version notices remain
+visible; none is converted to a failed check or attributed to a measured speedup.
+No duplicate run, normal activation, main merge or protected-data mutation.
+
+A final read-only native comparison at 05:31:40.502 UTC matches all eight endpoint
+projections, 58 freshly hashed assets and four selected records, with zero differing
+endpoints, r2/lifecycle9 active. Artifact:
+`/private/tmp/plotloom-hosted-final-readback.koIYIm/readback.json`.
+Normal main/origin remain `7d79d18`; its checkout is clean. No generation, review,
+selection, lifecycle or owner-data write was performed by this final comparison.
+
+### Completion audit and delivery boundary
+
+An independent read-only audit reconciled Create, same-project Revise, revised and
+restored playback, recovery, finite whole-product E22 and this cleanup against the
+current plan and owning evidence. It found no additional concrete unmet scoped
+check; this is evidence review, not a new test execution or all-frame pixel pass.
+Root rechecked the full-gate terminal results and current plan/AGENTS instructions.
+Exact hosted verify and both unfiltered browser jobs are terminal PASS.
+Main publication is also required by default and remains unexecuted; the gated
+stopping condition does not waive it. Normal cutover needs the retained-demo
+decision. Neither branch publication nor later CI PASS alone completes the goal.
+
+The later [owner-authorized October10 cutover](2026-10-10-normal-cutover.md)
+supersedes that pending boundary: main is published and normal8841 activated with
+intact retirement and fresh-project smoke verified. No executable/test input delta.
+
+## Performance follow-up M0 — post-guide native inventory and cost profile
+
+### Candidate and environment
+
+M0 ran in the isolated worktree /Users/wjmao/.codex/worktrees/verification-health/plotloom on branch codex/testing-health-m0-m5. Inventory candidate: 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c. Executable, test and dependency inputs match guide commit e6ca2d18448c24cc4129670df4df41e166551cc3; the only e6ca2d1..4955bbf delta at freeze was the M0–M5 roadmap. The pinned Shuohao submodule is 4f9b2128c82adf623f594ba714c97d0afcfc16a2.
+
+Host: Apple M5 Pro, macOS 27.0.1 arm64. Tools: uv 0.12.19, CPython 3.12.13, Node 24.18.0, npm 11.16.0, Vitest 4.1.11 and Playwright 1.62.1. Worktree-only installs used uv sync --all-groups --frozen --python 3.12.13, npm --prefix frontend ci and npm --prefix docs/prompt-pipeline-lab ci. No lockfile changed. Frontend npm reported one high-severity audit advisory; it was not investigated or changed during this performance pass.
+
+The pre-guide local full result is reused as historical context only: b47e8d7 completed in 732.075 seconds (Python 320.90, browser 392.242, quick median 9.565). M0 did not rerun a full suite for discovery.
+
+### Native inventory
+
+Native discovery outputs and normalized IDs are retained in /tmp/plotloom-testing-health-m0-4955bbf:
+
+| Runner | Native cases | Files/specs | Normalized ID SHA256 |
+| --- | ---: | ---: | --- |
+| Pytest | 1,492 | 155 | 2b241cb1422316cd6a5e69a009c9ab3a2b8fa4cacbcc4ddba0b522a038088739 |
+| Vitest | 1,058 | 133 | 26b3126559cfeb57b0f5951abd2314e48bb328694289ffe210aa36f9b4bfe08f |
+| Playwright | 279 | 85 | 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77 |
+
+The existing browser allocation guard passed its exact 122/157 split, with no overlap or missing native case. The guide added 11 Vitest cases in one file and one browser case/spec; Python inventory was unchanged. Full ID listings are kept in pytest-ids.txt, vitest-ids.txt and playwright-ids.txt beside the native outputs.
+
+### Python family samples
+
+Each row is three serial warm-dependency samples with a fresh basetemp, using pytest durations output. Wall and call values are medians in seconds.
+
+| Family and exact file | Cases | Wall samples | Median wall | Median call |
+| --- | ---: | --- | ---: | ---: |
+| Source: tests/test_project_storage_source_outline.py | 11 | 2.419 / 2.096 / 2.209 | 2.209 | 1.410 |
+| Graph: tests/test_graph_commands.py | 19 | 3.155 / 3.027 / 3.004 | 3.027 | 0.310 |
+| Media: tests/test_project_storage_video_reconciliation.py | 4 | 4.410 / 3.973 / 3.885 | 3.973 | 3.010 |
+| Recovery: tests/test_project_storage_recovery.py | 19 | 4.894 / 4.868 / 4.329 | 4.868 | 3.500 |
+
+A separate graph durations-min=0 sample attributes 1.89 seconds of setup across 19 tests against 0.30 seconds of call time. Other setup/teardown rows rounded to 0.00 seconds in pytest's report. Graph setup is the clearest backend M3 audit target; do not infer that all repeated setup is safe to share.
+
+### Browser family samples and process costs
+
+Each browser row is three serial one-worker, zero-retry samples with fresh fixture roots, local fake provider and an HTML report. Values are median seconds for whole report, test result, Before Hooks and After Hooks. Selected journeys were graph draft transaction, media image job, project snapshot/restore recovery, and UI-only creator confirmation.
+
+| Family | Report | Test | Before Hooks | After Hooks | Workbench fixture setup / teardown |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Source currentness | 4.657 | 2.638 | 1.629 | 0.264 | 1.361 / 0.200 |
+| Graph draft | 3.755 | 1.904 | 1.327 | 0.246 | 1.171 / 0.171 |
+| Media image job | 23.261 | 21.650 | 1.384 | 0.242 | 1.245 / 0.181 |
+| Snapshot/restore recovery | 9.526 | 7.796 | 1.237 | 0.315 | 1.097 / 0.207 |
+| UI-only creator confirmation | 1.671 | 1.175 | 0.302 | 0.061 | UI-only Vite setup 0.168; teardown not separately reported |
+
+The image-job time is action-dominated, so fixture work is not its optimization target. Snapshot/restore restarts the real backend twice per case and must retain that path. FastAPI listener/readiness samples were about 560–920/298–402 ms; Vite was 100–155/10–15 ms; the local fake provider was 49–52/8–9 ms. These are measured fixture lifecycle steps, not pure CPU estimates.
+
+checkedStaticTest still starts the test backend/provider stack; only vite-only-fixture.ts is genuinely UI-only, and creator-confirmation.spec.ts is its sole current consumer. It has one test, so worker scope currently does not amortize Vite startup across multiple test cases in that spec.
+
+### Prioritized follow-up and limitations
+
+1. Audit graph setup ownership in M3 first: it dominates graph Python wall time and is repeated across 19 tests, but mutable project/provider state and transaction setup must remain isolated.
+2. Keep the media image-job journey out of fixture optimization unless a new profile separates its action cost from setup.
+3. Preserve actual recovery backend restarts and their readiness checks.
+4. Reassess the hosted browser group balance in M4 from fresh completed durations; the carried-over run below is failed evidence, not qualification.
+
+The helper logs, HTML reports, native inventory and disposable roots are retained under /tmp/plotloom-testing-health-m0-4955bbf. Two uncounted source attempts preceded the three passing samples: the first used an explicit basetemp whose parent directory did not exist; after that harness error was fixed, tests exposed that the worktree's pinned Shuohao submodule had not been initialized. The submodule was initialized at the recorded pin and all prescribed triplicates then passed. Neither issue was a product-code failure.
+
+### Carried-over hosted run on the inventory candidate
+
+Unfiltered CI run 38098197412 completed on exact SHA 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c with overall failure. Verify job 114348430291 passed. Browser shard 1 job 114348430398 failed with 117 passed and 5 failed in 21.8 minutes; browser shard 2 job 114348430372 failed with 155 passed and 2 failed in 32.1 minutes. Failures included creator layout bounds, a production rebuild journey, source dirty-refresh behavior, source-outline duplicate text matching and creator-brief bounds. Existing retry #1 attempts are visible in the workflow log; no retries were added for M0 samples. This carried-over result was not duplicated and is not final qualification. Resolve concrete failures only within approved scope before claiming M5 hosted success.
+
+## Performance follow-up M1 — native test ownership map
+
+### Contract and scope
+
+At worktree HEAD 4955bbf1d64edbc2d432dc99bfc88b8faaeb3e8c, M1 adds the
+reviewed file-owner map at scripts/testing/module-ownership.json and its
+collection-only guard at scripts/testing/check_module_ownership.py. The
+separate documentation records the command and maintenance rules, and ADR 0157
+records the one-owner-per-file contract. Existing quick, focused and full
+behavior is unchanged; M1 does not add module execution commands.
+
+The map covers all three current native inventories with 11 nonempty modules.
+It records 59 runner configuration, global setup, fixture and helper paths,
+each with explicit consuming module IDs. This captures cross-domain fixture
+reuse without giving a helper file a second test owner:
+
+| Module | Pytest files / cases | Vitest files / cases | Playwright files / cases |
+| --- | ---: | ---: | ---: |
+| story-authoring | 9 / 100 | 14 / 92 | 14 / 57 |
+| graph | 7 / 63 | 7 / 47 | 5 / 15 |
+| creative-production | 34 / 291 | 30 / 289 | 16 / 54 |
+| media-lifecycle | 23 / 220 | 19 / 184 | 12 / 28 |
+| playback | 4 / 32 | 5 / 36 | 6 / 10 |
+| project-lifecycle | 25 / 217 | 29 / 193 | 17 / 82 |
+| shared-api-security | 5 / 49 | 4 / 41 | — |
+| shared-generation | 23 / 201 | 3 / 33 | — |
+| shared-provider-dispatch | 16 / 269 | 15 / 94 | 8 / 15 |
+| verification-tooling | 9 / 45 | 1 / 2 | 3 / 6 |
+| shared-presentation | 1 / 10 | 6 / 47 | 4 / 12 |
+
+### Native inventory result
+
+Command: uv run --locked --no-sync python scripts/testing/check_module_ownership.py
+Result: PASS. It performed native pytest collect-only, Vitest list JSON and
+Playwright list discovery; it executed no test bodies. The guard checked exact
+file coverage, source test files with no cases, unique primary ownership,
+unowned or stale selectors, ambient filters and a duplicate-free exact union
+of module case IDs.
+
+| Runner | Cases / files | Normalized case-ID SHA-256 |
+| --- | ---: | --- |
+| Pytest | 1,497 / 156 | 94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424 |
+| Vitest | 1,058 / 133 | e3d5d34841c4fb01c9e1ce5b827fc08c632c47119db8300f43da7ce1cdc4f39a |
+| Playwright | 279 / 85 | 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77 |
+
+The five new ownership-guard unit cases are in tests/test_verification_module_ownership.py.
+Focused command: uv run --locked --no-sync pytest -q
+tests/test_verification_module_ownership.py — PASS, 5 cases. Ruff check and
+format checks for the new Python source and tests passed.
+
+Development verification: uv run --locked --no-sync python scripts/verify.py
+quick — PASS in 14.798s; the 1,058 frontend unit cases and both type checks
+passed. The relevant focused verification-tier run selected
+tests/test_verification_module_ownership.py and passed all 5 cases. The
+parameter-ID stability repair below was then checked with its exact 7-case
+selector. The quick tier does not run Python integration or browser suites.
+
+### Identity finding
+
+The first guard attempt treated Vitest's file/name pair as a unique ID and
+found 15 duplicate rows beyond the first across four parameterized test titles
+in api.test.ts, creator-presentation.test.ts, creator-production.test.ts and
+script-storyboard-diagnostics.test.ts. The list JSON omits both source location
+and parameter value when a title has no interpolation placeholder. The guard
+now suffixes each repeated file/name row with its ordered occurrence and total,
+preserving the native 1,058-row inventory rather than collapsing parameter
+coverage. This explains why the M1 Vitest normalized ID hash differs from the
+original M0 hash even though the discovered case count is unchanged. The
+ordinal makes rows distinct for inventory and is not a claim that Vitest
+exposes their underlying parameter values.
+
+An initial unit-test fixture exposed that source-file discovery was bound to
+the real checkout instead of the supplied test root; the helper now accepts the
+root explicitly, and the focused regression passes. No production test or
+runner contract was bypassed.
+
+Two consecutive collection-only guard runs then found one changing pytest ID:
+tests/test_image_terminal_settlement.py used uuid4() in a parameter decorator,
+so a valid but random task ID was generated once at module import and embedded
+in the native node ID. The test still exercises an unowned valid UUID, so its
+collection-time value is now a fixed valid UUID; the separate runtime foreign
+task branch keeps generating a fresh UUID. The exact 7-case focused selection
+passed, and two subsequent native inventory runs produced identical hashes
+for all three suites. The earlier changing hash was traced to this input, not
+to a collector race.
+
+The repeatable hashes are pytest
+94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424, Vitest
+e3d5d34841c4fb01c9e1ce5b827fc08c632c47119db8300f43da7ce1cdc4f39a, and
+Playwright 7de7e0969cc64a5b2fdb90c0fbd82d3c951949401d38ba2629ef24e5420b4f77.
+
+### Reconciliation to the 63b25f4 guide correction
+
+The 4955bbf M0/M1 tables above remain exact historical inventories. After
+rebasing onto 63b25f461367b5732e08e6aac5eef3c429721f75, the ownership guard
+passed on dcd7264 with 1,497 pytest cases / 156 files (hash unchanged from the
+4955bbf M1 run), 1,072 Vitest cases / 133 files, and 280 Playwright cases / 85
+files. Current hashes were pytest
+94499697321db8b52f5da9d36da5e10ab6e7130715dd36b228639565b8b2f424, Vitest
+11b554c8714fd1842dc4f14ef234c78f3f1f7f084b940139e5ed3586a9c70278, and
+Playwright 4d0020410503c0d1bedcfb33d3323535d755ba43cb59943ff1337a47c8cb08c1.
+The correction added 14 Vitest and one Playwright case in already-owned files.
+
+The owner later published executable UI change 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c
+and documentation-only main receipt 51cb4080200a6cca524fec2b2844022564d3707f.
+The executable commit adds two Vitest cases and extends one existing Playwright
+case across the two graph views and three supported desktop sizes; the native
+Playwright count remains 280. The branch has been rebased onto 51cb408 and the
+current native inventory is recorded below. Hosted run 38101824564 is the
+unfiltered run on exact SHA 7da7b6efa20e43a3b2d692eeac7defe6838a1e1c. Do not
+dispatch a duplicate for documentation-only 51cb408.
+
+### M2 reconciliation and M3 graph-command fixture — 2026-10-11
+
+#### Current native inventory after rebase and M3 regression guard
+
+Two consecutive `scripts/testing/check_module_ownership.py` runs on the current
+worktree passed native collection without running test bodies. Counts and
+normalized ID hashes matched exactly:
+
+| Runner | Cases / files | Normalized case-ID SHA-256 |
+| --- | ---: | --- |
+| Pytest | 1,507 / 156 | 7c513fc83d7bbff6f67471c096847d4d88e4e42e97b3641a4e4344075ebb18f2 |
+| Vitest | 1,074 / 133 | 0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce |
+| Playwright | 280 / 85 | 878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe |
+
+The owner UI commit contributes two new Vitest rows. It extends the existing
+recommended-workflow browser case to cover the shared graph view switch without
+adding another native Playwright row. The guide correction and the UI commit are
+already ancestors of this worktree; no additional rebase is pending at this
+checkpoint. The ownership manifest now records 64 support dependencies,
+including the root pytest fixture module and the two extracted source/graph
+fixture modules introduced by M3.
+
+#### Root cause and change
+
+The graph-command family rebuilt the same accepted source/outline state for each
+function-scoped test. Each of the 19 original cases created a project, saved
+source material, prepared an outline candidate, wrote and admitted a local
+delivery, and accepted it before exercising graph commands. M0 measured 1.89s
+of fixture setup across those cases versus 0.31s median test call time and
+3.027s median suite wall time. The outline acceptance is a required current
+graph precondition, but repeating its production path is not behavior under
+test in this command family.
+
+The graph-command suite now performs that same real accepted-source flow once
+per pytest session through a fixture registered in `tests/conftest.py`, closes
+the seed project and checks that no SQLite sidecars remain, then copies the
+complete project home into each test's own temporary output root. Each test
+reopens its copy through `ProjectFolderStorage` and closes its handle during
+fixture teardown. The shared function-scoped `source_project` fixture remains
+in place for graph tests outside the measured command family. No mutable store
+or database connection is shared between command cases. A focused regression
+mutates one of two copies and verifies that the second copy retains its original
+graph draft state. The copies use separate output and application roots; their
+identical project ID is local to each isolated root and is never combined in a
+shared registry.
+
+The first module-scoped fixture attempt put the session seed beside the
+graph-authoring test module. Other test modules imported `source_project`, but
+did not register its nested session-seed fixture. The graph module then had 10
+setup errors despite 54 cases passing. Moving the seed to the root `conftest.py`
+made it visible to all consumers; the optimized fixture now lives only in
+`test_graph_commands.py`, so the optimization remains scoped to the measured
+family. Reusable source/outline and graph-authoring builders were moved out of
+collected test modules into `tests/source_outline_fixtures.py` and
+`tests/graph_authoring_fixtures.py`.
+
+#### M3 measurements and checks
+
+The before and after samples use the same host, warm dependencies, serial
+execution, `pytest -q --durations=0`, and a fresh basetemp for every run. The
+after suite contains the 19 original graph-command cases plus the isolation
+regression. Wall/setup seconds by sample were:
+
+| Candidate | Cases | Sample 1 | Sample 2 | Sample 3 | Median |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Before | 19 | 3.155 / — | 3.027 / — | 3.004 / — | 3.027 / — |
+| After | 20 | 1.514 / 0.350 setup | 1.361 / 0.330 setup | 1.301 / 0.320 setup | 1.361 / 0.330 setup |
+
+The after command time is 55.0% lower while retaining every original case and
+adding the copy-isolation check. The original separate setup-attribution sample
+was 1.89s; the three after samples attributed 0.320–0.350s to setup (0.330s
+median), about 82% below that single reference. This is descriptive setup
+evidence, not a triplicate before/after setup comparison. A separate copy probe
+measured copy/open/read/write/close totals of 28ms, 20ms and 20ms. These small
+local timings are family-level evidence, not a promise about the full pytest
+suite or hosted CI.
+
+- Five consumers of the extracted source/outline helpers — PASS, 52 cases.
+- `uv run --locked --no-sync python scripts/verify.py module --module graph --depth contract` — PASS: native preflight, app typecheck, all 64 graph pytest cases and the graph Vitest selection.
+- A separate run reversed the native order of all graph owner cases under a new basetemp — PASS, 64 cases.
+- Targeted Ruff `F401,F821,F823` checks across all touched Python modules and Ruff formatting for the three new fixture modules — PASS.
+- Two consecutive native module ownership checks — PASS with the identical inventory/hashes above; no test bodies executed.
+
+An initial fixture attempt checked for SQLite sidecars while the seed store was
+still open; the focused run exposed the lifecycle mistake. The guard now runs
+after the seed handle closes, and the post-close sidecar check is part of the
+fixture contract. No product-code or persistence workaround was added.
+
+Run 38101073289 on exact SHA 63b25f4 is terminal failure: verify passed;
+browser shard 1 passed 117 and failed 5 cases in 30.8 minutes, while shard 2
+passed 156 and failed 2 in 31.7 minutes. Run 38101824564 on exact SHA 7da7b6e
+is terminal failure: verify passed; browser shard 1 passed 117 and failed 5 in
+31.0 minutes, and shard 2 passed 155, failed 2 and had one flaky case that
+passed on retry in 26.2 minutes. The seven first-attempt failures repeat the
+creator layout bounds/resize, production rebuild, source-entry dirty-refresh,
+source-outline duplicate-text and creator-brief small-viewport failures
+recorded above. Neither run has been duplicated. The run 38098197412 failure
+and its shard-level details remain recorded above.
+
+M3 is complete on the isolated worktree. M4 uses the 7da per-case Playwright log
+timestamps, including retry attempts and inter-case setup/teardown intervals,
+to rebalance all 85 whole-spec assignments. The four LPT groups estimate
+14.35–14.41 minutes each from the two observed browser-step durations of 31.18
+and 26.28 minutes. This is a one-run allocation estimate, not a hosted
+four-shard result. The manifest has 22/21/21/21 specs, and the local allocation
+guard lists 280 cases as 81/61/67/71 with zero overlap or omissions. CI retains
+`fail-fast: false`, one Playwright worker per runner, the existing retry and
+timeouts, and full-report uploads. Focused CI-contract tests, actual local
+four-shard `--list` coverage and both frontend type checks passed.
+
+ADR 0158 records the accepted-seed lifecycle and isolation contract. M5
+independent review, same-host family retiming, the one local full gate, and one
+unfiltered hosted qualification remain outstanding. That hosted run will also
+be the M4 four-shard probe; do not dispatch a separate duplicate run.
+
+#### M4 complete-profile local qualification — 2026-10-11
+
+The local verification-tooling complete profile passed in 40.869 seconds:
+
+- Native full-union ownership preflight — PASS, 1,507 pytest, 1,074 Vitest and
+  280 Playwright cases with the same hashes listed above.
+- Frontend application and browser-fixture type checks — PASS.
+- Locked dependencies, deterministic production bundle and checked static
+  parity — PASS.
+- Four-shard unfiltered allocation guard — PASS, 85 specs and 280 cases across
+  shards 81/61/67/71, with no overlap or omissions.
+- Wheel build and installed-wheel smoke — PASS.
+- Verification-tooling owned tests — PASS, 54 pytest, 2 Vitest and 6
+  Playwright cases.
+
+The separate focused browser-contract selector passed all five tests. The
+seven-file focused run of source/outline helper consumers passed 58 pytest
+cases. Ruff check passed for the touched Python scope after import sorting,
+excluding C408 on an unchanged dict call already present at the base revision;
+the newly added fixture modules, conftest and browser-contract test pass Ruff
+format checks. The working diff check passed. The build emitted its existing
+non-blocking large-chunk advisory; the focused Python run emitted the existing
+Starlette TestClient deprecation warning.
+
+This establishes the local workflow and exact case allocation, not actual
+four-runner hosted duration or hosted acceptance. The candidate still requires
+independent review, same-host M0 family retiming and one complete local full
+gate before the single unfiltered hosted qualification.
+
+#### M5 controlled Python family retiming — candidate 919ca5d
+
+On the same Apple Silicon host, the four M0 Python selectors were repeated
+serially with warm dependencies, a fresh basetemp per sample, and no active
+pytest, Vitest, Playwright or full-verification process. No normal8841 or owner
+project data was used. Raw logs and basetemps are retained under
+/var/folders/ys/g3nd6nfx2xd9wmw053lg109m0000gn/T/plotloom-testing-health-m5-919ca5d-controlled-vswewh6t.
+
+| Family | Cases | Wall samples | Median wall | Call samples | Median call | M0 median wall / call |
+| --- | ---: | --- | ---: | --- | ---: | ---: |
+| Source | 11 | 2.331 / 1.971 / 1.920 | 1.971 | 1.40 / 1.18 / 1.27 | 1.27 | 2.209 / 1.410 |
+| Graph commands | 20 | 1.297 / 1.317 / 1.295 | 1.297 | 0.33 / 0.33 / 0.33 | 0.33 | 3.027 / 0.310 |
+| Media reconciliation | 4 | 3.719 / 3.766 / 3.906 | 3.766 | 2.89 / 2.92 / 3.09 | 2.92 | 3.973 / 3.010 |
+| Recovery | 19 | 4.143 / 5.309 / 4.413 | 4.413 | 3.16 / 4.34 / 3.24 | 3.24 | 4.868 / 3.500 |
+
+All twelve commands passed. Median wall time changed by -10.8% for source,
+-57.1% for graph, -5.2% for media and -9.3% for recovery. Median graph setup
+was 0.32s, compared with the single 1.89s M0 setup-attribution sample; this is
+not a triplicate setup comparison. These family timings support the scoped
+graph fixture optimization and show no median wall regression in the other
+selected families.
+
+A prior exploratory repeat was discarded because it overlapped with the
+manager's unrelated caption/browser checks. The table above is the controlled
+repeat performed after confirming those checks had ended. This candidate is
+919ca5d; the pending UI-only baseline changes do not alter Python tests. Recheck
+ownership and Python inputs after the final baseline is supplied.
+
+#### Owner UI candidate diagnostic — not M5 qualification
+
+The separate local main candidate e923b58 completed its full runner with exit 1.
+Its Python step passed 1,492 cases in 387.69s (verify step 393.043s); the full
+run took 876.785s and the browser suite passed 277 and failed 6 in 7.8 minutes.
+The slowest 20 Python calls ranged from 1.73s to 6.79s, so no single listed
+test explains the Python wall time. This was a different candidate from the
+M0–M5 branch and had browser failures; it is diagnostic evidence only, not
+controlled comparison with the 732.075s historical full run or final
+qualification. The subsequent owner caption commit adds no Python changes.
+
+#### M4 Python process isolation and full-runner implementation — candidate 919ca5d
+
+The M0–M5 candidate's unfiltered Python duration profile passed 1,507 cases in
+383.07 seconds. The slowest 20 individual setup/call/teardown phases totalled
+58.29 seconds (15.2% of the Python step), with a 6.72-second maximum. No one
+case explains the wall time; the evidence supports looking at suite-level
+execution rather than changing assertions or reducing coverage.
+
+The bounded isolation review found:
+
+- Native Python discovery returned 1,507 case IDs across 156 test files.
+- The project-folder/session seed fixtures use pytest temporary roots; project
+  lock, staging and spawned-process cases use their owning `tmp_path`.
+- The socket-binding tests use ephemeral ports. Other loopback endpoint strings
+  are provider fixtures, not listeners.
+- Environment monkeypatches and Python caches are process-local. The only
+  production `lru_cache` and the style-contract `OrderedDict` cache are in
+  memory; no test uses pytest's shared cache fixture.
+- Representative spawned-process tests manage their children in `finally`
+  blocks and keep mutable files inside temporary roots.
+
+A manual two-process whole-file split passed all 1,507 cases as 754/753 across
+78/78 files. The implemented runner was then exercised end to end after adding
+five runner-contract cases: it collected 1,512 native cases from 157 files,
+split them 756/756 across 78/79 files, and both workers passed. Two consecutive
+native ownership guards matched: pytest SHA-256
+`62e9680f6d72d454b440ad4b836d1930ae4f91a8c618074c07ab29662bb01009`, Vitest
+`0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce`, and
+Playwright `878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe`.
+
+The full Python runner discovers cases, refuses empty/duplicate/unsafe
+collection rows, deterministically assigns whole files by case count, uses
+distinct worker basetemps, disables the shared pytest cache and bytecode
+writes, preserves each worker's top-20 duration report, and fails if either
+worker fails. It logs both reports separately and terminates worker process
+groups on interruption. `verify.py full` owns this path; focused and module
+commands remain direct native selections. ADR 0160 records the proposed
+contract, and `docs/development.md` documents its scope.
+
+The focused runner/verify selectors passed 26 pytest cases; quick passed all
+1,074 Vitest cases and both TypeScript checks in 14.783 seconds. The full
+two-process runner passed all 1,512 cases with one existing Starlette
+TestClient deprecation warning. Ruff check/format and JSON/diff checks passed.
+These are functional results. The broader work window also contained
+main-thread UI verification, so the observed serial and two-process elapsed
+values are exploratory and are not accepted M5 speed evidence. A matched
+quiet-window serial/two-process comparison, independent review, final full
+local gate, and one unfiltered same-SHA hosted run remain outstanding. The
+The manager later reported UI commit `c1b24f742d701d7ca8ca3407d91b673caf4f3f20`
+as the latest local candidate; it remains unpushed and unqualified. Do not
+rebase or qualify against it until the manager supplies the final published
+baseline and quiet checkpoint.
+
+#### M4 Python runner failure-path recheck — isolated candidate
+
+After adding a runner contract case for separate worker reports and a nonzero
+worker exit, two consecutive native ownership guards matched: pytest 1,513 /
+157 files, SHA-256
+`98616447651137f987255599a066164a76a5b55546d0d144d80200df53cdc8f3`;
+Vitest 1,074 / 133 files, SHA-256
+`0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce`;
+Playwright 280 / 85 files, SHA-256
+`878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe`.
+The guard executed no test bodies. The runner/verify focused selector passed
+27 pytest cases before a formatting-only edit; Ruff check, Ruff format check
+and diff check passed afterward.
+
+The verification-tooling complete profile was rerun on this candidate and
+passed in 31.556 seconds. It included full native ownership preflight, both
+frontend type checks, locked dependency check, deterministic bundle and static
+parity, four-shard allocation, wheel/package smoke, 60 pytest cases, 2 Vitest
+cases and 6 Playwright cases. The six browser tests passed; pytest emitted the
+existing Starlette TestClient deprecation warning and the static build emitted
+its existing large-chunk advisory.
+
+The added test simulates both workers completing, verifies each captured report
+is printed, and confirms that one nonzero worker makes the full step fail. It
+does not replace the final unfiltered full-runner qualification. The earlier
+end-to-end runner pass covered 1,512 cases before the heartbeat/poll loop and
+latest failure-path test changes. The final local full gate remains required
+to exercise the exact runner revision. Same-host performance comparison,
+independent review, final local full gate and one unfiltered hosted
+same-SHA qualification remain outstanding.
+
+#### M5 review finding remediation — isolated candidate
+
+The independent review of 9bc5d0e found two actionable gaps. First, the
+coordinator detached pytest worker process groups but did not handle SIGTERM;
+second, the shared-helper register omitted real test owners of
+tests/backend_core/conftest.py and omitted tests/identity_review_assertions.py.
+
+The runner now records SIGTERM and exits with 128 plus the signal after cleanup.
+Its worker-scope finally block terminates and waits for every remaining process
+group before closing log handles and deleting the temporary root. SIGINT and
+unexpected exceptions also reach cleanup. A bounded signal regression delivers
+SIGTERM during second-worker startup and verifies that both started groups are
+stopped and the runner returns 143.
+
+The conftest support dependency now names its nine consuming modules, including
+story-authoring, graph, creative-production and shared-generation. The
+identity-review helper is registered under media-lifecycle. A focused ownership
+regression derives each named consumer module from its owned test path and
+requires the helper relationship to be present in the manifest.
+
+The runner, ownership-map and verification-runner focused selectors passed 34
+pytest cases in 0.70 seconds. Ruff check, Ruff format check and diff check
+passed. Two consecutive native guards matched at 1,515 pytest cases / 157
+files, SHA-256
+d08649eff0424a768a47aef70c9f702302521b7f639c41cb4e0ce86c38e87756; 1,074
+Vitest cases / 133 files, SHA-256
+0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce; and
+280 Playwright cases / 85 files, SHA-256
+878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe.
+
+The verification-tooling complete profile passed in 32.748 seconds: complete
+native ownership preflight, both frontend type checks, lock check,
+deterministic bundle and parity, four-shard allocation, wheel/package smoke,
+62 pytest, 2 Vitest and 6 Playwright cases. The remaining exact-runner
+end-to-end full local gate, review recheck, matched serial/two-process
+comparison and one unfiltered hosted qualification remain outstanding.
+
+After the consumer regression added the verification-tooling owner represented
+by a backend-core test, its contract profile was rerun and passed in 15.182
+seconds: full ownership preflight, frontend application type check, all 62
+pytest cases and 2 Vitest cases. The complete-profile browser, package, lock
+and static-bundle gates were unchanged by this assertion-only extension and
+retain their preceding passing evidence.
+
+#### Process-group descendant cleanup — second review follow-up
+
+The independent re-review reproduced a child process surviving cleanup when
+its pytest leader exited on SIGTERM. The root cause was escalation based on the
+leader's `poll()` result: once the leader exited, cleanup skipped that worker
+even if a descendant still occupied its detached process group. Cleanup now
+checks each process group independently, allows up to five seconds for graceful
+exit, sends SIGKILL to remaining groups, and then waits for each leader before
+removing logs and temporary output.
+
+A POSIX real-process regression starts a worker leader and child, configures the
+child to ignore SIGTERM, and confirms the descendant is no longer running after
+cleanup. All 8 runner tests passed in 0.27 seconds; Ruff check, Ruff format
+check and `git diff --check` passed. Two consecutive native ownership guards
+matched: pytest 1,516 cases / 157 files, SHA-256
+93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3; Vitest
+1,074 / 133, SHA-256
+0c26f4523c07ed8c31bab06afbcab99b9a15a326ebe0991a429f523d84d914ce; and
+Playwright 280 / 85, SHA-256
+878a9ad8e999be52222c4060c7aaaa53ff96cc44ceadb5c5a65dde2b1cde1ffe.
+
+The verification-tooling complete profile passed in 31.817 seconds: full
+ownership preflight, both frontend type checks, lock check, deterministic
+bundle and parity, four-shard allocation, wheel/package smoke, 63 pytest, 2
+Vitest and 6 Playwright cases. The independent read-only review of commit
+71defcae081d2542618338d5faa6876e0d8cbf5f found no actionable findings. The
+reviewer reran the bounded reproduction with a shortened shutdown grace and
+observed leader exit -15, an empty child process state and `child_running=False`.
+The reviewer did not run project suites. The process-tree cleanup guarantee is
+qualified for the current macOS and Ubuntu verification targets; Windows worker
+descendant containment remains unqualified. A quiet matched serial/two-process
+comparison, the exact-runner full local gate and one unfiltered hosted
+same-SHA qualification remain outstanding.
+
+### Published baseline reconciliation — 2026-10-11
+
+The manager confirmed quiet completion and published baseline `927d441eb647804d4202aeeabffd487b02b9867b`. The M0–M5 branch was rebased onto that SHA, and a range-diff preserved all nine implementation/review commits. At checkpoint creation, branch HEAD was `d1247871a779bc212321d53bfd00dfa05e09398d`; the four new Vitest file-owner entries had passed the native guard and remained uncommitted. The main commit changed frontend tests only, leaving the M0 Python selections and their controlled comparison inputs unchanged.
+
+Two consecutive post-rebase ownership guards matched at 1,516 pytest cases / 157 files, SHA-256 `93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3`; 1,126 Vitest cases / 137 files, SHA-256 `306c6062c3a59c7085174debefc21736ba847e452d1e7dfe8c4b8dc4603f4711`; and 285 Playwright cases / 85 files, SHA-256 `4feb9c25937c3f1dc953fb390c8b3817f1db431c81c304e3a2b050fe977a8969`. The new files are graph-workflow-actions and workspace-workflow-guide (graph), source-review-display (story-authoring), and workspace-viewport (shared-presentation). The four-shard allocation guard passed with 83/61/70/71 cases, with no gaps or overlap. The graph + story-authoring + shared-presentation contract union passed in 37.620 seconds: 174 pytest and 254 Vitest cases.
+
+Hosted run 38109502813 is the unfiltered comparison run on baseline SHA `927d441eb647804d4202aeeabffd487b02b9867b`. The verify job passed at 04:04:04Z; both browser jobs were still running at 04:04Z. This is baseline evidence, not candidate qualification. A new next-action hint update remains active in the manager's main task. Defer the quiet M5 timing comparison and final full candidate gates until that work provides a final published baseline and quiet checkpoint.
+
+
+### Concrete-hint UI baseline reconciliation — 2026-10-11
+
+The final concrete-control hint change was published as `4566ec767df871e8799084a03806ffe429130870`. It updated one frontend recommendation expression and the generated workbench bundle, added two Vitest cases, strengthened component assertions, and retained the same three Playwright cases while exercising the actual Script → Creator → Production → package-review path. The manager reported 1,128 frontend unit cases / 137 files, both type checks, 55 focused unit/component checks plus 3 browser checks in 22.064 seconds, desktop layout inspection, deterministic build/parity, and a clean post-push remote readback. There were no backend/API/persistence/auth/provider/dependency changes.
+
+The M0–M5 branch was rebased onto that SHA. `git range-diff` preserved all ten commits relative to the prior 927d441 base. The native ownership guard passed twice with identical final-4566 inventory: pytest 1,516 / 157, SHA-256 `93f2e6e50d57336edfd352318aaac7d82d3414b524068ca7f630c0c771322fa3`; Vitest 1,128 / 137, SHA-256 `922b4d76e58839904c257e5aaf26442ccd0875b987f2806541d925e4574798cf`; Playwright 285 / 85, SHA-256 `9237573e2419b6b79123462d295af57c6f074177a64eb0619e0191e0fdcfba60`. The four-shard guard passed with 85 specs and 285 cases split 83/61/70/71, no gaps or overlap, and `BROWSER_GREP` preserved.
+
+The verification-tooling complete profile passed in 33.568 seconds on this branch: complete native ownership preflight, both frontend type checks, lock check, deterministic bundle and parity, four-shard allocation, wheel/package smoke, 63 pytest, 2 Vitest and 6 Playwright cases. The build emitted the existing large-chunk advisory; pytest emitted the existing Starlette TestClient deprecation warning.
+
+### M5 quiet full Python serial/two-worker comparison — 2026-10-11
+
+After the manager reported no active test jobs, I measured the complete Python suite serially and then through `scripts/testing/run_python_suite.py`, on the same worktree revision and M5 Pro. Each run used `PYTHONDONTWRITEBYTECODE=1`, no ambient `PYTEST_ADDOPTS`, disabled pytest's shared cache provider, fresh temporary roots and no concurrent project test workload.
+
+| Mode | Native cases | Split | External wall time | Test result |
+| --- | ---: | --- | ---: | --- |
+| Serial pytest | 1,516 | one process | 390.050 s | 1,516 passed; pytest 364.08 s |
+| Two-process runner | 1,516 | 758 / 758 cases; 78 / 79 files | 240.026 s | both workers passed; runner 222.738 s |
+
+This single matched pair reduced external wall time by 38.5% (150.024 seconds). It is a demonstrated M4 improvement for this host/configuration, not a multi-sample median. The serial top twenty durations sum to 50.24 seconds (13.8% of pytest time); the longest calls were 6.38 and 6.12 seconds. The two worker reports recorded 758 passed each, in 210.95 and 219.43 seconds of pytest time. Logs are retained at `/var/folders/ys/g3nd6nfx2xd9wmw053lg109m0000gn/T/plotloom-m5-serial-4566ec7-jvk7p_v9/pytest.log` and `/var/folders/ys/g3nd6nfx2xd9wmw053lg109m0000gn/T/plotloom-m5-parallel-4566ec7-_kgsw41q/runner.log`. Both emitted the existing Starlette TestClient warning.
+
+The hosted baseline workflow 38109502813 on exact SHA `927d441eb647804d4202aeeabffd487b02b9867b` completed with failure. Verify and browser shard 1 passed. Browser shard 2 passed 160 cases and failed one case (with the same failure on retry) in `creator-workbench-operations.spec.ts`: the test expected “投产状态尚未核对，暂不能应用路线。” but received “先确认当前图内容，再应用到故事路线。” The complete failed log is retained at `/tmp/plotloom-m0m5-baseline-38109502813-browser2-failed.log`; the run is an old two-shard baseline, not candidate qualification, and was not duplicated.
+
+A state-aware hint correction began after baseline `4566ec7`; it lifts the existing read-only production-state read into a shared workspace observer. The manager says no API/request/payload/backend/persistence/admission/auth/provider/prompt/dependency/build/package changes, and is performing a fresh independent review/qualification. Treat `4566ec7` as intermediate for combined frontend coverage. Confirm the final source diff and exact SHA before running the affected module and full combined gates. The Python comparison above remains reusable if final diff confirms Python sources/tests and runner configuration are unchanged.
+
+### M5 review follow-up — collection cancellation and runner count
+
+Independent review of candidate `a517554` found that the coordinator only
+recorded SIGTERM while native collection ran inside blocking
+`subprocess.run`; a stuck collector therefore could keep the coordinator alive
+and could not be cleaned up. The runner now owns collection through a
+`Popen` process group on POSIX and repeatedly calls `communicate(timeout=0.25)`
+to drain stdout and stderr while checking the signal flag. Its cleanup stops
+and reaps the collector before returning the conventional `128 + SIGTERM`
+status. The regression injects SIGTERM during collection, confirms that the
+collector group is stopped and reaped, and verifies that no workers start.
+`uv run --locked --no-sync python scripts/verify.py focused --pytest
+tests/test_python_suite_runner.py` passed 9/9 in 2.260 seconds. Ruff check and
+format plus `git diff --check` passed. The README's hosted browser runner count
+was updated from two to four to match ADR 0159 and the workflow matrix.
+
+Two consecutive native ownership scans matched at 1,517 pytest / 157 files
+(SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`), 1,128
+Vitest / 137 files (SHA-256
+`922b4d76e58839904c257e5aaf26442ccd0875b987f2806541d925e4574798cf`), and
+285 Playwright / 85 files (SHA-256
+`9237573e2419b6b79123462d295af57c6f074177a64eb0619e0191e0fdcfba60`). The
+four-shard guard passed with 83/61/70/71 cases and no omissions or overlap.
+The verification-tooling complete profile passed in 36.936 seconds with 64
+pytest, 2 Vitest and 6 Playwright cases, frontend and browser type checks,
+locked dependencies, deterministic bundle and parity, four-shard allocation,
+and wheel/package smoke. The build emitted the existing large-chunk advisory;
+pytest emitted the existing Starlette TestClient deprecation warning. `quick`
+passed in 18.340 seconds with 1,128 Vitest cases and both type checks. Ruff
+check, Ruff format, and `git diff --check` passed.
+
+Independent read-only re-review of commit `8eb9291` found no actionable
+findings and ran no tests. This is still not final runner qualification. One
+exact-revision `verify.py full` and one unfiltered hosted same-SHA run remain
+required after the manager publishes the final UI baseline and quiet
+checkpoint. Windows process-tree containment remains unqualified.
+
+### Final state-based UI baseline reconciliation — 2026-10-11
+
+The manager published final UI baseline
+`62f031337d2711e6d5e76017a676487420d002b4`; this supersedes `4566ec7` for
+combined frontend qualification. The baseline delta from `4566ec7` spans 19
+documentation, frontend and generated-static files. It adds a shared
+read-only production observer to give explicit state-based script, storyboard
+and production hints; the manager's review found no actionable findings.
+There are no backend/API schema or payload, persistence, admission, auth,
+provider/prompt, dependency, build-tool or package-contract changes. The
+manager's same-SHA local evidence is 1,164 frontend tests / 139 files, both
+type checks and locked-dependency checks, 95 focused unit/component cases, six
+selected browser cases, desktop pixel inspection, and two deterministic
+seven-file builds with tree SHA-256
+`c9c858c2a1a179fac11684cb1b54b04bff9b31a322bec8a12f4231f23e09cada`. The
+handoff explicitly does not claim hosted CI success.
+
+The isolated M0–M5 branch rebased from `4566ec7` onto the exact `62f0313` SHA.
+`git range-diff` confirmed all 13 M0–M5 commits were preserved. The refreshed
+native guard initially found two unowned Vitest files; both production-hint
+and shared production-read test files now belong to `creative-production`, and
+`workflow-production-fixture.ts` is listed as its test helper. Two consecutive
+native ownership scans matched: pytest 1,517 / 157, SHA-256
+`98cad9469ca9a77bce6048decefa8a2ebb1b5be6560954e47e07a3edeea44059`; Vitest
+1,164 / 139, SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`; and
+Playwright 285 / 85, SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`.
+The first independent read-only review of candidate `f59710173528b82b916c2d6f678b9f5c9e6fbdaf`
+found that `workflow-production-fixture.ts` had graph and story-authoring
+consumers missing from its support-dependency entry, and those same owners were
+missing from its transitive `production-bridge-fixture.ts` dependency. The map
+now includes both edges. A new ownership regression traverses relative imports
+among Vitest test support files and requires the discovered consumer sets for
+both fixtures to match the manifest exactly.
+
+The focused ownership selection passed 7/7; Ruff check/format, JSON parsing and
+`git diff --check` passed. The verification-tooling complete profile passed in
+45.344 seconds with 65 pytest, 2 Vitest and 6 Playwright cases. Its native
+ownership preflight found 1,518 pytest / 157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,164
+Vitest / 139 files (SHA-256
+`116c4ae1b5feb1e180cfde9265cad00f34c1a158b653ad71efab64c9632893c0`), and
+285 Playwright / 85 files (SHA-256
+`6878b73005c1ef59e76cbee3d73ae29883bd7554c9be08e5facb536542c6c8ac`). Both
+type checks, locked dependencies, deterministic bundle and parity, four-shard
+allocation at 83/61/70/71, wheel build and installed-wheel smoke all passed. The
+build emitted the existing large-chunk advisory, and pytest emitted the
+existing Starlette TestClient deprecation warning. Independent re-review of
+`b9a5b7f` confirmed that both fixture records include the graph and
+story-authoring consumers and that the regression guard discovers and enforces
+the exact transitive consumer sets. The read-only re-review found no further
+issues and ran no tests.
+
+#### M5 exact-candidate local full qualification — 2026-10-11
+
+`uv run --locked --no-sync python scripts/verify.py full` passed on
+`d53a99fe14b753e4641e259ab3a60c121efb9fd9` with exit 0 in 706.390 seconds.
+The gate passed locked dependencies, FFmpeg/FFprobe probes, API unused-import
+lint, archived prompt-reader verification, all 1,164 Vitest cases, frontend
+type checking, all 1,518 Python cases, deterministic frontend build and checked
+asset parity, unfiltered browser shard coverage, all 285 Playwright cases, wheel
+build, and installed-wheel smoke.
+
+Python ran in two isolated workers with 759 cases each and no failures; the
+runner completed in 212.510 seconds. Playwright ran all 285 cases with four
+local workers in 472.524 seconds (7.8 minutes), with zero failures. Vitest
+completed all 1,164 cases across 139 files. The full run emitted the existing
+Starlette TestClient deprecation warning, Vite large-chunk advisory, and Node
+color-environment notices; none caused a gate failure. The separately rerun
+verification-tooling complete profile and native ownership preflight remain
+documented above. This is local software qualification, not product or creative
+acceptance. The unfiltered hosted same-SHA qualification is still outstanding.
+
+#### Reconciliation to Script-page UI baseline `ea20d6b` — 2026-10-11
+
+Main advanced to `ea20d6ba07ee25b02be273d0b50bd43fc959405a`. The owner receipt
+classifies its 16-file change as frontend, documentation and generated static
+assets, with no backend/API, persistence, admission, auth, provider/prompt,
+dependency, build-tool or package-contract changes. The source owner's exact
+baseline evidence is 1,181 Vitest cases, both type checks, eight unique
+affected browser cases across recorded scoped runs, desktop inspection, and two
+deterministic seven-file builds with tree SHA-256
+`e031d50cfbb8ad7ed8a53a20a464ad954ce91843e1ca9059484c5bb1bb3f0efc`.
+
+The M0–M5 candidate includes this baseline. The ownership map assigns
+`recommended-script-workflow.test.ts`,
+`script-workflow-observation.test.ts`, and
+`recommended-script-workflow.spec.ts` to `story-authoring`; its existing
+workflow and F5A fixture dependencies already cover these consumers. The
+existing four-shard allocation was retained, with the new whole spec assigned
+to its lightest shard. Two consecutive native ownership scans matched at 1,518
+pytest / 157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,181
+Vitest / 141 files (SHA-256
+`138b616d7f4594eaaf5b134ec4737f7aafc554e78419dce9db4ae2640c2188a0`), and 287
+Playwright / 86 files (SHA-256
+`ae7ba96e5a0bd722a2ccc402e1100aad2d5c151f0ee625930627e48bb5960487`). The
+unfiltered shard guard passed with 83/63/70/71 cases and zero gaps or overlap.
+
+The verification-tooling complete profile passed in 33.565 seconds with 65
+pytest, 2 Vitest and 6 Playwright cases; ownership preflight, both type checks,
+locked dependencies, deterministic build/parity, four-shard coverage, wheel
+build and installed-wheel smoke passed. The build emitted the existing
+large-chunk advisory and pytest emitted the existing Starlette deprecation
+warning.
+
+Per the source owner's instruction, the exact M0–M5 local full result on
+`d53a99f` is reused for unchanged backend/Python inputs; no duplicate full run
+was started solely for this frontend change. The exact unfiltered hosted run
+38113104300 is on M0–M5 SHA `5d007935e8657bba02ff72e37bdc31d22fe3ea41`, which
+does not contain `ea20d6b`; its status and scope must be recorded separately and
+must not be described as hosted qualification of this updated UI baseline.
+
+The merged candidate was committed and pushed to the scoped branch as
+b888894c67cc7517f6a405f81576da68196def74. Independent read-only review of
+that exact commit found no actionable findings: both new Vitest files and the
+Script browser spec are owned by story-authoring, the registered shared
+dependencies cover them, and all 86 Playwright specs appear exactly once
+across four shards of 22/22/21/21 files. The reviewer ran no tests or
+benchmarks. Hosted run 38113104300 remains pinned to the earlier SHA above.
+
+#### Hosted CI outcome — run 38113104300
+
+The unfiltered workflow completed successfully in 17 minutes 23 seconds on
+SHA 5d007935e8657bba02ff72e37bdc31d22fe3ea41. The verify job passed 1,518
+Python cases in 735.45 seconds, 1,164 Vitest cases across 139 files, frontend
+type checks, production build and parity, and wheel build/install smoke. All
+four browser jobs passed: 83, 61, 70 and 71 cases (285 total); the full run
+had no failed jobs. This run is pinned before the ea20d6b and 6371bf6 UI
+baselines and is evidence for SHA 5d007935, not the latest UI candidate.
+
+#### Later owner UI input — 6371bf6
+
+The owner reports main at 6371bf6291f9b708200730b7866df2c3b76fe1ac with a
+locally qualified Art/preparation workflow-guide correction. The owner points
+to main's receipt at
+docs/verification/2026-10-11-art-and-preparation-workflow-hints.md. It records
+1,191 Vitest cases and both type checks passing, all 10 unique affected browser
+cases passing, deterministic generated assets matching, and a clean
+independent review. The source diff is limited to frontend code/tests, the
+generated bundle, ADR/roadmap/verification documentation, with no backend,
+API/payload, dependency or build-tool changes.
+
+This revision adds two Vitest test files and one Playwright spec and updates
+the shard manifest. It is not included in the pushed M0–M5 candidate at
+cdc4df693ed8a11f80948dc75574682b83c9e991. Per the owner handoff, it remains an
+input for the authorized combined qualification; no rebase or new full run
+was started solely for this handoff. The ownership map and four-shard manifest
+must be refreshed if this source revision is later integrated. Neither the
+local full on d53a99f nor hosted run 38113104300 covers 6371bf6.
+
+#### Reconciliation to current Art/Script/Role baseline — 2026-10-11
+
+The manager authorized a non-destructive merge of current origin/main at
+df333a16c32eb697696997bbc91c2ab39b283f18 into this scoped branch. Git confirms
+ea20d6ba07ee25b02be273d0b50bd43fc959405a as the shared base; the new main-side
+diff is the Art/Script/Role workflow UI, tests, documentation and generated
+JavaScript. It adds no backend/API, payload, persistence, dependency or
+build-tool changes. The only merge conflict was the browser allocation
+manifest: the M0–M5 branch retains its four-shard contract and assigns both
+new specs to the previously lightest shard.
+
+Ownership assigns art-workflow-observation, recommended-art-workflow,
+cast-workflow-observation and recommended-cast-workflow Vitest files, plus the
+Art and Cast browser specs, to creative-production. Their existing shared
+fixture dependencies already list creative-production, so no new support edge
+was needed. Two consecutive native ownership scans matched at 1,518 pytest /
+157 files (SHA-256
+`b7f5a75e9b124c688a9bd93c389356b4af1c7ae5dc05b8e15511f7cb4798d9c6`), 1,201
+Vitest / 145 files (SHA-256
+`cf6e27fcfe69e6791d032d0762c76a5807bf5c7329dfcaa336146d43456e9bfe`), and
+292 Playwright / 88 files (SHA-256
+`9b5d499cb54be04a4aa23d760d54b0127e61fb5f1de0432df307fa2d8c7867f0`). The
+unfiltered four-shard guard passed at 83/68/70/71 cases, with zero gaps or
+overlap.
+
+The required quick tier passed in 11.827 seconds: all 1,201 Vitest cases,
+locked dependencies, API F401 lint and both type checks. The focused
+verification-tooling complete profile passed in 35.846 seconds with 65
+pytest, 2 Vitest and 6 Playwright cases; it also passed native ownership
+preflight, deterministic build/parity, four-shard coverage, wheel build and
+installed-wheel smoke. Existing Starlette deprecation, Vite large-chunk and
+Node color-environment warnings were the only reported warnings.
+
+The Art and Role source-owner receipts on exact UI baselines 6371bf6 and
+df333a1 record affected browser walkthroughs, screenshots, focused tests,
+type checks, deterministic asset builds and independent reviews. The M0–M5
+branch reconciles their native ownership and shard allocation. No new full
+suite or hosted run was started, as directed. The prior local full on d53a99f
+and hosted run 38113104300 predate these UI updates and do not qualify
+df333a1. Final combined qualification and main publication remain
+manager-owned.
+
+## Python bottleneck follow-up M6–M9 — 2026-10-13
+
+### Baseline, candidate and result
+
+The approved starting revision was `c771cdd67eb8fd0925cdfe772c46ed85eeb51657`
+on Apple M5 Pro / macOS 27.0.1 arm64, Python 3.12.13, uv 0.12.19 and Node
+24.18.0. The passing exact-base Python baseline at
+`/tmp/plotloom-m6-baseline-c771-retry.log` completed 1,779 cases in
+1,011.553s externally with two workers and fresh roots. The older manager run
+at `927d6d81` measured 972.198s but predates two commits, so it is context,
+not the matched denominator.
+
+The final candidate `verify.py full` passed in 1,199.826s. Its Python step
+passed all 1,779 native cases in 670.775s (890/889 cases; worker elapsed
+614.730s / 664.995s), frontend Vitest passed 1,368 cases, the unfiltered
+browser suite passed 316 cases, and wheel build/install smoke passed. Relative
+to the exact-base Python baseline, the candidate reduced external Python wall
+time by 33.7%; the 85% stretch target remains unmet. A first attempt stopped
+before tests because the isolated checkout lacked the locked prompt-reader
+`jsdom`; `npm ci` from its existing lockfile resolved the prerequisite, and
+the single final full gate then passed. No lockfile changed.
+
+The measured 670.775s / 33.7% result used case-count fallback because the timing
+manifest was absent; promoted duration packing has unit and eligibility-readback
+evidence but no whole-suite duration-allocation execution measurement, and
+hosted CI remains unconfirmed.
+
+The baseline's five-case representative/unaffected samples passed in
+111.62s, 114.84s and 120.43s. The same cases passed after the fixture change
+in 60.47s, 56.45s and 61.44s (median 114.84s to 60.47s, a 47.3% reduction).
+The two handoff cases' median call times fell from 48.51s to 20.59s and from
+44.61s to 19.76s. Geometry stayed level (9.01s to 9.08s); unaffected image
+safety changed from 6.80s to 7.06s, below the 10% slowdown trigger; recovery
+stayed passing and improved from 0.50s to 0.22s. Every sample used a fresh
+`--basetemp` and the same serial command shape.
+
+The native Python inventory stayed at 1,779 cases / 177 files with the same
+sorted case-ID digest, `ac9c22b7c22c481cc1eeaf41c1476b095bdacfa90a6165952c075027abf0c2b5`.
+The final successful workers emitted complete timing records for all 177
+files. Each marker recorded exit status 0 and exact collected/reported case
+ID equality; file and parameter-row counts reconcile against a fresh native
+collection. The checked-in `scripts/testing/python_suite_timings.json` binds
+those rows to input fingerprint
+`62184ee427385adb59b3db23bc7110514b2fce7bfdc8427fb8757b0fbdae3a47`, host
+fingerprint `e157fcd2c8db7127845d443a20785aff48490f424fcbfe1eb56ec31bb040db92`,
+and the same native case digest. An eligibility readback accepted all rows
+and produced two deterministic duration assignments of 88 and 89 files,
+estimated at 628.18s of phase work each. Timing promotion was explicit after
+the successful full gate; collection never wrote the manifest.
+
+The largest measured indivisible file was `tests/test_autopilot_handoff.py`
+at 261.63s; all setup/call/teardown rows sum to 1,256.35s. The 85% target
+would require at most 151.73s. Whole-file allocation alone cannot reach it,
+and further work reduction would require changing the measured behavior itself.
+Within this approved scope, retain the coverage and record the safe partial
+result. A next optimization should begin with a new owner-level behavior map
+and fresh profiling of handoff/geometry setup costs; it should not shrink
+current assertions or increase worker count by implication.
+
+### Contracts and scoped qualification
+
+The handoff-focused tests now use a compact package built by the real Brief,
+Source, Script and Storyboard owners. It preserves two complete routes, every
+unique shot, image/reference delivery, rollback and owner-validation checks.
+The retained 27-frame/all-route, geometry, inventory ceiling, pin, filesystem,
+currentness, restart and recovery owners remain in the exact native inventory.
+The same owner inventory before/after retains all case IDs and parameter rows.
+
+The full runner now selects deterministic whole-file duration packing only
+for a fully current manifest. It hashes source, runner, test, configuration
+and consumed F5A fixture files, toolchain and host identity; excludes its own
+advisory manifest from the executable-input fingerprint; rejects duplicate,
+unsafe, overflowing and nonfinite data before workers; and prints an explicit
+case-count fallback reason for stale or missing weights. Timing rows are
+emitted only when a worker exits successfully and reports every collected
+node ID. Two workers, separate roots, exact native collection and disjoint
+whole-file coverage, failure propagation, ambient-filter refusal and POSIX
+cleanup remain intact. Focused and module execution paths are unchanged.
+Support ownership now includes the compact image fixture and timing helpers.
+
+The focused runner/ownership selection passed 15 cases. The
+`verification-tooling` complete profile passed twice during implementation;
+the final pass took 34.849s and included native ownership, 76 Python tests,
+3 Vitest cases, 6 browser cases, both type checks, lock validation,
+deterministic bundle parity and wheel/package smoke. Ruff passed. The
+independent read-only M6–M8 review found six concrete gaps; each was fixed,
+and re-review confirmed no blocking findings. The reviewer ran no tests.
+
+This was a local software qualification only. Hosted CI remains unconfirmed.
+The `e9e67847` main publication bypassed the authorized autopilot integration
+hold; see the preservation incident below. Worktree branch:
+`codex/plotloom-python-speedup-m6-m9`, based on `c771cdd`. Full-gate console log is retained at
+`/tmp/plotloom-m9-candidate-full-20261013.log`; representative sample logs
+are `/tmp/plotloom-m9-sample-1.log` through `-3.log`.
+
+### Post-publication execution preservation incident — 2026-10-13
+
+The manager reported that the `e9e67847` merge/push changed the production
+execution checkout from `c771cdd6` while frozen run
+`e1e3e8b4-a209-4184-ac13-66bc3f410fc4` was active. The run stopped at r86 with
+`执行版本已变化`. The latest image delivery remained retained/current and was
+not resent. The manager restored `/Users/wjmao/projects/HU/plotloom` to
+detached `c771cdd6`, left local `main` and `origin/main` at `e9e67847`, and
+resumed the same frozen run through its control owner at r87. That checkout is
+now a live execution pin and must not be changed.
+
+The completed software verification did not establish preservation of the
+active execution. The main publication bypassed the manager's integration
+hold. The incident note is retained in the isolated documentation checkpoint
+and remains unpublished pending manager integration.
+
+### Test-only handoff refinement — 2026-10-13
+
+This isolated follow-up starts from released `cf26b32d`, on branch
+`codex/python85-handoff-fixtures` in the retained `python85-profiling`
+checkout. The old profiling branch still retains `ce8bebdc`. Production
+source matches the released baseline exactly; the separate installation-reader
+and receipt-query proposals in `python85-release` are not included and remain
+pending explicit production-scope approval.
+
+The remaining handoff fixture generated one frame for each of four action
+beats in every scene. Handoff ownership needs complete routes and multiple
+frames, but does not require one frame per beat. The pinned storyboard
+validator accepts contiguous multi-beat cuts, and the production bridge maps
+every beat in the range. Two five-second cuts cover `[1,2]` and `[3,4]` while
+retaining all four script beats, ten seconds per scene, the same Brief,
+three mapped episodes, two routes, cast/art references, and eight real text
+stages. Their H3 alignment and cut timestamps use the same cut duration.
+
+Only `test_autopilot_handoff.py` opts into this six-frame shape through its
+local wrapper. The shared fixture keeps its four-cut default for geometry
+and creator-confirmation/recovery consumers. Full-size `image_environment`
+is unchanged. All twelve handoff cases and parameter rows remain; omitted
+frames, second-selection rollback, manual replacement/restore and derivative
+withdrawal retain their assertions. Pack checks now assert exactly six frames
+for the opt-in shape and twelve for the shared default, alongside exact
+unique-shot coverage and two routes. The local wrapper also asserts eight
+text deliveries.
+
+Before editing, three serial focused baseline samples ran the unchanged
+missing-frame, late-rollback and derived-reference-withdrawal selectors with
+fresh pytest case roots and locked installed dependencies. All passed;
+runner wall times were 72.958s, 69.802s and 68.629s (median 69.802s).
+The CLI worker explicitly held heavy checks and native probes for this window,
+then was released. These selected-case timings are not a whole-suite result.
+Ignored `.local/handoff-six-frame/` retains the sampling script, baseline
+metadata/input and host fingerprints, and hashed raw logs in this checkout.
+
+Independent read-only review (requested Sol/Medium; effective settings
+unverified) found no actionable gaps in the two-file candidate. Targeted
+Ruff, diff checks and the story-authoring ownership/module plan passed.
+The focused file run passed all twelve cases in 162.71s (168.738s including
+the verification runner); this correctness run was not an isolated performance
+sample. The existing Starlette/httpx deprecation warning remains. Unchanged
+full-size, derivative-geometry and retained-confirmation/recovery controls
+passed after an opt-in case in the same pytest process: four cases passed in
+111.04s (117.565s including the runner). `controls.log` retains that result;
+`correctness.log` retains the twelve-case run. No checks are still running.
+Three matched candidate samples at clean `3f9d57bb` passed in 39.300s,
+41.206s and 41.527s (median 41.206s), a 40.97-percent reduction from the
+69.802s selected-case baseline. Commands, selectors, host, Python and uv
+versions matched; both checkpoints were clean. All six raw log hashes were
+verified against `baseline.json` and `candidate.json`. The CLI worker held
+checks/probes during the timing window and was released afterward. This is
+a gain for those three handoff cases, not the whole Python suite. Unaffected
+family timing, broader qualification, publication and the 85-percent target
+remain open.
+
+### Receipt-query scope approval — 2026-10-13
+
+The owner explicitly approved verification and integration of the narrow
+production query-placement proposal. The next candidate will carry only that
+transaction-owner change and its regression guards onto the released baseline
+plus the test-only fixture refinement. The separate installation-reader
+proposal (ADR 0164) is not implicitly included in this approval. The original
+isolated proposal and profiled evidence remain in `python85-release`.
+Qualification must re-establish behavior on the new composition; previous
+focused results with the installation-reader change are not substituted for it.
+
+The new composition is isolated on `codex/python85-query-qualification`, based
+on fixture checkpoint `3f9d57bb` and documentation checkpoint `188c1674`.
+Its only production-source delta against released `cf26b32d` is
+`command_transactions.py`; ADR 0166 records the operation-scoped query decision.
+The twenty authority cases passed in 1.58s (3.297s including selection and the
+runner). A separate downstream selection passed 34 cases: complete handoff and
+late-receipt files, final-send currentness, portable-recovery refusal and retired
+geometry-policy admission. Its retained log is `.local/receipt-query/focused.log`;
+the existing Starlette/httpx deprecation warning remains. This concurrent
+correctness run is not a performance measurement.
+
+Independent read-only review of this exact composition (requested Sol/Medium;
+effective settings unverified) found no actionable findings and no dependency
+on the installation-reader proposal. Targeted Ruff and diff checks passed.
+Three unprofiled samples at clean `d8c73828` passed in 36.419s, 36.333s
+and 36.752s (median 36.419s), using the same three handoff selectors and
+command. Compared with fixture-only `3f9d57bb` (41.206s), the query change
+reduced that median by 11.62 percent. Compared with released `cf26b32d`
+(69.802s), the combined reduction is 47.83 percent. All nine retained raw
+log hashes and matching host, Python, uv, command and selector metadata were
+checked. `query-candidate.json` and its three logs join the earlier samples
+in `.local/handoff-six-frame/`. The CLI worker explicitly held checks and
+native probes during this window and was released immediately afterward.
+
+These are selected-case medians, not whole-suite results. Unaffected-family
+timing, broader final qualification and publication remain pending; the
+85-percent whole-Python target is not achieved.
+
+### Creator-confirmation fixture refinement — October 13
+
+The next test-only slice starts at clean `734624b8` on the retained
+`python85-query-qualification` branch. Four creator-confirmation rows still
+built twelve frames although their contracts concern unnamed attribution,
+optional authored comments, receipt binding and orphan-fact refusal, not the
+number of cuts. They now explicitly request two cuts per scene from the
+existing shared fixture. Each case asserts eight real text deliveries, six
+frames, complete unique-shot coverage and two routes. Existing handoff,
+receipt/hash, reopen and snapshot/restore/acknowledgement assertions remain.
+The shared four-cut default, named-v1 recovery control, derivative-geometry
+control and full 27-frame owner are unchanged. No additional production
+change is included in this slice.
+
+Before editing, three quiet baseline runs at `734624b8` passed all six selected
+cases: the four target rows followed by those two unchanged controls. External
+wall times were 125.984s, 125.863s and 127.701s (median 125.984s). These samples
+use direct native `uv run --locked --no-sync pytest -q --durations=0
+--durations-min=0` with explicit selectors, not the `verify.py focused` wrapper;
+the same command will measure the candidate. Raw logs, rounded pytest phase
+durations, fingerprints and exact commands are retained in ignored
+`.local/creator-confirmation/`. The CLI worker held tests/native probes for
+this window and was explicitly released. Independent read-only review of the
+one-file delta (requested Sol/Medium, effective settings unverified) found no
+actionable gaps: all prior assertions and parameter rows remain, with
+function-scoped fixture isolation. Targeted Ruff, compile and diff checks
+passed. The established focused runner passed all sixteen creator-confirmation
+cases plus the unchanged derivative-geometry and full 27-frame pack controls:
+18 passed in 132.11s, 137.855s including selector checks and runner overhead.
+The existing Starlette/httpx warning remains. `correctness.log` retains the
+result.
+
+Three matched candidate samples at clean `ab4c6746` passed all six cases in
+94.724s, 95.467s and 92.425s (median 94.724s): 24.81 percent less external wall
+time than the 125.984s baseline. The four changed rows' summed, rounded pytest
+phase-time median fell from 79.26s to 47.91s (39.55 percent). The unchanged
+named-v1 control's phase median moved from 22.25s to 22.40s (+0.67 percent);
+the derivative-geometry control moved from 21.40s to 20.33s (-5.00 percent).
+Neither breached the ten-percent regression trigger. Phase totals are not
+external command wall time. All six raw-log hashes were verified; command,
+selectors, host, Python, uv and clean diff metadata match. Source checkpoints
+and input fingerprints identify the deliberate test delta.
+
+The CLI worker held checks/native probes during the correctness-and-timing
+window and was explicitly released at completion. No manager check remains
+running. Full qualification, publication and whole-Python target measurement
+are next; the selected-case gain does not establish the 85-percent target.
+
+### Combined query/fixture final local gate
+
+Qualified executable checkpoint:
+`e58760291919c7741dc180e54133e3674bf2cfa2`, including main `14ad98cb`.
+The detached pinned submodule remained exactly
+`4f9b2128c82adf623f594ba714c97d0afcfc16a2`; the source checkout was clean
+before and after the gate. The only production delta against main is the
+approved receipt-scoped query placement. The older installation-only reader
+is excluded. Independent read-only final composition review, requested as
+GPT-6.1 Sol / Medium (effective settings unverified), found no actionable
+integration or coverage issue.
+
+The first `uv run --locked --no-sync python scripts/verify.py full` stopped
+after 0.378s because this isolated Python-only checkout lacked `jsdom` for
+the archived prompt reader. No frontend, Python or browser suite had run.
+The documented checkout prerequisites were missing, not a product contract.
+`npm --prefix docs/prompt-pipeline-lab ci --no-audit --no-fund` and
+`npm --prefix frontend ci --no-audit --no-fund` installed the checked locks;
+no lockfile, source, global approval setting or live installation changed.
+The existing pinned Chromium executable was present. The second attempt
+passed the complete gate in **1,203.332s**, exit zero:
+
+- 1,377 Vitest cases / 158 files; frontend and E2E type checks.
+- 1,859 Python cases / 182 files; two isolated workers, 930/929 cases.
+- Deterministic frontend build and checked static-tree parity.
+- All 93 browser specs / 318 cases; allocation guard 84/72/72/90,
+  with no missing or overlapping case, then unfiltered execution of all 318.
+- Wheel build and installed-wheel smoke.
+
+The complete Python command step took **697.496s** including collection,
+reporting and cleanup; worker lifetimes were 516.398s and 691.261s. The
+post-collection runner summary was 691.263s, not the whole-command boundary.
+Browser execution took 487.927s including its E2E type check. The Python
+schedule was `case-count fallback=native-case-inventory-changed`. No
+duration-based allocation execution or 85-percent reduction is claimed.
+The historical M6 baseline covered 1,779 cases, not this candidate's 1,859;
+this result is therefore not a matched whole-suite speed comparison.
+
+Raw evidence is retained in the `python85-profiling` checkout under
+`.local/final-qualification/`:
+
+| File | SHA-256 |
+| --- | --- |
+| `full-e5876029.log` (prerequisite failure) | `cf39c223d365409f0d7080c3b3d8cc74cca727cef40179509ef988a1d2daef29` |
+| `full-e5876029-deps-ready.log` (complete success) | `22f2799352a52e6c5b6a8a0081821051dc8abc18128edf6f7baa433f7861a484` |
+| `npm-prompt-reader.log` | `d722c43611f0e765e4727e73eef491d2c494b26b0b702d50128ddf34165708d2` |
+| `npm-frontend.log` | `9d7a3bb0fdcf0771452b0a81f67261de861a6a44d9c8fd78ae579dc91afe0b90` |
+
+Existing Starlette/httpx, large frontend chunk and NO_COLOR/FORCE_COLOR
+warnings were non-failing. Locked npm installation also reported deprecated
+whatwg-encoding and unapproved esbuild/fsevents scripts; no global script
+approval was changed, and the actual deterministic build passed.
+
+All 182 complete file-phase rows are retained in the successful log, summing
+to 1,186.308s. The largest files were geometry 162.471s, handoff 158.908s,
+image safety 124.116s, images 112.524s, creator confirmation 75.952s and
+specialist reconciliation 63.053s (38.001s in setup). At these weights,
+aggregate work divided by two is 593.154s; deterministic two-bin packing
+predicts the same bound to three decimals. These are accounting estimates,
+not a new wall-time benchmark, and nested profile totals must not be added
+to them. The timing manifest was not silently rewritten.
+
+The manager released the completed full-check window to the CLI source owner
+for focused saved-Brief routing checks. Further Python profiling remains
+serial and queued. This closeout changes documentation only; it does not
+invalidate the executable qualification. Hosted CI, live activation and the
+85-percent objective remain separate and unproved.
+
+### Published checkpoint and next-cost attribution
+
+`54eb72c5e46d2a46923a4dd16f0064446e5b9f33` was fast-forwarded to clean main
+and pushed without force; remote main was verified at the same SHA. It changes
+only documentation after executable checkpoint `e5876029`. The live checkout
+remained clean at `ee7ec8de`; no runtime or project data was changed.
+
+On clean `54eb72c5`, two sequential disposable main-thread cProfile probes
+passed before releasing the native window to the CLI owner. The first-shot
+delivered-cancellation row took 10.994s in its call phase (10.639s CPU), with
+5.873s in real `run_text` and 487 `material_closure` calls totaling 3.250s
+cumulatively. The absent-outline terminal row took 0.750s in setup, including
+0.672s in `_accepted_f4_script`, and 0.428s in its call phase. Profiling adds
+overhead; nested cumulative values overlap, and work in other threads is not
+fully attributed. These are owning-cost diagnostics, not matched speed gains.
+The existing Starlette/httpx warning was non-failing. Retained attribution:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `image-safety-baqqddor/attribution.json` | `d5135e2473bc3b987094b695639a248a4869b18df17694b3dad0f3dc08532428` |
+| `terminal-outline-mxdx8ty6/attribution.json` | `f938d7f5eefdd7edc8e62a2279a0826810165a481bc2d4d89a521060014da64d` |
+
+Independent read-only prerequisite review rejected autopilot snapshot reuse:
+freshness and recovered-run command authority deliberately forbid it. No raw
+seed copy or validation bypass is introduced. A possible non-autopilot terminal
+seed remains an unimplemented hypothesis; simpler prerequisite tiers come
+first if that family is selected. The next safety-only compact fixture has a
+behavior map and prepared five-case timing harness (three target rows, two
+unchanged controls), but no timing samples or source changes yet. Manager
+tests are held while the CLI owner exercises its native execution boundary.
+
+### Early image-safety fixture — baseline and static review, October 14
+
+At clean `d6f09d95`, three quiet direct-native pytest samples passed the same
+five preselected cases in 47.736582s, 44.708213s and 45.354019s (median
+45.354019s). The targets are first-shot delivered cancellation, historical
+schema-2 cancel/restart, and exact retained-candidate role association. The
+unchanged controls are unknown-image restart without resend and genuine
+derivative-geometry handoff/withdrawal. All samples used fresh temporary roots,
+locked dependencies and disabled pytest cacheprovider; the harness refused
+ambient selection controls and verified the exact native five-case collection.
+`.local/remaining-cost/safety-baseline.json` retains source/input/host/toolchain
+fingerprints, exact commands, rounded phase durations and all three raw logs:
+
+| Log under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline-1-duf3kxoy/pytest.log` | `fe40f7b9e955a8e7cb16f6cee4fde535e326a21586f1903bd4176b16ed5a8a84` |
+| `safety-baseline-2-83b692me/pytest.log` | `9d133f6d2cc2756d72ab037569de77d1b90e677ed05188f87f331d69aa0ff295` |
+| `safety-baseline-3-xcr7m2dn/pytest.log` | `46b87e4616af3b9817d44330c3ed97b789d0f6b5e205a0e4302a399c774292c1` |
+
+After those samples, only `tests/test_autopilot_image_safety.py` was changed:
+a local wrapper opts into the existing six-frame fixture and asserts eight
+real text deliveries, two routes and six image subjects. Existing assertions,
+parameter rows, historical execution-pin setup and `auto_deliver=False` paths
+remain. The wrapper closes the service if its new guards fail. Shared defaults,
+full-pack scale, production code and geometry/recovery controls are unchanged.
+
+Independent read-only review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no actionable issue. The shortened Brief/Script prerequisites
+do not own runtime-length or full-pack scale in these nineteen cases; real
+stage admission, references, first-shot state, currentness, reservation and
+immutable-evidence checks remain. No tests were run by the reviewer. Candidate
+correctness, matched performance and unchanged-control results remain pending
+while the CLI worker owns the native/focused window. Static review and a faster
+fixture hypothesis do not establish a speed gain or the whole-Python target.
+
+After explicit native-window release, the established focused runner passed
+all nineteen safety rows followed by unchanged full 27-frame completion,
+unknown-image restart and derivative-geometry handoff: **22 passed** in
+171.71s (180.001s including selector checks and runner overhead). The existing
+Starlette/httpx warning remains. Retained `safety-correctness.log` SHA-256:
+`dd92dae70ba06f207d5161f3d9f3eb54b48e7e503acf16ab17de831784f56439`.
+Seven module-ownership tests also passed; the story-authoring contract plan
+expanded successfully without executing its unrelated suites. Targeted Ruff
+`F,I`, compileall and diff checks passed after tidying the touched imports.
+A whole-file Ruff run identified `I001` and `SIM117`; both were reproduced on
+the unchanged HEAD version. Only the touched import block was tidied; the
+pre-existing nested-context `SIM117` remains outside this fixture delta.
+Matched candidate timing and whole-Python qualification are still pending.
+Complete native ownership discovery also passed without executing test bodies:
+1,859 Python cases / 182 files, 1,377 Vitest cases / 158 files and 318 browser
+cases / 93 specs. Existing owner and helper mappings required no changes;
+the full discovery output is `safety-native-ownership.log` beside the samples.
+
+### Early image-safety matched result — October 14
+
+Clean candidate `2797ece13ec95d077329c22186851117366e470a` passed all five
+preselected cases in each of three fresh-root samples: 44.831059s,
+44.326434s and 42.772404s. External median fell from 45.354019s to
+44.326434s (**2.27 percent**). The three changed rows' rounded phase-sum
+median fell from 17.02s to 16.14s (5.17 percent). Their individual phase
+medians were 7.23→6.07s for first-shot cancellation, 4.91→5.02s for legacy
+receipt cancellation, and 4.93→4.77s for exact manifest association. The
+unchanged unknown-image restart and geometry controls were 5.68→5.38s and
+20.54→20.37s; neither reached the 10-percent regression trigger.
+
+The host, Python, uv, selector order, command prefix and fresh-root policy
+match. All six raw log hashes were verified. Retained evidence:
+
+| File under `.local/remaining-cost/` | SHA-256 |
+| --- | --- |
+| `safety-baseline.json` | `33bc7e76fd4a1b990aaba224f6e642113b15e436676c33e5a29312ffeab6f61b` |
+| `safety-candidate.json` | `095123a91f2760108f3b7dcf67937045c63fcd81998d66c4c3994f3d5f8b5ad7` |
+| `safety-candidate-1-dqhus7gr/pytest.log` | `e2189fec4458bccc37f6b459d156a7c4046dec7bdcb14f427da543ea4a8db3d8` |
+| `safety-candidate-2-c38tj9r9/pytest.log` | `0e23fb1ef04c531ba65fa9f3308741c0cceee0c0748606b5ab5d8ebd122d0f33` |
+| `safety-candidate-3-ipgj3egx/pytest.log` | `a20b59be2e0a24936a448c6ee95e3942e8f13be2545c4e68f3ae47c54d660a00` |
+
+The ranges overlap and there are only three samples per checkpoint. This is
+a small observed selected-case improvement, not a statistically established
+whole-suite gain. Keep the bounded, reviewed test-only simplification for the
+next combined candidate; do not extrapolate it to the 85-percent target or
+repeat it indiscriminately across geometry tests. Most geometry cases create
+only one native frame: shrinking unused future frames cannot remove their
+actual image/derivative cost. The 12-frame handoff and 27-frame full-pack
+controls remain unchanged.
+
+The manager released the test window to the CLI worker after the final sample;
+no Python check remained running. Further performance work must wait for that
+window's release. Full qualification, publication and a matched whole-Python
+measurement remain pending for this candidate.
+
+Read-only residual-cost review (requested GPT-6.1 Sol / Medium; effective
+settings unverified) estimates whole-file phase packing at 593.154s / 296.577s /
+162.471s for 2 / 4 / 8 workers from the retained 182-file gate. It did not run
+tests or measure concurrent performance. Geometry and handoff remain indivisible
+162.471s / 158.908s owners, and ideal eight-way aggregate work is 148.289s before
+overhead. The 18-core, 24-GiB host inventory is not evidence of safe memory use
+under more workers. Current evidence does not support achieving the fixed-two-
+worker 85-percent target through the remaining compact-fixture options. A
+separate bounded concurrency evaluation is proposed in the roadmap and awaits
+owner scope approval; no default, CI, worker count or production code changed.
+
+### Duration-weight refresh and native inventory drift — October 14
+
+At clean `e5959c73`, the manager borrowed and returned a short check window
+while the CLI source owner held checks. The complete safety file passed all
+19 cases with the existing timing plugin: 100.31s externally, 96.12s pytest,
+and the existing non-failing Starlette/httpx warning. Fresh native collection
+found 1,859 cases / 182 files. Executable, host and interpreter fingerprints
+matched the reviewed safety candidate before and after; no full suite or native
+generation ran. Both owned processes exited zero before the window was returned.
+
+Evidence under `.local/remaining-cost/duration-refresh-AHMmlW`:
+
+- `pytest.log`: `cf308a3564f7cedc90efd90606be733401cd7b5af67c7dec87a82d80d8c7bd6b`
+- `native-collection.log`: `fa4ea00fbab7832900349c0a9b1723b9deaa0a235e7ce873bf7e247fb2d47811`
+- `refresh-summary.json` retains exact commands, input/host fingerprints and
+  explicit single-process-refresh versus two-worker-base conditions.
+
+The initial proposed manifest was validated against that one captured inventory
+only. Its hash `a99a9cc176695aa1977c0f1cfc5c8655dfa03fbd7a2aa5bba7ad68802f403fd9`
+is retained, **not promoted**. Comparison to the prior native ownership hash
+exposed an import-time random UUID in the publisher's foreign-native-task
+parameter ID. This causes a new inventory fingerprint even without source
+changes, legitimately forcing the scheduler to fall back. The scoped fix gives
+only that row an explicit semantic pytest ID; its randomized foreign UUID,
+case count and rejection assertions are preserved. Independent read-only review
+(requested GPT-6.1 Sol / Medium; effective settings unverified) found no issue;
+the reviewer ran no tests. Repeated native collection and publisher execution
+are pending the CLI owner's check-window release. Refresh the changed publisher file before
+assembling new weights; do not weaken the native fingerprint guard or claim
+the provisional 579.075s phase-load estimates are executed wall time.
+
+At clean `a5c24b7ac1672e98b7033a4c6c8eab3b5cf966ab`, the complete publisher
+file then passed seven cases in 1.29s pytest / 2.14s external. Two fresh native
+collections produced identical ordered IDs for 1,859 cases / 182 files. The
+only inventory move replaces the randomized foreign UUID suffix with
+`[foreign-native-task]`; no case or assertion was removed. Input and host
+fingerprints were identical before and after. All processes exited zero and
+the test window was returned to the CLI worker before metadata assembly.
+
+The retained `.local/remaining-cost/stable-duration-iFrpXh/refresh-summary.json`
+records commands, exact ID mapping, fingerprints and source logs. Publisher log
+SHA-256 is `69368eb8599128e73f3e15c6484cd097d03c6abbe938a3ba68d1bd7e145e100d`;
+collection logs are `a4bb4c6171f73b0d7820226283614857878d6708bb5307be17c0a95f4fb2cfd8`
+and `56082eb99de73642aff886b6ff85e213a9eebec88a0be8e755ad10d4786f567f`.
+The stable native inventory hash is
+`a1343c056598ee64104953692ae334e2df8b8c073dead554accdadb875044ce6`.
+
+The manager explicitly promoted compatible advisory weights: 180 unchanged
+complete base-file rows plus fresh safety and publisher whole-file captures.
+The manifest SHA-256 is
+`08176933a4872c019dfba203754663b2b6dd5ab46f34e00487a4a0cb3856ad20`.
+Production scheduling validation accepts `duration`, with exact disjoint union
+975/884 cases over 92/90 files. The approximately 578.964s phase load per worker
+is only an estimate assembled from mixed single/two-process captures. Independent
+read-only metadata review (requested GPT-6.1 Sol / Medium; effective settings
+unverified) found no findings and ran no tests or collection. A quiet complete
+Python execution and publication remain pending; no
+85-percent result, hosted qualification or native generation is implied.
+
+The next gate runs the established complete two-worker Python step. Only the
+two test files and advisory timings changed executable inputs since the passed
+`e5876029` full gate; production, dependency, frontend, browser-fixture and
+packaging inputs are unchanged. Their corresponding passed evidence is reused.
+
+### Executed two-worker duration qualification — October 14
+
+Clean candidate `bafb15873c0b59fc519e53f68ad39b9a7a1a714e` passed the complete
+Python step via `/usr/bin/time -p uv run --locked --no-sync python
+scripts/testing/run_python_suite.py`. Fresh native collection selected all
+1,859 cases / 182 files; the runner confirmed `schedule=duration` with no
+fallback. Both workers exited zero: 884 cases / 90 files in 579.213s and
+975 cases / 92 files in 627.323s. External time was **633.23s**, parallel-runner
+time 627.324s. Each worker emitted the existing Starlette/httpx deprecation
+warning. Complete per-file capture contains 182 unique rows covering all cases.
+
+The quiet window excluded other tests and native/model/ImageGen dispatch. After
+completion, source/host fingerprints matched preflight, the candidate remained
+clean, the temporary suite root was absent and no pytest worker referenced it.
+The manager then explicitly returned the window to the CLI owner for its focused
+pixel-decoding regressions. No test process was interrupted.
+
+Retained log: `.local/final-qualification/python-duration-bafb1587.log`, SHA-256
+`ef370026f7f7be72b10df839e4a31aee22ece94b8f5067c02948afe08f664e62`.
+Its adjacent `python-duration-bafb1587-summary.json` records commands, allocation,
+fingerprints and measured costs. The old 697.496s gate and this 633.23s gate use
+the same 1,859-case inventory except the explicitly documented parameter-ID
+rename. The **9.21% observed reduction** is a single whole-suite comparison;
+the fixture and allocation changed together, so this does not isolate scheduler
+benefit or establish statistical significance. The earlier 1,779-case historical
+baseline is not a matched comparison.
+
+Current phase work totals 1,185.146s; longest owners are geometry 174.850s,
+handoff 153.799s, early image safety 114.078s and images 109.779s. Ideal two-way
+packing at these observed costs is bounded below by 592.573s before overhead.
+Thus scheduling alone cannot reach the historical 151.733s stretch reference.
+The **85-percent goal remains unmet**. The qualified test-only partial improvement
+can be published; broader concurrency or production-context changes remain
+separate owner scope decisions. Unchanged frontend/browser/type/build/wheel
+evidence from `e5876029` is reused as justified above. No hosted CI, native
+generation, live restart or creative acceptance was performed.
+
+The manager merged the reviewed follow-up into clean `main` and pushed
+`c9781b95678dc871c0a79ac1501ab489bfe554fe`; remote `refs/heads/main` was read
+back at that exact SHA. Its source, scripts, tests, frontend, dependency and
+submodule trees match the qualified `bafb1587` candidate; the intervening
+integration includes only the already published CLI roadmap notes and receipt
+documentation. No force push, live checkout change or hosted dispatch occurred.
+
+### Operation-local context and bounded worker follow-up — October 14
+
+The [follow-up receipt](../roadmap/2026-10-14-python-context-and-workers.md)
+records the approved production boundary, independent reviews, matched
+two/four-worker experiment, fresh advisory weights and full local qualification
+of `4bc1d62a`. All 1,911 Python, 1,377 frontend and 318 browser cases passed,
+along with the remaining release gates. Default two-worker Python command time
+was 578.639s; the complete full gate took 1064.824s. Main integration through
+`aa926b03` preserves every qualified executable/dependency/configuration input
+and the newer CLI records. The 85-percent target remains unmet, extra worker
+resources are reported separately, and hosted CI remains unqualified.

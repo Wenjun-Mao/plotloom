@@ -1,4 +1,5 @@
 import type { RunExecutionTrace, RunTrace, SceneBeatPlan, ServerStageName, StoryGraph, Storyboard, TraceEvent, WorkspaceProject } from "./types";
+import { traceKindLabels, workUnitStatusLabels } from "./run-presentation";
 
 export const serverStages: ServerStageName[] = ["story_bible", "story_graph", "scene_beats", "storyboard"];
 
@@ -65,7 +66,7 @@ export interface StoryboardViewGroup {
 }
 
 export function summarizeWorkUnitStatuses(trace?: RunExecutionTrace): string {
-  if (!trace?.workUnits.length) return "0 work units";
+  if (!trace?.workUnits.length) return "0 个子任务";
   const order: RunExecutionTrace["workUnits"][number]["status"][] = [
     "succeeded",
     "running",
@@ -79,7 +80,7 @@ export function summarizeWorkUnitStatuses(trace?: RunExecutionTrace): string {
   trace.workUnits.forEach((unit) => counts.set(unit.status, (counts.get(unit.status) || 0) + 1));
   return order
     .filter((status) => counts.has(status))
-    .map((status) => `${counts.get(status)} ${status}`)
+    .map((status) => `${counts.get(status)} 个${workUnitStatusLabels[status]}`)
     .join(" · ");
 }
 
@@ -116,15 +117,16 @@ export function traceEvents(trace: RunTrace, executionTrace?: RunExecutionTrace)
     id: attempt.id,
     at: attempt.startedAt,
     stage: attempt.stage,
-    kind: attempt.status === "failed" ? "error" as const : "request" as const,
-    title: `Attempt ${attempt.attemptNumber}/${maxAttempts} · ${attempt.status}`,
-    status: attempt.status === "failed" ? "error" as const : attempt.status === "running" ? "pending" as const : "ok" as const,
+    kind: !attempt.outcomeUnknown && attempt.status === "failed" ? "error" as const : "request" as const,
+    title: `第 ${attempt.attemptNumber}/${maxAttempts} 次执行 · ${attempt.outcomeUnknown ? "请求结果不确定" : workUnitStatusLabels[attempt.status]}`,
+    status: attempt.outcomeUnknown ? "warning" as const : attempt.status === "failed" ? "error" as const : attempt.status === "running" ? "pending" as const : "ok" as const,
+    payload: attempt,
     detail: [
-      `Outcome: ${attempt.outcomeUnknown ? "unknown" : attempt.outcomeCode || attempt.status}`,
-      `Lineage: ${attempt.attemptKind === "correction" ? `correction ← ${attempt.sourceAttemptId || "prior attempt"}` : "primary"}`,
-      `Elapsed: ${formatAttemptDuration(attempt.startedAt, attempt.finishedAt)}`,
+      `执行结果：${attempt.outcomeUnknown ? `请求结果不确定 · ${attempt.outcomeCode || "结果码未记录"}` : attempt.outcomeCode || workUnitStatusLabels[attempt.status]}`,
+      `执行来源：${attempt.attemptKind === "correction" ? `更正 ← ${attempt.sourceAttemptId || "上次执行"}` : "首次执行"}`,
+      `耗时：${formatAttemptDuration(attempt.startedAt, attempt.finishedAt, attempt.status)}`,
       formatAttemptUsage(usageByAttempt.get(attempt.id)),
-      attempt.error ? `Failure: ${attempt.error}` : "",
+      attempt.error ? `失败信息：${attempt.error}` : "",
       [attempt.provider, attempt.model].filter(Boolean).join(" · "),
     ].filter(Boolean).join("\n"),
   }));
@@ -158,7 +160,7 @@ export function traceEvents(trace: RunTrace, executionTrace?: RunExecutionTrace)
         at: artifact.createdAt,
         stage: artifact.stage,
         kind: artifact.kind === "canonical" || artifact.kind === "media" ? "install" as const : artifact.kind,
-        title: `${artifact.kind} artifact`,
+        title: `${traceKindLabels[artifact.kind === "canonical" || artifact.kind === "media" ? "install" : artifact.kind]}记录`,
         status: artifactStatus,
         systemPrompt: artifact.kind === "prompt" ? promptFor("system") : undefined,
         userPrompt: artifact.kind === "prompt" ? promptFor("user") : undefined,
@@ -172,23 +174,23 @@ export function traceEvents(trace: RunTrace, executionTrace?: RunExecutionTrace)
     at: topology.createdAt,
     stage: "story_graph",
     kind: "validation",
-    title: "Story graph topology frozen",
+    title: "已冻结剧情图结构",
     status: "ok",
-    detail: `Topology: sha256:${topology.topologyHash.slice(0, 12)} · generation plan ${topology.generationPlanHash.slice(0, 12)}`,
+    detail: `剧情图：sha256:${topology.topologyHash.slice(0, 12)} · 生成计划 ${topology.generationPlanHash.slice(0, 12)}`,
     payload: topology.topology,
   }] : [];
   return [...attempts, ...artifacts, ...topologyEvent].sort((left, right) => left.at.localeCompare(right.at));
 }
 
-function formatAttemptDuration(startedAt: string, finishedAt: string | null): string {
-  if (!finishedAt) return "running";
+function formatAttemptDuration(startedAt: string, finishedAt: string | null, status: RunTrace["attempts"][number]["status"]): string {
+  if (!finishedAt) return status === "running" ? "进行中" : "未记录";
   const elapsed = Date.parse(finishedAt) - Date.parse(startedAt);
-  return Number.isFinite(elapsed) && elapsed >= 0 ? `${elapsed} ms` : "unavailable";
+  return Number.isFinite(elapsed) && elapsed >= 0 ? `${elapsed} ms` : "未记录";
 }
 
 function formatAttemptUsage(usage: { inputTokens: number | null; outputTokens: number | null } | undefined): string {
-  if (!usage) return "Tokens: unavailable";
-  return `Tokens: input ${usage.inputTokens ?? "—"} · output ${usage.outputTokens ?? "—"}`;
+  if (!usage) return "令牌用量未记录";
+  return `令牌用量：输入 ${usage.inputTokens ?? "—"} · 输出 ${usage.outputTokens ?? "—"}`;
 }
 
 export function mergeProjectResponse(current: WorkspaceProject, incoming: Partial<WorkspaceProject>): WorkspaceProject {

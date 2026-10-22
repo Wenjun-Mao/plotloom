@@ -10,33 +10,150 @@ leads separately from approved work.
 
 | Current question | Decision chain and source owner |
 | --- | --- |
-| Media-service repository and deployment ownership | [0035](0035-backend-owned-video-modules.md) separates Plotloom clients from remote runtime packages; [media-service boundaries](media-services-monorepo-boundaries.md) retains a modular monorepo with independently built/deployed services. Implementation is approved; numbering awaits integration with newer main. |
 | Canonical entity identity, revisions, and authoring drafts | [0004](0004-canonical-generation-contract.md) defines the original stage model; `src/plotloom/canonical_schema.py` owns current `StableId`. [0014](0014-project-lifecycle-and-workbench.md) records explicit canonical Save; [0040, project-folder storage](0040-project-folder-storage-boundary.md) and [0043](0043-project-folder-close-quiescence.md) own durable draft receipts and close quiescence. Browser buffers are provisional. |
 | Project-folder runtime and persistence | [0040, project-folder storage](0040-project-folder-storage-boundary.md) → [0046](0046-production-project-folder-runtime.md) → [0048](0048-retire-shared-repository-runtime.md). [0042](0042-persistence-capability-composition.md)'s shared `legacy_repository.py` exception is historical; `src/plotloom/persistence/project/repository.py` is the current composition owner. |
-| Project recovery | [0043](0043-project-folder-close-quiescence.md) and [0044](0044-portable-project-folder-recovery.md); the current manifest/schema admission code, not an old format number in prose, decides which folder opens. |
+| Known project identity and admission failures | [0110](0110-known-project-identity-before-admission.md) separates manifest identity lookup from availability-filtered catalog discovery; target-home admission retains busy/corrupt/closed distinctions. |
+| Project recovery and workspace exit | [0043](0043-project-folder-close-quiescence.md) and [0044](0044-portable-project-folder-recovery.md) own safe folder close/recovery. [0113](0113-project-save-close-and-force-exit.md) adds recoverable review buffers and explicit force exit without deletion or job cancellation. [0115](0115-workspace-home-navigation.md) makes the brand a draft-gated Home control without closing projects. The current manifest/schema admission code, not an old format number in prose, decides which folder opens. |
+| Whole project deletion | [0047](0047-production-browser-parity-and-project-lifecycle.md) established folder lifecycle; [0114](0114-direct-project-deletion.md) replaces archive-first and media-free deletion with exact revision/title consent and confined whole-home erasure. |
+| Brief to Source entry and declaration ownership | [0058](0058-f1a-source-outline-review-contract.md) established F1A; [0085](0085-brief-to-source-entry-and-optional-declarations.md) makes Brief an editable Source draft seed and declarations optional while retaining historical values; [0112](0112-original-source-direction-and-outline-settings.md) makes original-story direction optional and supplies frozen Brief settings to outline tasks. |
+| Outline candidate reading | [0086](0086-trusted-outline-candidate-reader.md) owns isolated interactive original reports, JSON fallback and upstream structural-label boundaries. |
+| Branch editor next step | [0087](0087-branch-save-apply-continue.md) distinguishes save, apply and navigation to Characters using current saved-map and graph state. |
+| Creative task execution identity | [0088](0088-frozen-creative-execution-identity.md) binds preparation-time skill identity in trusted project persistence; refresh does not substitute current checkout hashes. |
+| Native specialist availability and wake | [0095](0095-persistent-creator-workbench.md) owns the persistent Mac/Docker deployment; [0096](0096-native-specialist-deep-link-wake.md) separates queue admission from a documented desktop-open request without transferring execution ownership. |
+| Isolated native transport composition | [0098](0098-isolated-workbench-native-transport.md) derives the test server, bridge allowlist and outbound shim from one runtime owner; unknown dispatch reservations remain authoritative. |
+| Art render-style authority | [0094](0094-author-selected-art-render-style.md) freezes author-selected style and Brief direction, retaining upstream gates through a shared art adapter. |
+| Additional art-reference candidates | [0097](0097-art-reference-additional-candidates.md) separates a new requirements draft from a frozen delivered request, retaining existing images and reference choices. |
+| Source-review currentness in the workbench | [0099](0099-source-review-activation-currentness.md) revalidates visible retained review state on navigation and same-project server refresh while preserving editor buffers. |
+| Creator guidance and visual hierarchy | [0111](0111-journey-first-creator-presentation.md) supplies next-step explanations from existing owners, shared presentation roles and a Chinese Creator's Manual without duplicating readiness or relaxing authority. |
+| Character-review presentation | [0089](0089-cast-review-text-presentation.md) separates exact inference suffixes losslessly and preserves label selection without removing normal field activation. |
 | H3 creation and output | [0038](0038-h3-gateway-durable-fifo-dispatch.md) and [0039](0039-h3-gateway-managed-output-retention.md) established FIFO and retention. [0040, private H3 image ingestion](0040-private-h3-image-ingestion.md) is the other `0040`, a historical two-step input contract. [0050](0050-unified-h3-generation-contract.md) removed public asset/job creation routes; [0066](0066-h3-qualified-job-duration-contract.md), [0068](0068-h3-reproducibility-and-qualified-recipes.md), [0069](0069-h3-explicit-sampling-recipes-and-profile-cutover.md), and [0070](0070-h3-quality-resolution-contract.md) refine current admission. `src/plotloom/video_backends/minimax_h3/adapter.py` owns the catalog marker and qualified duration set. |
+| Creator destructive/review confirmation | [0101](0101-accessible-creator-confirmations.md) owns DOM confirmation, frozen domain targets, cancellation and unattended UI preflight. |
+| H3 reviewed seed control | [0102](0102-explicit-h3-review-seed.md) exposes exact browser-safe seeds and invalidates source review and idempotency when edited. |
+| Retained candidate across media refresh | [0103](0103-retained-candidate-read-reconciliation.md) separates explicit retention from authoritative binding transitions while preserving read withdrawal. |
+| Deployed frontend freshness | [0104](0104-workbench-static-revalidation.md) requires revalidation of the stable-name `/v2` frontend build, including conditional 304 responses. |
+| H3 review across unknown media reads | [0105](0105-h3-review-media-read-recovery.md) preserves creator seed/English buffers while withdrawing authorization and requiring exact source revalidation. |
+| Image specialist blocked before generation | [0106](0106-reviewed-pre-generation-image-terminal-outcome.md) admits explicit, pin/request/dispatch-bound no-output terminal proof without cancellation-only or idle-only release. |
+| Reviewed production presentation | [0100](0100-reviewed-production-presentation.md) owns exhaustive source review, physical/visible/runtime separation, exact source timing, accepted F5 binding and explicit isolated H3 composition. |
+| Post-install shot presentation changes | [0107](0107-shot-production-presentation.md) owns source-bound per-shot author amendments, trusted exact-text provenance, shared image/H3 projection and shot-scoped currentness without rewriting accepted source. |
+| Rejected H3 take reconsideration | [0108](0108-explicit-h3-rejected-take-reconsideration.md) owns an explicit reasoned reopen event, selection-revision CAS, preserved history and active playback continuity. |
 | Production playback timing | [0082](0082-proposed-production-playback-timing.md) distinguishes authored shot time, frozen request, measured take and a reviewed segment. The bounded synthetic-media implementation is approved; the H3 original-output contract remains intact. |
 | Capability tracking and delivery | [0008](0008-capability-based-adoption-tracking.md)'s tracking method survives, but its named [matrix](../roadmap/archive/superseded/2026-09-02-capability-matrix.md) is archived. Use the [roadmap](../roadmap/README.md) for active work and acceptance. |
-| Verification tooling | [0081](0081-narrow-source-static-and-api-lint-checks.md) separates checked source-bundle browser evidence from installed-wheel packaging evidence and keeps Ruff scoped to API F401 findings. |
-| Voice Lab identity and operation | [0092](0092-voice-lab-projects-and-published-voice-identity.md)'s project/candidate/published-voice cutover is deployed; [0094](0094-voice-lab-independent-engines-and-delivery.md) owns independent engines and observable controls; [0096](0096-voice-lab-shared-host-operating-boundary.md) fixes the current operator-serial shared-host boundary. Plotloom integration is withheld. |
+| Verification tooling | [0081](0081-narrow-source-static-and-api-lint-checks.md) separates checked source-bundle browser evidence from installed-wheel packaging evidence and keeps Ruff scoped to API F401 findings. [0109](0109-bounded-browser-ci-evidence.md) bounds independent browser shards, preserves failure evidence and distinguishes filtered diagnostics from the full release gate. |
+| Browser-fixture port ownership | [0152](0152-owned-browser-fixture-listeners.md) binds each role before publishing its address and retains exact backend-origin restarts; released port probes are not reservations. |
+| Hosted browser allocation and UI-only fixture scope | [0153](0153-duration-balanced-browser-files.md) assigns whole specs by historic duration, checks exact manifest/list coverage, preserves diagnostic filters and confines Vite-only execution to the proven creator-confirmation journey. [0159](0159-four-duration-balanced-hosted-browser-shards.md) adopts four duration-balanced hosted groups while retaining one worker per runner and the same full native case-union guard. |
 
 Two files retain the historical number `0040`; cite each by its full slug and
 link, never by number alone. This index is a navigation aid, not a declaration
 that every unlisted ADR is obsolete or that a past evidence identity should be
 rewritten to match current code. The full decision corpus is this directory.
 
-The specialist [ADR 0095](0095-h3-runtime-qualification-and-catalog-isolation.md)
+- [0116 Current-contract recovery and duplicate scope](0116-current-contract-recovery-and-copy-scope.md)
+
+- [0119 Shared visual roles for the current workbench](0119-current-workbench-visual-roles.md)
+
+- [0120 Explicit node footage mode](0120-explicit-node-footage-mode.md)
+- [0121 Current source-bound graph authoring](0121-current-source-graph-authoring.md)
+- [0122 Creator workspace presentation](0122-creator-workspace-presentation.md)
+- [0123 Node-context Story and Production workflows](0123-node-context-story-production-workflows.md)
+- [0124 Requesting-client project read quiescence](0124-requesting-client-project-read-quiescence.md)
+- [0125 Complete candidate asset projections](0125-complete-candidate-asset-projections.md)
+- [0126 Static archived report presentation](0126-static-script-report-presentation.md)
+- [0127 Reusable creator lifecycle acceptance](0127-reusable-creator-lifecycle-acceptance.md)
+- [0128 Checked graph-edit safety diagnostics](0128-graph-edit-safety-diagnostics.md)
+- [0129 Read-only access versus save progress](0129-read-only-access-versus-save-progress.md)
+- [0130 Media selection reads after acknowledged writes](0130-media-selection-read-after-write-authority.md)
+- [0131 Routine specialist continuation authority](0131-routine-specialist-continuation-authority.md)
+- [0132 Creator UI reading boundaries](0132-creator-ui-reading-boundaries.md)
+- [0133 Owned project-read acknowledgements](0133-owned-project-read-acknowledgement.md)
+- [0134 Typed Cast/Art currentness diagnostics](0134-typed-review-context-diagnostics.md)
+- [0135 End-frame read qualification](0135-end-frame-read-qualification.md)
+- [0136 Route-owned project load availability](0136-project-load-availability.md)
+- [0137 Retained video evidence and production admission](0137-retained-video-evidence-admission.md)
+- [0138 One current story with explicit production rebuild](0138-one-current-story-explicit-rebuild.md)
+- [0139 Profile owned text credentials](0139-profile-owned-text-credentials.md)
+- [0140 Native Codex dramatic-intent candidates](0140-native-bridge-intent-candidates.md)
+- [0141 Explicit character render direction](0141-character-render-direction.md)
+- [0142 Shot display identity](0142-shot-display-identity.md)
+- [0145 Current read authority for graph and directory actions](0145-current-read-authority-for-graph-and-directory.md)
+- [0146 Explicit unassessable identity review](0146-explicit-unassessable-identity-review.md)
+- [0147 Narrow owned pinned report renderers](0147-owned-pinned-report-renderers.md)
+- [0150 Review-bound production bridge acknowledgement](0150-review-bound-production-bridge-acknowledgement.md)
+- [0151 Local project-command admission and progress](0151-local-project-command-admission.md)
+- [0155 Recommended creative workflow guide](0155-recommended-creative-workflow-guide.md)
+- [0156 Risk-scoped local qualification](0156-risk-scoped-local-qualification.md)
+- [0157 Native test module ownership](0157-native-test-module-ownership.md)
+- [0158 Accepted-source seed for graph-command tests](0158-accepted-source-seed-for-graph-command-tests.md)
+- [0159 Four duration-balanced hosted browser shards](0159-four-duration-balanced-hosted-browser-shards.md)
+- [0160 Two-process Python full gate](0160-two-process-python-full-gate.md)
+- [0161 Specialist presentation candidates](0161-specialist-presentation-candidates.md)
+- [0162 Pre-video autopilot authority](0162-pre-video-autopilot-authority.md)
+- [0163 Autopilot inherits the saved Brief visual direction](0163-autopilot-brief-style-authority.md)
+- [0165 Serial Codex Exec for pre-video autopilot](0165-serial-codex-exec-autopilot.md)
+- [0166 Receipt-scoped authority snapshots](0166-receipt-scoped-authority-snapshots.md)
+- [0167 Operation-local Storyboard context](0167-operation-local-storyboard-context.md)
+- [0168 Exact Python worker completion](0168-exact-python-worker-completion.md)
+- [0169 Isolated Codex Python validator runtime](0169-isolated-codex-python-validator-runtime.md)
+- [0170 Operation-local Bridge and controller claim](0170-operation-local-bridge-and-controller-claim.md)
+- [0171 Historical Python scheduling predictions](0171-historical-python-scheduling-predictions.md)
+- [0172 Preserve F4 voice-over in canonical dialogue](0172-f4-voice-over-projection.md)
+- [0173 Freeze canonical dialogue minima at F5 admission](0173-f5-canonical-dialogue-timing-admission.md)
+- [0174 Bounded fair Codex Exec scheduling](0174-bounded-fair-codex-exec-pool.md)
+- [0175 Dependency-ready references, frames and progress](0175-dependency-ready-autopilot-materials.md)
+- [0176 Receipt-command-local material projections](0176-receipt-command-local-material-projections.md)
+- [0178 Capsule and plan handoff authority](0178-capsule-plan-handoff-authority.md)
+- [0179 Optional prospective Script dialogue compatibility](0179-planned-script-dialogue-compatibility.md)
+- [0181 Historical qualification preservation](0181-historical-qualification-preservation.md)
+- [0182 Failed ImageGen terminal metadata](0182-failed-imagegen-event-metadata.md)
+- [0183 Closure-local canonical row bytes](0183-closure-local-canonical-row-bytes.md)
+- [0184 Validation-invocation-local profile construction](0184-validation-local-profile-construction.md)
+- [0185 Closed installed-text prefix for explicit image tests](0185-installed-text-test-prefix.md) — retained locally with [scoped evidence and limits](../roadmap/2026-10-17-installed-text-prefix.md).
+- [0177 Invocation-local autopilot profile construction](0177-invocation-local-autopilot-profile-construction.md)
+- [0186 RunView-local checkpoint evidence](0186-run-view-local-checkpoint-evidence.md) — preserves the October 15 decision, renumbered to avoid the independent ADR 0179.
+- [0187 Frozen-worker instruction discovery](0187-frozen-worker-instruction-discovery.md)
+- [0188 Complete native bridge request budget](0188-native-bridge-request-budget.md)
+- [0191 Whole-pack human material confirmation](0191-whole-pack-human-material-confirmation.md)
+
+- [0192 Inspection and authority admission](0192-inspection-and-authority-admission.md)
+- [0193 Frozen batch video authority](0193-batch-video-authority.md)
+- [0194 Explicit platform resources in provider-free host tests](0194-provider-free-host-platform-resources.md)
+- [0195 Process command identity is independent of display width](0195-command-identity-display-width.md)
+- [0196 Owned copied interpreter for hosted tests](0196-owned-copied-hosted-test-interpreter.md)
+- [0198 Explicit delegated disposable-QA decisions](0198-delegated-disposable-qa-authority.md)
+- [0199 Local release qualification without mandatory hosted CI](0199-local-release-qualification.md)
+- [0200 Optional aggregate provider budgets](0200-optional-aggregate-provider-budgets.md)
+- [0201 One prepared project deletion flow](0201-unified-project-deletion-preparation.md)
+
+## Integrated media services
+
+The owner authorized source consolidation on October 22; the
+[integration record](../verification/2026-10-22-specialist-main-integration.md)
+maps the original specialist numbers to the reserved main sequence.
+
+- [0205 Per-job Ref2VA](0205-h3-ref2va-per-job-voice-reference.md)
+- [0206 Voice Lab candidate boundary](0206-spark-voice-lab-candidate-boundary.md)
+- [0207 Project-scoped voices and published identities](0207-voice-lab-projects-and-published-voice-identity.md)
+- [0208 Observed queue and generation progress](0208-voice-lab-observed-job-progress.md)
+- [0209 Independent voice engines and delivery controls](0209-voice-lab-independent-engines-and-delivery.md)
+- [0210 Runtime qualification and catalog isolation](0210-h3-runtime-qualification-and-catalog-isolation.md)
+- [0211 Shared-host voice operation](0211-voice-lab-shared-host-operating-boundary.md)
+- [0212 Published voice performance takes and shared admission](0212-published-voice-performance-takes-and-shared-admission.md)
+- [0213 Video-only VAE precision](0213-h3-video-only-vae-precision.md)
+- [0214 Private read-only dashboard](0214-read-only-gateway-dashboard.md)
+- [0215 Dashboard H3 submission](0215-h3-dashboard-submission-boundary.md)
+- [0216 Independently maintained media services](0216-media-services-monorepo-boundaries.md)
+
+The specialist [ADR 0210](0210-h3-runtime-qualification-and-catalog-isolation.md)
 adds the pinned-runtime and isolated-catalog qualification boundary. Its
 technical checks alone do not promote a runtime or alter the quality catalog;
 the later [0.38 maintenance adoption](../verification/2026-09-30-h3-comfy038-maintenance-adoption.md)
 records the separately authorized exact-image promotion.
 
-[ADR 0097](0097-published-voice-performance-takes-and-shared-admission.md) is a
+[ADR 0212](0212-published-voice-performance-takes-and-shared-admission.md) is an
 accepted contract for published-identity performance takes and shared managed
 admission, linked to the owner-approved specialist plan. Runtime adoption needs
 its verification receipt; it does not authorize Plotloom integration.
 
-[ADR 0098](0098-h3-video-only-vae-precision.md) owns maintained video-only FP16
+[ADR 0213](0213-h3-video-only-vae-precision.md) owns maintained video-only FP16
 with the INT8 ConvRot checkpoint, stock audio BF16, reload/clone persistence and
 frozen VAE snapshots. The [D receipt](../verification/2026-10-06-h3-vae-d-adoption.md)
 is the deployment authority, not the historical experimental callback.

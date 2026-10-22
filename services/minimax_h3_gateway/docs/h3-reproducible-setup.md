@@ -28,7 +28,7 @@ The adopted D overlay retains that **same image and global `--bf16-vae`**, adds
 [video loader](../comfy_nodes/plotloom_h3_video_vae/README.md) read-only. Video
 uses the official INT8 ConvRot checkpoint with FP16 compute; stock audio keeps
 its FP32 checkpoint and BF16 compute. The reload/clone factory preserves this
-split. See [ADR 0098](../../../docs/adr/0098-h3-video-only-vae-precision.md)
+split. See [ADR 0213](../../../docs/adr/0213-h3-video-only-vae-precision.md)
 and the [D deployment receipt](../../../docs/verification/2026-10-06-h3-vae-d-adoption.md).
 Do not use global `--fp16-vae`: it would change audio as well.
 
@@ -286,7 +286,7 @@ docker compose logs --tail=100 gateway
 
 The gateway owns serial FIFO dispatch and managed completed-MP4 retention. It
 does not expose arbitrary ComfyUI graphs, model paths, or custom nodes.
-The Ref2VA route is described in [ADR 0090](../../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+The Ref2VA route is described in [ADR 0205](../../../docs/adr/0205-h3-ref2va-per-job-voice-reference.md).
 Its live qualification used a genuine 576×1024 first frame and an 8-second
 PCM16/mono/32-kHz WAV, with reviewed 5- and 8-second outputs. The retained
 Spark experiment receipts are under

@@ -14,6 +14,29 @@ to four shots per canonical scene.
 
 ## Decision
 
+### Runtime intent-generation capability (2026-10-07)
+
+Every bridge API state includes a runtime-owned `intentGeneration` discriminator:
+`available` only when both the intent service and text admission are wired;
+otherwise `unavailable` with reason `not_configured`. This is not persisted in
+the proposal or its content hash, and does not claim profile, key, transport, or
+model readiness. Direct generation/resume/cancel calls without this capability
+return structured `503 bridge_intent_not_configured` before touching jobs or
+proposals. The browser disables those service actions and explains the existing
+author-authored intent/save alternative. Manual intent and presentation review
+remain available. Neither an absent-field compatibility guess nor automatic
+provider configuration is permitted; frontend/backend activation must be paired.
+
+### Stale-state reading guidance (2026-10-07)
+
+The typed `stale` status owns the primary Chinese reading guidance: inspect
+current source/script/storyboard reviews, retain old proposals/media, and never
+promise automatic rebuilding, installed-content replacement, or inference
+configuration. Literal `staleReasons` remain fully inspectable in technical
+details rather than being promoted to the primary banner. No English diagnostic
+parsing or message-to-state mapping is permitted. Domain currentness, CAS,
+proposal hashes, and installation/reprepare authority remain unchanged.
+
 Add a dedicated F5 production-bridge proposal/acceptance owner. It deterministically
 freezes accepted F1–F5 plus the project brief, builds a reviewable V2 canonical
 proposal with source provenance, and installs it only after an explicit
@@ -152,3 +175,32 @@ next explicit workflow steps.
 
 The detailed mapping, acceptance sequence, exclusions, and test scope are in
 [the bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md).
+
+## 2026-10-02 amendment: exact timing and reviewed presentation
+
+[ADR 0100](0100-reviewed-production-presentation.md) defines the required reviewed
+physical/diegetic/runtime presentation supplement, complete source coverage and
+shared image/H3 input boundary. Exact source milliseconds are converted without
+rounding at production/provenance boundaries; raw F5 admission is unchanged.
+Preparation validates the retained accepted F5 binding including its frozen cut
+policy before freezing the current source chain. Fresh preparation cannot pair
+stale F5 with a newer Script.
+
+## 2026-10-07 amendment: installation refreshes canonical authority
+
+The live first-install handoff exposed a missing ownership notification: bridge
+acceptance updated only panel-local proposal state, leaving the workspace's
+canonical aggregate at its pre-install zero-shot version. The exact first-shot
+URL then correctly rejected that nonexistent local owner.
+
+Successful installation now notifies the route-owned workspace loader before
+shot handoff is enabled. That loader rereads Bible/SceneBeats/Storyboard and
+retains its project/route epoch and stale-response guards. Both first-shot and
+listed-shot actions wait while it runs; a late acknowledgement from a previous
+project cannot reload a replacement project. No inferred shot, reader fallback,
+reinstallation or data rewrite is added. Focused tests bind installation once,
+deferred canonical refresh, both handoffs and project-switch rejection. Since
+the loader intentionally handles failures without throwing, the host marks its
+existing canonical-refresh requirement before loading and checks that successful
+current acceptance cleared it. A failed reread retains the accepted installation
+but blocks both shot handoffs after busy clears; it does not repeat installation.

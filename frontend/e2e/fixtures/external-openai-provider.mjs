@@ -2,13 +2,14 @@ import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 
 const port = Number(process.argv[process.argv.indexOf("--port") + 1]);
-if (!Number.isInteger(port) || port < 1) throw new Error("--port is required");
+if (!process.argv.includes("--port") || !Number.isInteger(port) || port < 0 || port > 65535) throw new Error("--port between 0 and 65535 is required");
 
 const state = {
   requests: [],
   sceneTargets: [],
   failedSceneTarget: null,
   failedSceneAttempts: 0,
+  failSceneOrdinal: null,
   holdResponses: false,
   releaseHeldResponses: null,
 };
@@ -108,7 +109,7 @@ function responsePayload(body) {
 
 function sceneResponse(target, correction) {
   if (!correction) state.sceneTargets.push(target);
-  if (!state.failedSceneTarget && state.sceneTargets.length === 9) state.failedSceneTarget = target;
+  if (!state.failedSceneTarget && state.sceneTargets.length === state.failSceneOrdinal) state.failedSceneTarget = target;
   const shouldFail = target === state.failedSceneTarget && state.failedSceneAttempts < 3;
   if (shouldFail) state.failedSceneAttempts += 1;
   return { type: "scene_beats", target, failed: shouldFail, payload: shouldFail ? {} : sceneFragment(target) };
@@ -171,6 +172,18 @@ const server = createServer(async (request, response) => {
     setResponseHold(body.enabled);
     return sendJson(response, 200, { holdResponses: state.holdResponses });
   }
+  if (request.method === "POST" && url.pathname === "/control/scene-failure") {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    let body;
+    try { body = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+    catch { return sendJson(response, 400, { error: "invalid JSON" }); }
+    if (!Number.isInteger(body.ordinal) || body.ordinal < 1 || state.sceneTargets.length) {
+      return sendJson(response, 422, { error: "positive ordinal required before generation" });
+    }
+    state.failSceneOrdinal = body.ordinal;
+    return sendJson(response, 200, { failSceneOrdinal: state.failSceneOrdinal });
+  }
   // The production adapter's readiness path is intentionally non-generative.
   // Keep this external fake protocol-shaped so browser journeys prove that a
   // successful preflight never adds a chat-completion request.
@@ -200,4 +213,7 @@ const server = createServer(async (request, response) => {
   });
 });
 
-server.listen(port, "127.0.0.1");
+server.listen(port, "127.0.0.1", () => {
+  const address = server.address();
+  console.log("PLOTLOOM_E2E_LISTENER " + JSON.stringify({ role: "provider", host: address.address, port: address.port }));
+});

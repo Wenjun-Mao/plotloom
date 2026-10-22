@@ -1,0 +1,19 @@
+{
+  "candidate_revision": "7954069ac3f375299d039b2ae846c38cc5e9dc27",
+  "source_project_id": "e1e3e8b4-a209-4184-ac13-66bc3f410fc4",
+  "source_run_id": "568f2b11-5552-44f8-aa86-7008c37ab2c7",
+  "source_run_revision": 229,
+  "source_state": "awaiting_review",
+  "source_code_revision": "c771cdd67eb8fd0925cdfe772c46ed85eeb51657",
+  "source_database_logical_sha256": "3b80e0521230d69194bd864cd67a41c45d28d942df7170327a87db51771c52c7",
+  "retained_payload_files": 437,
+  "source_review_bundle_hash": "d12d5388e23bcfd3fad83360fe834292f5e7e6832fad4de5a8721db7af2cd62a",
+  "candidate_review_bundle_hash": "d12d5388e23bcfd3fad83360fe834292f5e7e6832fad4de5a8721db7af2cd62a",
+  "identical_complete_review_response": true,
+  "frames": 28,
+  "references": 5,
+  "copy_home": "/tmp/plotloom-ux-release-gates.cILc2m/valued-copy/outputs/20261013T030200639858Z__e1e3e8b4-a209-4184-ac13-66bc3f410fc4",
+  "native_dispatches": 0,
+  "human_facts_created": 0,
+  "original_database_payloads_and_run_unchanged": true
+}

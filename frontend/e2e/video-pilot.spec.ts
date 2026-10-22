@@ -1,5 +1,8 @@
+import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
+import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
@@ -10,10 +13,10 @@ const still = path.join(root, "docs/verification/supporting/p0-generated/01-arri
 async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
   // The production H3 catalog rejects the 16:9 reviewed still until the
   // author explicitly chooses its documented contain-pad preparation.
-  const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcilePost = page.waitForResponse((response) => {
     const pathname = new URL(response.url()).pathname;
@@ -33,8 +36,10 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
     observed: { videoCodec: "h264", audioCodec: "aac" },
   });
   const review = panel.getByTestId(`video-segment-review-${reconciled.id}`);
-  await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  const frameInput = review.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });
+  await expect(frameInput).toHaveAccessibleDescription(/出点（不含）.*原片.*严格按原稿时长/);
+  await frameInput.fill(String(inFrame));
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
@@ -63,13 +68,16 @@ async function prepareSelectedPair(
   expect(created.ok()).toBeTruthy();
   const projectId = (await created.json()).id as string;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-  await page.locator("details.workbench-support").first().locator("summary").click();
-  await page.locator("details.workbench-support").last().locator("summary").click();
-  await page.getByLabel("审核人标签").fill("P2 H3 browser reviewer");
+  const guide = page.getByTestId("recommended-workflow");
+  await expect(guide).toContainText("前往分镜审核");
+  await expect(guide.getByRole("button", { name: "检查交互式播放", exact: true })).toHaveCount(0);
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByRole("button", { name: "批准当前分镜" }).click();
+  await expect(guide).toContainText("当前镜头缺少可用的审核关键帧");
   await page.getByLabel("来源声明").fill("P2 local fake fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
-  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("P2 fixture source");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("Current approved first shot keyframe.");
@@ -97,14 +105,18 @@ async function prepareSelectedPair(
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("details.video-production > summary").click();
   const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
+  const source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
 
   // The adjoining fixture follows the same authored review/selection path.
-  // It reuses the explicitly retained local still; the distinct candidate is
-  // the separately ingested, reviewed video job for the adjoining shot.
-  await page.getByLabel("编辑镜头 双键升起").click();
+  // Retention is scoped to a shot; explicitly retain the same fixture asset
+  // for the adjoining shot rather than inheriting the prior shot's draft.
+  await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption("shot_03");
   await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
+  await page.getByTestId(/^keep-candidate-/).click();
+  const targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source, "shot_03");
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
+  await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, targetIntent);
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);
 
   // An explicit route is required before the selected-path player appears;

@@ -30,8 +30,8 @@ from plotloom.project_storage import (
 )
 from plotloom.persistence import stable_hash
 from plotloom.provider_profiles import TextProviderProfileSnapshotV3
-from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
-from tests.project_storage_fixtures import fixture_profile as _fixture_profile
+from tests.project_storage_fixtures import fixed_workload_footage_count, FixtureResolver as _FixtureResolver
+from tests.project_storage_fixtures import fixed_workload_footage_count, fixture_profile as _fixture_profile
 
 
 def _hold_project_handle(
@@ -69,10 +69,10 @@ class _RejectFinalStoryboardProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标戏剧场景】" in prompt:
             self.storyboard_requests += 1
-            # The fixed workload has nine storyboard units. Rejecting the last
+            # Rejecting the final footage storyboard unit
             # one leaves all exact upstream/sibling evidence available to the
             # existing exact-repair contract.
-            if self.storyboard_requests == 9 and not self.rejected:
+            if self.storyboard_requests == fixed_workload_footage_count() and not self.rejected:
                 self.rejected = True
                 return ProviderResponse(
                     provider=self.name,
@@ -663,7 +663,7 @@ def test_project_folder_authoring_api_persists_isolated_cas_drafts_and_exact_sav
     )
 
 
-def test_project_folder_authoring_drafts_allow_only_the_brief_and_four_canonical_editor_shapes(
+def test_project_folder_authoring_drafts_require_the_current_shared_graph_shape(
     tmp_path: Path,
 ) -> None:
     storage = ProjectFolderStorage(
@@ -686,13 +686,26 @@ def test_project_folder_authoring_drafts_allow_only_the_brief_and_four_canonical
         },
     )
     assert brief_draft.status_code == 200
+    from plotloom.graph_authoring_drafts import GraphAuthoringDraft
+    from tests.source_graph_fixtures import letter_section_map
+
     for stage in stages:
+        payload = stage["payload"]
+        if stage["head"]["stage"] == "story_graph":
+            retired = client.put(f"/api/v2/projects/{project_id}/authoring-drafts", json={
+                "editorScope": "story_graph", "entityId": "root",
+                "baseCanonicalRevision": stage["head"]["revision"], "expectedDraftRevision": 0,
+                "payload": payload,
+            })
+            assert retired.status_code == 422
+            payload = GraphAuthoringDraft(binding_hash=project.graph_workbench_state().binding_hash, detached_endpoints={}, field_buffers={}, mapping=letter_section_map(project_id, project.project().brief).model_dump(mode="json", by_alias=True),
+                row_hints={}, selected_node_id=None).model_dump(mode="json", by_alias=True)
         response = client.put(
             f"/api/v2/projects/{project_id}/authoring-drafts",
             json={
                 "editorScope": stage["head"]["stage"], "entityId": "root",
                 "baseCanonicalRevision": stage["head"]["revision"],
-                "expectedDraftRevision": 0, "payload": stage["payload"],
+                "expectedDraftRevision": 0, "payload": payload,
             },
         )
         assert response.status_code == 200

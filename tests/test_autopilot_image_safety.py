@@ -1,0 +1,132 @@
+"""Attended P3 lifecycle, dispatch and immutable output-association regressions."""
+from contextlib import closing
+
+import pytest
+
+from plotloom.autopilot_contracts import CheckpointEvidence, RunControlRequest
+from plotloom.autopilot_materials import initial_inventory
+from plotloom.image_commands import image_context
+from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
+from tests.autopilot_compact_text_fixtures import compact_safety_image_environment
+from tests.test_autopilot_images import current
+
+
+def safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix, *, auto_deliver=True):
+    """Retain eight real text records; every safety mutation is destination-local."""
+    values = compact_safety_image_environment(
+        tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=auto_deliver
+    )
+    storage, _registry, service, view, _calls, text_calls = values
+    try:
+        assert len(compact_two_cut_text_prefix.text_records) == 8 and not text_calls
+        with closing(storage.projects.open(view.project_id)) as store:
+            inventory = initial_inventory(store, view.policy)
+        assert inventory.route_count == 2
+        assert sum(subject.owner == "image" for subject in inventory.subjects) == 6
+    except Exception:
+        service.close()
+        raise
+    return values
+
+
+def file_bytes(root):
+    return {item.relative_to(root): item.read_bytes() for item in root.rglob("*") if item.is_file()}
+
+
+def reach(storage, service, view, owner, state):
+    for _ in range(24):
+        service.step(view.project_id)
+        result = current(storage, view)
+        checkpoint = next((item for item in result.checkpoints if item["evidence"]["owner"] == owner), None)
+        if checkpoint is not None and checkpoint["state"] == state:
+            return result, checkpoint
+        assert result.state in {"running", "waiting"}, result.blocker
+    raise AssertionError("bounded native fixture boundary not reached")
+
+
+@pytest.mark.parametrize("owner", ["character-reference", "art-reference"])
+@pytest.mark.parametrize("action", ["cancel", "takeover"])
+def test_stop_after_reference_ingestion_preserves_terminal_owner_and_prevents_selection(tmp_path, monkeypatch, owner, action, compact_two_cut_text_prefix):
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
+    try:
+        retained, checkpoint = reach(storage, service, view, owner, "delivered")
+        stopped = service.control(view.project_id, RunControlRequest(expected_revision=retained.revision, action=action))
+        assert stopped.state == {"cancel": "cancelled", "takeover": "taken_over"}[action]
+        original_calls = list(calls)
+        service.step(view.project_id)
+        result = current(storage, view)
+        assert next(item for item in result.checkpoints if item["id"] == checkpoint["id"])["state"] == "delivered"
+        with closing(storage.projects.open(view.project_id)) as store:
+            assert image_context(store, owner, checkpoint["evidence"]["jobId"])["state"] == "delivered"
+        assert calls == original_calls and not registry.view()["busy"]
+    finally:
+        service.close()
+
+
+@pytest.mark.parametrize("state", ["delivered", "adopted"])
+def test_direct_shot_cancellation_withdraws_automatic_authority_before_bundle(tmp_path, monkeypatch, state, compact_two_cut_text_prefix):
+    storage, _registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
+    try:
+        _retained, checkpoint = reach(storage, service, view, "image", state)
+        with closing(storage.projects.open(view.project_id)) as store:
+            store.media.cancel_image_job(view.project_id, checkpoint["evidence"]["jobId"], "Manual cancellation fixture")
+        withdrawn = current(storage, view)
+        assert withdrawn.state == "taken_over"
+        original_calls = list(calls)
+        service.step(view.project_id)
+        result = current(storage, view)
+        assert result.bundle is None and calls == original_calls
+        assert len(result.frames) == (1 if state == "adopted" else 0)
+    finally:
+        service.close()
+
+
+@pytest.mark.parametrize("race", [False, True])
+def test_partial_execution_publication_blocks_initial_or_final_codex_admission(tmp_path, monkeypatch, race, compact_two_cut_text_prefix):
+    storage, registry, service, view, calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix, auto_deliver=False)
+    try:
+        _retained, checkpoint = reach(storage, service, view, "character-reference", "prepared")
+        with closing(storage.projects.open(view.project_id)) as store:
+            context = image_context(store, "character-reference", checkpoint["evidence"]["jobId"])
+            delivery = store.image_exchange_for(context)._root() / "jobs" / checkpoint["evidence"]["jobId"] / "delivery"
+        def partial():
+            delivery.mkdir()
+            (delivery / "executor-pin.json").write_bytes(b"retained in-progress execution evidence")
+        if race:
+            original = registry.codex_exec_admit
+            def admit(attempt):
+                partial()
+                return original(attempt)
+            monkeypatch.setattr(registry, "codex_exec_admit", admit)
+        else:
+            partial()
+        service.step(view.project_id)
+        result = current(storage, view)
+        assert result.state == "blocked" and result.blocker["code"] == "delivery_conflict"
+        retained = next(item for item in result.checkpoints if item["id"] == checkpoint["id"])
+        assert retained["state"] == "sent"
+        with closing(storage.projects.open(view.project_id)) as store:
+            attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+                view.id, checkpoint["operationKey"]
+            )
+        assert attempt.state == "spawn_intent"
+        assert (delivery / "executor-pin.json").read_bytes() == b"retained in-progress execution evidence"
+        assert not calls and not registry.view()["busy"]
+    finally:
+        service.close()
+
+
+@pytest.mark.parametrize("field,value", [("output_filename", "foreign.png"), ("output_hash", "d" * 64), ("role", "refinement")])
+def test_retained_candidate_must_match_exact_manifest_output(tmp_path, monkeypatch, field, value, compact_two_cut_text_prefix):
+    storage, _registry, service, view, _calls, _text = safety_environment(tmp_path, monkeypatch, compact_two_cut_text_prefix)
+    try:
+        _retained, checkpoint = reach(storage, service, view, "character-reference", "delivered")
+        with closing(storage.projects.open(view.project_id)) as store:
+            with store.repository.engine.begin() as connection:
+                connection.exec_driver_sql(f'UPDATE v2_character_reference_proposal_candidates SET "{field}"=? WHERE proposal_id=?', (value, checkpoint["evidence"]["jobId"]))
+                with pytest.raises(ValueError, match="exact manifest outputs"):
+                    assert_checkpoint_binding(connection.connection.driver_connection, view.project_id, "delivered",
+                        CheckpointEvidence.model_validate(checkpoint["evidence"]), run_id=view.id,
+                        operation_key=checkpoint["operationKey"])
+    finally:
+        service.close()

@@ -9,6 +9,68 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-25
 
+### Completed frozen creative execution fix — 2026-09-26
+
+The creator approved fixing refresh after a specialist skill update invalidated
+an already-completed character task. Persist trusted preparation-time execution
+identity and validate existing deliveries against that identity, not mutable
+checkout files. Preserve package tamper detection and all creative acceptance
+boundaries. Cover every creative stage, skill drift/reopen and tampering with
+focused regression tests and independent review. Recover the exact retained
+character task only from independently verified preparation-era Git evidence;
+do not rewrite its package, delivery, request hash or creative content. Deploy
+the verified backend fix, then resume manual candidate review. No generation,
+automatic candidate acceptance or broad historical replay is in scope.
+
+Completed under [ADR 0088](../adr/0088-frozen-creative-execution-identity.md):
+109 selected backend regressions and independent review passed. The retained
+character task was recovered against independently selected revision
+`9a1bb173f20688088ff9b6bb82ef60afd59cb770`; package/delivery bytes and all existing
+project table contents are unchanged. Only its trusted pin record was added.
+Runtime 8841 was restarted, with the character task still prepared/unaccepted.
+Next creator action: refresh delivery, then review the proposal.
+
+### Completed branch next-step slice — 2026-09-26
+
+Approved during the walkthrough: implement
+[save → apply → continue](../adr/0087-branch-save-apply-continue.md) for the
+branch editor only. Pair descriptions with actions, guard unsaved/redundant
+operations, and navigate to Characters after current routes are ready.
+Deliver state-focused tests, browser save/apply/continue coverage and a rebuilt
+UI; independently review. Do not operate the creator's live project or reload
+their browser. Stop after this slice and resume the manual walkthrough at
+Characters; a global wizard and wider redesign remain out of scope.
+
+Completed with 232 frontend unit tests, frontend and E2E typechecks,
+deterministic build, focused save/apply/continue browser journey and independent
+review passing. Separate read-only Chromium inspection confirmed the ready-state
+action hierarchy on the retained project; Safari replay remains for the creator.
+Continue performs navigation only, with no write request. Resume at Characters.
+
+### Active walkthrough wording slice — 2026-09-26
+
+The creator approved implementing the first pass from the
+[wording audit](../verification/2026-09-26-creator-wording-audit.md): story and
+branch labels plus script/storyboard manual-task preparation, recovery and
+copying. Deliver natural action labels tied to actual effects, recoverable
+task text and truthful clipboard feedback. Preserve separate save/apply,
+review/production approval and prepare/dispatch boundaries. Use the
+[creator wording guide](../operations/creator-ui-wording.md).
+
+Verify focused action/clipboard regression tests, typechecks, unit tests and
+the shipped frontend build; independently review the stable diff. Stop at
+this bounded slice. Do not refresh the creator's unsaved Safari form, modify
+their project, submit generation, expand branching or migrate schemas. Media,
+settings, general error handling and generated-report terminology remain
+subsequent audit items, not completed work.
+
+Completed this bounded slice: source/branch and script/storyboard task wording,
+restored script assignment recovery and explicit clipboard feedback. The
+audit's implementation receipt records 229 unit tests, 14 unique focused
+browser journeys, typechecks, build and independent review. Navigation/Brief
+naming remains unchanged for this slice. Continue the manual walkthrough;
+do not interpret the full audit backlog as completed.
+
 - **Now:** The director approved the pacing-first integration recommendation
   below and one bounded longer-shot trial. The director confirmed both lines
   and coherent voice/pose in the earlier two-shot
@@ -223,6 +285,27 @@ or isolated-clip receipt. No additional prototype subsystem or broad refactor is
 required merely to prepare the walkthrough.
 
 ### Active follow-on: editable creator walkthrough preparation
+
+Next-work order agreed on 2026-09-26: finish the current outline review, then
+scope editable synopsis assistance and story-format/duration/optional episode
+and branching settings as one small slice. Continue downstream progressively
+with creator review; do not build the whole generation pipeline upfront.
+The [walkthrough queue](../verification/2026-09-25-manual-creator-walkthrough-findings.md#next-work-queue-agreed-during-outline-review--2026-09-26)
+tracks this follow-up. For now, capture findings and continue the manual review;
+no new generation or feature implementation is started by this queue entry.
+
+The creator subsequently authorized a documentation-only assessment while away.
+The [premise-to-synopsis proposal](2026-09-26-premise-to-synopsis-plan.md) records
+the existing-contract map, recommended first slice, unsupported series/branch
+scope, ownership questions, and verification checklist. It remains proposed,
+not implementation authority; resume the current outline walkthrough first.
+
+The 2026-09-26 director-approved reader correction is bounded to working
+outline overview/detail controls in the original sandboxed interactive report
+([ADR 0086](../adr/0086-trusted-outline-candidate-reader.md)). Preserve the
+current 雨停以后 candidate and stop at a usable read-only review; no generation,
+acceptance, graph installation or episode/synopsis feature expansion belongs to
+this slice. Verify source preservation, reader behavior and static bundle.
 
 The director agreed to close the quality-8 trial and proceed. Next deliverable:
 one retained, editable small-story project, one stable entry URL, and a short
@@ -582,6 +665,394 @@ destruction of valued work, source authority ambiguity, altered acceptance or
 product scope. Native Codex ImageGen and owned H3 development calls are authorized;
 that is not automatic audiovisual Approval. Model/provider choice changes and new
 audio services must follow the settled scope, not be silently introduced.
+
+## Bounded walkthrough follow-up: character design presentation
+
+Creator-approved scope: replace the visible motivation editor with actual
+personality/temperament editing and enlarge character names. Preserve upstream
+motivation, candidate annotations and all unrelated fields; no schema change,
+generation or live creative acceptance. Deliverable: editor, accepted summary,
+focused preservation tests and refreshed frontend bundle. Stop after verified
+presentation delivery; broader button/copy-task UX remains separate.
+
+Verification: 236 frontend unit tests and TypeScript checks pass; shipped assets
+rebuilt. Independent review found no blockers. Read-only Chromium inspection
+confirmed the existing candidate fields and 22px name at desktop and a
+single-column, no-horizontal-overflow layout at 390px. Safari author review
+remains the next product-acceptance step.
+
+### Character-card follow-up: layout, annotations and selectable labels
+
+Creator approved this bounded follow-up after the first presentation pass.
+Deliverables: compact responsive trait row; temperament/appearance columns;
+separate voice and lossless inference notes; selectable native labels that
+retain normal click focus. ADR 0089 owns the presentation boundary. No prompt,
+schema, candidate, acceptance or broader form rewrite is included.
+
+Verification complete: 242 unit tests, TypeScript and deterministic build pass;
+independent review clear after correcting the range-intersection guard.
+Real Safari reproduces the old selection loss and verifies final-build drag
+selection plus ordinary label focus. Chromium at 390px shows stacked controls
+without horizontal overflow. User's original Safari form was not refreshed;
+temporary verification tabs were closed. Next: author refresh/review, then
+resume the walkthrough. Other pages' selection complaints remain unverified.
+
+### Approved bounded follow-up: character writing separation
+
+Creator approved separating descriptive character fields from source/inference
+notes and scene-specific performance guidance (ADR 0090). Deliverable: frozen
+new-request instruction, receiving validation, editable notes and a reviewable
+cleanup proposal for the retained 林遥 candidate. Evidence: prompt/schema audit,
+focused admission/save/UI tests and independent review. Excludes automatic
+candidate rewriting, creative acceptance, media and downstream acting generation.
+Stop after verified delivery and return to the author's walkthrough.
+
+Delivered: frozen writing-contract input, structural admission/save guards,
+separate editable notes and accepted summary, specialist placement override,
+and a [pending author cleanup proposal](../verification/2026-09-26-lin-yao-description-cleanup.md).
+Verification: 47 focused Python tests, 244 frontend tests, TypeScript checks,
+deterministic bundle build, one real-browser fixture accept/reopen/save journey,
+and independent review pass. Read-only live-page check exposes the two new note
+fields; the original candidate remains ready/unaccepted and unmodified. Local
+server restarted on 8841. No live creative acceptance or new specialist run.
+
+### Character form: required-field convention
+
+Creator approved `*` for required fields, no marker for optional fields, and an
+explanatory note. Bounded delivery: clarify the current character review without
+changing its acceptance rules or live unsaved edits. Its editable text fields
+all allow blank values; do not invent required markers. Regression checks cover
+the note in candidate/reopened review and blank-value acceptance. Broader form
+rollout requires checking each form's own validation before adding stars.
+Stop after frontend build, focused verification and independent review.
+
+Verification: 245 frontend tests, 9 focused backend tests, TypeScript and
+deterministic build pass. No acceptance rules changed. The user's Safari tab
+and unsaved cleanup remain untouched; a live refresh/review is deferred until
+the author has saved their current work.
+
+### Corrected minimum character-setting contract
+
+The author rejected the all-optional outcome above and approved real requirements:
+at least one personality trait and an appearance per character (ADR 0091).
+Deliver UI markers and inline errors, acceptance/reopened-save guards, new-task
+instructions and regressions. Preserve historical revisions and current author
+edits; no creative acceptance or automatic content filling. Incomplete candidates
+remain editable. Verify focused backend, frontend, build and fixture browser
+checks plus independent review, then resume the walkthrough.
+
+Delivered: confirmation validation on both endpoints, required trait-group and
+appearance markers, accessible adjacent errors, and new frozen-task guidance.
+51 focused Python tests, 247 frontend tests, application/E2E TypeScript checks,
+deterministic build and browser clear/repair/accept/reopen/save journey pass.
+Independent review found no blockers. Test fixtures were updated rather than
+bypassing the new minimum. Local server restarted; no author-tab reload or
+project content mutation. User review of the updated form remains pending.
+
+### Required-marker alignment correction
+
+Creator reported the appearance star on a separate row. Root cause: the old
+grid label treated text and marker as separate items. Scope: use inline label
+content within the existing field layout, preserving native focus/selection and
+required semantics. Regression: real-browser marker position and neighboring
+textarea top alignment. No character data or validation changes; stop after
+focused checks, rebuilt assets and independent review.
+
+Verification: deterministic build, E2E TypeScript and the browser regression
+pass. Marker stays on the label line and adjacent textarea tops align. The live
+server responds on 8841; the author tab was not refreshed or edited.
+
+### Character edit save wording
+
+Creator approved replacing the internal-state label “保存重新打开的角色” with
+“保存角色修改”. Scope is button copy, matching test selectors and rebuilt assets;
+save behavior, validation and character data remain unchanged. Stop after focused
+tests, deterministic build and independent review.
+
+Verification: 24 focused frontend tests, TypeScript and deterministic build
+passed; independent review found no issues. Live server serves the new label.
+No author form was refreshed or modified.
+
+### Selection controls versus actions
+
+Creator approved radio modes and an audit of similar ambiguous controls. Deliver
+native appearance modes, non-primary checked comparison/retention toggles,
+underlined technical tabs and explicit current-subject/current-image indicators.
+Audit covers frontend conditional primary variants and pressed/selected controls;
+save/apply actions and established reader tabs retain their roles. ADR 0092 owns
+the convention. Excludes generation, data changes and upstream report HTML.
+Stop after frontend checks, gallery browser regression and independent review.
+
+Verification: all 248 frontend tests, both TypeScript checks and deterministic
+build pass. Focused cast original/refinement/restart browser flow passes with
+native arrow-key radio assertions; radio screenshot visually inspected.
+Comparison-capacity and imported-image browser flows also pass. Independent
+review found no actionable defects. The wider two-file browser run was stopped
+after failures in art-review lifecycle/mock-gallery and held project-switching
+tests; this is not a full-suite pass. Its stale sidebar-name assertion was
+updated to the current `创作流程` label before the focused rerun. Broader failure
+triage remains open, so commit/push is deferred rather than bypassing that gate.
+No live author form or project data was modified.
+
+### Walkthrough follow-ups — appearance proposal dispatch
+
+Captured from creator review on 2026-09-27; open, not implemented:
+
+- Normal prepared/no-delivery proposals must use neutral placeholders, not red
+  error stripes. Reserve error styling for actual failed states.
+- Dispatch is blocked in the current walkthrough runner: `serve.py` does not
+  provide `image_dispatcher`; the API rejects dispatch when it is absent with
+  `native image specialist dispatch is not configured`. Proposal
+  `ij_627a0a680e784d30985054cde8bfd669` remains prepared. Diagnose/configure the
+  supported dispatch path before asking the creator to retry; do not cancel,
+  recreate or silently dispatch their request.
+  Configuration inspection confirms the installed `codex queue --help` supports
+  the ADR 0074 transport. The isolated runner explicitly omits media dispatch;
+  this is not a failed image generation. No verified reusable specialist task
+  identity was found in the inspected host-local configuration. The earlier
+  `.local/native-image-proof` dispatcher retains an inflight reservation; it
+  must not be cleared or bypassed to connect this walkthrough. Next: obtain
+  an explicitly authorized dedicated image-specialist chat, bind its host-local
+  identity and lease directory, and restart the same storage-backed runner.
+  Configuration must not automatically send the prepared proposal.
+  Follow-up: the creator identified the existing `Plotloom Image Specialist`
+  chat, which was outside the 50-most-recent chat lookup. Exact-title lookup
+  and task inspection confirmed its latest assignment completed with a
+  validated image delivery for `ij_5de029b5a8084889af72967ae6393bc9`.
+  Prefer reconnecting this existing specialist; creation/archival is not
+  required merely to restore runner configuration. Reconcile its prior
+  dispatch state before reconnecting; idle alone is not lease-release proof.
+  Reconnected 2026-09-27: the retained project database confirms its latest
+  delivery was accepted. Previous temporary runner lease directories are gone
+  after reboot. The local walkthrough runner now uses the existing specialist
+  with persistent host-local dispatch state; older trial reservations remain
+  untouched. Six dispatcher tests passed and the restarted server returned
+  HTTP 200. The creator's proposal remains prepared with unchanged request
+  hash. No send/generation performed; end-to-end image delivery remains to be
+  exercised by the creator. Local configuration/evidence: `.local/creator-walkthrough/DISPATCH.md`.
+- Expose unavailable dispatch before clicking, with an understandable Chinese
+  explanation and next step. Place dispatch errors beside the affected proposal,
+  not only above the history section where they can be missed.
+- Creator cannot select `查看生成指令与技术详情` disclosure text in Safari.
+  Reproduce selection-versus-toggle behavior and fix shared disclosure headers
+  while preserving ordinary click and keyboard expansion. Label fixes do not
+  establish that summary elements work.
+- Review adjacent technical wording (`发送给 specialist`, `冻结方向`,
+  `交付与保留记录`) for creator-facing language; do not obscure actual manual
+  versus automatic execution behavior.
+
+### Creator-approved specialist settings and one-click text tasks (2026-09-29)
+
+Approved scope: two reusable installation-local Codex chat bindings, editable in
+`生成助手设置`; text handles outline, cast, art, script and storyboard, image
+handles character/environment/prop/shot images. ADR 0093 records dispatch safety.
+No automatic chat creation, routing per-stage threads, creative acceptance,
+provider fallback or background server generation is included.
+
+Implemented settings persistence/restart recovery, five shared text send/check
+controls with open-page observation, art/shot explicit image send endpoints,
+and atomic prepared-only native image export. Existing manual package recovery
+is secondary and does not implicitly send. Current accepted user content and
+image selection remain untouched. Existing Image Specialist binding is seeded
+once; text slot remains unconfigured until the creator chooses its chat.
+
+Verification: deterministic native-queue doubles; actual frozen outline package
+→ validated candidate → restart without acceptance; 70 focused backend tests;
+252 frontend unit tests, typecheck, deterministic build and 17 cast/art browser
+journeys passed (the two navigation-sensitive cast cases also rechecked after
+the fix). Live server restarted on 8841; seeded image binding persisted and the
+delivered character image remained available but unselected. Independent Terra
+review confirmed the corrected reservation/admission boundaries. Browser checks
+also exposed A→B→A navigation cancelling an aggregate load without replacement
+when A was still displayed; the navigation owner now replaces interrupted loads
+while preserving same-project trace-selection cancellation. A focused unit test
+and held-request browser journey guard this cause, not a form-enable workaround.
+Stopping condition: verified local workflow, no unrequested live generation,
+explicit handoff for text chat choice and creative image review.
+Earlier Safari disclosure-selection, red pending-state treatment and adjacent
+wording notes above remain open; this change does not claim to fix them.
+
+### Creator-approved direct image viewing (2026-09-29)
+
+Approved scope: click the main character, scene or prop image to enlarge it;
+close with the backdrop, Escape or a visible ×. Thumbnails still navigate and
+reference selection remains a separate explicit action (ADR 0092 amendment).
+The shared viewer previously required a standalone button and lacked backdrop,
+Escape and modal-focus handling. The fix lives in shared image/viewer primitives,
+using a keyboard-accessible image trigger and native modal dialog; unavailable
+images do not offer zoom. No project data, generation or acceptance changes.
+
+Verification: 257 frontend tests, application/E2E typechecks, deterministic static
+build and three focused cast/art browser journeys passed. Live desktop/mobile
+browser checks confirmed image opening, inside-image click retention, backdrop,
+Escape and × dismissal, keyboard opening and restored focus/scroll. The delivered
+林遥 image remains unselected. Independent Terra review found no issues. Local
+visual evidence: `output/playwright/image-zoom-{desktop,mobile}.png`. Safari itself
+was not exercised. Stopping condition: shared viewer verified and built assets
+published; creator can refresh and try it. Earlier pending-state and disclosure
+text-selection findings remain open, outside this bounded change.
+
+### Creator-approved art render-style correction (2026-09-29)
+
+Approved step: align the art assignment, preset and validator with the creator's
+live-action realistic choice (ADR 0094). Root cause: the prior request required
+preserving the upstream painterly preset, and the upstream validator enforced
+its render sentence. Author owns style; model proposes scene/prop descriptions;
+trusted code freezes and checks the contract. Scope: explicit preparation style,
+actual Brief visual direction, shared upstream-preserving adapter, specialist
+instructions and focused regression/browser checks. Preserve the delivered
+`ch_d219890a21bd49399c29928602dd873a` proposal as evidence and prepare a corrected
+text task. No creative acceptance, images, video or reference-selection changes.
+Stopping condition: verified implementation and a corrected candidate available
+for creator review (or a concrete delivery blocker). Existing unrelated Safari
+selection and pending-state styling findings remain open.
+
+Delivered at `6632c2f`; [verification and live replacement receipt](../verification/2026-09-29-live-action-art-contract.md).
+The new live-action candidate is ready for creator review (two scenes and one
+prop), not accepted. The old delivery bytes are unchanged. All 819 backend,
+257 frontend and nine art browser checks passed; Terra findings were resolved.
+The receipt retains the hardcoded F3B image-direction default and inert
+read-only-report controls as bounded follow-ups before future style trials.
+
+### Creator-approved report-first art review (2026-09-29)
+
+Approved step: show the readable art report expanded by default, with the
+advanced JSON editor collapsed underneath; retain the full-window reader.
+Cause: ArtPanel explicitly opened its technical editor before a report-only
+modal trigger. This is a presentation hierarchy correction, not a new data or
+acceptance contract. Candidate, accepted and reopened views keep the original
+report caveat, sandbox, editing validation and explicit acceptance unchanged.
+Scope excludes generation, project-content edits and unrelated wording cleanup.
+Stopping condition: report-first browser checks and fresh built assets; creator
+reviews their existing candidate, without automatic acceptance.
+
+Verification: application and E2E typechecks, deterministic frontend build,
+257 frontend tests and all nine art/workflow browser journeys passed. Coverage
+checks report-before-JSON order, default disclosure states, candidate/accepted
+report reading, explicit JSON edits after reopen and restart persistence. Live
+read-only Chromium checks confirmed the existing candidate report, full-window
+reader, Escape dismissal and a 390px-wide layout without page overflow. The
+original report remains sandboxed; its existing inert copy/export controls are
+not changed here. Safari refresh/creator acceptance remains a user check.
+Independent review identified that the accepted section reused the replacement
+candidate's report ID and draft when both existed. Each section now reads its
+own report and JSON version, guarded by a replacement-over-accepted browser
+case. This corrects review presentation only; accepted data is not modified.
+
+### Creator-approved Chinese reference-image preparation (2026-09-29)
+
+Approved step: pause image preparation and correct the English, hardcoded F3B
+render-direction form. The UI owned an unrelated cinematic-realism default and
+exposed internal lifecycle labels. The backend already freezes Chinese overlays
+without translation. Scope: Chinese requirements inherited from accepted art,
+plain-language task states/actions, collapsed original model prompts, isolated
+subject/session drafts and honest read-only prepared requirements (ADR 0094
+amendment). No generation, accepted-data changes, provider/translation layer or
+retained-report rewrite. Stop after focused regression checks, independent
+review and fresh static assets; creator resumes their accepted art r1.
+
+Verification: 268 frontend tests, application/E2E typechecks, deterministic
+static build and all nine art/workflow browser journeys passed. The real
+backend browser case freezes Chinese requirements, keeps them read-only and
+preserves their exact value after restart. Read-only live Chromium inspection
+confirmed the creator's live-action defaults and collapsed model prompts at
+desktop and 390px width, without preparing or sending an image task. Art r1
+hash prefix `6451a6cfb635` remains accepted and unchanged. Local visual evidence:
+`output/playwright/art-requirements-{chinese,mobile}.png`. The original report's
+existing sandbox-blocked script remains unchanged; Safari refresh is a creator
+check, not a claimed browser verification.
+Independent Luna Max review reported no findings. A final parent-panel label
+was aligned from “参考研究” to “参考图片”; focused tests and the static build were
+rerun for that wording-only change.
+
+### Creator-approved persistent walkthrough deployment (2026-10-01)
+
+Approved step: diagnose the recurring offline server and persist the existing
+walkthrough through a simple Docker service. The Mac rebooted on September 29
+at 21:34 Toronto time after the foreground server was started; there was no
+restart owner. Scope: localhost Docker Compose with restart policy, existing
+data mounts, locked runtime dependencies, health/logs and the minimal macOS
+native queue bridge needed to retain text/image send buttons (ADR 0095).
+No project reset, lease cleanup, generation, creative acceptance or video
+backend expansion. Stop after restart/data persistence checks, independent
+review and an operational service at the creator's existing URL.
+
+The detached OrbStack container is healthy; real process-crash recovery and
+container recreation retained accepted art r1, the prepared S01 request and
+specialist state exactly. Native bridge connectivity and upstream Git/Node
+pins are verified; no generation was dispatched. OrbStack's disabled login
+startup was enabled. See the [deployment and outage receipt](../verification/2026-10-01-persistent-creator-workbench.md)
+for evidence and the remaining awake-host/native-app requirements.
+
+### Creator-approved specialist wake-up follow-on (2026-10-01)
+
+Approved step: fix the persistent bridge's unloaded-specialist wake gap. A
+creator Send must queue the frozen assignment once and start it without opening
+the chat when unloaded/idle; active turns must remain untouched and pending
+work queued. Preserve one-inflight and unknown-outcome safety. Deliverable:
+an independently reviewed, verified candidate, or a precise native-API blocker.
+Evidence must cover unloaded, idle, busy and concurrent-start behavior rather
+than using a status read as an atomic guard. No creative acceptance, selection,
+video, fallback, reset, real-request replay, global restart or private transport.
+Deploy only at an evidenced safe checkpoint. Manager owns final review/push.
+
+Research stopped at an unsupported execution boundary, with no runtime patch or
+deployment. Native desktop idle consumption works without navigation. Native
+queue/start rejects active/pending turns and separate writers cannot resume the
+same owned thread, but the desktop control socket is absent and a standalone
+resume/start client has no verified desktop ImageGen execution binding. The
+[wake-up investigation receipt](../verification/2026-10-01-specialist-wake-up-gap.md)
+records exact tests, limitations and disposable targets. The real S01 assignment
+and current data remain untouched. Next action: establish a supported desktop
+wake transport that preserves specialist tools, then verify the complete path;
+do not implement a status-check or alternate-executor workaround.
+
+### Approved external desktop-open follow-on (2026-10-02)
+
+Following review of the isolated native-navigation evidence, the creator
+approved checking a supported external command/deep link and integrating it if
+verified. The documented `codex://threads/<thread-id>` link is now the bounded
+candidate (ADR 0096): queue once, then request desktop open, never steer or
+interrupt. Preserve the original unknown-outcome and delivery reservations;
+surface open failure separately from queue admission. The visible chat switch
+is intentional. Existing real specialist assignments remain untouched.
+
+Deliverable: focused bridge/dispatcher tests, isolated external-open unloaded
+and busy probes, independent review, then safe deployment and push. Stop if
+external opening does not retain native execution or if duplicate/interrupt
+safety fails. No provider change, private transport, alternate executor,
+creative acceptance, project reset or background-only wake claim.
+
+Delivered and deployed: the actual updated bridge passed isolated unloaded and
+busy native-desktop probes without duplicate or interrupted turns. Independent
+review's stale-send-controls finding was fixed with read-only reconciliation;
+review then reported no remaining findings. The 53 focused backend checks,
+26 related regressions, 274 frontend tests and 9 art browser tests passed.
+Deployment preserved the complete accepted-art/proposal/specialist API state
+and exact S01 package/delivery bytes. See the
+[deep-link wake receipt](../verification/2026-10-02-native-deep-link-wake.md).
+No real assignment was replayed, no delivery was automatically admitted, and
+no image was selected. Next creator step: inspect the existing S01 delivery;
+a future production send verifies the installed HTTP bridge with ImageGen.
+
+### Approved walkthrough follow-on: another art-reference candidate (2026-10-02)
+
+The creator approved adding a requirements-revision flow after disliking a
+delivered P01 candidate. Scope: expose a new draft and explicit prepare/send for
+the same accepted scene/prop, preserve existing candidates and selections, and
+reuse comparison. ADR 0097 records the boundary. Evidence: isolated component
+and browser tests for another candidate, draft/session isolation and selection
+retention; independent review; fresh generated assets. Stop after verified UI
+delivery and push. No real image dispatch, creative choice, art reopening,
+image-edit semantics or remote-access work is included.
+
+Delivered: the additional-candidate form is available in the rebuilt frontend;
+25 focused component tests, 286 full frontend tests, 25 art-storage/API checks
+and 9 art browser tests passed. Independent review found no actionable issues.
+A separate browser confirmed local P01 draft edit/cancel without any mutating
+request; complete project art/proposal/decision/specialist state was unchanged.
+See the [verification receipt](../verification/2026-10-02-art-reference-additional-candidate.md).
+Real regeneration and creative selection remain the creator's next actions.
 
 ## Named open decisions
 

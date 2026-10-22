@@ -22,7 +22,7 @@ Relay execution or director message was performed. Usage/cost deltas unavailable
 | Chinese/manual controls and immutable regeneration | Fixture journey submits Index Chinese description, copies observed strengths to a manual draft, creates a second distinct take, preserves the first and exercises guarded deletion |
 | Restored voice/take/draft selection; no generation on page open | `takes_browser_journey.js` and actual deployed URL restoration with highlighted card; all final UI checks are reads, playback and copying, not generation |
 | 4 · Preserved idle cutover and bounded live qualification | Exact two-Index/one-H3 accepted IDs below; frozen audio binding, FIFO and release evidence; actual idle service restart preserves databases, three voices and 60 WAVs |
-| Documentation and withheld handoff | ADR 0097, Chinese client guide, pipeline/reproduction/operations documents, and updated [held integration note](2026-09-26-voice-candidate-handoff-draft.md) |
+| Documentation and withheld handoff | ADR 0212, Chinese client guide, pipeline/reproduction/operations documents, and updated [held integration note](2026-09-26-voice-candidate-handoff-draft.md) |
 
 Implementation checkpoints: `18bf774`, `692c81a`, `7d3972d`; focused follow-ups
 `51fdb9e`, `f426105`, `1ac588f`, `950a27e`, `43ff815`.

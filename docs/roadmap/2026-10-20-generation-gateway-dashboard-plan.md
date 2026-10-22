@@ -14,7 +14,7 @@ Progress: [initial verification and native HTTPS gate](../verification/2026-10-2
 then [HTTPS closeout](../verification/2026-10-21-h3-dashboard-generation.md#private-https-closeout--2026-10-21).
 The owner activated the supported private handler; final routing/media/access
 verification passed. The original read-only scope below remains historical;
-ADR0100 separately records the later H3 creation boundary.
+ADR 0215 separately records the later H3 creation boundary.
 
 Reuse current SQLite records and gateway-managed media. Do not add a database,
 generation controls, cancellation/deletion/retry actions, new retention rules,

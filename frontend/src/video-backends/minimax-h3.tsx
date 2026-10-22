@@ -2,6 +2,13 @@ import type { VideoBackend, VideoBackendProfile } from "../types";
 
 export const MINIMAX_H3_ADAPTER_ID = "minimax_h3_gateway";
 
+/** The disabled API projection names its catalog through its explicit reason. */
+export function isMiniMaxH3Capability(backend: VideoBackend | null | undefined): boolean {
+  return backend?.adapterId === MINIMAX_H3_ADAPTER_ID || (
+    backend?.enabled === false && backend.adapterId === undefined && backend.reason === "h3_video_not_configured"
+  );
+}
+
 export function isMiniMaxH3Backend(backend: VideoBackend | null): boolean {
   return backend?.enabled === true && backend.adapterId === MINIMAX_H3_ADAPTER_ID;
 }

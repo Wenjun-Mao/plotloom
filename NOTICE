@@ -16,6 +16,8 @@ Detailed fixed-revision provenance and reuse boundaries are recorded in
 docs/storyboard-handbook/THIRD_PARTY_NOTICES.md.
 
 The distribution also includes the Apache-2.0 licensed shuohao-skills source as
-the `third_party/shuohao-skills` submodule at
-4322897e6d2bdaf66365534fd40194360c75a85f. Its LICENSE and NOTICE are retained
-in that submodule.
+the `third_party/shuohao-skills` submodule at owned fork revision
+266af294da035324139202235430ffd68f5b877d, based on upstream
+4322897e6d2bdaf66365534fd40194360c75a85f. The narrow report-renderer fork is
+https://github.com/Wenjun-Mao/shuohao-skills. Its LICENSE, original NOTICE,
+modification notices and PLOTLOOM-FORK.md are retained in that submodule.

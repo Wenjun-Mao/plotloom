@@ -1,10 +1,13 @@
 import { test as base, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { usePageWithDrainedRoutes } from "./page-route-lifecycle";
+import { pollHttpReadiness } from "./http-readiness";
+import { waitForListenerOrigin, type ListenerRole } from "./listener-address";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(configDirectory, "../..");
@@ -25,7 +28,7 @@ export type Workbench = {
 
 type FrontendMode = "vite" | "checked-static";
 
-type WorkbenchWorkerFixtures = {
+type WorkbenchFixtures = {
   workbench: Workbench;
 };
 
@@ -40,37 +43,45 @@ type ManagedProcess = {
 // alternate persistence model or route surface.
 export const test = createWorkbenchTest("vite");
 export const checkedStaticTest = createWorkbenchTest("checked-static");
+export const batchVideoTest = createWorkbenchTest("vite", "frontend/e2e/video_batch_runtime.py");
+export const textRetryTest = createWorkbenchTest("vite", "frontend/e2e/text_retry_runtime.py");
 
-function createWorkbenchTest(frontendMode: FrontendMode) {
-  return base.extend<{}, WorkbenchWorkerFixtures>({
+/** Save a new Brief, then explicitly choose the established manual route. */
+export async function saveBriefAndContinue(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "保存项目简报", exact: true }).click();
+  const confirmTargets = page.getByRole("button", { name: "确认并保存目标", exact: true });
+  if (await confirmTargets.isVisible().catch(() => false)) await confirmTargets.click();
+  const continueManually = page.getByRole("button", { name: "继续手动创作", exact: true });
+  await expect(continueManually).toBeVisible();
+  await continueManually.click();
+}
+
+function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "frontend/e2e/fake_video_runtime.py") {
+  return base.extend<WorkbenchFixtures>({
+  page: async ({ page, workbench }, use) => {
+    // Own the backend before the page: route draining must finish before its
+    // test-owned runtime is stopped. No global dispatch/root state is shared.
+    void workbench;
+    await usePageWithDrainedRoutes(page, use);
+  },
   workbench: [async ({}, use) => {
     // A deliberately requested retained fixture keeps its isolated project
     // bytes for attended inspection; ordinary test runs still clean up.
     const retainedParent = process.env.PLOTLOOM_E2E_RETAIN_PARENT;
-    if (retainedParent) await mkdir(retainedParent, { recursive: true });
-    const temporaryRoot = await mkdtemp(path.join(retainedParent ?? os.tmpdir(), "plotloom-e2e-"));
+    const temporaryRoot = await base.step("Workbench setup: disposable root", async () => {
+      if (retainedParent) await mkdir(retainedParent, { recursive: true });
+      return mkdtemp(path.join(retainedParent ?? os.tmpdir(), "plotloom-e2e-"));
+    });
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
-    const backendPort = await reserveLoopbackPort();
-    const frontendPort = frontendMode === "vite" ? await reserveLoopbackPort() : undefined;
-    const providerPort = await reserveLoopbackPort();
-    const apiOrigin = `http://${loopbackHost}:${backendPort}`;
-    const frontendOrigin = frontendPort
-      ? `http://${loopbackHost}:${frontendPort}`
-      : apiOrigin;
-    const providerOrigin = `http://${loopbackHost}:${providerPort}`;
     const provider = startProcess(
       "external OpenAI-compatible fake",
       process.execPath,
-      [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", String(providerPort)],
+      [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", "0"],
       {},
     );
     const backendEnvironment = {
       PLOTLOOM_HOST: loopbackHost,
-      PLOTLOOM_PORT: String(backendPort),
-      // PORT deliberately disables the runtime's fallback range, so this test
-      // cannot accidentally exercise a different backend than its proxy.
-      PORT: String(backendPort),
       TEXT_MODEL_API_KEY: "",
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
@@ -78,30 +89,26 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
       PLOTLOOM_OUTPUTS_DIR: outputsRoot,
       PLOTLOOM_APPLICATION_DATA_DIR: applicationDataRoot,
     };
-    const backendEntrypoint = "frontend/e2e/fake_video_runtime.py";
     let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
       await mkdir(outputsRoot, { recursive: true });
       await mkdir(applicationDataRoot, { recursive: true });
+      const providerOrigin = await ownedOrigin(provider, "provider");
+      const apiOrigin = await ownedOrigin(backend, "backend");
+      let frontendOrigin = apiOrigin;
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
-      if (frontendPort) {
+      if (frontendMode === "vite") {
         frontend = startProcess(
           "Vite",
-          "npm",
-          [
-            "run",
-            "dev",
-            "--",
-            "--port",
-            String(frontendPort),
-            "--strictPort",
-          ],
+          process.execPath,
+          [path.join(configDirectory, "fixtures", "vite-runtime.mjs")],
           { PLOTLOOM_API_ORIGIN: apiOrigin },
           frontendRoot,
         );
+        frontendOrigin = await ownedOrigin(frontend, "frontend");
         await waitForHttp(`${frontendOrigin}/v2/`, frontend);
       } else {
         // Exercise the same static mount used by the source-checkout runtime,
@@ -117,7 +124,9 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
         restartBackend: async (overrides = {}) => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
-          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], { ...backendEnvironment, ...overrides });
+          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint, "--port", new URL(apiOrigin).port], { ...backendEnvironment, ...overrides });
+          const restartedOrigin = await ownedOrigin(backend, "backend");
+          if (restartedOrigin !== apiOrigin) throw new Error(`FastAPI restart changed its owned origin: ${apiOrigin} → ${restartedOrigin}`);
           await waitForHttp(`${apiOrigin}/openapi.json`, backend);
         },
       });
@@ -136,7 +145,7 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
         }
       }
     }
-  }, { scope: "worker" }],
+  }, { scope: "test", timeout: 45_000 }],
   });
 }
 
@@ -164,19 +173,8 @@ function startProcess(
   return { child, label, output: () => output };
 }
 
-async function reserveLoopbackPort(): Promise<number> {
-  const server = net.createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen({ host: loopbackHost, port: 0 }, resolve);
-  });
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    server.close();
-    throw new Error("Unable to allocate a loopback port for Plotloom E2E.");
-  }
-  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-  return address.port;
+async function ownedOrigin(process: ManagedProcess, role: ListenerRole): Promise<string> {
+  return base.step(`Workbench listener: ${process.label} (${role})`, () => waitForListenerOrigin(process, role, Date.now() + 25_000));
 }
 
 async function waitForHttpUnavailable(url: string): Promise<void> {
@@ -193,22 +191,9 @@ async function waitForHttpUnavailable(url: string): Promise<void> {
 }
 
 async function waitForHttp(url: string, process: ManagedProcess): Promise<void> {
-  const deadline = Date.now() + 25_000;
-  let lastError = "";
-  while (Date.now() < deadline) {
-    if (process.child.exitCode !== null) {
-      throw new Error(`${process.label} exited before becoming ready (code ${process.child.exitCode}).\n${process.output()}`);
-    }
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-      lastError = `${response.status} ${response.statusText}`;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-    }
-    await delay(100);
-  }
-  throw new Error(`${process.label} did not become ready at ${url}: ${lastError}\n${process.output()}`);
+  // Preserve the interrupted owner phase even if the outer fixture deadline
+  // fires before this await returns. Do not infer its cause or loosen its limits.
+  await base.step(`Workbench readiness: ${process.label} (${url})`, () => pollHttpReadiness(url, process, Date.now() + 25_000));
 }
 
 async function stopProcess(process: ManagedProcess | undefined): Promise<void> {

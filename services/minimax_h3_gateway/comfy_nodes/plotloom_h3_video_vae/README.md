@@ -1,7 +1,7 @@
 # Maintained H3 video-only VAE loader
 
 `PlotloomH3VideoVAELoader` is the one repository-owned Comfy node in the
-production H3 runtime. [ADR 0098](../../../../docs/adr/0098-h3-video-only-vae-precision.md)
+production H3 runtime. [ADR 0213](../../../../docs/adr/0213-h3-video-only-vae-precision.md)
 defines the split: reviewed INT8 ConvRot **video at FP16**, stock FP32 audio
 checkpoint **at BF16**, global `--bf16-vae`, and `--fast fp16_accumulation`.
 It accepts only the checkpoint/hash and policy constants in `loader.py`.

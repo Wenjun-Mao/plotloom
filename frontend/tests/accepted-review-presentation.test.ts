@@ -1,0 +1,173 @@
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { plotloomApi } from "../src/api";
+import { ArtPanel } from "../src/pages/ArtPanel";
+import { ScriptPanel } from "../src/pages/ScriptPanel";
+import { StoryboardReviewPanel } from "../src/pages/StoryboardReviewPanel";
+import { renderStylePresentation, type ArtPresetRenderContract, type SavedBriefRenderContract } from "../src/features/render-style-contract";
+import type { ArtBinding, ArtReviewState, ScriptBinding, ScriptReviewState, StoryboardReviewBinding, StoryboardReviewState } from "../src/types";
+
+// These unit checks isolate accepted-content authority. Real dispatch/admission
+// and production preparation are exercised by their independent API/browser tests.
+vi.mock("../src/features/specialists/SpecialistTaskActions", () => ({ SpecialistTaskActions: () => createElement("p", null, "current candidate task") }));
+vi.mock("../src/pages/ProductionBridgePanel", () => ({ ProductionBridgePanel: ({ readOnly }: { readOnly: boolean }) => createElement("button", { disabled: readOnly }, "production bridge") }));
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+let root: Root;
+let host: HTMLDivElement;
+beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
+
+const diagnostic = { code: "binding_revision_changed", owner: "art", field: "art_revision", technicalMessage: "accepted art revision changed" } as const;
+const evidence = { status: "retained", staleReasons: [diagnostic] } as const;
+const identity = { revision: 1, candidateJobId: "old", contentHash: "old-content", acceptedAt: "2026-10-09T00:00:00Z" };
+const baseCandidate = { jobId: "new", deliveryId: null, manifestHash: null, reportAvailable: false, createdAt: identity.acceptedAt, deliveredAt: null };
+const emptyDirectionRule = "尊重故事设定，由专业助手结合内容判断视觉表达；不默认真人实拍或其他预设。";
+
+function savedBriefContract(direction: string | null, rule = direction ? null : emptyDirectionRule): SavedBriefRenderContract {
+  return { version: 1, authority: "saved_brief", stageInstructionContract: "plotloom.autopilot.saved-brief-receiving-contract.v2", direction, emptyDirectionRule: rule,
+    validatorHashes: { artAdapter: "a".repeat(64), castAdapter: "b".repeat(64) }, contentHash: "c".repeat(64) };
+}
+
+const manualArtContract: ArtPresetRenderContract = {
+  version: 1, style: "realistic", authorDirection: "manual art direction",
+  preset: { label: "半写实厚涂", render: "painted realism", surface: "brush texture", negative: "photography", tags: ["realistic"] },
+  adapterHash: "d".repeat(64),
+};
+
+function artState(lifecycle: "accepted" | "prepared" | "ready", renderContract: NonNullable<ArtBinding["renderContract"]>): ArtReviewState {
+  const binding: ArtBinding = {
+    sourceRevision: 1, sourceContentHash: "source", outlineRevision: 1, outlineContentHash: "outline",
+    sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1, graphContentHash: "graph", sectionIds: ["opening"],
+    castRevision: 1, castContentHash: "cast", renderContract,
+  };
+  const candidateStatus = lifecycle === "accepted" ? null : lifecycle;
+  const acceptedArt = lifecycle === "accepted" ? { ...identity, binding, art: { style: "saved-brief", scenes: [], props: [] } } : null;
+  const candidate = candidateStatus ? { ...baseCandidate, expectedArtRevision: acceptedArt?.revision ?? 0, binding,
+    status: candidateStatus, art: lifecycle === "ready" ? { style: "saved-brief", scenes: [], props: [] } : null } : null;
+  return { status: lifecycle === "accepted" ? "accepted" : lifecycle === "ready" ? "candidate_ready" : "prepared", staleReasons: [],
+    acceptedReviewState: { status: "current", staleReasons: [] }, acceptedArt, candidate };
+}
+
+async function renderArtState(state: ArtReviewState) {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(state);
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ decisions: [], states: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
+}
+
+it("projects the real stage-specific preset shapes and keeps null, empty, and missing Brief direction distinct", () => {
+  expect(renderStylePresentation(manualArtContract)).toMatchObject({ authority: "preset", label: "半写实厚涂" });
+  const nullDirection = renderStylePresentation(savedBriefContract(null));
+  expect(nullDirection).toMatchObject({ authority: "saved_brief", details: emptyDirectionRule });
+  const emptyDirection = renderStylePresentation(savedBriefContract(""));
+  expect(emptyDirection).toMatchObject({ authority: "saved_brief", details: emptyDirectionRule });
+  const { direction: _direction, ...missingDirection } = savedBriefContract(null, null);
+  expect(renderStylePresentation(missingDirection as unknown as SavedBriefRenderContract)).toMatchObject({
+    authority: "saved_brief", details: "项目简报视觉方向字段缺失。",
+  });
+});
+
+it.each([
+  { lifecycle: "accepted" as const, contract: savedBriefContract("雨夜旧港，克制的蓝绿色光线。"), expected: "项目视觉要求：雨夜旧港，克制的蓝绿色光线。" },
+  { lifecycle: "prepared" as const, contract: savedBriefContract("旧城车站，低饱和色彩。"), expected: "项目视觉要求：旧城车站，低饱和色彩。" },
+  { lifecycle: "ready" as const, contract: savedBriefContract(null), expected: emptyDirectionRule },
+])("renders the saved-Brief style authority on Art $lifecycle content", async ({ lifecycle, contract, expected }) => {
+  await renderArtState(artState(lifecycle, contract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("美术风格：项目简报视觉方向");
+  expect(presentation.textContent).toContain(expected);
+  expect(presentation.textContent).not.toContain("真人写实");
+  expect(presentation.textContent).not.toContain("半写实厚涂");
+});
+
+it("keeps the established manual Art preset label", async () => {
+  await renderArtState(artState("prepared", manualArtContract));
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("美术风格：半写实厚涂");
+  expect(presentation.textContent).not.toContain("项目简报视觉方向");
+  expect(presentation.textContent).not.toContain("manual art direction");
+});
+
+it.each(["prepared", "ready"] as const)("uses the %s Art candidate's Brief authority instead of a retained preset", async lifecycle => {
+  const state = artState(lifecycle, savedBriefContract("候选的独立视觉方向"));
+  state.acceptedArt = artState("accepted", manualArtContract).acceptedArt;
+  state.acceptedReviewState = { status: "retained", staleReasons: [] };
+  state.candidate!.expectedArtRevision = 1;
+  await renderArtState(state);
+  const presentation = host.querySelector('[data-testid="render-style-presentation"]')!;
+  expect(presentation.textContent).toContain("项目视觉要求：候选的独立视觉方向");
+  expect(presentation.textContent).not.toContain("半写实厚涂");
+  expect(presentation.textContent).not.toContain("manual art direction");
+});
+
+it.each([ ["prepared", "opening"], ["prepared", "choice"], ["ready", "opening"], ["ready", "choice"] ] as const)("fresh %s Script candidate cannot reopen or relabel retained %s evidence", async (status, sectionId) => {
+  const binding: ScriptBinding = {
+    sourceRevision: 1, sourceContentHash: "source", outlineRevision: 1, outlineContentHash: "outline",
+    sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1, graphContentHash: "graph",
+    sectionIds: ["opening", "choice"], castRevision: 1, castContentHash: "cast", artRevision: 1, artContentHash: "art",
+    targetPlaythroughSeconds: 5, routeBudgetHash: "budget", sectionBindings: [{ sectionId: "opening", episode: 1 }],
+    routeOnlySectionIds: ["choice"], completeRouteSectionIds: [["opening", "choice"]],
+  };
+  const script = { episodes: [{ ep: 1, scenes: [{ sceneId: "S01", characters: [], flow: [{ action: "Opening action." }] }] }] };
+  const state: ScriptReviewState = {
+    status: status === "ready" ? "candidate_ready" : "prepared", staleReasons: [],
+    acceptedReviewState: { ...evidence, staleReasons: [...evidence.staleReasons] },
+    acceptedScript: { ...identity, binding, script },
+    candidate: { ...baseCandidate, status, expectedScriptRevision: 1, binding, script: status === "ready" ? script : null },
+  };
+  vi.spyOn(plotloomApi, "getScript").mockResolvedValue(state);
+  const reopen = vi.spyOn(plotloomApi, "reopenScript");
+  await act(async () => root.render(createElement(ScriptPanel, { projectId: "project", readOnly: false, contextSectionId: sectionId })));
+  expect(host.textContent).toContain("保留的已确认剧本 r1");
+  expect(host.textContent).not.toContain("查看当前已确认剧本");
+  expect(host.textContent).not.toContain("当前已确认剧本 r1");
+  expect(host.textContent).toContain("保留的已确认剧本 r1");
+  expect(host.querySelector('[aria-label="保留的已确认剧本 r1"]')).not.toBeNull();
+  expect(host.querySelector(`[aria-label="保留的已确认剧本 r1 · 节点 ${sectionId}"]`)).not.toBeNull();
+  if (sectionId === "choice") expect(host.textContent).toContain("此节点按本对象的冻结绑定是路线控制点");
+  else expect(host.querySelector('[aria-label="保留的已确认剧本 r1 · 节点 opening"]')?.textContent).toContain("Opening action.");
+  expect(host.querySelector('[aria-label="保留的已确认内容"]')?.textContent).toContain("美术设定版本已变化");
+  const button = [...host.querySelectorAll("button")].find(b => b.textContent === "重新打开剧本")!;
+  expect(button.disabled).toBe(true);
+  await act(async () => button.click());
+  expect(reopen).not.toHaveBeenCalled();
+  if (status === "ready") expect([...host.querySelectorAll("button")].find(b => b.textContent === "确认使用此剧本")?.disabled).toBe(false);
+});
+
+it.each(["prepared", "ready"] as const)("fresh %s Art candidate cannot reopen retained accepted evidence", async status => {
+  const binding = {} as ArtBinding;
+  const state: ArtReviewState = {
+    status: status === "ready" ? "candidate_ready" : "prepared", staleReasons: [],
+    acceptedReviewState: { ...evidence, staleReasons: [...evidence.staleReasons] },
+    acceptedArt: { ...identity, binding, art: { scenes: [], props: [] } },
+    candidate: { ...baseCandidate, status, expectedArtRevision: 1, binding: { ...binding, sectionIds: [] }, art: status === "ready" ? { scenes: [], props: [] } : null },
+  };
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(state);
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ decisions: [], states: [] });
+  const reopen = vi.spyOn(plotloomApi, "reopenArt");
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
+  const button = [...host.querySelectorAll("button")].find(b => b.textContent === "重新打开美术提案")!;
+  expect(button.disabled).toBe(true);
+  expect(host.querySelector('[aria-label="保留的已确认内容"]')?.textContent).toContain("美术设定版本已变化");
+  await act(async () => button.click());
+  expect(reopen).not.toHaveBeenCalled();
+  if (status === "ready") expect([...host.querySelectorAll("button")].find(b => b.textContent === "确认使用此美术提案")?.disabled).toBe(false);
+});
+
+it("keeps retained Storyboard evidence distinct while a fresh candidate is ready", async () => {
+  const binding = { scriptRevision: 1 } as StoryboardReviewBinding;
+  const state: StoryboardReviewState = {
+    status: "candidate_ready", staleReasons: [],
+    acceptedReviewState: { ...evidence, staleReasons: [...evidence.staleReasons] },
+    acceptedReview: { ...identity, binding, storyboard: { episodes: [] } },
+    candidate: { ...baseCandidate, status: "ready", expectedReviewRevision: 1, binding, storyboard: { episodes: [] } },
+  };
+  vi.spyOn(plotloomApi, "getStoryboardSourceReview").mockResolvedValue(state);
+  await act(async () => root.render(createElement(StoryboardReviewPanel, { projectId: "project", readOnly: false, onInstalled: vi.fn(async () => undefined) })));
+  expect(host.textContent).toContain("查看保留的已确认分镜");
+  expect(host.textContent).not.toContain("查看当前已确认分镜");
+  expect([...host.querySelectorAll("button")].find(b => b.textContent === "production bridge")?.disabled).toBe(true);
+  expect([...host.querySelectorAll("button")].find(b => b.textContent === "确认此分镜评审方案")?.disabled).toBe(false);
+});

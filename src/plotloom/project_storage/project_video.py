@@ -63,6 +63,7 @@ class ProjectVideoRepository:
         preview_only: bool = False,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
+        self.assert_video_authority(project_id)
         self.store.require_recovery_acknowledged()
         values = {
             "production_contract": production_contract,
@@ -88,6 +89,7 @@ class ProjectVideoRepository:
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
+        self.assert_video_authority(project_id)
         job = self._job(video_job_id)
         if job.state != "prepared":
             raise InvalidTransitionError(
@@ -100,6 +102,15 @@ class ProjectVideoRepository:
             raise InvalidTransitionError("video job has no valid frozen requested duration")
         resource = str(provider["adapterId"])
         identity = self.dispatch_identity(video_job_id)
+        from ..delegated_qa import project_scope
+        from ..delegated_qa_contracts import AgentQaAttribution
+        from ..delegated_qa_video import assert_dispatch
+        from .delegated_qa_grants import require_runtime_grant
+        scope = project_scope(project_id)
+        if scope:
+            require_runtime_grant(self.store, self._application, AgentQaAttribution(scope_id=scope.id))
+            with self._dispatch.read() as session:
+                assert_dispatch(session, project_id, session.get(VideoJobRow, video_job_id))
         # This commits in the application file first. If the process stops
         # before the project transaction, the deterministic identity makes a
         # subsequent attempt idempotent and the reservation remains cautious.
@@ -110,6 +121,9 @@ class ProjectVideoRepository:
             requires_accounting=False,
         )
         with self._dispatch.lifecycle_write() as session:
+            from ..persistence.project.autopilot_authority import video_eligible
+            if not video_eligible(session, project_id):
+                raise InvalidTransitionError("human material handoff changed before video claim")
             current = session.get(VideoJobRow, video_job_id)
             if current is None or current.project_id != project_id:
                 raise NotFoundError("video job not found")
@@ -123,6 +137,7 @@ class ProjectVideoRepository:
                 raise InvalidTransitionError(
                     "video job frozen inputs are stale; prepare a new attempt"
                 )
+            assert_dispatch(session, project_id, current)
             session.add(
                 ProjectVideoDispatchRow(
                     video_job_id=video_job_id,
@@ -130,12 +145,16 @@ class ProjectVideoRepository:
                     claimed_at=utc_now(),
                 )
             )
+            from ..video_batch_basis import assert_direction_basis
+            assert_direction_basis(session, current.snapshot)
+            from ..video_batch_basis import assert_batch_dispatch_scope
+            assert_batch_dispatch_scope(session, project_id, video_job_id)
             now = utc_now()
             current.state = "dispatching"
             current.dispatched_at = now
             current.updated_at = now
             response = self._video_currentness.video_job_dict(
-                current, current=True
+                session, current, current=True
             )
         # The project claim is now durable. A failure recording this
         # application event occurs before any transport call and intentionally
@@ -262,6 +281,17 @@ class ProjectVideoRepository:
             note=note, expected_selection_revision=expected_selection_revision,
         )
 
+    def reopen_video_job_review(
+        self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,
+        expected_selection_revision: int,
+    ) -> dict[str, Any]:
+        self._assert_project(project_id)
+        self.store.require_recovery_acknowledged()
+        return self._video.reopen_video_job_review(
+            project_id, video_job_id, reviewer=reviewer, reason=reason,
+            expected_selection_revision=expected_selection_revision,
+        )
+
     def discard_video_candidates(
         self, project_id: str, *, shot_id: str, video_job_ids: list[str], expected_selection_revision: int,
     ) -> None:
@@ -304,11 +334,23 @@ class ProjectVideoRepository:
     def assert_submit_allowed(
         self, video_job_id: str, *, backend_binding: VideoBackendBinding
     ) -> None:
+        self.assert_video_authority(self.project_id)
+        from ..video_batch_basis import batch_for_job, assert_batch_dispatch_scope
+        with self._dispatch.read() as session:
+            assert_batch_dispatch_scope(session, self.project_id, video_job_id)
+            batch = batch_for_job(session, self.project_id, video_job_id)
+            if batch:
+                from .video_batch_grants import VideoBatchGrants
+                VideoBatchGrants(self._application).require(self.store, batch.id, batch.manifest_hash)
         if self.recovery_provider_state(video_job_id) is not None:
             raise InvalidTransitionError(
                 "restored video jobs cannot submit or replay a historical request"
             )
         self.assert_backend_binding(video_job_id, backend_binding=backend_binding)
+
+    def assert_video_authority(self, project_id):
+        self._assert_project(project_id)
+        self._video.assert_video_authority(project_id)
 
     def assert_backend_binding(
         self, video_job_id: str, *, backend_binding: VideoBackendBinding

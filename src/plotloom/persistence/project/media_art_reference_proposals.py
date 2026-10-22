@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from hashlib import sha256
-import json
 from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, new_id, utc_now
-from ...exceptions import InvalidTransitionError, NotFoundError
-from ...exceptions import RevisionConflictError
+from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
+from ...managed_asset_provenance import project_asset_provenance
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
-    ArtReferenceProposalCandidateRow,
     ArtReferenceDecisionRow,
     ArtReferenceDecisionStateRow,
+    ArtReferenceProposalCandidateRow,
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
     ArtRevisionRow,
@@ -27,10 +27,10 @@ from ..schema import (
     ProjectRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
 from .art import ProjectArtPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_identifiers import new_image_job_id
-
 
 ArtSubjectType = Literal["scene", "prop"]
 
@@ -114,13 +114,11 @@ class ArtReferenceProposalPersistence:
                 "renderDirection": render_direction.strip(),
                 "authority": "accepted_art_subject_plus_creator_render_overlay_exploratory_only_no_selection_or_shot",
             }
+            preflight = image_preflight(self._access, session)
             request = {
                 "schemaVersion": 3, "jobId": job_id,
-                "executionContract": "codex_specialist.v2",
-                "specialistPreflight": {
-                    "version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3",
-                    "executionContract": "codex_specialist.v2",
-                },
+                "executionContract": preflight["executionContract"],
+                "specialistPreflight": preflight,
                 "kind": "art_reference", "target": "art_reference_proposal", "frozenSnapshot": snapshot,
             }
             proposal = ArtReferenceProposalRow(
@@ -142,7 +140,7 @@ class ArtReferenceProposalPersistence:
                 raise InvalidTransitionError("art reference proposal is no longer current and cannot be copied")
             return {"proposal": self._proposal_dict(proposal, current=True), "references": []}
 
-    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str, *, require_prepared: bool = False) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             proposal = session.get(ArtReferenceProposalRow, proposal_id)
@@ -150,6 +148,8 @@ class ArtReferenceProposalPersistence:
                 raise NotFoundError("art reference proposal not found")
             if not self._proposal_is_current_in_session(session, proposal):
                 raise InvalidTransitionError("art reference proposal is no longer current and cannot be copied")
+            if require_prepared and proposal.state != "prepared":
+                raise InvalidTransitionError("该提案已导出或发送，不能再次发送。")
             if proposal.exported_at is None:
                 proposal.exported_at, proposal.state = utc_now(), "exported"
                 session.flush()
@@ -231,13 +231,13 @@ class ArtReferenceProposalPersistence:
                 session.add(asset); session.flush()
                 session.add(ManagedAssetProvenanceRow(
                     id=new_id(), project_id=project_id, asset_id=asset.id,
-                    declaration={
+                    declaration=project_asset_provenance({
                         "origin": "art_reference_proposal", "rights": "unknown", "proposalId": proposal.id,
                         "subjectType": proposal.subject_type, "subjectId": proposal.subject_id,
                         "deliveryId": delivery_id, "outputFilename": output["filename"],
                         "actualPrompt": manifest["actualPrompt"], "toolEvidence": manifest["toolEvidence"],
                         "executorProvenance": manifest.get("executorProvenance"), "limitations": manifest.get("limitations", []),
-                    }, created_at=utc_now(),
+                    }), created_at=utc_now(),
                 ))
                 session.add(ArtReferenceProposalCandidateRow(
                     id=new_id(), proposal_id=proposal.id, delivery_id=delivery.id, asset_id=asset.id,
@@ -253,7 +253,7 @@ class ArtReferenceProposalPersistence:
         return {
             "id": row.id, "assetId": row.asset_id, "proposalId": row.proposal_id,
             "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
-            "asset": ManagedAssetPersistence.managed_asset_dict(asset) if asset is not None else None,
+            "asset": ManagedAssetPersistence.public_managed_asset_dict(session, asset) if asset is not None else None,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 

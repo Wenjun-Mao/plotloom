@@ -3,10 +3,12 @@
 Status: implemented, verified and deployed, 2026-10-22, in the retained specialist
 checkout. The director explicitly released the quiet window before replacement;
 the completed serving checks were reported back before its next H3 batch.
-Implementation source: `37828fd3`. Integration, merge, push and hosted CI remain held.
+Implementation source: `37828fd3`. The later owner-authorized source consolidation
+and branch retirement are tracked in the [integration record](../verification/2026-10-22-specialist-main-integration.md).
+Push and hosted CI remain off.
 Evidence: [packaging verification](../verification/2026-10-22-media-service-boundaries.md).
 Planning baseline: `5fd5128b`, `codex/h3-ref2va-gateway`.
-Decision: [media-service boundaries](../adr/media-services-monorepo-boundaries.md).
+Decision: [media-service boundaries](../adr/0216-media-services-monorepo-boundaries.md).
 
 ## Outcome and scope
 
@@ -18,8 +20,9 @@ must not require rebuilding Plotloom or changing any model environment.
 This is a packaging and maintenance slice, not a runtime redesign. Preserve all
 current public/private HTTP contracts, job snapshots, FIFO/unknown-outcome safety,
 voice identities/takes, generation settings, retention and Tailscale access.
-Plotloom integration, merge and push remain held. The owner explicitly authorized
-director coordination for repository writes and runtime cutover. No hosted CI
+At packaging approval, source integration and merge were held. The owner later
+authorized consolidation into main and cleanup of the specialist branch, with
+the director coordinating serial ownership. No hosted CI
 dispatch or CI-triggering push is authorized.
 
 ## Source-backed baseline

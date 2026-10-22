@@ -4,7 +4,7 @@
 2026-09-27; independent review and Plotloom integration remain on hold.
 Follow-on to the deployed
 [Voice Lab MVP](2026-09-26-spark-voice-lab-plan.md), governed by
-[ADR 0092](../adr/0092-voice-lab-projects-and-published-voice-identity.md).
+[ADR 0207](../adr/0207-voice-lab-projects-and-published-voice-identity.md).
 This is specialist-side work on the retained checkout. The hold on Plotloom
 director contact, Plotloom code changes, merge and push remains in force.
 

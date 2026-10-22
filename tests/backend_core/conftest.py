@@ -56,15 +56,15 @@ def make_story_bible() -> StoryBibleV2:
 
 def make_story_graph() -> StoryGraphV2:
     nodes = [
-        StoryNodeV2(id="start", title="苏醒", summary="林默苏醒。", kind="start"),
-        StoryNodeV2(id="decision-1", title="第一次选择", summary="选择调查路线。", kind="decision"),
-        StoryNodeV2(id="route-a", title="控制室", summary="检查控制室。", kind="scene"),
-        StoryNodeV2(id="route-b", title="记忆舱", summary="检查记忆舱。", kind="scene"),
-        StoryNodeV2(id="join", title="汇合", summary="线索汇合。", kind="join"),
-        StoryNodeV2(id="decision-2", title="最终选择", summary="决定人工智能命运。", kind="decision"),
-        StoryNodeV2(id="ending-1", title="唤醒", summary="人工智能苏醒。", kind="ending"),
-        StoryNodeV2(id="ending-2", title="关闭", summary="人工智能关闭。", kind="ending"),
-        StoryNodeV2(id="ending-3", title="融合", summary="人与人工智能融合。", kind="ending"),
+        StoryNodeV2(footage_mode="footage", id="start", title="苏醒", summary="林默苏醒。", kind="start"),
+        StoryNodeV2(footage_mode="footage", id="decision-1", title="第一次选择", summary="选择调查路线。", kind="decision"),
+        StoryNodeV2(footage_mode="footage", id="route-a", title="控制室", summary="检查控制室。", kind="scene"),
+        StoryNodeV2(footage_mode="footage", id="route-b", title="记忆舱", summary="检查记忆舱。", kind="scene"),
+        StoryNodeV2(footage_mode="footage", id="join", title="汇合", summary="线索汇合。", kind="join"),
+        StoryNodeV2(footage_mode="footage", id="decision-2", title="最终选择", summary="决定人工智能命运。", kind="decision"),
+        StoryNodeV2(footage_mode="footage", id="ending-1", title="唤醒", summary="人工智能苏醒。", kind="ending"),
+        StoryNodeV2(footage_mode="footage", id="ending-2", title="关闭", summary="人工智能关闭。", kind="ending"),
+        StoryNodeV2(footage_mode="footage", id="ending-3", title="融合", summary="人与人工智能融合。", kind="ending"),
     ]
     edges = [
         StoryEdgeV2(id="e1", source_node_id="start", target_node_id="decision-1", kind="continuation", choice_text=None, state_effects={}),

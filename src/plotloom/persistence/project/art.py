@@ -2,25 +2,27 @@
 from __future__ import annotations
 
 from hashlib import sha256
-import json
-from pathlib import Path
-import subprocess
-import tempfile
 from typing import Any, Literal
 
+from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
 from ...art_contracts import (
     AcceptedArtRevision, ArtAcceptRequest, ArtBinding, ArtCandidate,
     ArtReopenRequest, ArtReviewState, ArtSaveRequest,
 )
+from ...art_style import CandidateArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
+from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...domain import contains_secret_setting, contains_secret_value, new_id, utc_now
+from ...accepted_review_state import accepted_review_state
+from ...domain import ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
 from ..schema.project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
 from ..schema.project_cast import CastRevisionRow
 from .access import ProjectPersistenceAccess
+from .creative_execution_pins import freeze_execution_pin
 from .cast import ProjectCastPersistence
 
 
@@ -54,16 +56,20 @@ class ProjectArtPersistence:
         base, source, outline, mapping = self._cast._context(session, project_id)
         cast_head = self._cast._head(session, project_id)
         accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == cast_head.revision)) if cast_head.revision else None
-        if cast_head.status != "accepted" or accepted is None or self._cast._stale(session, project_id, base):
-            raise InvalidTransitionError("a current accepted cast is required before preparing art")
+        if cast_head.status != "accepted" or accepted is None or self._cast._stale_against(session, project_id, base, CastBinding.model_validate(accepted.binding)):
+            raise ReviewContextError(ReviewContextDiagnostic(code="accepted_cast_not_current", owner="characters", technical_message="a current accepted cast is required before preparing art"))
         binding = ArtBinding(**base.model_dump(), cast_revision=accepted.revision, cast_content_hash=accepted.content_hash)
         return binding, source, outline, mapping, accepted.cast
 
-    def _stale(self, session: Any, project_id: str, binding: ArtBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: ArtBinding) -> list[ReviewContextDiagnostic]:
         try:
             current, *_ = self._context(session, project_id)
-        except InvalidTransitionError as error:
-            return [str(error)]
+        except ReviewContextError as error:
+            return [error.diagnostic]
+        return self._stale_against(session, project_id, current, binding)
+
+    def _stale_against(self, session: Any, project_id: str, current: ArtBinding, binding: ArtBinding) -> list[ReviewContextDiagnostic]:
+        """Compare this operation's inputs; never resolve or retain context."""
         fields = (
             ("source_revision", "source"), ("outline_revision", "accepted outline"),
             ("section_map_revision", "section map"), ("graph_revision", "installed graph"),
@@ -71,8 +77,11 @@ class ProjectArtPersistence:
             ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"),
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
-        reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
-        return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+        reasons = binding_diagnostics(current, binding, fields)
+        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+        if not art_style_current(binding.render_contract, direction):
+            reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="art render contract is not current; prepare a new art task"))
+        return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def accepted_current_subject(
         self,
@@ -108,19 +117,43 @@ class ProjectArtPersistence:
             head = self._head(session, project_id)
             candidate = session.get(ArtCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision)) if head.revision else None
-            binding = accepted.binding if accepted else candidate.binding if candidate else None
-            stale = self._stale(session, project_id, ArtBinding.model_validate(binding)) if binding else []
-            return ArtReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
+            accepted_stale = self._stale(session, project_id, ArtBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, ArtBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return ArtReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CandidateArtRenderStyle, execution_pin: dict[str, str]) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
-            if session.scalar(select(ArtCandidateRow.job_id).where(ArtCandidateRow.project_id == project_id, ArtCandidateRow.status == "prepared").limit(1)):
+            from .autopilot_text_correction import has_publishable_candidates
+            session.flush()
+            if has_publishable_candidates(session.connection().connection.driver_connection, project_id, ArtCandidateRow.__tablename__):
                 raise InvalidTransitionError("cancel the prepared art specialist publication before changing review state")
             binding, source, outline, mapping, cast = self._context(session, project_id)
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-art", stage="art", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast}, creative_brief="Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. Cinematic realism is inherited author direction, while the upstream realistic preset is semi-realistic painterly: record that unresolved render-style qualification for F3B rather than silently changing the cast or style. This is a candidate only, not image generation, an asset selection, or project canon.")
+            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+            contract = freeze_art_style(render_style, direction)
+            binding = binding.model_copy(update={"render_contract": contract})
+            if render_style == "brief":
+                from ...autopilot_brief_style import brief_stage_instructions
+                style_instructions = brief_stage_instructions("art")
+            else:
+                style_instructions = (
+                    "The author-selected art-style-contract.json owns render style, overriding any inherited cast/outline style or upstream default. Preserve source facts and accepted character descriptions; do not edit the cast. Use its preset in scene AND prop image directions, and the actual authorDirection for visual mood. Validate and render with scripts/art-style.mjs, --cast inputs/cast.json --contract inputs/art-style-contract.json (resolve paths from the supplied package). This adapter retains upstream structural gates and adds the selected render contract. Resolve style now, not in a later F3B overlay."
+                )
+            request = CreativeHandoffRequest(
+                job_id=job_id, project_id=project_id, section_id="shared-art", stage="art",
+                content_validation_contract="plotloom.typed-content-result.v1",
+                expected_stage_revision=head.revision, source=source,
+                input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast, "art-style-contract.json": contract},
+                creative_brief=(
+                    "Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. "
+                    + style_instructions
+                    + " This is a candidate only, not image generation, an asset selection, or project canon."
+                ),
+            )
             request.assert_secret_free()
+            freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
             row = ArtCandidateRow(job_id=job_id, project_id=project_id, expected_art_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, art=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row)
@@ -145,12 +178,16 @@ class ProjectArtPersistence:
             if row.status != "prepared" or row.expected_art_revision != head.revision or self._stale(session, project_id, ArtBinding.model_validate(row.binding)):
                 raise CreativeHandoffError("delivery_stale", "art candidate context is stale")
             cast = self._context(session, project_id)[4]
-            _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding).section_ids)
+            _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding))
             row.status, row.delivery_id, row.manifest_hash, row.art, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
-            head.status, head.updated_at = "candidate_ready", row.delivered_at
+            if not receipt_only(self._access):
+                head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
 
     def accept_candidate(self, project_id: str, request: ArtAcceptRequest) -> ArtReviewState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head, row = self._head(session, project_id), session.get(ArtCandidateRow, request.job_id)
@@ -162,7 +199,7 @@ class ProjectArtPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "art candidate context changed before acceptance")
             art = request.art or row.art
-            _validate_art(art, self._context(session, project_id)[4], binding.section_ids)
+            _validate_art(art, self._context(session, project_id)[4], binding)
             if _art_ids(art) != _art_ids(row.art):
                 raise ValueError("accepted art cannot change frozen scene or prop IDs")
             now = utc_now()
@@ -181,6 +218,12 @@ class ProjectArtPersistence:
                 raise InvalidTransitionError("no accepted art exists to reopen")
             if head.candidate_job_id:
                 raise InvalidTransitionError("cancel the current art specialist publication before reopening accepted art")
+            previous = session.scalar(select(ArtRevisionRow).where(ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision))
+            if previous is None:
+                raise NotFoundError("accepted art revision is missing")
+            stale = self._stale(session, project_id, ArtBinding.model_validate(previous.binding))
+            if stale:
+                raise ReviewContextError(stale[0])
             head.status, head.updated_at = "reopened", utc_now()
         return self.get_state(project_id)
 
@@ -198,7 +241,7 @@ class ProjectArtPersistence:
             binding = ArtBinding.model_validate(previous.binding)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted art context changed before saving edits")
-            _validate_art(request.art, self._context(session, project_id)[4], binding.section_ids)
+            _validate_art(request.art, self._context(session, project_id)[4], binding)
             if _art_ids(request.art) != _art_ids(previous.art):
                 raise ValueError("reopened art cannot change stable scene or prop IDs")
             now = utc_now()
@@ -262,34 +305,13 @@ def _art_ids(art: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
 
 
 def _validate_art(
-    art: dict[str, Any], cast: dict[str, Any], section_ids: list[str]
+    art: dict[str, Any], cast: dict[str, Any], binding: ArtBinding
 ) -> None:
     if contains_secret_setting(art) or contains_secret_value(art):
         raise ValueError("art must not contain credentials")
     scene_ids, prop_ids = _art_ids(art)
-    _validate_with_upstream_art_validator(art, cast)
-    _validate_section_usage(art, scene_ids, prop_ids, section_ids)
-
-
-def _validate_with_upstream_art_validator(art: dict[str, Any], cast: dict[str, Any]) -> None:
-    """Use the pinned novel-art validator; Plotloom does not reproduce its gates."""
-
-    repository = Path(__file__).resolve().parents[4]
-    validator = repository / "third_party" / "shuohao-skills" / "skills" / "novel-art" / "scripts" / "novel-art.mjs"
-    if not validator.is_file():
-        raise ValueError("pinned upstream novel-art validator is unavailable")
-    with tempfile.TemporaryDirectory(prefix="plotloom-art-validate-") as directory:
-        root = Path(directory)
-        art_path, cast_path = root / "art.json", root / "cast.json"
-        art_path.write_text(json.dumps(art, ensure_ascii=False), encoding="utf-8")
-        cast_path.write_text(json.dumps(cast, ensure_ascii=False), encoding="utf-8")
-        result = subprocess.run(
-            ["node", str(validator), "validate", str(art_path), "--cast", str(cast_path)],
-            capture_output=True, text=True, check=False,
-        )
-    if result.returncode:
-        detail = (result.stdout or result.stderr).strip()
-        raise ValueError(f"upstream novel-art validation failed: {detail}")
+    validate_art_style(art, cast, binding.render_contract)
+    _validate_section_usage(art, scene_ids, prop_ids, binding.section_ids)
 
 
 def _validate_section_usage(

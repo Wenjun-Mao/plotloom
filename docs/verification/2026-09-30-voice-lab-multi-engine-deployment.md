@@ -7,7 +7,7 @@ cap is exhausted; this receipt does not authorize another call.
 - Implementation: `1b7081e`, specialist branch `codex/h3-ref2va-gateway`.
 - Starting implementation checkpoint: `01b285b`; planning baseline `077b1c4`.
 - Authority: [approved plan](../roadmap/2026-09-29-voice-lab-multi-engine-plan.md).
-- Decision: [ADR 0094](../adr/0094-voice-lab-independent-engines-and-delivery.md).
+- Decision: [ADR 0209](../adr/0209-voice-lab-independent-engines-and-delivery.md).
 - Deployment: Voice Lab 0.2.0, Spark private UI/API on port 8897.
 - Final wheel SHA-256:
   `67a330278e34b6dbdf62a1d6783caaf4341a3c71872670bf869346596b9623b2`.

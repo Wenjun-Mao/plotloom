@@ -12,7 +12,7 @@ recipe, gateway/API or Voice Lab production source change. No merge/push or
 director contact.
 
 Authority: [approved plan](../roadmap/2026-09-30-h3-comfy038-runtime-qualification.md).
-Decision: [ADR 0095](../adr/0095-h3-runtime-qualification-and-catalog-isolation.md).
+Decision: [ADR 0210](../adr/0210-h3-runtime-qualification-and-catalog-isolation.md).
 Starting source revision: `d953506` on `codex/h3-ref2va-gateway`.
 
 ## Root cause and runtime boundary
@@ -102,7 +102,7 @@ before freeze/submission. The landscape pair remains valid for equal-input
 technical/timing comparison, but **not clean visual seam qualification**.
 Do not silently change the input, weaken acceptance or spend a sixth call.
 The next separately bounded visual qualification must first inspect prepared
-image and prompt together, as recorded in ADR 0095.
+image and prompt together, as recorded in ADR 0210.
 
 Three sampled candidate portrait and Ref2VA frames show no obvious rectangular
 brightness/color lattice; that limited inspection does not establish a full

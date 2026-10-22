@@ -1,0 +1,17 @@
+import type { VideoJob } from "../../types";
+import type { HumanReviewAttribution } from "../../human-review-attribution";
+export type Direction = { path: string; english: string };
+export type Target = { shotId: string; title: string; mode: "generate" | "prepared" | "observe" | "reuse"; jobId: string | null; sourceHash: string;
+  args: { seed: number; profile_id: string; aspect_policy: string }; sources: { path: string; text: string; label: string }[]; directions: { sourceHash: string; fields: Direction[] } | null; compiledPrompt: string | null;
+  authoredDurationUnits: number; requestedSeconds: number; requestedFrames: number; selectionRevision: number };
+export type Batch = { id: string; projectId: string; revision: number; controlRevision: number; state: string; manifestHash: string;
+  timing?: import("../../components/WorkflowTiming").TimingFacts | null;
+  rejectedTakes?: { shotId: string; jobId: string; reason: string }[];
+  manifest: { scopeShotIds: string[]; kept: { shotId: string; jobId: string }[]; targets: Target[]; blockers: { shotId: string; message: string }[];
+    setup: { profileId: string; aspectPolicy: string; maxJobs: number | null; maxRequestedSeconds: number | null }; newJobs: number; requestedSeconds: number;
+    replacement?: { batchId: string; rejectedJobIds: string[] }; rejectedHistory?: { jobId: string; shotId: string }[] };
+  execution: { error?: string; authorizedManifestHash?: string; reviewAttribution?: HumanReviewAttribution; draft?: unknown; jobs?: Record<string, string>; segments?: Record<string, string> }; progress?: { total: number; ready: number; failed: number; blocked: number } };
+export type Review = { batchId: string; reviewHash: string; ready: boolean; readyCount: number; blockedCount: number;
+  kept: { shotId: string; jobId: string }[]; errors: { shotId: string; message: string }[];
+  proposals: { shotId: string; title: string; jobId: string; segmentId: string; error: string | null;
+    segment: { inFrame: number; outFrame: number; authoredDurationUnits: number } | null; job: VideoJob | null }[] };

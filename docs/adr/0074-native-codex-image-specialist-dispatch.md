@@ -2,6 +2,34 @@
 
 **Status:** Accepted
 
+2026-10-13 amendment: ImageGen's execution/output ID is distinct from the
+native Codex task UUID that owns a dispatched job. New pinned image packages
+carry a transport-only `nativeTaskBinding`: a configured dispatch names the
+exact target UUID, while a manual copy binds to the task running its preflight.
+The executor pin and schema-v3 completion manifest record that native UUID
+separately from the ImageGen execution ID. Preflight and the completion
+publisher reject a missing or mismatched binding before generation or final
+publication; receiving code continues to compare the exact native UUID. This
+supersedes the original decision below that task IDs never appear in packages
+or manifests. The binding is excluded from canonical project requests and
+creative history.
+
+Package v6 owns the new pin and completion-publication instructions; the v3,
+v4, and v5 projections remain byte-stable for retained copied packages. Schema
+v1/v2 manifests keep their historical canonical serialization and hashes.
+Schema-v3 completion bytes are staged and atomically linked as the final marker,
+so a reader never observes a partial manifest. If cleanup is interrupted, the
+reader accepts a leftover completion draft only when it validates identically
+to the published manifest. The host-local specialist registry retains each
+package's task binding before dispatch, allowing refresh to resolve the frozen
+identity even when a busy or refused dispatch never creates a dispatch receipt;
+that per-job identity cannot be rebound.
+
+2026-10-03 amendment: [ADR 0106](0106-reviewed-pre-generation-image-terminal-outcome.md)
+adds explicit, reviewed, request/pin/dispatch-bound terminal proof for cancelled
+attempts blocked before generation. Cancellation and idle alone still do not
+release reservations; successful-delivery and frozen package contracts remain unchanged.
+
 ## Context
 
 P1.5 already freezes an image package and validates a specialist completion
@@ -62,6 +90,29 @@ malformed final manifest or any post-marker integrity/currentness failure is a
 meaningful rejected-delivery record. This prevents an ordinary multi-poll
 publication window from flooding gallery history without weakening evidence
 after the specialist has declared completion.
+
+## Returned output names (2026-10-02 clarification)
+
+Two live deliveries renamed ImageGen outputs to `candidate.png`: the primary
+completion example prescribed that concrete name while the specialist skill
+required the returned basename. The package emitter owns field shape and frozen
+job identity; ImageGen supplies the output basename, and the specialist copies
+the selected bytes unchanged and declares that name. Creator ownership of
+creative acceptance and selection is unchanged.
+
+Both primary package instructions now require the exact returned basename, and
+completion examples use an explicit replace-with-returned-basename placeholder.
+The cohesive projection moves into `image_job_package.py`, included in the
+specialist execution pin. Emitted-package regressions cover the instruction and
+example agreement; pin tests reject an uncommitted projection owner. Manifest
+validation and exact-path staging cleanup remain strict. A downstream renamer,
+weaker cleanup matching, or a worker acknowledgement alone would retain the
+contradictory contract and were rejected.
+
+Published packages, receipts, outputs and staging evidence are preserved.
+Existing package projections are never rewritten to appear compliant: prepare a
+fresh job after the reviewed source is committed. This clarifies the existing
+delivery contract without changing its schema or creating historical replay.
 
 ## Consequences
 

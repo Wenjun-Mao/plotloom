@@ -1,8 +1,7 @@
 """Shared row projections and guards for project-owned persistence.
 
 These functions deliberately contain no repository composition or application
-control imports.  Both the retained compatibility facade and the bound project
-repository use the same durable row interpretation.
+control imports. Bound project repositories use one current row interpretation.
 """
 
 from __future__ import annotations
@@ -13,6 +12,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import (
+    TERMINAL_MEDIA_TASK_STATUSES,
+    TERMINAL_RUN_STATUSES,
+    TERMINAL_WORK_UNIT_STATUSES,
     Artifact,
     ArtifactKind,
     AttemptStatus,
@@ -38,20 +40,23 @@ from ...domain import (
     StageHead,
     StageName,
     StagePayload,
-    StageStatus,
     StagePlanTrace,
+    StageStatus,
     StoryGraphTopologyTrace,
     WorkUnitRepairScope,
     WorkUnitStatus,
-    TERMINAL_MEDIA_TASK_STATUSES,
-    TERMINAL_RUN_STATUSES,
-    TERMINAL_WORK_UNIT_STATUSES,
     stage_payload_model,
 )
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
+from ...exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    RevisionConflictError,
+    SchemaResetRequiredError,
+)
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ApprovalDecisionRow,
+    ArtCandidateRow,
     ArtifactRow,
     EntityRevisionRow,
     FragmentReuseBindingRow,
@@ -62,15 +67,15 @@ from ..schema import (
     GenerationWorkUnitRow,
     MediaTaskRow,
     ProjectRow,
-    SourceOutlineCandidateRow, ArtCandidateRow,
     SealedStageAggregateRow,
+    SourceOutlineCandidateRow,
     StageHeadRow,
     StagePlanRow,
     StoryGraphTopologyRow,
     WorkUnitRepairScopeRow,
 )
 from .approvals import ApprovalDecision
-from .constants import CURRENT_STAGE_SCHEMA_VERSION, LEGACY_STAGE_SCHEMA_VERSION
+from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .media_tasks import GenericMediaTaskPersistence
 
 
@@ -94,6 +99,8 @@ def latest_run_summary_from_row(row: GenerationRunRow) -> LatestRunSummary:
 
 
 def stage_head_from_row(row: StageHeadRow) -> StageHead:
+    if row.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+        raise SchemaResetRequiredError(stage=StageName(row.stage), schema_version=row.schema_version)
     return StageHead(
         stage=StageName(row.stage), status=StageStatus(row.status), revision=row.revision,
         entity_revision_id=row.entity_revision_id, content_hash=row.content_hash,
@@ -104,6 +111,8 @@ def stage_head_from_row(row: StageHeadRow) -> StageHead:
 
 
 def entity_revision_from_row(row: EntityRevisionRow) -> EntityRevision:
+    if row.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+        raise SchemaResetRequiredError(stage=StageName(row.stage), schema_version=row.schema_version)
     return EntityRevision(
         id=row.id, project_id=row.project_id, stage=StageName(row.stage), revision=row.revision,
         parent_revision_id=row.parent_revision_id, content_hash=row.content_hash,
@@ -118,7 +127,7 @@ def decode_stage_payload(
 ) -> StagePayload:
     """Decode according to stored evidence, never a live default."""
 
-    if schema_version not in {LEGACY_STAGE_SCHEMA_VERSION, CURRENT_STAGE_SCHEMA_VERSION}:
+    if schema_version != CURRENT_STAGE_SCHEMA_VERSION:
         raise SchemaResetRequiredError(stage=stage, schema_version=schema_version)
     return stage_payload_model(stage, schema_version=schema_version).model_validate(payload)
 
@@ -306,6 +315,11 @@ def assert_lifecycle_revision(row: ProjectRow, expected_revision: int) -> None:
 
 def project_is_busy_in_session(session: Session, project_id: str) -> bool:
     """Preserve lifecycle admission across durable and external work."""
+    from ..schema import AutopilotRunRow
+    active_autopilot = session.scalar(select(AutopilotRunRow.id).where(
+        AutopilotRunRow.project_id == project_id, AutopilotRunRow.state.in_(("running", "waiting")),
+        AutopilotRunRow.id != session.info.get("autopilot_run_id", ""),
+    ).limit(1))
 
     nonterminal_run = session.scalar(
         select(GenerationRunRow.id).where(
@@ -329,23 +343,16 @@ def project_is_busy_in_session(session: Session, project_id: str) -> bool:
             ),
         ).limit(1)
     )
-    prepared_outline_publication = session.scalar(
-        select(SourceOutlineCandidateRow.job_id).where(
-            SourceOutlineCandidateRow.project_id == project_id,
-            SourceOutlineCandidateRow.status == "prepared",
-        ).limit(1)
-    )
-    prepared_art_publication = session.scalar(
-        select(ArtCandidateRow.job_id).where(
-            ArtCandidateRow.project_id == project_id,
-            ArtCandidateRow.status == "prepared",
-        ).limit(1)
-    )
+    from .autopilot_text_correction import has_publishable_candidates
+    connection = session.connection().connection.driver_connection
+    prepared_outline_publication = True if has_publishable_candidates(connection, project_id, SourceOutlineCandidateRow.__tablename__) else None
+    prepared_art_publication = True if has_publishable_candidates(connection, project_id, ArtCandidateRow.__tablename__) else None
     return any(
         item is not None
         for item in (
             nonterminal_run, nonterminal_media, nonterminal_work_unit,
             prepared_outline_publication,
             prepared_art_publication,
+            active_autopilot,
         )
     )

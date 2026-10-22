@@ -3,11 +3,11 @@ import type { MutableRefObject } from "react";
 import type { DraftRecord, DraftScope } from "../../draft-registry";
 import { hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "../../workspace-state";
 import type { AuthoringDraft, MediaTask, PipelineRun, ProjectResource, RunExecutionTrace, RunProgress, ServerStageName, StageEnvelope, StageHead, StoryboardReview, TraceEvent, ValidationIssue, WorkspaceProject } from "../../types";
-import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type WorkspaceOperation } from "./contracts";
+import { authoringDraftKey, blankWorkspace, headsByStage, newClientDraftOwner, routeFromLocation, type ProjectLoadFailure, type ProjectLoadResult, type WorkspaceOperation } from "./contracts";
 
 export type WorkspaceRoute = ReturnType<typeof routeFromLocation>;
 export type ConnectionState = "loading" | "connected" | "demo" | "blank" | "error";
-export type UnsafeDraft = { record: DraftRecord; reason: "archived" | "unavailable" };
+export type UnsafeDraft = { record: DraftRecord; reason: "archived" | "temporary" | "missing"; dismissed?: boolean };
 export type RouteHistoryMode = "push" | "replace" | "none";
 
 export interface WorkspaceProjectLoad {
@@ -23,6 +23,7 @@ export interface WorkspaceProjectLoad {
 interface CanonicalWorkspaceSnapshot {
   project: WorkspaceProject;
   connection: ConnectionState;
+  loadFailure: ProjectLoadFailure | undefined;
   run: PipelineRun | undefined;
   runSelectionPending: boolean;
   progress: RunProgress | undefined;
@@ -48,6 +49,7 @@ function emptySnapshot(owner: string, onboarding: boolean, connection: Connectio
   return {
     project: blankWorkspace(owner),
     connection,
+    loadFailure: undefined,
     run: undefined,
     runSelectionPending: false,
     progress: undefined,
@@ -82,12 +84,12 @@ export function useWorkspaceSession() {
   const [route, setRoute] = useState<WorkspaceRoute>(initialRoute);
   const routeRef = useRef(route);
   const epoch = useRef(0);
-  const [snapshot, setSnapshot] = useState<CanonicalWorkspaceSnapshot>(() => emptySnapshot(localOwner.current, !initialRoute.project));
+  const [snapshot, setSnapshot] = useState<CanonicalWorkspaceSnapshot>(() => emptySnapshot(localOwner.current, !initialRoute.project, initialRoute.project ? "loading" : "blank"));
   const snapshotRef = useRef(snapshot);
   const navigationCleanups = useRef(new Set<() => void>());
   const serverDrafts = useRef(new Map<string, AuthoringDraft>());
   const canonicalRefreshRequired = useRef(new Set<string>());
-  const canonicalReloader = useRef<(projectId: string, epoch?: number) => Promise<void>>(async () => undefined);
+  const canonicalReloader = useRef<(projectId: string, epoch?: number) => Promise<ProjectLoadResult>>(async () => "superseded");
 
   const updateSnapshot = useCallback((update: (current: CanonicalWorkspaceSnapshot) => CanonicalWorkspaceSnapshot) => {
     setSnapshot((current) => {
@@ -111,10 +113,10 @@ export function useWorkspaceSession() {
     navigationCleanups.current.add(cleanup);
     return () => { navigationCleanups.current.delete(cleanup); };
   }, []);
-  const registerCanonicalReloader = useCallback((reload: (projectId: string, epoch?: number) => Promise<void>) => {
+  const registerCanonicalReloader = useCallback((reload: (projectId: string, epoch?: number) => Promise<ProjectLoadResult>) => {
     canonicalReloader.current = reload;
     return () => {
-      if (canonicalReloader.current === reload) canonicalReloader.current = async () => undefined;
+      if (canonicalReloader.current === reload) canonicalReloader.current = async () => "superseded";
     };
   }, []);
   const reloadCanonicalProject = useCallback((projectId: string, epoch?: number) => canonicalReloader.current(projectId, epoch), []);
@@ -138,6 +140,7 @@ export function useWorkspaceSession() {
       onboarding: false,
       review: changedProject ? null : current.review,
       issues: changedProject ? {} : current.issues,
+      loadFailure: undefined,
     }));
     return epoch;
   }, [navigate, updateSnapshot]);
@@ -164,13 +167,14 @@ export function useWorkspaceSession() {
   const replaceCurrentRoute = useCallback(() => writeRoute(routeRef.current, "replace"), []);
 
   const beginProjectLoad = useCallback(() => {
-    updateSnapshot((current) => ({ ...current, connection: "loading" }));
+    updateSnapshot((current) => ({ ...current, connection: "loading", loadFailure: undefined }));
   }, [updateSnapshot]);
   const acceptProjectLoad = useCallback((incoming: WorkspaceProjectLoad) => {
     serverDrafts.current = new Map(
       incoming.drafts
-        .filter((draft): draft is AuthoringDraft & { editorScope: DraftScope } => isDraftScope(draft.editorScope))
-        .map((draft) => [authoringDraftKey(incoming.project.id, draft.editorScope), draft]),
+        .map((draft) => [isDraftScope(draft.editorScope)
+          ? authoringDraftKey(incoming.project.id, draft.editorScope)
+          : `${incoming.project.id}:${draft.editorScope}:${draft.entityId}`, draft]),
     );
     updateSnapshot((current) => ({
       ...current,
@@ -179,6 +183,7 @@ export function useWorkspaceSession() {
         quarantines: quarantineItemsFromProgress(incoming.progress),
       },
       connection: "connected",
+      loadFailure: undefined,
       run: incoming.run,
       runSelectionPending: false,
       progress: incoming.progress,
@@ -189,9 +194,10 @@ export function useWorkspaceSession() {
       mediaTasks: newestMediaTasksByShot(incoming.media),
       stageHeads: headsByStage(incoming.stages),
       onboarding: false,
+      unsafeDraft: undefined,
     }));
   }, [updateSnapshot]);
-  const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined) => {
+  const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined, failure?: ProjectLoadFailure) => {
     if (staleDraft) serverDrafts.current.clear();
     const retainedProjectId = routeRef.current.project;
     updateSnapshot((current) => {
@@ -204,12 +210,14 @@ export function useWorkspaceSession() {
         return {
           ...current,
           connection: "error",
+          loadFailure: failure,
           runSelectionPending: false,
           unsafeDraft: staleDraft ?? current.unsafeDraft,
         };
       }
       return {
         ...emptySnapshot(localOwner.current, false, "error"),
+        loadFailure: failure,
         unsafeDraft: staleDraft ?? current.unsafeDraft,
       };
     });
@@ -307,6 +315,7 @@ export function useWorkspaceSession() {
       ...current,
       project: hydrateWorkspaceProject(draft, created, created.stages),
       connection: "connected",
+      loadFailure: undefined,
       run: undefined,
       runSelectionPending: false,
       progress: undefined,
@@ -359,6 +368,7 @@ export function useWorkspaceSession() {
     routeEntity: route.entity,
     project: snapshot.project,
     connection: snapshot.connection,
+    loadFailure: snapshot.loadFailure,
     run: snapshot.run,
     runSelectionPending: snapshot.runSelectionPending,
     progress: snapshot.progress,

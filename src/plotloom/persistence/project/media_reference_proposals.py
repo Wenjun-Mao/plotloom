@@ -21,6 +21,7 @@ from ..schema import (
     ProjectRow,
 )
 from .access import ProjectPersistenceAccess
+from .image_preflight import image_preflight
 from .canonical import ProjectCanonicalPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_character_references import CharacterReferencePersistence
@@ -106,12 +107,17 @@ class CharacterReferenceProposalPersistence:
                     .order_by(CharacterReferenceProposalCandidateRow.created_at.desc()).limit(1)
                 )
                 parent = session.get(CharacterReferenceProposalRow, candidate.proposal_id) if candidate else None
+                delivery = session.get(CharacterReferenceProposalDeliveryRow, candidate.delivery_id) if candidate else None
                 asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
+                # Current Cast owns the new design. A retained accepted image is
+                # only an explicit edit input, not authority to revive its proposal.
                 if (
                     candidate is None or parent is None or asset is None or asset.project_id != project_id
-                    or parent.character_id != character_id or not self._proposal_is_current_in_session(session, parent)
+                    or parent.project_id != project_id or parent.character_id != character_id
+                    or parent.state != "delivered" or delivery is None or delivery.state != "accepted"
+                    or delivery.proposal_id != parent.id or candidate.output_hash != asset.original_hash
                 ):
-                    raise InvalidTransitionError("proposal refinement must name a current candidate for the same character")
+                    raise InvalidTransitionError("请选择本项目中同一角色已通过交付检查的候选图片作为修改依据。")
                 references.append({
                     "assetId": asset.id, "role": "parent_output", "required": True,
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,
@@ -127,9 +133,11 @@ class CharacterReferenceProposalPersistence:
                 "visualDirection": visual_direction.strip(), "references": references,
                 "authority": "cast_owned_exploratory_only_no_story_bible_shot_approval_or_keyframe_selection",
             }
+            preflight = image_preflight(self._access, session)
             request = {
-                "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v2",
-                "specialistPreflight": {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"},
+                "schemaVersion": 3, "jobId": job_id,
+                "executionContract": preflight["executionContract"],
+                "specialistPreflight": preflight,
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "target": "character_reference_proposal", "frozenSnapshot": snapshot,
             }
@@ -162,7 +170,7 @@ class CharacterReferenceProposalPersistence:
                 })
             return {"proposal": self._proposal_dict(proposal, current=True), "references": sources}
 
-    def mark_character_reference_proposal_exported(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+    def mark_character_reference_proposal_exported(self, project_id: str, proposal_id: str, *, require_prepared: bool = False) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             proposal = session.get(CharacterReferenceProposalRow, proposal_id)
@@ -170,6 +178,8 @@ class CharacterReferenceProposalPersistence:
                 raise NotFoundError("character reference proposal not found")
             if not self._proposal_is_current_in_session(session, proposal):
                 raise InvalidTransitionError("character reference proposal is no longer current and cannot be copied")
+            if require_prepared and proposal.state != "prepared":
+                raise InvalidTransitionError("该提案已导出或发送，不能再次发送。")
             if proposal.exported_at is None:
                 proposal.exported_at = utc_now()
                 proposal.state = "exported"
@@ -308,7 +318,7 @@ class CharacterReferenceProposalPersistence:
         return {
             "id": row.id, "assetId": row.asset_id, "proposalId": row.proposal_id,
             "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
-            "asset": ManagedAssetPersistence.managed_asset_dict(asset) if asset is not None else None,
+            "asset": ManagedAssetPersistence.public_managed_asset_dict(session, asset) if asset is not None else None,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 

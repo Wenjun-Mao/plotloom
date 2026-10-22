@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from ...domain import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...video_batch_replacement import assert_rejected_take_mutable
 from ..schema import (
     ManagedAssetRow,
     RunArtifactBlobRow,
@@ -44,6 +45,7 @@ class VideoCandidateDisposal:
                 raise NotFoundError("video discard candidate not found for this project shot")
             selected_id = selection.selected_video_job_id if selection is not None else None
             for row in rows:
+                assert_rejected_take_mutable(session, project_id, row.id)
                 if row.id == selected_id:
                     raise InvalidTransitionError("the selected video candidate cannot be discarded")
                 if session.scalar(select(VideoSegmentRow.id).where(

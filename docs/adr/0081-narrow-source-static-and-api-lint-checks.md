@@ -52,3 +52,63 @@ existing E2E mode. Browser and persistence coverage now exercises the checked
 source bundle, while installed-wheel browser coverage remains open. The CI
 workflow remains `workflow_dispatch` only. The scope does not imply product or
 creative acceptance.
+
+## Current-control browser journeys · 2026-10-03
+
+Browser setup must exercise the current creator UI rather than retain removed
+sidebar/button labels or depend on disclosure positions. The shared
+`frontend/e2e/workbench-controls.ts` names secondary navigation and media panels;
+candidate toggles retain their asset-bound test identity while their visible
+labels distinguish pending review. Hydration tests verify withdrawn controls,
+then normal navigation after load. Persistence, source/identity ownership,
+selection and natural playback assertions remain required. This updates test
+setup for current UI contracts; it does not restore retired UI or widen product
+acceptance. ADR0109 owns the independent CI budget/evidence boundary.
+
+The sample shot seed emits the already-defined canonical `visibleTexts: []`
+default explicitly. Its omission made exact first-save roundtrip checks differ
+after backend serialization; the seed, not a permissive comparator, owns the
+repair. Serialized-bootstrap regression coverage retains the exact stage
+payload assertion and introduces no authored text or ownership change.
+
+H3 media journeys must use the same source read, faithful English direction
+review, complete prompt preview and explicit freeze as the current H3 UI. The
+non-H3 direct-freeze button is not an H3 setup shortcut. Synthetic fixtures
+share the reviewed-direction helper without changing source text, admission,
+selection, persistence or native playback assertions.
+
+The shared page fixture owns route-handler teardown: after the test body, it
+removes routes and awaits pending handlers before Playwright disposes the
+request context. Use [`unrouteAll({ behavior: "wait" })`](https://playwright.dev/docs/api/class-page#page-unroute-all),
+not error suppression; held-response cases must release their owned gates.
+Lifecycle regressions cover waiting, test failure and drain failure. Reload
+persistency first establishes a hydrated owner. Prepared and ready/accepted
+stale-review journeys are separate cases with unchanged assertions/deadlines,
+so repeated hydration does not consume another state transition's entire
+assertion budget.
+
+When a test must remove an interceptor before its body ends, first await the
+operation's rendered outcome and any dependent projection read. Backend Close
+acknowledgement is earlier than the refreshed closed-directory row; removing
+Chromium's last route during that read changes global Fetch interception and
+can strand the test's own request. Failed Close instead awaits its rendered
+refusal and restored enabled editor. This is harness sequencing, not a product
+retry, longer timeout or permissive persistence assertion. Required-mark layout
+checks likewise assert inline baseline and containment in the label line rather
+than comparing inline-text and enclosing-line-box top pixels across OS fonts.
+
+Shot changes intentionally clear retained-image draft ownership (ADR0103).
+Multi-shot fixtures must retain their chosen asset again and explicitly review
+compatibility, not inherit another shot's temporary retention. Approved-board
+reloads use the named review control before checking collapsed detail. Query
+identity assertions compare parsed parameters, not parameter order; textareas
+use their accessible textbox names rather than wrapper-label text that includes
+the initial textarea contents.
+
+The active image journey follows the native specialist `/send` receipt and
+immutable package/delivery checks. Removed clipboard controls and an already
+skipped retired Story-Bible proposal test are not current product contracts.
+Original/refinement delivery, frozen context/reference/provenance, stale-intent
+inapplicability, tamper rejection and historic reference ownership remain tested.
+The tampered terminal error retains its dispatch reservation as production
+requires; fixture cleanup does not pretend that rejection released it.

@@ -39,6 +39,8 @@ Vite 默认使用 `5173`，并把 `/api/v2` 代理到 `127.0.0.1:8775`。可用 
 
 `TEXT_MODEL` 应填写该服务 `/models` 返回的精确公开 ID。Plotloom 会把它冻结进运行计划，不会为了“看起来能跑”而静默换成列表中的第一个模型。
 
+`TEXT_PRESET_ID` 是执行合同声明，不会在启动时自动改成 `custom`。若有意使用非预设执行字段，请显式设置 `TEXT_PRESET_ID=custom`；不合法的字段组合仍会被拒绝，且验证发生在创建安装存储或初始化默认 profile 之前。
+
 应用没有内置身份认证。远程部署必须保持私有，或在 Plotloom 外部加认证层。
 
 ### 私有 MiniMax-H3 视频端点
@@ -86,16 +88,50 @@ Qwen 只接受经过验证的七个精确画布：`1024x1024`、横版
 
 ## 验证
 
+先准备一次本地依赖：`uv sync --all-groups --frozen`、
+`npm --prefix frontend ci`、`npm --prefix docs/prompt-pipeline-lab ci`，并在首次浏览器运行前
+从 `frontend/` 执行 `npx playwright install chromium`。
+
+日常快速反馈：
+
 ```sh
-uv run pytest -q
-npm --prefix frontend test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
-git diff --exit-code -- src/plotloom/static
-npm --prefix frontend run test:e2e
-uv build --wheel
-uv run python scripts/smoke_installed_wheel.py dist
+uv run --locked --no-sync python scripts/verify.py quick
 ```
+
+选择明确的 pytest、Vitest 文件或 Playwright spec：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_cast_style.py::test_preparation_has_no_implicit_preset \
+  --vitest tests/app-state-opening.test.ts \
+  --playwright e2e/creator-confirmation.spec.ts
+```
+
+按已审查的产品模块选择测试并查看展开计划：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py module \
+  --module graph --module story-authoring --depth contract --show
+```
+
+完整本地软件检查：
+
+```sh
+uv run --locked --no-sync python scripts/verify.py full
+```
+
+`quick` 是反馈，不是后端或发布验收。`focused` 不会自动推断改动范围；请把
+改动的所有者映射到显式测试选择。`module` 从已审查的所有权表展开 `contract`、
+`browser` 或 `complete` 选择，并先检查完整原生测试集合的唯一归属；`--show`
+只显示选择计划。模块结果仍是局部开发证据。`full` 运行完整本地套件，拒绝会缩小选择的
+环境过滤器；它也不代表产品或创意接受。稳定／正式发布不要求 GitHub Actions
+或其他托管 CI；仍须完成适用的本地验证、实际发布包安装与受支持工作流验收。
+托管 CI 仅在 Wenjun 新的明确请求后运行，未请求不算发布阻塞项；历史失败不会
+因此变为通过，尚未解决的实际缺陷仍须处理。见
+[ADR 0199](docs/adr/0199-local-release-qualification.md)。如明确请求完整托管验证，
+手动 CI 默认的 `browser_grep=.*` 覆盖完整浏览器集合；其他正则只算诊断，不能
+声称完整托管验证通过。运行边界见
+[ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
 
 对已保存文本 profile 的真实四阶段验收与 secret-free 回执，见
 [conformance runner](docs/conformance.md)。M1.5 只有在两个所需 profile

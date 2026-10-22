@@ -3,6 +3,14 @@ import { demoProject } from "../src/demo";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "../src/project-creation";
 
 describe("first-save project creation contract", () => {
+  it("serializes the sample shots with the canonical empty visible-text value", () => {
+    const request = projectCreationRequest(demoProject.brief, initialStagesThrough(demoProject, "storyboard"));
+    const saved = JSON.parse(projectCreationBody(request)) as { initialStages: Array<{ stage: string; payload: typeof demoProject.storyboard }> };
+    const storyboard = saved.initialStages.find((stage) => stage.stage === "storyboard")!.payload;
+    expect(storyboard.shots).toHaveLength(11);
+    for (const shot of storyboard.shots) expect(shot.visibleTexts).toEqual([]);
+  });
+
   it("keeps a bare brief request free of initial stages", () => {
     expect(projectCreationRequest(demoProject.brief)).toEqual({ brief: demoProject.brief });
   });

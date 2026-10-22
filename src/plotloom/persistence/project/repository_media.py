@@ -44,6 +44,7 @@ class ProjectMediaRepository:
         video_currentness: VideoJobCurrentness,
         video_segments: VideoSegmentPersistence,
         video_end_frames: VideoEndFrames,
+        shot_presentations,
     ) -> None:
         self._assets = assets
         self._intents = intents
@@ -61,6 +62,7 @@ class ProjectMediaRepository:
         self.video_currentness = video_currentness
         self.video_segments = video_segments
         self.video_end_frames = video_end_frames
+        self.shot_presentations = shot_presentations
 
     def record_managed_import(
         self, project_id: str, *, original_hash: str, display_hash: str,
@@ -81,10 +83,11 @@ class ProjectMediaRepository:
 
     def create_visual_intent(
         self, project_id: str, asset_id: str, intent: JsonObject, *,
+        target_shot_id: str | None = None,
         consumed_draft: tuple[str, int, JsonObject] | None = None,
     ) -> JsonObject:
         return self._intents.create_visual_intent(
-            project_id, asset_id, intent, consumed_draft=consumed_draft
+            project_id, asset_id, intent, consumed_draft=consumed_draft, target_shot_id=target_shot_id
         )
 
     def list_visual_intents(self, project_id: str) -> list[JsonObject]:
@@ -94,6 +97,8 @@ class ProjectMediaRepository:
         self, project_id: str, *, asset_id: str, shot_id: str, scene_id: str,
         expected_selection_revision: int, storyboard_revision: int, approval_id: str,
         compatibility_note: str, visual_intent_id: str, visual_intent_revision: int,
+        expected_presentation_revision: int = 0,
+        attribution=None,
     ) -> JsonObject:
         return self._keyframes.select_reviewed_keyframe(
             project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id,
@@ -101,6 +106,8 @@ class ProjectMediaRepository:
             storyboard_revision=storyboard_revision, approval_id=approval_id,
             compatibility_note=compatibility_note, visual_intent_id=visual_intent_id,
             visual_intent_revision=visual_intent_revision,
+            expected_presentation_revision=expected_presentation_revision,
+            attribution=attribution,
         )
 
     def create_still_preview(
@@ -172,9 +179,9 @@ class ProjectMediaRepository:
         return self._proposals.character_reference_proposal_package_sources(project_id, proposal_id)
 
     def mark_character_reference_proposal_exported(
-        self, project_id: str, proposal_id: str
+        self, project_id: str, proposal_id: str, *, require_prepared: bool = False
     ) -> JsonObject:
-        return self._proposals.mark_character_reference_proposal_exported(project_id, proposal_id)
+        return self._proposals.mark_character_reference_proposal_exported(project_id, proposal_id, require_prepared=require_prepared)
 
     def cancel_character_reference_proposal(
         self, project_id: str, proposal_id: str, reason: str
@@ -218,8 +225,8 @@ class ProjectMediaRepository:
     def art_reference_proposal_package_sources(self, project_id: str, proposal_id: str) -> JsonObject:
         return self._art_references.art_reference_proposal_package_sources(project_id, proposal_id)
 
-    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str) -> JsonObject:
-        return self._art_references.mark_art_reference_proposal_exported(project_id, proposal_id)
+    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str, *, require_prepared: bool = False) -> JsonObject:
+        return self._art_references.mark_art_reference_proposal_exported(project_id, proposal_id, require_prepared=require_prepared)
 
     def cancel_art_reference_proposal(self, project_id: str, proposal_id: str, reason: str) -> JsonObject:
         return self._art_references.cancel_art_reference_proposal(project_id, proposal_id, reason)
@@ -268,16 +275,18 @@ class ProjectMediaRepository:
         return self._same_person.list_same_person_reviews(project_id)
 
     def prepare_image_job(
-        self, project_id: str, *, approval_id: str, shot_id: str,
+        self, project_id: str, *, approval_id: str | None = None, machine_decision_id: str | None = None, shot_id: str,
         storyboard_revision: int, presentation_change: str,
         parent_candidate_asset_id: str | None = None,
+        scene_continuity_binding_id: str | None = None,
         keyframe_adaptation: JsonObject | None = None, contract_version: int = 2,
         consumed_draft: tuple[str, int, JsonObject] | None = None,
     ) -> JsonObject:
         return self._image_preparation.prepare_image_job(
-            project_id, approval_id=approval_id, shot_id=shot_id,
+            project_id, approval_id=approval_id, machine_decision_id=machine_decision_id, shot_id=shot_id,
             storyboard_revision=storyboard_revision,
             parent_candidate_asset_id=parent_candidate_asset_id,
+            scene_continuity_binding_id=scene_continuity_binding_id,
             keyframe_adaptation=keyframe_adaptation,
             presentation_change=presentation_change, contract_version=contract_version,
             consumed_draft=consumed_draft,
@@ -286,8 +295,8 @@ class ProjectMediaRepository:
     def image_job_package_sources(self, project_id: str, job_id: str) -> JsonObject:
         return self._image_delivery.image_job_package_sources(project_id, job_id)
 
-    def mark_image_job_exported(self, project_id: str, job_id: str) -> JsonObject:
-        return self._image_delivery.mark_image_job_exported(project_id, job_id)
+    def mark_image_job_exported(self, project_id: str, job_id: str, *, require_prepared: bool = False) -> JsonObject:
+        return self._image_delivery.mark_image_job_exported(project_id, job_id, require_prepared=require_prepared)
 
     def cancel_image_job(self, project_id: str, job_id: str, reason: str) -> JsonObject:
         return self._image_delivery.cancel_image_job(project_id, job_id, reason)

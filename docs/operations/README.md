@@ -30,7 +30,7 @@ One durable SQLite FIFO serializes managed inference: at most one H3 ComfyUI,
 Qwen SGLang or Voice Lab generation runs at a time. It is intentionally an unlimited queue;
 source download, input decoding, and managed-output transfer do not hold the
 GPU lane. See [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md)
-and its Voice Lab extension in [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
+and its Voice Lab extension in [ADR 0097](../adr/0212-published-voice-performance-takes-and-shared-admission.md).
 
 Both backends retain their gateway-managed delivery for 72 hours, and retain
 the job record plus transient gateway input for at most 30 days. Import a
@@ -38,3 +38,12 @@ selected result into Plotloom or another durable asset store before expiry.
 
 Do not treat this index as an API reference. Start with the backend-specific
 guide above so a Qwen image setting is never confused with an H3 video setting.
+
+## Creator workbench access
+
+The separate [private Tailscale workbench guide](../../services/creator_workbench/README.md#private-colleague-access-over-tailscale)
+covers the colleague HTTPS URL, shared-admin trust boundary, required running
+services, verification limits and endpoint-scoped disable command. It is not
+the Spark gateway and does not expose its bearer credential or directly publish
+the Mac bridge's listener/token. Workbench co-admins can still invoke the
+configured native queues through the workbench.

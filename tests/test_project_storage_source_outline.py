@@ -1,102 +1,44 @@
 """F1A regression coverage for source ownership and outline candidate admission."""
 
+
 from __future__ import annotations
 
-import json
-from hashlib import sha256
 from pathlib import Path
 
 import pytest
 from sqlalchemy import update
 
-from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.project_storage.composition import ProjectFolderStorage
-from plotloom.source_outline_contracts import (
-    BranchOutcome, OutlineAcceptRequest,
-    OutlineReopenRequest,
-    SectionChoice, SectionMap, SectionMapGraphInstallRequest, SectionMapSaveRequest, StorySection,
-    SourceMaterial,
-)
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import ProjectLifecycleStatus, StageName, StageStatus, utc_now
-from plotloom.domain import InitialStage
+from plotloom.creative_handoff_contracts import (
+    CreativeHandoffError,
+    CreativeHandoffRequest,
+)
+from plotloom.domain import (
+    InitialStage,
+    ProjectLifecycleStatus,
+    StageName,
+    StageStatus,
+    utc_now,
+)
 from plotloom.exceptions import (
     InvalidTransitionError,
-    ProjectBusyError as LifecycleProjectBusyError,
     RevisionConflictError,
 )
-from plotloom.persistence.schema import ProjectRow
+from plotloom.exceptions import (
+    ProjectBusyError as LifecycleProjectBusyError,
+)
+from plotloom.persistence.schema import CreativeHandoffExecutionPinRow, ProjectRow
 from plotloom.project_storage import ProjectBusyError
+from plotloom.source_outline_contracts import (
+    OutlineAcceptRequest,
+    OutlineReopenRequest,
+    SectionMap,
+    SectionMapGraphInstallRequest,
+)
 from tests.backend_core.conftest import make_story_bible, make_story_graph
-
-
-def _material(kind: str = "synopsis") -> SourceMaterial:
-    return SourceMaterial(
-        kind=kind,
-        title="渡口的信",
-        text="一位船夫必须在暴风雨前决定把最后一封信交给谁。",
-        attribution="作者本人提供的 F1A 测试材料",
-        rights_declaration="作者声明拥有用于此测试的改编许可；系统不作法律确认。",
-        adaptation_intent="保留不可逆选择，并允许为互动形式补充一条分支后果。",
-        invented_additions="可以增加一位目击者。",
-    )
-
-
-def _storage(tmp_path: Path) -> ProjectFolderStorage:
-    return ProjectFolderStorage(
-        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
-    )
-
-
-def _request(
-    project_id: str, source: SourceMaterial, expected_outline_revision: int = 0, job_suffix: str = "a",
-) -> CreativeHandoffRequest:
-    return CreativeHandoffRequest(
-        job_id="ch_" + job_suffix * 32,
-        project_id=project_id,
-        section_id="story",
-        stage="outline",
-        expected_stage_revision=expected_outline_revision,
-        source=source.model_dump(mode="json", by_alias=True),
-        input_artifacts={},
-        creative_brief="Produce one upstream-shaped review candidate only.",
-    )
-
-
-def _deliver(store: object, request: CreativeHandoffRequest) -> object:
-    exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request)
-    package_request = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
-    delivery = Path(paths["deliveryPath"])
-    delivery.mkdir()
-    outline = canonical_json({"source": "渡口的信", "params": {"episodes": 1}, "episodes": []})
-    report = b"<!doctype html><html><body>derived outline</body></html>"
-    (delivery / "outline.json").write_bytes(outline)
-    (delivery / "report.html").write_bytes(report)
-    manifest = {
-        "schemaVersion": 1,
-        "jobId": request.job_id,
-        "requestHash": package_request["requestHash"],
-        "deliveryId": "f1a-fixture-1",
-        "stage": "outline",
-        "candidate": {"filename": "outline.json", "sha256": sha256(outline).hexdigest()},
-        "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()},
-        "executorProvenance": {
-            "codeRevision": "abcdef0",
-            "skillVersion": "fixture",
-            "skillHash": package_request["executionPin"]["specialistSkillHash"],
-            "upstreamRevision": package_request["executionPin"]["upstreamRevision"],
-            "upstreamSkillHash": package_request["executionPin"]["upstreamSkillHash"],
-            "model": "fixture",
-            "reasoningEffort": "high",
-        },
-        "limitations": ["fixture candidate"],
-    }
-    (delivery / "completion.json").write_text(json.dumps(manifest))
-    result = exchange.read_delivery(request)
-    assert result is not None
-    return result
+from tests.graph_draft_fixtures import graph_draft_revision, graph_map_save_request
+from tests.source_graph_fixtures import letter_section_map
+from tests.source_outline_fixtures import _deliver, _material, _request, _storage
 
 
 @pytest.mark.parametrize("kind", ["synopsis", "imported_text", "existing_work"])
@@ -131,7 +73,9 @@ def test_source_modes_persist_candidate_and_explicit_acceptance(tmp_path: Path, 
         store.close()
 
 
-def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
+def test_current_pin_survives_reopen_and_missing_pin_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     storage = _storage(tmp_path)
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     try:
@@ -139,27 +83,53 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         store.save_source_material(expected_source_revision=0, material=source)
         request = _request(store.manifest.project_id, source)
         store.prepare_outline_candidate(request)
+        exchange = store.creative_handoff_exchange()
+        original_pin = store.creative_handoff_execution_pin(request)
+        _deliver(store, request)
+        job_root = Path(exchange.root / "jobs" / request.job_id)
+        before = {
+            str(path.relative_to(job_root)): path.read_bytes()
+            for path in job_root.rglob("*") if path.is_file()
+        }
+        project_id = store.manifest.project_id
+        store.close()
+        store = storage.projects.open(project_id)
+        monkeypatch.setattr(
+            type(store.creative_handoff_exchange()),
+            "_pinned_execution",
+            staticmethod(lambda _stage: (_ for _ in ()).throw(AssertionError("current skills must not be read"))),
+        )
+        persisted_pin = store.creative_handoff_execution_pin(request)
+        assert persisted_pin == original_pin
+        assert store.creative_handoff_exchange().read_delivery(request, persisted_pin) is not None
+        with store.repository._write() as session:
+            row = session.get(CreativeHandoffExecutionPinRow, request.job_id)
+            assert row is not None
+            session.delete(row)
+        with pytest.raises(CreativeHandoffError, match="execution pin"):
+            store.creative_handoff_execution_pin(request)
+        assert {str(path.relative_to(job_root)): path.read_bytes()
+                for path in job_root.rglob("*") if path.is_file()} == before
+    finally:
+        store.close()
+
+
+def test_explicit_current_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}))
+    try:
+        source = _material()
+        store.save_source_material(expected_source_revision=0, material=source)
+        request = _request(store.manifest.project_id, source, brief=store.project().brief)
+        store.prepare_outline_candidate(request)
         store.admit_outline_delivery(_deliver(store, request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0,
         ))
         outline = accepted.accepted_outline
         assert outline is not None
-        mapping = SectionMap(
-            sections=[
-                StorySection(section_id="opening", title="渡口", summary="船夫收到最后一封信。"),
-                StorySection(section_id="ending-a", title="交给妹妹", summary="妹妹在风暴前读到信。", ending=True),
-                StorySection(section_id="ending-b", title="交给船长", summary="船长带信离岸。", ending=True),
-            ],
-            choice=SectionChoice(
-                choice_id="deliver", section_id="opening", prompt="把信交给谁？",
-                outcomes=[
-                    BranchOutcome(outcome_id="sister", label="交给妹妹", consequence="妹妹留下。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="captain", label="交给船长", consequence="船长启航。", ending_section_id="ending-b"),
-                ],
-            ),
-        )
-        saved = store.save_section_map(SectionMapSaveRequest(
+        mapping = letter_section_map(store.manifest.project_id, store.project().brief)
+        saved = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=0, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             mapping=mapping,
@@ -167,18 +137,19 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert saved.section_map_status == "current"
         assert saved.accepted_section_map is not None
         assert saved.accepted_section_map.mapping == mapping
+        accepted_draft_revision = graph_draft_revision(store)
         installed = store.install_section_map_graph(SectionMapGraphInstallRequest(
             expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
-            expected_graph_revision=0,
+            expected_graph_revision=0, expected_graph_draft_revision=graph_draft_revision(store),
         ))
         assert installed.graph_admission is not None
         assert installed.graph_admission.status == "current"
         graph = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH)
         assert graph.start_node_id == "opening"
-        assert {node.id for node in graph.nodes} == {"opening", "ending-a", "ending-b"}
-        assert [(edge.id, edge.choice_text, edge.state_effects["sourceMapConsequence"]) for edge in graph.edges] == [
+        assert {node.id for node in graph.nodes} == {"opening", "choose", "ending-a", "ending-b"}
+        assert [(edge.id, edge.choice_text, edge.state_effects["sourceMapConsequence"]) for edge in graph.edges if edge.kind.value == "choice"] == [
             ("sister", "交给妹妹", "妹妹留下。"), ("captain", "交给船长", "船长启航。"),
         ]
         with pytest.raises(RevisionConflictError):
@@ -186,7 +157,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
                 expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
-                expected_graph_revision=0,
+                expected_graph_revision=0, expected_graph_draft_revision=accepted_draft_revision,
             ))
         project_id = store.manifest.project_id
         store.close()
@@ -208,28 +179,27 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
 
         edited_mapping = mapping.model_copy(deep=True)
         edited_mapping.sections[0].summary = "船夫收到最后一封信，并看见风暴逼近。"
-        edited_mapping.choice.prompt = "在风暴前把信交给谁？"
-        edited_mapping.choice.outcomes[0].label = "把信亲手交给妹妹"
-        edited = store.save_section_map(SectionMapSaveRequest(
+        edited_mapping.choices[0].prompt = "在风暴前把信交给谁？"
+        edited_mapping.choices[0].outcomes[0].label = "把信亲手交给妹妹"
+        edited = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=1, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             mapping=edited_mapping,
         ))
         assert edited.accepted_section_map is not None
         assert edited.accepted_section_map.mapping.sections[0].section_id == "opening"
-        assert edited.accepted_section_map.mapping.choice.outcomes[0].outcome_id == "sister"
+        assert edited.accepted_section_map.mapping.choices[0].outcomes[0].outcome_id == "sister"
         assert edited.graph_admission is not None and edited.graph_admission.status == "stale"
         changed_id = edited_mapping.model_copy(deep=True)
         changed_id.sections[0].section_id = "other-opening"
-        changed_id.choice.section_id = "other-opening"
-        with pytest.raises(InvalidTransitionError, match="immutable"):
-            store.save_section_map(SectionMapSaveRequest(
+        with pytest.raises(ValueError, match="sections must exactly match"):
+            store.save_section_map(graph_map_save_request(store,
                 expected_section_map_revision=2, expected_source_revision=1,
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 mapping=changed_id,
             ))
 
-        replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b")
+        replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b", brief=store.project().brief)
         store.prepare_outline_candidate(replacement_request)
         store.admit_outline_delivery(_deliver(store, replacement_request))
         outline_stale = store.accept_outline_candidate(OutlineAcceptRequest(
@@ -247,7 +217,7 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert stale.section_map_status == "stale"
         assert stale.section_map_stale_reasons == ["accepted source revision changed to r2"]
         with pytest.raises(RevisionConflictError):
-            store.save_section_map(SectionMapSaveRequest(
+            store.save_section_map(graph_map_save_request(store,
                 expected_section_map_revision=2, expected_source_revision=1,
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 mapping=mapping,
@@ -256,23 +226,11 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         store.close()
 
 
-def test_section_map_rejects_extra_or_unreachable_sections() -> None:
-    with pytest.raises(ValueError, match="at most 3"):
-        SectionMap(
-            sections=[
-                StorySection(section_id="opening", title="开场", summary="选择开始。"),
-                StorySection(section_id="ending-a", title="A", summary="结束 A。", ending=True),
-                StorySection(section_id="ending-b", title="B", summary="结束 B。", ending=True),
-                StorySection(section_id="unused", title="多余", summary="不可达。", ending=True),
-            ],
-            choice=SectionChoice(
-                choice_id="choice-route", section_id="opening", prompt="选择？",
-                outcomes=[
-                    BranchOutcome(outcome_id="route-a", label="A", consequence="A。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="route-b", label="B", consequence="B。", ending_section_id="ending-b"),
-                ],
-            ),
-        )
+def test_section_map_rejects_extra_sections() -> None:
+    data = letter_section_map("source-fixture", FIXED_CHINESE_BRIEF).model_dump(mode="json", by_alias=True)
+    data["sections"].append({"sectionId": "unused", "title": "多余", "summary": "不可达。", "ending": True, "footageMode": "footage"})
+    with pytest.raises(ValueError, match="sections must exactly match"):
+        SectionMap.model_validate(data)
 
 
 def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrelated_graph(tmp_path: Path) -> None:
@@ -283,9 +241,11 @@ def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrela
         InitialStage(stage=StageName.STORY_GRAPH, payload=normal_graph.model_dump(mode="json", by_alias=True)),
     ))
     try:
+        project = store.project()
+        store.update_brief(project.brief.model_copy(update={"decision_points_per_path": 1, "ending_count": 2, "desired_join_count": 0}), expected_revision=project.revision)
         source = _material()
         store.save_source_material(expected_source_revision=0, material=source)
-        request = _request(store.manifest.project_id, source)
+        request = _request(store.manifest.project_id, source, brief=store.project().brief)
         store.prepare_outline_candidate(request)
         store.admit_outline_delivery(_deliver(store, request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
@@ -293,27 +253,17 @@ def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrela
         ))
         outline = accepted.accepted_outline
         assert outline is not None
-        mapped = store.save_section_map(SectionMapSaveRequest(
+        mapped = store.save_section_map(graph_map_save_request(store,
             expected_section_map_revision=0, expected_source_revision=1,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
-            mapping=SectionMap(
-                sections=[
-                    StorySection(section_id="entry", title="渡口", summary="船夫握着信。"),
-                    StorySection(section_id="ending-a", title="妹妹", summary="妹妹收到信。", ending=True),
-                    StorySection(section_id="ending-b", title="船长", summary="船长带走信。", ending=True),
-                ],
-                choice=SectionChoice(choice_id="delivery", section_id="entry", prompt="交给谁？", outcomes=[
-                    BranchOutcome(outcome_id="sister", label="妹妹", consequence="她留下。", ending_section_id="ending-a"),
-                    BranchOutcome(outcome_id="captain", label="船长", consequence="他启航。", ending_section_id="ending-b"),
-                ]),
-            ),
+            mapping=letter_section_map(store.manifest.project_id, store.project().brief),
         ))
         assert mapped.accepted_section_map is not None and mapped.source is not None
         install = dict(
             expected_source_revision=1, expected_source_content_hash=mapped.source.content_hash,
             expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
             expected_section_map_revision=1, expected_section_map_content_hash=mapped.accepted_section_map.content_hash,
-            expected_graph_revision=1,
+            expected_graph_revision=1, expected_graph_draft_revision=graph_draft_revision(store),
         )
         with pytest.raises(RevisionConflictError):
             store.install_section_map_graph(SectionMapGraphInstallRequest(**(install | {"expected_source_content_hash": "0" * 64})))
@@ -364,14 +314,14 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
         request = _request(store.manifest.project_id, source)
         store.prepare_outline_candidate(request)
         exchange = store.creative_handoff_exchange()
-        paths = exchange.write_package(request)
+        paths = exchange.write_package(request, store.creative_handoff_execution_pin(request))
         delivery = Path(paths["deliveryPath"])
         delivery.mkdir()
         (delivery / "outline.json").write_text("not-json")
         (delivery / "report.html").write_text("<html></html>")
         (delivery / "completion.json").write_text("not-json")
         with pytest.raises(CreativeHandoffError, match="completion manifest"):
-            exchange.read_delivery(request)
+            exchange.read_delivery(request, store.creative_handoff_execution_pin(request))
         assert store.source_outline_state().accepted_outline is None
 
         # A malformed external folder does not itself terminally resolve the
@@ -382,7 +332,7 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
             request.model_dump(mode="python") | {"job_id": "ch_" + "b" * 32}
         )
         store.prepare_outline_candidate(next_request)
-        store.creative_handoff_exchange().write_package(next_request)
+        store.creative_handoff_exchange().write_package(next_request, store.creative_handoff_execution_pin(next_request))
         ready = store.admit_outline_delivery(_deliver(store, next_request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=ready.job_id, expected_source_revision=1, expected_outline_revision=0,
@@ -493,4 +443,5 @@ def test_prepared_outline_publication_blocks_permanent_delete_of_historical_arch
             project_id,
             expected_lifecycle_revision=archived.lifecycle_revision,
             confirmation_title=title,
+            expected_project_revision=archived.revision,
         )

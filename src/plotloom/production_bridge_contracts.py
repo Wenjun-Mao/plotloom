@@ -7,9 +7,55 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
-
+from .machine_adoption import MachineAdoption
+from .production_presentation import ProductionPresentation, PresentationCandidate
 
 ProductionBridgeStatus = Literal["missing", "ready", "accepted", "stale"]
+
+
+class CanonicalReplacementHead(CamelModel):
+    revision: int = Field(ge=0)
+    entity_revision_id: str | None
+    content_hash: str | None = Field(pattern=r"^[a-f0-9]{64}$")
+    status: Literal["missing", "ready", "stale"]
+
+
+class ProductionBridgeReplacementTarget(CamelModel):
+    installed_admission_id: str | None
+    bible: CanonicalReplacementHead
+    graph: CanonicalReplacementHead
+    scene_beats: CanonicalReplacementHead
+    storyboard: CanonicalReplacementHead
+
+
+class ProductionBridgePrepareRequest(CamelModel):
+    expected_proposal_revision: int = Field(ge=0)
+    expected_proposal_content_hash: str | None = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_source_inputs_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    replacement_target: ProductionBridgeReplacementTarget
+
+
+class BridgePrepareAvailable(CamelModel):
+    status: Literal["available"] = "available"
+    request: ProductionBridgePrepareRequest
+
+
+class BridgePrepareUnavailable(CamelModel):
+    status: Literal["unavailable"] = "unavailable"
+    reason: str
+
+
+class InstalledProduction(CamelModel):
+    admission_id: str
+    proposal_revision: int
+    proposal_content_hash: str
+    inputs: dict[str, Any]
+    installed_stage_revisions: dict[str, int]
+    status: Literal["current", "outdated"]
+    stale_reasons: list[str]
+    cuts: list[dict[str, Any]]
+    scenes: list[dict[str, Any]]
+    runtime_choice: dict[str, Any] | None
 
 
 class ProductionBridgeConflict(CamelModel):
@@ -36,14 +82,19 @@ class ProductionBridgeIntentEntry(CamelModel):
 class ProductionBridgeIntentPackage(CamelModel):
     """One whole-package review binding, never independent questions."""
 
-    suggestion_origin: Literal["none", "model_inference.v1"]
-    review_state: Literal["pending", "model_suggested", "author_saved"]
+    suggestion_origin: Literal["none", "model_inference.v1", "codex_native.v1"]
+    review_state: Literal["pending", "model_suggested", "author_saved", "ai_adopted"]
     entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
     provenance: dict[str, Any] | None = None
+    machine_adoption: MachineAdoption | None = None
 
     @model_validator(mode="after")
-    def validate_review_binding(self) -> "ProductionBridgeIntentPackage":
-        has_model = self.suggestion_origin == "model_inference.v1"
+    def validate_review_binding(self) -> ProductionBridgeIntentPackage:
+        if (self.review_state == "ai_adopted") != (self.machine_adoption is not None):
+            raise ValueError("machine intent adoption and review state must agree")
+        if self.review_state == "ai_adopted" and self.suggestion_origin != "codex_native.v1":
+            raise ValueError("machine intent adoption requires native delivery provenance")
+        has_model = self.suggestion_origin in {"model_inference.v1", "codex_native.v1"}
         if has_model != (self.provenance is not None):
             raise ValueError("model suggestion origin and provenance must agree")
         if has_model and any(not entry.suggested_text or not entry.suggested_text.strip() for entry in self.entries):
@@ -66,7 +117,9 @@ class ProductionBridgeProposal(CamelModel):
     revision: int = Field(ge=1)
     content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     inputs: dict[str, Any]
+    replacement_target: ProductionBridgeReplacementTarget
     intent_package: ProductionBridgeIntentPackage
+    presentation: ProductionPresentation
     scenes: list[dict[str, Any]]
     cuts: list[dict[str, Any]]
     conflicts: list[ProductionBridgeConflict] = Field(default_factory=list)
@@ -79,19 +132,22 @@ class ProductionBridgeState(CamelModel):
     proposal: ProductionBridgeProposal | None = None
     status: ProductionBridgeStatus
     stale_reasons: list[str] = Field(default_factory=list)
-    installed_stage_revisions: dict[str, int] | None = None
-    installed_storyboard_current: bool = False
-    intent_job: "ProductionBridgeIntentJob | None" = None
+    intent_job: ProductionBridgeIntentJob | None = None
+    presentation_job: ProductionBridgeIntentJob | None = None
+    presentation_candidate: PresentationCandidate | None = None
     simulation_label: str | None = None
+    installation: InstalledProduction | None
+    preparation: BridgePrepareAvailable | BridgePrepareUnavailable
 
 
 class ProductionBridgeIntentJob(CamelModel):
     id: str
+    transport: Literal["text_api", "codex_native"]
     status: Literal["queued", "dispatched", "ready", "stale", "failed", "cancelled", "outcome_unknown"]
     proposal_revision: int
     proposal_content_hash: str
-    profile_id: str
-    profile_version: int
+    profile_id: str | None
+    profile_version: int | None
     prompt_version: str
     created_at: datetime
     updated_at: datetime
@@ -100,6 +156,14 @@ class ProductionBridgeIntentJob(CamelModel):
     result_proposal_revision: int | None = None
     provider_request_id: str | None = None
     response_hash: str | None = None
+
+    @model_validator(mode="after")
+    def transport_owns_profile(self):
+        if self.transport == "codex_native" and (self.profile_id is not None or self.profile_version is not None):
+            raise ValueError("native intent cannot claim an API profile")
+        if self.transport == "text_api" and (self.profile_id is None or self.profile_version is None):
+            raise ValueError("API intent requires its frozen profile identity")
+        return self
 
 
 class ProductionBridgeIntentGenerateRequest(CamelModel):

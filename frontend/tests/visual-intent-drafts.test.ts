@@ -21,8 +21,8 @@ const render = async (props: Parameters<typeof Probe>[0] = {}) => {
 const edit = async (styleIntent: string) => {
   await act(async () => editor.update((value) => ({ ...value, styleIntent })));
 };
-function DirectionProbe({ project = "project", shot = "shot", target = "original", context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
-  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original" } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
+function DirectionProbe({ project = "project", shot = "shot", target = "original", source, context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; source?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
+  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original", sceneContinuityBindingId: source } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
   return null;
 }
 const renderDirection = async (props: Parameters<typeof DirectionProbe>[0] = {}) => {
@@ -32,7 +32,81 @@ beforeEach(() => {
   sessionStorage.clear(); localStorage.clear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
+it("freezes cross-shot source selection in exact visual intent and image direction drafts", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  await render({ durable: true });
+  await act(async () => editor.update((value) => ({ ...value, sourceBindingId: "reviewed-A", retainedVisualIntentId: "B-intent" })));
+  await act(async () => { expect(await editor.flush()).toBe(true); });
+  expect(save.mock.lastCall?.[1].payload).toMatchObject({ sourceBindingId: "reviewed-A", retainedVisualIntentId: "B-intent" });
+  await renderDirection({ source: "reviewed-A", durable: true });
+  await act(async () => directionEditor.update("Use A's scene appearance"));
+  await act(async () => { expect(await directionEditor.flush()).toBe(true); });
+  expect(save.mock.lastCall?.[1].entityId).toBe("shot:scene_continuity:reviewed-A");
+  await renderDirection({ source: "reviewed-C", durable: true });
+  expect(directionEditor.value).toBe("");
+  expect(directionEditor.serverRevision).toBe(0);
+});
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
+
+it.each(["visual", "direction"])("suspends %s writes until failed deletion resumes or successful deletion discards", async kind => {
+  vi.useFakeTimers();
+  try {
+    vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+    const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+    const q = createProjectDraftQuiescence();
+    if (kind === "visual") { await render({ durable: true, quiescence: q }); await edit("unsent visual"); }
+    else { await renderDirection({ durable: true, quiescence: q }); await act(async () => directionEditor.update("unsent direction")); }
+    const failed = q.beginClose("project"); await failed.suspendWrites();
+    await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).not.toHaveBeenCalled();
+    failed.finish(); await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).toHaveBeenCalledOnce();
+    const erased = q.beginClose("project"); await erased.suspendWrites(); await act(async () => erased.discardUnsent()); erased.finish();
+    await act(async () => vi.advanceTimersByTimeAsync(1000)); expect(save).toHaveBeenCalledOnce();
+    expect(kind === "visual" ? editor.dirty : directionEditor.dirty).toBe(false);
+  } finally { vi.useRealTimers(); }
+});
+
+it.each(["visual", "direction"])("another mounted %s editor cannot resurrect an erased retained writer", async kind => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const q = createProjectDraftQuiescence();
+  const mount = (project: string) => kind === "visual" ? render({ project, durable: true, quiescence: q }) : renderDirection({ project, durable: true, quiescence: q });
+  const update = (value: string) => kind === "visual" ? edit(value) : act(async () => directionEditor.update(value));
+  await mount("a"); await update("deleted draft");
+  await act(async () => root.unmount()); root = createRoot(host);
+  await mount("b"); await update("neighbor draft");
+  const erase = q.beginClose("a"); await erase.suspendWrites(); await act(async () => erase.discardUnsent()); erase.finish();
+  await update("new neighbor draft");
+  const cache = sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1");
+  expect(cache).not.toContain("deleted draft"); expect(cache).toContain("new neighbor draft");
+});
+
+it.each(["visual", "direction"])("a retained %s writer follows current project admission after rejected deletion", async kind => {
+  vi.useFakeTimers();
+  try {
+    vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+    const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+    const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft");
+    const q = createProjectDraftQuiescence();
+    if (kind === "visual") {
+      await render({ durable: true, quiescence: q }); await edit("retained A text");
+      await render({ durable: true, quiescence: q, shot: "B" });
+    } else {
+      await renderDirection({ durable: true, quiescence: q });
+      await act(async () => directionEditor.update("retained A text"));
+      await renderDirection({ durable: true, quiescence: q, shot: "B" });
+    }
+    q.setWriteAdmission("project", false);
+    const attempt = q.beginClose("project"); await attempt.suspendWrites(); attempt.finish();
+    await act(async () => vi.advanceTimersByTimeAsync(1_000));
+    await expect(q.flush("project")).resolves.toBe(false);
+    expect(save).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1"))
+      .toContain("retained A text");
+    q.setWriteAdmission("project", true);
+    await expect(q.flush("project")).resolves.toBe(true);
+    expect(save).toHaveBeenCalledOnce(); expect(discard).not.toHaveBeenCalled();
+  } finally { vi.useRealTimers(); }
+});
 
 it("retains separate drafts across shots, candidates, projects, and remounts in session storage only", async () => {
   await render(); await edit("my draft");

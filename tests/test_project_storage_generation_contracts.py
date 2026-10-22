@@ -27,7 +27,7 @@ from plotloom.project_storage.application_profiles import ApplicationProfileRepo
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext
 from plotloom.persistence.schema.project_generation import ArtifactRow
-from tests.project_storage_fixtures import FixtureProvider, fixture_profile
+from tests.project_storage_fixtures import fixed_workload_footage_count, FixtureProvider, fixture_profile
 
 
 class _ProcessLoss(BaseException):
@@ -118,7 +118,7 @@ class _RejectFinalStoryboardProvider:
         prompt = "\n".join(message.content for message in request.messages)
         if "【目标戏剧场景】" in prompt:
             self.storyboard_requests += 1
-            if self.storyboard_requests == 9:
+            if self.storyboard_requests == fixed_workload_footage_count():
                 return ProviderResponse(
                     provider=self.name,
                     model=request.model,

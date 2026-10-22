@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable, Sequence
+from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any, ContextManager, Sequence
+from typing import Any, ContextManager
 
 from sqlalchemy import select
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from ...domain import (
+    STAGE_ORDER,
     InitialStage,
     Project,
     StageName,
     StageStatus,
-    STAGE_ORDER,
     stage_payload_model,
     utc_now,
     validate_initial_stage_prefix,
@@ -24,25 +23,37 @@ from ...domain import (
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..database import RepositoryDatabase
 from ..schema import (
-    PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow,
-    ProjectRow, SourceOutlineCandidateRow, SourceOutlineHeadRow,
-    SourceOutlineGraphAdmissionRow,
-    SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
-    SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
-    CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
-    ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
-    StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
-    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow, VideoEndFrameDecisionRow,
+    PROJECT_TEXT_PIPELINE_TABLE_NAMES,
+    GenerationRunRow,
+    ProjectOperationalStateRow,
+    ProjectRow,
+    StageHeadRow,
 )
-from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
-from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
+from .command_transactions import ProjectCommandTransactions
+from .access import (
+    ProjectCodecs,
+    ProjectGuards,
+    ProjectLeases,
+    ProjectPersistenceAccess,
+    ProjectRows,
+)
 from .approvals import ProjectApprovalPersistence
+from .art import ProjectArtPersistence
 from .canonical import ProjectCanonicalPersistence
+from .cast import ProjectCastPersistence
 from .catalog import ProjectCatalogPersistence
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
+from .creative_execution_pins import execution_pin_for_candidate
+from .creative_terminal import ProjectCreativeTerminalPersistence
 from .drafts import ProjectDraftPersistence
 from .gates import ProjectGatePersistence
-from .generation_access import GenerationAdmission, GenerationCodecs, GenerationLeases, GenerationPersistenceAccess, GenerationRows
+from .generation_access import (
+    GenerationAdmission,
+    GenerationCodecs,
+    GenerationLeases,
+    GenerationPersistenceAccess,
+    GenerationRows,
+)
 from .generation_admission import ProjectGenerationAdmission
 from .generation_aggregates import ProjectGenerationAggregatePersistence
 from .generation_attempts import ProjectGenerationAttemptPersistence
@@ -55,29 +66,43 @@ from .generation_recovery import ProjectGenerationRecoveryPersistence
 from .generation_repair_eligibility import GenerationRepairEligibility
 from .generation_repair_scope import GenerationRepairScopePolicy
 from .generation_repairs import ProjectGenerationRepairPersistence
-from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_reuse import ProjectGenerationReusePersistence
+from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 from .lifecycle import ProjectLifecyclePersistence
 from .media import ProjectMediaPersistence
-from .source_outline import ProjectSourceOutlinePersistence
-from .cast import ProjectCastPersistence
-from .art import ProjectArtPersistence
-from .script import ProjectScriptPersistence
-from .storyboard_review import ProjectStoryboardReviewPersistence
 from .production_bridge import ProductionBridgePersistence
 from .production_bridge_intent import ProductionBridgeIntentPersistence
 from .repository_codecs import (
-    approval_decision_from_row, artifact_from_row, assert_active_project,
-    assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
-    decode_stage_payload, entity_revision_from_row, fragment_reuse_binding_from_row,
-    gate_result_from_row, generation_plan_trace_from_row, latest_run_summary_from_row,
-    media_task_from_row, media_task_row, project_from_row, project_is_busy_in_session,
-    project_row, repair_scope_from_row, run_from_row, run_row,
-    sealed_aggregate_trace_from_row, stage_head_from_row, stage_row,
-    stage_plan_trace_from_row, story_graph_topology_trace_from_row,
+    approval_decision_from_row,
+    artifact_from_row,
+    assert_active_project,
+    assert_lifecycle_revision,
+    attempt_from_row,
+    decode_current_stage_payload,
+    decode_stage_payload,
+    entity_revision_from_row,
+    fragment_reuse_binding_from_row,
+    gate_result_from_row,
+    generation_plan_trace_from_row,
+    latest_run_summary_from_row,
+    media_task_row,
+    project_from_row,
+    project_is_busy_in_session,
+    project_row,
+    repair_scope_from_row,
+    run_from_row,
+    run_row,
+    sealed_aggregate_trace_from_row,
+    stage_head_from_row,
+    stage_plan_trace_from_row,
+    stage_row,
+    story_graph_topology_trace_from_row,
     work_unit_trace_from_row,
 )
+from .script import ProjectScriptPersistence
+from .source_outline import ProjectSourceOutlinePersistence
+from .storyboard_review import ProjectStoryboardReviewPersistence
 from .workflow import ProjectAuthoringWorkflow
 
 
@@ -89,7 +114,7 @@ class ProjectVideoDispatchAccess:
     lifecycle_write: Callable[[], ContextManager[Session]]
 
 
-class ProjectSQLiteRepository:
+class ProjectSQLiteRepository(ProjectCommandTransactions):
     """Project-only composition with no legacy or application-control dependency."""
 
     def __init__(
@@ -120,33 +145,11 @@ class ProjectSQLiteRepository:
         self.engine, self._sessions, self._write_lock = (
             self._database.engine, self._database.sessions, self._database.write_lock
         )
-        if not read_only:
-            # Project folders predate F1A. This is a narrow additive migration:
-            # it creates only the independent review tables and never rewrites
-            # a source, canonical stage, media record, or project manifest.
-            from ..schema import Base
-
-            Base.metadata.create_all(
-                self.engine,
-                tables=[
-                    SourceOutlineHeadRow.__table__,
-                    SourceOutlineSourceRevisionRow.__table__,
-                    SourceOutlineCandidateRow.__table__,
-                    SourceOutlineRevisionRow.__table__,
-                    SourceOutlineSectionMapHeadRow.__table__,
-                    SourceOutlineSectionMapRevisionRow.__table__,
-                    SourceOutlineGraphAdmissionRow.__table__,
-                    CastHeadRow.__table__, CastCandidateRow.__table__, CastRevisionRow.__table__,
-                    ArtHeadRow.__table__, ArtCandidateRow.__table__, ArtRevisionRow.__table__,
-                    ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
-                    StoryboardReviewHeadRow.__table__, StoryboardReviewCandidateRow.__table__, StoryboardReviewRevisionRow.__table__,
-                    ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__, ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
-                    VideoEndFrameDecisionRow.__table__,
-                ],
-            )
         self._generation_admission = ProjectGenerationAdmission()
+        self._command_context = ContextVar(f"autopilot-command-{id(self)}", default=None)
 
         self._project_access = ProjectPersistenceAccess(
+            authority=lambda: self._command_context.get()[1] if self._command_context.get() else None,
             leases=ProjectLeases(
                 read=self._read, write=self._write, bootstrap_write=self._bootstrap_write,
                 lifecycle_write=self._lifecycle_write,
@@ -167,6 +170,8 @@ class ProjectSQLiteRepository:
                 busy=project_is_busy_in_session,
             ),
         )
+        from .autopilot import AutopilotPersistence
+        self.autopilot = AutopilotPersistence(self._project_access, claim_write=self._controller_claim_write)
         self._catalog = ProjectCatalogPersistence(self._project_access)
         self._lifecycle = ProjectLifecyclePersistence(self._project_access)
         self._gates = ProjectGatePersistence(self._project_access, self._catalog)
@@ -176,11 +181,16 @@ class ProjectSQLiteRepository:
         self._drafts = ProjectDraftPersistence(self._project_access, self._canonical)
         self._workflow = ProjectAuthoringWorkflow(self._project_access, self._drafts, self._canonical)
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
+        from .graph_workbench import ProjectGraphWorkbenchPersistence
+        self.graph_workbench = ProjectGraphWorkbenchPersistence(self._project_access)
+        from .branches import ProjectBranchPersistence
+        self.branches = ProjectBranchPersistence(self._project_access, self.source_outline)
         self.cast = ProjectCastPersistence(self._project_access)
         self.art = ProjectArtPersistence(self._project_access, self.cast)
         self.script = ProjectScriptPersistence(self._project_access, self.art)
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
-        self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review)
+        self.creative_terminal = ProjectCreativeTerminalPersistence(self._project_access)
+        self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review, self.source_outline._graph_writer)
         self.production_bridge_intent = ProductionBridgeIntentPersistence(self._project_access, self.production_bridge)
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None,
@@ -287,12 +297,21 @@ class ProjectSQLiteRepository:
             video_currentness=self._media.video_currentness,
             video_segments=self._media.video_segments,
             video_end_frames=self._media.video_end_frames,
+            shot_presentations=self._media.shot_presentations,
         )
         self.video_dispatch = ProjectVideoDispatchAccess(self._read, self._lifecycle_write)
+        from .video_batches import VideoBatches
+        self.video_batches = VideoBatches(self.video_dispatch)
 
     def _schema_tables(self) -> list[Any]:
         from ..schema import Base
         return [table for table in Base.metadata.sorted_tables if table.name in PROJECT_TEXT_PIPELINE_TABLE_NAMES]
+
+    def creative_handoff_execution_pin(self, request: Any) -> dict[str, str]:
+        """Expose only the candidate-bound execution pin, never a raw session."""
+
+        with self._read() as session:
+            return execution_pin_for_candidate(session, request)
 
     def close(self) -> None:
         self._database.close()
@@ -378,36 +397,6 @@ class ProjectSQLiteRepository:
             if row.state != state:
                 row.state, row.revision, row.changed_at = state, row.revision + 1, utc_now()
             return row.state, row.revision
-
-    @contextmanager
-    def _read(self) -> Iterator[Session]:
-        with read_lease(self._sessions) as session:
-            yield session
-
-    @contextmanager
-    def _write(self) -> Iterator[Session]:
-        with write_lease(self._sessions, self._write_lock) as session:
-            yield session
-
-    @contextmanager
-    def _bootstrap_write(self) -> Iterator[Session]:
-        with bootstrap_lease(self._sessions, self._write_lock, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @contextmanager
-    def _lifecycle_write(self) -> Iterator[Session]:
-        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @contextmanager
-    def _work_unit_claim_write(self) -> Iterator[Session]:
-        with work_unit_claim_lease(self._sessions, self._write_lock, is_contention=self._is_sqlite_lock_contention) as session:
-            yield session
-
-    @staticmethod
-    def _is_sqlite_lock_contention(error: OperationalError) -> bool:
-        message = str(error).lower()
-        return "database is locked" in message or "database table is locked" in message
 
     def _project_row(self, session: Session, project_id: str) -> ProjectRow:
         if project_id != self.project_id:

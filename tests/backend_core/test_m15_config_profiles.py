@@ -14,14 +14,15 @@ def test_repo_root_dotenv_is_non_overriding_and_profile_keys_do_not_cross(monkey
     (tmp_path / "pyproject.toml").write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
     (tmp_path / ".env").write_text(
         "TEXT_MODEL=dotenv-model\n"
-        "TEXT_MODEL_API_KEY=dotenv-default\n"
+        "PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY=dotenv-default\n"
         "PLOTLOOM_PROFILE_QUALITY_TEXT_API_KEY=dotenv-quality\n",
         encoding="utf-8",
     )
     monkeypatch.setenv("TEXT_MODEL", "host-model")
     monkeypatch.setenv("PLOTLOOM_PROFILE_QUALITY_TEXT_API_KEY", "host-quality")
-    monkeypatch.delenv("TEXT_MODEL_API_KEY", raising=False)
-    monkeypatch.delenv("ATLASCLOUD_API_KEY", raising=False)
+    monkeypatch.delenv("PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY", raising=False)
+    monkeypatch.setenv("TEXT_MODEL_API_KEY", "retired-global-key")
+    monkeypatch.setenv("ATLASCLOUD_API_KEY", "retired-provider-key")
     monkeypatch.delenv("PLOTLOOM_PROFILE_OTHER_TEXT_API_KEY", raising=False)
 
     settings = PlotloomSettings.from_env(tmp_path)

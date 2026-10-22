@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { plotloomApi } from "../api";
 import { BranchingVideoPreview } from "../branching-video-preview";
-import { ErrorNotice, Spinner } from "../components";
+import { Button, ErrorNotice, Spinner } from "../components";
+import { sourceWorkflowHref } from "../app/workspace/sourceWorkflowNavigation";
 import type { SceneBeatPlan, StoryGraph, Storyboard, VideoJob } from "../types";
 
 type PlayData = {
@@ -11,6 +12,7 @@ type PlayData = {
   storyboard: Storyboard;
   jobs: VideoJob[];
 };
+type PlaybackPrerequisites = { kind: "missing-production"; missing: string[] } | { kind: "outdated-production" } | { kind: "archived" };
 
 function stagePayload<T>(stages: Awaited<ReturnType<typeof plotloomApi.getStages>>["stages"], stage: string): T | undefined {
   const payload = stages.find((item) => item.head.stage === stage)?.payload;
@@ -26,6 +28,8 @@ export function PlayView() {
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
   const [data, setData] = useState<PlayData>();
   const [error, setError] = useState("");
+  const [prerequisites, setPrerequisites] = useState<PlaybackPrerequisites>();
+  const [readRevision, setReadRevision] = useState(0);
 
   useEffect(() => {
     if (!projectId) {
@@ -35,17 +39,32 @@ export function PlayView() {
     const controller = new AbortController();
     setData(undefined);
     setError("");
+    setPrerequisites(undefined);
     void Promise.all([
       plotloomApi.getProject(projectId, controller.signal),
       plotloomApi.getStages(projectId, controller.signal),
       plotloomApi.getVideoJobs(projectId),
-    ]).then(([project, stageResponse, videos]) => {
+      plotloomApi.getProductionBridge(projectId, controller.signal),
+    ]).then(([project, stageResponse, videos, bridge]) => {
       if (controller.signal.aborted) return;
+      if (project.lifecycleStatus === "archived") {
+        setPrerequisites({ kind: "archived" });
+        return;
+      }
+      // Retained payloads and media are evidence, not current production. Check
+      // their owning authority before a clip-level projection can misdiagnose
+      // invalidated selections as missing clips to review.
+      if (bridge.installation?.status === "outdated" || stageResponse.stages.some(
+        ({ head }) => ["story_bible", "story_graph", "scene_beats", "storyboard"].includes(head.stage) && head.status === "stale",
+      )) {
+        setPrerequisites({ kind: "outdated-production" });
+        return;
+      }
       const graph = stagePayload<StoryGraph>(stageResponse.stages, "story_graph");
       const sceneBeats = stagePayload<SceneBeatPlan>(stageResponse.stages, "scene_beats");
       const storyboard = stagePayload<Storyboard>(stageResponse.stages, "storyboard");
       if (!graph || !sceneBeats || !storyboard) {
-        setError("这个项目尚未具备可播放的故事、场景或分镜内容。");
+        setPrerequisites({ kind: "missing-production", missing: [!graph && "故事路线", !sceneBeats && "场景内容", !storyboard && "分镜内容"].filter((value): value is string => Boolean(value)) });
         return;
       }
       setData({ title: project.brief.title || "未命名故事", graph, sceneBeats, storyboard, jobs: videos.jobs });
@@ -54,16 +73,29 @@ export function PlayView() {
       setError(reason instanceof Error ? reason.message : "无法加载播放内容。");
     });
     return () => controller.abort();
-  }, [projectId]);
+  }, [projectId, readRevision]);
 
   return <main className="play-shell" data-testid="play-view">
     <header className="play-header">
-      <a className="brand" href={projectId ? workbenchUrl(projectId) : "?stage=brief"}><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>PLAY VIEW</small></div></a>
+      <a className="brand" href={projectId ? workbenchUrl(projectId) : "?stage=brief"}><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>故事播放</small></div></a>
       {projectId && <a className="button quiet" href={workbenchUrl(projectId)}>返回工作台</a>}
     </header>
     <section className="play-stage">
-      {error ? <ErrorNotice message={error} /> : !data ? <div className="play-loading"><Spinner label="正在加载故事" /></div> : <>
-        <span className="eyebrow">Interactive story</span>
+      {error ? <><ErrorNotice message={error} />{projectId && <Button variant="quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取播放内容</Button>}</> : prerequisites ? <section aria-labelledby="play-prerequisites-title">
+        {prerequisites.kind === "archived" ? <>
+          <h1 id="play-prerequisites-title">项目已归档，暂不能播放故事</h1>
+          <p>原片、片段和审核记录仍保留，可返回工作台查看。</p>
+          <p>继续制作或播放前，请先在项目目录中恢复项目，再核对当前内容与播放片段。</p>
+        </> : prerequisites.kind === "outdated-production" ? <>
+          <h1 id="play-prerequisites-title">故事已修改，需要重新建立制作内容</h1>
+          <p>已有制作内容与当前故事或创作设置不一致，暂不能播放。旧视频仍保留；请先完成受影响内容的审阅，明确重建制作内容，再重新审核并选用当前播放片段。</p>
+        </> : <>
+          <h1 id="play-prerequisites-title">故事尚未准备好</h1>
+          <p>尚未建立可播放的{prerequisites.missing.join("、")}。确认创作方案后，还需单独建立制作内容；确认方案不会自动完成这一步。</p>
+        </>}
+        {prerequisites.kind !== "archived" && <a className="button quiet" href={sourceWorkflowHref(projectId, "storyboard-review")}>前往分镜评审与制作</a>}
+      </section> : !data ? <div className="play-loading"><Spinner label="正在加载故事" /></div> : <>
+        <span className="eyebrow">互动故事</span>
         <h1>{data.title}</h1>
         <p>从开场开始；故事会在分歧处停下，等待你的选择。</p>
         <BranchingVideoPreview projectId={projectId} jobs={data.jobs} storyboard={data.storyboard} sceneBeats={data.sceneBeats} graph={data.graph} title="故事播放" restartLabel="从头开始" />

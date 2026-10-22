@@ -7,15 +7,29 @@ must decide whether, and at which current revision, to install it.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from .text_correction_contracts import TextCorrection
 
 
-CREATIVE_STAGES = ("outline", "characters", "art", "script", "storyboard")
-CreativeStage = Literal["outline", "characters", "art", "script", "storyboard"]
+CREATIVE_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation", "video-directions")
+CreativeStage = Literal["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation", "video-directions"]
+CREATIVE_CANDIDATE_FILENAMES = {
+    "branches": "branches.json",
+    "outline": "outline.json",
+    "characters": "cast.json",
+    "art": "art.json",
+    "script": "script.json",
+    "storyboard": "storyboard.json",
+    "bridge-intent": "intent.json",
+    "bridge-presentation": "presentation.json",
+    "video-directions": "directions.json",
+}
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
 JOB_ID_PATTERN = r"^ch_[a-z0-9]{20,64}$"
 DELIVERY_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
@@ -41,6 +55,8 @@ class CreativeHandoffRequest(CamelModel):
     source: dict[str, Any]
     input_artifacts: dict[str, Any] = Field(default_factory=dict)
     creative_brief: str = Field(min_length=1, max_length=20_000)
+    text_correction: TextCorrection | None = Field(default=None, exclude_if=lambda value: value is None)
+    content_validation_contract: Literal["plotloom.typed-content-result.v1"] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("source")
     @classmethod
@@ -73,6 +89,24 @@ class CreativeHandoffRequest(CamelModel):
             raise CreativeHandoffError("request_secret", "creative handoff requests must not contain credentials")
 
 
+def creative_handoff_request_from_package(package_payload: Mapping[str, Any]) -> CreativeHandoffRequest:
+    """Project a frozen package onto the exact creative request contract.
+
+    Package metadata is validated by its package owner. This shared projection
+    keeps request validation and completion publication aligned as that
+    metadata evolves, while the request model itself continues to reject extras.
+    """
+    if not isinstance(package_payload, Mapping):
+        raise TypeError("creative handoff package payload must be an object")
+    request_fields = {
+        field.alias or name
+        for name, field in CreativeHandoffRequest.model_fields.items()
+    }
+    return CreativeHandoffRequest.model_validate({
+        key: value for key, value in package_payload.items() if key in request_fields
+    })
+
+
 class CreativeOutput(CamelModel):
     filename: str = Field(min_length=1, max_length=180)
     sha256: str = Field(pattern=SHA256_PATTERN)
@@ -96,7 +130,13 @@ class CreativeExecutorProvenance(CamelModel):
 
 
 class CreativeDeliveryManifest(CamelModel):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1, 2, 3] = 1
+    executor_backend: Literal["codex_exec"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    codex_session_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
+    executor_profile_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
+    validation_plan_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
+    validation_evidence_hash: str | None = Field(default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None)
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
@@ -110,6 +150,23 @@ class CreativeDeliveryManifest(CamelModel):
     def filenames_are_distinct(self) -> "CreativeDeliveryManifest":
         if self.candidate.filename == self.report.filename:
             raise ValueError("candidate and report filenames must differ")
+        executor_fields = (self.executor_backend, self.executor_attempt_id, self.codex_session_id, self.executor_profile_hash)
+        if self.schema_version == 1 and any(value is not None for value in executor_fields):
+            raise ValueError("specialist-chat creative manifests cannot claim Codex Exec identity")
+        if self.schema_version == 2 and (
+            self.executor_backend != "codex_exec" or self.executor_attempt_id is None
+            or self.codex_session_id is None or self.executor_profile_hash is None
+        ):
+            raise ValueError("Codex Exec creative manifests require their exact attempt, session and profile")
+        validation_fields = (self.validation_plan_hash, self.validation_evidence_hash)
+        if self.schema_version in {1, 2} and any(value is not None for value in validation_fields):
+            raise ValueError("older creative manifests cannot claim trusted text validation proof")
+        if self.schema_version == 3 and (
+            self.executor_backend != "codex_exec" or self.executor_attempt_id is None
+            or self.codex_session_id is None or self.executor_profile_hash is None
+            or any(value is None for value in validation_fields)
+        ):
+            raise ValueError("validated Codex Exec manifests require exact attempt, profile and validation proof")
         return self
 
     @field_validator("limitations")

@@ -105,6 +105,8 @@ class ApplicationStore:
             read=self._read, write=self._write
         )
         self._initialize_schema()
+        from .abandonment_ledger import ApplicationAbandonmentLedger
+        self.abandonment = ApplicationAbandonmentLedger(self)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, isolation_level=None)

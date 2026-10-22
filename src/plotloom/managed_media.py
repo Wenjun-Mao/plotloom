@@ -17,6 +17,7 @@ from pydantic import Field, field_validator, model_validator
 
 from .artifacts import ArtifactStore
 from .domain import CamelModel
+from .delegated_qa_contracts import AgentQaAttribution
 
 SUPPORTED_MEDIA_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png"}
 
@@ -62,11 +63,14 @@ class ImportDeclaration(CamelModel):
 
 
 class VisualIntentInput(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     role: Literal["protagonist_reference", "location_reference", "shot_keyframe"]
     identity_intent: str | None = Field(default=None, max_length=2_000)
     composition_intent: str | None = Field(default=None, max_length=2_000)
     style_intent: str | None = Field(default=None, max_length=2_000)
     source_refs: list[str] = Field(default_factory=list, max_length=32)
+    source_binding_id: str | None = Field(default=None, min_length=1, max_length=36, exclude_if=lambda value: value is None)
+    retained_visual_intent_id: str | None = Field(default=None, min_length=1, max_length=36, exclude_if=lambda value: value is None)
 
     @field_validator("source_refs")
     @classmethod
@@ -98,6 +102,7 @@ class VisualIntentInput(CamelModel):
 
 
 class ReviewedSelectionRequest(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     asset_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
     scene_id: str = Field(min_length=1, max_length=100)
@@ -105,6 +110,7 @@ class ReviewedSelectionRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     approval_id: str = Field(min_length=1, max_length=36)
     compatibility_note: str = Field(min_length=1, max_length=2_000)
+    expected_presentation_revision: int = Field(default=0, ge=0)
     visual_intent_id: str = Field(min_length=1, max_length=36)
     visual_intent_revision: int = Field(ge=1)
 

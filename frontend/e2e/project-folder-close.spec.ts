@@ -1,4 +1,4 @@
-import { expect, test } from "./fixture";
+import { expect, saveBriefAndContinue, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,29 +10,27 @@ test.describe("project-folder Close", () => {
   test("cancels a prepared source-outline handoff before Close, then reopens", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await saveBriefAndContinue(page);
     await expect(page).toHaveURL(/[?&]project=/);
     await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     await page.getByLabel("标题").fill("E2E：取消 handoff 后关闭");
-    await page.getByLabel("来源正文或 treatment").fill("作者必须先取消正在等待 specialist 的候选，才能关闭项目。");
-    await page.getByLabel("归属 / 署名声明").fill("E2E 测试作者");
-    await page.getByLabel("使用权或许可声明").fill("仅用于 E2E 测试；不构成法律确认。");
-    await page.getByLabel("改编意图").fill("验证取消、关闭和重新打开的持久化边界。");
-    await page.getByRole("button", { name: "保存接受的来源" }).click();
-    await page.getByRole("button", { name: "准备 specialist handoff" }).click();
-  await expect(page.getByText(/^等待 specialist ·/)).toBeVisible();
-    await page.getByRole("button", { name: "取消并废弃此 handoff" }).click();
+    await page.getByLabel("故事内容").fill("作者必须先取消正在等待 specialist 的候选，才能关闭项目。");
+    await page.getByLabel("补充创作要求（可选）").fill("验证取消、关闭和重新打开的持久化边界。");
+    await page.getByRole("button", { name: "确认改编内容" }).click();
+    await page.getByRole("button", { name: "准备大纲任务" }).click();
+    await expect(page.getByText(/^任务尚未交付 · 发送状态见下方 ·/)).toBeVisible();
+    await page.getByRole("button", { name: "取消此任务" }).click();
     await expect(page.getByText("已取消")).toBeVisible();
 
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+    await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" }).click();
     await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     await expect(page.getByText("已取消")).toBeVisible();
   });
@@ -40,9 +38,8 @@ test.describe("project-folder Close", () => {
   test("immediately drains an authoring draft, closes, reopens, and recovers after a file-SQLite restart", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await saveTeachingSampleAndReturnToBrief(page, workbench.frontendOrigin);
     await expect(page).toHaveURL(/[?&]project=/);
-    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const canonicalTitle = await page.getByLabel("片名").inputValue();
@@ -63,21 +60,26 @@ test.describe("project-folder Close", () => {
 
     // Do not wait for the idle timer. Close must drain this queued local
     // authoring buffer without treating a durable receipt as canonical Save.
-    await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
-    await draftStarted;
-    await page.getByLabel("片名").fill(draftTitle);
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await expect(page.getByRole("heading", { name: "保存草稿并关闭项目？" })).toBeVisible();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.getByRole("button", { name: "保存草稿并关闭" }).click();
-    releaseDraft();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
+      await draftStarted;
+      await page.getByLabel("片名").fill(draftTitle);
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
+      await expect(page.getByRole("heading", { name: "保存草稿并关闭项目？" })).toBeVisible();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.getByRole("button", { name: "保存草稿并关闭" }).click();
+    } finally {
+      releaseDraft();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
-
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
+    await openBrief(page);
+    await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(draftTitle);
 
@@ -89,9 +91,8 @@ test.describe("project-folder Close", () => {
   test("freezes edits and navigation until a held Close response resolves", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await saveTeachingSampleAndReturnToBrief(page, workbench.frontendOrigin);
     await expect(page).toHaveURL(/[?&]project=/);
-    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
 
@@ -105,43 +106,50 @@ test.describe("project-folder Close", () => {
       await route.continue();
     });
 
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await closeStarted;
-
-    await expect(page.getByText("正在关闭项目", { exact: true })).toBeVisible();
-    await expect(page.getByLabel("片名")).toBeDisabled();
-    const stageNavigation = page.getByRole("navigation", { name: "工作台阶段" }).locator("button").nth(1);
-    await expect(stageNavigation).toBeDisabled();
-
-    releaseClose();
+    try {
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
+      await closeStarted;
+      await expect(page.getByText("正在关闭项目", { exact: true })).toBeVisible();
+      await expect(page.getByLabel("片名")).toBeDisabled();
+      const stageNavigation = page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" });
+      await expect(stageNavigation).toBeDisabled();
+    } finally {
+      releaseClose();
+    }
     await expect(page.getByText("正在关闭项目", { exact: true })).not.toBeVisible();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/close");
   });
 
   test("discards only the current authoring draft durably before Close", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await saveTeachingSampleAndReturnToBrief(page, workbench.frontendOrigin);
     await expect(page).toHaveURL(/[?&]project=/);
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const canonicalTitle = await page.getByLabel("片名").inputValue();
     const draftHold = await holdFirstAuthoringDraft(page);
-    await page.getByLabel("片名").fill("earlier draft before discard");
-    await draftHold.started;
-    await page.getByLabel("片名").fill("this draft must be discarded from project storage");
-
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.getByRole("button", { name: "丢弃" }).click();
-    draftHold.release();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByLabel("片名").fill("earlier draft before discard");
+      await draftHold.started;
+      await page.getByLabel("片名").fill("this draft must be discarded from project storage");
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.getByRole("button", { name: "丢弃当前草稿并关闭", exact: true }).click();
+    } finally {
+      draftHold.release();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());
 
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
+    await openBrief(page);
     await expect(page.getByLabel("片名")).toHaveValue(canonicalTitle);
     const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
     expect(drafts.ok()).toBeTruthy();
@@ -151,15 +159,12 @@ test.describe("project-folder Close", () => {
   test("keeps a durable draft and the project open when Close fails", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await saveTeachingSampleAndReturnToBrief(page, workbench.frontendOrigin);
     await expect(page).toHaveURL(/[?&]project=/);
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const draftTitle = "Close failure keeps this durable draft";
     const draftHold = await holdFirstAuthoringDraft(page);
-    await page.getByLabel("片名").fill("earlier draft before Close failure");
-    await draftHold.started;
-    await page.getByLabel("片名").fill(draftTitle);
     let markCloseFailed!: () => void;
     const closeFailed = new Promise<void>((resolve) => { markCloseFailed = resolve; });
     await page.route("**/api/v2/projects/*/close", async (route) => {
@@ -167,10 +172,16 @@ test.describe("project-folder Close", () => {
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ detail: "close transport unavailable" }) });
     });
 
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    await page.getByRole("button", { name: "保存草稿并关闭" }).click();
-    draftHold.release();
+    try {
+      await page.getByLabel("片名").fill("earlier draft before Close failure");
+      await draftHold.started;
+      await page.getByLabel("片名").fill(draftTitle);
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
+      await page.getByRole("button", { name: "保存草稿并关闭" }).click();
+    } finally {
+      draftHold.release();
+    }
     await closeFailed;
     await expect(page.getByLabel("片名")).toHaveValue(draftTitle);
     await expect.poll(async () => (await fetch(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).status).toBe(200);
@@ -178,6 +189,8 @@ test.describe("project-folder Close", () => {
       const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
       return (await drafts.json() as Array<{ payload: { title: string } }>).some((draft) => draft.payload.title === draftTitle);
     }).toBe(true);
+    await expect(page.getByRole("dialog", { name: "项目目录" }).getByRole("alert")).toContainText("服务请求失败（HTTP 503）");
+    await expect(page.getByLabel("片名")).toBeEnabled();
     await page.unroute("**/api/v2/projects/*/close");
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
   });
@@ -185,11 +198,12 @@ test.describe("project-folder Close", () => {
   test("drains a queued visual-intent draft before Close and restores it after Open and restart", async ({ page, request, workbench }) => {
     const projectId = await createStoryboardProject(request, workbench.apiOrigin, "Close media draft fixture");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-    await page.getByLabel("审核人标签").fill("close-media reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
+    await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
     await page.getByLabel("来源声明").fill("Close/reopen durable media-draft fixture.");
     await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
-    await page.getByLabel("候选图像比较").locator(".media-candidate").getByRole("button", { name: "保留此候选" }).click();
+    await page.getByLabel("候选图像比较").locator(".media-candidate").getByTestId(/^keep-candidate-/).click();
+    await page.getByText("关键帧与静帧预览", { exact: true }).click();
     await page.getByTestId("visual-intent-source-refs").fill("canonical visual intent source");
     await page.getByTestId("save-visual-intent").click();
     await page.getByLabel("审核兼容性说明").fill("Reviewed source asset for close draft recovery.");
@@ -209,25 +223,32 @@ test.describe("project-folder Close", () => {
       await route.continue();
     });
     const durableSource = "queued media direction survives Close";
-    await page.getByTestId("visual-intent-source-refs").fill(durableSource);
-    await draftStarted;
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-    const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
-    releaseDraft();
+    let closeResponse!: ReturnType<typeof waitForCloseResponse>;
+    try {
+      await page.getByTestId("visual-intent-source-refs").fill(durableSource);
+      await draftStarted;
+      await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+      closeResponse = waitForCloseResponse(page, projectId);
+      await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
+    } finally {
+      releaseDraft();
+    }
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.unroute("**/api/v2/projects/*/authoring-drafts");
     await page.evaluate(() => sessionStorage.clear());
 
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+    await openMediaWorkbench(page);
+    await page.getByText("关键帧与静帧预览", { exact: true }).click();
     await expect(page.getByTestId("visual-intent-source-refs")).toHaveValue(durableSource);
   });
 
   test("drains an acknowledged image direction after switching away from its shot", async ({ page, request, workbench }) => {
     const projectId = await createStoryboardProject(request, workbench.apiOrigin, "Close switched direction fixture");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+    await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
     const direction = page.getByTestId("image-job-presentation-change");
     const originalDirection = "keep this acknowledged direction after switching shots";
     await direction.fill(originalDirection);
@@ -238,7 +259,7 @@ test.describe("project-folder Close", () => {
       );
     }).toBe(true);
 
-    const shotSelector = page.getByLabel("当前媒体镜头");
+    const shotSelector = page.getByRole("combobox", { name: "当前镜头", exact: true });
     const shotIds = await shotSelector.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
     expect(shotIds.length).toBeGreaterThan(1);
     await shotSelector.selectOption(shotIds[1]);
@@ -246,20 +267,22 @@ test.describe("project-folder Close", () => {
 
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
+    await expectClosedDirectoryRow(page, projectId);
     await page.evaluate(() => sessionStorage.clear());
 
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
-    await page.getByLabel("当前媒体镜头").selectOption(shotIds[0]);
+    await openMediaWorkbench(page);
+    await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption(shotIds[0]);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
   });
 
   test("drains a cleared image direction after a media switch so reopening cannot resurrect it", async ({ page, request, workbench }) => {
     const projectId = await createStoryboardProject(request, workbench.apiOrigin, "Close cleared direction fixture");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+    await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
     const direction = page.getByTestId("image-job-presentation-change");
     await direction.fill("remove this server-backed image direction");
     await expect.poll(async () => {
@@ -267,7 +290,7 @@ test.describe("project-folder Close", () => {
       return (await drafts.json() as Array<{ editorScope: string }>).some((draft) => draft.editorScope === "image_direction");
     }).toBe(true);
 
-    const shotSelector = page.getByLabel("当前媒体镜头");
+    const shotSelector = page.getByRole("combobox", { name: "当前镜头", exact: true });
     const shotIds = await shotSelector.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
     if (shotIds.length > 1) {
       await shotSelector.selectOption(shotIds[1]);
@@ -276,17 +299,49 @@ test.describe("project-folder Close", () => {
     await direction.fill("");
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const closeResponse = waitForCloseResponse(page, projectId);
-    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目" }).click();
     expect((await closeResponse).ok()).toBeTruthy();
     await page.evaluate(() => sessionStorage.clear());
 
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+    await openMediaWorkbench(page);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
     const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
     expect(await drafts.json()).toEqual([]);
   });
 });
+
+async function openBrief(page: import("@playwright/test").Page): Promise<void> {
+  await expect(page.getByRole("heading", { name: "创作工作台", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
+}
+
+async function expectClosedDirectoryRow(page: import("@playwright/test").Page, projectId: string): Promise<void> {
+  // Close responds before directory refresh. Settle this UI-owned read before
+  // removing the last network interceptor or restarting the fixture backend.
+  // Neither action may interrupt the persisted Open/recovery readback.
+  const row = page.locator(`.directory-item[data-project-id="${projectId}"]`);
+  await expect(row).toContainText("已关闭 · 可安全复制");
+  await expect(row.getByRole("button", { name: "重新打开" })).toBeVisible();
+  await expect(row.getByRole("button", { name: "重新打开" })).toBeEnabled();
+}
+
+async function openMediaWorkbench(page: import("@playwright/test").Page): Promise<void> {
+  const tools = page.getByRole("navigation", { name: "编辑与工具" });
+  if (!(await tools.isVisible())) await page.getByText("编辑与工具", { exact: true }).click();
+  await tools.getByRole("button", { name: "分镜工作台", exact: true }).click();
+  await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
+}
+
+async function saveTeachingSampleAndReturnToBrief(page: import("@playwright/test").Page, frontendOrigin: string): Promise<void> {
+  await saveBriefAndContinue(page);
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+  const projectId = new URL(page.url()).searchParams.get("project");
+  if (!projectId) throw new Error("teaching sample was not saved");
+  await page.goto(`${frontendOrigin}/v2/?project=${projectId}&stage=brief`);
+  await expect(page.getByRole("button", { name: "保存修改" })).toBeVisible();
+  await page.locator(".topbar-technical-status > summary").click();
+}
 
 async function createStoryboardProject(
   request: import("@playwright/test").APIRequestContext,

@@ -23,7 +23,7 @@ const scene = (id: string, storyNodeId: string, title: string, objective: string
 
 const shot = (id: string, sceneId: string, order: number, title: string, shotSize: Shot["shotSize"], durationUnits: number, action: string, cueIds: string[], characterIds: string[] = ["char_ruanxing"]): Shot => ({
   id, sceneId, order, title, shotSize, durationUnits, cameraAngle: "eye_level", cameraMovement: "stable", composition: "subject-led",
-  visualIntent: action, motionIntent: action, action, transition: "cut", cueIds, audioPlan: audio(durationUnits),
+  visualIntent: action, motionIntent: action, action, visibleTexts: [], transition: "cut", cueIds, audioPlan: audio(durationUnits),
   characterIds, locationId: "loc_control", propIds: [], requiredEntityStates: [], entryState: continuity("承接上一镜"), exitState: continuity("稳定停留"),
 });
 
@@ -62,7 +62,7 @@ export const demoProject: WorkspaceProject = {
   storyGraph: {
     startNodeId: "arrival",
     nodes: [
-      { id: "arrival", title: "冲入控制室", kind: "start", summary: "倒计时 47 秒，救生舱开始失压。" }, { id: "diagnose", title: "诊断双重故障", kind: "decision", summary: "两条能源回路互斥。" }, { id: "memory", title: "恢复全城记忆", kind: "scene", summary: "选择金色记忆总线。" }, { id: "rescue", title: "释放弟弟", kind: "scene", summary: "选择青色救生总线。" }, { id: "join", title: "弟弟请求自决", kind: "join", summary: "两条路径在通讯恢复处汇合。" }, { id: "final_decision", title: "交出最后指令", kind: "decision", summary: "阮星决定由谁承担最后一次选择。" }, { id: "ending_city", title: "城市醒来", kind: "ending", summary: "记忆恢复，救生舱沉默。" }, { id: "ending_brother", title: "两个人的黎明", kind: "ending", summary: "弟弟获救，城市失去名字。" }, { id: "ending_choice", title: "由他选择", kind: "ending", summary: "阮星交出最后指令权。" },
+      { id: "arrival", title: "冲入控制室", kind: "start", summary: "倒计时 47 秒，救生舱开始失压。", footageMode: "footage" }, { id: "diagnose", title: "诊断双重故障", kind: "decision", summary: "两条能源回路互斥。", footageMode: "footage" }, { id: "memory", title: "恢复全城记忆", kind: "scene", summary: "选择金色记忆总线。", footageMode: "footage" }, { id: "rescue", title: "释放弟弟", kind: "scene", summary: "选择青色救生总线。", footageMode: "footage" }, { id: "join", title: "弟弟请求自决", kind: "join", summary: "两条路径在通讯恢复处汇合。", footageMode: "footage" }, { id: "final_decision", title: "交出最后指令", kind: "decision", summary: "阮星决定由谁承担最后一次选择。", footageMode: "footage" }, { id: "ending_city", title: "城市醒来", kind: "ending", summary: "记忆恢复，救生舱沉默。", footageMode: "footage" }, { id: "ending_brother", title: "两个人的黎明", kind: "ending", summary: "弟弟获救，城市失去名字。", footageMode: "footage" }, { id: "ending_choice", title: "由他选择", kind: "ending", summary: "阮星交出最后指令权。", footageMode: "footage" },
     ],
     edges: [
       { id: "e1", sourceNodeId: "arrival", targetNodeId: "diagnose", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] }, { id: "e2", sourceNodeId: "diagnose", targetNodeId: "memory", kind: "choice", choiceText: "金色键", stateEffects: { memoryBus: "active" }, entityStateEffects: [] }, { id: "e3", sourceNodeId: "diagnose", targetNodeId: "rescue", kind: "choice", choiceText: "青色键", stateEffects: { rescueBus: "active" }, entityStateEffects: [] }, { id: "e4", sourceNodeId: "memory", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: { channel: "open" }, entityStateEffects: [] }, { id: "e5", sourceNodeId: "rescue", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: { channel: "open" }, entityStateEffects: [] }, { id: "e6", sourceNodeId: "join", targetNodeId: "final_decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] }, { id: "e7", sourceNodeId: "final_decision", targetNodeId: "ending_city", kind: "choice", choiceText: "替他决定", stateEffects: { ending: "city" }, entityStateEffects: [] }, { id: "e8", sourceNodeId: "final_decision", targetNodeId: "ending_brother", kind: "choice", choiceText: "切向救生舱", stateEffects: { ending: "brother" }, entityStateEffects: [] }, { id: "e9", sourceNodeId: "final_decision", targetNodeId: "ending_choice", kind: "choice", choiceText: "交出权限", stateEffects: { ending: "agency" }, entityStateEffects: [] },
@@ -84,7 +84,7 @@ export const demoProject: WorkspaceProject = {
     ],
     shotBeatLinks: [["shot_01", "b1"], ["shot_02", "b2"], ["shot_03", "b3"], ["shot_04", "b4"], ["shot_05", "b5"], ["shot_06", "b6"], ["shot_07", "b7"], ["shot_08", "b8"], ["shot_09", "b9"], ["shot_10", "b10"], ["shot_11", "b11"]].map(([shotId, beatId]) => ({ shotId, beatId, role: "primary" as const, coverageWeight: 1 })),
   } satisfies Storyboard,
-  quarantines: [{ id: "q1", stage: "story_graph", code: "GRAPH_ENDING_COUNT", message: "模型返回 2 个结局，合同要求 3 个。", rawOutput: "{\"nodes\":[...],\"endings\":[\"city\",\"brother\"]}", repairHint: "保留已有节点，增加一个由角色主动交出选择权形成的第三结局。" }], staleStages: [],
+  quarantines: [{ id: "q1", stage: "story_graph", code: "GRAPH_ENDING_COUNT", message: "模型返回 2 个结局，合同要求 3 个。", status: "quarantined", repairEligible: false, repairReasonCode: "repair.not_eligible" }], staleStages: [],
 };
 
 const demoStageHead = (stage: "story_bible" | "story_graph" | "scene_beats" | "storyboard", status: "ready" | "stale") => ({ stage, status, revision: 1, schemaVersion: 2 as const, entityRevisionId: `demo-${stage}-r1`, contentHash: `demo-${stage}-hash`, inputRevisions: {}, staleReasons: status === "stale" ? ["教学草案中的上游示例已变化"] : [], updatedAt: "2026-08-30T00:00:00Z" });
@@ -98,5 +98,5 @@ export const demoTrace: TraceEvent[] = [
   { id: "t2", at: "10:42:08", stage: "story_bible", kind: "validation", title: "Schema and continuity checks passed", status: "ok", detail: "2 characters · 3 world rules · 3 themes" },
   { id: "t3", at: "10:42:09", stage: "story_graph", kind: "prompt", title: "Graph generation requested", status: "ok", systemPrompt: "构造有向无环叙事图；遵守节点预算、出度和结局数。", userPrompt: "节点预算 10；每路径 2 个决定；3 个结局；期望 1 个汇合。" },
   { id: "t4", at: "10:42:17", stage: "story_graph", kind: "validation", title: "Graph contract rejected", status: "error", detail: "GRAPH_ENDING_COUNT: expected 3, received 2", payload: { expectedEndingCount: 3, actualEndingCount: 2 } },
-  { id: "t5", at: "10:42:17", stage: "story_graph", kind: "error", title: "Output moved to quarantine", status: "warning", detail: "No project stage was overwritten. Repair can reuse the raw output." },
+  { id: "t5", at: "10:42:17", stage: "story_graph", kind: "error", title: "输出已隔离", status: "warning", detail: "未覆盖任何正式内容。此教学记录不提供可执行的单独修复。" },
 ];

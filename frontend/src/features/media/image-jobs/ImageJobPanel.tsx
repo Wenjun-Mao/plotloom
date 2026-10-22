@@ -1,13 +1,19 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import type { ImageJob, ReviewedKeyframe } from "../../../types";
 import { Badge, Button, Field } from "../../../components";
 import {
   type ImageJobDraftTarget,
   useImageJobDirectionDraft,
 } from "../../../visual-intent-drafts";
+import type { MediaReadPhase } from "../useMediaWorkbenchData";
+import { shotImageJobs } from "./image-job-visibility";
+import { imageJobNotice } from "./image-job-state";
 
 type ImageJobDirection = ReturnType<typeof useImageJobDirectionDraft>;
 type DeliveryCandidate = ImageJob["deliveries"][number]["candidates"][number];
+const imageJobStateLabel: Record<ImageJob["state"], string> = { prepared: "已准备", exported: "待交付", delivered: "已交付", cancelled: "已取消" };
+const deliveryStateLabel: Record<ImageJob["deliveries"][number]["state"], string> = { accepted: "交付检查通过", inapplicable: "当前不适用", rejected: "交付检查未通过" };
+const candidateRoleLabel: Record<DeliveryCandidate["role"], string> = { original: "原始图片", refinement: "参考细化", keyframe_adaptation: "关键帧比例适配" };
 
 export function ImageJobPanel({
   imageExchangeConfigured,
@@ -20,8 +26,11 @@ export function ImageJobPanel({
   readOnly,
   busy,
   imageJobs,
+  shotId,
+  mediaReadPhase = "ready",
   imageJobRefreshNotice,
   selectedBinding,
+  reviewedKeyframes = [],
   onPrepare,
   onCopy,
   onRefresh,
@@ -37,31 +46,37 @@ export function ImageJobPanel({
   readOnly: boolean;
   busy: boolean;
   imageJobs: ImageJob[];
+  shotId?: string;
+  mediaReadPhase?: MediaReadPhase;
   imageJobRefreshNotice: Record<string, string>;
   selectedBinding: ReviewedKeyframe | undefined;
+  reviewedKeyframes?: ReviewedKeyframe[];
   onPrepare: () => void;
   onCopy: (jobId: string) => void;
   onRefresh: (jobId: string) => void;
   onCancel: (jobId: string) => void;
 }) {
+  const [showProjectHistory, setShowProjectHistory] = useState(false);
+  const scopedJobs = shotImageJobs(imageJobs, shotId);
+  const visibleJobs = showProjectHistory ? imageJobs : scopedJobs;
+  const mediaKnown = mediaReadPhase === "ready";
   return (
       <section className="image-job-panel" data-testid="image-job-panel">
         <div className="section-title">
-          <span>Codex image jobs · P1.5</span>
-          <strong>Prepare → Send → Generate → Auto-check → Select</strong>
+          <span>镜头图片</span>
+          <strong>准备任务 → 发送 → 等待交付 → 审核选择</strong>
         </div>
-        {!imageExchangeConfigured && (
+        {!mediaKnown && <small role="status">{mediaReadPhase === "loading" ? "正在读取图片请求与配置状态…" : "图片请求与配置状态暂时未知，请刷新媒体状态。"}</small>}
+        {mediaKnown && !imageExchangeConfigured && (
           <div className="notice warning">
-            尚未配置同机 exchange root。设置{" "}
-            <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code> 后重启服务；不会回退到外部
-            API。
+            图片任务的本机交付目录尚未配置，请联系管理员。技术设置为{" "}
+            <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code>；不会自动改用其他图像服务。
           </div>
         )}
         <p className="muted">
-          当前 storyboard Approval 冻结单镜头请求和角色映射后，专用同机 specialist
-          接收不可变 package；delivery 会自动检查并只在通过既有验证后显示为候选。队列接受不代表生成、delivery、Approval 或选择。H3/Qwen 不参与此流程。
+          当前分镜须先通过批准。准备任务会固定当前镜头和角色参考；发送后由图像生成助手执行。结果通过检查后才会显示为候选，还需要你审核选择。排队不代表生成完成，也不会自动批准或选用。
         </p>
-        {imageJobPrerequisite && (
+        {mediaKnown && imageJobPrerequisite && (
           <div className="notice warning" data-testid="image-job-prerequisite">
             {imageJobPrerequisite}
           </div>
@@ -107,8 +122,19 @@ export function ImageJobPanel({
             )}
           </select>
         </Field>
-        <Field label={imageJobTarget.kind === "keyframe_adaptation" ? "冻结的画面呈现 / 比例适配方向" : "冻结的画面呈现 / 细化变化"}>
+        {imageJobTarget.kind === "original" && <Field label="场景连续性参考（可选一张）">
+          <select data-testid="scene-continuity-source" disabled={readOnly || busy}
+            value={imageJobTarget.sceneContinuityBindingId ?? ""}
+            onChange={(event) => setImageJobTarget({ kind: "original", sceneContinuityBindingId: event.target.value || undefined })}>
+            <option value="">不使用场景参考</option>
+            {reviewedKeyframes.filter((binding) => binding.shotId !== shotId).map((binding) =>
+              <option key={binding.id} value={binding.id}>{binding.shotId} · 当前审核画面 {binding.assetId.slice(0, 8)}</option>)}
+          </select>
+          <small>冻结原始画面作为场景外观参考。当前镜头决定动作、构图、光线和物体状态；新图仍需审核，不保证模型忠实度。</small>
+        </Field>}
+        <Field label={imageJobTarget.kind === "keyframe_adaptation" ? "冻结的画面呈现 / 比例适配方向" : "冻结的画面呈现 / 细化变化"} required>
           <textarea
+            aria-required="true"
             data-testid="image-job-presentation-change"
             rows={3}
             value={imageJobDirection.value}
@@ -126,7 +152,7 @@ export function ImageJobPanel({
             data-testid="image-job-direction-stale"
           >
             这个会话草稿来自旧的
-            Approval、分镜或参考上下文。文本已保留但不会自动提交。
+            分镜批准、镜头或参考上下文。文本已保留但不会自动提交。
             <Button
               variant="quiet"
               onClick={imageJobDirection.recoverForCurrentContext}
@@ -141,7 +167,7 @@ export function ImageJobPanel({
         {imageJobDirection.dirty && !imageJobDirection.stale && (
           <div className="button-row">
             <small data-testid="image-job-direction-draft">
-              方向草稿会以当前分镜 revision 与目标上下文作 CAS 保存到项目；切换镜头、目标或刷新后可按其原始上下文恢复。
+              方向草稿按当前分镜版本和目标保存；切换镜头、目标或刷新后可恢复。若上下文已变化，系统不会用旧草稿覆盖新版本。
             </small>
             <Button
               data-testid="discard-image-job-direction"
@@ -178,12 +204,14 @@ export function ImageJobPanel({
             }
             onClick={() => void onPrepare()}
           >
-            准备{imageJobTarget.kind === "keyframe_adaptation" ? "关键帧比例适配" : imageJobTarget.kind === "refinement" ? "参考细化" : "原始"}{" "}
-            image job
+            准备{imageJobTarget.kind === "keyframe_adaptation" ? "关键帧比例适配" : imageJobTarget.kind === "refinement" ? "参考细化" : "原始图片"}任务
           </Button>
         </div>
+        {mediaKnown && shotId && scopedJobs.length < imageJobs.length && <Button variant="quiet" onClick={() => setShowProjectHistory(!showProjectHistory)}>
+          {showProjectHistory ? "只看当前镜头请求" : `查看全项目请求历史（${imageJobs.length}）`}
+        </Button>}
         <div className="image-job-history">
-          {imageJobs.map((job) => (
+          {visibleJobs.map((job) => (
             <article
               key={job.id}
               className="image-job-card"
@@ -195,16 +223,17 @@ export function ImageJobPanel({
                   {job.id.slice(0, 15)}
                 </strong>{" "}
                 <Badge tone={job.current ? "ok" : "warning"}>
-                  {job.current ? job.state.toUpperCase() : "INAPPLICABLE"}
+                  {job.current ? imageJobStateLabel[job.state] : "不适用（历史）"}
                 </Badge>
               </div>
+              {showProjectHistory && <small>镜头：{job.request.frozenSnapshot?.shot?.id ?? "历史请求未记录镜头"}</small>}
               <small>
                 冻结请求 {job.requestHash.slice(0, 12)} ·{" "}
                 {job.deliveries.length
-                  ? `${job.deliveries.length} delivery receipt`
+                  ? `${job.deliveries.length} 项交付记录`
                   : job.state === "exported"
-                    ? "已导出，等待 delivery"
-                    : "尚未导出 assignment"}
+                    ? "任务已导出，等待交付"
+                    : "尚无交付记录"}
               </small>
               <div className="button-row">
                 <Button
@@ -213,12 +242,13 @@ export function ImageJobPanel({
                   disabled={
                     readOnly ||
                     busy ||
+                    !mediaKnown ||
                     !job.current ||
-                    job.state === "cancelled"
+                    job.state !== "prepared"
                   }
                   onClick={() => void onCopy(job.id)}
                 >
-                  发送给 specialist
+                  发送给图像生成助手
                 </Button>
                 <Button
                   data-testid={`refresh-image-job-${job.id}`}
@@ -226,7 +256,7 @@ export function ImageJobPanel({
                   disabled={readOnly || busy}
                   onClick={() => void onRefresh(job.id)}
                 >
-                  立即检查 delivery
+                  立即检查交付
                 </Button>
                 <Button
                   variant="danger"
@@ -236,16 +266,16 @@ export function ImageJobPanel({
                   取消
                 </Button>
               </div>
-              {imageJobRefreshNotice[job.id] && (
+              {imageJobNotice(job, imageJobRefreshNotice[job.id]) && (
                 <small className="notice" role="status">
-                  {imageJobRefreshNotice[job.id]}
+                  {imageJobNotice(job, imageJobRefreshNotice[job.id])}
                 </small>
               )}
               {job.deliveries.map((delivery) => (
                 <div className="image-job-delivery" key={delivery.id}>
                   <small>
-                    {delivery.deliveryId ?? "rejected before identity"} ·{" "}
-                    {delivery.state}
+                    {delivery.deliveryId ?? "未能核验交付标识"} ·{" "}
+                    {deliveryStateLabel[delivery.state]}
                     {delivery.diagnosticCode
                       ? ` · ${delivery.diagnosticCode}`
                       : ""}
@@ -253,7 +283,7 @@ export function ImageJobPanel({
                   {delivery.candidates.map((candidate) => (
                     <div className="button-row" key={candidate.id}>
                       <small>
-                        候选 {candidate.assetId.slice(0, 8)} · {candidate.role}
+                        候选 {candidate.assetId.slice(0, 8)} · {candidateRoleLabel[candidate.role]}
                       </small>
                       <Button
                         data-testid={`prepare-refinement-${candidate.assetId}`}
@@ -279,10 +309,9 @@ export function ImageJobPanel({
               ))}
             </article>
           ))}
-          {!imageJobs.length && (
+          {mediaKnown && !visibleJobs.length && (
             <small>
-              尚无 P1 job。完成前置条件并准备后，可复制 assignment 给指定的
-              Codex specialist。
+              {shotId && !showProjectHistory ? "当前镜头尚无图片任务。" : "尚无图片任务。"}完成前置条件并准备后，可发送给指定的图像生成助手。
             </small>
           )}
         </div>

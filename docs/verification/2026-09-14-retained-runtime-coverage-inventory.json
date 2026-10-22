@@ -24,21 +24,6 @@
         "validate_correction_postconditions(response, [_cue_fact()]) == _mismatch(('dialogueCues',))"
       ]
     },
-    "tests/generation/test_work_unit_contracts.py::test_cue_order_fact_invariants_fail_closed": {
-      "source_sha256": "3c088e6dfeba13d213c4c7f43619594d2c93d9569864be8c186e51afd9f3150d",
-      "assertions": [
-        "raises: pytest.raises(ValidationError, match='complete dialogueCues')",
-        "raises: pytest.raises(ValidationError, match='local cue IDs must be unique')",
-        "raises: pytest.raises(ValidationError, match='contiguous within each beat')",
-        "raises: pytest.raises(ValidationError, match='canonical local cue ID order')"
-      ]
-    },
-    "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage": {
-      "source_sha256": "c4d8274d834d51d1fe2f8c323ddfefa3bb30350e39075cc9c528fd2850358d18",
-      "assertions": [
-        "raises: pytest.raises(ValidationError, match='primary map references')"
-      ]
-    },
     "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples": {
       "source_sha256": "1416a9e9d6c5c139c6ed24aab82109469986525da7bc50e3f0851ad42d8aee89",
       "assertions": [
@@ -91,7 +76,7 @@
       ]
     },
     "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence": {
-      "source_sha256": "af0fd56e77c97b4333002f70a7ea548aae1914dd70095f1017d5afc0a0c58c6a",
+      "source_sha256": "ac6a75d24160e15018cced95575b68ac60e0137d0b03e56bb734ae10db83318e",
       "assertions": [
         "[receipt['sampleOrdinal'] for receipt in receipts] == [1, 2]",
         "all((receipt['status'] == 'succeeded' for receipt in receipts))",
@@ -100,7 +85,7 @@
         "all((receipt['workloadHash'] == conformance.conformance_workload_hash() for receipt in receipts))",
         "all((receipt['topologyHash'] for receipt in receipts))",
         "all((receipt['issueCodes'] == [] for receipt in receipts))",
-        "all((receipt['tokens'] == {'inputTokens': 140, 'outputTokens': 220, 'totalTokens': 360} for receipt in receipts))",
+        "all((receipt['tokens'] == {'inputTokens': 7 * (2 + 2 * fixed_workload_footage_count()), 'outputTokens': 11 * (2 + 2 * fixed_workload_footage_count()), 'totalTokens': 18 * (2 + 2 * fixed_workload_footage_count())} for receipt in receipts))",
         "all((receipt['firstPass']['accepted'] == 4 for receipt in receipts))",
         "all((receipt['firstPass'] == {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0} for receipt in receipts))",
         "all((receipt['maxAttemptsPerWorkUnit'] == 1 for receipt in receipts))",
@@ -110,7 +95,7 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion": {
-      "source_sha256": "ce05b176528a0066fde26f382235261158aa2106e3ce55bc67ffc0159298de9c",
+      "source_sha256": "dcb78bed069d1d0d85d5071a405f1a3aca2afeca14845417686077c8e3e94861",
       "assertions": [
         "created.status_code == 201",
         "archived.status_code == 200",
@@ -132,16 +117,15 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues": {
-      "source_sha256": "0e271e273f35d88678ae65389c262f04ee5c2ba3cb9b1b6a71fbe34e7a8704d2",
+      "source_sha256": "06837c835352df219fab15f9690163cdbcbb589fffe21f42ad8b302124bf850f",
       "assertions": [
-        "created.status_code == 201",
         "response.status_code == 422",
         "response.json()['code'] == 'domain_validation'",
         "{'code': 'dead_end', 'path': 'nodes.arrival', 'message': 'non-ending nodes must have an outgoing edge'} in response.json()['issues']"
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications": {
-      "source_sha256": "bee0ae7ec287dffdaa7d6dd9faabd7e7c3d090ab81107ef1511060bc675e4d48",
+      "source_sha256": "12a92ee072ed949517a00aa9f26f0e84c20e8155702be7f078a5752ad87b9fa5",
       "assertions": [
         "created.status_code == 201",
         "archive.status_code == 409",
@@ -375,13 +359,13 @@
       ]
     },
     "tests/test_project_storage_exact_repair_recovery.py::test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_process_loss": {
-      "source_sha256": "173cee79ed3db698fef8b07b7307f837ece79a106736515824cab62d6bddd276",
+      "source_sha256": "68c20cec7e0e0b6f7b40d4300efd2fc9d246d38a30e2cb9920f98b0f6d2832cc",
       "assertions": [
         "parent.status == RunStatus.QUARANTINED",
         "target.stage == StageName.SCENE_BEATS",
-        "len(resolver.provider.requests) == requests_after_target + 9",
+        "len(resolver.provider.requests) == requests_after_target + fixed_workload_footage_count()",
         "len(repaired_attempts) == 1",
-        "len(reused_scene_candidates) == 8",
+        "len(reused_scene_candidates) == fixed_workload_footage_count() - 1",
         "[envelope.head.stage for envelope in canonical_stages] == list(STAGE_ORDER)",
         "all((envelope.head.revision == 1 for envelope in canonical_stages))",
         "parent_trace_after.pop('snapshot_is_current') is False",
@@ -469,7 +453,7 @@
       ]
     },
     "tests/test_project_storage_exact_repair_regressions.py::test_project_folder_permanent_delete_removes_terminal_repair_lineage_leaf_first": {
-      "source_sha256": "dde06d965f37507b44d3e332d2b36ef61ad39a7713b9481cfc34072ddf62ed90",
+      "source_sha256": "3dbda497ca73f40d41aec0644adad60aa8cf7e708063c34fccfce94da7662db0",
       "assertions": [
         "raises: pytest.raises(ProjectStorageError)"
       ]
@@ -613,7 +597,7 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths": {
-      "source_sha256": "ac233ada18c8dafffe78722af10da99c1574a82bbbc2e0d70eaa17b6ac08a563",
+      "source_sha256": "5e1ad13f3a191b27ce91314f67df118e0577bb7dbf99f96253572250714cbfc9",
       "assertions": [
         "attempted_path_authority.status_code == 422",
         "other_approval.status_code == 201",
@@ -650,7 +634,7 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source": {
-      "source_sha256": "dc4838b91c1ac7430aff45dc630942161dcb970e6e6abdc609b7e6114c55b169",
+      "source_sha256": "0e095dc1e55866bcf800d87b7571ef531f264dbf2dd64bbcdbb04157d7b53c61",
       "assertions": [
         "source.status_code == 201",
         "intent_draft.status_code == 200",
@@ -665,10 +649,37 @@
         "workbench['selectionRevision'] == selected.json()['selectionRevision']"
       ]
     },
-    "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement": {
-      "source_sha256": "795384b0e3805d227692ebffb6284e32834689aba86b41861c107b771b79f114",
+    "tests/test_project_storage_image_keyframe_acceptance.py::test_keyframe_adaptation_accepts_frozen_geometry_and_keeps_source_selected": {
+      "source_sha256": "dbeeb9891c78a051fc9872b77d571028b7c2f44f2ed177fac8a2f47338e6856c",
       "assertions": [
-        "client.get('/api/v2/authoring-draft-capabilities').json() == {'durableProjectDrafts': True, 'durableMediaDrafts': True, 'explicitProjectClose': True, 'portableSnapshots': True}",
+        "source.status_code == 201",
+        "intent_draft.status_code == 200",
+        "intent.status_code == 201",
+        "selected.status_code == 201",
+        "direction.status_code == 200",
+        "prepared.status_code == 201",
+        "request['kind'] == 'keyframe_adaptation'",
+        "frozen['sourceBindingId'] == selected.json()['id']",
+        "frozen['sourceOriginalHash'] == source.json()['originalHash']",
+        "frozen['outputContract'] == {'width': 576, 'height': 1024, 'mimeTypes': ['image/jpeg', 'image/png']}",
+        "[item['role'] for item in request['frozenSnapshot']['references']] == ['source_keyframe']",
+        "copied.status_code == 200",
+        "package_request['packageVersion'] == 6",
+        "package_request['nativeTaskBinding'] == {'mode': 'current_task'}",
+        "package_request['references'][0]['role'] == 'source_keyframe'",
+        "'complete 576x1024 composition' in package_request['deliveryInstruction']",
+        "accepted.status_code == 200",
+        "accepted.json()['state'] == 'accepted'",
+        "candidate['role'] == 'keyframe_adaptation'",
+        "candidate['assetId'] != source.json()['id']",
+        "workbench['reviewedKeyframes'][0]['assetId'] == source.json()['id']",
+        "workbench['selectionRevision'] == selected.json()['selectionRevision']"
+      ]
+    },
+    "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement": {
+      "source_sha256": "150361850c5724f856450612c69c498bce3263d9700b53648777385a163d76fa",
+      "assertions": [
+        "client.get('/api/v2/runtime-capabilities').json() == {'durableProjectDrafts': True, 'durableMediaDrafts': True, 'explicitProjectClose': True, 'portableSnapshots': True, 'apiTextPipeline': False}",
         "imported.status_code == 201",
         "client.get(f'/api/v2/projects/{second_id}/managed-assets').json()['assets'] == []",
         "visual_draft.status_code == 200",
@@ -755,50 +766,6 @@
       "assertions": [
         "response.status_code == 200",
         "'<main>Project workbench</main>' in response.text"
-      ]
-    },
-    "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay": {
-      "source_sha256": "3d2f4de2cf7045032b153f7ce8b760a5511e4d03f96eacc1656a3fece79d8068",
-      "assertions": [
-        "failed.status_code == 422",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0",
-        "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (identity,)) == [('reserved',)]",
-        "client.get(f'/api/v2/projects/{project_id}/video-jobs').json()['jobs'][0]['state'] == 'dispatching'",
-        "restarted_client.post(f\"/api/v2/projects/{project_id}/video-jobs/{before_event['id']}/submit\").status_code == 409",
-        "restarted_provider.preflight_calls == restarted_provider.upload_calls == 0",
-        "cancelled.status_code == 409",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0",
-        "_sqlite_rows(storage.application.path, 'SELECT event FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (race_identity,)) == [('reserved',), ('released_before_dispatch',)]",
-        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{raced['id']}/submit\").status_code == 409"
-      ]
-    },
-    "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger": {
-      "source_sha256": "5844de62949a1c0c27c6ff0e775f92ca54ad3c4088c4359f24ecf589e5587235",
-      "assertions": [
-        "submitted.status_code == 200",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1",
-        "_sqlite_rows(storage.application.path, 'SELECT event, units FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (dispatch_identity,)) == [('reserved', 5), ('dispatch_claimed', 5)]",
-        "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(project_database, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
-        "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(storage.application.path, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
-        "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (dispatch_identity,)) == [('dispatch_claimed',)]",
-        "opened.media.direct_video.list_video_jobs(project_id)[0]['state'] == 'dispatching'"
-      ]
-    },
-    "tests/test_project_storage_video.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post": {
-      "source_sha256": "a0cd0da7327725eb1945ecff1bd681ec833b964a59e80e3ba17dcc9ad476f25c",
-      "assertions": [
-        "unknown.status_code == 200",
-        "unknown.json()['state'] == 'outcome_unknown'",
-        "retry.status_code == 409",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
-      ]
-    },
-    "tests/test_project_storage_video.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call": {
-      "source_sha256": "a0984ff7a334ff1f3b5f61f19621380e2293ab8c4b6b26ec8bf1c48f5f252ba2",
-      "assertions": [
-        "replacement['referenceRevision'] == 2",
-        "blocked.status_code == 409",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0"
       ]
     },
     "tests/test_project_storage_work_unit_contracts.py::test_project_work_unit_cancellation_blocks_dispatch_and_sealing_without_rewriting_evidence": {
@@ -961,7 +928,7 @@
       ]
     },
     "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision": {
-      "source_sha256": "d3ee678d430d334c45541c46b41f0dbe2577a58d1c8755b28fe95f530215992e",
+      "source_sha256": "0ef1b0e412cd7f7eb955d538b6200f72389e7733c7466188663732207c222e4c",
       "assertions": [
         "first_head.entity_revision_id is not None",
         "second_head.entity_revision_id is not None",
@@ -970,7 +937,7 @@
       ]
     },
     "tests/test_project_storage_authoring_control_contracts.py::test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_inputs": {
-      "source_sha256": "8b2aa3d11ce74c202058947c04b62603902c19794d5f1f5615581c5d32d14680",
+      "source_sha256": "e6b375a4406e646b84d44e869c30d65edabd9a62c7fa0b5bc77aeda051a5a314",
       "assertions": [
         "review.status_code == 200",
         "review_body['gateEvaluation']['gateSetVersion'] == 'storyboard.v2'",
@@ -1207,7 +1174,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "71d69d00327fe81b7dde02c10a0d21a972edc82d7273f4f7e6f9784c594299e1",
+      "source_sha256": "869f484504669c18093d540f2c9123b58f602ddc428019e1ec6c51b8e14bd0da",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",
@@ -1220,7 +1187,7 @@
         "frozen['characterIdentity'][0]['acceptedCast'] == accepted_cast",
         "[entry['role'] for entry in frozen['references']] == ['character_identity']",
         "copied.status_code == 200",
-        "package_request['packageVersion'] == 4",
+        "package_request['packageVersion'] == 6",
         "package_request['references'][0]['role'] == 'character_identity:fixture-hero'",
         "'characterIdentity[].acceptedCast' in (package / 'COPY_ASSIGNMENT.txt').read_text(encoding='utf-8')",
         "awaiting.status_code == 200",
@@ -1230,7 +1197,11 @@
         "intent_draft.status_code == 200",
         "intent.status_code == 201",
         "binding.status_code == 201",
-        "client.post(f'/api/v2/projects/{project_id}/still-previews', json=preview_payload).status_code == 409",
+        "refused.status_code == 409",
+        "refused.json()['code'] == 'same_person_review_required'",
+        "refused.json()['shotId'] == shot['id']",
+        "refused.json()['bindingId'] == binding.json()['id']",
+        "'无法确认身份时不要标记通过' in refused.json()['message']",
         "review.status_code == 201",
         "preview.status_code == 201",
         "preview.json()['manifest']['frames'][0]['identityReviewId'] == review.json()['id']",
@@ -1246,6 +1217,65 @@
       "source_sha256": "a1a3ce19fc13a57e07229dc8428bd177e6dd138cd76c6c0e9b5b6c9fff757649",
       "assertions": [
         "raises: pytest.raises(VideoOutputContractError, match='h3_output_profile_mismatch')"
+      ]
+    },
+    "tests/generation/test_work_unit_scene_facts.py::test_cue_order_fact_invariants_fail_closed": {
+      "source_sha256": "3c088e6dfeba13d213c4c7f43619594d2c93d9569864be8c186e51afd9f3150d",
+      "assertions": [
+        "raises: pytest.raises(ValidationError, match='complete dialogueCues')",
+        "raises: pytest.raises(ValidationError, match='local cue IDs must be unique')",
+        "raises: pytest.raises(ValidationError, match='contiguous within each beat')",
+        "raises: pytest.raises(ValidationError, match='canonical local cue ID order')"
+      ]
+    },
+    "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage": {
+      "source_sha256": "b04946b99e531bb8a970cfae61a56f7bbc774daeaa4ed8ae59cd3cf5c1408a96",
+      "assertions": [
+        "raises: pytest.raises(ValidationError, match='primary map references')"
+      ]
+    },
+    "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay": {
+      "source_sha256": "b4b3375239e76ea23a0d4d0e9cbac0d99ea448f6c8aa4a21c12c677a3fd91144",
+      "assertions": [
+        "failed.status_code == 422",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0",
+        "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (identity,)) == [('reserved',)]",
+        "client.get(f'/api/v2/projects/{project_id}/video-jobs').json()['jobs'][0]['state'] == 'dispatching'",
+        "restarted_client.post(f\"/api/v2/projects/{project_id}/video-jobs/{before_event['id']}/submit\").status_code == 409",
+        "restarted_provider.preflight_calls == restarted_provider.upload_calls == 0",
+        "cancelled.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0",
+        "_sqlite_rows(storage.application.path, 'SELECT event FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (race_identity,)) == [('reserved',), ('released_before_dispatch',)]",
+        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{raced['id']}/submit\").status_code == 409"
+      ]
+    },
+    "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger": {
+      "source_sha256": "b8225f487557625bb026be69842d0d709f884b5fa22e9788530b2cd8421bd171",
+      "assertions": [
+        "submitted.status_code == 200",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1",
+        "_sqlite_rows(storage.application.path, 'SELECT event, units FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (dispatch_identity,)) == [('reserved', 5), ('dispatch_claimed', 5)]",
+        "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(project_database, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
+        "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(storage.application.path, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
+        "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (dispatch_identity,)) == [('dispatch_claimed',)]",
+        "opened.media.direct_video.list_video_jobs(project_id)[0]['state'] == 'dispatching'"
+      ]
+    },
+    "tests/test_project_storage_video_reconciliation.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post": {
+      "source_sha256": "b44c7a0fbb96883a78446eff23d75674124ae553bdd26b9f6d14114c28ea80ac",
+      "assertions": [
+        "unknown.status_code == 200",
+        "unknown.json()['state'] == 'outcome_unknown'",
+        "retry.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
+      ]
+    },
+    "tests/test_project_storage_video_dispatch.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call": {
+      "source_sha256": "5505a57953e982bab5fc3ead1f1e9b167252dd4a0cb22c67284051aea384b467",
+      "assertions": [
+        "replacement['referenceRevision'] == 2",
+        "blocked.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0"
       ]
     }
   },
@@ -2731,7 +2761,7 @@
       "current_replacements": [
         "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement"
       ],
-      "mapping_note": "The direct project-folder P1.5 regression proves missing-reference refusal, frozen reference roles and v4 package pin, waiting without output, attested delivery, explicit same-person review before preview, and replacement-driven stale job/review/preview history without rewriting prior decisions.",
+      "mapping_note": "The direct project-folder P1.5 regression proves missing-reference refusal, frozen reference roles and current package pin (v5 presentation contract from 2026-10-02; prior frozen v4 packages remain unchanged), waiting without output, attested delivery, explicit same-person review before preview, and replacement-driven stale job/review/preview history without rewriting prior decisions.",
       "review_status": "verified"
     },
     {
@@ -2950,7 +2980,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source"
+        "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source",
+        "tests/test_project_storage_image_keyframe_acceptance.py::test_keyframe_adaptation_accepts_frozen_geometry_and_keeps_source_selected"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
       "review_status": "verified"
@@ -4062,8 +4093,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records frozen requested seconds in its direct dispatch lease, and proves no retained Wan ledger is created.",
       "review_status": "verified"
@@ -4099,8 +4130,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records frozen requested seconds in its direct dispatch lease, and proves no retained Wan ledger is created.",
       "review_status": "verified"
@@ -4127,7 +4158,7 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post"
+        "tests/test_project_storage_video_reconciliation.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post"
       ],
       "mapping_note": "The direct project H3 owner records the lost-response post as outcome_unknown, refuses a second submit, and proves exactly one provider attempt.",
       "review_status": "verified"
@@ -4162,8 +4193,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4223,7 +4254,7 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call"
+        "tests/test_project_storage_video_dispatch.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call"
       ],
       "mapping_note": "The current project owner prepares a job under the original selected identity, replaces that identity before its first submit, then rejects the submit with zero provider calls.",
       "review_status": "verified"
@@ -4253,8 +4284,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4289,8 +4320,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4309,8 +4340,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4342,8 +4373,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4376,8 +4407,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4405,8 +4436,8 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4439,8 +4470,8 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video_dispatch.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video_dispatch.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
       "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
       "review_status": "pending"
@@ -4861,7 +4892,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5021,7 +5052,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5183,7 +5214,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5268,7 +5299,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5306,7 +5337,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5344,7 +5375,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5385,7 +5416,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5429,7 +5460,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5475,7 +5506,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5554,7 +5585,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5592,7 +5623,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5631,7 +5662,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5666,7 +5697,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5702,7 +5733,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5735,7 +5766,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5849,7 +5880,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5888,7 +5919,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -5958,7 +5989,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6030,7 +6061,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6099,7 +6130,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6137,7 +6168,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6171,7 +6202,7 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/generation/test_work_unit_contracts.py::test_cue_order_fact_invariants_fail_closed"
+        "tests/generation/test_work_unit_scene_facts.py::test_cue_order_fact_invariants_fail_closed"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6225,7 +6256,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6262,7 +6293,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6290,7 +6321,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6543,7 +6574,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6582,7 +6613,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6613,7 +6644,7 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
@@ -6651,7 +6682,7 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
@@ -6689,7 +6720,7 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
@@ -6727,7 +6758,7 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
@@ -6765,7 +6796,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6802,7 +6833,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6842,7 +6873,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6879,7 +6910,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6921,7 +6952,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -6983,7 +7014,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -7021,7 +7052,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
         "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/generation/test_work_unit_scene_facts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
       "review_status": "pending"
@@ -7246,7 +7277,7 @@
         "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
         "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
       ],
-      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "mapping_note": "ADR 0114 supersedes only the public archive-first prerequisite; it does not claim the historical only-archived rejection is retained. Listed replacements still cover archived deletion, lifecycle and manual-publication refusal, and not-found after erasure; tests/test_direct_project_deletion.py additionally covers all three directory states and project-owned media. Historical baseline assertions are preserved.",
       "review_status": "verified"
     },
     {
@@ -11741,5 +11772,34 @@
       "tests/test_alpha_acceptance.py": "verified",
       "tests/test_conformance.py": "verified"
     }
-  }
+  },
+  "current_contract_amendments": [
+    {
+      "date": "2026-10-06",
+      "contract": "ADRs 0120 and 0121; current graph footage/admission contract",
+      "scope": "Refresh live replacement assertion catalog only; retain original baseline population, triggers, assertions and review statuses. This is current contract verification, not a historical replay or a claim that old evidence satisfied the new contract.",
+      "replacements": {
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues": {
+          "prior_source_sha256": "0e271e273f35d88678ae65389c262f04ee5c2ba3cb9b1b6a71fbe34e7a8704d2",
+          "current_source_sha256": "06837c835352df219fab15f9690163cdbcbb589fffe21f42ad8b302124bf850f",
+          "rationale": "Structured 422 domain issue code/path/message remains covered through validated current initial-stage admission. The competing generic manual graph writer is retired, with explicit rejection covered by test_generic_graph_stage_write_is_retired. Historical baseline assertions are unchanged."
+        },
+        "tests/test_project_storage_exact_repair_recovery.py::test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_process_loss": {
+          "prior_source_sha256": "173cee79ed3db698fef8b07b7307f837ece79a106736515824cab62d6bddd276",
+          "current_source_sha256": "68c20cec7e0e0b6f7b40d4300efd2fc9d246d38a30e2cb9920f98b0f6d2832cc",
+          "rationale": "Shard counts derive from explicit current footage membership. Repaired-attempt count, immutable parent trace, reused sibling identity, complete atomic canonical installation and process-loss recovery assertions remain. Zero-time controls are not dispatched as scenes."
+        },
+        "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision": {
+          "prior_source_sha256": "d3ee678d430d334c45541c46b41f0dbe2577a58d1c8755b28fe95f530215992e",
+          "current_source_sha256": "0ef1b0e412cd7f7eb955d538b6200f72389e7733c7466188663732207c222e4c",
+          "rationale": "Current initial-stage fixtures replace retired manual graph writes. Identical gate kinds remain project/revision scoped with disjoint result identities."
+        },
+        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence": {
+          "prior_source_sha256": "af0fd56e77c97b4333002f70a7ea548aae1914dd70095f1017d5afc0a0c58c6a",
+          "current_source_sha256": "ac6a75d24160e15018cced95575b68ac60e0137d0b03e56bb734ae10db83318e",
+          "rationale": "Expected fake-provider token totals derive from current footage work-unit counts. Four-stage completion, trace/receipt privacy, first-pass acceptance and deletion of temporary evidence remain asserted."
+        }
+      }
+    }
+  ]
 }

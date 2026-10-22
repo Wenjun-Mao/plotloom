@@ -17,7 +17,7 @@ durable FIFO in the specialist deployment. Their generation contracts and
 runtime maintenance procedures are not interchangeable. Published voice takes
 are documented in the separate [Chinese take guide](../../services/qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
 and [Voice Lab operations guide](../../services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md).
-See [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md)
+See [ADR 0212](../adr/0212-published-voice-performance-takes-and-shared-admission.md)
 for grants, release proof and uncertainty handling; health alone cannot release
 an unresolved inference owner. Direct backend clients are outside this lane.
 
@@ -32,7 +32,7 @@ and [current D adoption manifest](../../services/minimax_h3_gateway/h3-vae-d-ado
 The [original installation inventory](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml)
 is historical. D uses the same ComfyUI image with a repository-owned video
 FP16/INT8 loader, global/audio BF16 and `--fast fp16_accumulation`; no public
-creation contract changes. See [ADR 0098](../adr/0098-h3-video-only-vae-precision.md).
+creation contract changes. See [ADR 0213](../adr/0213-h3-video-only-vae-precision.md).
 The qualification manifests record the evidence behind the currently admitted
 quality paths. A running H3 container alone is never proof of creative
 acceptance.
@@ -375,7 +375,7 @@ new path admits only 960×544 or 576×1024, 5–8 requested seconds, and a
 header without trimming or changing the reference samples. It is a timbre
 and delivery reference, not an exact transcript, waveform or lip-sync promise.
 The frozen snapshot and private audio binding are defined in
-[ADR 0090](../adr/0090-h3-ref2va-per-job-voice-reference.md). Voice Lab owns
+[ADR 0205](../adr/0205-h3-ref2va-per-job-voice-reference.md). Voice Lab owns
 published Voice IDs and durable performance takes; later Plotloom integration
 owns character/dialogue selection and its own retained production copies.
 The video route still consumes WAV bytes, not a Voice/Take ID resolver.

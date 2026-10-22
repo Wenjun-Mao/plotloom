@@ -2,123 +2,29 @@
 
 from __future__ import annotations
 
+import json
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
-from io import BytesIO
-import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from PIL import Image
 
-from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage
-
+from tests.project_folder_image_delivery_fixtures import (
+    delivery_manifest as _delivery_manifest,
+)
+from tests.project_folder_image_delivery_fixtures import (
+    png as _png,
+)
+from tests.project_folder_image_delivery_fixtures import (
+    ready_exported_job as _ready_exported_job,
+)
+from tests.project_folder_image_delivery_fixtures import (
+    write_delivery as _write_delivery,
+)
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
-
-
-def _png(
-    color: tuple[int, int, int], *, width: int = 24, height: int = 16
-) -> bytes:
-    output = BytesIO()
-    Image.new("RGB", (width, height), color).save(output, format="PNG")
-    return output.getvalue()
-
-
-def _delivery_manifest(job: dict, content: bytes, delivery_id: str) -> dict:
-    return {
-        "schemaVersion": 1,
-        "jobId": job["id"],
-        "requestHash": job["requestHash"],
-        "deliveryId": delivery_id,
-        "actualPrompt": "Offline fixture delivery from the frozen project package.",
-        "outputs": [
-            {
-                "filename": "candidate.png",
-                "sha256": sha256(content).hexdigest(),
-                "role": "original",
-            }
-        ],
-        "toolEvidence": {
-            "tool": "codex_imagegen",
-            "taskId": "project-folder-delivery-fixture",
-            "available": True,
-        },
-        "limitations": ["fixture raster only"],
-    }
-
-
-def _write_delivery(path: Path, job: dict, content: bytes, delivery_id: str) -> None:
-    outputs = path / "outputs"
-    outputs.mkdir(parents=True, exist_ok=True)
-    (outputs / "candidate.png").write_bytes(content)
-    (path / "completion.json").write_text(
-        json.dumps(_delivery_manifest(job, content, delivery_id)), encoding="utf-8"
-    )
-
-
-def _ready_exported_job(tmp_path: Path) -> tuple[TestClient, str, dict, Path]:
-    storage = ProjectFolderStorage(
-        outputs_root=tmp_path / "outputs",
-        application_data_root=tmp_path / "application",
-    )
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
-    ProjectPipelineExecutor(FixtureResolver()).execute(store, profile=fixture_profile())
-    project_id = store.project().id
-    store.close()
-    client = TestClient(create_project_folder_authoring_app(storage))
-    stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
-    storyboard = stages[-1]
-    shot = storyboard["payload"]["shots"][0]
-    approval = client.post(
-        f"/api/v2/projects/{project_id}/storyboard-approval",
-        json={
-            "expectedRevision": storyboard["head"]["revision"],
-            "contentHash": storyboard["head"]["contentHash"],
-            "decision": "approve",
-            "reviewer": "offline delivery fixture",
-            "gateSetVersion": "storyboard.v2",
-        },
-    )
-    assert approval.status_code == 201, approval.text
-    draft = client.put(
-        f"/api/v2/projects/{project_id}/authoring-drafts",
-        json={
-            "editorScope": "image_direction",
-            "entityId": f"{shot['id']}:original",
-            "baseCanonicalRevision": storyboard["head"]["revision"],
-            "expectedDraftRevision": 0,
-            "payload": {
-                "shotId": shot["id"],
-                "targetId": "original",
-                "contextId": "delivery-fixture",
-                "presentationChange": "Keep the frozen shot legible.",
-            },
-        },
-    )
-    assert draft.status_code == 200, draft.text
-    prepared = client.post(
-        f"/api/v2/projects/{project_id}/image-jobs",
-        json={
-            "approvalId": approval.json()["decision"]["id"],
-            "shotId": shot["id"],
-            "storyboardRevision": storyboard["head"]["revision"],
-            "presentationChange": "Keep the frozen shot legible.",
-            "contextId": "delivery-fixture",
-            "consumedDraft": {
-                "editorScope": "image_direction",
-                "entityId": f"{shot['id']}:original",
-                "draftRevision": draft.json()["draftRevision"],
-            },
-        },
-    )
-    assert prepared.status_code == 201, prepared.text
-    job = prepared.json()["job"]
-    copied = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/copy")
-    assert copied.status_code == 200, copied.text
-    return client, project_id, job, Path(copied.json()["deliveryPath"])
 
 
 def test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publication(
@@ -190,6 +96,14 @@ def test_repeated_pre_final_delivery_observation_stays_pending_until_completion(
         listed = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"]
         assert len(listed[0]["deliveries"]) == 1
         assert len(listed[0]["deliveries"][0]["candidates"]) == 1
+        asset = accepted.json()["candidates"][0]["asset"]
+        assert asset["provenance"]["origin"] == "codex_image_job"
+        assert asset == client.get(f"/api/v2/projects/{project_id}/managed-assets").json()["assets"][0]
+        assert listed[0]["deliveries"][0]["candidates"] == accepted.json()["candidates"]
+        repeated = client.post(refresh_path)
+        assert repeated.status_code == 200, repeated.text
+        assert repeated.json()["idempotent"] is True
+        assert repeated.json()["candidates"] == accepted.json()["candidates"]
     finally:
         client.close()
 
@@ -385,7 +299,7 @@ def test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths
                 "expectedRevision": other_storyboard["head"]["revision"],
                 "contentHash": other_storyboard["head"]["contentHash"],
                 "decision": "approve",
-                "reviewer": "foreign approval fixture",
+                "attribution": {"kind": "unnamed_creator"},
                 "gateSetVersion": "storyboard.v2",
             },
         )
@@ -515,12 +429,13 @@ def test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source
         delivery = Path(copied.json()["deliveryPath"])
         delivery.mkdir()
 
-        provenance = {"codeRevision": "a" * 40, "skillVersion": "plotloom-image-specialist.v3", "skillHash": "b" * 64}
-        (delivery / "executor-pin.json").write_text(json.dumps({"jobId": job["id"], "requestHash": job["requestHash"], "executionContract": "codex_specialist.v2", **provenance}), encoding="utf-8")
+        native_task_id = "01a1357a-249d-7e73-81fa-5e337d7bdfe5"
+        provenance = {"codeRevision": "a" * 40, "skillVersion": "plotloom-image-specialist.v4", "skillHash": "b" * 64}
+        (delivery / "executor-pin.json").write_text(json.dumps({"jobId": job["id"], "requestHash": job["requestHash"], "executionContract": "codex_specialist.v3", "nativeTaskId": native_task_id, **provenance}), encoding="utf-8")
         wrong = _png((40, 90, 120), width=576, height=1023)
         (delivery / "outputs").mkdir()
         (delivery / "outputs" / "adapted.png").write_bytes(wrong)
-        manifest = {"schemaVersion": 2, "jobId": job["id"], "requestHash": job["requestHash"], "deliveryId": "wrong-geometry", "actualPrompt": "Adapt the frozen reviewed keyframe.", "outputs": [{"filename": "adapted.png", "sha256": sha256(wrong).hexdigest(), "role": "keyframe_adaptation"}], "toolEvidence": {"tool": "codex_imagegen", "taskId": "geometry-fixture", "available": True}, "executorProvenance": provenance}
+        manifest = {"schemaVersion": 3, "jobId": job["id"], "requestHash": job["requestHash"], "deliveryId": "wrong-geometry", "actualPrompt": "Adapt the frozen reviewed keyframe.", "outputs": [{"filename": "adapted.png", "sha256": sha256(wrong).hexdigest(), "role": "keyframe_adaptation"}], "toolEvidence": {"tool": "codex_imagegen", "nativeTaskId": native_task_id, "imageGenExecutionId": "exec-geometry-fixture", "available": True}, "executorProvenance": provenance}
         (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
         rejected = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
         assert rejected.status_code == 422, rejected.text

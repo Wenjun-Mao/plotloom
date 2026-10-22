@@ -1,0 +1,194 @@
+# ADR 0121: One current source-bound graph authoring contract
+
+Status: accepted under the owner-approved G0–G1 workbench scope, 2026-10-06.
+
+## Problem and evidence
+
+Source confirmation previously required equality with the planner topology, while
+the professional editor independently wrote a complete canonical graph. Neither
+could truthfully recover blank prose or pending connections. Binary map execution,
+V1 stage readers and old run-snapshot defaults also kept retired contracts runnable.
+The isolated G0 probe demonstrated planner-equality refusal, mandatory control-node
+footage and rejection of empty screenplay episodes. ADR 0120 owns the bounded
+footage correction; the pinned upstream validators remain unchanged.
+
+## Decision
+
+Both workbench modes edit one typed `story_graph/root` authoring draft. Its mapping
+has an immutable current planner seed, explicit planner/author provenance, authored
+topology, ordered stable sections, exact choices, join reconciliation and required
+footage membership. Planner provenance requires equality with that seed's
+structure and ordered footage membership. Prose remains author-owned. Changing
+footage inclusion marks author provenance while retaining the original seed. Author
+edits preserve the seed and must pass actual graph targets and current state checks.
+
+The draft explicitly represents blank prose and nullable connection endpoints.
+Saving it is recoverability, not admission. Source-map confirmation validates the
+complete current mapping against exact source/outline revisions and hashes.
+Canonical installation checks those identities, canonical revision and exact draft
+revision/base/content in one transaction, then consumes that draft atomically.
+Graph draft persistence accepts only the `root` identity on writes and reads;
+an acknowledged graph buffer cannot sit outside that sole admission owner.
+Generic manual StoryGraph stage writes and generic graph-draft consumption retire.
+The independent canonical-shaped frontend graph editor and its cascade mutation
+helpers retire with that write path. Current canonical graphs remain inspectable
+through a read-only reader; both editing modes use the shared command owner.
+Other stage writes and supported generation/bootstrap installation retain their
+current typed validation, snapshots and concurrency guards. A canonical graph
+without source provenance cannot be overwritten through source admission.
+
+G1 freezes a context hash over current Brief, source/outline, accepted map and
+graph/Bible identities. Draft saves and command confirmation require that exact
+context. Read-only preview hashes bind the acknowledged draft revision, typed
+command, immutable result and impact; apply recomputes under the write lease.
+Content confirmation requires the exact acknowledged root draft, then updates
+its context and revision atomically. Installation always requires and consumes
+that draft. Explicit recovery on a changed base retains its authenticated seed
+and content, marks author provenance and grants no historical approval authority.
+Only-delete retains detached endpoint identity/title/kind with option prose and
+effects in that same draft. Incomplete join inputs remain recoverable; strict
+admission still requires complete current joins. Undo is session history of
+confirmed draft transactions saved through the same CAS owner, never a rollback
+of approval, production or media.
+
+Commands preview against a session draft revision and apply one immutable result.
+Edge identities, option prose and typed/fact effects survive exact insertion and
+retargeting; join input contracts require explicit review. Detached/pending links
+remain visible. Cancellation, stale confirmation and failed safety checks mutate
+nothing. One Undo transaction restores authored content, links and selection.
+Presentation hints never create routes or production authority. Canonical admission
+or an externally changed base reconciles the draft and resets session Undo.
+Initial selection belongs to the authored mapping's current opening, not the
+retained planner seed's identity. The seed is provenance and may use different IDs.
+
+Row reuse is an explicit current command: it attaches a detached existing node
+without changing its identity/content/type or overwriting existing outputs. New
+decision creation explicitly chooses whether to initialize two pending options or
+reattach retained authored options. Pending scaffolds never silently consume the
+capacity needed by a restoration command or replace retained prose/effects.
+Identical endpoint retargeting is rejected as a meaningless transaction.
+Changing an input by choosing another exact output is one `replace_input`
+transaction: the prior input remains pending with its identity/prose/effects,
+and the chosen output targets the selected node. Its displaced target survives.
+Preview, safety comparison, confirmation and Undo cover both changed edges.
+
+Installed production remains readable and protected by first-install-only guards.
+Draft edits never rebind scenes/shots/media, approve candidates or dispatch jobs.
+Any disposable demo rebuild must name its exact target and prove quiescence; no
+general installed-production replacement or automatic reset is introduced.
+
+Only current schemas execute. Retire binary maps, historical intent reconstruction,
+V1 canonical classes/selection/validation, missing snapshot schema defaults,
+historical timing/capacity replay and historical correction witnesses. Explicit
+current frozen evidence is required; old receipts are not rewritten or upgraded.
+Required footage membership also lives in frozen topology and timing contracts,
+and is included in their hashes. Provider names and preserved current evidence are
+not grounds for deletion.
+
+## Alternatives, consequences and guardrails
+
+Reject a second creator graph, wrapping the competing generic writer, fabricated
+source provenance, permissive old/new readers and replacing the source-first gate
+with canonical save. Breaking development schemas requires rebuilding only an
+identified disposable fixture when necessary. Current user work, credentials,
+snapshot/restore, exact currentness and unknown-dispatch safety remain protected.
+
+G0 round-trip and production tests cover three options, insertion, a join, retained
+effects, incomplete recovery, exact draft CAS, route-only controls and explicit
+footage inclusion. G1 adds command safety/history and browser conflict evidence.
+G2–G5 qualify the shared UI and release candidate; this ADR is not a claim that
+those later slices have shipped.
+
+## G5 selection receipt guard, 2026-10-06
+
+A full native journey demonstrated that Undo's late receipt could overwrite a
+node selected by the author after the operation started. Browser selection is
+presentation state, not an authored graph mutation. Current command, Undo,
+recovery and confirmation receipts now carry a selection-generation basis:
+preserve a later explicit selection if it still exists in the committed mapping;
+otherwise use the receipt's safe selection. Content/CAS/Undo semantics do not
+change. Deferred-receipt regressions cover both retained and removed nodes.
+
+## Coverage walkthrough ownership guard, 2026-10-06
+
+The live walkthrough exposed ordinary join commands reviving the older selection
+stored in an acknowledged draft. Non-creation commands now preserve the currently
+selected surviving node even if there was no selection change during the request.
+Add, insert and reuse retain their explicit selection intent; removal still uses
+the receipt's safe fallback. Selection does not become an authored mutation.
+
+A delayed draft flush could also outlive its project/session owner before a
+command was dispatched. The shared acknowledgement boundary now rejects that
+obsolete operation after flush, before any command API call. Disable/unmount
+invalidates the owner, and each operation holds its own busy token so an older
+completion cannot unlock a newer session. Regressions cover project switching,
+unmount, disable/re-enable and ordinary-command selection. No second writer,
+compatibility path or permissive stale-receipt handling is introduced.
+
+## Full-journey recovery authority refresh, 2026-10-07
+
+An actual conflict-dialog recovery saved a fresh server context and retained the
+author's prose, but the shared graph owner restored only the payload. Its old
+workbench binding kept Creator and Pro disabled even though server binding and
+draft matched. Restoring a graph payload now re-reads the whole trusted workbench
+state, including binding, canonical base and read-only admission. A payload does
+not grant currentness by itself. Existing project/epoch/read-generation guards
+reject obsolete reads and preserve newer typing; regression checks cover current
+editing after recovery and delayed reads across typing and project changes.
+
+## Consumed preview recovery and local ownership, 2026-10-07
+
+A real two-tab command returned typed `409/revision_conflict` and atomically
+preserved the newer server graph. The frontend nevertheless retained the stale
+preview, enabled confirmation and showed only a raw error. The shared command
+owner now retires that preview synchronously, including callers holding an old
+confirmation closure. Only the structured status/code pair triggers this path;
+unrelated domain refusals retain their own semantics. Explicit read-only refresh
+precedes a new preview. Unsent fields, selection and their original CAS receipt
+survive that read; a conflicting unsent buffer enters the existing explicit
+conflict workflow rather than silently rebasing. Failed or obsolete reads cannot
+grant currentness. Provider regressions cover repeated confirmation, successful
+and failed rereads, retained buffers/CAS, unrelated refusals and project switches.
+
+The local draft resolver also removes its shared `legacy` fallback. Persisted
+project identity wins; an unsaved workspace must supply its explicit nonempty
+`clientDraftOwner` before storage access. Current blank, sample/session and
+conflict-copy constructors already create distinct owners. Missing ownership is
+a programming-contract failure, not permission to generate an owner lazily or
+admit historical buffers. No actual user data loss was demonstrated; focused
+guards reject missing/empty owners without touching storage and retain ordinary
+persisted-project and distinct local-session behavior.
+
+## Exact structural preview impact, 2026-10-07
+
+The live `RemoveGraphJoin` preview described a removed contract as though its
+facts and reconciliation were retained; added contracts and retained contracts
+with changed direct inputs were also collapsed into one review group. A separate
+node-kind preview omitted the old and new kind and footage membership. The cause
+was a blanket backend message for every join delta and a dialog that displayed
+all affected join IDs as one category, despite the immutable before/result
+mappings already carrying the exact memberships.
+
+Keep the existing impact schema. Derive added, removed and retained-input-change
+groups from the acknowledged draft and preview result; show exact old/new input
+nodes, and show retained-node kind and footage-mode changes from those same
+authoritative mappings. Adding a contract starts with empty contract fields.
+Removing a contract removes its state keys, allowed differences, reconciliation,
+notes and pending contract fields; a standalone contract removal retains its join
+node and graph connections. A retained contract keeps its fields when its input
+membership changes, but the preview asks the author to review them. Preserve
+`assert_edit_safe`, immutable preview confirmation, and the existing Undo
+transaction. Focused Python and dialog regressions guard each distinction.
+
+## Installed graph guard lookup correction, 2026-10-07
+
+Both source-map guards previously used `session.get(ProductionBridgeAdmissionRow,
+project_id)`. The row's primary key is a separately generated `id`; `project_id`
+is only indexed, so the lookup missed real installations and allowed topology,
+footage-realization, and graph-reinstallation writes past the first-install
+protection. Query the admission by `project_id`, matching the production-bridge
+owner's established lookup. Preserve first-install-only behavior; this does not
+define or authorize rebuilding post-install production. Regressions exercise a
+real admission with `id != project_id`, verify both changed-map guards and
+unchanged-map installation reject before persistent state changes, and retain
+the ordinary pre-install editing path.

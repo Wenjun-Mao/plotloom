@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -13,19 +14,25 @@ from plotloom.cast_contracts import (
     CastCancelReopenRequest,
     CastConsumerMapping,
     CastReopenRequest,
+    CastSaveRequest,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
+from plotloom.cast_style import freeze_cast_style
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
-from plotloom.exceptions import InvalidTransitionError
+from tests.source_graph_fixtures import letter_section_map
+from tests.cast_style_fixtures import style_fixture
+from tests.creative_delivery_fixtures import run_brief_instruction_delivery
+from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
-from plotloom.project_storage.operational_state import close_blockers
-from plotloom.project_storage.recovery import ProjectRecoveryService
+from plotloom.project_storage.operational_state import close_blockers, specialist_publication_blockers
+from plotloom.persistence.schema.project_cast import CastCandidateRow, CastHeadRow
+from plotloom.review_context_diagnostics import ReviewContextError
 from plotloom.source_outline_contracts import (
-    AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionChoice, SectionMap,
-    SourceMapGraphAdmission, SourceMaterial, SourceOutlineReviewState, SourceRevision,
-    StorySection, BranchOutcome,
+    AcceptedOutlineRevision, AcceptedSectionMapRevision,
+    SourceMaterial, SourceOutlineReviewState, SourceRevision,
 )
 
 
@@ -34,23 +41,95 @@ def _context(revision: int = 1) -> SourceOutlineReviewState:
     source_hash = f"{revision:x}" * 64
     outline_hash = "b" * 64
     map_hash = "c" * 64
-    mapping = SectionMap(
-        sections=[StorySection(section_id="opening", title="Opening", summary="Lin hears the storm"), StorySection(section_id="beacon", title="Beacon", summary="The beacon stays lit", ending=True), StorySection(section_id="dock", title="Dock", summary="The dock stays lit", ending=True)],
-        choice=SectionChoice(choice_id="power", section_id="opening", prompt="Where?", outcomes=[BranchOutcome(outcome_id="beacon-path", label="Beacon", consequence="Dock dark", ending_section_id="beacon"), BranchOutcome(outcome_id="dock-path", label="Dock", consequence="Beacon dark", ending_section_id="dock")]),
-    )
+    mapping = letter_section_map("cast-fixture", FIXED_CHINESE_BRIEF)
     return SourceOutlineReviewState(source=SourceRevision(revision=revision, content_hash=source_hash[:64], material=material, created_at=utc_now()), candidate=None, accepted_outline=AcceptedOutlineRevision(revision=1, source_revision=revision, candidate_job_id="ch_" + "a" * 32, content_hash=outline_hash, outline={"source": "Tide Light"}, accepted_at=utc_now()), outline_status="accepted", accepted_section_map=AcceptedSectionMapRevision(revision=1, source_revision=revision, outline_revision=1, outline_content_hash=outline_hash, content_hash=map_hash, mapping=mapping, accepted_at=utc_now()), section_map_status="current", section_map_stale_reasons=[], graph_admission=None)
 
 
 def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
-    cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "persona": {"motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
+    cast = canonical_json(style_fixture({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Appearance is a proposed design", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]}, request.input_artifacts["cast-style-contract.json"]))
     report = b"<!doctype html><html><body>cast report</body></html>"
     (delivery / "cast.json").write_bytes(cast); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "cast-fixture", "stage": "characters", "candidate": {"filename": "cast.json", "sha256": sha256(cast).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["fixture"]}
-    (delivery / "completion.json").write_text(json.dumps(manifest)); result = exchange.read_delivery(request); assert result is not None
+    (delivery / "completion.json").write_text(json.dumps(manifest)); result = exchange.read_delivery(request, pin); assert result is not None
     return result
+
+
+def test_saved_brief_cast_request_overrides_pinned_preset_routing(tmp_path: Path) -> None:
+    store = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    ).projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+    fixture_root = Path(__file__).parent / "../third_party/shuohao-skills/skills/novel-characters/examples"
+    cast = json.loads((fixture_root / "渡口-cast.json").read_text(encoding="utf-8"))
+    source_quotes = [
+        quote
+        for character in cast["characters"]
+        for quote in character.get("persona", {}).get("evidence", [])
+    ]
+    source_text = "\n".join(source_quotes)
+    source = context.source
+    context = context.model_copy(
+        update={
+            "source": source.model_copy(
+                update={
+                    "content_hash": sha256(source_text.encode("utf-8")).hexdigest(),
+                    "material": source.material.model_copy(update={"text": source_text}),
+                }
+            )
+        }
+    )
+
+    def bound_context(_session: object, _project_id: str):
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(
+            render_contract=freeze_cast_style("brief", FIXED_CHINESE_BRIEF.visual_direction),
+            source_revision=context.source.revision,
+            source_content_hash=context.source.content_hash,
+            outline_revision=context.accepted_outline.revision,
+            outline_content_hash=context.accepted_outline.content_hash,
+            section_map_revision=context.accepted_section_map.revision,
+            section_map_content_hash=context.accepted_section_map.content_hash,
+            graph_revision=1,
+            graph_content_hash="d" * 64,
+            section_ids=["opening", "choose", "ending-a", "ending-b"],
+        )
+        return (
+            binding,
+            context.source.material.model_dump(mode="json", by_alias=True),
+            context.accepted_outline.outline,
+            context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True),
+        )
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        candidate, request = store.prepare_cast_candidate(
+            "ch_" + "e" * 32, render_style="brief"
+        )
+        instructions = request.creative_brief
+        assert candidate.binding.render_contract["authority"] == "saved_brief"
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" in instructions
+        assert "take precedence over conflicting preset-specific requirements" in instructions
+        assert "node scripts/brief-cast-style.mjs validate" in instructions
+        assert "node scripts/brief-cast-style.mjs render" in instructions
+        assert "node scripts/novel-characters.mjs" not in instructions
+        assert "do not add preset fields" in instructions
+        cast["style"] = BRIEF_STYLE
+        for index, character in enumerate(cast["characters"], start=1):
+            character["id"] = f"C{index:02d}"
+            character["image"]["style"] = BRIEF_STYLE_LABEL
+        commands, outputs = run_brief_instruction_delivery(store, request, cast)
+        assert commands == [
+            'node scripts/brief-cast-style.mjs validate "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json"',
+            'node scripts/brief-cast-style.mjs render "$DELIVERY_ROOT/cast.json" --request "$PACKAGE_ROOT/request.json" > "$DELIVERY_ROOT/report.html"',
+        ]
+        assert outputs == {"cast.json", "report.html", "completion.json"}
+    finally:
+        store.close()
 
 
 def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_path: Path) -> None:
@@ -59,21 +138,46 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(render_contract=freeze_cast_style("realistic", FIXED_CHINESE_BRIEF.visual_direction), source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
-        _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32, render_style="realistic")
         assert "characters[].id values" in request.creative_brief
-        package_paths = store.creative_handoff_exchange().write_package(request)
+        assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
+        assert "The author-selected cast-style-contract.json owns render style" in request.creative_brief
+        assert "scripts/cast-style.mjs" in request.creative_brief
+        assert request.input_artifacts["cast-writing-contract.json"]["version"] == 1
+        assert request.input_artifacts["cast-style-contract.json"] == _candidate.binding.render_contract
+        assert _candidate.binding.render_contract["authorDirection"] == FIXED_CHINESE_BRIEF.visual_direction
+        package_paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         frozen_instructions = (
             Path(package_paths["packagePath"]) / "COPY_ASSIGNMENT.txt"
         ).read_text()
         assert "characters[].id must be unique and nonblank" in frozen_instructions
-        ready = store.admit_cast_delivery(_deliver(store, request))
-        edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
+        delivery = _deliver(store, request)
+        missing_notes = {**delivery.candidate, "characters": [{key: value for key, value in delivery.candidate["characters"][0].items() if key != "reviewNotes"}]}
+        with pytest.raises(ValueError, match="reviewNotes"):
+            store.admit_cast_delivery(replace(delivery, candidate=missing_notes))
+        assert store.cast_state().candidate.status == "prepared"
+        mismatched_style = json.loads(json.dumps(delivery.candidate))
+        mismatched_style["style"] = "live-action"
+        with pytest.raises(ValueError, match="frozen character render style"):
+            store.admit_cast_delivery(replace(delivery, candidate=mismatched_style))
+        assert store.cast_state().candidate.status == "prepared"
+        ready = store.admit_cast_delivery(delivery)
+        invalid = json.loads(json.dumps(ready.cast))
+        invalid["characters"][0]["persona"]["personality"] = []
+        with pytest.raises(ValueError, match="性格特点"):
+            store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=invalid, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        assert store.cast_state().candidate.status == "ready"
+        stripped = dict(ready.cast or {})
+        stripped["characters"] = [{key: value for key, value in stripped["characters"][0].items() if key != "reviewNotes"}]
+        with pytest.raises(ValueError, match="reviewNotes"):
+            store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=stripped, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"personality": ["Careful"], "motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"
         with store.repository._read() as session:  # type: ignore[attr-defined]
@@ -85,20 +189,33 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
             "contentHash": accepted.accepted_cast.content_hash,
             "castCharacterId": "lin",
             "appearance": "Windburned",
-            "image": None,
+            "image": accepted.accepted_cast.cast["characters"][0]["image"],
         }
         store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        invalid = json.loads(json.dumps(accepted.accepted_cast.cast))
+        invalid["characters"][0]["persona"]["appearance"] = "  "
+        with pytest.raises(ValueError, match="外观"):
+            store.save_reopened_cast(CastSaveRequest(expected_cast_revision=1, binding=binding, cast=invalid, consumer_mappings=accepted.accepted_cast.consumer_mappings))
+        assert store.cast_state().accepted_cast.revision == 1
         with store.repository._read() as session:  # type: ignore[attr-defined]
             assert store.repository.cast.identity_context_in_session(  # type: ignore[attr-defined]
                 session, store.manifest.project_id, "lin"
             ) is None
-        replacement, _replacement_request = store.prepare_cast_candidate("ch_" + "c" * 32)
+        replacement, _replacement_request = store.prepare_cast_candidate("ch_" + "c" * 32, render_style="realistic")
         recovered = store.cancel_cast_candidate(replacement.job_id)
         assert recovered.status == "accepted"
-        next_candidate, _next_request = store.prepare_cast_candidate("ch_" + "d" * 32)
+        next_candidate, _next_request = store.prepare_cast_candidate("ch_" + "d" * 32, render_style="realistic")
         store.cancel_cast_candidate(next_candidate.job_id)
         context = _context(2)
         assert store.cast_state().status == "stale"
+        with store.repository._read() as session:
+            head = session.get(CastHeadRow, store.manifest.project_id)
+            before_reopen = (head.status, head.updated_at, head.revision)
+        with pytest.raises(ReviewContextError):
+            store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        with store.repository._read() as session:
+            head = session.get(CastHeadRow, store.manifest.project_id)
+            assert (head.status, head.updated_at, head.revision) == before_reopen
         assert store.cast_state().status == "stale"
     finally:
         store.close()
@@ -110,13 +227,13 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(render_contract=freeze_cast_style("realistic", FIXED_CHINESE_BRIEF.visual_direction), source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
-        _candidate, request = store.prepare_cast_candidate("ch_" + "k" * 32)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "k" * 32, render_style="realistic")
         store.admit_cast_delivery(_deliver(store, request))
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         original_hash = accepted.accepted_cast.content_hash if accepted.accepted_cast else ""
@@ -142,6 +259,73 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
         store.close()
 
 
+def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from plotloom.persistence.project import cast as cast_persistence
+
+    original_style_validator = cast_persistence.validate_cast_style
+    validation_requests = []
+
+    def observe_style_validation(cast, contract, request=None):
+        validation_requests.append(request)
+        return original_style_validator(cast, contract, request)
+
+    monkeypatch.setattr(cast_persistence, "validate_cast_style", observe_style_validation)
+    store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(render_contract=freeze_cast_style("realistic", FIXED_CHINESE_BRIEF.visual_direction), source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "m" * 32, render_style="realistic")
+        store.admit_cast_delivery(_deliver(store, request))
+        original_report = store.cast_candidate_report(request.job_id)
+        accepted = store.accept_cast_candidate(CastAcceptRequest(
+            job_id=request.job_id,
+            expected_cast_revision=0,
+            binding=binding,
+            cast=None,
+            consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")],
+        ))
+        assert accepted.accepted_cast is not None
+        assert accepted.accepted_cast.report_available is True
+        assert accepted.accepted_cast.differs_from_delivery is False
+        assert store.cast_candidate_report(request.job_id) == original_report
+
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        edited = json.loads(json.dumps(accepted.accepted_cast.cast))
+        edited["characters"][0]["persona"]["appearance"] = "A reviewed author edit after delivery"
+        saved = store.save_reopened_cast(CastSaveRequest(
+            expected_cast_revision=1,
+            binding=binding,
+            cast=edited,
+            consumer_mappings=accepted.accepted_cast.consumer_mappings,
+        ))
+        assert saved.accepted_cast is not None
+        assert saved.accepted_cast.revision == 2
+        assert saved.accepted_cast.report_available is True
+        assert saved.accepted_cast.differs_from_delivery is True
+        assert validation_requests[-1]["source"]["text"] == context.source.material.text
+        assert store.cast_candidate_report(request.job_id) == original_report
+
+        with store.repository._write() as session:  # type: ignore[attr-defined]
+            delivered = session.get(CastCandidateRow, request.job_id)
+            assert delivered is not None
+            delivered.report_html = None
+        missing_report = store.cast_state().accepted_cast
+        assert missing_report is not None
+        assert missing_report.report_available is False
+        assert missing_report.differs_from_delivery is True
+        with pytest.raises(NotFoundError, match="cast report is unavailable"):
+            store.cast_candidate_report(request.job_id)
+    finally:
+        store.close()
+
+
 def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tmp_path: Path) -> None:
     """F2B has cast authority only; adding a Bible to make this pass is forbidden."""
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
@@ -149,13 +333,13 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(render_contract=freeze_cast_style("realistic", FIXED_CHINESE_BRIEF.visual_direction), source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
-        _candidate, request = store.prepare_cast_candidate("ch_" + "e" * 32)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "e" * 32, render_style="realistic")
         store.admit_cast_delivery(_deliver(store, request))
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         proposal = store.media.prepare_character_reference_proposal(
@@ -170,6 +354,9 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert frozen["acceptedCast"]["contentHash"] == accepted.accepted_cast.content_hash
         assert frozen["characterContext"]["authority"] == "cast"
         assert frozen["characterContext"]["appearance"] == "Windburned"
+        store.media.mark_character_reference_proposal_exported(store.manifest.project_id, proposal["id"])
+        with pytest.raises(InvalidTransitionError, match="不能再次发送"):
+            store.media.mark_character_reference_proposal_exported(store.manifest.project_id, proposal["id"], require_prepared=True)
         cancelled = store.media.cancel_character_reference_proposal(
             store.manifest.project_id,
             proposal["id"],
@@ -178,10 +365,10 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert cancelled["state"] == "cancelled"
         assert cancelled["current"] is False
         assert cancelled["cancellationReason"] == "Operator stopped this exploratory handoff before delivery."
-        # Cancellation is terminal even though a late receipt may later be
-        # retained as inapplicable evidence; it cannot strand close/recovery.
+        # Publication cancellation is terminal. Native execution ownership is
+        # checked independently by lifecycle admission when a task was sent.
         assert "character_reference_publication_active" not in close_blockers(store)
-        assert "character_reference_publication_active" not in ProjectRecoveryService._specialist_blockers(store)
+        assert "character_reference_publication_active" not in specialist_publication_blockers(store)
         with pytest.raises(InvalidTransitionError, match="no longer current"):
             store.media.character_reference_proposal_package_sources(
                 store.manifest.project_id, proposal["id"]
@@ -201,13 +388,13 @@ def test_imported_appearance_is_cast_bound_and_requires_explicit_selection(tmp_p
 
     def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
         assert context.source and context.accepted_outline and context.accepted_section_map
-        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        binding = CastBinding(render_contract=freeze_cast_style("realistic", FIXED_CHINESE_BRIEF.visual_direction), source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "choose", "ending-a", "ending-b"])
         return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
 
     store.repository.cast._context = bound_context  # type: ignore[method-assign]
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
-        _candidate, request = store.prepare_cast_candidate("ch_" + "i" * 32)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "i" * 32, render_style="realistic")
         store.admit_cast_delivery(_deliver(store, request))
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         content = b"retained imported appearance"

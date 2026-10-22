@@ -44,3 +44,8 @@ claim is introduced.
 - Reloading a prepared handoff re-copies its same frozen package rather than
   creating another candidate. Accepted art remains readable with its report;
   if author edits make that report historical, the report says so explicitly.
+# Amendment — 2026-09-29
+
+ADR 0094 supersedes this document's deferred render-style conflict policy:
+F3A now freezes an explicit author-selected preset, including live-action,
+through a shared adapter without redefining upstream `realistic`.

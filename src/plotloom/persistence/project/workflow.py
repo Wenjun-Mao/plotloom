@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ...domain import StageHead, StageName, StagePayload, stage_payload_model, utc_now
-from ...exceptions import RevisionConflictError
+from ...exceptions import InvalidTransitionError, RevisionConflictError
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess
 
@@ -29,7 +29,8 @@ class ProjectAuthoringWorkflow:
         expected_draft_revision: int,
     ) -> StageHead:
         """Install a canonical stage and consume its exact draft in one lease."""
-
+        if stage == StageName.STORY_GRAPH:
+            raise InvalidTransitionError("剧情图只能通过共享来源图草稿确认与准入。")
         parsed = stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
         canonical_payload = parsed.model_dump(mode="json", by_alias=True)
         with self._access.leases.lifecycle_write() as session:

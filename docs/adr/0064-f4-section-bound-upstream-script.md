@@ -2,6 +2,56 @@
 
 Status: Accepted, 2026-09-18.
 
+## Amendment: route budgets replace synthetic section caps (2026-10-08)
+
+The equal-depth allocation rejected an authored 10-second opening plus either
+five-second ending under a 15-second route limit. F4/F5 now freeze a versioned
+route-budget hash covering the author maximum, ordered section bindings,
+route-only membership and complete routes. Synthetic section caps and their
+allocation hash are removed from the current receiving contract and frontend
+types; no compatibility reader reconstructs them.
+
+F4 validates both episode target totals and pinned duration-estimate totals for
+each complete route. F5 validates actual cut totals against those routes.
+Canonical installation and manual saves validate scene totals using DAG
+longest-path arithmetic under ADR0018. Unequal section lengths are permitted;
+mutually exclusive endings are never added together. Cut/segment policies,
+dialogue minima, exact mappings, input currentness and atomic writes remain.
+
+Retained frozen requests are not edited or replayed as the new contract. A
+stopped request is cancelled and a fresh request is prepared against qualified
+code. Disposable obsolete review rows may be explicitly reset; valued folders
+remain untouched on their qualified runtime until cutover is authorized.
+
+Folder admission and recovery validate all persisted F4/F5 binding JSON against
+the current typed contract, including retained candidates and revisions. SQL
+layout alone cannot detect this breaking change. Unsupported bindings fail
+before repository mutation with explicit reset-required guidance; opening,
+inspection, reopening and restore never migrate or reconstruct their authority.
+
+Native creative dispatch names the runtime's absolute execution checkout and
+specialist skill, as native intent already does. A specialist chat's working
+directory can belong to an older checkout with different skill bytes; it is not
+execution authority. This applies to every creative stage, without changing the
+chat's repository or rewriting its frozen package or pin.
+
+## Clarification: specialist emission of trusted linkage (2026-10-02)
+
+A real frozen handoff passed the upstream validator but omitted the required
+top-level `sectionBindings`. The brief said to use the frozen mapping, while
+the shared specialist skill documented only the characters/art extensions and
+otherwise required raw upstream shapes. This left the emission boundary unclear.
+
+The Script brief and specialist skill now explicitly require copying
+`script-admission.json.sectionBindings` unchanged into top-level
+`script.json.sectionBindings`. Before publishing, the specialist compares the
+exact ordered array and episode set/cardinality against the frozen admission.
+Upstream validation does not check this Plotloom extension. Trusted code still
+owns the mapping; the specialist merely transports it. Missing or permuted
+bindings remain receiving errors; no arrival-time inference or correction is
+allowed. Failed frozen requests and delivered bytes remain retained evidence;
+recovery uses explicit cancellation and a fresh handoff.
+
 ## Context
 
 The pinned `novel-script` format is a small batch of numbered episodes, while

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from hashlib import sha256
 import json
-from typing import Annotated, Any, Callable, Literal
+from collections.abc import Callable
+from hashlib import sha256
+from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse, Response
@@ -19,7 +20,9 @@ from ..managed_media import (
     publish_import,
 )
 from ..persistence import stable_hash
+from ..shot_presentation import ShotPresentationRequest
 from .models import ProjectFolderVisualIntentRequest
+from ..project_storage.delegated_qa_grants import qa_command
 
 
 def register_project_folder_media_routes(
@@ -27,8 +30,21 @@ def register_project_folder_media_routes(
     opened_project: Callable[[str], Any],
     *,
     require_media_draft_scope: Callable[..., Any],
+    inspected_project: Callable[[str], Any] | None = None,
 ) -> None:
     """Register direct-storage asset, preview, and workbench routes."""
+
+    inspect = inspected_project or opened_project
+
+    @app.get("/api/v2/projects/{project_id}/shots/{shot_id}/production-presentation")
+    def get_shot_presentation(project_id: str, shot_id: str) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.shot_presentations.get(project_id, shot_id)
+
+    @app.put("/api/v2/projects/{project_id}/shots/{shot_id}/production-presentation")
+    def review_shot_presentation(project_id: str, shot_id: str, body: ShotPresentationRequest) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.shot_presentations.review(project_id, shot_id, body)
 
     @app.exception_handler(ManagedMediaError)
     async def managed_media_error_handler(
@@ -49,6 +65,10 @@ def register_project_folder_media_routes(
             "package_conflict",
             "delivery_conflict",
             "delivery_finalized",
+            "specialist_busy",
+            "specialist_already_sent",
+            "image_dispatch_busy",
+            "image_dispatch_already_attempted",
         }
         return JSONResponse(
             status_code=(
@@ -164,7 +184,7 @@ def register_project_folder_media_routes(
 
     @app.get("/api/v2/projects/{project_id}/managed-assets")
     def get_project_managed_assets(project_id: str) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        with inspect(project_id) as store:
             return {
                 "assets": store.media.list_managed_assets(project_id),
                 "selectionRevision": store.media.visual_selection_revision(
@@ -176,7 +196,7 @@ def register_project_folder_media_routes(
     def serve_project_managed_asset(
         project_id: str, asset_id: str, variant: Literal["display", "original"]
     ) -> Response:
-        with opened_project(project_id) as store:
+        with inspect(project_id) as store:
             stored = store.media.get_managed_asset_storage(project_id, asset_id)
             try:
                 content = store.artifacts.get(
@@ -192,6 +212,9 @@ def register_project_folder_media_routes(
                 raise HTTPException(
                     status_code=409, detail={"code": "managed_asset_corrupt"}
                 )
+            expected_hash = stored["displayHash"] if variant == "display" else stored["originalHash"]
+            if sha256(content).hexdigest() != expected_hash:
+                raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
             return Response(
                 content=content,
                 media_type="image/png" if variant == "display" else stored["mimeType"],
@@ -214,11 +237,12 @@ def register_project_folder_media_routes(
             mode="json", by_alias=True, exclude={"shot_id", "consumed_draft"}
         )
         draft_payload = {"assetId": asset_id, "shotId": body.shot_id, **intent}
-        with opened_project(project_id) as store:
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return store.media.create_visual_intent(
                 project_id,
                 asset_id,
                 intent,
+                target_shot_id=body.shot_id,
                 consumed_draft=(
                     body.consumed_draft.entity_id,
                     body.consumed_draft.draft_revision,
@@ -233,7 +257,7 @@ def register_project_folder_media_routes(
     def select_project_reviewed_keyframe(
         project_id: str, body: ReviewedSelectionRequest
     ) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return store.media.select_reviewed_keyframe(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )

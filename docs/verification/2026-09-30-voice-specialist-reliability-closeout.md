@@ -45,7 +45,7 @@ package change or model replacement occurred in this closeout.
 
 These passes establish those exact serialized windows, not a statistical
 reliability claim, a CUDA root-cause fix or atomic cross-service admission.
-The [operating decision](../adr/0096-voice-lab-shared-host-operating-boundary.md)
+The [operating decision](../adr/0211-voice-lab-shared-host-operating-boundary.md)
 retains advisory checks and requires operator-serial qualification windows.
 
 ## Full voice workflow

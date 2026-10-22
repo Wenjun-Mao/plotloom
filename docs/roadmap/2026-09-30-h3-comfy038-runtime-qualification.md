@@ -71,7 +71,7 @@ healthy. **Full visual qualification and promotion remain incomplete**:
   before adoption, not hidden inside an image update.
 
 See the [receipt](../verification/2026-09-30-h3-comfy038-runtime-qualification.md)
-and [ADR 0095](../adr/0095-h3-runtime-qualification-and-catalog-isolation.md).
+and [ADR 0210](../adr/0210-h3-runtime-qualification-and-catalog-isolation.md).
 No director contact, merge, push, model switch or additional call is authorized
 by this status. Stop here with work and rollback preserved.
 

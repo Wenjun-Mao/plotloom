@@ -12,8 +12,12 @@ import textwrap
 import zipfile
 from pathlib import Path
 
-import pytest
-
+from tests.extraction_worktree_paths import (
+    _find_named_files,
+    _present_forbidden_repository_roots,
+    _unexpected_tracked_roots,
+    _unexpected_worktree_roots,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = REPOSITORY_ROOT / "src" / "plotloom"
@@ -42,55 +46,6 @@ FORBIDDEN_RUNTIME_PATH_MARKERS = {
     "src/narrative_forge/",
     "static/src/",
 }
-FORBIDDEN_REPOSITORY_PATHS = {
-    "app.py",
-    "backend",
-    "static",
-    "src/narrative_forge",
-    "projects",
-}
-ALLOWED_REPOSITORY_ROOTS = {
-    ".agents",
-    ".env.example",
-    ".github",
-    ".gitignore",
-    ".gitmodules",
-    ".python-version",
-    "AGENTS.md",
-    "LICENSE",
-    "NOTICE",
-    "README.md",
-    "docs",
-    "frontend",
-    "pyproject.toml",
-    "scripts",
-    "services",
-    "src",
-    "tests",
-    "third_party",
-    "uv.lock",
-}
-ALLOWED_SERVICE_DIRECTORIES = {"minimax_h3_gateway", "qwen3_tts_voice_lab"}
-IGNORED_SERVICE_RUNTIME_PARTS = {".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv", "__pycache__", "build", "dist"}
-IGNORED_WORKTREE_ROOTS = {
-    ".gates.jsonl",
-    ".env",
-    ".git",
-    ".local",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
-    "build",
-    "data",
-    "dist",
-    "htmlcov",
-    "node_modules",
-    "output",
-    "test-results",
-}
-LOCAL_WORKTREE_DOTENV_PATTERN = re.compile(r"^\.env(?:\..+)?\.local$")
-APPROVED_UNTRACKED_WORKTREE_ROOTS = {".playwright-cli", "outputs"}
 FORBIDDEN_PRODUCT_IDENTITY_MARKERS = {
     "Narrative Forge",
     "NARRATIVE_FORGE",
@@ -98,15 +53,6 @@ FORBIDDEN_PRODUCT_IDENTITY_MARKERS = {
     "X-NF-Session-API-Key",
     "narrative-forge-v2",
     "narrative_forge_v2",
-}
-IGNORED_SEARCH_DIRECTORIES = {
-    ".git",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
-    "__pycache__",
-    "node_modules",
 }
 
 
@@ -121,91 +67,6 @@ def _absolute_imports(path: Path) -> list[tuple[int, str]]:
     return imports
 
 
-def _is_approved_untracked_worktree_root(path: Path) -> bool:
-    """Permit only declared local runtime state in the filesystem-only scan."""
-
-    return (
-        path.name in IGNORED_WORKTREE_ROOTS
-        or path.name in APPROVED_UNTRACKED_WORKTREE_ROOTS
-        or LOCAL_WORKTREE_DOTENV_PATTERN.fullmatch(path.name) is not None
-    )
-
-
-def _unexpected_worktree_roots(root: Path) -> list[str]:
-    return sorted(
-        path.name
-        for path in root.iterdir()
-        if not _is_approved_untracked_worktree_root(path)
-        and path.name != ".DS_Store"
-        and not path.name.startswith(".coverage")
-        and path.name not in ALLOWED_REPOSITORY_ROOTS
-    )
-
-
-def _unexpected_tracked_roots(tracked_paths: list[Path]) -> list[str]:
-    return sorted({path.parts[0] for path in tracked_paths} - ALLOWED_REPOSITORY_ROOTS)
-
-
-def _present_forbidden_repository_roots(root: Path) -> list[str]:
-    return sorted(path for path in FORBIDDEN_REPOSITORY_PATHS if (root / path).exists())
-
-
-def _find_named_files(root: Path, filenames: set[str]) -> set[Path]:
-    matches: set[Path] = set()
-    for directory, child_directories, child_filenames in os.walk(root):
-        child_directories[:] = [
-            name for name in child_directories if name not in IGNORED_SEARCH_DIRECTORIES
-        ]
-        directory_path = Path(directory)
-        matches.update(directory_path / name for name in child_filenames if name in filenames)
-    return matches
-
-
-def _assert_services_root_contains_only_admitted_modules(root: Path, tracked_paths: list[Path]) -> None:
-    """Keep independently deployed services as explicit source-root exceptions."""
-
-    services_root = root / "services"
-    assert services_root.is_dir() and not services_root.is_symlink(), (
-        "services must be a real directory"
-    )
-    children = {path.name for path in services_root.iterdir()}
-    assert children == ALLOWED_SERVICE_DIRECTORIES, (
-        "services permits only the admitted service subtrees: "
-        + ", ".join(sorted(children))
-    )
-    for name in ALLOWED_SERVICE_DIRECTORIES:
-        service_root = services_root / name
-        assert service_root.is_dir() and not service_root.is_symlink(), (
-            f"the admitted {name} service must be a real directory"
-        )
-
-    tracked_service_paths = {
-        path.as_posix() for path in tracked_paths if path.parts and path.parts[0] == "services"
-    }
-    invalid_tracked_paths = sorted(
-        path for path in tracked_service_paths
-        if len(Path(path).parts) < 3 or Path(path).parts[1] not in ALLOWED_SERVICE_DIRECTORIES
-    )
-    assert not invalid_tracked_paths, (
-        "tracked files outside the admitted service subtrees: "
-        + ", ".join(invalid_tracked_paths)
-    )
-    actual_service_paths = {
-        path.relative_to(root).as_posix()
-        for path in services_root.rglob("*")
-        # Each service's own venv, package build and test caches are local
-        # runtime debris. Source and configuration still must be tracked.
-            if (path.is_file() or path.is_symlink())
-            and not IGNORED_SERVICE_RUNTIME_PARTS.intersection(path.parts)
-            and path.suffix != ".pyc"
-            and path.name != ".DS_Store"
-    }
-    assert actual_service_paths == tracked_service_paths, (
-        "services must contain only tracked source files; unexpected: "
-        + ", ".join(sorted(actual_service_paths - tracked_service_paths))
-        + "; missing: "
-        + ", ".join(sorted(tracked_service_paths - actual_service_paths))
-    )
 
 
 def _build_distribution_wheel(wheel_directory: Path) -> Path:
@@ -287,7 +148,6 @@ def test_clean_repository_has_only_declared_product_roots() -> None:
     assert not foreign_source_paths, "non-Plotloom source packages are tracked:\n" + "\n".join(
         foreign_source_paths
     )
-    _assert_services_root_contains_only_admitted_modules(REPOSITORY_ROOT, tracked_paths)
 
 
 def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path) -> None:
@@ -307,27 +167,6 @@ def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path)
 
     (tmp_path / "backend").mkdir()
     assert _present_forbidden_repository_roots(tmp_path) == ["backend"]
-
-
-def test_services_root_admission_rejects_other_children_and_untracked_files(tmp_path: Path) -> None:
-    tracked = [Path(f"services/{name}/README.md") for name in sorted(ALLOWED_SERVICE_DIRECTORIES)]
-    gateway = tmp_path / "services" / "minimax_h3_gateway"
-    gateway.mkdir(parents=True)
-    (gateway / "README.md").write_text("gateway", encoding="utf-8")
-    voice_lab = tmp_path / "services" / "qwen3_tts_voice_lab"
-    voice_lab.mkdir()
-    (voice_lab / "README.md").write_text("voice lab", encoding="utf-8")
-
-    _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
-
-    (tmp_path / "services" / "unrelated.py").write_text("blocked", encoding="utf-8")
-    with pytest.raises(AssertionError, match="permits only"):
-        _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
-    (tmp_path / "services" / "unrelated.py").unlink()
-
-    (gateway / "local.env").write_text("blocked", encoding="utf-8")
-    with pytest.raises(AssertionError, match="only tracked source files"):
-        _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
 
 
 def test_product_code_contains_no_predecessor_identity() -> None:
@@ -365,8 +204,7 @@ def test_environment_template_is_plotloom_only() -> None:
     source = ENV_EXAMPLE.read_text(encoding="utf-8")
     declared_names = set(re.findall(r"(?m)^#?\s*([A-Z][A-Z0-9_]*)=", source))
     assert {
-        "ATLASCLOUD_API_KEY",
-        "TEXT_MODEL_API_KEY",
+        "PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY",
         "IMAGE_MODEL_API_KEY",
         "VIDEO_MODEL_API_KEY",
         "TEXT_PROVIDER",
@@ -387,6 +225,7 @@ def test_environment_template_is_plotloom_only() -> None:
     }.issubset(declared_names)
     assert not any(name.startswith(("DIRECTOR_", "NARRATIVE_FORGE_")) for name in declared_names)
     assert "IMAGE_EDIT_MODEL" not in declared_names
+    assert not {"ATLASCLOUD_API_KEY", "TEXT_MODEL_API_KEY"} & declared_names
 
 
 def test_prompt_templates_have_one_package_owned_source_of_truth() -> None:

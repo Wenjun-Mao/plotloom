@@ -1,16 +1,19 @@
+import { StaticReportReader } from "../components/StaticReportReader";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { plotloomApi } from "../api";
 import { Badge, ErrorNotice, Spinner } from "../components";
-import { sourceWorkflowHref } from "../app/workspace/sourceWorkflowNavigation";
+import { sourceWorkflowHref, workspaceHref } from "../app/workspace/sourceWorkflowNavigation";
 import { derivePrototypeRoutes, episodeForSection, episodesForRoute, prototypeReadiness, storyboardEpisodesForRoute, storyboardPrototypeReadiness, type PrototypeEpisode, type PrototypeRoute, type PrototypeScript, type PrototypeStoryboard, type PrototypeStoryboardEpisode, type ScriptLine } from "../story-prototype-model";
-import type { AcceptedScriptRevision, AcceptedStoryboardReviewRevision, ArtReviewState, CastReviewState, StoryGraph } from "../types";
+import type { AcceptedScriptRevision, AcceptedStoryboardReviewRevision, ArtReviewState, CastReviewState, StageHead, StoryGraph } from "../types";
 
 type PrototypeNames = { characters: Record<string, string>; props: Record<string, string>; scenes: Record<string, string> };
-type PrototypeData = { graph: StoryGraph; script: PrototypeScript; accepted: AcceptedScriptRevision; projectTitle: string; names: PrototypeNames };
+type PrototypeData = { graph: StoryGraph; graphHead: StageHead | undefined; script: PrototypeScript; accepted: AcceptedScriptRevision; projectTitle: string; names: PrototypeNames };
+type ReaderPrerequisites = { owner: "creator" | "script"; message: string };
 type StoryboardState =
   | { status: "loading" }
   | { status: "available"; storyboard: PrototypeStoryboard; review: AcceptedStoryboardReviewRevision }
+  | { status: "failed"; message: string }
   | { status: "unavailable"; message: string };
 type ReaderMode = "screenplay" | "storyboard";
 
@@ -19,6 +22,9 @@ export function StoryPrototypePage() {
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
   const [data, setData] = useState<PrototypeData>();
   const [error, setError] = useState("");
+  const [prerequisites, setPrerequisites] = useState<ReaderPrerequisites>();
+  const [readRevision, setReadRevision] = useState(0);
+  const [storyboardReadRevision, setStoryboardReadRevision] = useState(0);
   const [selectedRouteId, setSelectedRouteId] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [readerMode, setReaderMode] = useState<ReaderMode>("screenplay");
@@ -29,6 +35,7 @@ export function StoryPrototypePage() {
     let active = true;
     setData(undefined);
     setError("");
+    setPrerequisites(undefined);
     setStoryboardState({ status: "loading" });
     void Promise.all([
       plotloomApi.getProject(projectId),
@@ -38,31 +45,42 @@ export function StoryPrototypePage() {
       plotloomApi.getArt(projectId).catch(() => null),
     ])
       .then(([project, stages, scriptState, castState, artState]) => {
+        if (!active) return;
         const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
         const graph = graphStage?.payload as StoryGraph | null;
         const acceptedScript = scriptState.acceptedScript;
-        if (!graph || !acceptedScript) throw new Error("这个项目尚未同时具备可阅读的故事和已确认剧本。");
+        if (!graph || !acceptedScript) {
+          setPrerequisites({ owner: !graph ? "creator" : "script", message: !graph ? "当前尚未建立已确认的故事路线，请先在创作工作台完成路线。" : "当前尚无已确认剧本，请先在剧本步骤审阅并确认。" });
+          return;
+        }
         const unavailable = prototypeReadiness(scriptState.status, graphStage?.head, acceptedScript.binding);
-        if (unavailable) throw new Error(unavailable);
-        const loaded = { graph, script: acceptedScript.script as PrototypeScript, accepted: acceptedScript, projectTitle: project.brief.title, names: displayNames(castState, artState) };
-        if (!active) return;
+        if (unavailable) {
+          setPrerequisites({ owner: scriptState.status === "accepted" && graphStage?.head.status !== "ready" ? "creator" : "script", message: unavailable });
+          return;
+        }
+        const loaded = { graph, graphHead: graphStage?.head, script: acceptedScript.script as PrototypeScript, accepted: acceptedScript, projectTitle: project.brief.title, names: displayNames(castState, artState) };
         setData(loaded);
-        void plotloomApi.getStoryboardSourceReview(projectId)
-          .then((reviewState) => {
-            if (!active) return;
-            const storyboardUnavailable = storyboardPrototypeReadiness(scriptState.status, graphStage?.head, acceptedScript, reviewState);
-            const review = reviewState.acceptedReview;
-            if (storyboardUnavailable || !review) {
-              setStoryboardState({ status: "unavailable", message: storyboardUnavailable || "当前没有可阅读的已确认分镜评审。" });
-              return;
-            }
-            setStoryboardState({ status: "available", storyboard: review.storyboard as PrototypeStoryboard, review });
-          })
-          .catch(() => { if (active) setStoryboardState({ status: "unavailable", message: "当前没有可阅读的已确认分镜评审。剧本仍可继续阅读。" }); });
       })
       .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "无法读取故事原型。"); });
     return () => { active = false; };
-  }, [projectId]);
+  }, [projectId, readRevision]);
+
+  useEffect(() => {
+    if (!data) return;
+    let active = true;
+    setStoryboardState({ status: "loading" });
+    void plotloomApi.getStoryboardSourceReview(projectId).then((reviewState) => {
+      if (!active) return;
+      const unavailable = storyboardPrototypeReadiness("accepted", data.graphHead, data.accepted, reviewState);
+      const review = reviewState.acceptedReview;
+      setStoryboardState(unavailable || !review
+        ? { status: "unavailable", message: unavailable || "当前没有可阅读的已确认分镜评审。" }
+        : { status: "available", storyboard: review.storyboard as PrototypeStoryboard, review });
+    }).catch((reason: unknown) => {
+      if (active) setStoryboardState({ status: "failed", message: reason instanceof Error ? reason.message : "无法读取分镜评审。" });
+    });
+    return () => { active = false; };
+  }, [data, projectId, storyboardReadRevision]);
 
   const routes = useMemo(() => data ? derivePrototypeRoutes(data.graph, data.accepted.binding.sectionBindings) : [], [data]);
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) || routes[0];
@@ -73,7 +91,7 @@ export function StoryPrototypePage() {
 
   const chooseNode = (nodeId: string) => {
     setSelectedNodeId(nodeId);
-    // The opening belongs to both paths. Keep a deliberately chosen path until
+    // Shared nodes belong to multiple routes. Keep a deliberately chosen path until
     // the reader selects a node that is outside it or clicks another branch.
     const containingRoute = selectedRoute?.sectionIds.includes(nodeId)
       ? selectedRoute
@@ -81,43 +99,52 @@ export function StoryPrototypePage() {
     if (containingRoute) setSelectedRouteId(containingRoute.id);
   };
 
-  if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本和分镜评审的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
-  if (error) return <PrototypeShell><ErrorNotice message={error} /></PrototypeShell>;
-  if (!data || !selectedRoute) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
+  const chooseRoute = (routeId: string, nodeId: string) => {
+    // An explicit complete route must not be inferred again from its shared ending.
+    setSelectedRouteId(routeId);
+    setSelectedNodeId(nodeId);
+  };
+
+  if (!projectId) return <PrototypeShell><section className="prototype-empty"><h1>请选择要阅读的项目</h1><p>打开故事路线和剧本均已确认的项目，再选择“阅读故事”。确认分镜方案后，也可在这里阅读。</p><a className="button quiet" href="/v2/">返回项目首页</a></section></PrototypeShell>;
+  if (error) return <PrototypeShell><section className="prototype-empty"><WorkflowReturn projectId={projectId} /><h1>暂时无法阅读故事</h1><ErrorNotice message={error} /><button className="button quiet" onClick={() => setReadRevision(value => value + 1)}>重新读取故事</button></section></PrototypeShell>;
+  if (prerequisites) return <PrototypeShell><section className="prototype-empty" data-testid="reader-prerequisites"><WorkflowReturn projectId={projectId} /><h1>故事尚未准备好阅读</h1><p>{prerequisites.message}</p><a className="button quiet" href={prerequisites.owner === "creator" ? workspaceHref(projectId, "creator") : sourceWorkflowHref(projectId, "script")}>{prerequisites.owner === "creator" ? "前往创作工作台" : "前往剧本审阅"}</a></section></PrototypeShell>;
+  if (!data) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
+  if (!selectedRoute) return <PrototypeShell><section className="prototype-empty"><WorkflowReturn projectId={projectId} /><h1>故事路线与剧本章节不对应</h1><p>有画面的剧情节点须与已确认剧本的章节完整对应；不需要画面的节点不占剧本章节。请返回创作流程检查。</p></section></PrototypeShell>;
 
   const selectedEpisode = episodeForSection(data.script, selectedNode);
   return <PrototypeShell>
     <header className="prototype-header">
       <a className="brand" href={`?project=${encodeURIComponent(projectId)}&stage=source`}><span className="brand-mark">PL</span><span><strong>Plotloom</strong><small>故事与分支 · 原型</small></span></a>
-      <div><Badge tone="accent">只读阅读</Badge><Badge tone="ok">已确认剧本</Badge></div>
+      <div><Badge tone="accent">只读模式</Badge><Badge tone="ok">已确认剧本</Badge></div>
     </header>
     <main className="story-prototype" data-testid="story-prototype">
       <WorkflowReturn projectId={projectId} />
       <section className="prototype-intro">
-        <div><span className="eyebrow">故事 / 剧本 / 分镜</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条路径，再选择要阅读的已确认剧本或对应分镜评审。界面为中文；已确认原文内容按接受版本呈现。</p></div>
-        <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本{storyboardState.status === "available" ? " / 已确认分镜评审" : ""}</span><small>这里不会更改内容、生成素材或将分镜转为产品镜头。</small></div>
+        <div><span className="eyebrow">故事 / 剧本 / 分镜</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条完整路线，再阅读这条路线的剧本或对应分镜方案。原文按已确认的版本显示，不在这里改写。</p></div>
+        <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本{storyboardState.status === "available" ? " / 已确认分镜评审" : ""}</span><small>这里不会更改内容、生成素材或建立正式镜头。</small></div>
       </section>
-      <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={setSelectedRouteId} />
-      <ReaderTabs mode={readerMode} storyboardAvailable={storyboardState.status === "available"} onMode={setReaderMode} />
-      {readerMode === "screenplay" ? <ScreenplayReader graph={data.graph} script={data.script} names={data.names} route={selectedRoute} selectedNode={selectedNode} selectedEpisode={selectedEpisode} onFocus={chooseNode} /> : <StoryboardStage graph={data.graph} script={data.script} names={data.names} route={selectedRoute} state={storyboardState} onFocus={chooseNode} projectId={projectId} />}
+      <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={chooseRoute} />
+      <ReaderTabs mode={readerMode} storyboardStatus={storyboardState.status} onMode={setReaderMode} />
+      {readerMode === "screenplay" ? <ScreenplayReader graph={data.graph} script={data.script} names={data.names} route={selectedRoute} selectedNode={selectedNode} selectedEpisode={selectedEpisode} onFocus={chooseNode} /> : <StoryboardStage graph={data.graph} script={data.script} names={data.names} route={selectedRoute} state={storyboardState} onFocus={chooseNode} projectId={projectId} onRetry={() => setStoryboardReadRevision(value => value + 1)} />}
       <footer className="prototype-boundary"><strong>阅读边界</strong><span>分镜中的时长是评审用预计时长，不代表实际音频或成片时长。此页只用于阅读当前绑定的故事、剧本和分镜评审，不能在这里保存、生成或投产。</span></footer>
       <details className="prototype-details"><summary>技术详情</summary><dl><div><dt>剧本版本</dt><dd>r{data.accepted.revision}</dd></div>{storyboardState.status === "available" && <><div><dt>分镜评审版本</dt><dd>r{storyboardState.review.revision}</dd></div><div><dt>内容标识</dt><dd>{storyboardState.review.contentHash}</dd></div></>}<div><dt>故事版本</dt><dd>r{data.accepted.binding.graphRevision}</dd></div><div><dt>章节对应</dt><dd>{data.accepted.binding.sectionBindings.map((item) => `${item.sectionId} → E${item.episode.toString().padStart(2, "0")}`).join(" · ")}</dd></div></dl></details>
     </main>
   </PrototypeShell>;
 }
 
-function ReaderTabs({ mode, storyboardAvailable, onMode }: { mode: ReaderMode; storyboardAvailable: boolean; onMode: (mode: ReaderMode) => void }) {
-  return <nav className="reader-tabs" aria-label="阅读内容"><button type="button" className={mode === "screenplay" ? "selected" : ""} aria-pressed={mode === "screenplay"} onClick={() => onMode("screenplay")}>剧本</button><button type="button" className={mode === "storyboard" ? "selected" : ""} aria-pressed={mode === "storyboard"} onClick={() => onMode("storyboard")}>分镜{!storyboardAvailable ? " · 当前不可读" : ""}</button></nav>;
+function ReaderTabs({ mode, storyboardStatus, onMode }: { mode: ReaderMode; storyboardStatus: StoryboardState["status"]; onMode: (mode: ReaderMode) => void }) {
+  return <nav className="reader-tabs" aria-label="阅读内容"><button type="button" className={mode === "screenplay" ? "selected" : ""} aria-pressed={mode === "screenplay"} onClick={() => onMode("screenplay")}>剧本</button><button type="button" className={mode === "storyboard" ? "selected" : ""} aria-pressed={mode === "storyboard"} onClick={() => onMode("storyboard")}>分镜{storyboardStatus === "loading" ? " · 正在检查" : storyboardStatus === "failed" ? " · 读取失败" : storyboardStatus === "unavailable" ? " · 当前不可读" : ""}</button></nav>;
 }
 
 function ScreenplayReader({ graph, script, names, route, selectedNode, selectedEpisode, onFocus }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; selectedNode: string; selectedEpisode: PrototypeEpisode | undefined; onFocus: (id: string) => void }) {
   return <section className="prototype-reading" aria-labelledby="prototype-reading-title"><div className="prototype-reading-header"><div><span className="eyebrow">剧本阅读</span><h2 id="prototype-reading-title">{routeTitle(route)}</h2><p>正在查看：{nodeTitle(graph, selectedNode)}。另一种结局会留在它自己的阅读路径里。</p></div><Badge tone="warning">已确认原文</Badge></div><div className="script-reader" data-testid="route-reader">{episodesForRoute(script, route).map(({ sectionId, episode }) => <EpisodeCard key={sectionId} graph={graph} names={names} sectionId={sectionId} episode={episode} focused={sectionId === selectedNode} onFocus={onFocus} />)}</div>{selectedEpisode && !route.sectionIds.includes(selectedNode) && <EpisodeCard graph={graph} names={names} sectionId={selectedNode} episode={selectedEpisode} focused onFocus={onFocus} />}</section>;
 }
 
-function StoryboardStage({ graph, script, names, route, state, onFocus, projectId }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; state: StoryboardState; onFocus: (id: string) => void; projectId: string }) {
+function StoryboardStage({ graph, script, names, route, state, onFocus, projectId, onRetry }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; state: StoryboardState; onFocus: (id: string) => void; projectId: string; onRetry: () => void }) {
   if (state.status === "loading") return <section className="prototype-reading"><Spinner label="正在检查当前分镜评审" /></section>;
-  if (state.status === "unavailable") return <section className="prototype-reading storyboard-unavailable" data-testid="storyboard-unavailable"><div><span className="eyebrow">分镜阅读</span><h2>当前分镜不可读</h2><p>{state.message}</p></div><p>这不会影响已确认剧本；可切换回“剧本”继续按路径阅读。</p></section>;
-  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><details><summary>打开原始上游报告（只读评审证据）</summary><iframe title="original upstream storyboard report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></details></section></>;
+  if (state.status === "failed") return <section className="prototype-reading" data-testid="storyboard-read-failed"><h2>暂时无法读取分镜</h2><ErrorNotice message={state.message} /><p>已读取的剧本和路线仍保留。重新读取不会准备任务、生成素材或改变已确认内容。</p><button className="button quiet" onClick={onRetry}>重新读取分镜</button></section>;
+  if (state.status === "unavailable") return <section className="prototype-reading storyboard-unavailable" data-testid="storyboard-unavailable"><div><span className="eyebrow">分镜阅读</span><h2>当前分镜不可读</h2><p>{state.message}</p></div><p>这不会影响已确认剧本；可切换回“剧本”继续按路线阅读。</p><a className="button quiet" href={sourceWorkflowHref(projectId, "storyboard-review")}>前往分镜评审</a></section>;
+  return <><StoryboardReader graph={graph} script={script} names={names} route={route} storyboard={state.storyboard} bindings={state.review.binding.sectionBindings} onFocus={onFocus} /><section className="prototype-report"><StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, state.review.candidateJobId)} /></section></>;
 }
 
 function PrototypeShell({ children }: { children: ReactNode }) { return <div className="prototype-shell">{children}</div>; }
@@ -129,13 +156,17 @@ function WorkflowReturn({ projectId }: { projectId: string }) {
   </nav>;
 }
 
-function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute }: { graph: StoryGraph; routes: PrototypeRoute[]; selectedRoute: PrototypeRoute; selectedNode: string; onNode: (nodeId: string) => void; onRoute: (routeId: string) => void }) {
+function BranchMap({ graph, routes, selectedRoute, selectedNode, onNode, onRoute }: { graph: StoryGraph; routes: PrototypeRoute[]; selectedRoute: PrototypeRoute; selectedNode: string; onNode: (nodeId: string) => void; onRoute: (routeId: string, nodeId: string) => void }) {
   const start = graph.nodes.find((node) => node.id === graph.startNodeId);
-  const edges = graph.edges.filter((edge) => edge.sourceNodeId === graph.startNodeId);
-  return <section className="branch-map" aria-labelledby="branch-map-title"><div className="branch-map-heading"><div><span className="eyebrow">分支地图</span><h2 id="branch-map-title">从一个开场，抵达两个不同后果</h2></div><p>选择从故事中来；每张卡都说明选择之后会发生什么。</p></div><div className="branch-canvas">
+  const endings = graph.nodes.filter(node => node.kind === "ending").length;
+  return <section className="branch-map" aria-labelledby="branch-map-title"><div className="branch-map-heading"><div><span className="eyebrow">分支地图</span><h2 id="branch-map-title">{routes.length} 条完整播放路线 · {endings} 个不同结局</h2></div><p>每条路线从开场到一个结局；途中可以经过多次选择与共享剧情。</p></div><div className="branch-canvas">
     {start && <button type="button" className={`branch-node start ${selectedNode === start.id ? "selected" : ""}`} aria-pressed={selectedNode === start.id} onClick={() => onNode(start.id)}><span>开场</span><strong>{start.title}</strong><small>{start.summary}</small></button>}
     <div className="branch-connector" aria-hidden="true"><span className="branch-connector-trunk" /><span className="branch-connector-arm first" /><span className="branch-connector-arm last" /></div>
-    <div className="branch-options">{edges.map((edge) => { const target = graph.nodes.find((node) => node.id === edge.targetNodeId); const route = routes.find((item) => item.sectionIds.at(-1) === edge.targetNodeId); const consequence = typeof edge.stateEffects.sourceMapConsequence === "string" ? edge.stateEffects.sourceMapConsequence : "查看结局的变化。"; return target && route ? <button type="button" key={edge.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => { onRoute(route.id); onNode(target.id); }}><span className="choice-label">选择：{edge.choiceText || target.title}</span><strong>{target.title}</strong><small>后果：{consequence}</small></button> : null; })}</div>
+    <div className="branch-options">{routes.map((route, index) => {
+      const target = graph.nodes.find(node => node.id === route.sectionIds.at(-1));
+      const choices = route.sectionIds.flatMap((id, step) => graph.edges.filter(edge => edge.sourceNodeId === id && edge.targetNodeId === route.sectionIds[step + 1] && edge.kind === "choice"));
+      return target && <button type="button" key={route.id} className={`branch-choice ${selectedRoute.id === route.id ? "selected" : ""}`} aria-pressed={selectedRoute.id === route.id} onClick={() => onRoute(route.id, target.id)}><span className="choice-label">播放路线 {index + 1}：{route.label}</span><strong>{target.title}</strong>{choices.map(edge => <small key={edge.id}>选项：{edge.choiceText} · 后果：{String(edge.stateEffects.sourceMapConsequence || "查看后续剧情。")}</small>)}</button>;
+    })}</div>
   </div></section>;
 }
 

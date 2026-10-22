@@ -1,11 +1,26 @@
+import { openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { expect, test } from "./fixture";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Locator, Page } from "@playwright/test";
+import { collectNativeMediaDiagnostics } from "./native-media-diagnostics";
+import { reviewedFixtureSource, saveFixtureTargetIntent, reviewFixtureTarget } from "./fixtures/reviewed-frame-reuse";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
+const retainDiagnostics = new WeakMap<Page, () => Promise<void>>();
+
+test.beforeEach(async ({ page }, info) => {
+  retainDiagnostics.set(page, await collectNativeMediaDiagnostics(page, info, {
+    responseUrl: /\/video-jobs\/[^/]+\/playback(?:\?|$)/,
+    traceReader: "readBranchingMediaTrace",
+  }));
+});
+test.afterEach(async ({ page }) => {
+  await retainDiagnostics.get(page)?.();
+});
 
 type MediaTrace = { type: string; identity: string; connected: boolean; currentTime: number; paused: boolean };
 
@@ -19,18 +34,22 @@ async function installMediaTrace(page: Page) {
       type, identity: identity(video), connected: video.isConnected,
       currentTime: Number(video.currentTime.toFixed(3)), paused: video.paused,
     });
-    const observe = (node: Node) => {
-      if (!(node instanceof HTMLVideoElement) || !node.dataset.testid?.startsWith("branching-video-job-")) return;
+    const observe = (node: HTMLVideoElement) => {
+      if (!node.dataset.testid?.startsWith("branching-video-job-")) return;
       if (!observed.has(node)) {
         observed.add(node);
         record("attached", node);
-        for (const event of ["play", "playing", "pause", "ended", "error"]) node.addEventListener(event, () => record(event, node));
+        for (const event of ["play", "playing", "pause", "ended", "error", "waiting", "stalled", "loadedmetadata", "canplay", "timeupdate"]) node.addEventListener(event, () => record(event, node));
       }
       if (!node.isConnected) record("removed", node);
     };
+    const observeTree = (node: Node) => {
+      if (node instanceof HTMLVideoElement) observe(node);
+      else if (node instanceof Element) node.querySelectorAll<HTMLVideoElement>("video").forEach(observe);
+    };
     new MutationObserver((records) => records.forEach((record) => {
-      record.addedNodes.forEach(observe);
-      record.removedNodes.forEach(observe);
+      record.addedNodes.forEach(observeTree);
+      record.removedNodes.forEach(observeTree);
     })).observe(document, { childList: true, subtree: true });
     const nativePlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
@@ -50,7 +69,10 @@ async function installMediaTrace(page: Page) {
     (window as typeof window & { readBranchingMediaTrace: () => Trace[] }).readBranchingMediaTrace = () => trace;
     (window as typeof window & { clearBranchingMediaTrace: () => void }).clearBranchingMediaTrace = () => {
       trace.splice(0, trace.length);
-      document.querySelectorAll<HTMLVideoElement>('[data-testid^="branching-video-job-"]').forEach((video) => record("attached", video));
+      document.querySelectorAll<HTMLVideoElement>('[data-testid^="branching-video-job-"]').forEach((video) => {
+        observe(video);
+        record("attached", video);
+      });
     };
   });
 }
@@ -63,10 +85,10 @@ function branchingFixture() {
   project.storyGraph = {
     startNodeId: "start",
     nodes: [
-      { id: "start", title: "开始", kind: "start", summary: "离线夹具的第一镜。" },
-      { id: "decision", title: "选择", kind: "decision", summary: "必须明确选择。" },
-      { id: "left", title: "左结局", kind: "ending", summary: "左侧结束。" },
-      { id: "right", title: "右结局", kind: "ending", summary: "右侧结束。" },
+      { id: "start", title: "开始", kind: "start", footageMode: "footage", summary: "离线夹具的第一镜。" },
+      { id: "decision", title: "选择", kind: "decision", footageMode: "footage", summary: "必须明确选择。" },
+      { id: "left", title: "左结局", kind: "ending", footageMode: "footage", summary: "左侧结束。" },
+      { id: "right", title: "右结局", kind: "ending", footageMode: "footage", summary: "右侧结束。" },
     ],
     edges: [
       { id: "to-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
@@ -95,10 +117,10 @@ function branchingFixture() {
 }
 
 async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
-  const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconciled = page.waitForResponse((response) => {
     const pathname = new URL(response.url()).pathname;
@@ -112,7 +134,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const job = await reconciledResponse.json() as { id: string };
   const review = panel.getByTestId(`video-segment-review-${job.id}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "生成待审片段" }).click();
+  await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
@@ -135,13 +157,12 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-  await page.locator("details.workbench-support").first().locator("summary").click();
-  await page.locator("details.workbench-support").last().locator("summary").click();
-  await page.getByLabel("审核人标签").fill("Step 5 browser reviewer");
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Step 5 local fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
-  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("Step 5 fixture source");
   await page.getByTestId("save-visual-intent").click();
 
@@ -149,14 +170,21 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await panel.locator("details.video-production > summary").click();
   const shotNames = ["门开", "双键升起", "城市醒来", "舱门开启"];
   const jobIds: string[] = [];
+  let source: Awaited<ReturnType<typeof reviewedFixtureSource>>;
   for (const [index, shotName] of shotNames.entries()) {
-    if (index > 0) await page.getByLabel(`编辑镜头 ${shotName}`).click();
+    let targetIntent: Awaited<ReturnType<typeof saveFixtureTargetIntent>> | undefined;
+    if (index > 0) {
+      await page.getByRole("combobox", { name: "当前镜头", exact: true }).selectOption(project.storyboard.shots[index].id);
+      await page.getByTestId(/^keep-candidate-/).click();
+      targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source!, project.storyboard.shots[index].id);
+    }
     await page.getByLabel("审核兼容性说明").fill(`Current approved ${shotName} fixture keyframe.`);
     const selectedKeyframeResponse = page.waitForResponse((response) => (
       response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`
     ));
     await page.getByTestId("select-reviewed-keyframe").click();
+    if (targetIntent) await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source!, targetIntent);
     if (index === 0) {
       const selectedKeyframe = await selectedKeyframeResponse.then((response) => response.json() as Promise<{ assetId: string }>);
       const visual = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
@@ -170,6 +198,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
         } });
         expect(reference.ok()).toBeTruthy();
       }
+      source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
     }
     jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, projectId, index === 0 ? 24 : 0));
   }
@@ -240,9 +269,9 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await expect(preview.getByRole("button", { name: "从头开始" })).toBeVisible();
   const beforeReopenTrace = await page.evaluate(() => (window as typeof window & { readBranchingMediaTrace: () => MediaTrace[] }).readBranchingMediaTrace());
   expect(beforeReopenTrace.filter((event) => event.type === "play-called")).toHaveLength(6);
-  // Each path's native `ended` state is asserted above. React may replace the
-  // first direct-entry element before the observer receives its event, so the
-  // trace is supplemental transition evidence rather than player authority.
+  expect(new Set(beforeReopenTrace.filter((event) => event.type === "playing").map((event) => event.identity)).size).toBe(6);
+  // Native clock/ended assertions remain authority. The trace additionally
+  // observes initial videos mounted inside wrappers and later replacements.
   expect(beforeReopenTrace.filter((event) => event.type === "ended").length).toBeGreaterThanOrEqual(5);
   const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
   expect(closed.ok(), await closed.text()).toBeTruthy();
@@ -279,6 +308,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   const trace = await page.evaluate(() => (window as typeof window & { readBranchingMediaTrace: () => MediaTrace[] }).readBranchingMediaTrace());
   expect(trace.filter((event) => event.type === "play-called")).toHaveLength(6);
   expect(trace.filter((event) => event.type === "play-resolved")).toHaveLength(6);
+  expect(new Set(trace.filter((event) => event.type === "playing").map((event) => event.identity)).size).toBe(6);
   expect(trace.filter((event) => event.type === "ended").length).toBeGreaterThanOrEqual(5);
   expect(new Set(trace.filter((event) => event.type === "play-called").map((event) => event.identity)).size).toBe(6);
   expect(new Set(trace.filter((event) => event.type === "ended").map((event) => event.identity)).size).toBeGreaterThanOrEqual(5);

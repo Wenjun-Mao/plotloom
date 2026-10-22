@@ -56,6 +56,17 @@ control plane; request-level endpoint overrides are not accepted. A public or
 multi-user deployment needs a separate authentication and authorization decision
 before it may expose profile mutation.
 
+### Declared startup execution preset (2026-10-07)
+
+The runtime validates the declared V3 execution preset before constructing
+installation storage or the secret broker. A named-preset mismatch is an
+actionable startup error, not authority to relabel the profile as `custom`.
+Intentional non-preset fields require explicit `TEXT_PRESET_ID=custom`, which
+still obeys execution-combination validation. Retained profiles and sealed
+historical snapshots are not migrated or rewritten. Regressions guard valid
+default/custom declarations, failed bootstrap, fresh-path noncreation, and
+retained-file/profile equality after an invalid startup.
+
 ### Generation plan
 
 At enqueue, a deterministic planner compiles the requested canonical stage range

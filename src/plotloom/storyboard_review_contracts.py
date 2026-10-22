@@ -6,11 +6,14 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
+from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
-from .script_contracts import ScriptBinding, ScriptSectionBinding, ScriptSectionDurationCap
-
+from .production_dialogue_timing import FrozenF5DialogueTiming
+from .review_context_diagnostics import ReviewContextDiagnostic
+from .script_contracts import ScriptBinding, ScriptSectionBinding
 
 StoryboardReviewStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "stale"]
+DEFAULT_STORYBOARD_MAX_CUT_SECONDS = 8
 
 
 class StoryboardReviewBinding(ScriptBinding):
@@ -23,6 +26,9 @@ class StoryboardReviewBinding(ScriptBinding):
     review_min_cut_seconds: int = Field(ge=2, le=8)
     review_max_cut_seconds: int = Field(ge=2, le=15)
     review_max_segment_seconds: int = Field(ge=1, le=15)
+    # New F5A authority only. Retained bindings keep this member absent.
+    storyboard_render_contract: dict[str, Any] | None = Field(default=None, exclude_if=lambda value: value is None)
+    dialogue_timing_contract: FrozenF5DialogueTiming | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _valid_review_timing(self) -> "StoryboardReviewBinding":
@@ -62,10 +68,11 @@ class AcceptedStoryboardReviewRevision(CamelModel):
 
 
 class StoryboardReviewState(CamelModel):
+    accepted_review_state: AcceptedReviewState
     candidate: StoryboardReviewCandidate | None = None
     accepted_review: AcceptedStoryboardReviewRevision | None = None
     status: StoryboardReviewStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class StoryboardReviewAcceptRequest(CamelModel):
@@ -75,7 +82,7 @@ class StoryboardReviewAcceptRequest(CamelModel):
 
 
 class StoryboardReviewPrepareRequest(CamelModel):
-    max_cut_seconds: int = Field(default=8, ge=2, le=15)
+    max_cut_seconds: int = Field(default=DEFAULT_STORYBOARD_MAX_CUT_SECONDS, ge=2, le=15)
 
 
 def ordered_episode_mapping(binding: StoryboardReviewBinding) -> list[ScriptSectionBinding]:

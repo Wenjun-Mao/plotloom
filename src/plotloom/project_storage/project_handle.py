@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from pathlib import Path
-import shutil
 from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..domain import (
+    STAGE_ORDER,
     AuthoringDraft,
     AuthoringDraftScope,
     FragmentReuseBinding,
@@ -19,7 +18,6 @@ from ..domain import (
     ProjectBrief,
     RunExecutionTrace,
     RunTrace,
-    STAGE_ORDER,
     StageEnvelope,
     StageHead,
     StageName,
@@ -27,52 +25,29 @@ from ..domain import (
     WorkUnitRepairScope,
 )
 from ..exceptions import NotFoundError, RevisionConflictError
-from ..source_outline_contracts import (
-    OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SourceMaterial,
-    SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceOutlineReviewState,
-)
-from ..creative_handoff_contracts import CreativeHandoffRequest
-from ..creative_handoff_exchange import ValidatedCreativeDelivery
-from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
-from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
-from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
-from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
 from ..persistence import ProjectSQLiteRepository
-from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
-from .format import (
-    OwnedArtifact,
-    PROJECT_MANIFEST_FILENAME,
-    ProjectManifest,
-    ProjectStorageConfinementError,
-    ProjectStorageConflictError,
-    ProjectStorageCorruptionError,
-    ProjectStorageError,
-    _read_json,
-    _require_real_directory,
-    _utc_folder_timestamp,
-    parse_project_manifest,
+from .artifacts import (
+    ProjectArtifactStore,
+    ProjectRunArtifactStore,
+    _OwnedArtifactStore,
 )
+from .format import PROJECT_MANIFEST_FILENAME, OwnedArtifact, ProjectManifest, ProjectStorageConfinementError, ProjectStorageConflictError, ProjectStorageCorruptionError, ProjectStorageError, _read_json, parse_project_manifest
 from .operational_state import ProjectAccessLease
+from .project_creative_stages import ProjectCreativeStages
 from .recovery_control import (
     ProjectRecoveryControl,
     read_recovery_control,
     recovered_generation_run_ids,
     recovery_operations_present,
 )
-from .video_candidate_transition import (
-    ProjectSchemaTransitionRequiredError,
-    project_schema_status,
-    transition_required_error,
-    transition_project_schema,
-)
+from .current_schema import assert_current_project_database
 
 
 class ProjectRecoveryRequiredError(ProjectStorageError):
     """Raised when restored unfinished work needs an explicit acknowledgement."""
 
 
-class ProjectStore:
+class ProjectStore(ProjectCreativeStages):
     """One project home and its directly authoritative canonical repository."""
 
     def __init__(
@@ -108,6 +83,8 @@ class ProjectStore:
                 self.home, self.manifest.project_id
             ),
         )
+        from .recovery_control import recovered_autopilot_run_ids
+        self._repository.autopilot.recovered_run_ids = lambda: recovered_autopilot_run_ids(self.home, self.manifest.project_id)
         self._artifacts = _OwnedArtifactStore(self.home, create=not read_only)
         self.artifacts = ProjectArtifactStore(
             self._artifacts, writable=not read_only
@@ -157,7 +134,7 @@ class ProjectStore:
         *,
         initial_stages: tuple[InitialStage, ...] = (),
         access_lease: ProjectAccessLease | None = None,
-    ) -> "ProjectStore":
+    ) -> ProjectStore:
         if project.id != manifest.project_id:
             raise ProjectStorageCorruptionError(
                 "new project and manifest identities differ"
@@ -181,10 +158,10 @@ class ProjectStore:
         project_home: Path,
         *,
         read_only: bool = False,
+        admission: str = "authority",
         defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
-        apply_project_schema_transition: bool = True,
-    ) -> "ProjectStore":
+    ) -> ProjectStore:
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
                 "project home must be a real directory"
@@ -202,26 +179,7 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project database is missing or not a regular file"
             )
-        schema_status = project_schema_status(database_path, manifest.project_id)
-        if schema_status != "current":
-            if read_only:
-                raise transition_required_error(
-                    schema_status, reason="a writable project open"
-                )
-            if not apply_project_schema_transition:
-                # Explicit reopen performs its state transition before calling
-                # the same bounded schema transition under its exclusive lease.
-                pass
-            elif (
-                access_lease is None
-                or access_lease.descriptor < 0
-                or access_lease.mode != "exclusive"
-            ):
-                raise transition_required_error(
-                    schema_status, reason="an exclusive project lease"
-                )
-            else:
-                transition_project_schema(database_path, manifest.project_id)
+        assert_current_project_database(database_path, manifest.project_id, admission=admission)
         store = cls(
             home,
             manifest,
@@ -236,27 +194,6 @@ class ProjectStore:
             store.repository.close()
             raise
         return store
-
-    def transition_project_schema(
-        self, *, allow_closed: bool = False
-    ) -> bool:
-        """Complete the known one-time folder transition under this lease."""
-
-        if self._read_only:
-            raise ProjectSchemaTransitionRequiredError(
-                "project schema transition requires a writable project open"
-            )
-        if (
-            self._access_lease is None
-            or self._access_lease.descriptor < 0
-            or self._access_lease.mode != "exclusive"
-        ):
-            raise ProjectSchemaTransitionRequiredError(
-                "project schema transition requires an exclusive project lease"
-            )
-        return transition_project_schema(
-            self.database_path, self.manifest.project_id, allow_closed=allow_closed
-        )
 
     def _validate_opened_project(self) -> None:
         if not self.database_path.exists() or not self.database_path.is_file():
@@ -283,19 +220,16 @@ class ProjectStore:
                 self._access_lease.close()
                 self._access_lease = None
 
-    def remove_home(self) -> None:
-        """Erase this closed archival home while retaining its exclusive lease."""
-
-        if self._access_lease is None or self._access_lease.mode != "exclusive":
-            raise ProjectStorageConflictError(
-                "project deletion requires an exclusive project lease"
-            )
-        self.repository.close()
+    def remove_home(self, *, outputs_root: Path) -> None:
+        """Retain the exclusive lease throughout the whole-home erasure."""
+        from .deletion import remove_owned_home
         try:
-            shutil.rmtree(self.home)
+            remove_owned_home(
+                self.home, outputs_root=outputs_root, manifest=self.manifest,
+                lease=self._access_lease, close_repository=self.repository.close,
+            )
         finally:
-            self._access_lease.close()
-            self._access_lease = None
+            self.close()
 
     def project(self) -> Project:
         try:
@@ -398,173 +332,6 @@ class ProjectStore:
     def authoring_drafts(self) -> list[AuthoringDraft]:
         return self.authoring.list_authoring_drafts(self.manifest.project_id)
 
-    def source_outline_state(self) -> SourceOutlineReviewState:
-        return self.repository.source_outline.get_state(self.manifest.project_id)
-
-    def save_source_material(
-        self, *, expected_source_revision: int, material: SourceMaterial
-    ) -> SourceOutlineReviewState:
-        return self.repository.source_outline.save_source(
-            self.manifest.project_id,
-            expected_source_revision=expected_source_revision,
-            material=material,
-        )
-
-    def prepare_outline_candidate(self, request: CreativeHandoffRequest) -> OutlineCandidate:
-        return self.repository.source_outline.prepare_candidate(self.manifest.project_id, request)
-
-    def admit_outline_delivery(self, delivery: ValidatedCreativeDelivery) -> OutlineCandidate:
-        return self.repository.source_outline.admit_delivery(self.manifest.project_id, delivery)
-
-    def accept_outline_candidate(self, request: OutlineAcceptRequest) -> SourceOutlineReviewState:
-        return self.repository.source_outline.accept_candidate(self.manifest.project_id, request)
-
-    def reopen_outline(self, request: OutlineReopenRequest) -> SourceOutlineReviewState:
-        return self.repository.source_outline.reopen_outline(self.manifest.project_id, request)
-
-    def save_section_map(self, request: SectionMapSaveRequest) -> SourceOutlineReviewState:
-        return self.repository.source_outline.save_section_map(self.manifest.project_id, request)
-
-    def install_section_map_graph(self, request: SectionMapGraphInstallRequest) -> SourceOutlineReviewState:
-        return self.repository.source_outline.install_section_map_graph(self.manifest.project_id, request)
-
-    def cancel_outline_candidate(self, job_id: str) -> SourceOutlineReviewState:
-        return self.repository.source_outline.cancel_candidate(self.manifest.project_id, job_id)
-
-    def outline_candidate_report(self, job_id: str) -> str:
-        return self.repository.source_outline.candidate_report(self.manifest.project_id, job_id)
-
-    def outline_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
-        return self.repository.source_outline.candidate_request(self.manifest.project_id, job_id)
-
-    def creative_handoff_exchange(self):
-        """Return the confined project-owned manual creative exchange root."""
-
-        from ..creative_handoff_exchange import CreativeHandoffExchange
-
-        outputs = _require_real_directory(self.home / "outputs", label="project outputs root")
-        return CreativeHandoffExchange(outputs / "creative-handoff")
-
-    def cast_state(self) -> CastReviewState:
-        return self.repository.cast.get_state(self.manifest.project_id)
-
-    def prepare_cast_candidate(self, job_id: str) -> tuple[CastCandidate, CreativeHandoffRequest]:
-        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id)
-
-    def admit_cast_delivery(self, delivery: ValidatedCreativeDelivery) -> CastCandidate:
-        return self.repository.cast.admit_delivery(self.manifest.project_id, delivery)
-
-    def accept_cast_candidate(self, request: CastAcceptRequest) -> CastReviewState:
-        return self.repository.cast.accept_candidate(self.manifest.project_id, request)
-
-    def reopen_cast(self, request: CastReopenRequest) -> CastReviewState:
-        return self.repository.cast.reopen(self.manifest.project_id, request)
-
-    def save_reopened_cast(self, request: CastSaveRequest) -> CastReviewState:
-        return self.repository.cast.save_reopened(self.manifest.project_id, request)
-
-    def cancel_reopened_cast(self, request: CastCancelReopenRequest) -> CastReviewState:
-        return self.repository.cast.cancel_reopen(self.manifest.project_id, request)
-
-    def cancel_cast_candidate(self, job_id: str) -> CastReviewState:
-        return self.repository.cast.cancel_candidate(self.manifest.project_id, job_id)
-
-    def cast_consumer_identity(self, cast_character_id: str) -> str:
-        return self.repository.cast.consumer_identity_for(self.manifest.project_id, cast_character_id)
-
-    def cast_candidate_report(self, job_id: str) -> str:
-        return self.repository.cast.candidate_report(self.manifest.project_id, job_id)
-
-    def cast_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
-        return self.repository.cast.candidate_request(self.manifest.project_id, job_id)
-
-    def art_state(self) -> ArtReviewState:
-        return self.repository.art.get_state(self.manifest.project_id)
-
-    def prepare_art_candidate(self, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
-        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id)
-
-    def admit_art_delivery(self, delivery: ValidatedCreativeDelivery) -> ArtCandidate:
-        return self.repository.art.admit_delivery(self.manifest.project_id, delivery)
-
-    def accept_art_candidate(self, request: ArtAcceptRequest) -> ArtReviewState:
-        return self.repository.art.accept_candidate(self.manifest.project_id, request)
-
-    def reopen_art(self, request: ArtReopenRequest) -> ArtReviewState:
-        return self.repository.art.reopen(self.manifest.project_id, request)
-
-    def save_reopened_art(self, request: ArtSaveRequest) -> ArtReviewState:
-        return self.repository.art.save_reopened(self.manifest.project_id, request)
-
-    def cancel_art_candidate(self, job_id: str) -> ArtReviewState:
-        return self.repository.art.cancel_candidate(self.manifest.project_id, job_id)
-
-    def art_candidate_report(self, job_id: str) -> str:
-        return self.repository.art.candidate_report(self.manifest.project_id, job_id)
-
-    def art_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
-        return self.repository.art.candidate_request(self.manifest.project_id, job_id)
-
-    def script_state(self) -> ScriptReviewState:
-        return self.repository.script.get_state(self.manifest.project_id)
-
-    def prepare_script_candidate(self, job_id: str) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
-        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id)
-
-    def admit_script_delivery(self, delivery: ValidatedCreativeDelivery) -> ScriptCandidate:
-        return self.repository.script.admit_delivery(self.manifest.project_id, delivery)
-
-    def accept_script_candidate(self, request: ScriptAcceptRequest) -> ScriptReviewState:
-        return self.repository.script.accept_candidate(self.manifest.project_id, request)
-
-    def reopen_script(self, request: ScriptReopenRequest) -> ScriptReviewState:
-        return self.repository.script.reopen(self.manifest.project_id, request)
-
-    def save_script_section(self, request: ScriptSectionSaveRequest) -> ScriptReviewState:
-        return self.repository.script.save_section(self.manifest.project_id, request)
-
-    def cancel_script_candidate(self, job_id: str) -> ScriptReviewState:
-        return self.repository.script.cancel_candidate(self.manifest.project_id, job_id)
-
-    def script_candidate_report(self, job_id: str) -> str:
-        return self.repository.script.candidate_report(self.manifest.project_id, job_id)
-
-    def script_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
-        return self.repository.script.candidate_request(self.manifest.project_id, job_id)
-
-    def storyboard_review_state(self) -> StoryboardReviewState:
-        return self.repository.storyboard_review.get_state(self.manifest.project_id)
-
-    def prepare_storyboard_review_candidate(self, job_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
-        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id, max_cut_seconds=max_cut_seconds)
-
-    def admit_storyboard_review_delivery(self, delivery: ValidatedCreativeDelivery) -> StoryboardReviewCandidate:
-        return self.repository.storyboard_review.admit_delivery(self.manifest.project_id, delivery)
-
-    def accept_storyboard_review_candidate(self, request: StoryboardReviewAcceptRequest) -> StoryboardReviewState:
-        return self.repository.storyboard_review.accept_candidate(self.manifest.project_id, request)
-
-    def cancel_storyboard_review_candidate(self, job_id: str) -> StoryboardReviewState:
-        return self.repository.storyboard_review.cancel_candidate(self.manifest.project_id, job_id)
-
-    def storyboard_review_candidate_report(self, job_id: str) -> str:
-        return self.repository.storyboard_review.candidate_report(self.manifest.project_id, job_id)
-
-    def storyboard_review_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
-        return self.repository.storyboard_review.candidate_request(self.manifest.project_id, job_id)
-
-    def production_bridge_state(self) -> ProductionBridgeState:
-        return self.repository.production_bridge.get_state(self.manifest.project_id)
-
-    def prepare_production_bridge(self) -> ProductionBridgeState:
-        return self.repository.production_bridge.prepare(self.manifest.project_id)
-
-    def update_production_bridge_intent_package(self, request: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
-        return self.repository.production_bridge.update_intent_package(self.manifest.project_id, request)
-
-    def accept_production_bridge(self, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
-        return self.repository.production_bridge.accept(self.manifest.project_id, request)
-
     def save_authoring_draft(
         self,
         *,
@@ -642,34 +409,3 @@ class ProjectStore:
 
     def read_artifact(self, artifact: OwnedArtifact) -> bytes:
         return self._artifacts.read(artifact)
-
-    def image_exchange_for(self, job: dict[str, Any]):
-        """Return the one project-run-local handoff exchange for an image unit."""
-        from ..image_job_exchange import ImageJobExchange
-        from ..managed_media import DEFAULT_MANAGED_MEDIA_LIMITS
-
-        job_id = str(job.get("id", ""))
-        created_at = job.get("createdAt")
-        if not job_id or any(
-            character not in "abcdefghijklmnopqrstuvwxyz0123456789_-"
-            for character in job_id
-        ):
-            raise ProjectStorageConfinementError(
-                "image handoff identity is not path-safe"
-            )
-        try:
-            timestamp = _utc_folder_timestamp(datetime.fromisoformat(str(created_at)))
-        except ValueError as error:
-            raise ProjectStorageCorruptionError(
-                "image handoff has no valid creation timestamp"
-            ) from error
-        runs = _require_real_directory(self.home / "runs", label="project runs root")
-        run_home = runs / f"{timestamp}__{job_id}"
-        # Manual image/reference proposals are durable database records before
-        # their external package exists.  The package owner, not a caller or
-        # specialist, creates this one confined run home on first Copy.
-        # Without it, normal API handoffs depended on a test-only directory
-        # setup and could never reach the exchange's no-follow writer.
-        run_home.mkdir(mode=0o700, exist_ok=True)
-        _require_real_directory(run_home, label="project image handoff run")
-        return ImageJobExchange(run_home, limits=DEFAULT_MANAGED_MEDIA_LIMITS)

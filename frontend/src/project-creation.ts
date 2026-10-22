@@ -48,7 +48,7 @@ export function initialStagesThrough(
   }));
 }
 
-/** Keep a brief-only create compatible with callers that have not edited a stage. */
+/** A Brief-only project starts without generated-stage content. */
 export function projectCreationRequest(
   brief: ProjectBrief,
   initialStages: InitialProjectStage[] = [],

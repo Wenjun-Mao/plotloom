@@ -50,6 +50,8 @@ class ProductionBridgeIntentJobRow(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(24), nullable=False)
+    transport: Mapped[str] = mapped_column(String(24), nullable=False, default="text_api")
+    native_request: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     proposal_revision: Mapped[int] = mapped_column(Integer, nullable=False)
     proposal_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     inputs: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)

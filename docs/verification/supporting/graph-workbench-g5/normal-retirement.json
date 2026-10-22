@@ -1,0 +1,65 @@
+{
+  "afterAggregateSha256": "2ad5913d7f35ace530add7649b308e891321d67f3fbdbdab48a235b16e1a2033",
+  "approvalRowsRetired": 0,
+  "beforeAggregateSha256": "396b8d3942a7c6225442f64d66fa39e3b1e40f071e4efa2bae6c9ba3786ca712",
+  "counts": {
+    "graphEntityRetired": 1,
+    "graphHeadNormalized": 1,
+    "mapHeadNormalized": 1,
+    "mapRevisionRetired": 1,
+    "sourceAdmissionRetired": 1
+  },
+  "gateRowsRetired": 0,
+  "graphEntity": "b06ecb1b-b309-4c3d-96d0-de030ae05d25",
+  "graphHash": "ca3bc1a129bddb1ef9ce914492d08da84c9bb1cbe6f79b8e54013ebde617de2e",
+  "mapHash": "3dba2cebdbff87f4285a9dff8e5a3c94b37386a76519f8023a64e60bf024d9b9",
+  "native": {
+    "completedNativeReceipts": 7,
+    "inflightReservations": 0,
+    "registryOwnedOrRetainedJobs": 11
+  },
+  "normalizationSchemaVersion": 2,
+  "normalizedRows": {
+    "v2_source_outline_section_map_heads": [
+      "[\"ee271b49-f384-414c-9711-452ee6333b84\"]",
+      [
+        "ee271b49-f384-414c-9711-452ee6333b84",
+        0,
+        "missing",
+        "[]",
+        "2026-10-06 16:41:11.293853"
+      ]
+    ],
+    "v2_stage_heads": [
+      "[\"ee271b49-f384-414c-9711-452ee6333b84:story_graph\"]",
+      [
+        "ee271b49-f384-414c-9711-452ee6333b84:story_graph",
+        "ee271b49-f384-414c-9711-452ee6333b84",
+        "story_graph",
+        "missing",
+        0,
+        null,
+        null,
+        2,
+        "{}",
+        "[]",
+        "2026-10-06 16:41:11.293853"
+      ]
+    ]
+  },
+  "preservation": {
+    "allFilesUnchanged": true,
+    "normalizedRows": 2,
+    "outsideTargetUnchanged": true,
+    "removedRows": 3,
+    "schemaUnchanged": true
+  },
+  "removedKeys": {
+    "v2_entity_revisions": "[\"b06ecb1b-b309-4c3d-96d0-de030ae05d25\"]",
+    "v2_source_outline_graph_admissions": "[\"ee271b49-f384-414c-9711-452ee6333b84\"]",
+    "v2_source_outline_section_map_revisions": "[\"52bcca6a-6a38-4aa4-9017-3588e2d17132\"]"
+  },
+  "state": "committed_verified",
+  "target": "ee271b49-f384-414c-9711-452ee6333b84",
+  "transaction": "exclusive project leases then registry lock; SQLite FK ON / BEGIN IMMEDIATE / exact precommit delta / COMMIT / protected postcommit readback"
+}

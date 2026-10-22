@@ -38,6 +38,7 @@ class OfflineH3GatewayFake:
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}
         assert isinstance(payload["seed"], int)
         assert payload["durationSeconds"] in {5, 8}
+        self.quality = payload["quality"]
         self.resolution = payload["resolution"]
         self.aspect_policy = payload["aspectPolicy"]
         self.seed = payload["seed"]
@@ -51,7 +52,7 @@ class OfflineH3GatewayFake:
     def _job(self, status: str, *, output_ready: bool, aspect_policy: object) -> dict[str, object]:
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": status,
-            "inputMode": "image", "quality": 1, "resolution": self.resolution,
+            "inputMode": "image", "quality": self.quality, "resolution": self.resolution,
             "aspectPolicy": aspect_policy, "seed": self.seed,
             "requestedDurationSeconds": self.duration, "frameCount": {5: 124, 8: 192}[self.duration],
             "actualDurationSeconds": {5: 124, 8: 192}[self.duration] / 24,
@@ -94,6 +95,7 @@ class OfflineH3GatewayFake:
         return "5.166667" if self.duration == 5 else "8"
 
     def __init__(self) -> None:
+        self.quality = 8
         self.resolution = "576x1024"
         self.aspect_policy: object = "reject_mismatch"
         self.seed = 1

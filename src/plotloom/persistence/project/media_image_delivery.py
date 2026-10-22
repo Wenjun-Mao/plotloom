@@ -42,7 +42,7 @@ class ImageJobDeliveryPersistence:
             sources: list[dict[str, Any]] = []
             for reference in job.request["frozenSnapshot"].get("references", []):
                 if reference.get("role") not in {
-                    "parent_output", "source_keyframe", "character_identity"
+                    "parent_output", "source_keyframe", "character_identity", "scene_continuity"
                 }:
                     continue
                 asset = session.get(ManagedAssetRow, reference.get("assetId"))
@@ -58,7 +58,7 @@ class ImageJobDeliveryPersistence:
                 })
             return {"job": self._currentness.image_job_dict(job, current=True), "references": sources}
 
-    def mark_image_job_exported(self, project_id: str, job_id: str) -> dict[str, Any]:
+    def mark_image_job_exported(self, project_id: str, job_id: str, *, require_prepared: bool = False) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             job = session.get(ImageJobRow, job_id)
@@ -66,6 +66,8 @@ class ImageJobDeliveryPersistence:
                 raise NotFoundError(f"image job not found: {job_id}")
             if job.state == "cancelled" or not self._currentness.image_job_is_current_in_session(session, job):
                 raise InvalidTransitionError("image job is no longer current and cannot be copied")
+            if require_prepared and job.state != "prepared":
+                raise InvalidTransitionError("该任务已导出或发送，不能再次发送。")
             if job.exported_at is None:
                 job.exported_at = utc_now()
                 job.state = "exported"
@@ -113,7 +115,7 @@ class ImageJobDeliveryPersistence:
         return {
             "id": row.id, "assetId": row.asset_id, "jobId": row.job_id,
             "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
-            "asset": ManagedAssetPersistence.managed_asset_dict(asset) if asset else None,
+            "asset": ManagedAssetPersistence.public_managed_asset_dict(session, asset) if asset else None,
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 
@@ -135,6 +137,8 @@ class ImageJobDeliveryPersistence:
             job = session.get(ImageJobRow, job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError(f"image job not found: {job_id}")
+            from .image_adaptation_source import validate_adaptation_outputs
+            validate_adaptation_outputs(job.request, outputs)
             existing = session.scalar(
                 select(ImageJobDeliveryRow)
                 .where(ImageJobDeliveryRow.job_id == job_id, ImageJobDeliveryRow.delivery_id == delivery_id)

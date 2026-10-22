@@ -14,7 +14,7 @@ from plotloom.project_storage.application_profile_snapshot import load_saved_tex
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.provider_profiles import PresetId, StageMaxOutputTokens, TextProviderProfileSnapshot
 
-from tests.project_storage_fixtures import FixtureResolver
+from tests.project_storage_fixtures import FixtureResolver, fixed_workload_footage_count
 
 
 def _profile(profile_id: str) -> TextProviderProfileSnapshot:
@@ -139,9 +139,9 @@ def test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence(
     assert all(receipt["issueCodes"] == [] for receipt in receipts)
     assert all(
         receipt["tokens"] == {
-            "inputTokens": 140,
-            "outputTokens": 220,
-            "totalTokens": 360,
+            "inputTokens": 7 * (2 + 2 * fixed_workload_footage_count()),
+            "outputTokens": 11 * (2 + 2 * fixed_workload_footage_count()),
+            "totalTokens": 18 * (2 + 2 * fixed_workload_footage_count()),
         }
         for receipt in receipts
     )

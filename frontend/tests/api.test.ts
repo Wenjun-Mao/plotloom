@@ -1,9 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PlotloomApiClient } from "../src/api";
-import { providerSessionKey, providerSessionKeys } from "../src/session-key";
+import { providerSessionKeys } from "../src/session-key";
 
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
+
+  it.each([null, {}, { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true },
+    { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: "false" },
+    { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true }])(
+    "rejects incomplete runtime capabilities rather than inferring unsupported controls", async payload => {
+      const client = new PlotloomApiClient(vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as typeof fetch);
+      await expect(client.getRuntimeCapabilities()).rejects.toThrow("服务功能响应不完整");
+    },
+  );
+
+  it("never imports an obsolete single key into a profile or Resume request", async () => {
+    window.sessionStorage.setItem("plotloom:provider-session-key", "obsolete-single-secret");
+    expect(providerSessionKeys.read("default")).toBe(""); expect(providerSessionKeys.read("frozen")).toBe("");
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(JSON.stringify({ id: "run-1" }), { status: 200 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await client.resumeRun("run-1", "default", true);
+    expect(new Headers(fetcher.mock.calls[0][1]?.headers).has("X-Plotloom-Session-API-Key")).toBe(false);
+    providerSessionKeys.write("frozen", "current-scoped-secret");
+    expect(providerSessionKeys.read("frozen")).toBe("current-scoped-secret"); expect(providerSessionKeys.read("default")).toBe("");
+    await client.resumeRun("run-1", "frozen", true);
+    expect(new Headers(fetcher.mock.calls[1][1]?.headers).get("X-Plotloom-Session-API-Key")).toBe("current-scoped-secret");
+  });
+
+  it("uses a Chinese fallback for transport failures while retaining status and raw evidence", async () => {
+    const details = { detail: "unavailable" };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(details), { status: 503 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await expect(client.getProject("p1")).rejects.toMatchObject({ message: "服务请求失败（HTTP 503）", status: 503, details });
+  });
+
+  it("preserves the server's explicit diagnostic message rather than translating stored evidence", async () => {
+    const details = { message: "SOURCE_BINDING_STALE: frozen revision changed", evidence: "unchanged" };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(details), { status: 409 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    await expect(client.getProject("p1")).rejects.toMatchObject({ message: details.message, status: 409, details });
+  });
 
   it("invokes a browser fetch implementation with the platform global receiver", async () => {
     const fetcher = vi.fn(function (this: unknown) {
@@ -39,7 +75,7 @@ describe("PlotloomApiClient", () => {
     await client.archiveProject("p1", 4);
     await client.restoreProject("p1", 5);
     await client.duplicateProject("p1", 6, undefined, "duplicate-key");
-    await client.permanentlyDeleteProject("p1", 7, "Moon City");
+    await client.permanentlyDeleteProject("p1", 7, 3, "Moon City");
 
     const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
     expect(calls.map(([url]) => url)).toEqual([
@@ -48,7 +84,23 @@ describe("PlotloomApiClient", () => {
     ]);
     expect(JSON.parse(String(calls[0][1].body))).toEqual({ expectedLifecycleRevision: 4 });
     expect(new Headers(calls[2][1].headers).get("Idempotency-Key")).toBe("duplicate-key");
-    expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, confirmationTitle: "Moon City" });
+    expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, expectedProjectRevision: 3, confirmationTitle: "Moon City" });
+  });
+
+  it("projects full runtime deletion previews to the strict six-field abandonment consent", async () => {
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(null, { status: 204 }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+    const preview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>> = {
+      projectId: "exact-project", mode: "abandon", run: null, expectedProjectRevision: 3,
+      expectedLifecycleRevision: 7, confirmationTitle: "明确删除", previewHash: "a".repeat(64),
+      scopeHash: "b".repeat(64), blockers: [], unknownAttemptIds: ["retained-unknown"], stopWarnings: ["retained-local-fact"],
+    };
+    await client.abandonAndDeleteProject(preview.projectId, { ...preview, previewHash: preview.previewHash! });
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toEqual({
+      expectedProjectRevision: 3, expectedLifecycleRevision: 7, confirmationTitle: "明确删除",
+      previewHash: preview.previewHash, scopeHash: preview.scopeHash, acknowledgeUnknownRemote: true,
+    });
   });
 
   it("creates and reads a server-owned snapshot without sending a browser path", async () => {
@@ -106,7 +158,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("keeps the ephemeral provider key out of JSON and sends only the session header", async () => {
-    providerSessionKey.write("  session-secret  ");
+    providerSessionKeys.write("default", "  session-secret  ");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "run-1", status: "queued" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
@@ -238,7 +290,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("does not echo read-only provider profile or key availability fields in PUT", async () => {
-    providerSessionKey.write("must-not-leave-on-settings-request");
+    providerSessionKeys.write("default", "must-not-leave-on-settings-request");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ revision: 3, textKeyAvailable: true }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
@@ -259,7 +311,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("sends no session credential on reads or canonical project writes", async () => {
-    providerSessionKey.write("must-not-leave-on-non-provider-request");
+    providerSessionKeys.write("default", "must-not-leave-on-non-provider-request");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({}), {
       status: 200,
       headers: { "Content-Type": "application/json" },
@@ -275,7 +327,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("keeps the legacy media request secret-free and accepts no client media inputs", async () => {
-    providerSessionKey.write("text-profile-session-secret");
+    providerSessionKeys.write("default", "text-profile-session-secret");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "media-1", shotId: "shot-1", kind: "video", status: "queued" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 

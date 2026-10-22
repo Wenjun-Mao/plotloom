@@ -22,6 +22,15 @@ from .canonical import ProjectCanonicalPersistence
 from .cast import ProjectCastPersistence
 
 
+def cast_reference_context_from_subject(subject):
+    """One Cast-to-reference projection shared by preparation and independence checks."""
+    return {
+        "authority": "cast", "characterId": subject["consumerCharacterId"],
+        "displayName": subject["displayName"], "appearance": subject["appearance"],
+        "image": subject["image"], "acceptedCast": subject["acceptedCast"],
+    }
+
+
 class CharacterReferencePersistence:
     """Own selected character-reference facts and their session currentness."""
 
@@ -75,14 +84,7 @@ class CharacterReferencePersistence:
         )
         if subject is None:
             return None
-        return {
-            "authority": "cast",
-            "characterId": subject["consumerCharacterId"],
-            "displayName": subject["displayName"],
-            "appearance": subject["appearance"],
-            "image": subject["image"],
-            "acceptedCast": subject["acceptedCast"],
-        }
+        return cast_reference_context_from_subject(subject)
 
     def current_cast_reference_in_session(
         self, session: Session, project_id: str, character_id: str

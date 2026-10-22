@@ -68,6 +68,7 @@ class VideoJobService:
         preview_only: bool = False,
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
+        self.repository.assert_video_authority(project_id)
 
         contract = self.adapter.production_contract(
             requested_seconds=requested_seconds,
@@ -121,7 +122,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
-            "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
+            "plotloom.h3-reviewed-frame.v6-shot-presentation", "plotloom.h3-reviewed-frame.v5-presentation", "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
         }:
             prompt = snapshot.get("compiledPrompt")
             if not isinstance(prompt, str) or not prompt:
@@ -182,6 +183,7 @@ class VideoJobService:
         return None, None, None
 
     def submit(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        self.repository.assert_video_authority(project_id)
         preflight = getattr(self.provider, "preflight", None)
         if callable(preflight) and not self.claim_before_provider_calls:
             try:

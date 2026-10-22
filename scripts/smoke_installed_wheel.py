@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
-import sys
 import tempfile
 import textwrap
 import zipfile
@@ -196,6 +195,79 @@ def main() -> None:
             snapshot = storage.recovery.create_snapshot(project_id)
             assert snapshot.status == "complete"
             assert not (RETIRED_MODULES & set(sys.modules))
+
+            # Installed receiving must remain library-only, including direct
+            # ready/acceptance paths that do not pass through filesystem intake.
+            class BlockCheckoutValidators(importlib.abc.MetaPathFinder):
+                def find_spec(self, fullname, path=None, target=None):
+                    if fullname.startswith(("scripts", "codex_exec_supervisor")):
+                        raise ImportError("installed Outline receiving forbids checkout validators")
+
+            sys.meta_path.insert(0, BlockCheckoutValidators())
+            from dataclasses import replace
+            from contextlib import closing
+            from hashlib import sha256
+            import json
+            from plotloom.creative_handoff_contracts import CreativeHandoffError
+            from plotloom.creative_handoff_exchange import canonical_json
+            from plotloom.outline_preparation import outline_request
+            from plotloom.outline_report_metadata import (
+                assert_outline_report_metadata, outline_report_metadata_schema,
+            )
+            from plotloom.persistence.schema import SourceOutlineCandidateRow
+            from plotloom.source_outline_contracts import OutlineAcceptRequest, SourceMaterial
+
+            assert outline_report_metadata_schema()["additionalProperties"] is True
+            for candidate in ({}, {"lang": None}, {"lang": "zh"}, {"lang": "en"}):
+                assert_outline_report_metadata(candidate)
+
+            def rejected(action):
+                try:
+                    action()
+                except CreativeHandoffError as error:
+                    assert error.code == "outline_report_metadata_invalid", error.code
+                else:
+                    raise AssertionError("installed metadata guard was bypassed")
+
+            rejected(lambda: assert_outline_report_metadata({"lang": "zh-CN"}))
+            with closing(storage.projects.open(project_id)) as store:
+                store.save_source_material(expected_source_revision=0,
+                    material=SourceMaterial(kind="synopsis", title="wheel", text="One choice."))
+                request = outline_request(store)
+                pin = dict(upstreamRevision="a" * 40, upstreamSkillHash="b" * 64, specialistSkillHash="c" * 64)
+                store.repository.source_outline.prepare_candidate(project_id, request, execution_pin=pin)
+                exchange = store.creative_handoff_exchange()
+                paths = exchange.write_package(request, pin)
+                delivery_root = Path(paths["deliveryPath"])
+                delivery_root.mkdir()
+                report = b"<!doctype html><html>installed report</html>"
+                (delivery_root / "report.html").write_bytes(report)
+                manifest = dict(schemaVersion=1, jobId=request.job_id,
+                    requestHash=json.loads((Path(paths["packagePath"]) / "request.json").read_bytes())["requestHash"],
+                    deliveryId="wheel-outline", stage="outline",
+                    report=dict(filename="report.html", sha256=sha256(report).hexdigest()),
+                    executorProvenance=dict(codeRevision="d" * 40, skillVersion="wheel",
+                        skillHash=pin["specialistSkillHash"], upstreamRevision=pin["upstreamRevision"],
+                        upstreamSkillHash=pin["upstreamSkillHash"], model="wheel", reasoningEffort="high"))
+
+                def publish(candidate):
+                    raw = canonical_json(candidate)
+                    (delivery_root / "outline.json").write_bytes(raw)
+                    manifest["candidate"] = dict(filename="outline.json", sha256=sha256(raw).hexdigest())
+                    (delivery_root / "completion.json").write_bytes(canonical_json(manifest))
+
+                publish({"lang": "zh-CN"})
+                rejected(lambda: exchange.read_delivery(request, pin))
+                publish({"params": {"language": "zh-CN"}})
+                delivery = exchange.read_delivery(request, pin)
+                rejected(lambda: store.admit_outline_delivery(replace(delivery, candidate={"lang": "zh-CN"})))
+                store.admit_outline_delivery(delivery)
+                with store.repository._write() as session:
+                    session.get(SourceOutlineCandidateRow, request.job_id).outline = {"lang": "zh-CN"}
+                rejected(lambda: store.admit_outline_delivery(delivery))
+                rejected(lambda: store.accept_outline_candidate(OutlineAcceptRequest(
+                    job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0)))
+                assert store.source_outline_state().accepted_outline is None
 
             migrator = SchemaMigrator(f"sqlite:///{database}")
             migrator.upgrade()

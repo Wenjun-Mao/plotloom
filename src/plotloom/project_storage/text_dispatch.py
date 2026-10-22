@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import dataclass
+import logging
 from threading import RLock
 from typing import Any
 
@@ -15,11 +16,12 @@ from ..pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
 from ..providers import ProviderPorts
 from ..runtime import RunContext
 from .composition import ProjectFolderStorage
-from .operational_state import ProjectClosedError
 from .application_store import ApplicationRunRoute
 from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
-from .video_candidate_transition import ProjectSchemaTransitionRequiredError
+from .write_admission import ProjectDeletionPendingError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -56,22 +58,16 @@ class ProjectRunDispatcher:
         routes: list[ApplicationRunRoute] = []
         for home in self.storage.projects.discover():
             try:
-                store = self.storage.projects.inspect(home.manifest.project_id)
-            except ProjectSchemaTransitionRequiredError:
-                # Discovery retains the exact legacy folder so the normal
-                # writable admission path can advance it before the index
-                # reads it. Closed folders remain explicitly owner-opened.
+                store = self.storage.projects.inspect(home.manifest.project_id, admission="authority")
                 try:
-                    store = self.storage.projects.open(home.manifest.project_id)
-                except ProjectClosedError:
-                    continue
-            try:
-                routes.extend(
-                    self._route_for_run(run)
-                    for run in store.generation_runs_for_index()
-                )
-            finally:
-                store.close()
+                    project_routes = [self._route_for_run(run) for run in store.generation_runs_for_index()]
+                finally:
+                    store.close()
+            except ProjectStorageCorruptionError as error:
+                logger.warning("Project %s excluded from run index: %s", home.manifest.project_id, error)
+                continue
+            # Publish no partial routes from a project whose retained run rows fail.
+            routes.extend(project_routes)
         self.storage.application.replace_run_index(routes)
 
     def reconcile_startup(self) -> dict[str, StartupRecoveryPlan]:
@@ -80,33 +76,29 @@ class ProjectRunDispatcher:
         plans: dict[str, StartupRecoveryPlan] = {}
         for home in self.storage.projects.discover():
             try:
-                inspection = self.storage.projects.inspect(home.manifest.project_id)
-            except ProjectSchemaTransitionRequiredError:
-                # An active legacy folder cannot be inspected yet. Admit it
-                # through the one normal writable open, which performs the
-                # bounded selection transition before recovery reads it.
-                try:
-                    store = self.storage.projects.open(home.manifest.project_id)
-                except ProjectClosedError:
-                    plans[home.manifest.project_id] = StartupRecoveryPlan()
-                    continue
-            else:
-                try:
-                    state, _revision = inspection.repository.operational_state()
-                finally:
-                    inspection.close()
-                if state != "open":
-                    plans[home.manifest.project_id] = StartupRecoveryPlan()
-                    continue
-                store = self.storage.projects.open(home.manifest.project_id)
-            try:
-                plans[home.manifest.project_id] = (
-                    store.generation.reconcile_startup_jobs()
-                )
-            finally:
-                store.close()
+                plans[home.manifest.project_id] = self._reconcile_project(home.manifest.project_id)
+            except ProjectDeletionPendingError:
+                plans[home.manifest.project_id] = StartupRecoveryPlan()
+            except ProjectStorageCorruptionError as error:
+                logger.warning("Project %s held during startup reconciliation: %s", home.manifest.project_id, error)
+                plans[home.manifest.project_id] = StartupRecoveryPlan()
         self.rebuild_index()
         return plans
+
+    def _reconcile_project(self, project_id: str) -> StartupRecoveryPlan:
+        """A discovered inspection is not authority to reconcile retained work."""
+        inspection = self.storage.projects.inspect(project_id)
+        try:
+            state, _revision = inspection.repository.operational_state()
+        finally:
+            inspection.close()
+        if state != "open":
+            return StartupRecoveryPlan()
+        store = self.storage.projects.open(project_id)
+        try:
+            return store.generation.reconcile_startup_jobs()
+        finally:
+            store.close()
 
     def create_run(
         self,

@@ -4,17 +4,58 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import Any
 
+from .autopilot_authority import receipt_only
 from sqlalchemy import select
 
-from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCancelReopenRequest, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
+from ...cast_contracts import (
+    AcceptedCastRevision,
+    CastAcceptRequest,
+    CastBinding,
+    CastCancelReopenRequest,
+    CastCandidate,
+    CastConsumerMapping,
+    CastReopenRequest,
+    CastReviewState,
+    CastSaveRequest,
+)
+from ...cast_design_validation import validate_cast_design
+from ...cast_style import CandidateCastRenderStyle, cast_style_current, freeze_cast_style, validate_cast_style
+from ...cast_writing_contract import (
+    CONTRACT_FILENAME,
+    cast_writing_contract,
+    validate_cast_notes,
+)
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
+from ...accepted_review_state import accepted_review_state
+from ...domain import (
+    ProjectBrief,
+    StageName,
+    StageStatus,
+    contains_secret_setting,
+    contains_secret_value,
+    new_id,
+    utc_now,
+)
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...review_context_diagnostics import (
+    ReviewContextDiagnostic,
+    ReviewContextError,
+    binding_diagnostics,
+)
 from ..schema.project_authoring import StageHeadRow
 from ..schema.project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
-from ..schema.project_source_outline import SourceOutlineGraphAdmissionRow, SourceOutlineHeadRow, SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow
+from ..schema.project_source_outline import (
+    SourceGraphIdentityRow,
+    SourceOutlineGraphAdmissionRow,
+    SourceOutlineHeadRow,
+    SourceOutlineRevisionRow,
+    SourceOutlineSectionMapHeadRow,
+    SourceOutlineSectionMapRevisionRow,
+    SourceOutlineSourceRevisionRow,
+)
 from .access import ProjectPersistenceAccess
+from .creative_execution_pins import freeze_execution_pin
 
 
 class ProjectCastPersistence:
@@ -30,8 +71,30 @@ class ProjectCastPersistence:
         return CastCandidate(job_id=row.job_id, expected_cast_revision=row.expected_cast_revision, binding=row.binding, status=row.status, delivery_id=row.delivery_id, manifest_hash=row.manifest_hash, cast=row.cast, report_available=row.report_html is not None, created_at=row.created_at, delivered_at=row.delivered_at)
 
     @staticmethod
-    def _accepted(row: CastRevisionRow) -> AcceptedCastRevision:
-        return AcceptedCastRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, cast=row.cast, consumer_mappings=row.consumer_mappings, accepted_at=row.accepted_at)
+    def _accepted(row: CastRevisionRow, delivery: CastCandidateRow | None) -> AcceptedCastRevision:
+        original = (
+            delivery
+            if delivery is not None
+            and delivery.project_id == row.project_id
+            and delivery.job_id == row.candidate_job_id
+            and delivery.status == "accepted"
+            else None
+        )
+        return AcceptedCastRevision(
+            revision=row.revision,
+            candidate_job_id=row.candidate_job_id,
+            content_hash=row.content_hash,
+            binding=row.binding,
+            cast=row.cast,
+            consumer_mappings=row.consumer_mappings,
+            report_available=original is not None and original.report_html is not None,
+            differs_from_delivery=(
+                row.cast != original.cast
+                if original is not None and original.cast is not None
+                else None
+            ),
+            accepted_at=row.accepted_at,
+        )
 
     @staticmethod
     def _head(session: Any, project_id: str) -> CastHeadRow:
@@ -45,27 +108,35 @@ class ProjectCastPersistence:
         head = session.get(SourceOutlineHeadRow, project_id)
         map_head = session.get(SourceOutlineSectionMapHeadRow, project_id)
         if head is None or map_head is None or not head.source_revision or not head.outline_revision or not map_head.revision or head.outline_status != "accepted" or map_head.status != "current":
-            raise InvalidTransitionError("an accepted source, outline, current section map, and installed graph are required before preparing cast")
+            raise ReviewContextError(ReviewContextDiagnostic(code="source_context_not_ready", owner="source", technical_message="an accepted source, outline, current section map, and installed graph are required before preparing cast"))
         source = session.scalar(select(SourceOutlineSourceRevisionRow).where(SourceOutlineSourceRevisionRow.project_id == project_id, SourceOutlineSourceRevisionRow.revision == head.source_revision))
         outline = session.scalar(select(SourceOutlineRevisionRow).where(SourceOutlineRevisionRow.project_id == project_id, SourceOutlineRevisionRow.revision == head.outline_revision))
         mapping = session.scalar(select(SourceOutlineSectionMapRevisionRow).where(SourceOutlineSectionMapRevisionRow.project_id == project_id, SourceOutlineSectionMapRevisionRow.revision == map_head.revision))
         admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
         graph = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project_id, StageHeadRow.stage == StageName.STORY_GRAPH.value))
+        identity = session.get(SourceGraphIdentityRow, graph.entity_revision_id) if graph and graph.entity_revision_id else None
         if source is None or outline is None or mapping is None or admission is None or graph is None or admission.status != "current" or graph.status != StageStatus.READY.value:
-            raise InvalidTransitionError("the accepted source-map-installed graph is not current")
-        if not (admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
-            raise InvalidTransitionError("the installed graph no longer matches the accepted source-map context")
-        binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=graph.revision, graph_content_hash=graph.content_hash or "", section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
+            raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_not_current", owner="source", technical_message="the accepted source-map-installed graph is not current"))
+        if not (identity is not None and identity.project_id == project_id and identity.canonical_revision == graph.revision and identity.content_hash == graph.content_hash and identity.source_binding == {name: getattr(admission, name) for name in ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash")} and admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
+            raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_context_mismatch", owner="source", technical_message="the installed graph no longer matches the accepted source-map context"))
+        binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=identity.authored_revision, graph_content_hash=identity.content_hash, section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
         return binding, source.material, outline.outline, mapping.mapping
 
-    def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[str]:
+    def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[ReviewContextDiagnostic]:
         try:
             current, *_ = self._context(session, project_id)
-        except InvalidTransitionError as error:
-            return [str(error)]
+        except ReviewContextError as error:
+            return [error.diagnostic]
+        return self._stale_against(session, project_id, current, binding)
+
+    def _stale_against(self, session: Any, project_id: str, current: CastBinding, binding: CastBinding) -> list[ReviewContextDiagnostic]:
+        """Compare this operation's inputs; never resolve or retain context."""
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
-        reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
-        return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+        reasons = binding_diagnostics(current, binding, fields)
+        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+        if not cast_style_current(binding.render_contract, direction):
+            reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="cast render contract is not current; prepare a new cast task"))
+        return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
     def identity_context_in_session(
         self, session: Any, project_id: str, consumer_character_id: str
@@ -177,19 +248,35 @@ class ProjectCastPersistence:
             head = self._head(session, project_id)
             candidate = session.get(CastCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision)) if head.revision else None
-            binding = accepted.binding if accepted else candidate.binding if candidate else None
-            stale = self._stale(session, project_id, CastBinding.model_validate(binding)) if binding else []
-            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
+            delivery = session.get(CastCandidateRow, accepted.candidate_job_id) if accepted else None
+            accepted_stale = self._stale(session, project_id, CastBinding.model_validate(accepted.binding)) if accepted else []
+            stale = self._stale(session, project_id, CastBinding.model_validate(candidate.binding)) if candidate else accepted_stale
+            accepted_state = accepted_review_state(exists=accepted is not None, candidate_active=candidate is not None, head_status=head.status, stale_reasons=accepted_stale)
+            return CastReviewState(accepted_review_state=accepted_state, candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted, delivery) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str) -> tuple[CastCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, render_style: CandidateCastRenderStyle, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
             binding, source, outline, section_map = self._context(session, project_id)
-            if session.scalar(select(CastCandidateRow.job_id).where(CastCandidateRow.project_id == project_id, CastCandidateRow.status == "prepared").limit(1)):
+            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+            contract = freeze_cast_style(render_style, direction)
+            binding = binding.model_copy(update={"render_contract": contract})
+            from .autopilot_text_correction import has_publishable_candidates
+            session.flush()
+            if has_publishable_candidates(session.connection().connection.driver_connection, project_id, CastCandidateRow.__tablename__):
                 raise InvalidTransitionError("cancel the prepared cast specialist publication before changing review state")
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", content_validation_contract="plotloom.typed-content-result.v1", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
+            request.input_artifacts[CONTRACT_FILENAME] = cast_writing_contract()
+            request.input_artifacts["cast-style-contract.json"] = contract
+            request.creative_brief += " Follow cast-writing-contract.json: separate descriptions, source notes and performance guidance."
+            if render_style == "brief":
+                from ...autopilot_brief_style import brief_stage_instructions
+                request.creative_brief += brief_stage_instructions("cast")
+            else:
+                request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
             request.assert_secret_free()
+            freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
             row = CastCandidateRow(job_id=job_id, project_id=project_id, expected_cast_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, cast=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row)
@@ -214,11 +301,17 @@ class ProjectCastPersistence:
             if row.status != "prepared" or row.expected_cast_revision != head.revision or self._stale(session, project_id, CastBinding.model_validate(row.binding)):
                 raise CreativeHandoffError("delivery_stale", "cast candidate context is stale")
             _validate_cast(delivery.candidate)
+            validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
+            validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract, request.model_dump(mode="json", by_alias=True))
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
-            head.status, head.updated_at = "candidate_ready", row.delivered_at
+            if not receipt_only(self._access):
+                head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
 
     def accept_candidate(self, project_id: str, request: CastAcceptRequest) -> CastReviewState:
+        from ...autopilot_contracts import OperationScope
+        from .autopilot_authority import allow_manual_or_machine
+        allow_manual_or_machine(self._access, OperationScope.TEXT)
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head, row = self._head(session, project_id), session.get(CastCandidateRow, request.job_id)
@@ -231,6 +324,9 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context changed before acceptance")
             cast = request.cast or row.cast
             _validate_cast(cast)
+            validate_cast_design(cast)
+            validate_cast_style(cast, binding.render_contract, row.request)
+            validate_cast_notes(cast, required=CONTRACT_FILENAME in row.request.get("inputArtifacts", {}), previous=row.cast)
             ids = _cast_ids(row.cast)
             if _cast_ids(cast) != ids:
                 raise ValueError("accepted cast cannot change frozen character IDs")
@@ -251,6 +347,12 @@ class ProjectCastPersistence:
                 raise InvalidTransitionError("no accepted cast exists to reopen")
             if head.candidate_job_id and (row := session.get(CastCandidateRow, head.candidate_job_id)) and row.status in {"prepared", "ready"}:
                 raise InvalidTransitionError("cancel the current cast specialist publication before reopening accepted cast")
+            previous = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision))
+            if previous is None:
+                raise NotFoundError("accepted cast revision is missing")
+            stale = self._stale(session, project_id, CastBinding.model_validate(previous.binding))
+            if stale:
+                raise ReviewContextError(stale[0])
             head.status, head.updated_at = "reopened", utc_now()
         return self.get_state(project_id)
 
@@ -268,7 +370,14 @@ class ProjectCastPersistence:
             binding = CastBinding.model_validate(previous.binding)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted cast context changed before saving edits")
+            delivery = session.get(CastCandidateRow, previous.candidate_job_id)
+            source_request = delivery.request if delivery is not None and delivery.project_id == project_id else None
+            if binding.render_contract.get("authority") == "saved_brief" and source_request is None:
+                raise NotFoundError("original Brief source-validation request is unavailable")
             _validate_cast(request.cast)
+            validate_cast_design(request.cast)
+            validate_cast_style(request.cast, binding.render_contract, source_request)
+            validate_cast_notes(request.cast, previous=previous.cast)
             ids = _cast_ids(previous.cast)
             if _cast_ids(request.cast) != ids:
                 raise ValueError("reopened cast cannot change stable character IDs")
@@ -366,6 +475,7 @@ def _validate_cast(cast: dict[str, Any]) -> None:
     if not isinstance(cast.get("source"), str) or not isinstance(cast.get("summary"), str):
         raise ValueError("upstream cast must retain source and summary")
     _cast_ids(cast)
+    validate_cast_notes(cast)
 
 
 def _validate_mappings(ids: list[str], mappings: list[CastConsumerMapping]) -> None:

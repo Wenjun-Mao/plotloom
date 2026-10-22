@@ -97,8 +97,11 @@ holding prompt, keyframe and other settings constant. Do not infer a universally
 good/bad seed from one shot, or silently change it when retrying an uncertain job.
 The current review UI initializes a random seed and holds it throughout a
 source-review session; it does not promise a fresh seed on every repeated freeze.
-An explicit “new variation / same seed” control is a possible follow-up, not
-implemented by this note. No additional generation accompanied this update.
+That was the UI at the time of this observation; no additional generation
+accompanied that update. [ADR 0102](../adr/0102-explicit-h3-review-seed.md) now
+exposes an explicit decimal seed field for reuse or a distinct variation.
+Changing it clears the review and rotates request identity; it never submits
+or retries automatically. Source and complete prompt must be reviewed again.
 
 ## Prompt/input responsibility versus H3 output review
 
@@ -122,6 +125,66 @@ remaining defect to the model. Bring exact prompt, image, controls, original
 media and director observations to an H3 specialist as separate evidence,
 without claiming general H3 limits from these individual trials. C and D,
 including both C segment proposals, remain unselected.
+
+## Bounded phone-text observation · 2026-10-02
+
+In the isolated 雨停以后 C2 trial, replacing the first-frame package while
+holding seed, quality, dimensions, duration and the exact compiled prompt
+fixed made “我还在老地方。” legible through all 60 proposed playback frames.
+Root and independent review saw no added words, new UI or typing/send state
+in that window. The [resumed-media receipt](../verification/2026-10-02-stage4-resumed-media-closeout.md)
+preserves both jobs, controls, image/output hashes and inspection coverage.
+The new image also changes framing, background and text presentation, so this
+supports that particular revised input package, not isolated pixel-size
+causality, universal Chinese-text preservation, or B2/B3 typing/send fidelity.
+The owner subsequently approved C1–C4's individual visual/sound results;
+whole-sequence acceptance remains open. Exact still text alone never substitutes
+for checking the generated original and proposed playback frames.
+
+The later B2 first-frame comparison held the old entire request, English fields
+and compiled prompt fixed, including seed. Its larger unobstructed display did
+**not** resolve exact reply/incoming glyph deformation through the first 60
+frames, and its composer expanded/arrow moved during keyboard motion. Review
+did not establish a send gesture or convincing walking from that tight view.
+Framing and retained incoming-message presentation also changed, so this is a
+failed input-package trial, not isolated screen-size causality or a universal
+H3 limitation. Reading-only C2 success does not qualify typing/send behavior.
+Reassess the actual first-state/action strategy before more generation; preserve
+the failed original and do not erase/retype or omit source motion just to hold
+the screen. The [owner-approved-window receipt](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
+records the exact controls, all-frame inspection and saved rejection.
+
+Adjacent-shot stills also require pixel comparison: A2 used only C01 image
+conditioning and text descriptions of observed A1 geometry. Shared nouns for
+window, bench and planter do not certify the same location; pendant/window
+detail and end/start pose differences remain explicit cut-review questions.
+Do not claim an absent cross-shot image reference or bind an unsuitable image
+merely to unlock refinement.
+
+## Reviewed popped-out draft treatment · 2026-10-03
+
+The owner found the isolated B2 trial's large, front-facing popped-out Chinese
+message readable and its slight wobble acceptable as walking motion. For the
+E2E-first continuation, a complete unsent draft is shown from frame zero while
+the character composes or reviews it; B3 owns the separate send action. This
+is an explicit authored presentation change, not a hidden English override,
+an incoming reply, a spoken line, or a character-by-character typing test.
+[ADR 0107](../adr/0107-shot-production-presentation.md) binds the exact source
+literal, reviewed presentation revision and first-frame decision into fresh
+image/H3 requests. The canonical B2 continuation also kept the large message
+intelligible in normal segment playback. Incidental tiny phone marks were
+observed and are not narrative information or proof of pixel-perfect output.
+
+Use this as a bounded method when small angled text is not essential to the
+story: preserve the exact meaning and wording, author a simpler physical
+presentation, review the actual first state, and assess the resulting motion
+at normal playback speed. A send scene still needs an intelligible sent-state
+cue; finger movement alone is insufficient. Quality 8 was used in this run,
+but framing, presentation, wording and inputs changed together. No isolated
+quality effect or universal H3 Chinese-text capability is established.
+Historical failed jobs and the independent trial remain unchanged. The owner
+now prioritizes a usable E2E workflow with acceptable media; final-film polish
+and new sound acceptance remain separate reviews.
 
 ## Quality choice: development versus production review
 

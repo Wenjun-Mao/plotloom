@@ -275,7 +275,7 @@ class VideoProductionContract:
 
     @property
     def tracks_paid_wan_pilot(self) -> bool:
-        """Compatibility view for the retained Wan lifecycle only."""
+        """Whether this explicit cost contract reserves the paid pilot budget."""
 
         return self.cost_policy == "wan_paid_pilot_v1"
 

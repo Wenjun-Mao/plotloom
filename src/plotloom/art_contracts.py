@@ -6,7 +6,9 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
+from .accepted_review_state import AcceptedReviewState
 from .domain import CamelModel
+from .review_context_diagnostics import ReviewContextDiagnostic
 
 
 ArtStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -25,7 +27,9 @@ class ArtBinding(CamelModel):
     graph_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     cast_revision: int = Field(ge=1)
     cast_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    section_ids: list[str] = Field(min_length=3, max_length=3)
+    section_ids: list[str] = Field(min_length=1, max_length=128)
+    # Missing only in retained pre-0094 evidence; it cannot become current art.
+    render_contract: dict[str, Any] | None = None
 
     @field_validator("section_ids")
     @classmethod
@@ -64,10 +68,11 @@ class AcceptedArtRevision(CamelModel):
 
 
 class ArtReviewState(CamelModel):
+    accepted_review_state: AcceptedReviewState
     candidate: ArtCandidate | None = None
     accepted_art: AcceptedArtRevision | None = None
     status: ArtStatus
-    stale_reasons: list[str] = Field(default_factory=list)
+    stale_reasons: list[ReviewContextDiagnostic] = Field(default_factory=list)
 
 
 class ArtAcceptRequest(CamelModel):

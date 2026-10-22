@@ -35,7 +35,7 @@ RECOVERY_CONTROL_FORMAT_VERSION = 1
 class RecoveryOperation(CamelModel):
     """One historical operation that must not be resumed by recovery."""
 
-    kind: Literal["generation_run", "media_task", "video_job"]
+    kind: Literal["generation_run", "media_task", "video_job", "autopilot_run", "native_checkpoint", "codex_exec_attempt", "video_batch"]
     operation_id: str = Field(min_length=1)
     provider_state: Literal["not_submitted", "known", "unknown"]
 
@@ -89,6 +89,25 @@ def capture_recovery_control(database: Path, project_id: str) -> ProjectRecovery
             )
         )
         operations: list[RecoveryOperation] = []
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_runs'").fetchone():
+            for (identifier,) in connection.execute("SELECT id FROM v2_autopilot_runs WHERE project_id=? ORDER BY created_at,id", (project_id,)):
+                operations.append(RecoveryOperation(kind="autopilot_run", operation_id=identifier, provider_state="unknown"))
+            for identifier, state, evidence in connection.execute("SELECT id,state,evidence FROM v2_autopilot_checkpoints WHERE project_id=? ORDER BY created_at,id", (project_id,)):
+                import json
+                if json.loads(evidence).get("jobId"):
+                    operations.append(RecoveryOperation(kind="native_checkpoint", operation_id=identifier,
+                        provider_state="known" if state in {"delivered", "adopted"} else "not_submitted" if state == "prepared" else "unknown"))
+            if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_autopilot_exec_attempts'").fetchone():
+                for identifier, state in connection.execute("SELECT id,state FROM v2_autopilot_exec_attempts WHERE project_id=? ORDER BY created_at,id", (project_id,)):
+                    operations.append(RecoveryOperation(kind="codex_exec_attempt", operation_id=identifier,
+                        provider_state="not_submitted" if state == "reserved" else "known" if state in {"completed", "failed", "settled"} else "unknown"))
+        from .video_batch_evidence import retained_batch_drafts
+        for _request, _data, attempt, _profile, _receipt in retained_batch_drafts(connection):
+            operations.append(RecoveryOperation(kind="codex_exec_attempt", operation_id=str(attempt.attempt_id),
+                provider_state="known" if attempt.state in {"completed", "failed", "settled"} else "unknown"))
+        if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_video_batches'").fetchone():
+            for (identifier,) in connection.execute("SELECT id FROM v2_video_batches WHERE project_id=? AND state NOT IN ('approved','retired')", (project_id,)):
+                operations.append(RecoveryOperation(kind="video_batch", operation_id=identifier, provider_state="unknown"))
         for (run_id,) in runs:
             attempts = list(
                 connection.execute(
@@ -171,6 +190,11 @@ def read_recovery_control(
             "recovery control identity does not match the project"
         )
     return control
+
+
+def recovered_autopilot_run_ids(root: Path, project_id: str) -> set[str]:
+    control = read_recovery_control(root, project_id)
+    return {item.operation_id for item in control.operations if item.kind == "autopilot_run"} if control else set()
 
 
 def validate_recovery_control(

@@ -1,3 +1,10 @@
+import type { AcceptedReviewState } from "./accepted-review-state";
+import type { HumanReviewAttribution } from "./human-review-attribution";
+import type { ReviewContextDiagnostic } from "./review-context-types";
+import type { SamePersonReviewsResponse } from "./same-person-review-types";
+import type { ArtRenderContract, CastRenderContract } from "./features/render-style-contract";
+export type { ArtRenderStyle } from "./features/render-style-contract";
+
 export type StageName = "project_brief" | "story_bible" | "story_graph" | "scene_beats" | "storyboard";
 export type ServerStageName = Exclude<StageName, "project_brief">;
 export type RunStatus = "queued" | "running" | "succeeded" | "quarantined" | "cancel_requested" | "cancelled" | "failed";
@@ -10,10 +17,14 @@ export interface ValidationIssue {
   message: string;
 }
 
+export type DirectionSelection = { group: "subject" | "narrative" | "representation" | "treatment" | "lighting"; value: string };
+
 export interface ProjectBrief {
   title: string;
   synopsis: string;
   genre: string | null;
+  genreSelections?: DirectionSelection[];
+  visualStyleSelections?: DirectionSelection[];
   visualStyle: string | null;
   language: string;
   aspectRatio: string;
@@ -85,6 +96,7 @@ export interface StoryNode {
   title: string;
   kind: "start" | "decision" | "scene" | "join" | "ending";
   summary: string;
+  footageMode: "footage" | "route_only";
 }
 
 export interface StoryEdge {
@@ -203,6 +215,7 @@ export interface Shot {
   visualIntent: string;
   motionIntent: string;
   action: string;
+  visibleTexts?: Array<{ text: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string }>;
   transition: string;
   characterIds: string[];
   locationId: string | null;
@@ -236,7 +249,8 @@ export interface ManagedAsset {
   width: number;
   height: number;
   createdAt: string;
-  provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[] } | null;
+  provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[];
+    preparationId?: string; limitations?: string[]; jobId?: string; proposalId?: string; deliveryId?: string; outputFilename?: string } | null;
 }
 
 export interface CharacterImportedAppearance {
@@ -261,12 +275,19 @@ export interface VisualIntent {
   id: string;
   assetId: string;
   revision: number;
+  targetUseCurrent?: boolean;
   intent: {
+    sourceEndorsement?: { kind: "saved_storyboard"; entityRevisionId: string; revision: number; contentHash: string; shotId: string };
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string | null;
     compositionIntent?: string | null;
     styleIntent?: string | null;
     sourceRefs: string[];
+    targetUse?: {
+      kind: "cross_shot_initial_keyframe";
+      targetShotId: string;
+      source: { bindingId: string; sourceShotId: string; originShotId: string | null; assetId: string; originalHash: string };
+    };
   };
 }
 
@@ -279,6 +300,7 @@ export interface ReviewedKeyframe {
   visualIntentId: string | null;
   visualIntentRevision: number | null;
   compatibilityNote: string;
+  confirmationBasis?: { version: "whole-pack-material.v1" | "detailed-observations.v2"; receiptId: string; bundleHash: string };
 }
 
 export interface StillPreview {
@@ -363,10 +385,12 @@ export interface VideoJob {
   state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "discard_pending" | "discarded" | "cancelled" | "failed";
   cancelRequestedAt: string | null;
   requestedSeconds: number;
+  lifecycleStatus: "active" | "archived";
+  inputStatus: "current" | "stale" | "invalid";
   current: boolean;
   selected: boolean;
   selectionRevision: number;
-  reviews: Array<{ id: string; reviewer: string; decision: "select" | "reject"; note: string; createdAt: string }>;
+  reviews: Array<{ id: string; reviewer: string; attribution?: HumanReviewAttribution; decision: "select" | "reject" | "reopen"; note: string; createdAt: string }>;
   providerPredictionId: string | null;
   outputHash: string | null;
   observed: {
@@ -376,10 +400,11 @@ export interface VideoJob {
   segments?: VideoSegment[];
   playbackSegment?: VideoSegment | null;
   error: string | null;
-  snapshot: Record<string, unknown>;
+  snapshot: unknown;
 }
 
 export interface VideoSegment {
+  attribution?: HumanReviewAttribution;
   id: string;
   videoJobId: string;
   shotId: string;
@@ -389,6 +414,7 @@ export interface VideoSegment {
   sourceProbe: { frameCount: number; fps: string; [key: string]: unknown };
   derivativeProbe: { frameCount: number; fps: string; [key: string]: unknown };
   derivativeHash: string;
+  previewEligible: boolean;
   current: boolean;
   selected: boolean;
   selectedRevision: number | null;
@@ -426,30 +452,7 @@ export interface CharacterReferencesResponse {
   decisions: CharacterReferenceDecision[];
 }
 
-export interface SamePersonComparison {
-  characterId: string;
-  judgment: "pass" | "fail";
-  identityNotes: string;
-  stateNotes: string;
-}
-
-export interface SamePersonReview {
-  id: string;
-  projectId: string;
-  bindingId: string;
-  reviewRevision: number;
-  referenceBindings: Array<{ characterId: string; referenceDecisionId: string; referenceRevision: number; assetHashes: string[] }>;
-  comparisons: SamePersonComparison[];
-  reviewer: string;
-  notes: string;
-  current: boolean;
-  createdAt: string;
-}
-
-export interface SamePersonReviewsResponse {
-  revision: number;
-  reviews: SamePersonReview[];
-}
+export type { SamePersonComparison, SamePersonReview, SamePersonReviewsResponse } from "./same-person-review-types";
 
 export interface CharacterReferenceProposalCandidate {
   id: string;
@@ -595,6 +598,7 @@ export interface ImageJob {
     kind: "original" | "refinement" | "keyframe_adaptation";
     visualProposal?: Record<string, unknown>;
     frozenSnapshot?: {
+      shot?: Pick<Shot, "id">;
       visibleCharacterIds?: string[];
       characterIdentity?: Array<{
         characterId: string;
@@ -610,8 +614,10 @@ export interface ImageJob {
         assets: Array<{ assetId: string; originalHash: string }>;
       }>;
       keyframeAdaptation?: {
-        sourceBindingId: string;
+        sourceBindingId?: string;
+        sourceJobId?: string;
         sourceAssetId: string;
+        sourceOriginalHash?: string;
         targetProfile: { id: string; width: number; height: number };
       };
     };
@@ -643,10 +649,6 @@ export interface QuarantineItem {
   sealed?: boolean;
   repairEligible?: boolean;
   repairReasonCode?: string | null;
-  /** @deprecated Legacy trace-only evidence; never populated from progress. */
-  rawOutput?: string;
-  /** @deprecated Legacy trace-only hint; exact repair accepts no client guidance. */
-  repairHint?: string;
 }
 
 export interface WorkspaceProject {
@@ -690,7 +692,7 @@ export interface ProjectResource {
 }
 
 /** One bounded server-acknowledged editor draft in project.sqlite3. */
-export type AuthoringDraftScope = "brief" | ServerStageName | "visual_intent" | "image_direction";
+export type AuthoringDraftScope = "brief" | ServerStageName | "visual_intent" | "image_direction" | "review_buffer";
 export interface AuthoringDraft {
   projectId: string;
   editorScope: AuthoringDraftScope;
@@ -831,6 +833,7 @@ export interface ApprovalDecision {
   gateSetVersion: string;
   decision: "approve" | "revoke";
   reviewer: string;
+  attribution?: import("./human-review-attribution").HumanReviewAttribution;
   note: string | null;
   createdAt: string;
 }
@@ -1196,7 +1199,7 @@ export interface TextProviderProfilesResponse {
   activeProfileId: string;
   selectionRevision: number;
   presets: Record<Exclude<TextProviderPresetId, "custom">, TextProviderPresetValues>;
-  trustedAdapters?: Array<{ adapterId: string; adapterVersion: string }>;
+  trustedAdapters: Array<{ adapterId: string; adapterVersion: string }>;
 }
 
 /** The optimistic-concurrency result of selecting the server's active profile. */
@@ -1238,11 +1241,12 @@ export interface TextProviderProfileProbe {
 export type SourceKind = "synopsis" | "imported_text" | "existing_work";
 
 export interface SourceMaterial {
+  briefOrigin?: { kind: "saved_brief"; revision: number; contentHash: string };
   kind: SourceKind;
   title: string;
   text: string;
-  attribution: string;
-  rightsDeclaration: string;
+  attribution: string | null;
+  rightsDeclaration: string | null;
   adaptationIntent: string;
   inventedAdditions: string | null;
 }
@@ -1293,10 +1297,12 @@ export interface SourceOutlineReviewState {
   graphAdmission: SourceMapGraphAdmission | null;
 }
 
-export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; }
+export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; footageMode: "footage" | "route_only"; }
 export interface BranchOutcome { outcomeId: string; label: string; consequence: string; endingSectionId: string; }
-export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: [BranchOutcome, BranchOutcome]; }
-export interface SectionMap { sections: StorySection[]; choice: SectionChoice; }
+export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: BranchOutcome[]; }
+export interface SourceTopology { plannerVersion: "story_graph_topology.v3"; projectId: string; startNodeId: string; topologyHash: string; structuralParameters: Record<string, number>; nodes: Array<{ id: string; kind: "start" | "scene" | "decision" | "join" | "ending"; footageMode: "footage" | "route_only" }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; kind: "choice" | "continuation" }>; joins: Array<{ id: string; joinNodeId: string; incomingNodeIds: string[] }>; }
+export interface SourceStructure { startNodeId: string; nodes: Array<Omit<SourceTopology["nodes"][number], "footageMode">>; edges: Array<SourceTopology["edges"][number] & { stateEffects: Record<string, unknown>; entityStateEffects: RequiredEntityState[] }>; joins: Array<SourceTopology["joins"][number] & { requiredStateKeys: string[]; allowedDifferences: string[]; notes: string }>; }
+export interface SectionMap { sections: StorySection[]; seedTopology: SourceTopology; topologyOrigin: "planner" | "author"; topology: SourceStructure; choices: SectionChoice[]; joinReconciliations: Record<string, string>; }
 export interface AcceptedSectionMapRevision {
   revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
   contentHash: string; mapping: SectionMap; acceptedAt: string;
@@ -1306,38 +1312,49 @@ export interface SourceMapGraphAdmission {
   sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string;
   status: "current" | "stale"; staleReasons: string[]; installedAt: string;
 }
-export interface CastBinding { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; }
+interface CastArtBindingBase { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string; sectionIds: string[]; }
+export interface CastBinding extends CastArtBindingBase { renderContract?: CastRenderContract | null; }
 export interface CastCandidate { jobId: string; expectedCastRevision: number; binding: CastBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; cast: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface CastCandidatePreparation extends CastCandidate { packagePath: string; deliveryPath: string; assignment: string; }
-export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; acceptedAt: string; }
-export interface CastReviewState { candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
-export interface ArtBinding extends CastBinding { castRevision: number; castContentHash: string; }
+export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; reportAvailable: boolean; differsFromDelivery: boolean | null; acceptedAt: string; }
+export interface CastReviewState { acceptedReviewState: AcceptedReviewState; candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface ArtBinding extends CastArtBindingBase { castRevision: number; castContentHash: string; renderContract?: ArtRenderContract | null; }
 export interface ArtCandidate { jobId: string; expectedArtRevision: number; binding: ArtBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; art: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ArtCandidatePreparation extends ArtCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedArtRevision { revision: number; candidateJobId: string; contentHash: string; binding: ArtBinding; art: Record<string, unknown>; acceptedAt: string; }
-export interface ArtReviewState { candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
+export interface ArtReviewState { acceptedReviewState: AcceptedReviewState; candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
 
 export interface ScriptBinding extends ArtBinding {
   artRevision: number;
   artContentHash: string;
   targetPlaythroughSeconds: number;
-  timingAllocationHash: string;
+  routeBudgetHash: string;
   sectionBindings: Array<{ sectionId: string; episode: number }>;
-  sectionDurationCaps: Array<{ sectionId: string; durationCapMilliseconds: number }>;
   completeRouteSectionIds: string[][];
+  routeOnlySectionIds: string[];
 }
 export interface ScriptCandidate { jobId: string; expectedScriptRevision: number; binding: ScriptBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; script: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedScriptRevision { revision: number; candidateJobId: string; contentHash: string; binding: ScriptBinding; script: Record<string, unknown>; acceptedAt: string; }
-export interface ScriptReviewState { candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
-export interface StoryboardReviewBinding extends ScriptBinding { scriptRevision: number; scriptContentHash: string; reviewMinCutSeconds: number; reviewMaxCutSeconds: number; reviewMaxSegmentSeconds: number; }
+export interface ScriptReviewState { acceptedReviewState: AcceptedReviewState; candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export interface StoryboardReviewBinding extends ScriptBinding { scriptRevision: number; scriptContentHash: string; reviewMinCutSeconds: number; reviewMaxCutSeconds: number; reviewMaxSegmentSeconds: number; storyboardRenderContract?: Record<string, unknown> | null; dialogueTimingContract?: import("./production-dialogue-timing-types").FrozenF5DialogueTiming | null; }
 export interface StoryboardReviewCandidate { jobId: string; expectedReviewRevision: number; binding: StoryboardReviewBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; storyboard: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface StoryboardReviewCandidatePreparation extends StoryboardReviewCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedStoryboardReviewRevision { revision: number; candidateJobId: string; contentHash: string; binding: StoryboardReviewBinding; storyboard: Record<string, unknown>; acceptedAt: string; }
-export interface StoryboardReviewState { candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: string[]; }
-export interface ProductionBridgeConflict { code: string; message: string; sectionId: string | null; episode: number | null; sceneIndex: number | null; }
-export interface ProductionBridgeIntentEntry { id: string; targetKind: "scene_objective" | "beat_purpose"; targetId: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string; sourceExcerpt: string; suggestedText: string | null; text: string; }
-export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "model_inference.v1"; reviewState: "pending" | "model_suggested" | "author_saved"; entries: ProductionBridgeIntentEntry[]; provenance?: Record<string, unknown> | null; }
-export interface ProductionBridgeProposal { revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
-export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
-export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }
+export interface StoryboardReviewState { acceptedReviewState: AcceptedReviewState; candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: ReviewContextDiagnostic[]; }
+export type {
+  CanonicalReplacementHead, ProductionBridgeReplacementTarget, ProductionBridgePrepareRequest,
+  ProductionBridgeConflict, ProductionBridgeIntentEntry, ProductionBridgeIntentPackage,
+  PresentationSpan, PresentationSource, RuntimeChoice, RuntimeChoices, ProductionPresentation, PresentationCandidate,
+  ProductionSceneMapping, ProductionBridgeProposal, InstalledProduction,
+  ProductionBridgeIntentJob, ProductionBridgeState,
+} from "./production-bridge-types";
+
+
+export type BranchSuggestion = {
+  nodes: Array<{ id: string; title: string; summary: string }>;
+  choices: Array<{ nodeId: string; question: string; options: Array<{ id: string; label: string; consequence: string }> }>;
+  joins: Array<{ id: string; reconciliation: string }>;
+  clarifications: string[];
+};
+export type BranchTaskState = { candidate: { jobId: string; status: string; suggestion: BranchSuggestion | null; reportAvailable: boolean } | null; staleReasons: string[]; plannedTopology: SourceTopology | null; infeasibleReason: string | null };

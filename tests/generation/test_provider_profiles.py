@@ -139,7 +139,7 @@ def test_v3_snapshot_freezes_exact_adapter_without_rewriting_v2_evidence() -> No
         registry.resolve(v3)
 
 
-def test_profile_key_resolution_is_namespaced_and_default_keeps_legacy_fallbacks() -> None:
+def test_profile_key_resolution_is_namespaced_without_default_fallbacks() -> None:
     values = {
         "PLOTLOOM_PROFILE_LOCAL_LLAMA_TEXT_API_KEY": "local-key",
         "TEXT_MODEL_API_KEY": "legacy-key",
@@ -149,7 +149,11 @@ def test_profile_key_resolution_is_namespaced_and_default_keeps_legacy_fallbacks
         "PLOTLOOM_PROFILE_LOCAL_LLAMA_TEXT_API_KEY"
     )
     assert resolve_text_provider_api_key("local_llama", values) == "local-key"
-    assert resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID, values) == "legacy-key"
+    assert resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID, values) is None
+    values["PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY"] = "default-key"
+    assert resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID, values) == "default-key"
+    values["PLOTLOOM_PROFILE_DEFAULT_TEXT_API_KEY"] = ""
+    assert resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID, values) is None
     assert resolve_text_provider_api_key("other", values) is None
     with pytest.raises(ValueError):
         profile_text_api_key_environment_name("Not-valid")

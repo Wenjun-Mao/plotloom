@@ -1,4 +1,5 @@
 import type {
+  ArtRenderStyle,
   MediaKind,
   MediaTask,
   ProjectCreationRequest,
@@ -68,22 +69,23 @@ import type {
   StoryboardReviewCandidate,
   StoryboardReviewCandidatePreparation,
   ProductionBridgeState,
+  ProductionBridgePrepareRequest,
 } from "./types";
-import { providerSessionKeys } from "./session-key";
+import { ApiTransport, ApiError } from "./api-transport";
+import type { ProjectReadTicket } from "./project-read-admission";
+import { browserProjectReads, ProjectReadAdmission } from "./project-read-admission";
+export { ApiError };
 import { projectCreationBody } from "./project-creation";
 
 type FetchLike = typeof fetch;
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-    readonly details?: unknown,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
+export type RuntimeCapabilities = {
+  durableProjectDrafts: boolean;
+  durableMediaDrafts: boolean;
+  explicitProjectClose: boolean;
+  portableSnapshots: boolean;
+  apiTextPipeline: boolean;
+};
 
 export type H3ReviewedDirections = {
   sourceHash: string;
@@ -116,62 +118,16 @@ export type VideoEndFrameDecision = {
 };
 
 export class PlotloomApiClient {
-  private readonly fetcher: FetchLike;
+  private readonly transport: ApiTransport;
   private readonly base: string;
-
-  constructor(
-    fetcher: FetchLike = globalThis.fetch,
-    base = "/api/v2",
-  ) {
-    // Window.fetch is a Web-IDL method and some browsers reject a foreign
-    // receiver. Keep the injected function in a closure and always invoke it
-    // with the platform global rather than as `this.fetcher(...)`.
-    this.fetcher = (input, init) => fetcher.call(globalThis, input, init);
-    this.base = base;
+  constructor(fetcher: FetchLike = globalThis.fetch, base = "/api/v2", reads = new ProjectReadAdmission()) { this.base = base; this.transport = new ApiTransport(fetcher, base, reads); }
+  private async request<T>(path: string, init: RequestInit = {}, includeSessionKey = false, profileId = "default"): Promise<T> {
+    return (await this.transport.json<T>(path, init, includeSessionKey, profileId)).body;
   }
-
-  private async request<T>(
-    path: string,
-    init: RequestInit = {},
-    includeSessionKey = false,
-    sessionProfileId = "default",
-  ): Promise<T> {
-    const headers = new Headers(init.headers);
-    headers.set("Accept", "application/json");
-    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-    if (includeSessionKey) {
-      const ephemeralKey = providerSessionKeys.read(sessionProfileId);
-      if (ephemeralKey) headers.set("X-Plotloom-Session-API-Key", ephemeralKey);
-    }
-    const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
-    const body = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const message = body && typeof body === "object" && "message" in body
-        ? String(body.message)
-        : `Plotloom API request failed (${response.status})`;
-      throw new ApiError(message, response.status, body);
-    }
-    return body as T;
-  }
-
-  /** Preserve an exact draft-consumption receipt without widening canonical bodies. */
-  private async requestWithResponse<T>(
-    path: string,
-    init: RequestInit = {},
-  ): Promise<{ body: T; response: Response }> {
-    const headers = new Headers(init.headers);
-    headers.set("Accept", "application/json");
-    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
-    const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
-    const body = await response.json().catch(() => undefined);
-    if (!response.ok) {
-      const message = body && typeof body === "object" && "message" in body
-        ? String(body.message)
-        : `Plotloom API request failed (${response.status})`;
-      throw new ApiError(message, response.status, body);
-    }
-    return { body: body as T, response };
-  }
+  private requestWithResponse<T>(path: string, init: RequestInit = {}): Promise<{ body: T; response: Response }> { return this.transport.json<T>(path, init); }
+  suspendProjectReads(projectId: string) { return this.transport.reads.suspend(projectId); }
+  admitReportRead(url: string, signal: AbortSignal): Promise<ProjectReadTicket> { return this.transport.admitDocument(url, signal); }
+  reportAvailable(url: string, signal: AbortSignal): Promise<boolean> { return this.transport.reportAvailable(url, signal); }
 
   createProject(request: ProjectCreationRequest, idempotencyKey: string): Promise<ProjectCreationResponse> {
     return this.request("/projects", {
@@ -229,10 +185,42 @@ export class PlotloomApiClient {
     });
   }
 
-  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, confirmationTitle: string): Promise<void> {
+  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, expectedProjectRevision: number, confirmationTitle: string, scopeHash?: string): Promise<void> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/permanent-delete`, {
-      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, confirmationTitle }),
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, expectedProjectRevision, confirmationTitle, scopeHash }),
     });
+  }
+
+  abandonmentPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string; eligible: boolean; blockers: string[]; unknownAttemptIds: string[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/abandonment-preview`);
+  }
+
+  deletionPreview(projectId: string): Promise<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; scopeHash: string; previewHash?: string; mode: "ordinary" | "stop" | "abandon" | "blocked"; run: { id: string; revision: number; state: string } | null; blockers: string[]; stopWarnings?: string[]; unknownAttemptIds: string[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/deletion-preview`);
+  }
+
+  stopForDeletion(projectId: string, preview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>>): Promise<{ runId: string; state: string; deletionPreview: Awaited<ReturnType<PlotloomApiClient["deletionPreview"]>> | null; blocker?: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/stop-for-deletion`, {
+      method: "POST", body: JSON.stringify({ expectedProjectRevision: preview.expectedProjectRevision,
+        expectedLifecycleRevision: preview.expectedLifecycleRevision, confirmationTitle: preview.confirmationTitle,
+        scopeHash: preview.scopeHash, expectedRunId: preview.run?.id, expectedRunRevision: preview.run?.revision }),
+    });
+  }
+
+  abandonAndDeleteProject(projectId: string, preview: { expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string }): Promise<void> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/abandon-and-delete`, {
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision: preview.expectedLifecycleRevision,
+        expectedProjectRevision: preview.expectedProjectRevision, confirmationTitle: preview.confirmationTitle,
+        previewHash: preview.previewHash, scopeHash: preview.scopeHash, acknowledgeUnknownRemote: true }),
+    });
+  }
+
+  pendingProjectDeletions(): Promise<Array<{ projectId: string; expectedLifecycleRevision: number; expectedProjectRevision: number; confirmationTitle: string; previewHash: string; scopeHash?: string; revoked: boolean }>> {
+    return this.request("/project-deletions");
+  }
+
+  priorAbandonmentCandidates(): Promise<Array<{ projectId: string; title: string; projectRevision: number; lifecycleRevision: number; kind: "immediate_prior_abandonment_only" }>> {
+    return this.request("/project-abandonment-candidates");
   }
 
   patchProject(projectId: string, expectedRevision: number, brief: ProjectBrief): Promise<ProjectResource> {
@@ -266,7 +254,7 @@ export class PlotloomApiClient {
 
   decideStoryboardApproval(projectId: string, body: {
     expectedRevision: number; contentHash: string; decision: "approve" | "revoke";
-    reviewer: string; gateSetVersion: string; note?: string;
+    attribution: { kind: "unnamed_creator" }; gateSetVersion: string;
   }): Promise<ApprovalClosure> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-approval`, {
       method: "POST", body: JSON.stringify(body),
@@ -285,12 +273,20 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/visual-workbench`, { signal });
   }
 
+  getShotPresentation(projectId: string, shotId: string): Promise<import("./features/media/keyframes/shot-presentation").ShotPresentationState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/shots/${encodeURIComponent(shotId)}/production-presentation`);
+  }
+
+  reviewShotPresentation(projectId: string, shotId: string, body: import("./features/media/keyframes/shot-presentation").ShotPresentationReview): Promise<import("./features/media/keyframes/shot-presentation").ShotPresentationState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/shots/${encodeURIComponent(shotId)}/production-presentation`, { method: "PUT", body: JSON.stringify(body) });
+  }
+
   getImageJobs(projectId: string, signal?: AbortSignal): Promise<ImageJobsResponse> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { signal });
   }
 
   prepareImageJob(projectId: string, body: {
-    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; keyframeAdaptationProfileId?: string; presentationChange: string; contractVersion?: 2 | 3;
+    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; keyframeAdaptationProfileId?: string; sceneContinuityBindingId?: string; presentationChange: string; contractVersion?: 2 | 3;
     contextId?: string; consumedDraft?: CanonicalDraftConsumption;
   }): Promise<{ job: ImageJob }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
@@ -386,7 +382,7 @@ export class PlotloomApiClient {
 
   recordSamePersonReview(projectId: string, body: {
     bindingId: string; expectedReviewRevision: number; reviewer: string;
-    comparisons: Array<{ characterId: string; judgment: "pass" | "fail"; identityNotes: string; stateNotes: string }>;
+    comparisons: import("./same-person-review-types").SamePersonComparison[];
     notes: string;
   }): Promise<SamePersonReview> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/same-person-reviews`, { method: "POST", body: JSON.stringify(body) });
@@ -404,8 +400,8 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { method: "POST", body: form });
   }
 
-  getManagedAssets(projectId: string): Promise<{ assets: ManagedAsset[] }> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`);
+  getManagedAssets(projectId: string, signal?: AbortSignal): Promise<{ assets: ManagedAsset[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { signal });
   }
 
   getVideoEndFrame(projectId: string, shotId: string): Promise<VideoEndFrameDecision> {
@@ -432,6 +428,8 @@ export class PlotloomApiClient {
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string; compositionIntent?: string; styleIntent?: string;
     sourceRefs?: string[];
+    sourceBindingId?: string;
+    retainedVisualIntentId?: string;
     shotId?: string; consumedDraft?: CanonicalDraftConsumption;
   }): Promise<VisualIntent> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/visual-intents`, {
@@ -443,6 +441,7 @@ export class PlotloomApiClient {
     assetId: string; shotId: string; sceneId: string; expectedSelectionRevision: number;
     storyboardRevision: number; approvalId: string; compatibilityNote: string;
     visualIntentId: string; visualIntentRevision: number;
+    expectedPresentationRevision?: number;
   }): Promise<{ id: string; selectionRevision: number }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/reviewed-keyframes`, { method: "POST", body: JSON.stringify(body) });
   }
@@ -476,16 +475,12 @@ export class PlotloomApiClient {
     return { stage: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
   }
 
-  getAuthoringDraftCapability(): Promise<{
-    durableProjectDrafts: boolean;
-    /** Media buffers are project-owned only in the direct format-5 composition. */
-    durableMediaDrafts?: boolean;
-    /** True only for the direct project-folder composition. */
-    explicitProjectClose?: boolean;
-    /** True only when the backend can create a verified portable snapshot. */
-    portableSnapshots?: boolean;
-  }> {
-    return this.request("/authoring-draft-capabilities");
+  async getRuntimeCapabilities(signal?: AbortSignal): Promise<RuntimeCapabilities> {
+    const result = await this.request<RuntimeCapabilities>("/runtime-capabilities", { signal });
+    for (const field of ["durableProjectDrafts", "durableMediaDrafts", "explicitProjectClose", "portableSnapshots", "apiTextPipeline"] as const) {
+      if (typeof result?.[field] !== "boolean") throw new Error("服务功能响应不完整，请刷新后重试。");
+    }
+    return result;
   }
 
   getAuthoringDrafts(projectId: string, signal?: AbortSignal): Promise<AuthoringDraft[]> {
@@ -620,6 +615,10 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates`, { method: "POST" });
   }
 
+  getOutlineAssignment(projectId: string, jobId: string): Promise<OutlineCandidatePreparation> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/assignment`);
+  }
+
   refreshOutlineCandidate(projectId: string, jobId: string): Promise<OutlineCandidate> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
   }
@@ -632,15 +631,47 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/accept`, { method: "POST", body: JSON.stringify(body) });
   }
 
+  getBranchSuggestions(projectId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions`);
+  }
+  prepareBranchSuggestions(projectId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions`, { method: "POST" });
+  }
+  getBranchDraft(projectId: string, jobId: string): Promise<SectionMap> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/draft`);
+  }
+  cancelBranchSuggestions(projectId: string, jobId: string): Promise<import("./types").BranchTaskState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+  }
+  branchCandidateReportUrl(projectId: string, jobId: string): string {
+    return `${this.base}/projects/${encodeURIComponent(projectId)}/branch-suggestions/${encodeURIComponent(jobId)}/report?presentation=static`;
+  }
+
+  returnToAcceptedOutline(projectId: string, request: { expectedOutlineRevision: number; expectedSourceRevision: number; expectedOutlineContentHash: string; expectedCandidateJobId: string | null }): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/return`, { method: "POST", body: JSON.stringify(request) });
+  }
+
   reopenOutline(projectId: string, expectedOutlineRevision: number): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/reopen`, { method: "POST", body: JSON.stringify({ expectedOutlineRevision }) });
   }
 
-  saveSectionMap(projectId: string, body: { expectedSectionMapRevision: number; expectedSourceRevision: number; expectedOutlineRevision: number; expectedOutlineContentHash: string; mapping: SectionMap }): Promise<SourceOutlineReviewState> {
+  getGraphWorkbench(projectId: string): Promise<import("./features/graph/contracts").GraphWorkbenchState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench`);
+  }
+  previewGraphCommand(projectId: string, body: { expectedDraftRevision: number; command: import("./features/graph/contracts").GraphCommand }): Promise<import("./features/graph/contracts").GraphCommandPreview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/preview`, { method: "POST", body: JSON.stringify(body) });
+  }
+  applyGraphCommand(projectId: string, body: { expectedDraftRevision: number; command: import("./features/graph/contracts").GraphCommand; previewHash: string }): Promise<AuthoringDraft> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/apply`, { method: "POST", body: JSON.stringify(body) });
+  }
+  recoverGraphDraft(projectId: string, body: { expectedDraftRevision: number; expectedBindingHash: string; payload: import("./features/graph/contracts").GraphAuthoringDraft | null }): Promise<AuthoringDraft> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/graph-workbench/recover`, { method: "POST", body: JSON.stringify(body) });
+  }
+  saveSectionMap(projectId: string, body: { expectedSectionMapRevision: number; expectedSourceRevision: number; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedGraphDraftRevision: number; mapping: SectionMap }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map`, { method: "PUT", body: JSON.stringify(body) });
   }
 
-  installSectionMapGraph(projectId: string, body: { expectedSourceRevision: number; expectedSourceContentHash: string; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedSectionMapRevision: number; expectedSectionMapContentHash: string; expectedGraphRevision: number }): Promise<SourceOutlineReviewState> {
+  installSectionMapGraph(projectId: string, body: { expectedSourceRevision: number; expectedSourceContentHash: string; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedSectionMapRevision: number; expectedSectionMapContentHash: string; expectedGraphRevision: number; expectedGraphDraftRevision: number }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map/install-graph`, { method: "POST", body: JSON.stringify(body) });
   }
 
@@ -649,24 +680,24 @@ export class PlotloomApiClient {
   }
 
   getCast(projectId: string, signal?: AbortSignal): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast`, { signal }); }
-  prepareCastCandidate(projectId: string): Promise<CastCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST" }); }
+  prepareCastCandidate(projectId: string, renderStyle: ArtRenderStyle): Promise<CastCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST", body: JSON.stringify({ renderStyle }) }); }
   refreshCastCandidate(projectId: string, jobId: string): Promise<CastCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelCastCandidate(projectId: string, jobId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptCastCandidate(projectId: string, body: { jobId: string; expectedCastRevision: number; binding: unknown; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; cast: Record<string, unknown> }): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/accept`, { method: "POST", body: JSON.stringify(body) }); }
   reopenCast(projectId: string, expectedCastRevision: number): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/reopen`, { method: "POST", body: JSON.stringify({ expectedCastRevision }) }); }
   cancelReopenedCast(projectId: string, expectedCastRevision: number): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/reopen/cancel`, { method: "POST", body: JSON.stringify({ expectedCastRevision }) }); }
   saveReopenedCast(projectId: string, body: { expectedCastRevision: number; binding: unknown; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; cast: Record<string, unknown> }): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/save`, { method: "POST", body: JSON.stringify(body) }); }
-  castCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/report`; }
+  castCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/report?presentation=static`; }
 
   getArt(projectId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art`); }
-  prepareArtCandidate(projectId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST" }); }
+  prepareArtCandidate(projectId: string, renderStyle: "live-action" | "realistic" | "ghibli"): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST", body: JSON.stringify({ renderStyle }) }); }
   recoverArtHandoff(projectId: string, jobId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/handoff`); }
   refreshArtCandidate(projectId: string, jobId: string): Promise<ArtCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelArtCandidate(projectId: string, jobId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptArtCandidate(projectId: string, body: { jobId: string; expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/accept`, { method: "POST", body: JSON.stringify(body) }); }
   reopenArt(projectId: string, expectedArtRevision: number): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/reopen`, { method: "POST", body: JSON.stringify({ expectedArtRevision }) }); }
   saveReopenedArt(projectId: string, body: { expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/save`, { method: "POST", body: JSON.stringify(body) }); }
-  artCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/report`; }
+  artCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/report?presentation=static`; }
 
   getScript(projectId: string): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script`); }
   prepareScriptCandidate(projectId: string): Promise<ScriptCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/candidates`, { method: "POST" }); }
@@ -676,7 +707,7 @@ export class PlotloomApiClient {
   acceptScriptCandidate(projectId: string, body: { jobId: string; expectedScriptRevision: number; binding: unknown; script: Record<string, unknown> }): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/accept`, { method: "POST", body: JSON.stringify(body) }); }
   reopenScript(projectId: string, expectedScriptRevision: number): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/reopen`, { method: "POST", body: JSON.stringify({ expectedScriptRevision }) }); }
   saveScriptSection(projectId: string, body: { expectedScriptRevision: number; binding: unknown; sectionId: string; episode: Record<string, unknown> }): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/sections/save`, { method: "POST", body: JSON.stringify(body) }); }
-  scriptCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/report`; }
+  scriptCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/report?presentation=static`; }
 
   getStoryboardSourceReview(projectId: string): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review`); }
   prepareStoryboardSourceReviewCandidate(projectId: string, maxCutSeconds = 8): Promise<StoryboardReviewCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates`, { method: "POST", body: JSON.stringify({ maxCutSeconds }) }); }
@@ -684,13 +715,20 @@ export class PlotloomApiClient {
   refreshStoryboardSourceReviewCandidate(projectId: string, jobId: string): Promise<StoryboardReviewCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelStoryboardSourceReviewCandidate(projectId: string, jobId: string): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptStoryboardSourceReviewCandidate(projectId: string, body: { jobId: string; expectedReviewRevision: number; binding: unknown }): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/accept`, { method: "POST", body: JSON.stringify(body) }); }
-  storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report`; }
+  storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report?presentation=static`; }
   getProductionBridge(projectId: string, signal?: AbortSignal): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge`, { signal }); }
-  prepareProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST" }); }
+  prepareProductionBridge(projectId: string, body: ProductionBridgePrepareRequest): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST", body: JSON.stringify(body) }); }
   generateProductionBridgeIntent(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string; providerProfileId?: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs`, { method: "POST", body: JSON.stringify(body) }); }
   resumeProductionBridgeIntent(projectId: string, jobId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs/${encodeURIComponent(jobId)}/resume`, { method: "POST" }); }
   cancelProductionBridgeIntent(projectId: string, jobId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/intent-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
+  prepareNativeBridgeIntent(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/native-intent-jobs`, { method: "POST", body: JSON.stringify(body) }); }
+  prepareNativeBridgePresentation(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/native-presentation-jobs`, { method: "POST", body: JSON.stringify(body) }); }
+  nativeBridgePresentationAction(projectId: string, jobId: string, action: "send" | "check" | "cancel"): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/native-presentation-jobs/${encodeURIComponent(jobId)}/${action}`, { method: "POST" }); }
+  nativeBridgePresentationReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/production-bridge/native-presentation-jobs/${encodeURIComponent(jobId)}/report`; }
+  nativeBridgeIntentAction(projectId: string, jobId: string, action: "send" | "check" | "cancel"): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/native-intent-jobs/${encodeURIComponent(jobId)}/${action}`, { method: "POST" }); }
+  nativeBridgeIntentReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/production-bridge/native-intent-jobs/${encodeURIComponent(jobId)}/report`; }
   updateProductionBridgeIntent(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string; entries: Array<{ id: string; text: string }> }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals/intent`, { method: "PUT", body: JSON.stringify(body) }); }
+  updateProductionBridgePresentation(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string; sourceHash: string; reviewedComplete: true; entries: Array<{ id: string; spans: import("./types").PresentationSpan[] }> }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals/presentation`, { method: "PUT", body: JSON.stringify(body) }); }
   acceptProductionBridge(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/accept`, { method: "POST", body: JSON.stringify(body) }); }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
@@ -706,6 +744,7 @@ export class PlotloomApiClient {
   reconcileVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/reconcile`, { method: "POST" }); }
   cancelVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }); }
   reviewVideoJob(projectId: string, id: string, decision: "select" | "reject", reviewer: string, note: string, expectedSelectionRevision: number): Promise<unknown> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/review`, { method: "POST", body: JSON.stringify({ decision, reviewer, note, expectedSelectionRevision }) }); }
+  reopenVideoJobReview(projectId: string, id: string, reviewer: string, reason: string, expectedSelectionRevision: number): Promise<unknown> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/review/reopen`, { method: "POST", body: JSON.stringify({ reviewer, reason, expectedSelectionRevision }) }); }
   prepareVideoSegment(projectId: string, jobId: string, inFrame: number, outFrame: number, expectedSelectionRevision: number): Promise<VideoSegment> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(jobId)}/segments`, { method: "POST", body: JSON.stringify({ inFrame, outFrame, expectedSelectionRevision }) }); }
   selectVideoSegment(projectId: string, segmentId: string, reviewer: string, note: string, expectedSelectionRevision: number): Promise<VideoSegment> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-segments/${encodeURIComponent(segmentId)}/select`, { method: "POST", body: JSON.stringify({ reviewer, note, expectedSelectionRevision }) }); }
   videoSegmentPreviewUrl(projectId: string, segmentId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-segments/${encodeURIComponent(segmentId)}/preview`; }
@@ -774,4 +813,4 @@ export class PlotloomApiClient {
   }
 }
 
-export const plotloomApi = new PlotloomApiClient();
+export const plotloomApi = new PlotloomApiClient(globalThis.fetch, "/api/v2", browserProjectReads);

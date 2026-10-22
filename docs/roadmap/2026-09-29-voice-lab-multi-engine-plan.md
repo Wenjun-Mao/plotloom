@@ -156,7 +156,7 @@ can be reconsidered only if the working workflow demonstrates a need.
   not reset the live Voice Lab or rederive old media. This scoped migration is
   required to preserve current user-valued assets, not a legacy API shim.
 - Publication retains the exact creation provenance and independent source/H3
-  copies from [ADR 0092](../adr/0092-voice-lab-projects-and-published-voice-identity.md).
+  copies from [ADR 0207](../adr/0207-voice-lab-projects-and-published-voice-identity.md).
   A published identity is not bound to a future reuse engine. Same-generation
   repeated Publish still returns the same Voice ID.
 - Fix the media boundary rather than forcing Index's native `22050 Hz` output

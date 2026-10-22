@@ -7,7 +7,7 @@ Projects are independent workspaces, not authenticated user accounts.
 - [Author workflow and pipeline](docs/audio-pipeline-report.md)
 - [Reproduction, licenses and operations](docs/reproduction-and-operations.md)
 - [Cross-service ownership and selective releases](../../docs/operations/media-services.md)
-- [Engine decision](../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
+- [Engine decision](../../docs/adr/0209-voice-lab-independent-engines-and-delivery.md)
 - [Published takes and shared admission](../../docs/roadmap/2026-09-30-voice-takes-h3-plan.md)
 - [Take API client guide](docs/voice-takes-client-guide.md)
 - [Verified shared-admission deployment](../../docs/verification/2026-10-01-published-voice-takes-shared-admission.md)
@@ -68,7 +68,7 @@ elapsed time, without invented percent or ETA. Restart interrupts unfinished
 jobs, never silently replays them.
 
 All Lab creation, clone trials and durable takes register in the same lane as
-H3/Qwen-Image, under [ADR 0097](../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md).
+H3/Qwen-Image, under [ADR 0212](../../docs/adr/0212-published-voice-performance-takes-and-shared-admission.md).
 Missing control configuration leaves jobs visibly waiting, never running locally.
 Unknown dispatch/unreaped children hold the lane without retry. Memory/ComfyUI
 checks remain supplementary; direct backend clients are outside this guarantee.

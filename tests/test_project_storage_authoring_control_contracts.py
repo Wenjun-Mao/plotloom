@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import STAGE_ORDER, StageName
+from plotloom.domain import InitialStage, STAGE_ORDER, StageName
 from plotloom.project_storage import ProjectFolderStorage
 
 from tests.backend_core.conftest import all_stage_payloads
@@ -46,18 +46,21 @@ def _complete_project(client: TestClient) -> dict:
 
 @pytest.mark.parametrize("save_with_draft", [False, True])
 @pytest.mark.parametrize(
-    ("change", "expected_statuses"),
+    ("change", "expected_statuses", "expected_revision"),
     [
-        ({"shotCountPolicy": "advisory"}, ["ready", "ready", "ready", "stale"]),
-        ({"targetPlaythroughSeconds": 181}, ["ready", "ready", "stale", "stale"]),
-        ({"nodeBudget": 10}, ["ready", "stale", "stale", "stale"]),
+        ({"shotCountPolicy": "strict"}, ["ready", "ready", "ready", "stale"], 2),
+        ({"shotCountPolicy": "advisory"}, ["ready", "ready", "ready", "ready"], 1),
+        ({"targetPlaythroughSeconds": 181}, ["ready", "ready", "stale", "stale"], 2),
+        ({"nodeBudget": 10}, ["ready", "stale", "stale", "stale"], 2),
     ],
 )
 def test_brief_saves_invalidate_only_evidenced_stage_dependencies(
     tmp_path: Path, save_with_draft: bool, change: dict, expected_statuses: list[str],
+    expected_revision: int,
 ) -> None:
     client = _client(tmp_path)
     project = _complete_project(client)
+    assert project["brief"]["shotCountPolicy"] == "advisory"
     project_id = project["id"]
     brief = {**project["brief"], **change}
     if save_with_draft:
@@ -72,6 +75,11 @@ def test_brief_saves_invalidate_only_evidenced_stage_dependencies(
         payload["consumedDraft"] = {"editorScope": "brief", "entityId": "root", "draftRevision": 1}
     saved = client.patch(f"/api/v2/projects/{project_id}", json=payload)
     assert saved.status_code == 200, saved.text
+    assert saved.json()["revision"] == expected_revision
+    assert client.get(f"/api/v2/projects/{project_id}").json()["revision"] == expected_revision
+    if save_with_draft:
+        assert saved.headers["X-Plotloom-Draft-Consumed-Revision"] == "1"
+        assert client.get(f"/api/v2/projects/{project_id}/authoring-drafts").json() == []
     stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
     assert [stage["head"]["status"] for stage in stages] == expected_statuses
 
@@ -182,7 +190,7 @@ def test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_input
         "expectedRevision": review_body["head"]["revision"],
         "contentHash": review_body["head"]["contentHash"],
         "decision": "approve",
-        "reviewer": "current storage fixture",
+        "attribution": {"kind": "unnamed_creator"},
         "gateSetVersion": "storyboard.v2",
     }
     wrong_hash = client.post(
@@ -204,7 +212,7 @@ def test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_input
 
     revoked = client.post(
         f"/api/v2/projects/{project_id}/storyboard-approval",
-        json={**request, "decision": "revoke", "note": "Recheck the authored cut."},
+        json={**request, "decision": "revoke"},
     )
     assert revoked.status_code == 201
     assert revoked.json()["active"] is False
@@ -230,18 +238,13 @@ def test_gate_result_identity_is_scoped_to_the_project_revision(tmp_path: Path) 
         outputs_root=tmp_path / "outputs",
         application_data_root=tmp_path / "application",
     )
-    first = storage.projects.create(FIXED_CHINESE_BRIEF)
+    initial = [InitialStage(stage=stage, payload=payload.model_dump(mode="json", by_alias=True))
+        for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True)]
+    first = storage.projects.create(FIXED_CHINESE_BRIEF, initial_stages=initial)
     second = storage.projects.create(
-        FIXED_CHINESE_BRIEF.model_copy(update={"title": "A second revision scope"})
+        FIXED_CHINESE_BRIEF.model_copy(update={"title": "A second revision scope"}), initial_stages=initial
     )
     try:
-        for store in (first, second):
-            for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True):
-                store.update_stage(
-                    stage,
-                    payload.model_dump(mode="json", by_alias=True),
-                    expected_revision=0,
-                )
         first_head = first.authoring.get_stage_head(first.project().id, StageName.STORYBOARD)
         second_head = second.authoring.get_stage_head(second.project().id, StageName.STORYBOARD)
         assert first_head.entity_revision_id is not None

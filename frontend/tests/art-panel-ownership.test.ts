@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
+import { specialistsApi } from "../src/features/specialists/api";
 import { ArtPanel } from "../src/pages/ArtPanel";
 import type { ArtBinding, ArtReferenceProposal, ArtReviewState } from "../src/types";
 
@@ -35,7 +36,7 @@ const deliveredStudy: ArtReferenceProposal = {
 };
 
 function artState(projectId: string): ArtReviewState {
-  return {
+  return { acceptedReviewState: { status: "current", staleReasons: [] },
     candidate: null,
     acceptedArt: {
       revision: 1, candidateJobId: "art-1", contentHash: "accepted", acceptedAt: "2026-09-18T00:00:00Z",
@@ -51,15 +52,44 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
-it("settles a deferred F3B copy after unmount without refresh, assignment, or error publication", async () => {
+it("uses creator-confirmation wording and selection labels for accepted Art", async () => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({
+    states: [{ subjectType: "scene", subjectId: "S01", revision: 0, activeDecisionId: null, current: false }], decisions: [],
+  });
+
+  await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
+
+  expect(host.textContent).toContain("已确认美术设定 r1");
+  expect(host.querySelector('section[aria-label="准备美术设定候选"]')?.textContent).toContain("准备新的美术候选（可选）");
+  expect(host.textContent).toContain("新候选需要单独审核并确认，不会自动替换已有设定");
+  expect(host.textContent).toContain("按已确认的美术设定生成图片");
+  expect([...host.querySelectorAll("button")].some(button => button.textContent === "选用这张环境参考图")).toBe(true);
+});
+
+it("requires fresh Art review for implementation-only staleness without blaming changed author input", async () => {
+  const diagnostic = { code: "art_render_contract_changed", owner: "art", field: null, technicalMessage: "art render contract is not current" } as const;
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status: "stale", staleReasons: [diagnostic], acceptedReviewState: { status: "retained", staleReasons: [diagnostic] } });
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, onContinue: vi.fn() })));
+  expect(host.textContent).toContain("重新准备并确认美术设定");
+  expect(host.textContent).not.toContain("候选（可选）");
+  expect(host.querySelector(".stage-guide")?.textContent).toContain("按当前审核要求");
+  expect(host.textContent).not.toContain("上游内容已变化");
+  expect([...host.querySelectorAll("button")].find(b => b.textContent === "重新打开美术提案")?.disabled).toBe(true);
+});
+
+it("settles a deferred F3B send after unmount without refresh, assignment, or error publication", async () => {
   const copied = deferred<{ proposal: ArtReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }>();
   const getArt = vi.spyOn(plotloomApi, "getArt").mockImplementation(async (projectId) => artState(projectId));
   const getStudies = vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [study] });
   const getDecisions = vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
-  vi.spyOn(plotloomApi, "copyArtReferenceProposal").mockReturnValue(copied.promise);
+  vi.spyOn(specialistsApi, "sendArtImage").mockReturnValue(copied.promise);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
-  const copy = [...host.querySelectorAll("button")].find((button) => button.textContent === "复制 ImageGen 任务");
+  const copy = [...host.querySelectorAll("button")].find((button) => button.textContent === "发送给图像生成助手");
   expect(copy).toBeDefined();
   await act(async () => copy?.click());
   const artCallsBeforeUnmount = getArt.mock.calls.length;
@@ -89,7 +119,7 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
   const createDecision = vi.spyOn(plotloomApi, "createArtReferenceDecision").mockReturnValue(chosen.promise as Promise<any>);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
-  const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "用作此环境的参考图");
+  const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "选用这张环境参考图");
   expect(choose).toBeDefined();
   await act(async () => choose?.click());
   expect(createDecision).toHaveBeenCalledWith("old", {
@@ -101,4 +131,88 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
 
   expect([getArt.mock.calls.length, getStudies.mock.calls.length, getDecisions.mock.calls.length]).toEqual(before);
   expect(host.querySelector('[role="alert"]')).toBeNull();
+});
+
+it("guides recovery of a retained dirty Art draft before a newer accepted result", async () => {
+  let current: ArtReviewState = { ...artState("old"), status: "reopened", acceptedReviewState: { status: "reopened", staleReasons: [] } };
+  vi.spyOn(plotloomApi, "getArt").mockImplementation(async () => current);
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const onContinue = vi.fn();
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: 1, onContinue })));
+  const editor = host.querySelector<HTMLTextAreaElement>("details.art-json-editor textarea:not(:disabled)")!;
+  const dirty = `${editor.value}\n `;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(editor, dirty);
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(host.querySelector(".stage-guide")?.textContent).toContain("先保存或明确舍弃美术修改");
+  current = { ...current, acceptedReviewState: { status: "current", staleReasons: [] }, status: "accepted", acceptedArt: { ...current.acceptedArt!, revision: 2, contentHash: "new-head" } };
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: 2, onContinue })));
+  const guide = host.querySelector(".stage-guide")!;
+  expect(guide.textContent).toContain("保留了基于旧版本的美术草稿");
+  expect(guide.textContent).not.toContain("可继续编写剧本");
+  expect(host.querySelector<HTMLTextAreaElement>('[aria-label="保留的美术草稿"]')?.value).toBe(dirty);
+  const continuation = [...host.querySelectorAll("button")].find(button => button.textContent === "继续：剧本")!;
+  expect(continuation.disabled).toBe(true);
+  const discard = [...host.querySelectorAll("button")].find(button => button.textContent === "舍弃美术草稿")!;
+  await act(async () => discard.click());
+  expect(guide.textContent).toContain("可继续编写剧本");
+  expect(continuation.disabled).toBe(false);
+  expect(onContinue).not.toHaveBeenCalled();
+});
+
+it.each(["stale", "reopened", "prepared", "candidate_ready"] as const)("does not authorize reference selection from retained Art while %s", async (status) => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), status, acceptedReviewState: { status: status === "reopened" ? "reopened" : "retained", staleReasons: [] } });
+  // A retained proposal's flag alone must not confer current Art authority.
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const choose = vi.spyOn(plotloomApi, "createArtReferenceDecision");
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })));
+  const select = [...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!;
+  expect(select.disabled).toBe(true);
+  await act(async () => select.click());
+  expect(choose).not.toHaveBeenCalled();
+  expect(host.querySelector('img[alt="Held scene 当前查看图片"]')).not.toBeNull();
+  expect(host.textContent).toContain("查看保留的参考图片");
+  expect(host.textContent).toContain("暂不能准备、发送或选用参考图");
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "修改要求，再生成一张")!.disabled).toBe(true);
+});
+
+it("keeps reference selection blocked while a retained accepted head is being refreshed", async () => {
+  const pending = deferred<ArtReviewState>();
+  const getArt = vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const render = (token: number) => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: token }));
+  const select = () => [...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!;
+  await act(async () => render(1));
+  expect(select().disabled).toBe(false);
+  getArt.mockReturnValueOnce(pending.promise);
+  await act(async () => render(2));
+  expect(select().disabled).toBe(true);
+  await act(async () => { pending.resolve({ ...artState("old"), status: "stale", acceptedReviewState: { status: "retained", staleReasons: [] } }); await pending.promise; });
+  expect(select().disabled).toBe(true);
+});
+
+it("keeps reference selection blocked after a failed refresh until successful revalidation", async () => {
+  const getArt = vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  const render = (token: number) => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false, refreshToken: token }));
+  const button = (label: string) => [...host.querySelectorAll("button")].find(entry => entry.textContent === label)!;
+  await act(async () => render(1));
+  getArt.mockRejectedValueOnce(new Error("Temporary read failure"));
+  await act(async () => render(2));
+  expect(button("选用这张环境参考图").disabled).toBe(true);
+  await act(async () => button("重试加载美术参考").click());
+  expect(button("选用这张环境参考图").disabled).toBe(false);
+});
+
+it("allows another still-current older candidate without requiring it to be the newest proposal", async () => {
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [study, { ...deliveredStudy, id: "older-study" }] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })));
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "选用这张环境参考图")!.disabled).toBe(false);
 });

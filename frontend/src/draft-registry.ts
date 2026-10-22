@@ -21,7 +21,9 @@ const storageKey = "plotloom:workbench-drafts:v1";
 function draftOwner(project: WorkspaceProject): string {
   // Never use a shared `new` namespace: a blank workspace and the sample are
   // independent editing sessions and must not recover one another's content.
-  return project.id || `local:${project.clientDraftOwner || "legacy"}`;
+  if (project.id) return project.id;
+  if (!project.clientDraftOwner?.trim()) throw new Error("未保存工作区必须具有明确的本地草稿归属。");
+  return `local:${project.clientDraftOwner}`;
 }
 
 export function draftKey(project: WorkspaceProject, scope: DraftScope): string {
@@ -107,7 +109,7 @@ export function discardDraft(project: WorkspaceProject, scope: DraftScope): void
 
 /**
  * A draft from another revision is intentionally not recoverable. Returning
- * it lets the UI make the conflict visible and offer only a safe discard.
+ * it lets the UI make the conflict visible for reload, independent copy or discard.
  */
 export function findRevisionConflict(project: WorkspaceProject, scope: DraftScope): DraftRecord | undefined {
   const owner = draftOwner(project);
@@ -121,6 +123,15 @@ export function discardDraftRecord(record: DraftRecord): void {
   const all = readAll();
   delete all[record.key];
   writeAll(all);
+}
+
+/** Retain one already-authored buffer with its original binding for recovery. */
+export function retainDraftRecord(record: DraftRecord): DraftRecord {
+  const all = readAll();
+  const retained = all[record.key] ?? record;
+  all[record.key] = retained;
+  writeAll(all);
+  return retained;
 }
 
 /** Used when the server object is archived, unavailable, or deleted. */

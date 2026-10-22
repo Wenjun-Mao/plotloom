@@ -4,7 +4,7 @@
 
 On the retained specialist branch, added an observed progress projection for
 candidate voice generation and changed field captions so their text can be
-selected without losing accessible names. [ADR 0093](../adr/0093-voice-lab-observed-job-progress.md)
+selected without losing accessible names. [ADR 0208](../adr/0208-voice-lab-observed-job-progress.md)
 records the queue and phase contract. No Plotloom authoring code changed and
 no Plotloom director contact, merge or push occurred.
 

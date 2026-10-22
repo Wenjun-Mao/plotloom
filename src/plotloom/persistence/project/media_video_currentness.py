@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
-from ..codec import _stored_utc, stable_hash
+from ..codec import _stored_utc
 from ..schema import (
     ManagedAssetRow,
     ProjectRow,
@@ -24,6 +24,8 @@ from .media_identifiers import new_video_job_id
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_source import VideoSourceTiming
 from .media_video_end_frames import VideoEndFrames
+from .media_shot_presentations import ShotPresentations
+from .media_video_integrity import frozen_video_request_is_valid
 
 
 class VideoJobCurrentness:
@@ -46,20 +48,28 @@ class VideoJobCurrentness:
         self._same_person = same_person
         self._source_timing = source_timing
         self._end_frames = end_frames
+        self.presentations = ShotPresentations(access, canonical, admission)
 
     @staticmethod
     def video_job_id() -> str:
         return new_video_job_id()
 
-    @staticmethod
-    def video_job_dict(row: VideoJobRow, *, current: bool, selected: bool = False) -> dict[str, Any]:
+    def video_job_dict(self, session: Session, row: VideoJobRow, *, current: bool | None = None, selected: bool = False) -> dict[str, Any]:
+        project = self._access.rows.project(session, row.project_id)
+        lifecycle = ProjectLifecycleStatus(project.lifecycle_status)
+        input_status = self.video_job_input_status_in_session(session, row)
+        production_eligible = input_status == "current" and self._identity_review_authorizes_in_session(session, row)
+        admitted = lifecycle == ProjectLifecycleStatus.ACTIVE and production_eligible
         return {
             "id": row.id, "projectId": row.project_id, "state": row.state,
             "requestHash": row.request_hash, "snapshot": row.snapshot,
             "snapshotHash": row.snapshot_hash, "requestedSeconds": row.requested_seconds,
             "providerPredictionId": row.provider_prediction_id,
             "outputHash": row.output_hash, "observed": row.observed, "error": row.error,
-            "current": current, "selected": selected,
+            "lifecycleStatus": lifecycle.value, "inputStatus": input_status,
+            "productionEligible": production_eligible,
+            "current": admitted if current is None else current and admitted,
+            "selected": selected and admitted,
             "createdAt": _stored_utc(row.created_at).isoformat(),
             "dispatchedAt": _stored_utc(row.dispatched_at).isoformat() if row.dispatched_at else None,
             "cancelRequestedAt": _stored_utc(row.cancel_requested_at).isoformat() if row.cancel_requested_at else None,
@@ -67,46 +77,47 @@ class VideoJobCurrentness:
 
     @staticmethod
     def video_job_tracks_paid_wan_pilot(row: VideoJobRow) -> bool:
-        """Preserve V1 Wan accounting without charging local backends.
-
-        Historical snapshots have no adapter or cost-policy fields.  Their
-        exact documented Atlas capability record is the compatibility signal;
-        unknown future contracts fail closed for accounting rather than being
-        silently treated as paid Wan work.
-        """
-
-        provider = row.snapshot.get("provider")
-        if not isinstance(provider, dict):
-            return False
-        if provider.get("costPolicy") == "wan_paid_pilot_v1":
-            return True
-        return (
-            "costPolicy" not in provider
-            and provider.get("provider") == "atlascloud"
-            and provider.get("model") == "alibaba/wan-3.0/image-to-video"
-            and provider.get("capabilityVersion") == 1
-            and provider.get("imageField") == "image"
-        )
+        """Accounting is explicit in the current frozen provider contract."""
+        provider = row.snapshot.get("provider") if isinstance(row.snapshot, dict) else None
+        return isinstance(provider, dict) and provider.get("costPolicy") == "wan_paid_pilot_v1"
 
     def video_job_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
         project = session.get(ProjectRow, row.project_id)
-        snapshot = row.snapshot
         if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
             return False
-        # Currentness must not make a mutated frozen request dispatchable. The
-        # row retains both an identity-bound request hash and a content hash so
-        # a change to an explicit input-frame mode cannot borrow the original
-        # reviewed selection's currentness.
-        if (
-            stable_hash(snapshot) != row.snapshot_hash
-            or stable_hash({"snapshot": snapshot, "idempotencyKey": row.idempotency_key})
-            != row.request_hash
+        return (self.video_job_input_status_in_session(session, row) == "current"
+                and self._identity_review_authorizes_in_session(session, row))
+
+    def _identity_review_authorizes_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        review_id = row.snapshot.get("samePersonReviewId")
+        if review_id is None:
+            binding = session.get(ReviewedShotBindingRow, row.snapshot.get("keyframe", {}).get("bindingId"))
+            return binding is not None and not self._same_person.identity_mapping_for_binding_in_session(session, binding)
+        review = session.get(SamePersonReviewRow, review_id)
+        return (review is not None
+                and review.binding_id == row.snapshot.get("keyframe", {}).get("bindingId")
+                and self._same_person.same_person_review_is_production_eligible_in_session(session, row.project_id, review))
+
+    def video_job_input_status_in_session(self, session: Session, row: VideoJobRow) -> Literal["current", "stale", "invalid"]:
+        if not frozen_video_request_is_valid(row):
+            return "invalid"
+        from ...video_batch_basis import assert_direction_basis
+        try:
+            assert_direction_basis(session, row.snapshot)
+        except (InvalidTransitionError, ValueError, KeyError, TypeError):
+            return "invalid"
+        return "current" if self._inputs_match_in_session(session, row) else "stale"
+
+    def _inputs_match_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        from .autopilot_authority import video_eligible
+        if not video_eligible(session, row.project_id):
+            return False
+        snapshot = row.snapshot
+        frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
+        if not isinstance(frozen_shot, dict) or not isinstance(frozen_shot.get("id"), str) or not self.presentations.matches(
+            session, row.project_id, frozen_shot["id"], snapshot.get("shotPresentation")
         ):
             return False
-        request = snapshot.get("request") if isinstance(snapshot, dict) else None
-        if not isinstance(request, dict) or request.get("durationSeconds") != row.requested_seconds:
-            return False
-        frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
         source_timing = snapshot.get("sourceTiming") if isinstance(snapshot, dict) else None
         if source_timing is not None and (
             not isinstance(frozen_shot, dict)
@@ -167,6 +178,8 @@ class VideoJobCurrentness:
             # keyframe follows the separate provenance path: its attributed
             # keyframe-selection comparison and current character-reference
             # decision are frozen together below.
+            if binding is not None and self._same_person.identity_mapping_for_binding_in_session(session, binding) and review_id is None:
+                return False
             if review_id is not None:
                 review = session.get(SamePersonReviewRow, review_id)
                 if review is None or not self._same_person.same_person_review_is_current_in_session(session, row.project_id, review):

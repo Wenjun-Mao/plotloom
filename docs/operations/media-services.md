@@ -3,7 +3,7 @@
 Plotloom and its media services live in one repository, with independent build
 environments and deployments. This is the maintenance entrypoint, not an API
 specification or permission to restart services. The
-[service decision](../adr/media-services-monorepo-boundaries.md) records why.
+[service decision](../adr/0216-media-services-monorepo-boundaries.md) records why.
 
 ## Owners and durable boundaries
 
@@ -17,7 +17,7 @@ specification or permission to restart services. The
 | Qwen image engine | Gateway's `deploy/qwen-image-sglang.service` and Qwen setup guide | Separately qualified SGLang systemd service; no inference dependencies in gateway |
 
 Gateway and Lab communicate through authenticated HTTP, not Python imports or
-cross-service database writes. [ADR0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md)
+cross-service database writes. [ADR 0212](../adr/0212-published-voice-performance-takes-and-shared-admission.md)
 owns the shared FIFO: all managed H3, Qwen and voice inference uses one lane.
 Model-direct callers are outside that guarantee. A quiet-looking GPU, expired
 lease or healthy process does not resolve an uncertain dispatch.
@@ -49,7 +49,7 @@ but does not change pytest's working directory. From the repository root, these
 are the focused Plotloom-facing boundary checks:
 
 ```sh
-uv run --locked pytest -q tests/test_extraction_contract.py tests/test_media_service_boundaries.py tests/video_backends/minimax_h3
+uv run --locked pytest -q tests/test_extraction_contract.py tests/test_service_source_contract.py tests/test_media_service_boundaries.py tests/video_backends/minimax_h3
 ```
 
 The extraction check requires service source to be tracked; stage intended new
@@ -118,5 +118,8 @@ stopped gateway rollback container must have restart disabled to prevent a secon
 dispatcher after a reboot. Restore its original restart policy only when it
 becomes the sole active gateway again, after fresh idle/uncertainty checks.
 
-The specialist's packaging slice keeps integration, merge, push and hosted CI on
-hold. Director coordination is authorized, but does not itself remove those holds.
+The owner authorized consolidation of the specialist source into main on
+2026-10-22. The [integration record](../verification/2026-10-22-specialist-main-integration.md)
+owns the merged source identity, ADR-number mapping, checks and evidence-preserving
+branch cleanup. The deployed artifacts retain their exact recorded identities.
+CI and push remain off.

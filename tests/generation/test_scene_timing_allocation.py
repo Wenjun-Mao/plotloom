@@ -21,12 +21,12 @@ def _layered_graph() -> StoryGraphV2:
     return StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="开始", summary="抵达", kind="start"),
-            StoryNodeV2(id="decision", title="选择", summary="选择路线", kind="decision"),
-            StoryNodeV2(id="left", title="左路", summary="绕行", kind="scene"),
-            StoryNodeV2(id="right", title="右路", summary="直行", kind="scene"),
-            StoryNodeV2(id="join", title="汇流", summary="会合", kind="join"),
-            StoryNodeV2(id="ending", title="结局", summary="离开", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="开始", summary="抵达", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="decision", title="选择", summary="选择路线", kind="decision"),
+            StoryNodeV2(footage_mode="footage", id="left", title="左路", summary="绕行", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="right", title="右路", summary="直行", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="join", title="汇流", summary="会合", kind="join"),
+            StoryNodeV2(footage_mode="footage", id="ending", title="结局", summary="离开", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(id="e1", source_node_id="start", target_node_id="decision", kind="continuation", choice_text=None, state_effects={}),
@@ -106,9 +106,9 @@ def test_cycle_has_a_stable_infeasible_error_code() -> None:
     graph = StoryGraphV2(
         start_node_id="start",
         nodes=[
-            StoryNodeV2(id="start", title="开始", summary="开始", kind="start"),
-            StoryNodeV2(id="loop", title="循环", summary="循环", kind="scene"),
-            StoryNodeV2(id="ending", title="结局", summary="结束", kind="ending"),
+            StoryNodeV2(footage_mode="footage", id="start", title="开始", summary="开始", kind="start"),
+            StoryNodeV2(footage_mode="footage", id="loop", title="循环", summary="循环", kind="scene"),
+            StoryNodeV2(footage_mode="footage", id="ending", title="结局", summary="结束", kind="ending"),
         ],
         edges=[
             StoryEdgeV2(id="e1", source_node_id="start", target_node_id="loop", kind="continuation", choice_text=None, state_effects={}),
@@ -124,9 +124,9 @@ def test_cycle_has_a_stable_infeasible_error_code() -> None:
 
 
 def test_target_smaller_than_graph_depth_has_a_stable_infeasible_error_code() -> None:
-    nodes = [StoryNodeV2(id=f"n{index}", title="n", summary="n", kind="scene") for index in range(1_001)]
-    nodes[0] = StoryNodeV2(id="n0", title="n", summary="n", kind="start")
-    nodes[-1] = StoryNodeV2(id="n1000", title="n", summary="n", kind="ending")
+    nodes = [StoryNodeV2(footage_mode="footage", id=f"n{index}", title="n", summary="n", kind="scene") for index in range(1_001)]
+    nodes[0] = StoryNodeV2(footage_mode="footage", id="n0", title="n", summary="n", kind="start")
+    nodes[-1] = StoryNodeV2(footage_mode="footage", id="n1000", title="n", summary="n", kind="ending")
     graph = StoryGraphV2(
         start_node_id="n0",
         nodes=nodes,

@@ -11,3 +11,5 @@
 .video-end-frame-technical { min-width: 0; color: var(--dim); }
 .video-end-frame-technical summary { width: fit-content; cursor: pointer; font: 700 11px var(--mono); }
 .video-end-frame-technical code { display: block; margin-top: 6px; overflow-wrap: anywhere; font: 10px/1.5 var(--mono); }
+.video-end-frame-choice .video-end-frame-error { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.video-end-frame-error pre { min-width: 0; max-width: 100%; margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.5 var(--mono); }

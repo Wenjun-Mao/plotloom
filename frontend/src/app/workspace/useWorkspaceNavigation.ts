@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { discardDraft, findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import type { PipelineRun, ServerStageName, WorkspaceProject } from "../../types";
-import { routeFromLocation, stageForPage, type NavigationTarget, type PageId } from "./contracts";
+import { routeFromLocation, stageForPage, type NavigationTarget, type PageId, type ProjectLoadResult } from "./contracts";
 import type { UnsafeDraft, WorkspaceSession } from "./useWorkspaceSession";
 
 type NavigationSession = Pick<WorkspaceSession,
-  "activePage" | "project" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
+  "activePage" | "project" | "connection" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
   | "clearForEmptyRoute" | "navigate" | "navigateToProject" | "needsCanonicalRefresh"
   | "focusEntity" | "updateRouteHash" | "navigateHash" | "replaceCurrentRoute" | "acceptRun" | "beginRunSelection" | "cancelRunSelection" | "clearTrace"
 >;
@@ -21,7 +21,7 @@ interface WorkspaceNavigationInput {
     clearRecovery: () => void;
     clearConflict: () => void;
   };
-  loadProject: (projectId: string, epoch?: number) => Promise<void>;
+  loadProject: (projectId: string, epoch?: number) => Promise<ProjectLoadResult>;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
   isProjectClosing: (projectId: string) => boolean;
 }
@@ -46,10 +46,9 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     const previousRoute = session.routeRef.current;
     clearDraftRouteState();
     if (!next.project) {
-      // A blank or demo workspace has no server ID. Moving between its pages
-      // must retain that local snapshot; only leaving a loaded project opens a
-      // new blank onboarding workspace.
-      if (next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
+      // Local blank/demo page changes retain their snapshot. Explicit Home
+      // intent must still reset them even though both routes have no server ID.
+      if (next.home || next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
       else session.navigate(route, historyMode);
       return;
     }
@@ -63,13 +62,25 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     else if (traceSelectionRequested) session.beginRunSelection(next.run);
     if (
       next.forceReload
+      // Navigation cancels the old load, including A→B→A with A still shown.
+      // Only a same-project trace selection can restore its accepted snapshot
+      // via cancelRunSelection without fetching the aggregate again.
+      || (session.connection === "loading" && (!session.runSelectionPending || next.project !== previousRoute.project))
       || next.project !== session.project.id
       || traceSelectionRequested
       || session.needsCanonicalRefresh(next.project)
     ) {
       void loadProject(next.project, epoch);
+    } else if (
+      !session.runSelectionPending
+      && session.run?.projectId === next.project
+      && ["queued", "running", "cancel_requested"].includes(session.run.status)
+    ) {
+      // Navigation invalidates the old observer. Continue reading the existing
+      // run under this route's epoch; do not reload/resume or resubmit it.
+      void pollRun(session.run.id, next.project);
     }
-  }, [clearDraftRouteState, loadProject, session]);
+  }, [clearDraftRouteState, loadProject, pollRun, session]);
 
   const requestNavigation = useCallback((next: {
     project: string;
@@ -79,8 +90,9 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     hash?: string;
     history?: "push" | "pop";
     forceReload?: boolean;
+    home?: boolean;
   }) => {
-    const normalized: NavigationTarget = { entity: "", run: "", hash: "", history: "push", forceReload: false, ...next };
+    const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next, hash: next.hash ?? (next.stage === "storyboard" && !next.entity ? "video-batch-production" : "") };
     const currentRoute = session.routeRef.current;
     if (
       normalized.project === currentRoute.project
@@ -88,6 +100,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       && normalized.entity === currentRoute.entity
       && normalized.run === currentRoute.run
       && !normalized.forceReload
+      && !normalized.home
     ) {
       if (normalized.hash !== currentRoute.hash) {
         if (normalized.history === "push") session.navigateHash(normalized.hash);
@@ -104,12 +117,13 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     const scope = stageForPage(session.activePage);
     const unsafeDraft: UnsafeDraft | undefined = session.unsafeDraft;
     if (
-      unsafeDraft
-      || (session.project.id && (session.project.archivedAt || session.project.lifecycleStatus === "archived") && findProjectDrafts(session.project.id).length)
+      (unsafeDraft && !unsafeDraft.dismissed)
+      || (!unsafeDraft?.dismissed && session.project.id && (session.project.archivedAt || session.project.lifecycleStatus === "archived") && findProjectDrafts(session.project.id).length)
     ) {
       setPendingNavigation(normalized);
       return;
     }
+    if (unsafeDraft?.dismissed) { applyNavigation(normalized); return; }
     if (scope && hasDraft(session.project, scope)) {
       if (drafts.durableEnabled.current && session.project.id) {
         void drafts.flush(scope).then((saved) => {
