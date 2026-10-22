@@ -1,15 +1,32 @@
 """Bounded batch requests and truthful structured human confirmation."""
 from typing import Literal
-from pydantic import Field
+
+from pydantic import Field, field_validator
+
+from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
 from .domain import CamelModel
 from .video_contracts import H3DirectionField
-from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
+
 
 class BatchSetup(CamelModel):
     profile_id: str = Field(min_length=3, max_length=63)
     aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] = "reject_mismatch"
     max_jobs: int | None = Field(default=None, strict=True, ge=1)
     max_requested_seconds: int | None = Field(default=None, strict=True, ge=5)
+
+class BatchRejectedReplacement(CamelModel):
+    attribution: AgentQaAttribution | None = None
+    batch_id: str = Field(min_length=36, max_length=36)
+    expected_revision: int = Field(strict=True, ge=1)
+    rejected_job_ids: list[str] = Field(min_length=1, max_length=256)
+    setup: BatchSetup
+
+    @field_validator("rejected_job_ids")
+    @classmethod
+    def unique_rejected_jobs(cls, values):
+        if len(values) != len(set(values)) or any(not value for value in values):
+            raise ValueError("replacement requires unique explicit rejected job IDs")
+        return values
 
 class BatchDirectionsTarget(CamelModel):
     shot_id: str = Field(min_length=1, max_length=100)

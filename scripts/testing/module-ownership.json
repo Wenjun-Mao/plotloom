@@ -307,6 +307,7 @@
           "tests/test_video_batch.py",
           "tests/test_video_batch_recovery.py",
           "tests/test_video_batch_adoption.py",
+          "tests/test_video_batch_replacement.py",
           "tests/test_video_batch_review.py",
           "tests/test_video_batch_realistic_pack.py",
           "tests/test_delegated_qa.py",

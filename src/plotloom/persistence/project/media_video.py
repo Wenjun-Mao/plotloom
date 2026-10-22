@@ -13,6 +13,7 @@ from ...exceptions import (
     NotFoundError,
     RevisionConflictError,
 )
+from ...video_batch_replacement import assert_rejected_take_mutable
 from ..codec import _stored_utc
 from ..schema import (
     VideoCandidateSelectionRow,
@@ -178,6 +179,7 @@ class VideoJobPersistence(VideoJobPreparation):
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
+            assert_rejected_take_mutable(session, project_id, video_job_id)
             if job.state == "prepared":
                 # Only this proven pre-dispatch path releases a reservation.
                 if self._currentness.video_job_tracks_paid_wan_pilot(job):
@@ -248,9 +250,15 @@ class VideoJobPersistence(VideoJobPreparation):
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
+            assert_rejected_take_mutable(session, project_id, video_job_id)
             if job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("only a current locally ingested video candidate can be reviewed")
-            from ...delegated_qa import direction_attribution, require_qa_write, reviewer_for, reject_reserved_reviewer
+            from ...delegated_qa import (
+                direction_attribution,
+                reject_reserved_reviewer,
+                require_qa_write,
+                reviewer_for,
+            )
             from ...delegated_qa_contracts import AgentQaAttribution
             actor = direction_attribution(job.snapshot)
             if isinstance(reviewer, AgentQaAttribution):

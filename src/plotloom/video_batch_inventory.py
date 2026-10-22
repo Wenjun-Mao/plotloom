@@ -1,11 +1,12 @@
 """Missing-only all-route inventory and exact source/settings preflight."""
 from secrets import randbits
-from .provider_budgets import exceeds_budget
+
 from .domain import StageName
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.project.autopilot_closure import material_closure
 from .project_storage.project_video import ProjectVideoRepository
+from .provider_budgets import exceeds_budget
 from .video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
 from .video_provider import VideoProviderError
 
@@ -40,13 +41,14 @@ def prepare_args(store, shot, approval, setup, *, seed):
         "playback_intent": "source_exact" if H3_QUALIFIED_DURATION_FRAMES[duration]*1000 == units*24 else "segment_required"}
 
 
-def inventory(store, video, setup):
+def inventory(store, video, setup, *, rejected_history=()):
     project_id = store.manifest.project_id
     video._repository(store).assert_video_authority(project_id)
     approval = current_approval(store)
     board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
     jobs = video.jobs(store)
     from sqlalchemy import select
+
     from .persistence.schema import VideoCandidateSelectionRow
     with store.repository._read() as session:
         selection_revisions = {row.shot_id: row.revision for row in session.scalars(select(VideoCandidateSelectionRow).where(VideoCandidateSelectionRow.project_id == project_id))}
@@ -56,7 +58,8 @@ def inventory(store, video, setup):
         if shot.id in seen:
             continue
         seen.add(shot.id)
-        retained = [job for job in jobs if job["snapshot"].get("shot", {}).get("id") == shot.id]
+        excluded = {fact["jobId"] for fact in rejected_history if fact["shotId"] == shot.id}
+        retained = [job for job in jobs if job["snapshot"].get("shot", {}).get("id") == shot.id and job["id"] not in excluded]
         selected = [job for job in retained if job["selected"] and job.get("playbackSegment")]
         if len(selected) == 1:
             job = selected[0]

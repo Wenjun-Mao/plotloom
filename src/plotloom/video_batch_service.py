@@ -1,14 +1,15 @@
 """Durable bounded batch orchestration over existing video job owners."""
 from contextlib import closing
 from hashlib import sha256
+
 from .exceptions import InvalidTransitionError
+from .project_storage.delegated_qa_grants import qa_command
 from .project_storage.project_video import ProjectVideoRepository
+from .project_storage.proof_scope import scoped_proofs
 from .project_storage.video_batch_grants import VideoBatchGrants
-from .video_batch_directions import prepare_directions, advance_directions
+from .video_batch_directions import advance_directions, prepare_directions
 from .video_batch_inventory import inventory, source_binding, validate_manifest
 from .video_batch_review import confirm_pack, review_projection
-from .project_storage.proof_scope import scoped_proofs
-from .project_storage.delegated_qa_grants import qa_command
 
 
 class VideoBatchService:
@@ -48,6 +49,20 @@ class VideoBatchService:
                 raise InvalidTransitionError("batch revision changed before drafting")
             validate_manifest(store, self.require_video(), view["manifest"], compiled=False)
             return prepare_directions(store, self.registry, self.grants, view)
+
+    @scoped_proofs
+    def replace_rejected(self, project_id, request):
+        from .delegated_qa_video import assert_manifest_actor
+        from .video_batch_replacement import replacement_inventory
+        with closing(self.storage.projects.open(project_id)) as store, qa_command(store, self.storage.application, request.attribution):
+            # Freeze predecessor CAS, retained history and successor in one native
+            # command, before any fresh English endorsement or dispatch authority.
+            with store.repository.manual_command():
+                owner = store.repository.video_batches
+                manifest = replacement_inventory(store, self.require_video(), owner.current(project_id), request)
+                assert_manifest_actor(store, manifest, request.attribution)
+                validate_manifest(store, self.require_video(), manifest, compiled=False)
+                return owner.create(project_id, manifest)
 
     @scoped_proofs
     def edit_directions(self, project_id, revision, draft):
@@ -179,9 +194,10 @@ class VideoBatchService:
                 self._advance_video(store, view)
             except InvalidTransitionError as error:
                 # Fixed contract errors are safe product diagnostics, never raw provider output.
+                message = str(error)
                 current = owner.current(project_id)
                 if current["revision"] == view["revision"] and current["state"] == view["state"]:
-                    owner.change(project_id, view["id"], expected_revision=view["revision"], mutate=lambda row: self._block(row, str(error)))
+                    owner.change(project_id, view["id"], expected_revision=view["revision"], mutate=lambda row: self._block(row, message))
 
     @staticmethod
     def _block(row, message):

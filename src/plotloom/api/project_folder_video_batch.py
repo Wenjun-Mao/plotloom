@@ -1,10 +1,20 @@
 """Explicit setup/draft/Start and atomic whole-pack review routes."""
 from contextlib import asynccontextmanager
+
 from pydantic import Field
+
 from ..domain import CamelModel
-from ..video_batch_contracts import BatchSetup, BatchStart, BatchControl, BatchConfirmation, BatchDirectionsDraft
-from ..video_batch_service import VideoBatchService
+from ..video_batch_contracts import (
+    BatchConfirmation,
+    BatchControl,
+    BatchDirectionsDraft,
+    BatchRejectedReplacement,
+    BatchSetup,
+    BatchStart,
+)
 from ..video_batch_runtime import VideoBatchRuntime
+from ..video_batch_service import VideoBatchService
+
 
 class DraftRequest(CamelModel):
     expected_revision: int = Field(ge=1)
@@ -33,6 +43,10 @@ def register_video_batch_runtime(app, storage, registry, video):
     @app.post(prefix + "/setup")
     def setup(project_id: str, body: BatchSetup):
         return service.setup(project_id, body)
+
+    @app.post(prefix + "/replace-rejected")
+    def replace_rejected(project_id: str, body: BatchRejectedReplacement):
+        return service.replace_rejected(project_id, body)
 
     @app.post(prefix + "/draft")
     def draft(project_id: str, body: DraftRequest):

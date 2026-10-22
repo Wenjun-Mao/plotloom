@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...video_batch_replacement import assert_rejected_take_mutable
 from ...video_segments import DerivedSegment
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
@@ -20,7 +21,11 @@ from ..schema import (
 )
 from .access import ProjectPersistenceAccess
 from .media_video_currentness import VideoJobCurrentness
-from .media_video_integrity import frozen_video_request_is_valid, frozen_video_source_is_valid
+from .media_video_integrity import (
+    frozen_video_request_is_valid,
+    frozen_video_source_is_valid,
+)
+
 
 def _segment_confirmation_valid(session, segment):
     from ...video_batch_review import segment_confirmation_valid
@@ -97,6 +102,7 @@ class VideoSegmentPersistence:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id or job.state != "ingested" or not job.output_uri or not job.output_hash:
                 raise NotFoundError("ingested video candidate not found")
+            assert_rejected_take_mutable(session, project_id, video_job_id)
             if not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("video candidate source is stale")
             source = self._source(job)
@@ -129,6 +135,7 @@ class VideoSegmentPersistence:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id or job.state != "ingested":
                 raise NotFoundError("ingested video candidate not found")
+            assert_rejected_take_mutable(session, project_id, video_job_id)
             if not self._currentness.video_job_current_in_session(session, job) or job.output_hash != original_hash:
                 raise InvalidTransitionError("video candidate changed during segment preparation")
             source = self._source(job)
@@ -162,9 +169,15 @@ class VideoSegmentPersistence:
             if segment is None or segment.project_id != project_id:
                 raise NotFoundError("video segment proposal not found")
             job = session.get(VideoJobRow, segment.video_job_id)
+            assert_rejected_take_mutable(session, project_id, segment.video_job_id)
             if job is None or job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("video segment source is stale")
-            from ...delegated_qa import direction_attribution, require_qa_write, reviewer_for, reject_reserved_reviewer
+            from ...delegated_qa import (
+                direction_attribution,
+                reject_reserved_reviewer,
+                require_qa_write,
+                reviewer_for,
+            )
             from ...delegated_qa_contracts import AgentQaAttribution
             actor = direction_attribution(job.snapshot)
             if isinstance(reviewer, AgentQaAttribution):
@@ -223,6 +236,7 @@ class VideoSegmentPersistence:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
+            assert_rejected_take_mutable(session, project_id, video_job_id)
             snapshot = job.snapshot
             from ...delegated_qa import direction_attribution
             if direction_attribution(snapshot):

@@ -1,11 +1,15 @@
 """Current-format batch evidence admission; no dispatch or inferred approval."""
 import json
-from ..provider_budgets import exceeds_budget, budget_within_authority
+
 from ..exceptions import InvalidTransitionError
 from ..persistence.codec import stable_hash
-from ..video_batch_contracts import BatchSetup, BatchDirectionsTarget
-from ..video_backends.minimax_h3.directions import direction_sources, validate_direction_fields
+from ..provider_budgets import budget_within_authority, exceeds_budget
+from ..video_backends.minimax_h3.directions import (
+    direction_sources,
+    validate_direction_fields,
+)
 from ..video_backends.minimax_h3.prompt import compile_i2va_prompt
+from ..video_batch_contracts import BatchDirectionsTarget, BatchSetup
 from .format import ProjectStorageCorruptionError
 
 STATES = {"setup", "drafting", "ready", "running", "paused", "cancelled", "blocked", "stale", "awaiting_review", "approved", "retired"}
@@ -23,6 +27,8 @@ def assert_video_batch_contracts(connection):
             if not {"maxJobs", "maxRequestedSeconds"}.issubset(manifest["setup"]):
                 raise ValueError("frozen batch setup requires explicit maxJobs and maxRequestedSeconds; null means unlimited")
             setup = BatchSetup.model_validate(manifest["setup"])
+            from ..video_batch_replacement import assert_rejected_history
+            assert_rejected_history(lambda sql, params: connection.execute(sql, params).fetchall(), project_id, manifest)
             ids = [target["shotId"] for target in manifest["targets"]] + [fact["shotId"] for fact in manifest["kept"]]
             blocker_ids = [item["shotId"] for item in manifest["blockers"] if item["shotId"]]
             if len(ids) != len(set(ids)) or sorted(set(ids + blocker_ids)) != manifest["scopeShotIds"]:
