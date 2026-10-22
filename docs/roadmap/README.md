@@ -129,20 +129,16 @@ was deleted or resumed, and no provider call, push or GitHub CI was performed.
 
 ## Delegated disposable-QA vertical slice
 
-October 22 finished-example continuation: watercolor completed; cinematic SH01
-was actually rejected while SH02 remains usable. The source owner implements
-only [explicit rejected-take batch succession](../adr/0204-explicit-rejected-batch-take-replacement.md),
-with frozen rejection/proposal/claim history and fresh English/Start authority.
-The smallest product journey replaces that one terminal rejected SH01, reuses
-SH02 unchanged, then performs actual audiovisual inspection and atomic whole-pack
-QA confirmation. The manager owns activation, existing unlimited prospective
-example grant, live H3 execution and settlement; source owner supplies focused
-native guards and a stable candidate for independent manager review. Existing
-2/10 grant, original material, UNKNOWN safety, other providers, frontend expansion,
-CI/push and broad full qualification are excluded from this repair checkpoint.
-The [source checkpoint and exact operator payload](../verification/2026-10-22-rejected-batch-take-replacement.md)
-records 63 corrected-state focused passes, preserved normal-batch/QA evidence,
-native ownership and independent review closure; activation remains root-owned.
+October 22 finished examples are complete: watercolor, cinematic and stylized 3D
+each have two approved three-second windows and actual browser ending playback.
+Root activated executable `6b1cf196`; [explicit rejected-take succession](../adr/0204-explicit-rejected-batch-take-replacement.md)
+replaced the rejected cinematic SH01 while preserving its history and reusing SH02
+unchanged. [Closeout, three example links and evidence](../verification/2026-10-22-rejected-batch-take-replacement.md#root-live-closeout--october-22)
+record 63 focused passes, independent review, exact activation preservation and
+delegated QA confirmation. Native AAC decode/signal checks do not establish
+listening/perceptual certification; imported ImageGen→H3 does not establish native
+automatic-image-job E2E. Installed code stays `6b1cf196`; full qualification was
+not rerun, and no CI/push or old 2/10 grant change occurred.
 
 The owner's October 19 grant authorizes agent-operated QA decisions for the exact
 disposable `326a5137-1851-4b5c-8ab2-b600ec7bda23` fixture, never personal review

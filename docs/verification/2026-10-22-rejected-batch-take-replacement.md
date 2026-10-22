@@ -5,6 +5,44 @@ based on `28be88a9`. Root manager owns installation/runtime/provider operations
 and actual example inspection. [ADR 0204](../adr/0204-explicit-rejected-batch-take-replacement.md)
 records the diagnosed inventory/QA contract gap and chosen fix.
 
+## Root live closeout · October 22
+
+All three catalog projects are approved, each with two three-second windows and
+six seconds of story playback: [watercolor paper boat](https://plotloom.tail6040ad.ts.net/v2/?project=ad20c897-e263-402d-9333-82de890a6038&view=play),
+[cinematic teacup](https://plotloom.tail6040ad.ts.net/v2/?project=d7deb82f-4801-4c9f-bfa8-9195c3b36489&view=play),
+and [stylized 3D lighthouse](https://plotloom.tail6040ad.ts.net/v2/?project=21dd0cbd-3ba9-4cfa-927a-88a877b047ea&view=play).
+Root observed each actual browser player reach its ending, final-frame hold and
+restart control. Screenshots: [watercolor](../../.local/finished-examples-20261022/watercolor-playback-final-frame.png),
+[cinematic](../../.local/finished-examples-20261022/cinematic-playback-final-frame.png), [3D](../../.local/finished-examples-20261022/stylized3d-playback-final-frame.png).
+
+Root activated executable `6b1cf1969b5da1ffb678f8c915d7ebbc655de67b` through
+supported stop/switch/bridge/start; healthy container `20b6387cc463` serves tailnet
+v2 HTTP 200. Before/after activation snapshots compare exactly equal across all
+three homes' tables/files, settings, protected files and host state, before new
+generation. Final protection checks preserve host tables, protected files and
+both old UNKNOWN attempts; enabled queues/validators are zero and active attempts
+are empty. Evidence: [before](../../.local/finished-examples-20261022/before-replacement-activation.json),
+[after](../../.local/finished-examples-20261022/after-replacement-activation.json), [final protection](../../.local/finished-examples-20261022/final-preservation-summary.json).
+
+The new endpoint returned HTTP 200; successor `86ddf431-f6e7-4a87-b240-e1f51ea0a872` started at 14:01:02 UTC and was observed complete at 14:06:34 UTC. Replacement
+SH01 job `vj_5301c782204042ffbfa6ab7c5b299cbe`, segment
+`3e1e601b-3023-4c48-bf58-25162d38c451`, source SHA-256
+`9abfeb93c27893a12acf5cc9bd61eed6ffdda76b220dab398f90d95eda54b4f9`
+passed root's actual frame inspection. The rejected original remains unselected;
+SH02's job, segment and bytes are unchanged. Atomic confirmation returned HTTP
+200, receipt `894a8bf6-eb33-402f-ad46-933eb40f619e`; successor is approved at rev 9.
+[Native assertions and three-project inventory](../../.local/finished-examples-20261022/finished-examples-closeout.json),
+[confirmation](../../.local/finished-examples-20261022/cinematic-final-confirmation.json), [frame/audio evidence](../../.local/finished-examples-20261022/cinematic-inspection-evidence.json)
+and [actual QA observations](../../.local/finished-examples-20261022/cinematic-av-inspection.json)
+retain exact identities, hashes and limitations.
+
+This is delegated agent-operated example QA, not personal owner review. Native
+AAC was decoded and signal/spectrum checked; no listening/audio-input support or
+perceptual certification is claimed. Built-in ImageGen originals were imported
+through managed-assets into H3; native automatic-image-job E2E is not established.
+This docs-only closeout leaves installed executable `6b1cf196` unchanged. Full
+release qualification was not rerun; no CI/push or additional activation occurred.
+
 ## Scope and evidence
 
 The explicit API freezes a cancelled predecessor and exact retained rejection,
@@ -40,8 +78,8 @@ Independent reviewer `example_replacement_review` closed the concrete P1 after
 examining all eligible native mutators and the real API regression; no further
 findings remained. Root independently reviewed the core and found no additional
 issue, then authorized the coherent local-main checkpoint after the 63-case pass.
-No further/full qualification or publication is claimed. The root manager's
-activation and real cinematic replacement/inspection are the next product step.
+No further/full qualification or publication is claimed. Root's subsequent
+activation and actual cinematic replacement/inspection are recorded above.
 
 These provider-fake tests use genuine decoded synthetic MP4/AAC and the actual
 native service, API, persistence, segment and selection owners. They establish
