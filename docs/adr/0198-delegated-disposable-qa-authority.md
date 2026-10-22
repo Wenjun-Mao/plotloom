@@ -2,6 +2,36 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Finished-example scope addition · 2026-10-22
+
+The owner requested a few finished example projects in different styles, with
+prospective unlimited ImageGen/H3 budgets and delegated QA. The new examples
+cannot use the initial fixture's authority: project identity, board and imported
+originals differ. Append three exact immutable source grants:
+`finished-example-watercolor-20261022` (paper boat),
+`finished-example-cinematic-20261022` (teacup), and
+`finished-example-stylized3d-20261022` (lighthouse).
+
+Each grant freezes its created project ID, revision-one storyboard hash and two
+imported SH01/SH02 asset IDs with original SHA-256 hashes in `delegated_qa.SCOPES`.
+The manager supplied these identities from actual project-creation and ImageGen
+import receipts retained under `.local/finished-examples-20261022/`; bootstrap
+files and image descriptions alone are not grant evidence. Each board contains
+two six-second shots. All use the existing H3 quality-8 portrait 576×1024 profile,
+native audio and `cover_center_crop`. Both aggregate caps are null under the
+prospective policy; the finite outcome remains three completed example projects.
+The initial `disposable-qa-20261019` grant stays byte-for-byte equivalent in fields,
+including its two-submission/ten-second limits, despite its fixture's deletion.
+
+Reuse the existing exact admission and runtime-incarnation grant owners; reject
+a generic enrollment endpoint, public schema change or relaxed matching. Source
+registration does not bind a runtime grant, dispatch work or establish inspection.
+The manager owns activation, serial live execution, actual visual/native-audio
+inspection and settlement. Decisions remain agent-operated QA, never the owner's
+personal review. Copy/restore, UNKNOWN, currentness and provider guards remain
+unchanged. Focused regressions pin the old grant and exercise new exact admission
+and refusal of changed board, shot, asset, original hash and project identity.
+
 ## Prospective provider-budget policy amendment · 2026-10-19
 
 The owner requests unlimited provider budgets by default unless he specifies a

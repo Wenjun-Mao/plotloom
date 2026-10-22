@@ -40,6 +40,27 @@ SCOPES = (DelegatedQaScope(
         QaMaterial("SH01", "4c3cc979-1c8b-4ec0-8f4b-51b5b7162d1e", "663563c08200c9446c64a840a4d8bb3d0229da5c92ebb4bc799db2131209de7d"),
         QaMaterial("SH02", "3cd3e765-367d-4af5-926c-ca9b57425352", "95b940909d5de508d86216a190b0247efe08d6bf606f0ba6c51a0c4a58f26360"),
     ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=2, max_requested_seconds=10,
+), DelegatedQaScope(
+    id="finished-example-watercolor-20261022", project_id="ad20c897-e263-402d-9333-82de890a6038",
+    storyboard_hash="47a58c603db8397dd865243b94e7484dbf5c4a229ba81db310396d68a9090a21",
+    materials=(
+        QaMaterial("SH01", "945722fd-3a76-4a37-85b5-fdc2fc055d2a", "bf597b2edc2014e1f1abf4f2d66e9babba36921c2dc9ed978f19f0fced9064be"),
+        QaMaterial("SH02", "311e94d7-9827-490e-be78-8c4bdec3aa89", "f67b2c4f02397415c7bca38f145bf2d55be45d671f8c7686c8526f1a3c9f4081"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2",
+), DelegatedQaScope(
+    id="finished-example-cinematic-20261022", project_id="d7deb82f-4801-4c9f-bfa8-9195c3b36489",
+    storyboard_hash="1a044bd7d5ddd75ee7ceef384bed8df7d08e08db680daf5aab520d1eaf07d14e",
+    materials=(
+        QaMaterial("SH01", "50b9db6e-7cf2-460a-91f9-45b4a2d91539", "17edc858aa790890becd87f2eaec55efbd1985e50de758b0ffe9ec47982a022e"),
+        QaMaterial("SH02", "1c3953aa-a242-49ba-8c2c-ac1c1e42733b", "7ebfb532b5c2b82090b0f6042198c534454d270a1c59654288f83a1008a670e8"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2",
+), DelegatedQaScope(
+    id="finished-example-stylized3d-20261022", project_id="21dd0cbd-3ba9-4cfa-927a-88a877b047ea",
+    storyboard_hash="daa67ee1d86e5807dc5f0685e5f7e3ed49506ef3904cc8be1c02fb1878df3fa5",
+    materials=(
+        QaMaterial("SH01", "7944c2e3-3c84-4e05-ab73-3bff66271927", "ce9cfcbf6686b565aeeb0a58f525181065fab76c15befa1cb37fc3abd10c1afa"),
+        QaMaterial("SH02", "67013757-6c21-4fd9-96e7-5368948ca8b9", "d31e5dbf98631e9b9c8eef830d83c598f67dbf30ee5646782112141be456a2c4"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2",
 ),)
 
 

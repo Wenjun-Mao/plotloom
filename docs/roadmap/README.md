@@ -1,5 +1,23 @@
 # Plotloom roadmap entrypoint
 
+## Approved finished examples in three styles
+
+The owner's October 22 request authorizes finished watercolor paper-boat,
+cinematic teacup and stylized-3D lighthouse examples. [ADR 0198's addition](../adr/0198-delegated-disposable-qa-authority.md#finished-example-scope-addition--2026-10-22)
+owns three exact source grants with prospective null aggregate caps; the earlier
+two-submission/ten-second grant remains unchanged. The smallest real journey is
+one two-shot example: import actual ImageGen originals, bind the verified runtime
+incarnation, review materials, run serial H3 quality-8 portrait video, inspect
+native audiovisual outputs, select clips and read back finished playback before
+continuing to the other styles. Each board has two six-second shots.
+
+The sole source writer adds immutable grants, focused regression checks and this
+decision record, then commits locally and stops for independent review. Root
+owns live generation/import receipts, activation, runtime binding, inspection and
+settlement. Source checks establish neither live E2E nor owner personal review.
+No public enrollment, schema or matching changes, real-story work, other provider,
+UNKNOWN clearing, push, GitHub CI or full qualification belongs to this step.
+
 ## Approved visible text failures and explicit extra correction
 
 [ADR 0203](../adr/0203-explicit-text-correction-and-diagnostics.md) owns this

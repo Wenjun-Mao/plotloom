@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from plotloom.delegated_qa import REVIEWER_PREFIX, SCOPES
+from plotloom.delegated_qa import REVIEWER_PREFIX, SCOPES, DelegatedQaScope, QaMaterial
 from plotloom.domain import new_id
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import ProjectVideoDispatchRow, VideoJobRow
@@ -28,10 +28,15 @@ from tests.test_video_batch_review import native_batch_take  # noqa: F401
 
 
 def test_real_scope_has_only_the_authorized_two_ten_second_envelope():
-    scope, = SCOPES
-    assert scope.project_id == "326a5137-1851-4b5c-8ab2-b600ec7bda23"
-    assert [item.shot_id for item in scope.materials] == ["SH01", "SH02"]
-    assert (scope.max_submissions, scope.max_requested_seconds) == (2, 10)
+    scope = next(item for item in SCOPES if item.id == "disposable-qa-20261019")
+    assert scope == DelegatedQaScope(
+        id="disposable-qa-20261019", project_id="326a5137-1851-4b5c-8ab2-b600ec7bda23",
+        storyboard_hash="b4da9c96f5bfa09548446249960605e7a87671936d75e8fbec62ecef73043295",
+        materials=(
+            QaMaterial("SH01", "4c3cc979-1c8b-4ec0-8f4b-51b5b7162d1e", "663563c08200c9446c64a840a4d8bb3d0229da5c92ebb4bc799db2131209de7d"),
+            QaMaterial("SH02", "3cd3e765-367d-4af5-926c-ca9b57425352", "95b940909d5de508d86216a190b0247efe08d6bf606f0ba6c51a0c4a58f26360"),
+        ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=2, max_requested_seconds=10,
+    )
 
 
 @pytest.mark.parametrize("snapshot", [None, [], {}, {"reviewedDirections": None}, {"reviewedDirections": []},
@@ -361,7 +366,9 @@ def test_exact_prior_layout_rejects_retained_qa_evidence_without_batch_links(tmp
     with closing(storage.projects.open(project)) as store:
         home, path = store.home, store.database_path
     from plotloom.project_storage.schema_upgrade import assert_prior_database
-    from tests.autopilot_continuation_layout_fixtures import retain_pre_continuation_layout
+    from tests.autopilot_continuation_layout_fixtures import (
+        retain_pre_continuation_layout,
+    )
     retain_pre_continuation_layout(home)
     with sqlite3.connect(path) as connection:
         assert connection.execute(
