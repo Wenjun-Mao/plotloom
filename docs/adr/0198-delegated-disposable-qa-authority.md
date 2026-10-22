@@ -100,6 +100,10 @@ creative acceptance. The manager owns activation, serial execution, inspection
 and settlement; currentness, runtime identity and dispatch protections stay as
 they are.
 
+The [playable-example verification record](../verification/2026-10-22-playable-examples.md)
+separates source authority and activation from actual media review, rejected
+generation history, audio-review limits and browser-route outcomes.
+
 ## Finished-example scope addition · 2026-10-22
 
 The owner requested a few finished example projects in different styles, with
