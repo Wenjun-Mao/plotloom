@@ -5,8 +5,9 @@
 [ADR 0203](../adr/0203-explicit-text-correction-and-diagnostics.md) owns this
 source-only follow-up: failure details/history, a configurable launch automatic
 count (default one, zero off), and explicit one-more correction with optional
-directions for typed Outline/Characters/Art rejections. One source writer works
-in retained R; all immutable attempts and frozen guards remain intact.
+directions for typed Outline/Characters/Art rejections. Source implementation and
+local composite qualification are complete in retained R; all immutable attempts
+and frozen guards remain intact.
 
 Small real journey: one disposable isolated project reaches a genuine Art source
 validator rejection through the actual controller/native host (fake CLI only to
@@ -15,17 +16,24 @@ requests one correction with optional directions, adopts and reads back Art.
 No live providers or cost; fixture owns isolated roots and cleanup. Demonstrate
 count above one/exhaustion, zero/manual, duplicate/stale/UNKNOWN/budget controls,
 restart and portable restore. Capture desktop card pixels and deterministic
-checked assets. Stop after focused/quick proof and a coherent local main commit
-for independent review. Full/module-complete qualification, activation, real-story
-retry, provider dispatch, push and GitHub CI are excluded.
+checked assets. The initial focused/quick checkpoint stopped for independent
+review; Root subsequently owned the final local software gates. Activation,
+real-story retry, provider dispatch, push and GitHub CI remain excluded.
 
 The [source checkpoint record](../verification/2026-10-22-text-failure-controls.md)
 retains the actual zero/manual and multi-attempt host/API/UI proof, exact frozen
 authority/readback and restore, safety controls, source-owned failure/resolved
 history pixels, focused/quick results and identical checked assets. Root and
-independent review findings were addressed in the bounded source step. Stop at
-the local main checkpoint for stable diff review; full local qualification and
-all activation/live/publication actions remain separate.
+independent review findings were addressed in the bounded source step. Local
+qualification reuses unchanged1466 UI/type checks and Python/browser passes,
+with85 focused policy-observation repair passes (`febe3d5d`) and20 affected browser
+passes after the strict default-count expectation update (`b9276c7c`); packaged
+runtime code is identical across those two revisions. Bundle/parity/97-spec
+347-case manifest and exact-wheel build/install smoke pass. This is composite
+qualification, not a fresh full-green invocation: the full run (3584 Python
+passed/20 failed) and downstream browser run (346 passed/1 stale-expectation
+failure) remain recorded as failed. Local main is complete; activation, live
+providers, real-story retry, push/CI and human acceptance remain unperformed.
 
 ## Approved bounded text content correction
 

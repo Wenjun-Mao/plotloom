@@ -1,10 +1,11 @@
-# Text failure visibility and explicit correction — source checkpoint
+# Text failure visibility and explicit correction — local composite closeout
 
 Date:2026-10-22. Baseline:`748e6d6f`, retained `b30f/plotloom`, local main.
 [ADR0203](../adr/0203-explicit-text-correction-and-diagnostics.md) binds the
 approved source contract. Requested model/reasoning:Sol/High; effective native
-settings were not independently verified. Sole source/execution owner:worker;
-Root and independent reviewers supplied read-only findings.
+settings were not independently verified. Sole source/focused execution
+owner:worker; Root owned final full/downstream/packaging qualification.
+Independent reviewers inspected stable source and retained evidence.
 
 ## Delivered behavior and causal boundaries
 
@@ -117,8 +118,8 @@ passes:85 cases in58.88s pytest/66.350s invocation. Selection:whole
 pair in `test_text_content_correction.py`. Source/docs were frozen throughout.
 Exact command and findings are retained in `full-findings.md`; raw repair stdout
 is `full-findings.focused-repair.log`. No existing test, purity pin, profile
-construction or frontend asset changed. Root separately owns the remaining
-downstream full steps; this focused pass alone is not full qualification.
+construction or frontend asset changed. This focused pass alone is not full
+qualification; Root's subsequent downstream results follow.
 
 Root's downstream invocation at `febe3d5d` **FAILED** after bundle/parity/manifest
 passed:unfiltered browser346 passed/1 failed in597.901s. The saved-Brief Start
@@ -131,7 +132,7 @@ Original failing screenshot/video/context/trace were retained before rerun under
 `autopilot-default-count-failure/`; trace SHA256
 `dc6f4ec31fe5bc7e7208c49bc43611c72a44a0e29da5210c7259fa19d57961d1`.
 The failed browser invocation remains failed; focused affected-spec evidence
-and Root's unreached wheel/install-smoke steps are separate.
+and Root's subsequent wheel/install-smoke steps are separate.
 `verify.py focused --playwright e2e/autopilot-review.spec.ts` passes20 cases in
 49.7s browser/52.242s invocation, including E2E typecheck. The requested focused
 `tests/test_retained_runtime_coverage_inventory.py` preflight passes1 case in1.58s
@@ -140,8 +141,36 @@ and Root's unreached wheel/install-smoke steps are separate.
 `autopilot-default-count-focused.log` and `autopilot-default-count-coverage.log`.
 Source/docs stayed frozen during both checks; no full/browser-suite rerun.
 
-This checkpoint stops for narrow independent review. No worker full/module-complete
-rerun is authorized. Activation, real-story retry, live providers, image/video
+## Final local composite qualification
+
+Source implementation and **local composite qualification are complete**. This is
+not a fresh all-green full invocation: both failed invocations above remain failed.
+Reuse is explicit: unchanged1466 frontend unit passes, type/dependency/probe checks
+and3584 Python passes from `eb3d371c`;85 focused repair passes on the ordinary
+binding fix delivered as `febe3d5d`; downstream bundle/parity and97-spec/347-case
+manifest passes plus346 browser passes at `febe3d5d`;20 affected-spec passes and
+coverage-inventory preflight for the strict test-only update `b9276c7c`. Counts
+overlap and are not added. Independent review found no remaining concrete issue.
+The actual API/UI/native-host journey and desktop pixels above remain applicable.
+
+Root resumed unchanged full-step definitions with normal ambient-filter refusal:
+`verify._run_steps('downstream', verify._full_steps(retainedwheel)[8:])`, then
+`verify._run_steps('packaging', verify._full_steps(retainedwheel)[12:])` after the
+affected browser repair. No new runner or relaxed gate was introduced.
+Packaging on clean `b9276c7c` **PASS**:wheel build0.133s, isolated installed-wheel
+smoke4.411s, total4.545s. Its packaged runtime code equals `febe3d5d`; the later
+change is only the strict browser expectation and verification documentation.
+Raw expanded commands/output:`packaging-b9276c7c.log`, SHA256
+`7337e5e92638b68108e8a9a192f11f867167f6cbda6f6febb9188d01ebb47242`.
+Retained wheel under the evidence home:
+`qualified-wheel.i2aw_gq_/plotloom-0.1.0-py3-none-any.whl`, SHA256
+`0f6c11c976163e92e7e651b8b3535abc703a1725045f0650ea10bbdbcd160dd8`.
+The raw log records exact `uv build --wheel --out-dir` and
+`uv run --locked --no-sync python scripts/smoke_installed_wheel.py` arguments.
+
+This documentation-only closeout uses diff/consistency checks, not test reruns.
+Local software qualification does not establish provider E2E or human acceptance.
+Activation, real-story retry, live providers, image/video
 retry, publication/push, GitHub CI and human creative acceptance are unperformed.
 Product/infrastructure/waiting/coordination time totals and cost deltas were not
 measured; no percentages or savings are inferred.
