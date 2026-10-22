@@ -19,7 +19,14 @@ exhaustion journeys, portable readback, focused controls and quick verification.
 The [verification record](../verification/2026-10-21-bounded-text-correction.md)
 retains independent-review corrections and the exact finite lifetime-cap proof.
 The broad module invocation was deliberately cancelled/partial to prioritize
-those findings; the manager owns the final full gate after corrective re-review.
+those findings. **Composite local qualification passes at `e067b630`** after
+reviewed causal corrections and the manager-owned unchanged downstream gates:
+all 346 unfiltered browser cases, deterministic bundle/parity, wheel build and
+isolated installed-wheel smoke passed. The original full (3,551 passed, 15 failed)
+and first follow-up (79 passed, two failed) remain failed historical results;
+the exact two corrected observations passed separately. This is not a new green
+full invocation or live-provider E2E. Activation, real-story retry, push, GitHub
+CI and human creative acceptance remain unperformed.
 
 ## Approved unified project deletion
 

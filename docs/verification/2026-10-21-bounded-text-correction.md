@@ -1,7 +1,7 @@
-# Bounded text correction: local source checkpoint
+# Bounded text correction: composite local qualification
 
 Scope: ADR 0202 in retained R (`/Users/wjmao/.codex/worktrees/b30f/plotloom`).
-No installation, live project, provider, queue permission, budget, UNKNOWN
+No existing installation, live project, provider, queue permission, budget, UNKNOWN
 reservation, GitHub CI or remote branch is changed.
 
 ## Small observable outcome
@@ -42,9 +42,9 @@ versioned correction prompt. Original failure history remains immutable.
 Logs are retained under `.local/verification/2026-10-21-text-correction/` with the
 module selection and deterministic asset hashes. The real-host fixture now writes
 `text-correction-proof.json` containing frozen policy, original/corrective evidence,
-receipt and snapshot-file hashes; retain the final full gate's fresh proof at
-closeout. Independent review and
-final full local qualification are separate assignments. Hosted CI was not
+receipt and snapshot-file hashes; the manager retained the full gate's fresh
+proofs for the closeout below. Independent review and qualification were separate
+assignments. Hosted CI was not
 requested or run; activation and live provider E2E remain unperformed.
 
 ## Stable source review and bounded follow-up
@@ -114,3 +114,45 @@ Only those two changed causal cases were rerun: **two passed**, 56.577 seconds
 (`full-findings-observations.log`). The unchanged 79-case evidence and 55-case
 Node TAP are reused, not rerun or presented as a second full gate. Root and
 independent review found no remaining concrete issue in the narrow follow-up.
+
+## Composite local qualification closeout (2026-10-22)
+
+Composite local qualification **passes at `e067b630`**, combining unchanged
+passed evidence with reviewed causal corrections and the remaining unfiltered
+gates. This is not a new green full invocation: the original full remains failed
+(3,551 passed / 15 failed, 1,289.383 seconds), as does the first focused follow-up
+(79 passed / two failed, 231.905 seconds). Only the two changed observations were
+rerun and passed in 56.577 seconds. The sole production change after `e841756e`
+is the reviewed paid parser's explicit optional profile member; the profile-slot
+change is a reviewed test pin, not changed runtime construction. Package locks
+and checked static asset hashes are unchanged, so unaffected evidence is reused.
+
+The manager ran the existing verifier's unchanged `_full_steps[8:]` commands
+with its filter refusal intact, after clean stable-commit review. The retained
+`final-downstream-e067b630.log` records **exit 0**, 683.006 seconds:
+
+- Deterministic production bundle and checked bundle parity passed.
+- Unfiltered browser coverage verified 96 specs / 346 cases, with zero overlap
+  or omissions; all **346 browser cases passed** in 671.229 seconds.
+- Wheel build passed in 0.147 seconds; isolated installed-wheel smoke passed
+  in 7.885 seconds. This disposable installation did not activate the product.
+
+The retained wheel is
+`downstream-wheel.3qee6mrg/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+`75fc8f9a0ed2d76639d3d65a9eec144b70def8c97aaefd3b0537cd98df90223d`.
+Fresh real-host/controller fixture proofs under `full-proof.m60eHw/` are:
+
+- `correct-and-adopt.json`: SHA-256
+  `3077b2555aaa6705bed077dcfb0459d058caf632d5773b2b6a2094d775e80b69`.
+- `bounded-exhaustion.json`: SHA-256
+  `89b1581298ec4d85cb6824672223843af4b5778b57874b794d2ad758ef434330`.
+
+All paths above are relative to the scoped ignored evidence directory
+`.local/verification/2026-10-21-text-correction/`. The proofs exercise actual
+validation/rendering, persistence and controller behavior with a fake CLI only at
+the provider boundary; they do not establish live-provider E2E or creative
+acceptance. Supported typed adapters remain Outline, Characters and Art only.
+No activation, live provider call, real-story retry, UNKNOWN clearing, budget
+change, push or GitHub CI occurred; the current failed live run was not retried.
+This final closeout changes documentation only; consistency and diff checks
+suffice without another test invocation.
