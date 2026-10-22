@@ -38,6 +38,10 @@ def supports_corrections(policy):
 
 def assert_correction_lineage(connection, request, *, run_id, operation_key):
     """Validate every immediate parent, ordinal and grant; never infer authority."""
+    if request.text_correction is None:
+        if operation_key != request.stage:
+            raise ValueError("ordinary creative job cannot claim a correction operation")
+        return
     from ...codex_exec_contracts import CodexExecAttempt
     from .autopilot_bindings import _row
     run = _row(connection, "SELECT policy FROM v2_autopilot_runs WHERE id=?", (run_id,))

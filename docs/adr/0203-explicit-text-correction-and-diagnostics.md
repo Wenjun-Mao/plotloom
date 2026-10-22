@@ -52,3 +52,10 @@ Focused checks cover multi-attempt exhaustion, zero/manual, duplicates/staleness
 budget/UNKNOWN/restart/restore and preserved upstream/adopted stages. The paid
 Outline parser admits capability metadata without expanding its zero-retry grant.
 ADR 0184's value-only profile construction pin requires explicit dependency review.
+
+Full-gate observation: ordinary requests have no correction lineage and must return
+after their stage/key check, before reading policy. Generalizing chain validation
+had added a third policy observation to ordinary binding, changing SQL/decode and
+concurrent-drift failure visibility. Restore that boundary rather than weakening
+the policy observation tests; actual corrections retain the complete recursive
+parent/grant/quota validation. No profile construction or purity pin changes.

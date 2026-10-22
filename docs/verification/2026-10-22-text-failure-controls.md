@@ -97,8 +97,31 @@ Its failing overlay is in the chat; its transient trace was cleared by the runne
 before copying, so raw trace retention is not claimed. The source-frozen affected
 browser rerun passes. No failed result is relabelled green.
 
-This checkpoint stops for stable independent diff review. Full/module-complete
-qualification has not run. Activation, real-story retry, live providers, image/video
+Root's single full invocation at `eb3d371c` **FAILED**:3584 Python passed/20 failed
+(worker1:1734/10 in905.73s; worker2:1850/10 in1539.96s),1586.104s total. The
+10 policy-decoding and10 profile-transaction failures share one regression:
+generalized lineage validation unconditionally read/decode policy even for an
+ordinary request without a correction. That extra observation changed SQL order,
+decode counts and concurrent-policy-drift visibility. The owning-layer fix restores
+the ordinary stage/key guard and early return before policy lookup; actual
+correction chains retain all recursive checks. Existing expectations and the
+ADR0184 purity pin remain unchanged. Full raw stdout is retained as
+`full-findings.full-eb3d371c.log` (SHA256
+`e666e5630adcb3917b251c9c1feec42c808f1581dcf8260cdde42d2131624459`)
+beside the original full log; temporary worker logs were cleaned by the runner.
+This failed full invocation is not relabelled a pass. Focused repair qualification
+passes:85 cases in58.88s pytest/66.350s invocation. Selection:whole
+`test_autopilot_policy_decoding.py`, `test_autopilot_profile_transactions.py`,
+`test_autopilot_profile_construction.py`, `test_autopilot_profile_purity.py`,
+`test_text_retry_controls.py` and the native-host correct/adopt plus exhaustion
+pair in `test_text_content_correction.py`. Source/docs were frozen throughout.
+Exact command and findings are retained in `full-findings.md`; raw repair stdout
+is `full-findings.focused-repair.log`. No existing test, purity pin, profile
+construction or frontend asset changed. Root separately owns the remaining
+downstream full steps; this focused pass alone is not full qualification.
+
+This checkpoint stops for narrow independent review. No worker full/module-complete
+rerun is authorized. Activation, real-story retry, live providers, image/video
 retry, publication/push, GitHub CI and human creative acceptance are unperformed.
 Product/infrastructure/waiting/coordination time totals and cost deltas were not
 measured; no percentages or savings are inferred.
