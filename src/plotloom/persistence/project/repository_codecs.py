@@ -12,6 +12,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import (
+    TERMINAL_MEDIA_TASK_STATUSES,
+    TERMINAL_RUN_STATUSES,
+    TERMINAL_WORK_UNIT_STATUSES,
     Artifact,
     ArtifactKind,
     AttemptStatus,
@@ -37,20 +40,23 @@ from ...domain import (
     StageHead,
     StageName,
     StagePayload,
-    StageStatus,
     StagePlanTrace,
+    StageStatus,
     StoryGraphTopologyTrace,
     WorkUnitRepairScope,
     WorkUnitStatus,
-    TERMINAL_MEDIA_TASK_STATUSES,
-    TERMINAL_RUN_STATUSES,
-    TERMINAL_WORK_UNIT_STATUSES,
     stage_payload_model,
 )
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
+from ...exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    RevisionConflictError,
+    SchemaResetRequiredError,
+)
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ApprovalDecisionRow,
+    ArtCandidateRow,
     ArtifactRow,
     EntityRevisionRow,
     FragmentReuseBindingRow,
@@ -61,8 +67,8 @@ from ..schema import (
     GenerationWorkUnitRow,
     MediaTaskRow,
     ProjectRow,
-    SourceOutlineCandidateRow, ArtCandidateRow,
     SealedStageAggregateRow,
+    SourceOutlineCandidateRow,
     StageHeadRow,
     StagePlanRow,
     StoryGraphTopologyRow,
@@ -337,18 +343,10 @@ def project_is_busy_in_session(session: Session, project_id: str) -> bool:
             ),
         ).limit(1)
     )
-    prepared_outline_publication = session.scalar(
-        select(SourceOutlineCandidateRow.job_id).where(
-            SourceOutlineCandidateRow.project_id == project_id,
-            SourceOutlineCandidateRow.status == "prepared",
-        ).limit(1)
-    )
-    prepared_art_publication = session.scalar(
-        select(ArtCandidateRow.job_id).where(
-            ArtCandidateRow.project_id == project_id,
-            ArtCandidateRow.status == "prepared",
-        ).limit(1)
-    )
+    from .autopilot_text_correction import has_publishable_candidates
+    connection = session.connection().connection.driver_connection
+    prepared_outline_publication = True if has_publishable_candidates(connection, project_id, SourceOutlineCandidateRow.__tablename__) else None
+    prepared_art_publication = True if has_publishable_candidates(connection, project_id, ArtCandidateRow.__tablename__) else None
     return any(
         item is not None
         for item in (

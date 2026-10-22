@@ -69,6 +69,16 @@ only exact whole TEXT, and clear prior success on invalid bool/zero/two replacem
 
 ## Alternatives and guardrails
 
+### Versioned diagnostic capability review (2026-10-22)
+
+ADR 0203 adds only `text_correction_contract`, an immutable optional Literal of
+`plotloom.text-correction.v2`, literal None default and value-only omission of
+None. Root and independent review confirmed all other named AST dependencies
+and `_ProfileConstruction` unchanged: no factories, mutable fields, ambient state
+or I/O were introduced. The lexical reuse boundary is retained. Omitted/null/v2
+construction/hash and exact whole-TEXT replacement checks, plus invalid literal
+and bool replacement clearing, guard the reviewed pin update.
+
 Reject run/job-ID, normalized binding, profile-hash and global/session/connection
 caches; eager priming from the outer parsed LaunchPolicy; and propagation into
 nested consumers. The old db021699 proposal is read-only design/guard input, not

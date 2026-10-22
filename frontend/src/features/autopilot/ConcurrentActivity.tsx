@@ -14,11 +14,17 @@ const states: Record<AutopilotActivity["state"], string> = {
 };
 
 export function activityLabel(activity: AutopilotActivity, run: AutopilotRun) {
+  if (activity.state === "failed" && activity.domain === "text") {
+    const ordinal = Number(activity.operationKey.split(":").at(-1)) || 0;
+    const later = run.checkpoints.filter(item => item.evidence.owner === activity.owner
+      && item.operationKey.startsWith(`${activity.owner}:correction:`) && Number(item.operationKey.split(":").at(-1)) > ordinal);
+    if (later.length) return later.some(item => item.state === "adopted") ? "失败记录已保留 · 后续修正已采用" : "失败记录已保留 · 已有后续修正";
+  }
   const label = ["waiting", "queued"].includes(activity.state) && run.state === "paused"
     ? "已暂停，保留原任务" : states[activity.state];
   const corrective = activity.domain === "text" && ["outline", "characters", "art"].includes(activity.owner)
-    && activity.operationKey === `${activity.owner}:correction:1`;
-  return corrective ? `${label} · 自动修正 1/1` : label;
+    && activity.operationKey.startsWith(`${activity.owner}:correction:`);
+  return corrective ? `${label} · 修正第 ${activity.operationKey.split(":").at(-1)} 次` : label;
 }
 
 export function ConcurrentActivity({ run }: { run: AutopilotRun }) {

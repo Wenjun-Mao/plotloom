@@ -1,12 +1,21 @@
 """Session leases and scoped atomic run commands for the project composition."""
 from __future__ import annotations
+
 from collections.abc import Iterator
 from contextlib import contextmanager
+
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+
 from ...domain import utc_now
 from ...exceptions import InvalidTransitionError
-from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
+from ..transactions import (
+    bootstrap_lease,
+    lifecycle_lease,
+    read_lease,
+    work_unit_claim_lease,
+    write_lease,
+)
 
 
 class ProjectCommandTransactions:
@@ -76,6 +85,24 @@ class ProjectCommandTransactions:
                 self._command_context.reset(token)
 
     @contextmanager
+    def text_retry_command(self):
+        """One creator grant and its exact corrective head, without manual takeover.
+
+        grant_text_retry validates the frozen run/CAS/parent before changing the
+        sole head. This command adopts that authorized transport-head change into
+        the closure atomically; ordinary manual edits still force takeover.
+        """
+        if self._command_context.get() is not None:
+            raise InvalidTransitionError("project commands cannot nest")
+        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name,
+                retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
+            token = self._command_context.set((session, None))
+            try:
+                yield session
+            finally:
+                self._command_context.reset(token)
+
+    @contextmanager
     def autopilot_command(self, authority):
         """Atomic existing-owner command plus run evidence, scoped to this handle."""
         if self._command_context.get() is not None:
@@ -83,7 +110,7 @@ class ProjectCommandTransactions:
         with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name,
                 retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
             run = self.autopilot.validate_command(session, authority)
-            from .autopilot_closure import material_closure, _receipt_material_closures
+            from .autopilot_closure import _receipt_material_closures, material_closure
             receipt_reconciliation = authority.scope.value == "receipt_reconciliation"
             if receipt_reconciliation:
                 # Receipt admission may outlive creative authority. Only this

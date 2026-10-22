@@ -89,6 +89,7 @@ it("autopilot project changes clear finite drafts and restore explicit unlimited
   await select(0, "finite"); expect(button("开始准备已保存简报的素材").disabled).toBe(true);
   await input(0, "300"); expect(button("开始准备已保存简报的素材").disabled).toBe(false);
   await render("second"); await act(async () => button("自动准备素材").click());
-  expect(host.querySelector("input")).toBeNull();
+  expect(host.querySelector('input[type="text"]')).toBeNull();
+  expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("1");
   expect([...host.querySelectorAll("select")].map(node => node.value)).toEqual(["unlimited", "unlimited"]);
 });

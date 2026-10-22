@@ -234,10 +234,12 @@ class AutopilotTextController:
             operation_scope=OperationScope.INSTALL if bridge else OperationScope.TEXT,
         )
         if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
-            if (view.policy.text_correction_limit == 1 and attempt.content_rejection is not None
-                    and request.text_correction is None and checkpoint["operationKey"] == stage):
+            if (attempt.content_rejection is not None and
+                    store.repository.autopilot.automatic_corrections_used(view.id, stage) < (view.policy.text_correction_limit or 0)):
                 self.prepare_correction(store, view, claim, request, attempt)
                 return
+            if attempt.content_rejection is not None:
+                raise ImageJobError("text_content_rejected", "当前文字候选未通过来源内容验证；失败候选与尝试历史已保留，请查看问题。")
             raise InvalidTransitionError("Codex Exec text attempt reached a terminal failure; preserve this attempt for review.")
         if attempt.state == "outcome_unknown":
             raise ImageJobError("codex_exec_outcome_unknown", "Codex Exec outcome is being reconciled; do not send another attempt.")
@@ -449,7 +451,8 @@ class AutopilotTextController:
         with self.command(store, view, claim, OperationScope.TEXT):
             assert_frozen_execution(store, self.registry, view.policy)
             latest = logical_checkpoint(store.repository.autopilot.current(view.project_id), request.stage)
-            existing = latest is not None and latest["operationKey"] != request.stage
+            ordinal = request.text_correction.ordinal + 1 if request.text_correction else 1
+            existing = latest is not None and latest["operationKey"] == f"{request.stage}:correction:{ordinal}"
             if not existing:
                 require_job_capacity(view)
             if not existing and current_creative_candidate(store, request.stage, request.job_id, require_fresh=True).status != "prepared":

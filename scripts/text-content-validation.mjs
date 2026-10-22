@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 
 export async function contentIssues(candidate, request) {
   let problems;
+  const result = issues => {
+    if (!Array.isArray(problems) || problems.some(problem => typeof problem !== 'string')) throw new Error('Content validator API changed');
+    return { issues, displayDiagnostics: problems.slice(0, 16).map(problem => problem.slice(0, 500)) };
+  };
   const generic = { code: 'candidate_content_invalid', fieldPaths: ['$'], repairFacts: {} };
   if (request.stage === 'outline') {
     const { validateOutline } = await import('../third_party/shuohao-skills/skills/novel-outline/scripts/novel-outline.mjs');
@@ -50,11 +54,11 @@ export async function contentIssues(candidate, request) {
           .map(field => `props[${index}].image.${field}`);
         return paths.length ? [{ code: 'art_prop_scale', fieldPaths: paths, repairFacts: { requiredPhrase: phrase } }] : [];
       });
-      return [generic, ...scaleIssues];
+      return result([generic, ...scaleIssues]);
     }
   } else throw new Error('No typed content adapter for this stage');
   if (!Array.isArray(problems) || problems.some(problem => typeof problem !== 'string')) throw new Error('Content validator API changed');
-  return problems.length ? [generic] : [];
+  return result(problems.length ? [generic] : []);
 }
 
 async function main(args) {
@@ -63,10 +67,10 @@ async function main(args) {
   // Candidate/parser and immutable request failures remain terminal runtime failures.
   const candidate = JSON.parse(raw.toString('utf8'));
   const request = JSON.parse(readFileSync(args[1], 'utf8'));
-  const issues = await contentIssues(candidate, request);
+  const { issues, displayDiagnostics } = await contentIssues(candidate, request);
   if (issues.length) {
     process.stdout.write(JSON.stringify({ contract: 'plotloom.typed-content-result.v1',
-      candidateHash: createHash('sha256').update(raw).digest('hex'), issues }));
+      candidateHash: createHash('sha256').update(raw).digest('hex'), issues, displayDiagnostics }));
     process.exitCode = 42;
   } else process.stdout.write('Valid candidate content\n');
 }

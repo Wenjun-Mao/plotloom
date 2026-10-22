@@ -233,7 +233,9 @@ def test_invalid_candidate_fails_real_node_validation_without_receipt_or_retry(p
     job = Path(allocation["projectHome"]["path"]) / "outputs/creative-handoff/jobs" / terminal.job_id
     candidate_hash = sha256((job / "delivery/outline.json").read_bytes()).hexdigest()
     issues = [{"code": "candidate_content_invalid", "fieldPaths": ["$"], "repairFacts": {}}]
-    assert json.loads((private / "validation/validate.stdout").read_bytes()) == {
+    typed_result = json.loads((private / "validation/validate.stdout").read_bytes())
+    assert typed_result.pop("displayDiagnostics")
+    assert typed_result == {
         "contract": "plotloom.typed-content-result.v1", "candidateHash": candidate_hash, "issues": issues}
     assert (private / "validation/validate.stderr").read_bytes() == b""
     rejection = terminal.content_rejection
@@ -350,6 +352,21 @@ def test_actual_node_paid_profile_correction_contract_is_strict(paid_case, kind,
     assert case["allocation"]["initialAdmissions"] == 1 and case["allocation"]["retries"] == 0
     with closing(sqlite3.connect(case["allocation"]["namespace"]["database"]["path"])) as connection:
         assert connection.execute("SELECT count(*) FROM exec_attempts").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("value,allowed", [(None, True), ("plotloom.text-correction.v2", True), (True, False), ("v3", False)])
+def test_paid_capsule_diagnostic_capability_never_expands_its_zero_retry_grant(paid_case, value, allowed):
+    case = paid_case
+    def substitute(allocation):
+        profile = allocation["namespace"]["profile"]
+        profile["textCorrectionContract"] = value
+        allocation["namespace"]["attempt"]["profileHash"] = sha256(json.dumps(
+            profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    rebind_allocation(case, substitute)
+    result = run_capsule(case, mode="prepare-only")
+    assert result["outcome"]["status"] == ("OK" if allowed else "HELD"), result
+    assert result["calls"] == ["prepare"] and result["actualFixtureChildTerminal"] is None
+    assert case["allocation"]["initialAdmissions"] == 1 and case["allocation"]["retries"] == 0
 
 
 @pytest.mark.parametrize("drift", ["run-revision", "claim", "policy", "checkpoint", "catalog",

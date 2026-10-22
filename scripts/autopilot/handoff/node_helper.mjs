@@ -302,9 +302,12 @@ export async function dispatch(request, syntheticIO = null) {
         'maxRuntimeSeconds','maxEventBytes','maxOutputBytes','maxImageOutputs','maxProcesses','maxTextProcesses','maxImageProcesses',
         'maxQueuedJobs','apiFallback','externalMcpServers','nestedDispatch'];
       const hasCorrectionLimit = Object.hasOwn(ns.profile, 'textCorrectionLimit');
-      keys(ns.profile, [...profileFields, ...(hasCorrectionLimit ? ['textCorrectionLimit'] : [])]);
+      const hasCorrectionContract = Object.hasOwn(ns.profile, 'textCorrectionContract');
+      keys(ns.profile, [...profileFields, ...(hasCorrectionLimit ? ['textCorrectionLimit'] : []), ...(hasCorrectionContract ? ['textCorrectionContract'] : [])]);
       need(!hasCorrectionLimit || ns.profile.textCorrectionLimit === null || ns.profile.textCorrectionLimit === 1,
         'strict optional text correction limit');
+      need(!hasCorrectionContract || ns.profile.textCorrectionContract === null || ns.profile.textCorrectionContract === 'plotloom.text-correction.v2',
+        'strict optional text correction capability');
       need(a.version === 'plotloom.paid-outline-once.v1' && a.authority === 'paid_outline_once' && uuid(a.allocationId)
         && ns.version === 'plotloom.exec-one-attempt.v1' && ns.namespaceId === a.allocationId && a.nonce === phase.nonce
         && a.initialAdmissions === 1 && a.imageAdmissions === 0 && a.retries === 0 && a.settlementAuthority === 'hold_only'

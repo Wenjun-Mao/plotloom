@@ -99,7 +99,8 @@
           "frontend/tests/autopilot-delivery-reader.test.ts",
           "frontend/tests/autopilot-presentation.test.ts",
           "frontend/tests/autopilot-reference-provenance.test.ts",
-          "frontend/tests/autopilot-concurrent.test.ts"
+          "frontend/tests/autopilot-concurrent.test.ts",
+          "frontend/tests/text-retry.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-suggestion-recovery.spec.ts",
@@ -120,7 +121,8 @@
           "frontend/e2e/storyboard-source-review.spec.ts",
           "frontend/e2e/synopsis-proposal.spec.ts",
           "frontend/e2e/autopilot-review.spec.ts",
-          "frontend/e2e/autopilot-guidance.spec.ts"
+          "frontend/e2e/autopilot-guidance.spec.ts",
+          "frontend/e2e/text-retry.spec.ts"
         ]
       }
     },
@@ -556,6 +558,8 @@
           "tests/services/creator_workbench/test_codex_exec_pool_profile.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_validation_lifecycle.py",
           "tests/services/creator_workbench/test_text_content_correction.py",
+          "tests/services/creator_workbench/test_text_retry_journey.py",
+          "tests/services/creator_workbench/test_text_retry_controls.py",
           "tests/services/creator_workbench/test_text_correction_budget.py",
           "tests/services/creator_workbench/test_codex_exec_outline_report_metadata.py",
           "tests/services/creator_workbench/test_codex_exec_helper_reaping.py",

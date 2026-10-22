@@ -44,6 +44,7 @@ type ManagedProcess = {
 export const test = createWorkbenchTest("vite");
 export const checkedStaticTest = createWorkbenchTest("checked-static");
 export const batchVideoTest = createWorkbenchTest("vite", "frontend/e2e/video_batch_runtime.py");
+export const textRetryTest = createWorkbenchTest("vite", "frontend/e2e/text_retry_runtime.py");
 
 /** Save a new Brief, then explicitly choose the established manual route. */
 export async function saveBriefAndContinue(page: Page): Promise<void> {

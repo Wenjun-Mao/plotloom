@@ -43,7 +43,7 @@ request = json.loads((Path.cwd().parent / "package/request.json").read_bytes())
 art = {_art_candidate()!r}
 art["sectionUsage"] = [{{"sectionId": section["sectionId"], "sceneIds": ["S01"], "propIds": ["P01"]}} for section in request["inputArtifacts"]["section-map.json"]["sections"]]
 correction = request.get("textCorrection")
-if correction and not {exhaust!r}:
+if correction and (not {exhaust!r} or correction.get("manualGrant")):
     art = json.loads(correction["priorCandidateJson"])
     for issue in correction["rejection"]["issues"]:
         if issue["code"] == "art_prop_scale":
@@ -62,7 +62,7 @@ for event in ({{"type": "thread.started", "thread_id": session_id}}, {{"type": "
 '''
 
 
-def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False):
+def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, correction_limit=1):
     import subprocess
 
     from plotloom import autopilot_service
@@ -91,8 +91,9 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False):
     service = AutopilotService(storage, registry)
     freeze = autopilot_service.freeze_launch_policy
     monkeypatch.setattr(autopilot_service, "freeze_launch_policy", lambda *args: freeze(*args).model_copy(update={"early_reference_limit": 0}))
-    view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic"))
-    assert view.policy.text_correction_limit == profile.text_correction_limit == 1
+    view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", text_correction_limit=correction_limit))
+    assert view.policy.text_correction_limit == correction_limit
+    assert profile.text_correction_contract == "plotloom.text-correction.v2"
     assert service.acquire_controller()
     return storage, registry, service, view
 
@@ -333,7 +334,7 @@ def test_retained_omission_never_acquires_correction_authority(tmp_path, monkeyp
     try:
         raw = run.policy.model_dump(mode="json", by_alias=True)
         del raw["textCorrectionLimit"]
-        del raw["executorBinding"]["textCorrectionLimit"]
+        del raw["executorBinding"]["textCorrectionContract"]
         decoded = LaunchPolicy.model_validate(raw)
         assert decoded.text_correction_limit is None
         assert decoded.executor_binding.text_correction_limit is None

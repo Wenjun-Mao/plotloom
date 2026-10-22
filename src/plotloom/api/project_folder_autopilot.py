@@ -1,10 +1,18 @@
 """Explicit one-start pre-video admission and durable read/control routes."""
-from fastapi import FastAPI, status
 from contextlib import asynccontextmanager
-from ..autopilot_contracts import LaunchRequest, RunControlRequest, RunView, ContinueRequest
-from ..autopilot_service import AutopilotService
+from typing import Literal
+
+from fastapi import FastAPI, status
+
+from ..autopilot_contracts import (
+    ContinueRequest,
+    LaunchRequest,
+    RunControlRequest,
+    RunView,
+)
 from ..autopilot_handoff_contracts import BulkHumanHandoffRequest, HumanHandoffRequest
-from ..persistence.project.autopilot_handoff import review_material, record_handoff
+from ..autopilot_service import AutopilotService
+from ..persistence.project.autopilot_handoff import record_handoff, review_material
 
 
 def register_autopilot_runtime(app, opened_project, registry):
@@ -21,23 +29,34 @@ def register_autopilot_runtime(app, opened_project, registry):
 
 
 def register_autopilot_routes(app: FastAPI, opened_project, service):
+    from ..text_correction_contracts import TextRetryGrant
+
+    @app.get("/api/v2/projects/{project_id}/autopilot/text-failure")
+    def text_failure(project_id: str, stage: Literal["outline", "characters", "art"] | None = None):
+        from ..autopilot_text_failures import failure_context
+        with opened_project(project_id) as store:
+            return failure_context(store, service.registry, stage=stage)
+
+    @app.post("/api/v2/projects/{project_id}/autopilot/text-retry", response_model=RunView)
+    def text_retry(project_id: str, body: TextRetryGrant):
+        return service.retry_text(project_id, body)
+
     @app.get("/api/v2/autopilot/controller")
     def controller_status():
         return {"blocker": service.controller_blocker}
 
     @app.get("/api/v2/projects/{project_id}/autopilot/launch-context")
     def launch_context(project_id: str):
-        from ..persistence.project.autopilot_freshness import assert_fresh
         from ..exceptions import InvalidTransitionError
-        with opened_project(project_id) as store:
-            with store.repository._read() as session:
-                project = store.repository._project_access.rows.project(session, project_id)
-                eligible = project.archived_at is None
-                try:
-                    assert_fresh(session, project_id)
-                except InvalidTransitionError:
-                    eligible = False
-                return {"eligible": eligible, "briefRevision": project.revision}
+        from ..persistence.project.autopilot_freshness import assert_fresh
+        with opened_project(project_id) as store, store.repository._read() as session:
+            project = store.repository._project_access.rows.project(session, project_id)
+            eligible = project.archived_at is None
+            try:
+                assert_fresh(session, project_id)
+            except InvalidTransitionError:
+                eligible = False
+            return {"eligible": eligible, "briefRevision": project.revision}
 
     @app.get("/api/v2/projects/{project_id}/autopilot", response_model=RunView | None)
     def current(project_id: str):

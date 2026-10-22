@@ -30,6 +30,7 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
             expand_validation_argv,
             validation_plan_from_package,
         )
+        from plotloom.domain import contains_secret_value
 
         try:
             plan = validation_plan_from_package(package_request)
@@ -158,7 +159,8 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
                 if (step.step_id == "validate" and exit_code == 42
                         and plan.stage in {"outline", "characters", "art"}
                         and package_request.get("contentValidationContract") == "plotloom.typed-content-result.v1"
-                        and profile.text_correction_limit == 1):
+                        and (profile.text_correction_contract == "plotloom.text-correction.v2"
+                            or profile.text_correction_limit == 1)):
                     # Recheck all immutable authority before promoting this source API's
                     # normal result. Neither stderr nor arbitrary exits grant correction.
                     self._require_validation_not_cancelled(attempt, plan.plan_hash)
@@ -173,7 +175,7 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
                     )
                     try:
                         result = json.loads(self._read_regular(stdout_path, max_bytes=64_000))
-                        if (set(result) != {"contract", "candidateHash", "issues"}
+                        if (set(result) != {"contract", "candidateHash", "issues", "displayDiagnostics"}
                                 or result["contract"] != "plotloom.typed-content-result.v1"
                                 or result["candidateHash"] != candidate_before.sha256):
                             raise ValueError("typed content result mismatch")
@@ -184,6 +186,8 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
                             package_hash=attempt.package_hash, plan_hash=plan.plan_hash,
                             profile_hash=profile.profile_hash, source_revision=attempt.plotloom_code_revision,
                             issues=tuple(TextContentIssue.model_validate(issue) for issue in result["issues"]),
+                            display_diagnostics=tuple("[redacted]" if contains_secret_value(value)
+                                else value for value in result["displayDiagnostics"]),
                         )
                     except (ValueError, TypeError, KeyError):
                         raise self._validation_failure("validation_rejection_packet_invalid", plan.plan_hash) from None

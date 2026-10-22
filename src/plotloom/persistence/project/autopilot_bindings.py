@@ -203,7 +203,7 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         if request.text_correction is not None:
             rejection = request.text_correction.rejection
             expected_correction = {"sourceAttemptId": str(rejection.source_attempt_id),
-                "rejectionHash": rejection.rejection_hash, "correctionOrdinal": 1}
+                "rejectionHash": rejection.rejection_hash, "correctionOrdinal": request.text_correction.ordinal}
             if any(evidence.result.get(key) != value for key, value in expected_correction.items()):
                 raise ValueError("corrective checkpoint feedback evidence changed")
         pin = _row(connection, "SELECT * FROM v2_creative_handoff_execution_pins WHERE job_id=?", (evidence.job_id,))

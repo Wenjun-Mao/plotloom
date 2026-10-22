@@ -3,6 +3,7 @@ import { Button } from "../../components";
 import { useConfirmation } from "../../confirmation";
 import { autopilotApi } from "./api";
 import type { AutopilotRun } from "./contracts";
+import { CorrectionCount, correctionCount } from "./CorrectionCount";
 
 export function ContinuationAction({ projectId, revision, run, disabled, execute }: {
   projectId: string; revision: number; run: AutopilotRun; disabled: boolean;
@@ -10,6 +11,8 @@ export function ContinuationAction({ projectId, revision, run, disabled, execute
 }) {
   const [message, setMessage] = useState("");
   const [reading, setReading] = useState(false);
+  const [corrections, setCorrections] = useState(String(run.policy.textCorrectionLimit ?? 1));
+  const correctionLimit = correctionCount(corrections);
   const confirmation = useConfirmation(`${projectId}:${run.id}:${run.revision}`, disabled);
   const inspect = async () => {
     setReading(true); setMessage("");
@@ -25,12 +28,12 @@ export function ContinuationAction({ projectId, revision, run, disabled, execute
           expectedBriefRevision: revision, expectedRunId: context.runId, expectedRunRevision: context.runRevision,
           expectedMaterialClosure: context.materialClosure, styleAuthority: run.policy.styleAuthority || "preset",
           renderStyle: run.policy.renderStyle ?? undefined, artRenderStyle: run.policy.artRenderStyle ?? undefined,
-          maxImages: run.policy.maxImages, maxJobs: run.policy.maxJobs,
+          maxImages: run.policy.maxImages, maxJobs: run.policy.maxJobs, textCorrectionLimit: correctionLimit,
         }), true),
       });
     } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); }
     finally { setReading(false); }
   };
-  return <><Button disabled={disabled || reading} onClick={() => void inspect()}>{reading ? "正在核对继续条件…" : "继续剩余素材"}</Button>
+  return <><CorrectionCount value={corrections} onChange={setCorrections} disabled={disabled || reading} /><Button disabled={disabled || reading || correctionLimit === undefined} onClick={() => void inspect()}>{reading ? "正在核对继续条件…" : "继续剩余素材"}</Button>
     {message && <p role="status">{message}</p>}{confirmation.confirmation}</>;
 }

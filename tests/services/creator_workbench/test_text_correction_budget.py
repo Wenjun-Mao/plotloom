@@ -55,6 +55,19 @@ def test_typed_rejection_at_finite_lifetime_job_cap_creates_no_corrective_identi
                     retained = store.repository.autopilot.exec_attempt_for_operation(run.id, "outline")
                     assert retained == failed and retained.content_rejection == proof
                     assert any(c["operationKey"] == "outline" and c["state"] == "failed" for c in view.checkpoints)
+                    from plotloom.autopilot_text_failures import failure_context
+                    details = failure_context(store, registry)
+                    assert not details["canRetry"] and "上限" in details["reason"]
+                    from plotloom.text_correction_contracts import TextRetryGrant
+                    grant = TextRetryGrant(command_id=uuid4(), expected_run_id=run.id, expected_revision=view.revision,
+                        failed_attempt_id=failed.attempt_id, rejection_hash=proof.rejection_hash)
+                if index == 8:
+                    import pytest
+                    from plotloom.exceptions import InvalidTransitionError
+                    with pytest.raises(InvalidTransitionError, match="capacity"):
+                        service.retry_text(run.project_id, grant)
+                    with closing(storage.projects.open(run.project_id)) as store:
+                        assert store.repository.autopilot.current(run.project_id).lifetime_jobs == 9
                     break
             service.control(run.project_id, RunControlRequest(expected_revision=view.revision, action="cancel"))
             with closing(storage.projects.open(run.project_id)) as store:

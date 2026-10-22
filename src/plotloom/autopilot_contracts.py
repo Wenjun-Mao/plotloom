@@ -61,7 +61,7 @@ class LaunchPolicy(CamelModel):
     executor_binding: ExecutorBinding | None = Field(default=None, exclude_if=lambda value: value is None)
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]
-    text_correction_limit: int | None = Field(default=None, strict=True, ge=1, le=1, exclude_if=lambda value: value is None)
+    text_correction_limit: int | None = Field(default=None, strict=True, ge=0, le=9_007_199_254_740_991, exclude_if=lambda value: value is None)
 
     @model_validator(mode="before")
     @classmethod
@@ -84,7 +84,8 @@ class LaunchPolicy(CamelModel):
     def validate_frozen_authority(self):
         if self.text_correction_limit is not None and (self.version != POLICY_VERSION
                 or not isinstance(self.executor_binding, CodexExecProfile)
-                or self.executor_binding.text_correction_limit != self.text_correction_limit):
+                or (self.executor_binding.text_correction_contract is None
+                    and self.executor_binding.text_correction_limit != self.text_correction_limit)):
             raise ValueError("text correction requires matching frozen CLI authority")
         if self.early_reference_limit is not None and (
             self.version != POLICY_VERSION or self.executor_binding is None
@@ -114,6 +115,7 @@ class LaunchPolicy(CamelModel):
 
 
 class LaunchRequest(CamelModel):
+    text_correction_limit: int = Field(default=1, strict=True, ge=0, le=9_007_199_254_740_991)
     expected_brief_revision: int = Field(ge=1)
     style_authority: Literal["preset", "brief"] = "preset"
     render_style: CastRenderStyle | None = None

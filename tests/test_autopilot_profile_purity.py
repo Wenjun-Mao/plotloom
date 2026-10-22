@@ -39,7 +39,7 @@ def test_profile_construction_value_only_contract_requires_explicit_review():
         assert len(nodes) == len(expected)
         payload[name] = ast.dump(ast.Module(body=nodes, type_ignores=[]), include_attributes=False)
     digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    assert digest == "be1d0627b5598b1ad8893a28b8441698d735e48f6fc7efd7debf98eb334cfa27", (
+    assert digest == "4672f7436763c060a0f8824378f8da219f9e0b394981ef908678f5da2760ec59", (
         "Profile construction dependencies changed: disable reuse or review ADR 0184 before updating this pin.")
     assert codex_exec_contracts.CamelModel is CamelModel
     assert codex_exec_contracts.contains_secret_setting is domain.contains_secret_setting

@@ -87,6 +87,9 @@ VALIDATOR_FILES = (
     "src/plotloom/autopilot_materials.py",
     "src/plotloom/autopilot_launch.py",
     "src/plotloom/autopilot_text_controller.py",
+    "src/plotloom/autopilot_text_failures.py",
+    "src/plotloom/persistence/project/command_transactions.py",
+    "src/plotloom/persistence/project/repository_codecs.py",
     "src/plotloom/creative_handoff_contracts.py",
     "src/plotloom/creative_handoff_exchange.py",
     "src/plotloom/creative_handoff_package_exchange.py",
@@ -230,7 +233,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path, pool_limits
     limits = CodexExecPoolLimits.model_validate(pool_limits or CodexExecPoolLimits())
     return CodexExecProfile(
         contractVersion="plotloom.codex-exec.v8",
-        text_correction_limit=1,
+        text_correction_contract="plotloom.text-correction.v2",
         executable_sha256=_hash_file(executable),
         cli_version=version,
         model=EXECUTION_MODEL,

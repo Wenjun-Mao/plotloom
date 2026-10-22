@@ -201,7 +201,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
         codex_binding = codex_jobs.get(identifier)
         if codex_binding is not None and (
             codex_binding["project_id"] != request.project_id
-            or codex_binding["operation_key"] != (f"{request.stage}:correction:1" if request.text_correction else request.stage)
+            or codex_binding["operation_key"] != (f"{request.stage}:correction:{request.text_correction.ordinal}" if request.text_correction else request.stage)
         ):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"

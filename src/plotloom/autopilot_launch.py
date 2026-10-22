@@ -54,7 +54,7 @@ def freeze_launch_policy(store, registry, request):
     return LaunchPolicy(version=POLICY_VERSION, style_authority=request.style_authority, render_style=render_style, art_render_style=art_render_style,
         max_images=request.max_images, max_jobs=request.max_jobs, image_width=width, image_height=height,
         early_reference_limit=4,
-        text_correction_limit=profile.text_correction_limit,
+        text_correction_limit=request.text_correction_limit,
         code_revision=code_revision, specialist_bindings=None, executor_binding=profile, execution_pins=pins,
         brief=brief.model_dump(mode="json", by_alias=False))
 

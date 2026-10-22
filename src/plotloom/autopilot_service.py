@@ -79,6 +79,13 @@ class AutopilotService:
         self._wake.set()
         return result
 
+    def retry_text(self, project_id, request):
+        from .autopilot_text_failures import retry_text
+        with closing(self.storage.projects.open(project_id)) as store:
+            result = retry_text(store, self.registry, request)
+        self._wake.set()
+        return result
+
     def acquire_controller(self):
         with self._descriptor_lock:
             return self._acquire_controller()

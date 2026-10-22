@@ -7,6 +7,8 @@ import { MaterialReview } from "./MaterialReview";
 import { projectAutopilotProgress } from "./progress";
 import { ConcurrentActivity } from "./ConcurrentActivity";
 import { ContinuationAction } from "./ContinuationAction";
+import { TextFailureCard } from "./TextFailureCard";
+import { CorrectionCount, correctionCount } from "./CorrectionCount";
 import "./autopilot.css";
 import { useCompletionReveal } from "../../app/workspace/completionReveal";
 
@@ -72,7 +74,13 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       && completionOwner.current.purpose === "preparation") completion.reveal("material-next-action");
   }, [run?.id, run?.state]);
   const identity = useRef(projectId); identity.current = projectId;
-  const command = useRef(false);
+  const commandContext = useRef({ projectId, revision });
+  if (commandContext.current.projectId !== projectId || commandContext.current.revision !== revision) commandContext.current = { projectId, revision };
+  const observedRunId = useRef(run?.id ?? null); observedRunId.current = run?.id ?? null;
+  const commandLifetime = useRef({ projectId });
+  if (commandLifetime.current.projectId !== projectId) commandLifetime.current = { projectId };
+  const command = useRef<{ lifetime: object } | null>(null);
+  useEffect(() => { setBusy(false); }, [projectId]);
   const [readEpoch, setReadEpoch] = useState(0);
   const pendingHandoff = useRef<{projectId:string;runId:string} | null>(null);
   // ACK and polling race for one pending foreground confirmation; either may win.
@@ -113,29 +121,37 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     void refresh(); return () => { abort.abort(); clearTimeout(timer); };
   }, [projectId, revision, readEpoch]);
   const execute = async (operation: () => Promise<AutopilotRun>, refresh = false, foreground = false) => {
-    if (command.current) return;
-    command.current = true;
+    if (command.current?.lifetime === commandLifetime.current) return;
+    const operationOwner = { lifetime: commandLifetime.current }; command.current = operationOwner;
+    const context = commandContext.current;
+    const expectedRunId = run?.id ?? null;
     const intended = foreground ? armCompletion(run?.id ?? null, "preparation") : null;
     if (!foreground) clearCompletion();
     setBusy(true); setCommandError("");
     try {
-      const value = await operation(); if (identity.current !== projectId) return;
+      const value = await operation();
+      if (commandContext.current !== context || observedRunId.current !== expectedRunId && observedRunId.current !== value.id) return;
       // Start's new run identity binds the original intent; it never rearms an
       // intent withdrawn by polling, navigation or a hidden tab during the call.
       if (intended && completionOwner.current === intended) {
         if (intended.runId !== null && intended.runId !== value.id) clearCompletion();
         else intended.runId = value.id;
       }
-      setRun(value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged();
+      setRun(previous => previous?.id === value.id && previous.revision > value.revision ? previous : value); setReadEpoch(epoch => epoch + 1); if (refresh) await onChanged();
     }
-    catch (failure) { if (identity.current === projectId) {
+    catch (failure) { if (commandContext.current === context) {
       setCommandError(failure instanceof Error ? failure.message : String(failure));
       // Reconcile an uncertain command response by reading the durable run;
       // never replay the command just to recover browser observation.
       setReady(false);
       setReadEpoch(epoch => epoch + 1);
     } }
-    finally { command.current = false; setBusy(false); }
+    finally {
+      if (command.current === operationOwner) {
+        command.current = null;
+        if (commandLifetime.current === operationOwner.lifetime) setBusy(false);
+      }
+    }
   };
   const owner: Owner = { projectId, admissionKey: `${projectId}:${revision}:${admissionVersion}`, run, ready, busy, error, commandError, start: async body => { await execute(() => autopilotApi.start(projectId, { ...body, expectedBriefRevision: revision }), true, true); } };
   const controllable = run && !["cancelled", "taken_over", "stale", "handed_off"].includes(run.state);
@@ -149,11 +165,15 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {ready && run.policy.executorBinding && <p>本次生成：Codex · {run.policy.executorBinding.model} · 最多同时运行 {run.policy.executorBinding.maxProcesses} 项任务</p>}
       {ready && <ConcurrentActivity run={run} />}
       {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
-      {ready && run.blocker && <p role="status">{run.blocker.message}</p>}
+      {ready && run.blocker && run.blocker.code !== "text_content_rejected" && <p role="status">{run.blocker.message}</p>}
+      {["outline", "characters", "art"].includes(run.phase) && <TextFailureCard key={`${projectId}:${run.id}:${run.phase}`} projectId={projectId} run={run} disabled={busy || readOnly || !ready} readingDisabled={busy} execute={execute} />}
+      {["outline", "characters", "art"].filter(stage => stage !== run.phase && run.checkpoints.some(item =>
+        item.evidence.owner === stage && item.state === "adopted" && item.operationKey.startsWith(`${stage}:correction:`))).map(stage =>
+        <TextFailureCard key={`${projectId}:${run.id}:${stage}`} projectId={projectId} run={run} stage={stage} disabled execute={execute} />)}
       <div className="button-row" id="material-next-action">
         {run.state === "cancelled" && <ContinuationAction projectId={projectId} revision={revision} run={run} disabled={busy || readOnly || !ready} execute={execute} />}
         {controllable && ["running", "waiting"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { clearCompletion(); void execute(() => autopilotApi.control(projectId, run.revision, "pause")); }}>暂停</Button>}
-        {controllable && ["paused", "blocked"].includes(run.state) && <Button disabled={busy || readOnly || !ready} onClick={() => { void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true, true); }}>继续原任务</Button>}
+        {controllable && (run.state === "paused" || run.state === "blocked" && run.blocker?.code !== "text_content_rejected") && <Button disabled={busy || readOnly || !ready} onClick={() => { void execute(() => autopilotApi.control(projectId, run.revision, "resume"), true, true); }}>继续原任务</Button>}
         {controllable && <><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "cancel"))}>取消自动准备</Button><Button disabled={busy || readOnly || !ready} onClick={() => void execute(() => autopilotApi.control(projectId, run.revision, "takeover"), true)}>接管手动编辑</Button></>}
         {["awaiting_review", "taken_over", "cancelled", "stale"].includes(run.state) && <Button variant="primary" disabled={busy || readOnly || !ready} onClick={() => setReview(true)}>审阅完整素材</Button>}
         {run.state === "handed_off" && ready && <><Button variant="primary" onClick={onVideo}>批量生成缺失视频</Button><Button onClick={onVideo}>进入手动视频制作</Button></>}
@@ -177,10 +197,12 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
   const [admission, setAdmission] = useState<{ key: string; eligible: boolean; failed?: boolean } | null>(null);
   const [admissionRetry, setAdmissionRetry] = useState(0);
   const [images, setImages] = useState<BudgetInput>(null); const [jobs, setJobs] = useState<BudgetInput>(null);
+  const [corrections, setCorrections] = useState("1");
+  const correctionLimit = correctionCount(corrections);
   const imageLimit = parseBudget(images, 1); const jobLimit = parseBudget(jobs, 9);
   const projectId = owner?.projectId || "";
   const admissionKey = owner?.admissionKey || "";
-  useEffect(() => { setImages(null); setJobs(null); setOpen(false); }, [projectId]);
+  useEffect(() => { setImages(null); setJobs(null); setCorrections("1"); setOpen(false); }, [projectId]);
   useEffect(() => {
     setAdmission(null);
     if (!saved || !projectId) return;
@@ -212,8 +234,9 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
       <p>首帧比例不符时，将保留原图，居中裁剪并缩放到简报目标尺寸，作为独立素材供你审阅。比例已匹配的原图保持原样。</p>
       <p>由 Codex 执行文字与图片任务；启动时核对当前执行条件。</p>
       <div className="field-grid two"><AggregateBudget label="最多图片数" value={images} minimum={1} onChange={setImages} disabled={disabled || owner.busy} /><AggregateBudget label="最多任务数" value={jobs} minimum={9} onChange={setJobs} disabled={disabled || owner.busy} /></div>
+      <CorrectionCount value={corrections} onChange={setCorrections} disabled={disabled || owner.busy} />
       <p>本次不生成视频、声音或可选尾帧。图片质量、构图与人物身份仍需你审阅；暂停或取消会保留已发送任务的结果。</p>
-      <Button variant="primary" busy={owner.busy} disabled={disabled || dirty || owner.busy || imageLimit === undefined || jobLimit === undefined} onClick={() => { if (imageLimit !== undefined && jobLimit !== undefined) void owner.start({ styleAuthority: "brief", maxImages: imageLimit, maxJobs: jobLimit }); }}>{owner.busy && <ActivityIndicator />}{owner.busy ? "正在开始自动准备…" : "开始准备已保存简报的素材"}</Button>
+      <Button variant="primary" busy={owner.busy} disabled={disabled || dirty || owner.busy || imageLimit === undefined || jobLimit === undefined || correctionLimit === undefined} onClick={() => { if (imageLimit !== undefined && jobLimit !== undefined && correctionLimit !== undefined) void owner.start({ styleAuthority: "brief", maxImages: imageLimit, maxJobs: jobLimit, textCorrectionLimit: correctionLimit }); }}>{owner.busy && <ActivityIndicator />}{owner.busy ? "正在开始自动准备…" : "开始准备已保存简报的素材"}</Button>
     </div>}
   </Panel>;
 }

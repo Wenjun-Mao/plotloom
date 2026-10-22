@@ -221,6 +221,31 @@ def test_reuse_requires_frozen_extra_forbidden_structurally_immutable_profile():
     assert all(immutable(field.annotation) for field in CodexExecProfile.model_fields.values())
 
 
+@pytest.mark.parametrize("value", ["omitted", None, "plotloom.text-correction.v2"])
+def test_diagnostic_capability_preserves_exact_text_hash_and_failed_replacement_clears_slot(monkeypatch, value):
+    binding = PROFILE.model_dump(mode="json", by_alias=True)
+    binding.pop("textCorrectionContract", None)
+    if value != "omitted":
+        binding["textCorrectionContract"] = value
+    raw = json.dumps({"executorBinding": binding})
+    slot = _ProfileConstruction()
+    expected = CodexExecProfile.model_validate(binding)
+    first = resolve(slot, raw)
+    assert first == expected and first.profile_hash == expected.profile_hash
+    assert resolve(slot, raw) is first
+    other = binding.copy()
+    other.pop("textCorrectionContract", None) if value is None else other.update(textCorrectionContract=None)
+    replacement = resolve(slot, json.dumps({"executorBinding": other}))
+    assert replacement is not first
+    assert (replacement.profile_hash == first.profile_hash) is (value in ("omitted", None))
+    for invalid in (True, False, "v3", 1):
+        with pytest.raises(ValidationError):
+            resolve(slot, json.dumps({"executorBinding": binding | {"textCorrectionContract": invalid}}))
+        fresh = resolve(slot, raw)
+        assert fresh == expected and fresh is not first
+        assert resolve(slot, raw) is fresh
+
+
 def test_text_subclass_constructs_fresh_and_clears_exact_text_success(monkeypatch):
     class TextSubclass(str):
         pass

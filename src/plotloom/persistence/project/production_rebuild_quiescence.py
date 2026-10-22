@@ -12,8 +12,8 @@ from ..schema import (
     ScriptCandidateRow,
     SourceOutlineCandidateRow,
     StoryboardReviewCandidateRow,
-    VideoJobRow,
     VideoBatchRow,
+    VideoJobRow,
 )
 from .first_install_references import first_install_reference_is_independent
 
@@ -38,6 +38,11 @@ def assert_production_quiescent(access, session, project_id):
             owner.project_id == project_id, getattr(owner, field).in_(states),
         )).all()
         for proposal in pending:
+            if isinstance(proposal, (SourceOutlineCandidateRow, CastCandidateRow, ArtCandidateRow)):
+                from .autopilot_text_correction import terminal_content_rejection
+                if terminal_content_rejection(session.connection().connection.driver_connection,
+                        project_id, proposal.__tablename__, proposal.job_id):
+                    continue
             if not first_install_reference_is_independent(access, session, project_id, proposal):
                 raise InvalidTransitionError("unresolved publication or execution prevents production rebuild")
     if session.scalar(select(ProductionBridgeIntentJobRow).where(

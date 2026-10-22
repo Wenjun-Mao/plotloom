@@ -1,10 +1,12 @@
 import { ApiTransport } from "../../api-transport";
 import { browserProjectReads } from "../../project-read-admission";
-import type { AutopilotRun, BulkHandoff, Handoff, Launch, ReviewMaterial } from "./contracts";
+import type { AutopilotRun, BulkHandoff, Handoff, Launch, ReviewMaterial, TextFailure, TextRetry } from "./contracts";
 const transport = new ApiTransport(globalThis.fetch, "/api/v2", browserProjectReads);
 const path = (id: string) => `/projects/${encodeURIComponent(id)}/autopilot`;
 const read = async <T,>(url: string, init?: RequestInit) => (await transport.json<T>(url, init)).body;
 export const autopilotApi = {
+  textFailure: (id: string, signal?: AbortSignal, stage?: string) => read<TextFailure | null>(`${path(id)}/text-failure${stage ? `?stage=${encodeURIComponent(stage)}` : ""}`, { signal }),
+  retryText: (id: string, body: TextRetry) => read<AutopilotRun>(`${path(id)}/text-retry`, { method: "POST", body: JSON.stringify(body) }),
   deliveryEvidence: (id: string, signal?: AbortSignal) => read<import("./deliveryEvidence").EvidenceReads>(`${path(id)}/delivery-evidence`, { signal }),
   current: (id: string, signal?: AbortSignal) => read<AutopilotRun | null>(path(id), { signal }),
   launchContext: (id: string, signal?: AbortSignal) => read<{ eligible: boolean; briefRevision: number }>(`${path(id)}/launch-context`, { signal }),

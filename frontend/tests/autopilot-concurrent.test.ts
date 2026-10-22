@@ -17,8 +17,8 @@ it("counts a corrected adopted text stage once while retaining its failed root",
   ];
   expect(projectAutopilotProgress({ ...fixtureRun, checkpoints }).textAdopted).toBe(2);
   const corrective = { ...activity("generating"), domain: "text" as const, owner: "art", operationKey: "art:correction:1" };
-  expect(activityLabel(corrective, fixtureRun)).toBe("正在生成 · 自动修正 1/1");
-  expect(activityLabel({ ...corrective, state: "adopted" }, fixtureRun)).toBe("AI 已采用 · 自动修正 1/1");
+  expect(activityLabel(corrective, fixtureRun)).toBe("正在生成 · 修正第 1 次");
+  expect(activityLabel({ ...corrective, state: "adopted" }, fixtureRun)).toBe("AI 已采用 · 修正第 1 次");
 });
 
 it("counts retained unique image bytes before complete discovery without inventing a total", () => {
