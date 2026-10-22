@@ -7,6 +7,7 @@ from ...autopilot_handoff_contracts import (
     HumanHandoffRequest,
     BulkHumanHandoffRequest,
     BulkHumanHandoffReceipt,
+    QaMaterialHandoffReceipt,
     parse_handoff_receipt,
 )
 from ...domain import new_id, utc_now
@@ -36,7 +37,7 @@ def review_material(store):
 
 def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest):
     repository, project_id = store.repository, store.manifest.project_id
-    attribution = UnnamedCreatorConfirmation()
+    attribution = request.attribution or UnnamedCreatorConfirmation()
     bulk = isinstance(request, BulkHumanHandoffRequest)
     identifier = new_id()
     # This authority is constructed only by this human endpoint; it never admits
@@ -52,6 +53,17 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
         if current["bundleHash"] != request.bundle_hash:
             raise InvalidTransitionError("material changed after review; reload the complete current bundle")
         bundle = current["bundle"]
+        from ...delegated_qa import NativeMaterialQaScope, project_scope, require_native_bundle, require_qa_write, require_scope
+        scope = project_scope(project_id)
+        if request.attribution:
+            if not bulk:
+                raise InvalidTransitionError("agent QA requires the complete atomic material review")
+            scope = require_scope(project_id, request.attribution)
+            require_native_bundle(scope, bundle, request.bundle_hash)
+            session.info["native_qa_handoff_bundle"] = scope.bundle_hash
+            require_qa_write(session, project_id, request.attribution)
+        elif isinstance(scope, NativeMaterialQaScope):
+            raise InvalidTransitionError("native QA material review requires its explicit granted attribution")
         references = [item["decisionId"] for item in bundle["references"]]
         if sorted(request.endorsed_reference_ids) != sorted(references):
             raise InvalidTransitionError("explicitly endorse every exact current gallery reference once")
@@ -76,6 +88,9 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
         approval_origin = "created"
         if latest is not None and latest.decision == "approve":
             approval = repository._media.admission.approval_is_active_in_session(session, latest.id)
+            from ...delegated_qa import attribution_for_reviewer
+            if attribution_for_reviewer(project_id, approval.reviewer) != (request.attribution.model_dump(mode="json", by_alias=True) if request.attribution else None):
+                raise InvalidTransitionError("existing storyboard approval attribution differs from material review")
             approval_origin = "existing_human"
         else:
             approval = repository._approvals.decide_storyboard_approval(project_id,
@@ -86,7 +101,7 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
         for observation, frame in zip(request.frames, expected, strict=True):
             key = (frame["assetId"], frame["shotId"] if frame.get("targetUse") else None)
             if key not in intents:
-                intents[key] = persist_handoff_intent(repository, project_id, frame, intent_plans[key])
+                intents[key] = persist_handoff_intent(repository, project_id, frame, intent_plans[key], request.attribution)
             intent = intents[key]
             selection = session.get(VisualSelectionStateRow, project_id)
             presentation = repository._media.shot_presentations.current(session, project_id, frame["shotId"])
@@ -96,7 +111,8 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
                 shot_id=frame["shotId"], scene_id=frame["sceneId"], expected_selection_revision=selection.revision if selection else 0,
                 storyboard_revision=inventory["storyboardRevision"], approval_id=approval.id,
                 compatibility_note=observation.compatibility_note, visual_intent_id=intent["id"], visual_intent_revision=intent["revision"],
-                expected_presentation_revision=presentation["revision"] if presentation else 0, **({"bulk_basis": basis} if bulk else {}))
+                expected_presentation_revision=presentation["revision"] if presentation else 0, attribution=request.attribution,
+                **({"bulk_basis": basis} if bulk else {}))
             fact = {"shotId": frame["shotId"], "assetId": frame["assetId"], "intentId": intent["id"], "bindingId": binding["id"]}
             if observation.comparisons:
                 state = session.get(SamePersonReviewStateRow, project_id)
@@ -111,7 +127,7 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
                 fact["samePersonReviewId"] = review["id"]
             facts.append(fact)
         closure = material_closure(session, project_id)
-        receipt_type = BulkHumanHandoffReceipt if bulk else HumanHandoffReceipt
+        receipt_type = QaMaterialHandoffReceipt if request.attribution else BulkHumanHandoffReceipt if bulk else HumanHandoffReceipt
         receipt = receipt_type(id=identifier, run_id=row.id, project_id=project_id, bundle_hash=request.bundle_hash,
             bundle=bundle, attribution=attribution, observation=request, approval_id=approval.id, approval_origin=approval_origin, bindings=facts, material_closure=closure)
         raw = receipt.model_dump(mode="json", by_alias=True)
@@ -121,6 +137,7 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
         row.state, row.phase, row.blocker = "handed_off", "manual-video", None
         session.flush()
         session.info.pop("pending_bulk_bindings", None)
+        session.info.pop("native_qa_handoff_bundle", None)
         if not handoff_is_current(session, repository, row):
             raise InvalidTransitionError("the complete human handoff failed current admission")
     return repository.autopilot.current(project_id)

@@ -8,6 +8,8 @@ export type AutopilotActivity = {
   state: "waiting" | "queued" | "generating" | "validating" | "unknown" | "cancelling" | "delivered" | "adopted" | "failed";
 };
 export type AutopilotRun = {
+  timing?: import("../../components/WorkflowTiming").TimingFacts | null;
+  handoffAttribution?: import("../../human-review-attribution").HumanReviewAttribution | null;
   id: string; projectId: string; revision: number;
   state: "running" | "waiting" | "paused" | "blocked" | "cancelled" | "stale" | "taken_over" | "awaiting_review" | "handed_off";
   frames?: Array<{ shotId: string; geometryPreparation?: GeometryPreparation }>;
@@ -45,5 +47,5 @@ export function completeFrame(draft: FrameDraft) {
 }
 
 export type BulkComparison = { characterId: string; judgment: "pass" | "fail" | "unassessable"; comment?: string; productionDecision?: "hold" | "authorize"; uncertaintyReason?: string };
-export type BulkHandoff = { basis: "whole-pack-material.v1"; expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
+export type BulkHandoff = { attribution?: import("../../components/ProjectQaContext").QaActor; basis: "whole-pack-material.v1"; expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
   frames: Array<{ shotId: string; assetId: string; intentContext: IntentContext; intent: IntentContext["intent"]; compatibility: "pass" | "fail" | "hold"; comment?: string; comparisons: BulkComparison[] }> };

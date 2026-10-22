@@ -11,12 +11,13 @@ import { plotloomApi } from "../src/api";
 import { specialistsApi } from "../src/features/specialists/api";
 import { projectAutopilotProgress } from "../src/features/autopilot/progress";
 import type { AcceptedStoryboardReviewRevision } from "../src/types";
+import { projectQaApi } from "../src/components/ProjectQaContext";
 
 vi.mock("../src/pages/ProductionBridgePanel", () => ({ ProductionBridgePanel: () => null }));
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root; let host: HTMLDivElement;
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); vi.spyOn(projectQaApi, "current").mockResolvedValue({ eligible: false, attribution: null }); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.useRealTimers(); });
 function Label() { const label = useAdoptionLabel(); return createElement("div", null, label("characters", 1, "cast-hash"), " / ", label("characters", 2, "manual-hash")); }
 async function render(id = "disposable") { await act(async () => { root.render(createElement(AutopilotWorkspace, { projectId: id, revision: 1, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined,
@@ -48,6 +49,14 @@ it("projects complete image progress from the frozen inventory and hides stale e
 it("shows machine adoption only for the exact adopted owner revision/hash", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValue(fixtureRun);
   await render(); expect(host.textContent).toContain("AI 已采用 / 已采用 · 来源待核实"); expect(host.textContent).toContain("尚未获得完整人工审阅");
+});
+
+it("retained native QA handoff is labelled as delegated QA rather than personal creator review", async () => {
+  vi.spyOn(autopilotApi, "current").mockResolvedValue({ ...fixtureRun, state: "handed_off", handoff: { receiptId: "qa-receipt" },
+    handoffAttribution: { kind: "agent_operated_qa", scopeId: "native-qa" } });
+  await render(); expect(host.textContent).toContain("素材已记录代理 QA 审阅");
+  expect(host.textContent).toContain("已记录完整代理 QA 审阅（经用户授权）");
+  expect(host.textContent).not.toContain("已记录完整人工审阅");
 });
 it("keeps labels neutral until provenance is successfully read", async () => {
   let release!: (value: typeof fixtureRun) => void;
@@ -299,7 +308,7 @@ it("offers no reviewer input and an optional comment while waiting for genuine m
   expect(comment.value).toBe("");
   const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "确认全部素材并继续")!;
   expect(confirm.disabled).toBe(true);
-  expect(host.textContent).toContain("之后可从工作台打开手动视频制作");
+  expect(host.textContent).toContain("之后可从工作台打开视频制作");
   expect(submit).not.toHaveBeenCalled();
 });
 it.each(["ai", "manual", "failed"])("storyboard header, guide and reader carry %s provenance consistently", async kind => {

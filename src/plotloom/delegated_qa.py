@@ -31,6 +31,38 @@ class DelegatedQaScope:
                 raise ValueError(f"{name} must be null or an integer >= {minimum}")
 
 
+@dataclass(frozen=True)
+class QaReference:
+    owner: str
+    subject_id: str
+    decision_id: str
+    assets: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class NativeMaterialQaScope(DelegatedQaScope):
+    """One native review bundle, never an extension of a manual-image grant."""
+    run_id: str
+    bundle_hash: str
+    material_closure: str
+    references: tuple[QaReference, ...]
+
+
+def require_native_bundle(scope, bundle, bundle_hash):
+    from .persistence.codec import stable_hash
+    if not isinstance(scope, NativeMaterialQaScope):
+        raise InvalidTransitionError("QA material handoff requires an exact native-bundle grant")
+    references = tuple(QaReference(item["owner"], item["subjectId"], item["decisionId"],
+        tuple((asset["assetId"], asset["originalHash"]) for asset in item["assets"])) for item in bundle["references"])
+    frames = tuple(QaMaterial(item["shotId"], item["assetId"], item["originalHash"]) for item in bundle["frames"])
+    if (bundle_hash != scope.bundle_hash or stable_hash(bundle) != scope.bundle_hash
+            or bundle["runId"] != scope.run_id or bundle["materialClosure"] != scope.material_closure
+            or bundle["inventory"]["storyboardHash"] != scope.storyboard_hash
+            or references != scope.references or frames != scope.materials):
+        raise InvalidTransitionError("QA authority does not cover this exact native material bundle")
+    return scope
+
+
 # This immutable fixture grant is intentionally narrow. Extending it requires a
 # new owner-authorized source decision, not a public enrollment endpoint.
 SCOPES = (DelegatedQaScope(
@@ -129,6 +161,18 @@ def require_qa_write(session, project_id, attribution, *, board_hash=None, asset
     revision = session.get(EntityRevisionRow, head.entity_revision_id)
     if revision.content_hash != scope.storyboard_hash or board_hash not in {None, scope.storyboard_hash}:
         raise InvalidTransitionError("QA authority does not cover a changed storyboard")
+    if isinstance(scope, NativeMaterialQaScope) and session.info.get("native_qa_handoff_bundle") != scope.bundle_hash:
+        from .persistence.project.autopilot_closure import material_closure
+        from .persistence.schema import AutopilotRunRow, AutopilotHandoffRow
+        from .persistence.codec import stable_hash
+        run = session.get(AutopilotRunRow, scope.run_id)
+        pointer = run.handoff if run is not None else None
+        receipt = session.get(AutopilotHandoffRow, pointer["receiptId"]) if isinstance(pointer, dict) else None
+        if (run is None or run.project_id != project_id or run.state != "handed_off" or receipt is None
+                or receipt.run_id != scope.run_id or receipt.receipt.get("bundleHash") != scope.bundle_hash
+                or receipt.receipt_hash != stable_hash(receipt.receipt) or receipt.receipt_hash != pointer.get("receiptHash")
+                or receipt.receipt.get("materialClosure") != material_closure(session, project_id)):
+            raise InvalidTransitionError("QA authority requires its exact current native material handoff")
     if asset_id is not None:
         material = next((item for item in scope.materials if item.asset_id == asset_id and item.shot_id == shot_id), None)
         asset = session.get(ManagedAssetRow, asset_id)

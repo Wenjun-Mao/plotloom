@@ -1,5 +1,74 @@
 import { batchVideoTest as test, expect } from "./fixture";
 
+test("known QA context unavailable after copy or stale material never falls back to creator Start", async ({ page, workbench }) => {
+  const project = (await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects[0].id;
+  let starts = 0;
+  await page.route("**/qa-context", route => route.fulfill({ json: { required: true, eligible: false, attribution: null,
+    reason: "原始运行时授权或当前素材尚未核实；不能改为创作者确认。" } }));
+  await page.route("**/video-batch/start", async route => { starts++; await route.continue(); });
+  await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${project}`);
+  await page.getByRole("button", { name: "用助手准备全部英文方向", exact: true }).click();
+  await expect(page.getByRole("button", { name: "开始批量制作", exact: true })).toBeDisabled();
+  await expect(page.getByText(/不能改为创作者确认/)).toBeVisible();
+  expect(starts).toBe(0);
+  expect((await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json()).jobs).toHaveLength(0);
+});
+
+for (const boundary of ["cancel-failed", "cancel-response-lost", "successor-response-lost"] as const) {
+  test(`selective replacement recovers ${boundary} without replaying history or cancelling its successor`, async ({ page, workbench }, info) => {
+    test.setTimeout(90000);
+    const project = (await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects[0].id;
+    const api = `${workbench.apiOrigin}/api/v2/projects/${project}/video-batch`;
+    await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${project}`);
+    await page.getByRole("button", { name: "用助手准备全部英文方向", exact: true }).click();
+    await page.getByRole("button", { name: "开始批量制作", exact: true }).click();
+    await page.getByRole("button", { name: "审阅全部视频", exact: true }).click({ timeout: 30000 });
+    const before = await (await page.request.get(api)).json();
+    const original = await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json();
+    const dialog = page.getByRole("dialog", { name: "审阅全部视频", exact: true });
+    await dialog.getByRole("button", { name: /重新制作这个镜头…/ }).first().click();
+    await dialog.getByLabel("重做原因或期望变化").fill("QA creative variation: retain tighter camera framing; no invented provider failure.");
+    await dialog.getByRole("button", { name: "保存拒绝与修改原因", exact: true }).click();
+    await expect(dialog.getByText(/已拒绝：/)).toBeVisible();
+    let cancellations = 0, replacements = 0, rejections = 0;
+    await page.route("**/video-jobs/*/review", async route => { rejections++; await route.continue(); });
+    await page.route("**/video-batch/control", async route => {
+      cancellations++;
+      if (boundary === "cancel-failed" && cancellations === 1) { await route.abort("failed"); return; }
+      if (boundary === "cancel-response-lost" && cancellations === 1) { await route.fetch(); await route.abort("failed"); return; }
+      await route.continue();
+    });
+    await page.route("**/video-batch/replace-rejected", async route => {
+      replacements++;
+      if (boundary === "successor-response-lost" && replacements === 1) { await route.fetch(); await route.abort("failed"); return; }
+      await route.continue();
+    });
+    await dialog.getByRole("button", { name: "仅重做这些镜头", exact: true }).click();
+    if (boundary !== "successor-response-lost") {
+      await expect(dialog.getByText(/已核实：/)).toBeVisible();
+      await dialog.getByRole("button", { name: "关闭审阅", exact: true }).click();
+      await page.reload();
+      const current = await (await page.request.get(api)).json();
+      expect(current.id).toBe(before.id);
+      await page.getByRole("button", { name: boundary === "cancel-failed" ? "审阅全部视频" : "审阅已完成视频与重做镜头", exact: true }).click();
+      await dialog.getByRole("button", { name: "仅重做这些镜头", exact: true }).click();
+    }
+    await expect(dialog).not.toBeVisible();
+    const successor = await (await page.request.get(api)).json();
+    expect(successor.id).not.toBe(before.id); expect(successor.state).toBe("setup");
+    expect(successor.manifest.replacement.batchId).toBe(before.id);
+    expect(successor.manifest.newJobs).toBe(1);
+    expect(successor.manifest.targets.filter((item: { mode: string }) => item.mode === "reuse")).toHaveLength(5);
+    expect(cancellations).toBe(boundary === "cancel-failed" ? 2 : 1); expect(replacements).toBe(1); expect(rejections).toBe(0);
+    const after = await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json();
+    expect(after.jobs).toHaveLength(original.jobs.length);
+    await page.reload();
+    expect((await (await page.request.get(api)).json()).id).toBe(successor.id);
+    await expect(page.getByRole("button", { name: "用助手准备全部英文方向", exact: true })).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`selective-${boundary}-1280.png`) });
+  });
+}
+
 test("native batch survives reload and awaits one atomic audiovisual decision", async ({ page, workbench }, info) => {
   const projects = await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json();
   const projectId = projects.projects[0].id as string;

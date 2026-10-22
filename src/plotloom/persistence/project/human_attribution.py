@@ -19,8 +19,10 @@ def stored_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:
     return value
 
 
-def attribution_readback(reviewer: str) -> dict:
-    return {"attribution": {"kind": "unnamed_creator"}} if reviewer == "" else {}
+def attribution_readback(reviewer: str, project_id: str) -> dict:
+    from ...delegated_qa import attribution_for_reviewer
+    actor = attribution_for_reviewer(project_id, reviewer)
+    return {"attribution": actor} if actor else {"attribution": {"kind": "unnamed_creator"}} if reviewer == "" else {}
 
 
 def stored_storyboard_reviewer(access, reviewer: str | UnnamedCreatorConfirmation) -> str:

@@ -11,4 +11,5 @@ export const batchApi = {
   command: (id: string, name: string, body: unknown) => read<Batch>(id, `/${name}`, body),
   review: (id: string, signal?: AbortSignal) => read<Review>(id, "/review", undefined, signal),
   confirmPack: (id: string, body: unknown) => read<{ id: string }>(id, "/confirm", body),
+  reject: async (id: string, jobId: string, body: unknown) => (await transport.json(`/projects/${encodeURIComponent(id)}/video-jobs/${encodeURIComponent(jobId)}/review`, { method: "POST", body: JSON.stringify(body) })).body,
 };

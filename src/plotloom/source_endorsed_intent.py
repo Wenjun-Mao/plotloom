@@ -5,6 +5,7 @@ from pydantic import Field
 
 from .domain import CamelModel
 from .managed_media import VisualIntentInput
+from .delegated_qa_contracts import AgentQaAttribution
 
 
 class StoryboardIntentSource(CamelModel):
@@ -16,6 +17,7 @@ class StoryboardIntentSource(CamelModel):
 
 
 class SourceEndorsedIntent(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     role: Literal["shot_keyframe"] = "shot_keyframe"
     composition_intent: str
     source_refs: list[str] = Field(min_length=1, max_length=1)

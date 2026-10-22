@@ -24,10 +24,15 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
 
 def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
     receipt = parse_handoff_receipt(raw)
-    bulk = receipt.version == "pre-video.handoff.v3"
+    bulk = receipt.version in {"pre-video.handoff.v3", "pre-video.handoff.v4"}
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
     bundle = receipt.bundle.model_dump(mode="json", by_alias=True)
+    if receipt.version == "pre-video.handoff.v4":
+        from ..delegated_qa import require_scope, require_native_bundle
+        if receipt.observation.attribution != receipt.attribution:
+            raise ValueError("QA handoff observation attribution differs")
+        require_native_bundle(require_scope(project_id, receipt.attribution), bundle, receipt.bundle_hash)
     if stable_hash(bundle) != receipt.bundle_hash or receipt.observation.bundle_hash != receipt.bundle_hash or receipt.bundle.run_id != run_id:
         raise ValueError("human review bundle changed")
     run_policy = connection.execute("SELECT policy FROM v2_autopilot_runs WHERE id=? AND project_id=?", (run_id, project_id)).fetchone()
@@ -138,7 +143,8 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
         frozen_use = frame.target_use.model_dump(mode="json", by_alias=True) if frame.target_use else None
         if (intent is None or intent[:2] != (project_id, frame.asset_id)
                 or authored_intent(json.loads(intent[2])) != observation.intent.model_dump(mode="json", by_alias=True)
-                or json.loads(intent[2]).get("targetUse") != frozen_use):
+                or json.loads(intent[2]).get("targetUse") != frozen_use
+                or json.loads(intent[2]).get("attribution") != (receipt.attribution.model_dump(mode="json", by_alias=True) if receipt.version == "pre-video.handoff.v4" else None)):
             raise ValueError("human authored intent changed")
         if frame.character_ids:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()

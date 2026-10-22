@@ -5,7 +5,7 @@ from ..schema import ReviewedShotBindingRow, VisualIntentRow
 
 
 def authored_intent(payload):
-    return parse_saved_intent({key: value for key, value in payload.items() if key != "targetUse"}).model_dump(mode="json", by_alias=True)
+    return parse_saved_intent({key: value for key, value in payload.items() if key not in {"targetUse", "attribution"}}).model_dump(mode="json", by_alias=True)
 
 
 def prepare_handoff_intents(session, repository, project_id, observations, frames):
@@ -51,10 +51,11 @@ def prepare_handoff_intents(session, repository, project_id, observations, frame
     return plans
 
 
-def persist_handoff_intent(repository, project_id, frame, plan):
+def persist_handoff_intent(repository, project_id, frame, plan, attribution=None):
     existing = plan["existing"]
-    if existing is not None:
+    actor = attribution.model_dump(mode="json", by_alias=True) if attribution else None
+    if existing is not None and existing.intent.get("attribution") == actor:
         return {"id": existing.id, "revision": existing.revision}
-    return repository._media.intents.create_visual_intent(project_id, frame["assetId"], plan["payload"],
+    return repository._media.intents.create_visual_intent(project_id, frame["assetId"], plan["payload"] | ({"attribution": actor} if actor else {}),
         target_shot_id=frame["shotId"],
         retained_target_binding_id=plan["binding"].id if plan["targetUse"] else None)

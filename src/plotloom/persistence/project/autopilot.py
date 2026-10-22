@@ -22,8 +22,9 @@ from ..schema import (
     AutopilotDecisionRow,
     AutopilotFrameRow,
     AutopilotRunRow,
+    AutopilotHandoffRow,
 )
-from .autopilot_activity import _project_checkpoints, run_activities
+from .autopilot_activity import _project_checkpoints, run_activities, run_timing
 from .autopilot_closure import material_closure
 from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
 from .autopilot_exec_attempts import AutopilotExecPersistence
@@ -83,13 +84,16 @@ class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersis
             .order_by(AutopilotCheckpointRow.created_at, AutopilotCheckpointRow.operation_key)).all()
         frames = session.scalars(select(AutopilotFrameRow).where(AutopilotFrameRow.run_id == row.id).order_by(AutopilotFrameRow.shot_id)).all()
         stale = row.expected_closure != material_closure(session, row.project_id)
+        effective_state = "stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state
         policy = LaunchPolicy.model_validate(row.policy)
         projected_checkpoints = _project_checkpoints(checkpoints)
         lifetime_jobs, lifetime_images = project_job_counts(session, row.project_id)
+        handoff = session.get(AutopilotHandoffRow, row.handoff["receiptId"]) if row.handoff else None
         return RunView(id=row.id, project_id=row.project_id, revision=row.revision,
             predecessor_run_id=row.predecessor_run_id, lifetime_jobs=lifetime_jobs,
-            lifetime_images=lifetime_images,
-            state="stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state,
+            lifetime_images=lifetime_images, timing=run_timing(session, row, state=effective_state),
+            handoff_attribution=handoff.receipt.get("attribution") if handoff else None,
+            state=effective_state,
             phase=row.phase, policy=policy,
             blocker={"code": "material_changed", "message": "项目素材已改变，请接管并继续手动编辑。"} if stale else row.blocker,
             checkpoints=projected_checkpoints.public,

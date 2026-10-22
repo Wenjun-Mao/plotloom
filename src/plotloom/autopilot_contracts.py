@@ -15,6 +15,7 @@ from .codex_exec_contracts import CodexExecProfile, ExecutorBinding
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .geometry_preparation import geometry_policy
 from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
+from .workflow_timing import WorkflowTiming
 
 POLICY_VERSION = "plotloom.pre-video.v4"
 PREVIOUS_POLICY_VERSION = "plotloom.pre-video.v3"
@@ -186,6 +187,8 @@ class RunActivity(CamelModel):
 
 
 class RunView(CamelModel):
+    timing: "WorkflowTiming | None" = None
+    handoff_attribution: dict[str, str] | None = None
     predecessor_run_id: str | None = None
     lifetime_jobs: int = 0
     lifetime_images: int = 0

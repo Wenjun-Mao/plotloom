@@ -64,7 +64,7 @@ class SamePersonReviewPersistence:
             "current": current, "latest": latest,
             "productionEligible": current and latest and self.comparisons_authorize_production(row.comparisons),
             "createdAt": _stored_utc(row.created_at).isoformat(),
-        } | attribution_readback(row.reviewer)
+        } | attribution_readback(row.reviewer, row.project_id)
 
     def identity_mapping_for_binding_in_session(
         self, session: Session, binding: ReviewedShotBindingRow
@@ -198,8 +198,13 @@ class SamePersonReviewPersistence:
         """Persist an explicit human judgment about a v3 generated keyframe."""
         from .autopilot_authority import require_human_command
         require_human_command(self._access)
+        from ...delegated_qa_contracts import AgentQaAttribution
+        qa_actor = reviewer if isinstance(reviewer, AgentQaAttribution) else None
+        if qa_actor is not None and bulk_basis is None:
+            raise InvalidTransitionError("QA identity observations require the exact atomic material handoff")
         try:
-            normalized_reviewer = stored_reviewer(self._access, reviewer)
+            from ...delegated_qa import reviewer_for
+            normalized_reviewer = reviewer_for(qa_actor) if qa_actor else stored_reviewer(self._access, reviewer)
             fields = dict(binding_id=binding_id, expected_review_revision=expected_review_revision, comparisons=comparisons, notes=notes)
             if bulk_basis is not None:
                 bulk_basis.require(self._access)
@@ -220,6 +225,13 @@ class SamePersonReviewPersistence:
             binding = session.get(ReviewedShotBindingRow, binding_id)
             if binding is None or binding.project_id != project_id:
                 raise NotFoundError("reviewed keyframe binding not found")
+            if qa_actor is not None:
+                from ...delegated_qa import require_qa_write, attribution_for_reviewer
+                from ..schema import ApprovalDecisionRow
+                require_qa_write(session, project_id, qa_actor, asset_id=binding.asset_id, shot_id=binding.shot_id)
+                approval = session.get(ApprovalDecisionRow, binding.approval_id)
+                if attribution_for_reviewer(project_id, approval.reviewer) != qa_actor.model_dump(mode="json", by_alias=True):
+                    raise InvalidTransitionError("QA identity review attribution differs from its material approval")
             if bulk_basis is not None and session.info.get("pending_bulk_bindings", {}).get(binding_id) != bulk_basis:
                 raise InvalidTransitionError("bulk identity review must bind its exact pending handoff frame")
             from .image_reviewed_use import use_in_session

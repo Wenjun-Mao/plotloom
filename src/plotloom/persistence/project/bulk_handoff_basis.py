@@ -24,7 +24,7 @@ def receipt_basis(session, project_id, binding_id, review_id=None):
     """Validate only historical receipt/native links; never call admission."""
     from ...project_storage.handoff_validation import assert_handoff
     for row in session.scalars(select(AutopilotHandoffRow).where(AutopilotHandoffRow.project_id == project_id)):
-        if row.receipt.get("version") not in {"pre-video.handoff.v2", "pre-video.handoff.v3"}:
+        if row.receipt.get("version") not in {"pre-video.handoff.v2", "pre-video.handoff.v3", "pre-video.handoff.v4"}:
             continue
         facts = row.receipt.get("bindings", [])
         if not any(item.get("bindingId") == binding_id and (review_id is None or item.get("samePersonReviewId") == review_id) for item in facts):

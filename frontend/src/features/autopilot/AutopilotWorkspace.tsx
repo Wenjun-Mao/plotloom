@@ -11,6 +11,7 @@ import { TextFailureCard } from "./TextFailureCard";
 import { CorrectionCount, correctionCount } from "./CorrectionCount";
 import "./autopilot.css";
 import { useCompletionReveal } from "../../app/workspace/completionReveal";
+import { WorkflowTiming } from "../../components/WorkflowTiming";
 
 type Owner = { projectId: string; admissionKey: string; run: AutopilotRun | null; ready: boolean; busy: boolean; error: string; commandError: string;
   start: (body: Omit<Launch, "expectedBriefRevision">) => Promise<void> };
@@ -28,6 +29,7 @@ export function useAdoptionLabel() {
   };
 }
 const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已记录人工审阅" };
+const runStateLabel = (run: AutopilotRun) => run.state === "handed_off" && run.handoffAttribution?.kind === "agent_operated_qa" ? "素材已记录代理 QA 审阅" : stateLabels[run.state];
 const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材审阅", "manual-video": "手动视频制作" };
 
 function ActivityIndicator() {
@@ -43,8 +45,8 @@ export function AutopilotProgress() {
   if (!run && !owner.ready) return <div className="autopilot-progress" role="status" aria-live="polite">无法确认自动运行状态，正在重新读取；请勿重复提交。</div>;
   if (!run) return <div className="autopilot-progress" role="status" aria-live="polite">{owner.error ? "素材运行状态读取失败，正在重试；不会重复发送任务。" : `上次操作未成功，已核实当前没有自动运行。${owner.commandError}`}</div>;
   const progress = projectAutopilotProgress(run);
-  const label = owner.error || !owner.ready ? "状态待核实" : stateLabels[run.state];
-  const activity = owner.ready && !owner.error ? `${stateLabels[run.state]} · ${phaseLabels[run.phase] || "制作规划"}` : label;
+  const label = owner.error || !owner.ready ? "状态待核实" : runStateLabel(run);
+  const activity = owner.ready && !owner.error ? `${runStateLabel(run)} · ${phaseLabels[run.phase] || "制作规划"}` : label;
   const active = owner.busy || run.state === "running" || progress.generating > 0 || progress.validating > 0;
   return <div className="autopilot-progress" role="status" aria-live="polite" aria-atomic="true">
     {active && <ActivityIndicator />}<strong>{owner.ready && !owner.error ? activity : "素材状态待核实"}</strong>{owner.ready && !owner.error && <span>文字 {progress.textAdopted}/{progress.textRequired} · 图片 {progress.imagesSelected}{progress.imagesRequired !== null ? `/${progress.imagesRequired}` : " 项已暂选"}</span>}
@@ -52,6 +54,7 @@ export function AutopilotProgress() {
     {owner.ready && !owner.error && <span>候选已保留 {progress.imagesRetained} 张{progress.imagesRequired === null ? " · 图片总量待完整发现" : ""}
       {run.activities && ` · 生成 ${progress.generating} · 校验 ${progress.validating} · 排队 ${progress.queued}`}</span>}
     {!owner.error && run.blocker && <span>{run.blocker.message}</span>}
+    <WorkflowTiming timing={run.timing} kind="run" verified={owner.ready && !owner.error} />
   </div>;
 }
 
@@ -158,8 +161,8 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   const progress = run ? projectAutopilotProgress(run) : null;
   return <Context.Provider value={owner}>
     {run && <section className="autopilot-status" aria-label="视频素材准备" role="region">
-      <div><strong>{ready ? stateLabels[run.state] : "素材状态待核实"}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
-      <small>AI 初稿与暂选图片 · {!ready ? "人工审阅状态待核实" : run.handoff && run.state === "handed_off" ? "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
+      <div><strong>{ready ? runStateLabel(run) : "素材状态待核实"}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
+      <small>AI 初稿与暂选图片 · {!ready ? run.handoffAttribution?.kind === "agent_operated_qa" ? "代理 QA 审阅状态待核实" : "人工审阅状态待核实" : run.handoff && run.state === "handed_off" ? run.handoffAttribution?.kind === "agent_operated_qa" ? "已记录完整代理 QA 审阅（经用户授权）" : "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
       {ready && progress ? <p>文字初稿 {progress.textAdopted}/{progress.textRequired} 已采用 · {progress.imagesSelected} 项图片已暂选{progress.imagesRequired !== null ? ` / ${progress.imagesRequired} 项必需素材` : ""} · 任务上限 {budgetSummary(run.policy.maxJobs, "项")} · 图片上限 {budgetSummary(run.policy.maxImages, "张")}</p> : <p>正在重新读取；暂不显示上次读取的进度统计。</p>}
       {ready && progress && <p>已保留 {progress.imagesRetained} 张图片候选{progress.imagesRequired === null ? "；图片总量待完整发现。" : "。"}</p>}
       {ready && run.policy.executorBinding && <p>本次生成：Codex · {run.policy.executorBinding.model} · 最多同时运行 {run.policy.executorBinding.maxProcesses} 项任务</p>}

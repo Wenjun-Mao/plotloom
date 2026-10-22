@@ -21,7 +21,8 @@ def assert_source_intent(connection, project_id, payload):
         raise ValueError("endorsed intent lacks its exact saved storyboard revision")
     board = StoryboardV2.model_validate_json(row[4])
     shot = next((item for item in board.shots if item.id == source.shot_id), None)
-    if shot is None or payload != storyboard_intent(shot.model_dump(mode="json", by_alias=True), source.entity_revision_id, source.revision, source.content_hash):
+    authored = {key: value for key, value in payload.items() if key != "attribution"}
+    if shot is None or authored != storyboard_intent(shot.model_dump(mode="json", by_alias=True), source.entity_revision_id, source.revision, source.content_hash):
         raise ValueError("endorsed intent differs from exact saved source text")
 
 

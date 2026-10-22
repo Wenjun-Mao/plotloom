@@ -31,6 +31,12 @@ def register_autopilot_runtime(app, opened_project, registry):
 def register_autopilot_routes(app: FastAPI, opened_project, service):
     from ..text_correction_contracts import TextRetryGrant
 
+    @app.get("/api/v2/projects/{project_id}/qa-context")
+    def qa_context(project_id: str):
+        from ..project_storage.delegated_qa_grants import browser_qa_context
+        with opened_project(project_id) as store:
+            return browser_qa_context(store, app.state.project_folder_storage.application)
+
     @app.get("/api/v2/projects/{project_id}/autopilot/text-failure")
     def text_failure(project_id: str, stage: Literal["outline", "characters", "art"] | None = None):
         from ..autopilot_text_failures import failure_context
@@ -97,5 +103,6 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
 
     @app.post("/api/v2/projects/{project_id}/autopilot/handoff", response_model=RunView)
     def handoff(project_id: str, body: BulkHumanHandoffRequest | HumanHandoffRequest):
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return record_handoff(store, body)

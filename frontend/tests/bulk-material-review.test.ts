@@ -6,12 +6,13 @@ import { autopilotApi } from "../src/features/autopilot/api";
 import { fixtureMaterial, fixtureRun } from "./autopilot-fixture";
 import { bulkHandoff, galleryDraft, galleryFrameReady } from "../src/features/autopilot/bulkMaterialReview";
 import { evidenceReadsFixture } from "./autopilot-delivery-fixture";
+import { projectQaApi } from "../src/components/ProjectQaContext";
 
 vi.mock("../src/features/autopilot/useDeliveryEvidence", () => ({ useDeliveryEvidence: () => ({ state: { status: "ready", value: evidenceReadsFixture() }, retry: vi.fn() }) }));
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement; let root: Root;
 const props = { projectId: "disposable", onClose: vi.fn(), onAccepted: vi.fn(), onUncertain: vi.fn() };
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); vi.spyOn(autopilotApi, "review").mockResolvedValue(fixtureMaterial); });
+beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); vi.spyOn(autopilotApi, "review").mockResolvedValue(fixtureMaterial); vi.spyOn(projectQaApi, "current").mockResolvedValue({ eligible: false, attribution: null }); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.clearAllMocks(); });
 const confirm = () => [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "确认全部素材并继续")!;
 async function render(extra = {}) { await act(async () => root.render(createElement(MaterialReview, { ...props, ...extra }))); }
@@ -30,6 +31,31 @@ it("one explicit final action submits exact saved context with no typing or per-
   expect(body.frames[0].comparisons[0]).toEqual({ characterId: "hero", judgment: "pass" });
   expect(body.frames[1].comparisons).toEqual([]);
   expect(body).not.toHaveProperty("reviewer"); expect(body).not.toHaveProperty("notes");
+});
+
+it("granted QA is an explicit visible per-project choice and never falls back on context failure", async () => {
+  const actor = { kind: "agent_operated_qa", scopeId: "native-qa" } as const;
+  vi.mocked(projectQaApi.current).mockResolvedValueOnce({ eligible: true, attribution: actor });
+  const submit = vi.spyOn(autopilotApi, "handoff").mockResolvedValue(fixtureRun);
+  await render(); await pixels(); expect(confirm().disabled).toBe(true);
+  expect(host.textContent).toContain("明确使用代理 QA 审阅");
+  await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
+  expect(confirm().disabled).toBe(false);
+  await act(async () => confirm().click());
+  expect(submit.mock.calls[0][1]).toHaveProperty("attribution", actor);
+  vi.mocked(projectQaApi.current).mockRejectedValueOnce(new Error("Grant lookup unavailable"));
+  await render({ projectId: "other-project" }); await pixels();
+  expect(confirm().disabled).toBe(true); expect(host.textContent).toContain("不会改为创作者确认");
+  expect(submit).toHaveBeenCalledOnce();
+});
+
+it("known QA projects with unavailable copied or stale grants cannot fall back to creator confirmation", async () => {
+  vi.mocked(projectQaApi.current).mockResolvedValueOnce({ eligible: false, attribution: null, required: true, reason: "原始运行时授权不可用；不能改为创作者确认。" });
+  const submit = vi.spyOn(autopilotApi, "handoff");
+  await render(); await pixels(); expect(confirm().disabled).toBe(true);
+  expect(host.textContent).toContain("原始运行时授权不可用");
+  expect(host.querySelector('input[type="checkbox"]')).toBeNull();
+  await act(async () => confirm().click()); expect(submit).not.toHaveBeenCalled();
 });
 
 it("known broken pixels block; retry retains authored state and needs a fresh image read", async () => {

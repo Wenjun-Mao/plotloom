@@ -2,6 +2,40 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Native material handoff and browser context amendment · 2026-10-22
+
+Native automatic preparation previously always attributed atomic material
+handoff to an unnamed creator. A granted agent UI click therefore could not
+truthfully authorize native references/frames. A distinct `NativeMaterialQaScope`
+now freezes the exact original run, full pre-handoff bundle and closure hashes,
+ordered endorsed reference decisions and every displayed original asset/hash,
+in addition to the board, frame/shot/profile and budget facts. Manual-image
+grants retain their existing meaning; no optional wildcard fields or enrollment
+API are introduced. Add a production fixture only after its native output exists.
+
+The trusted original-runtime binder validates the complete bundle before binding
+the immutable grant. Atomic whole-pack material handoff accepts typed QA and
+retains a `pre-video.handoff.v4` receipt carrying the actor through approval,
+source-endorsed/authored intent, reviewed keyframe and identity observations.
+Every owner still checks current revisions and original-runtime command scope.
+Source text ownership stays with the saved storyboard; QA attribution is separate
+metadata, never a claimed authored change to that text. Historical/portable
+readers validate the exact source grant, receipt, actor and reference/frame facts;
+portable truth does not confer runtime write authority.
+
+`GET /projects/{id}/qa-context` only discovers a verified original-runtime scope.
+Its grant lookup is read-only. Each material/batch surface requires explicit
+visible browser opt-in for that project; navigation resets opt-in. Server writes
+independently recheck typed scope and grant. Missing/failed context cannot enable
+a QA write, and native QA material handoff refuses an omitted actor instead of
+falling back to unnamed creator confirmation. Browser text, URLs and project
+titles grant nothing. Final AV QA records actual observations and evidence,
+including an explicit listening limitation when only technical audio inspection
+was possible. Scope creation is not media inspection or creative acceptance.
+
+Focused native tests cover exact-bundle refusal, actor fallback, atomic identity
+review, retained attribution and portable copies without runtime grants.
+
 ## Finished-example scope addition · 2026-10-22
 
 The owner requested a few finished example projects in different styles, with

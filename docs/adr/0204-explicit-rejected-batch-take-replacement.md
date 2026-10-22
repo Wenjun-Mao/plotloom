@@ -2,6 +2,32 @@
 
 Status: accepted implementation decision, 2026-10-22
 
+## Creator UI amendment · 2026-10-22
+
+The complete-pack gallery now exposes explicit take rejection with a concise
+reason, then the exact rejected-shot set and selective successor preparation.
+It retains the existing separate persisted review, cancellation and replacement
+owners. It never implies those calls are one transaction or sends provider work.
+The successor inherits setup, reuses good siblings and requires fresh English
+review and explicit Start. Typed QA context accompanies rejection, replacement,
+English endorsement and final inspection; ordinary creator decisions remain.
+
+Recovery reads the retained current batch and jobs. It continues only the same
+predecessor or recognizes a successor whose explicit lineage names it. A lost
+response cannot cancel the new successor, replay a rejection against immutable
+superseded history, silently choose another predecessor or restart generation.
+Partial-state status names the last acknowledged action and provides a read-only
+recheck. Repeated clicks and conflicting whole-pack confirmation are disabled
+while a replacement operation is pending. Rejected/cancelled galleries remain
+accessible after reload; UNKNOWN and currentness refusals remain native blockers.
+
+Workflow timing is a response-only projection of run/batch creation and immutable
+same-run adoption/handoff or same-batch AV receipts. Mutable `updated_at` and old
+reused media never establish progress. Browser display uses server observation
+time plus monotonic ticks, shows read uncertainty and the last successful check,
+and uses recorded completion or creation dates for terminal views. No new clocks,
+per-second writes, ETA or provider polls are introduced.
+
 ## Problem and root cause
 
 The finished cinematic example has a current ingested H3 SH01 take explicitly
@@ -63,8 +89,7 @@ fences, provider authority and source/material contracts remain enforced.
 Reject automatic retry, ignoring retained jobs, clearing UNKNOWN, deleting review
 or proposal history, manual selection bypass, changing original finite grants,
 and a generic retry framework. Ordinary setup retains its strict conflict guard.
-The explicit API is sufficient for this bounded operator workflow; frontend
-replacement controls are deferred. Focused native tests cover one replacement,
+The explicit API remains the native owner for the creator UI above. Focused native tests cover one replacement,
 repeat succession, unchanged reuse, fresh endorsement, exact attribution,
 cumulative finite/unlimited claims, stale/selected/unknown/nonterminal/duplicate
 refusal, mutated retained evidence and existing normal batch guards. Synthetic

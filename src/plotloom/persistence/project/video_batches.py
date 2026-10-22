@@ -4,7 +4,7 @@ from sqlalchemy import select
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
-from ..schema import VideoBatchRow, VideoBatchReceiptRow, VideoJobRow
+from ..schema import VideoBatchRow, VideoBatchReceiptRow, VideoJobRow, VideoReviewRow
 
 
 class VideoBatches:
@@ -44,7 +44,21 @@ class VideoBatches:
     def current(self, project_id):
         with self.access.read() as session:
             row = self.latest(session, project_id)
-            return self.view(row) if row else None
+            if row is None:
+                return None
+            from ...workflow_timing import timing_projection
+            receipt = session.scalar(select(VideoBatchReceiptRow).where(VideoBatchReceiptRow.batch_id == row.id))
+            timing = timing_projection(row.created_at, terminal=row.state in {"approved", "cancelled", "retired", "stale"},
+                milestone="完整视频审阅已保存" if receipt else None,
+                milestone_at=receipt.created_at if receipt else None,
+                completed_at=receipt.created_at if receipt and row.state == "approved" else None)
+            rejected = []
+            for fact in row.manifest.get("rejectedHistory", []):
+                review = session.get(VideoReviewRow, fact["rejectionId"])
+                if review is None or review.video_job_id != fact["jobId"] or review.decision != "reject":
+                    raise InvalidTransitionError("retained rejected take observation changed")
+                rejected.append({"shotId": fact["shotId"], "jobId": fact["jobId"], "reason": review.note})
+            return self.view(row) | {"timing": timing.model_dump(mode="json", by_alias=True), "rejectedTakes": rejected}
 
     @staticmethod
     def view(row):

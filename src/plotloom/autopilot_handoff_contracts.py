@@ -7,6 +7,7 @@ from .autopilot_materials import MaterialInventory
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .geometry_preparation_contracts import GeometryPreparation
 from .human_confirmation_contracts import UnnamedCreatorConfirmation
+from .delegated_qa_contracts import AgentQaAttribution
 from .managed_media import VisualIntentInput
 from .cross_shot_image_contracts import CrossShotTargetUse
 from .same_person_review_contracts import SamePersonReviewItem
@@ -110,6 +111,7 @@ class LegacyHumanHandoffRequest(CamelModel):
 
 
 class HumanHandoffRequest(CamelModel):
+    attribution: AgentQaAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     expected_run_revision: int = Field(ge=1)
     bundle_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     notes: str | None = Field(default=None, max_length=2000, exclude_if=lambda value: value is None)
@@ -166,6 +168,17 @@ class HumanHandoffReceipt(HandoffReceiptFacts):
         return ""
 
 
+class QaMaterialHandoffReceipt(HandoffReceiptFacts):
+    version: Literal["pre-video.handoff.v4"] = "pre-video.handoff.v4"
+    attribution: AgentQaAttribution
+    observation: BulkHumanHandoffRequest
+
+    @property
+    def stored_reviewer(self) -> str:
+        from .delegated_qa import reviewer_for
+        return reviewer_for(self.attribution)
+
+
 class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
     version: Literal["pre-video.handoff.v1"] = "pre-video.handoff.v1"
     observation: LegacyHumanHandoffRequest
@@ -175,8 +188,15 @@ class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
         return self.observation.reviewer
 
 
-_receipt_reader = TypeAdapter(Annotated[BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
+_receipt_reader = TypeAdapter(Annotated[QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
 
 
-def parse_handoff_receipt(raw) -> BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt:
-    return _receipt_reader.validate_python(raw)
+def parse_handoff_receipt(raw) -> QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt:
+    receipt = _receipt_reader.validate_python(raw)
+    actor = getattr(receipt.observation, "attribution", None)
+    if isinstance(receipt, QaMaterialHandoffReceipt):
+        if actor != receipt.attribution:
+            raise ValueError("QA handoff observation attribution differs")
+    elif actor is not None:
+        raise ValueError("creator receipt cannot retain an agent QA observation")
+    return receipt

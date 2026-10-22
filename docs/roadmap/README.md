@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Proposed next milestone: creator completion loop
+
+The owner agreed to prioritize one creator creating, revising and finishing a
+small story through the UI, and requested planning first. The
+[bounded implementation proposal](2026-10-22-creator-completion-loop.md) combines
+native-image E2E, selective rejected-take replacement and truthful elapsed/status
+visibility. It identifies the narrow delegated-QA material/UI prerequisite and
+uses one fresh two-shot fixture. Character/branching quality and an uncoached
+colleague pilot follow later. This is a proposal, not implementation approval;
+no generation, activation, full test run, push or CI follows from planning.
+
 ## Approved finished examples in three styles
 
 The owner's October 22 request authorizes finished watercolor paper-boat,
