@@ -111,6 +111,30 @@ SCOPES = (DelegatedQaScope(
         QaReference("art-reference", "S02", "50bf5362-134a-44fd-9070-e3ae6e664607", (
             ("53777940-da8f-4f6b-ac4d-083346cfed6a", "11c853f92e09715c30c8e5de6fcdef3845d44ff25d3cce83a99fb79f14bc3a6e"),)),
     ),
+), DelegatedQaScope(
+    id="playable-example-watercolor-20261022", project_id="7304da14-c3aa-40aa-9b5b-236d6979ac25",
+    storyboard_hash="db1e06c758cd35b6fc5b31c64e247e2e8dcd81e3410e28607bf3e721f1098858",
+    materials=(
+        QaMaterial("SH01", "e6768a75-cbc3-468b-b9cc-a9af541004ff", "bf597b2edc2014e1f1abf4f2d66e9babba36921c2dc9ed978f19f0fced9064be"),
+        QaMaterial("SH02", "90ab0914-27ac-461e-9e50-ad5dbf9685fc", "f67b2c4f02397415c7bca38f145bf2d55be45d671f8c7686c8526f1a3c9f4081"),
+        QaMaterial("SH03", "1ba4e87a-9a55-479a-9769-9978b3d2ac7e", "ba5af56db0b1c639414109bd02cd91e52c4029f916dae74014e084825cb4e315"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
+), DelegatedQaScope(
+    id="playable-example-cinematic-20261022", project_id="7690e55d-3f08-4056-8f7b-8455814c4928",
+    storyboard_hash="d7f332d31144e20fa3623794360ab76187c418997ca866ab96776552ea419536",
+    materials=(
+        QaMaterial("SH01", "bc7a9965-db5b-4fc9-ab9c-5903f41fcc27", "17edc858aa790890becd87f2eaec55efbd1985e50de758b0ffe9ec47982a022e"),
+        QaMaterial("SH02", "9482a310-e1c6-4de7-9717-2f78948e0985", "7ebfb532b5c2b82090b0f6042198c534454d270a1c59654288f83a1008a670e8"),
+        QaMaterial("SH03", "d651393d-3a0e-444e-abcb-b5805569ddf7", "1ff62ad7f5889057509963c6dbd8c33a702667f9b79d9ef04648870792c27a06"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
+), DelegatedQaScope(
+    id="playable-example-stylized3d-20261022", project_id="02a9c60d-9b37-46fd-9446-806cb0aa8a1f",
+    storyboard_hash="1a44ab0d29d1aec108dd1899e774e75f28a099e59d01a3ba7fb9a5d99be8c848",
+    materials=(
+        QaMaterial("SH01", "f1a8a840-3886-41f7-a7e6-a32977d7a0da", "ce9cfcbf6686b565aeeb0a58f525181065fab76c15befa1cb37fc3abd10c1afa"),
+        QaMaterial("SH02", "8a3a5750-77b5-4af3-8a60-028e94bc5782", "d31e5dbf98631e9b9c8eef830d83c598f67dbf30ee5646782112141be456a2c4"),
+        QaMaterial("SH03", "525a22ea-8baf-4283-9f1c-f66b45d7484c", "06b4c30185600b3cd29bca17c812113400067f8272e6c7cd423885890ba2e9fb"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
 ),)
 
 

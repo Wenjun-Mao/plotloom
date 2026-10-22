@@ -69,6 +69,37 @@ QA observation actors in current creator v2/v3, and require identical top-level
 and observation actors in QA v4. This fixes the method/field collision without
 new compatibility, actor fallback or a weaker receipt reader.
 
+## Playable-example QA scope addition · 2026-10-22
+
+The three earlier finished examples were visually complete but not playable:
+their authored graphs had zero choices and one ending. Each new canonical
+project has four graph nodes, one route-only choice and two endings, plus three
+locked three-second shots. A playthrough shares SH01 and selects SH02 or SH03,
+so either route lasts six seconds. The choice changes the ending route without
+assigning a scene, beat, shot or dialogue to the choice.
+
+Append only `playable-example-watercolor-20261022`,
+`playable-example-cinematic-20261022` and
+`playable-example-stylized3d-20261022`. Each exact grant freezes its created
+project, revision-one storyboard hash and all three imported shot/asset/original
+hash identities in `delegated_qa.SCOPES`:
+
+| Style | Project | Storyboard head |
+| --- | --- | --- |
+| Watercolor | `7304da14-c3aa-40aa-9b5b-236d6979ac25` | `db1e06c758cd35b6fc5b31c64e247e2e8dcd81e3410e28607bf3e721f1098858` |
+| Cinematic | `7690e55d-3f08-4056-8f7b-8455814c4928` | `d7f332d31144e20fa3623794360ab76187c418997ca866ab96776552ea419536` |
+| Stylized 3D | `02a9c60d-9b37-46fd-9446-806cb0aa8a1f` | `1a44ab0d29d1aec108dd1899e774e75f28a099e59d01a3ba7fb9a5d99be8c848` |
+
+The manager supplied identities from actual project-creation and nine ImageGen
+import receipts under `.local/playable-examples-20261022/`. These scopes reuse
+the existing `minimax_h3_quality8_portrait_576x1024_v2` profile and null
+aggregate caps; all five prior scopes remain unchanged. This authority is for
+truthful agent-operated example QA, never owner review. Registration does not
+bind a runtime grant, dispatch providers, activate outputs, or establish
+creative acceptance. The manager owns activation, serial execution, inspection
+and settlement; currentness, runtime identity and dispatch protections stay as
+they are.
+
 ## Finished-example scope addition · 2026-10-22
 
 The owner requested a few finished example projects in different styles, with
