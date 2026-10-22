@@ -1,11 +1,12 @@
-# Unified project deletion — first source checkpoint
+# Unified project deletion — implementation, qualification and activation
 
 Scope: owner-approved one directory deletion entry and one explicit confirmation
 flow, implemented in the retained `b30f/plotloom` checkout on local `main`, based
 on `665d3b4d0774415e94a9cceef2c7fda72b89350c`.
 [ADR 0201](../adr/0201-unified-project-deletion-preparation.md) records the contract.
-This is a focused implementation checkpoint for independent review, not final
-cross-layer qualification, installation, live deletion or product acceptance.
+The source-checkpoint sections below retain their historical scope. Current
+status: qualified and owner-authorized activation completed October 21; see
+[activation](#owner-authorized-activation-october-21).
 
 ## Root causes and resulting behavior
 
@@ -346,3 +347,62 @@ with no dispatched work. It does not prove UI launch, provider/worker terminatio
 UNKNOWN host erasure or contention resolution; earlier controller-quiescent strict
 host-route and real 409 evidence retain their stated limits. No new source behavior,
 test suite/full rerun, activation, publication or live-project operation occurred.
+
+## Owner-authorized activation: October 21
+
+After the owner explicitly requested activation, the manager activated the tested
+candidate `fc0022b1033a85039bb91283ca16631e6acdb56b` in the existing installation
+`/Users/wjmao/projects/HU/plotloom`, previously clean at `14e7bce5`. The deployment
+checkout remains clean and detached. No push, GitHub CI or provider operation was
+performed. This activation did not authorize project deletion or run resumption.
+
+Read-only preflight confirmed three retained projects, valid explicit frozen
+budget members, two paused automatic runs, no active host attempt/validator and
+16 queued entries all disabled. Dependencies, lockfiles, service deployment code
+and schema-version definitions were unchanged. The supported sequence was
+`manage.py stop`, exact detached checkout switch, reload only
+`gui/501/com.plotloom.creator-codex-bridge` with `launchctl kickstart -k`, then
+`manage.py start` using its retained configuration and no H3-setting flags. Both
+service commands exited zero. The old container was stopped before source switch.
+
+New container:
+`9e1e057b54c020ae960881ca63cb67d0095dc5db44d3d983fd62e87d69926db2`,
+started `2026-10-22T01:55:54.990761704Z` (October 21, 21:55:54 EDT), healthy.
+The owned bridge PID changed from 1555 to 92067; authenticated bridge health passed.
+`/healthz` returned 200 at localhost:8841 and both retained Tailnet URLs. OpenAPI
+registers deletion-preview, stop-for-deletion and both final guarded erasure routes.
+
+A fresh browser navigation through `https://plotloom.tail6040ad.ts.net/v2/`
+and GET-only directory opening displayed all three retained projects with one
+`删除项目…` entry each. The 1440×1000 screenshot was directly inspected; the named
+verification browser was closed afterward. Trace recording began before navigation:
+the actual browser-loaded `workbench.js` response was 200 and its captured bytes
+hash to `28c6eee0ec0c4a0c4947ee9515e75c169efc0fa00726fe9699618462c354910b`, matching
+the tested candidate and independent served probe. Console capture reported zero
+messages. No destructive control or project-edit action was clicked.
+
+Final preservation comparison and independent read-only review passed: all three
+projects' 84 logical tables each, 214 included non-database files, 15 protected
+files, application and host table rows match their recorded baseline. Frozen run
+policies, checkpoints, task evidence, settings and credential-file hashes remain
+unchanged. Host accounting retains 120 attempts: 101 completed, two UNKNOWN,
+16 queued and one settled; both UNKNOWN identities and reservations are unchanged.
+Enabled queues, validators and active attempts remain zero.
+
+The normal startup controller replaced its claim and incremented only the two
+run revisions, 129→130 and 57→58. Both remain paused in their original phases with
+unchanged policy hashes. Comparison excludes those run revision/claim/updated_at
+fields, database/WAL/SHM and `.lock` file bytes. It records regular-file hashes,
+mode and owner UID, not GID/ACL or whole-filesystem equality; row hashes are not
+DDL hashes. Separate read-only database transactions rely on verified quiescence.
+
+Actual evidence is retained under
+`.local/unified-project-deletion/activation-2026-10-21-f2ZA7K/`:
+`preservation.py`, `before.json`, `after.json`, `final.json`, `comparison.json`,
+`final-comparison.json`, `stop.log` and `start.log`. Browser screenshot, snapshots,
+action/network trace and captured resources are under
+`output/playwright/activation-2026-10-21/`; the captured bundle resource is
+`.playwright-cli/traces/resources/5f5457d4e80b80b426056c73747687025010e28f.js`.
+No new full/test-suite run was necessary for activation. Existing host-termination
+and contention coverage limits remain; this observation does not approve, stop,
+resume or erase the owner's pending work.

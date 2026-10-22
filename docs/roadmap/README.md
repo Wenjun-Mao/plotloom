@@ -21,13 +21,21 @@ The source correction at `bdbaf800` passed exact-finding review and the subseque
 approved frontend/package follow-through, composed with the unchanged backend's
 full gate at `dcd6f115`. [The closeout](../verification/2026-10-19-unified-project-deletion.md#composite-local-qualification-closeout)
 retains actual logs, strict-route fixture evidence and the controller-quiescence
-limitation. No activation, live deletion, push or hosted CI was performed.
+limitation. That qualification checkpoint did not activate the build or perform
+live deletion, push or hosted CI.
 
 A subsequent [installed-wheel desktop journey](../verification/2026-10-19-unified-project-deletion.md#installed-wheel-runtime-acceptance)
 passed idle erase and paused no-dispatch local-authority stop→ordinary erase with
 the shipped background controller enabled, then restart 404/404/200 readback and
 clean process/lease settlement. Initial state was explicitly library-seeded; this
 does not establish launch, provider/worker termination or UNKNOWN-host erasure.
+
+The owner subsequently authorized [activation on October 21](../verification/2026-10-19-unified-project-deletion.md#owner-authorized-activation-october-21).
+The existing installation is clean at tested `fc0022b1`; normal stop/switch/bridge
+reload/start, healthy routes and a fresh browser's single-delete UI were verified.
+Logical project content, included protected files and host accounting were preserved;
+only the two paused runs' startup controller claims/revisions changed. No project
+was deleted or resumed, and no provider call, push or GitHub CI was performed.
 
 ## Delegated disposable-QA vertical slice
 
