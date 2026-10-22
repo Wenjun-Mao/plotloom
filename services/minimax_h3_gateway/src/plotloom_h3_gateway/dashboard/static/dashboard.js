@@ -32,6 +32,10 @@ const text = (id, value) => {
   $(id).textContent = String(value ?? "—");
 };
 let selected = new URL(location.href).searchParams.get("job") || "";
+// This single-page view owns navigation; native history restoration can undo
+// the detail reveal while a freshly selected record is still loading.
+window.history.scrollRestoration = "manual";
+let revealRequested = Boolean(selected);
 const pages = new DashboardPages();
 const preview = new DashboardPreview(
   $("preview"),
@@ -83,12 +87,20 @@ function selectJob(id) {
   url.searchParams.set("job", id);
   if (location.href !== url.href) window.history.pushState(null, "", url);
   jobList.highlight(selected);
+  revealRequested = true;
   revealDetail();
   invalidate();
 }
 function revealDetail() {
   $("detail-panel").scrollIntoView({ block: "start" });
   $("detail-title").focus({ preventScroll: true });
+}
+function finishDetailReveal() {
+  if (!revealRequested) return;
+  revealRequested = false;
+  // Loading placeholders can be too short to scroll to the intended position.
+  // Retry only this navigation's reveal, never ordinary background polling.
+  revealDetail();
 }
 function invalidate() {
   epoch++;
@@ -280,10 +292,12 @@ async function refresh() {
       $("detail").hidden = true;
       $("detail-empty").hidden = false;
     }
+    if (detail) finishDetailReveal();
     $("error").hidden = true;
     delay = 5000;
   } catch (e) {
     if (own === epoch) {
+      revealRequested = false;
       pages.reject(page);
       renderPagination();
       text(
@@ -324,7 +338,10 @@ $("copy").onclick = async () => {
     text("copy", "复制失败，请选中 ID 手动复制");
   }
 };
-$("return-to-list").onclick = () => jobList.returnTo(selected);
+$("return-to-list").onclick = () => {
+  revealRequested = false;
+  jobList.returnTo(selected);
+};
 $("prompt-toggle").onclick = async () => {
   if (!$("prompt").hidden) {
     $("prompt").hidden = true;
@@ -356,7 +373,9 @@ window.addEventListener("popstate", () => {
   selected = new URL(location.href).searchParams.get("job") || "";
   resetDetail();
   jobList.highlight(selected);
+  revealRequested = Boolean(selected);
   if (selected) revealDetail();
+  else jobList.returnTo("");
   invalidate();
 });
 if (selected) revealDetail();

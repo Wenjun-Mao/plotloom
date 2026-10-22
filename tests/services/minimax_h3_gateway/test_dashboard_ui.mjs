@@ -282,3 +282,18 @@ test("row action availability follows polling without retaining an expired downl
   assert.equal(open.textContent, "详情");
   assert.equal(document.getElementById("jobs").children[0], row);
 });
+
+test("completed navigation reveals after layout, once only, and return cancels it", () => {
+  const { context, document } = harness();
+  const panel = document.getElementById("detail-panel");
+  vm.runInContext('selectJob("h3_a")', context);
+  const before = panel.scrollCount;
+  vm.runInContext("finishDetailReveal(); finishDetailReveal()", context);
+  assert.equal(panel.scrollCount, before + 1);
+  vm.runInContext('selectJob("h3_b")', context);
+  document.getElementById("return-to-list").onclick();
+  const returned = panel.scrollCount;
+  vm.runInContext("finishDetailReveal()", context);
+  assert.equal(panel.scrollCount, returned);
+  assert.equal(vm.runInContext("window.history.scrollRestoration", context), "manual");
+});

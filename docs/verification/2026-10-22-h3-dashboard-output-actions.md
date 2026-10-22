@@ -25,7 +25,7 @@ or failed generation. Correction belongs in the dashboard interaction/layout.
 ## Local verification
 
 - Locked gateway plus extraction tests:243passed (one existing Starlette/httpx
-  deprecation warning); Node UI tests:13passed; targeted Ruff and patch checks pass.
+  deprecation warning); final Node UI tests:14passed; targeted Ruff and patch checks pass.
   Coverage includes served assets, available/unavailable actions, expiry updates,
   selection-only reveal, return fallback, stable controls and prior pagination/
   preview regressions. Authoring frontend and wheel gates are not applicable to
@@ -41,10 +41,26 @@ or failed generation. Correction belongs in the dashboard interaction/layout.
   Back navigation, page2 transition and absent-row return fallback passed.
 - Local screenshots inspected; scratch evidence retained under `.local/` after
   closeout. The fixture's copied media/data are not production evidence or new jobs.
+- Final private-HTTPS history check found a second interaction cause: native Back
+  restored scroll after the immediate reveal, and a short loading placeholder
+  could clamp scrolling before content arrived. The correction makes SPA history
+  scrolling explicit and finishes each navigation's reveal once after accepted
+  detail rendering. Return-to-list and fetch failure cancel that pending reveal;
+  ordinary polls do not renew it. Local phone initial click, Back, Forward and
+  reload now each place the panel16px from the top. A second independent review
+  found no material issue and independently passed all14UI tests.
 
 ## Deployment
 
-Pending: dashboard-only rebuild/replacement at observed idle lane/Comfy queue,
-then real private HTTPS preview/download/navigation checks. Existing data,
-gateway/Comfy container identities, secret mounts and Serve handler must remain
-unchanged. No merge, push, CI trigger or director message is authorized here.
+Initial source `c9daabfa` deployed at13:22:20Z after the colleague's active render
+finished. Job count168→168. Private HTTPS checks passed native playback/seek,
+same-element polling, row download and phone actions using the reported job
+`h3_aa2856b70b544113a8f23924b093a2d3`. Download SHA256 matches the stored original:
+`1d8a4a7055e16c34ec61f139220d4cdd942a84607b6c309d9a515a93ac7db898`.
+Two in-flight read polls received502during dashboard cutover and recovered;
+no generation was sent. A colleague started another job after the idle cutover.
+
+Pending: deploy the final history/layout correction at another idle checkpoint
+and repeat private-HTTPS history/geometry checks. Existing data, gateway/Comfy
+container identities, secret mounts and Serve handler remain unchanged.
+No merge, push, CI trigger or director message is authorized here.

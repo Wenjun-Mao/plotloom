@@ -3,7 +3,7 @@ services:
     build:
       context: ../..
       dockerfile: services/minimax_h3_gateway/dashboard.Dockerfile
-    image: plotloom-h3-dashboard:20261022-output-actions
+    image: plotloom-h3-dashboard:20261022-output-actions-2
     container_name: plotloom-h3-dashboard
     network_mode: host
     restart: unless-stopped
