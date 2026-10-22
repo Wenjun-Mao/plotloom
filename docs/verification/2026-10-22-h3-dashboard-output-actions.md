@@ -1,6 +1,6 @@
 # H3 dashboard output actions — 2026-10-22
 
-Status: local candidate verified; deployment evidence follows below.
+Status: **IMPLEMENTED, VERIFIED AND DEPLOYED.** Final source `91346e08`.
 Baseline `cc30ce58`; owner requested improving the reported output-access failure.
 
 ## Root cause and scope
@@ -60,7 +60,35 @@ same-element polling, row download and phone actions using the reported job
 Two in-flight read polls received502during dashboard cutover and recovered;
 no generation was sent. A colleague started another job after the idle cutover.
 
-Pending: deploy the final history/layout correction at another idle checkpoint
-and repeat private-HTTPS history/geometry checks. Existing data, gateway/Comfy
-container identities, secret mounts and Serve handler remain unchanged.
-No merge, push, CI trigger or director message is authorized here.
+Final history/layout correction deployed at13:27:22Z at a new observed empty
+shared lane and Comfy queue. Job count169→169; both colleague renders were left
+to finish normally before either dashboard replacement. No generation submitted
+by this work. Gateway and Comfy container IDs/images/start times remain exactly
+as before, with their October6start times. Data/key read-only mounts and Tailscale
+Serve `/dashboard` handler remain unchanged. Dashboard is healthy/unless-stopped.
+
+- Release `/home/wjmao/services/plotloom-h3-dashboard/releases/20261022-output-actions2.zLJ3ON`.
+- Image `plotloom-h3-dashboard:20261022-output-actions-2`, digest
+  `sha256:dbae86250c22faa321625ff39b7e1efef60e635702424ab1c7d3418e6029aa4d`.
+- Container `ae9dd77c03e6281c0950157a5650995537ecb923c06af460af75fa7afe6c24e5`.
+- Final served dashboard.js SHA256
+  `6fafeeb0e6b0db2358a6cd47a104a8893fe35757f98f17f35feaceab34a2faff`
+  exactly matches committed source; new helper/CSS/HTML hashes matched as well.
+
+Repeated genuine private HTTPS phone click/Back/Forward/reload: each placed the
+detail panel16px from the viewport top; return focused the correct current row.
+Desktop layout inspected, no overflow. Playback retained the exact element and
+reached native end across polling. Original download of
+`h3_17237b55a4094be992436e63c314f721` matched its recorded SHA256
+`28f9720fd4a9c2dab78bcc1337f0ea46cb7f2e8282f8194331e797817e524a91`.
+Expired rows/detail offered no download. A local browser-only600ms detail-GET
+delay also proved return-to-list cancels a pending reveal (focus/scroll unchanged
+after response); no production request was delayed or altered.
+
+Inspected final screenshots: [desktop](supporting/h3-output-actions-https-desktop-20261022.png),
+[phone list](supporting/h3-output-actions-https-phone-list-20261022.png),
+[phone preview](supporting/h3-output-actions-https-phone-preview-20261022.png).
+Scratch screenshots/downloads retained under `.local/h3-output-actions-20261022/`;
+owned local fixture server and Chrome test session stopped. Existing rollback
+release/image retained. Work is local to the specialist branch: no merge, push,
+CI trigger or director message.
