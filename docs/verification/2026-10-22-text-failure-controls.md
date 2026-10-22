@@ -120,6 +120,26 @@ is `full-findings.focused-repair.log`. No existing test, purity pin, profile
 construction or frontend asset changed. Root separately owns the remaining
 downstream full steps; this focused pass alone is not full qualification.
 
+Root's downstream invocation at `febe3d5d` **FAILED** after bundle/parity/manifest
+passed:unfiltered browser346 passed/1 failed in597.901s. The saved-Brief Start
+test's exact payload expectation omitted the intended new `textCorrectionLimit:1`
+default; the observed request was correct. Only that exact expected field is
+added, retaining strict equality for all other fields; no product/assets change.
+Raw stdout:`downstream-febe3d5d.log` (SHA256
+`c885f5dded3eb92bebec13452b755518f71e4b0fd25cbb57e02ca0bb152b6e0c`).
+Original failing screenshot/video/context/trace were retained before rerun under
+`autopilot-default-count-failure/`; trace SHA256
+`dc6f4ec31fe5bc7e7208c49bc43611c72a44a0e29da5210c7259fa19d57961d1`.
+The failed browser invocation remains failed; focused affected-spec evidence
+and Root's unreached wheel/install-smoke steps are separate.
+`verify.py focused --playwright e2e/autopilot-review.spec.ts` passes20 cases in
+49.7s browser/52.242s invocation, including E2E typecheck. The requested focused
+`tests/test_retained_runtime_coverage_inventory.py` preflight passes1 case in1.58s
+(3.337s invocation), without metadata changes. Both commands use
+`uv run --locked --no-sync python scripts/verify.py focused`; raw stdout is
+`autopilot-default-count-focused.log` and `autopilot-default-count-coverage.log`.
+Source/docs stayed frozen during both checks; no full/browser-suite rerun.
+
 This checkpoint stops for narrow independent review. No worker full/module-complete
 rerun is authorized. Activation, real-story retry, live providers, image/video
 retry, publication/push, GitHub CI and human creative acceptance are unperformed.

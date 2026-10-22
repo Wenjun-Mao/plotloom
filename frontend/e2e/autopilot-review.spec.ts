@@ -72,7 +72,7 @@ test("one saved-Brief Start freezes explicit styles and ceilings without videos"
   await page.getByRole("button", { name: "开始准备已保存简报的素材" }).click();
   await expect(page.getByRole("button", { name: "暂停", exact: true })).toBeVisible();
   const writes = JSON.parse(await page.locator("#fixture-writes").textContent() || "[]");
-  expect(writes).toEqual([["start", { styleAuthority: "brief", maxImages: 40, maxJobs: 56, expectedBriefRevision: 1 }]]);
+  expect(writes).toEqual([["start", { styleAuthority: "brief", maxImages: 40, maxJobs: 56, textCorrectionLimit: 1, expectedBriefRevision: 1 }]]);
 });
 
 test("pause and resume use original run controls; takeover retains review entrance", async ({ page, frontendOrigin }) => {
