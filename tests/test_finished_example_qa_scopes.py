@@ -22,7 +22,7 @@ def test_finished_example_registry_is_exactly_the_three_authorized_projects():
         "finished-example-cinematic-20261022": "d7deb82f-4801-4c9f-bfa8-9195c3b36489",
         "finished-example-stylized3d-20261022": "21dd0cbd-3ba9-4cfa-927a-88a877b047ea",
     }
-    assert len(SCOPES) == 4
+    assert len(SCOPES) == 5
 
 
 @pytest.mark.parametrize("scope", EXAMPLE_SCOPES, ids=lambda scope: scope.id)

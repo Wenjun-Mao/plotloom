@@ -1,6 +1,6 @@
 """Exact native material authority and truthful atomic UI handoff."""
 from contextlib import closing
-from dataclasses import replace
+from dataclasses import asdict, replace
 import shutil
 
 import pytest
@@ -15,6 +15,18 @@ from plotloom.project_storage.delegated_qa_grants import bind_original_qa_scope
 from plotloom.project_storage.project_handle import ProjectStore
 from tests.autopilot_handoff_seed_fixtures import copy_awaiting_handoff_seed
 from tests.test_bulk_material_handoff import bulk_observation
+
+
+def test_creator_completion_grant_freezes_only_the_actual_native_successor_materials():
+    from plotloom.persistence.codec import stable_hash
+    scope = delegated_qa.project_scope("6e70451f-e9fd-4460-a475-bce50fde6503")
+    assert isinstance(scope, NativeMaterialQaScope)
+    assert scope.id == "creator-completion-native-20261022"
+    # Digest independently pins every exact reference/frame/original, run,
+    # review bundle, closure, board, profile and prospective budget field.
+    assert stable_hash(asdict(scope)) == "aec7a5acc8ed3ea81eca3a3e3a01a321a51d9ea29332452aa19c00b96a6ab1a1"
+    assert scope.max_submissions is None and scope.max_requested_seconds is None
+    assert len(scope.references) == 3 and len(scope.materials) == 2
 
 
 def native_environment(seed, tmp_path, monkeypatch):
@@ -42,6 +54,17 @@ def test_native_bundle_qa_handoff_is_atomic_attributed_and_portable(tmp_path, mo
     from plotloom.project_storage.current_schema import assert_current_project_database
     storage, client, project, review, scope, actor = native_environment(awaiting_handoff_seed, tmp_path, monkeypatch)
     path = f"/api/v2/projects/{project}"
+    from plotloom.persistence.codec import stable_hash
+    with closing(storage.projects.open(project)) as store:
+        automatic = store.repository.autopilot.current(project)
+        assert automatic.bundle["version"] == "pre-video.material.v1"
+        assert stable_hash(automatic.bundle) == automatic.bundle_hash
+        assert review["bundle"]["version"] == "pre-video.human-review.v2"
+        assert stable_hash(review["bundle"]) == review["bundleHash"] != automatic.bundle_hash
+        with pytest.raises(InvalidTransitionError, match="exact native material bundle"):
+            delegated_qa.require_native_bundle(scope, review["bundle"], automatic.bundle_hash)
+    wrong = bulk_observation(review) | {"attribution": actor, "bundleHash": automatic.bundle_hash}
+    assert client.post(path + "/autopilot/handoff", json=wrong).status_code == 409
     assert client.get(path + "/qa-context").json() == {"eligible": True, "attribution": actor, "required": True, "reason": None}
     assert client.post(path + "/autopilot/handoff", json=bulk_observation(review)).status_code == 409
     body = bulk_observation(review) | {"attribution": actor}

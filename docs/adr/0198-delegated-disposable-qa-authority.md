@@ -2,6 +2,31 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Exact creator-completion native scope · 2026-10-22
+
+The approved native UI fixture produced three genuine references and two prepared
+shot frames. Append only `creator-completion-native-20261022`, project
+`6e70451f-e9fd-4460-a475-bce50fde6503`, successor run
+`faa941da-f566-4b8c-8b79-758664a8d060`. Source freezes every ordered reference
+decision/original and shot/frame original, exact storyboard and material closure,
+the current review bundle hash, existing H3 quality-8 portrait profile and null
+prospective aggregate caps. Prior four scopes are unchanged. Identity evidence
+comes from the retained raw native review, not its JavaScript-normalized copy.
+
+The persisted automatic `pre-video.material.v1` bundle hash and current
+`pre-video.human-review.v2` review hash cover different contracts. Handoff and
+native QA binding require the latter, which adds current closure, saved intent,
+story and displayed review facts. The raw review recomputes exactly as
+`8d3859e258c5c98d0240138d2f0fa0b042547a402ba222ec15606f16f088ad0d`;
+the automatic `8adb4c65…` hash cannot substitute. No hashing, serialization,
+currentness or execution-pin rule is changed to reconcile distinct projections.
+
+This source grant is not runtime binding, provider dispatch or owner creative
+acceptance. The manager inspected the five outputs for technical QA; the ending
+close-up cannot prove feet continuity outside its crop. Actual handoff identity
+and AV observations must retain such visible limits. Activation and exact
+original-runtime grant binding remain separate supported manager operations.
+
 ## Native material handoff and browser context amendment · 2026-10-22
 
 Native automatic preparation previously always attributed atomic material

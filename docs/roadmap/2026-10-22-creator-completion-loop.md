@@ -16,8 +16,12 @@ ordinary busy scheduling is unchanged. See [ADR 0174](../adr/0174-bounded-fair-c
 and the [operator guide](../../services/creator_workbench/codex-exec-capacity-recovery.md).
 The current native fixture's eight text stages were adopted under the old source;
 its run was explicitly cancelled and native continuation became eligible. Quiet
-activation and same-project Continue must freeze fresh source authority and reuse
-the completed text. Live recovery, exact successor QA grant and E2E are pending.
+activation and same-project Continue freeze fresh source authority and reuse
+the completed text. The manager activated `f1a93485`, recovered both exact local
+holds with unchanged UNKNOWN/reservations, and continued the same project. Its
+successor produced three references and two shot frames. The exact source QA
+scope now binds that actual review bundle; runtime binding, material handoff and
+the remaining video/replacement/playback UI journey are still pending.
 
 ## Outcome and scope
 

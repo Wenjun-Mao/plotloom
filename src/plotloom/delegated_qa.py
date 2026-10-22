@@ -93,6 +93,24 @@ SCOPES = (DelegatedQaScope(
         QaMaterial("SH01", "7944c2e3-3c84-4e05-ab73-3bff66271927", "ce9cfcbf6686b565aeeb0a58f525181065fab76c15befa1cb37fc3abd10c1afa"),
         QaMaterial("SH02", "67013757-6c21-4fd9-96e7-5368948ca8b9", "d31e5dbf98631e9b9c8eef830d83c598f67dbf30ee5646782112141be456a2c4"),
     ), profile_id="minimax_h3_quality8_portrait_576x1024_v2",
+), NativeMaterialQaScope(
+    id="creator-completion-native-20261022", project_id="6e70451f-e9fd-4460-a475-bce50fde6503",
+    storyboard_hash="017604f92aa0d0da9584c4016a7fa525c8841652767e4899d9cf135613594c3b",
+    materials=(
+        QaMaterial("node-1d6a9231-4f81-56ad-b1ff-3ac5fd6a1506-s1-c1", "c236a80b-2761-4c6c-93f6-cea6198b5672", "81ae4a781e8cd641854116a9ef3467b48f859e0452dbf4ff2a8a7940a027c6b4"),
+        QaMaterial("node-fa93ce6c-bdef-53d2-b195-481f304258db-s1-c1", "2f27377a-eb96-418c-869c-6150e57a1204", "42eadbc693e96460aeee4d921fd87673c23747bb743097487f1e07b0ab9653da"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2",
+    run_id="faa941da-f566-4b8c-8b79-758664a8d060",
+    bundle_hash="8d3859e258c5c98d0240138d2f0fa0b042547a402ba222ec15606f16f088ad0d",
+    material_closure="cb0f5586bd2c3697b163c781992074622adb3e19762fea88d4942640f471286d",
+    references=(
+        QaReference("character-reference", "C01", "1a7aa52e-c957-481e-9f99-01357d994478", (
+            ("989d49b3-ed96-4fcd-9c61-5aa20480588e", "331be0786aba2c32288597c41e717dfb4b4756beaa0d8cec20ea8a88315ad91c"),)),
+        QaReference("art-reference", "S01", "8322f9b9-bb19-486c-b42c-8b61c983f067", (
+            ("7fe5590f-974f-4dcf-bbc1-dd12d3e9fb62", "20d7e2e20e280c070334bb5a6afcfb209cddfa7c2fba110075564fdae6c9d218"),)),
+        QaReference("art-reference", "S02", "50bf5362-134a-44fd-9070-e3ae6e664607", (
+            ("53777940-da8f-4f6b-ac4d-083346cfed6a", "11c853f92e09715c30c8e5de6fcdef3845d44ff25d3cce83a99fb79f14bc3a6e"),)),
+    ),
 ),)
 
 

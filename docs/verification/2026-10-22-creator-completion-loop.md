@@ -166,3 +166,64 @@ retaining all durable timing/authority facts. Initial reruns retained three then
 two missed equality assertions; no production currentness rule was relaxed.
 One attempted focused selector used nonexistent pool/abandonment filenames and
 was refused before execution; established actual selectors were then used.
+
+## Native successor and exact source grant
+
+Manager-reported live evidence: `f1a93485` was activated; explicit supported CLI
+retirements returned receipts `d7e5c374-bd43-401b-bc56-80202336a5e7` and
+`f352d7f5-1ca7-4e5d-a133-7d830374500f`. Exact readback retained those receipts;
+the complete `exec_attempts` table hash stayed unchanged. Only slots and the new
+receipt table changed. Readiness reported zero held images and two retired UNKNOWN
+holds, unchanged limits, and no automatic dispatch. Credentials/application state
+and the three finished examples were preserved. The first activation's native
+launchctl bootstrap returned 5; after positive service/listener absence and valid
+plist checks, the exact native bootstrap succeeded. The immediate failure's cause
+is unproven, not a repaired product defect.
+
+Visible same-project Continue inherited 12 adopted operations and retained all
+eight text stages. Successor `faa941da-f566-4b8c-8b79-758664a8d060` completed all
+five native images and reached `awaiting_review`, revision 38. The manager
+inspected three genuine references and two prepared shot frames for delegated
+technical QA, not owner creative acceptance. The ending close-up does not prove
+feet continuity outside its crop.
+
+The exact `NativeMaterialQaScope` now freezes project
+`6e70451f-e9fd-4460-a475-bce50fde6503`, that successor, board
+`017604f92aa0d0da9584c4016a7fa525c8841652767e4899d9cf135613594c3b`,
+closure `cb0f5586bd2c3697b163c781992074622adb3e19762fea88d4942640f471286d`,
+ordered reference decisions/originals and shot-frame originals, existing H3
+profile and prospective null budgets. Prior four grants are unchanged.
+The retained raw [review artifact](../../.local/creator-completion-20261022/native-material-review-raw.json)
+was read without JavaScript normalization. Python stable hashing reproduces its
+review hash `8d3859e258c5c98d0240138d2f0fa0b042547a402ba222ec15606f16f088ad0d`;
+`require_native_bundle` matches every granted fact. The full immutable scope
+digest is `aec7a5acc8ed3ea81eca3a3e3a01a321a51d9ea29332452aa19c00b96a6ab1a1`.
+
+The observer's automatic bundle hash `8adb4c65…` covers
+`pre-video.material.v1`; handoff's current review covers
+`pre-video.human-review.v2`, including saved intent/story/current closure.
+They are deliberately distinct owner projections, not evidence of a faulty
+hash. A regression requires both self-hashes to match their own bundle, refuses
+the automatic hash for native QA handoff, then accepts the exact current review.
+No hash normalization, pin/currentness bypass or historical material rewrite was
+introduced. Source registration does not bind a runtime grant or dispatch work.
+The source worker still performed no live mutations or provider submissions.
+
+Independent exact-grant review recomputed every ordered reference/frame and
+review hash from the raw artifact, checked geometry project/output links and the
+scope digest, and compared the prior four grant ASTs unchanged: no actionable
+finding. `git diff --check` and targeted F401 checks pass. An optional broader
+Ruff check reports pre-existing import-order advisories in these modules (also
+reproduced from the committed baseline); no lint rule was suppressed. The latest
+quick and deterministic frontend evidence is reused: this delta changes only one
+closed source grant, focused tests and documentation, not frontend assets,
+dependencies, hash owners, persistence or API request contracts.
+
+Exact-grant focused verification passed: `verify.py focused --pytest
+tests/test_native_material_qa.py --pytest tests/test_finished_example_qa_scopes.py
+--pytest tests/test_delegated_qa.py`, 73 passed in 81.31 seconds. This includes the
+new full-field grant pin and automatic-versus-current-review hash refusal,
+currentness/actor/runtime/portable guards, original finite grant and all three
+existing examples. No new test failed in this exact-grant checkpoint. The usual
+Starlette/httpx deprecation advisory remains non-failing. No broader/full gate,
+activation, binding or provider action was performed by this source worker.
