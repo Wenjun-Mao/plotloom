@@ -135,6 +135,20 @@ SCOPES = (DelegatedQaScope(
         QaMaterial("SH02", "8a3a5750-77b5-4af3-8a60-028e94bc5782", "d31e5dbf98631e9b9c8eef830d83c598f67dbf30ee5646782112141be456a2c4"),
         QaMaterial("SH03", "525a22ea-8baf-4283-9f1c-f66b45d7484c", "06b4c30185600b3cd29bca17c812113400067f8272e6c7cd423885890ba2e9fb"),
     ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
+), DelegatedQaScope(
+    id="minute-playable-example-20261023", project_id="df6bcbc9-c2a9-4274-a8e3-5db3735bf95f",
+    storyboard_hash="d3acc99f43e3a3c28fbb794637c0a40341fd24ca50b37af4a5668ebcf02b8531",
+    materials=(
+        QaMaterial("SH01", "9f83ee32-ec33-4aba-ae84-7aa45bbf6748", "0005ce116da24ee1fecb41535b25b934d33334e3179397164343f2395850e3fc"),
+        QaMaterial("SH02", "e805d417-05f1-4391-8fdf-15f19da0b07e", "5593020c13673ac72a27c210a37948f43cd1d3ec7e24c9177cd956fc3dda51d3"),
+        QaMaterial("SH03", "a96dd716-d819-4152-b4b8-7a025d1631c3", "eee3d14441bbc5f8c6581fb70476176948a8a5cb5ed5bc7875f3ec165fd9fc08"),
+        QaMaterial("SH04", "121941e8-5af8-4da2-b46d-cd937639a410", "c8125c21373bcf176684225a7bd612882f4927c235f1fa36605711979f6153ba"),
+        QaMaterial("SH05", "0d1c2213-8997-417e-9e72-59deebcdc3b6", "f5b52529e22e58d9ca4d1c54f6d08e89f8fd260a80b40945dc88662a505ad38d"),
+        QaMaterial("SH06", "a71bf3a1-8b24-40ff-8c1a-17c00518da68", "dabde763fd9bdc9c68884d4d31939d9fe113df5d451a35062813eaada5df989b"),
+        QaMaterial("SH07", "35e0d664-d9c9-4e0f-96ea-db0dfa396fb6", "0e5f18b4d21a2352d7f8f4bf256e0b1c53a2e430aa8bb292fef8f0ed716dbd46"),
+        QaMaterial("SH08", "ef2ff3b4-af4c-47dc-9c72-b3d9501a62df", "c224dcd6724862eeac6a611e112675d943395878558b511dff3a2e5ad26cb17a"),
+        QaMaterial("SH09", "94ec8298-aa28-4001-ad4d-641d17409f39", "2dd31bdfa85732362f954cb5001b20f091cf2d604179c33b46ab0b8152b3efa6"),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
 ),)
 
 

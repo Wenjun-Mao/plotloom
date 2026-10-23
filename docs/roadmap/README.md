@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Approved new minute-long playable example
+
+The owner explicitly authorized one new interactive story end to end, including
+its exact source-owned QA scope and controlled service reload. The
+[bounded example plan](2026-10-23-minute-playable-example.md) owns the fresh
+miniature sailboat/lighthouse story, two sixty-second routes, actual original
+provenance, focused grant qualification, root-owned activation and both real
+browser routes. Preserve all seven existing projects and both UNKNOWN holds;
+source registration and authored timing are not playable delivery or creative
+acceptance.
+
 ## Approved workbench specification alignment implementation
 
 The owner requested implementation planning after settling all three workbench

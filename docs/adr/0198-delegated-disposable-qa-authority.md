@@ -2,6 +2,41 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Minute-long playable example scope addition · 2026-10-23
+
+The owner explicitly authorizes one new interactive story end to end, including
+its exact QA scope and controlled service reload. Append only
+`minute-playable-example-20261023`, project
+`df6bcbc9-c2a9-4274-a8e3-5db3735bf95f`, revision-one storyboard
+`d3acc99f43e3a3c28fbb794637c0a40341fd24ca50b37af4a5668ebcf02b8531`.
+Its nine actual imported shot/asset/original triples are frozen in `SCOPES`;
+the complete grant hash is
+`ad5aa30c0876699789c9fa5285b2c627e9dc4741791e612cc6a79fcc29276fc3`.
+All eight preceding scope dataclasses, including the original finite grant, remain
+byte-equivalent in their stable encodings. No admission, matching or attribution
+behavior changes. Exact-project constants avoid public enrollment or role-based
+authority; labels and general provider permission cannot substitute for them.
+
+The nine new ImageGen keyframes depict a toy boat reaching either sheltered
+lighthouse steps or open moonlit water. Three shared ten-second shots and three
+selected ending shots yield sixty seconds per route, plus indefinite choice time.
+Use the existing H3 quality-8 portrait profile, native audio and explicit center
+crop; prospective aggregate caps are null. This is agent-operated example QA,
+never owner personal review or creative acceptance. Registration does not establish
+runtime binding, dispatch, inspection, selection or actual browser playback.
+
+The first unproduced bootstrap `81f468e9-4c66-440a-b277-74af3926aa24` was removed
+through supported ordinary deletion after an upstream correction exposed the
+existing source-less graph-edit boundary. The corrected initial-stage package was
+then recreated once and the same nine local originals imported with new identities.
+No guard was bypassed, old project changed or generated video discarded. Retain
+both creation histories and the exact deletion/preservation receipts in the
+[verification record](../verification/2026-10-23-minute-playable-example.md).
+Focused tests pin all old scope hashes and exact new identities while refusing
+changed material, board, actor, provider, profile, audio, crop or extra end frame.
+Root independently reviews, activates and binds the original runtime; existing
+currentness, UNKNOWN, grant-incarnation and dispatch guards continue unchanged.
+
 ## Exact creator-completion native scope · 2026-10-22
 
 The approved native UI fixture produced three genuine references and two prepared
