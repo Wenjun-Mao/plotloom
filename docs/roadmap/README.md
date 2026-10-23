@@ -28,6 +28,10 @@ final checked-static browser run and visual inspection after the source diff is
 stable. This narrow reader presentation check makes no native generation,
 lifecycle or broader product-acceptance claim.
 
+Completed and activated at `7fd015ba`; see the
+[qualification and preservation record](../verification/2026-10-22-canonical-graph-choice-labels.md).
+The live Safari page has not been rechecked.
+
 ## Approved finished examples in three styles
 
 The owner's October 22 request authorizes finished watercolor paper-boat,
