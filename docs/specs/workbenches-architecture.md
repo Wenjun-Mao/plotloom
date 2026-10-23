@@ -8,7 +8,7 @@ generated full-code dependency map or a claim of runtime acceptance.
 | Navigation, lifecycle, shared review reads | Workspace controllers and draft guards; shared project/revision-owned Source state | A second approval state in the six-step guide |
 | Authoring state / commands / Undo | One GraphWorkbench provider and typed source-bound `story_graph/root` contract | Creator and Professional graph copies or competing writers |
 | Creator presentation | Automatic topology layout, page-vertical/chart-horizontal navigation, bounded selected-node inspector | Free-position graph authority or sizing persisted in authored state |
-| Professional presentation | Technical canvas/details and supported fine controls over the same owner | Independent canonical graph save or a promised new layout-persistence feature |
+| Professional presentation | Technical canvas/details over the same graph owner; active-project-session visual context survives mode switches and resets on project change/reload/close-reopen | Independent canonical graph save, durable authored layout or a reset of shared selection/content |
 | Canonical reading | Accepted StoryGraph, shared topology/field projections, mode-specific shell | Fake authoring draft/source binding or revived legacy writer |
 | Story and production context | Existing exact Script/review/bridge and shot/media owners | Node-only generation, guessed scene mappings or duplicate media state |
 | Project durability | Current project-folder persistence, CAS, admission and lifecycle quiescence | Shared historical repository fallback or implicit migration |

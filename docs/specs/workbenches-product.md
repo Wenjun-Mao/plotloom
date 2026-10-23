@@ -77,7 +77,7 @@ Later approved creator-completion requirements are consolidated below from
   Structural help uses one normal-flow region after fields, with hover/focus/pinned
   precedence, accurate ARIA and no obstruction. Keyboard must reach main controls.
 
-## Professional page and canvas navigation (C56)
+## Professional page and canvas navigation (C56–C57)
 
 In both editable and canonical read-only Pro, ordinary wheel/two-finger scrolling
 navigates the page, preserving intentional inner form/label scrolling. It does
@@ -85,8 +85,11 @@ not zoom or pan the graph transform. Pinch or visible zoom/fit controls zoom;
 dragging the canvas background pans. Do not require moving the pointer to the
 left rail to scroll the page. Creator and unrelated canvases retain their own
 contracts. [Owner-approved decision](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-page-and-canvas-navigation-2026-10-23).
-This is agreed intent, not implemented/qualified behavior. Pro canvas-state
-persistence remains [open](conflicts.md#owner-review-required).
+Preserve supported Pro positions and canvas pan/zoom across mode switches within
+the active project session. Reset this visual state on project change, reload or
+close/reopen, not authored work or shared selection. Do not add durable layout
+storage or new read-only dragging ([lifetime decision](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-visual-state-lifetime-2026-10-23)).
+These are agreed requirements, not implemented/qualified behavior.
 
 ## Exact structural editing (C09–C26, C33, C48–C50, C53)
 

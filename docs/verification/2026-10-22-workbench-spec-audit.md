@@ -158,7 +158,7 @@ The full permanent checklist and subchecks remain authoritative.
 | C37–C39 | Independent read-only review and fresh isolated fixtures; no owner reset or whole-product/human acceptance claim. |
 | C40–C44 | Story exact section/scene projection, lossless JSON ownership, route-only modes and guarded installed-cut handoff source-reviewed. No new provider/media acceptance. |
 | C45–C47 | Supported three-size cases pass; right sidebar/resize cancellation retained. Height formula was unresolved during the original audit and is now settled by the owner follow-up; real OS blur not exercised. |
-| C48–C50 | Type/start/join/edge buffers and exact previews source-reviewed; no complete native conversion/join/delete/Undo matrix. Pro position lifetime unresolved. |
+| C48–C50 | Type/start/join/edge buffers and exact previews source-reviewed; no complete native conversion/join/delete/Undo matrix. Pro position lifetime was unresolved at initial audit and is now settled by the owner follow-up. |
 | C51–C53 | GET-read withdrawal/recovery, project/epoch guards and consent stages source-reviewed; prior unchanged nine graph-read recovery cases retained, not rerun here. |
 | C54–C55 | Existing entrypoints/help ownership inspected; Brief target-preview journey reproduced. Not every source/report/help state visually replayed. |
 | P01–P02 / P05 | Brief→source→shared graph basis and target separation reviewed; no new source/suggestion generation or adoption. |
@@ -227,8 +227,7 @@ catalogue; they were removed before the final baseline-to-HEAD diff check.
 
 ## Owner handoff
 
-Suggested order after review: settle the remaining Professional visual-state
-lifetime question (height and wheel ownership are now agreed), then
+All three intent questions are now settled. Suggested next step after review:
 authorize one bounded repair slice for selection, label containment, count
 projection and status parity with the proposed regressions. These share
 presentation/authority seams but do not require backend permission changes.
@@ -328,7 +327,7 @@ coverage without renumbering existing checks.
 Current code still inherits the diagnosed wheel defaults. C56 is not implemented
 or newly verified, and no old browser pass establishes it. This is a gap against
 a newly adopted contract, not a claim of violating a previously explicit wheel
-rule. Only Pro visual-state lifetime remains unresolved. No code/test/static,
+rule. Pro visual-state lifetime was still unresolved at that checkpoint. No code/test/static,
 runtime, project, provider, publication or CI change follows from this design
 adoption; implementation remains a separate authorization.
 
@@ -336,3 +335,24 @@ Adoption documentation checks: all 350 relative file/directory targets in seven
 changed documents resolve, all 215 numbered ADRs retain exact-once catalogue
 coverage, and whitespace/documentation-only diff checks pass. Independent
 read-only consistency review found no blocker; no runtime test was run.
+
+## Professional visual-state lifetime adopted, 2026-10-23
+
+The owner accepted retention of supported Pro positions/pan/zoom across mode
+switches within the active project session, resetting on project change, reload
+or close/reopen. Direct approval: chat turn
+`01a166f5-3fed-7ef2-93a0-5ef6abd00f4b`. [0122 lifetime](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-visual-state-lifetime-2026-10-23)
+and the product/engineering/architecture views now record it. Shared selection,
+dirty content and Creator preferences are not reset by this Pro visual boundary.
+C57 adds mode-retention/reset acceptance without claiming implementation or a pass.
+
+No intent question remains in this bounded reconciliation. The four original
+deviations and newly adopted Pro navigation/session requirements remain unfixed
+or unverified as recorded; no application/test/static changes or activation are
+part of this documentation closeout. Implementation needs separate authorization.
+
+Closeout documentation checks: all 408 relative file/directory targets in nine
+changed documents resolve; 215 ADRs retain exact-once catalogue coverage and C57
+occurs once in the playbook. Whitespace/documentation-only diff checks pass.
+Independent review's authorization-wording clarification was incorporated;
+no runtime test was run.

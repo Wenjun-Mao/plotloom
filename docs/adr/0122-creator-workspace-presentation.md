@@ -165,10 +165,30 @@ into the left rail to scroll. Wheel-to-pan would retain that obstacle; removing
 all pan/zoom would lose Pro capabilities. Configure the Pro presentation boundary,
 not a global wheel listener or new graph/persistence owner. In the installed
 library, disabling wheel zoom alone still consumes scrolling, so native page
-scrolling must also be permitted. Canvas-state lifetime remains separately open.
+scrolling must also be permitted. Canvas-state lifetime is settled separately below.
 
 The owner answered `Yes` to adopting this interaction for both Pro views in chat
 `01a04525-e907-7630-9640-78790d69e8ae`, turn
 `01a166ee-121b-7b61-a53a-4f47deb49897`. This adopts product intent, not implementation
 or activation. C56 records the required native interaction checks; the current
 implementation gap remains until separately authorized work and verification.
+
+## Owner-approved Professional visual-state lifetime, 2026-10-23
+
+Keep Pro node positions, where positioning is supported, and canvas pan/zoom
+across Creator↔Professional switches within the active project session. Reset
+that Pro visual state on project change or page reload; closing/reopening ends
+the active session. Do not add durable layout preferences or authored geometry.
+Existing shared node selection, dirty drafts, content and Creator preferences
+retain their own contracts; a visual reset must not discard them.
+
+Reason: ordinary mode navigation should retain technical context without adding
+durable layout/versioning work. Reopening loses the custom Pro view by design.
+This chooses a presentation-state lifetime, not a second graph owner or new
+read-only node-dragging capability. C57 covers mode retention and reset boundaries.
+
+Direct approval: the owner answered `Yes` to the session-retention recommendation
+in source chat `01a04525-e907-7630-9640-78790d69e8ae`, turn
+`01a166f5-3fed-7ef2-93a0-5ef6abd00f4b`. This closes the last intent question in the
+bounded reconciliation; implementation, activation and the audited code repairs
+remain on hold pending separate authorization, not completed behavior.
