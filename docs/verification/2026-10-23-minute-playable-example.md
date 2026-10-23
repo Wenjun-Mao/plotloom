@@ -248,7 +248,7 @@ footage seconds per route. Native audio activity/controls do not prove listening
 
 ## Final preservation and handoff
 
-`preservation-final.json` and read-only `closeout.py` / `closeout.json` pass direct
+`preservation-final.json` and `closeout.py` / `closeout.json` pass direct
 comparison to the initial pre-write baseline. All seven older project table/file/
 mode/ownership records, protected settings, host tables/counts/active attempts,
 queue/validator state and the same two UNKNOWN IDs are exact. Catalog is exactly
@@ -256,6 +256,8 @@ old seven plus this project. Old application rows compare exactly after excludin
 only this project's create row, exact scope/batch grant keys and dispatch events/
 leases derived from these nine actual job IDs. No whole table is excluded. This
 resolves intentional new rows without relabelling a generic unequal comparison.
+The closeout script reads runtime/project state without mutating it and writes
+only the local `closeout.json` evidence receipt.
 
 Executable product bytes remain qualified `ac27bad9`; final checkpoint adds only
 this completion record, roadmap status and the two parent-reported native workbench
@@ -264,3 +266,16 @@ these docs-only changes. No push, CI, workflow preparation or owner acceptance i
 claimed. Recommended owner review: try both outcomes and listen to the native
 audio, because story taste and perceptual sound were not certified by technical
 QA. There is no remaining execution blocker for trying the example.
+
+### Independent final closeout review
+
+Root confirmed the live batch is approved at revision 34 with nine ready, zero
+failed/blocked and nine current selected windows, each `[0,240)` / 240 frames /
+320,000 audio samples. Native Safari shows the opening paused at 1-of-3 with
+empty choice history. Root reviewed both natural-route records and actual
+first/middle/final images of the two ending shots; no duplicate playback run was
+needed. An independent read-only reviewer verified all eighteen retained media
+hashes, nine unique source/segment/confirmation identities and exact old-row
+preservation after narrowly identified new-project exclusions. No material blocker
+was found. The final handoff preserves the technical-only audio and agent-QA
+limits above; it does not claim personal listening or owner creative acceptance.
