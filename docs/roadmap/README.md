@@ -29,6 +29,12 @@ generation, source binding, backend/schema/dependency change, push or CI is
 included. Stop when the sidebar is restored and these bounded checks pass; live
 Safari access remains unavailable and is not replaced with a live-data bypass.
 
+Completed and activated at `21c6d6be`; the
+[repair, qualification and preservation record](../verification/2026-10-22-creator-canonical-sidebar.md)
+explains the existing-spec enforcement gap and its new cross-product regression
+coverage. All seven installed projects are unchanged. Live Safari readback
+remains separate from isolated Chromium qualification.
+
 [ADR 0122's amendment](../adr/0122-creator-workspace-presentation.md#canonical-read-only-fallback-geometry-and-labels-2026-10-22)
 owns the shared topology geometry and accessible choice-label lanes for the
 accepted canonical reader used by creator and professional fallback modes. The
