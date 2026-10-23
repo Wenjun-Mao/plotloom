@@ -221,6 +221,8 @@ files still match the preceding qualified build. Source/catalogue reviewers foun
 no remaining concrete report blocker. The owned CLI browser and both test servers
 were closed; disposable evidence remains. The installation was not switched or
 restarted and no live project was accessed.
+A staged whitespace check caught extra trailing blank lines in the generated
+catalogue; they were removed before the final baseline-to-HEAD diff check.
 
 ## Owner handoff
 

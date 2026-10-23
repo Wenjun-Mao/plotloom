@@ -271,5 +271,3 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 | Record (full slug) | Opening status cue — inspect source for exact scope |
 | --- | --- |
 | [0217-feature-oriented-specification-authority](../adr/0217-feature-oriented-specification-authority.md) | Status: documentation organization approved by the owner, 2026-10-22. |
-
-
