@@ -30,9 +30,10 @@ The owner's follow-up about agreements left in chat is included in the
 [chat-to-spec reconciliation](../specs/conflicts.md#chat-decision-reconciliation).
 It corrects stale approval status and consolidates already-agreed clauses;
 the four code findings remain for review. The owner subsequently accepted the
-sidebar-height formula. Professional visual-state lifetime remains open, and the
-new reported wheel/page-navigation problem has a separate interaction proposal;
-neither Professional proposal authorizes code changes.
+sidebar-height formula and page-first wheel navigation for both Professional
+views. Pro visual-state lifetime remains open. The adopted interaction is
+recorded in ADR 0122/C56; implementation, activation and the four code repairs
+remain on hold, not authorized by design adoption.
 
 ## Completed bounded milestone: creator completion loop
 

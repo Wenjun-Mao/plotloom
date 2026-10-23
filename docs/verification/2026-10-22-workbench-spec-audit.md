@@ -227,8 +227,8 @@ catalogue; they were removed before the final baseline-to-HEAD diff check.
 
 ## Owner handoff
 
-Suggested order after review: settle the remaining Professional interaction
-questions (height is now agreed), then
+Suggested order after review: settle the remaining Professional visual-state
+lifetime question (height and wheel ownership are now agreed), then
 authorize one bounded repair slice for selection, label containment, count
 projection and status parity with the proposed regressions. These share
 presentation/authority seams but do not require backend permission changes.
@@ -314,3 +314,25 @@ calls, push or CI are part of this follow-up.
 Follow-up documentation checks: 346 relative file/directory targets resolve,
 whitespace checks pass and the diff outside `docs/` is empty. Independent
 read-only review found no blocking inconsistency; no runtime test was run.
+
+## Professional navigation decision adopted, 2026-10-23
+
+The owner answered `Yes` to adopting ordinary wheel/two-finger page scrolling,
+deliberate pinch/visible zoom controls and canvas-background drag-pan for both
+editable and canonical read-only Pro. Direct source: turn
+`01a166ee-121b-7b61-a53a-4f47deb49897`. The preceding proposal/diagnosis records the
+state before this adoption; [0122](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-page-and-canvas-navigation-2026-10-23)
+and the product baseline now own the agreed behavior. C56 adds native acceptance
+coverage without renumbering existing checks.
+
+Current code still inherits the diagnosed wheel defaults. C56 is not implemented
+or newly verified, and no old browser pass establishes it. This is a gap against
+a newly adopted contract, not a claim of violating a previously explicit wheel
+rule. Only Pro visual-state lifetime remains unresolved. No code/test/static,
+runtime, project, provider, publication or CI change follows from this design
+adoption; implementation remains a separate authorization.
+
+Adoption documentation checks: all 350 relative file/directory targets in seven
+changed documents resolve, all 215 numbered ADRs retain exact-once catalogue
+coverage, and whitespace/documentation-only diff checks pass. Independent
+read-only consistency review found no blocker; no runtime test was run.

@@ -150,3 +150,25 @@ new Professional canvas interactions or code repairs.
 Direct approval: `Sidebar height - agreed`, source chat
 `01a04525-e907-7630-9640-78790d69e8ae`, turn
 `01a166e4-9f25-7df1-a9a7-e363d77a4348` (2026-10-23 UTC / October 22 Toronto).
+
+## Owner-approved Professional page and canvas navigation, 2026-10-23
+
+Both editable and canonical read-only Professional views use ordinary wheel /
+two-finger scrolling for native page navigation, retaining intentional inner
+form/label scrolling. Ordinary scrolling does not zoom or pan the graph transform.
+Pinch or visible zoom/fit controls provide deliberate graph zoom; dragging the
+canvas background pans it. Both Pro paths must expose those explicit controls.
+Creator's automatic chart and unrelated canvases keep their own contracts.
+
+Reason: inherited wheel-to-zoom consumes page navigation and forces the pointer
+into the left rail to scroll. Wheel-to-pan would retain that obstacle; removing
+all pan/zoom would lose Pro capabilities. Configure the Pro presentation boundary,
+not a global wheel listener or new graph/persistence owner. In the installed
+library, disabling wheel zoom alone still consumes scrolling, so native page
+scrolling must also be permitted. Canvas-state lifetime remains separately open.
+
+The owner answered `Yes` to adopting this interaction for both Pro views in chat
+`01a04525-e907-7630-9640-78790d69e8ae`, turn
+`01a166ee-121b-7b61-a53a-4f47deb49897`. This adopts product intent, not implementation
+or activation. C56 records the required native interaction checks; the current
+implementation gap remains until separately authorized work and verification.

@@ -9,7 +9,6 @@ not silently normalized to current implementation.
 | Question | Conflicting or incomplete sources | Suggestion, reasoning and trade-off — not adopted |
 | --- | --- | --- |
 | Professional visual-state persistence | October 6 plan preserves existing Pro canvas behavior; ADR 0121 retires independent canonical-shaped editing; C28 shares node selection; C48 permits Pro positioning without changing structure. No explicit position/zoom lifetime is stated | Preserve per-project visual state across Creator↔Pro switches during the current project session; reset on project change/reload initially. This avoids losing technical context during ordinary navigation without durable authored layout or migration. Trade-off: reopening loses custom layout; durable browser-private preferences improve that at the cost of explicit lifetime/versioning work. This is a proposed clarification, not a finding that reload persistence is missing. |
-| Professional wheel and page navigation | Owner reports wheel input over the main Pro canvas zooms instead of scrolling the page. Editable and canonical Pro inherit canvas wheel-to-zoom defaults; previous decisions retain pan/zoom but do not expressly choose ordinary wheel ownership | Ordinary wheel/two-finger scroll moves the document; deliberate pinch or visible zoom/fit controls zoom the canvas; canvas dragging pans. Preserve intentional inner form/label scrolling. Reason: make page navigation work without moving the pointer to the left rail, while retaining Pro's technical canvas. Trade-off: wheel-only zoom becomes an explicit gesture/control. Apply one policy to both Pro authority states, not Creator or unrelated canvases. This remains a proposal, not an approved code change. |
 
 Sources: [approved plan](../roadmap/2026-10-06-graph-centred-creator-workbench.md#approved-reference-and-product-boundaries),
 [ADR 0122](../adr/0122-creator-workspace-presentation.md),
@@ -24,6 +23,7 @@ proof that the owner selected that choice.
 | Older wording | Current controlling clause | Preserve |
 | --- | --- | --- |
 | Sidebar height: full viewport versus visible/usable height | Owner accepted `0.85 × full viewport`, clamped to usable workspace; [0122 clarification](../adr/0122-creator-workspace-presentation.md#owner-clarification-of-inspector-height-2026-10-22), current C45 | Centre/clamp, internal scrolling, reachable header/actions, no 500px cap and side-by-side short-desktop layout; no code/activation approval |
+| Professional ordinary wheel input inherited canvas zoom/scroll prevention | Owner accepted page scrolling, deliberate pinch/visible zoom controls and background drag-pan for both Pro views; [0122 decision](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-page-and-canvas-navigation-2026-10-23), C56 | Intentional inner scrolling, Pro pan/zoom capabilities, current graph/selection authority; canvas-state lifetime still open. Design adoption is not implementation/activation approval. |
 | First-install-only / general replacement excluded in the October 6 plan and ADRs 0079/0118/0121/0123 | [0138](../adr/0138-one-current-story-explicit-rebuild.md) explicitly supersedes first-install-only, enabling same-project reviewed rebuild | Source/CAS/currentness/dispatch guards, retained assets and separate fresh approval; not silent replacement |
 | Shared canonical fallback reader originally used by both modes | October 22 [0122 amendment](../adr/0122-creator-workspace-presentation.md#workspace-presentation-is-independent-of-write-authority-2026-10-22) and current C02/C03/C28/C45 | Shared topology/fields; distinct Creator side inspector and Pro technical shell; no new write authority |
 | Narrow stacking/touch qualification in ADR 0119 | October 6 approved workbench desktop boundary / ADR 0122 / C47 | No new narrow/mobile authoring scope; unrelated readers/media retain their own contracts |
@@ -111,18 +111,17 @@ implementation deviation established by the initial idea alone.
 
 The owner subsequently accepted the sidebar-height recommendation in turn
 `01a166e4-9f25-7df1-a9a7-e363d77a4348`: `Sidebar height - agreed`.
-The same message reports Professional's wheel/page-navigation problem. Height is
-now resolved above; the two Professional questions remain for review:
+The same message reports Professional's wheel/page-navigation problem. The owner
+then answered `Yes` to adopting the proposed interaction for both Pro views in
+turn `01a166ee-121b-7b61-a53a-4f47deb49897` (October 23 Toronto).
+Height and wheel ownership are now resolved above. One question remains:
 
 - Pro visual state: preserve positions/pan/zoom per project during the current
   session, reset on project change/reload initially. This protects navigation
   context without introducing durable authored layout. Trade-off: reopen loses
   custom canvas layout; durable private preferences would need explicit lifetime
   and versioning semantics. Shared node selection is already agreed independently.
-- Pro wheel ownership: use ordinary scrolling for page navigation, pinch or
-  visible controls for zoom, and canvas dragging for pan. This removes the
-  pointer-location workaround without removing graph navigation. It changes the
-  existing default gesture, so requires explicit agreement before implementation.
 
-Both remain suggestions. Historical implementation approvals do not authorize
+The visual-state lifetime remains a suggestion. Design adoption and historical
+implementation approvals do not authorize
 the [four current code repairs](../verification/2026-10-22-workbench-spec-audit.md).

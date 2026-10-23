@@ -66,8 +66,8 @@ Provider/runbook details remain in [operations](../operations/README.md),
 3. [Conflicts](conflicts.md) separate resolved supersessions from unresolved intent.
    A disputed requirement remains blocked for that conclusion; audit clear clauses
    independently. Missing evidence is UNVERIFIED, not an invented deviation.
-   Sidebar height is now explicitly agreed; Professional wheel ownership and
-   visual-state lifetime remain proposals for owner review.
+   Sidebar height and Professional wheel ownership are explicitly agreed;
+   only Pro visual-state lifetime remains a proposal for owner review.
 4. Preserve original prototypes/records as provenance, not runtime dependencies.
    The approved v9 reference is pinned in the original workbench plan; subsequent
    source decisions govern exact admitted behavior. No new sketch approval occurs here.
