@@ -44,8 +44,10 @@ export function GraphWorkbenchProvider(input: Input) {
   const liveDraft = useRef(draft); liveDraft.current = draft;
   const [selectedNodeId, setSelection] = useState<string | null>(null);
   const selectionVersion = useRef(0), liveSelection = useRef<string | null>(null);
+  const liveSelectionProjectId = useRef(input.project.id);
   const displaySelection = (identity: string | null) => {
     liveSelection.current = identity;
+    liveSelectionProjectId.current = current.current.project.id;
     setSelection(identity);
     if (current.current.project.id) storeGraphSelection(current.current.project.id, identity);
   };
@@ -132,12 +134,20 @@ export function GraphWorkbenchProvider(input: Input) {
       // updates currentness so explicit recovery/conflict handling remains visible.
       if (!ownConfirmation && !unsent && liveDraft.current?.bindingHash !== payload?.bindingHash) resetHistory();
       if (!unsent || !liveDraft.current) {
-        const preferred = liveDraft.current ? liveSelection.current : readGraphSelection(source.project.id);
-        const retainedSelection = payload?.mapping.topology.nodes.some(node => node.id === preferred);
+        const preferred = liveSelectionProjectId.current === source.project.id && liveSelection.current !== null
+          ? liveSelection.current : readGraphSelection(source.project.id);
+        // Presentation follows the active workspace mode. An accepted
+        // canonical read can have no authoring draft at all, so its valid
+        // selection domain is the canonical graph rather than draft nodes.
+        const selectionNodes = next.readOnlyReason ? source.project.storyGraph.nodes : payload?.mapping.topology.nodes ?? [];
+        const canonicalStart = source.project.storyGraph.nodes.some(node => node.id === source.project.storyGraph.startNodeId)
+          ? source.project.storyGraph.startNodeId : source.project.storyGraph.nodes[0]?.id ?? null;
+        const fallbackSelection = next.readOnlyReason ? canonicalStart : payload?.selectedNodeId ?? null;
+        const retainedSelection = selectionNodes.some(node => node.id === preferred);
         const removedSelection = liveDraft.current && preferred && !retainedSelection;
         setDraft(payload); liveDraft.current = payload;
-        displaySelection(retainedSelection ? preferred : payload?.selectedNodeId ?? null);
-        setError(removedSelection ? "原选中节点已不在当前服务器图草稿中，已显示其有效选中节点；未发送内容不会被覆盖。" : "");
+        displaySelection(retainedSelection ? preferred : fallbackSelection);
+        setError(removedSelection && !next.readOnlyReason ? "原选中节点已不在当前服务器图草稿中，已显示其有效选中节点；未发送内容不会被覆盖。" : "");
       } else {
         setError("");
       }

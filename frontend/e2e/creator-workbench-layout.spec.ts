@@ -2,6 +2,7 @@ import { expect, test, checkedStaticTest } from "./fixture";
 import { createCreatorGraph } from "./fixtures/creator-graph";
 import { json } from "./f5a-fixture";
 import { demoProject } from "../src/demo";
+import { footageModeLabels, storyNodeKindLabels } from "../src/features/graph/presentation";
 import type { StoryGraph } from "../src/types";
 
 function canonicalFourNodeSplit(): StoryGraph {
@@ -15,7 +16,7 @@ function canonicalFourNodeSplit(): StoryGraph {
     ],
     edges: [
       { id: "start-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
-      { id: "decision-sea", sourceNodeId: "decision", targetNodeId: "sea-ending", kind: "choice", choiceText: "继续照向海面", stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-sea", sourceNodeId: "decision", targetNodeId: "sea-ending", kind: "choice", choiceText: "继续照向海面", stateEffects: { harbor_signal: "visible" }, entityStateEffects: [{ entityType: "location", entityId: "loc_control", state: "active" }] },
       { id: "decision-shore", sourceNodeId: "decision", targetNodeId: "shore-ending", kind: "choice", choiceText: "照亮岸边石阶", stateEffects: {}, entityStateEffects: [] },
     ],
     joinContracts: [],
@@ -78,6 +79,7 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
   const id = created.id as string;
   const stagesUrl = `${workbench.apiOrigin}/api/v2/projects/${id}/stages`;
   const graphWorkbenchUrl = `${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`;
+  let expectedCreatorSelection = graph.startNodeId;
   const beforeStages = await json(request.get(stagesUrl));
   const beforeWorkbench = await json(request.get(graphWorkbenchUrl));
   expect(beforeWorkbench.readOnlyReason).toBeTruthy();
@@ -92,9 +94,30 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
     await page.goto(readerUrl);
     for (const reload of [false, true]) {
       if (reload) await page.reload();
-      const reader = page.locator(".canonical-graph-reader");
-      await expect(reader).toBeVisible();
-      await expect(reader).toContainText(`已接受路线 · ${graph.nodes.length} 个节点 · ${graph.edges.length} 条连接`);
+      let creatorInspector = page.getByRole("complementary", { name: "当前节点详情" });
+      if (mode === "creator") {
+        await expect(page.locator(".creator-canonical-workbench")).toBeVisible();
+        await expect(page.getByRole("heading", { name: "创作工作台", exact: true })).toBeVisible();
+        await expect(page.locator(".canonical-graph-reader")).toHaveCount(0);
+        await expect(creatorInspector).toBeVisible();
+        const expectedNode = graph.nodes.find(node => node.id === expectedCreatorSelection)!;
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue(expectedNode.title);
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveAttribute("readonly", "");
+        await expect(creatorInspector.getByRole("textbox", { name: "节点类型", exact: true })).toHaveValue(storyNodeKindLabels[expectedNode.kind]);
+        await expect(creatorInspector.getByRole("textbox", { name: "画面模式", exact: true })).toHaveValue(footageModeLabels[expectedNode.footageMode]);
+        const panel = (await creatorInspector.boundingBox())!, chart = (await page.locator(".canonical-graph-scroll").boundingBox())!;
+        expect(panel.x).toBeGreaterThanOrEqual(chart.x + chart.width);
+        expect(panel.width).toBeGreaterThanOrEqual(300); expect(panel.width).toBeLessThanOrEqual(520);
+        expect(panel.x + panel.width).toBeLessThanOrEqual(viewport.width + 1);
+        const chromeBottom = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom)));
+        expect(panel.y).toBeGreaterThanOrEqual(chromeBottom - 1);
+        expect(panel.y + panel.height).toBeLessThanOrEqual(viewport.height + 1);
+        expect(panel.height).toBeLessThanOrEqual(viewport.height * .85 + 1);
+      } else {
+        const reader = page.locator(".canonical-graph-reader");
+        await expect(reader).toBeVisible();
+        await expect(reader).toContainText(`已接受路线 · ${graph.nodes.length} 个节点 · ${graph.edges.length} 条连接`);
+      }
       await expect(page.getByRole("button", { name: "保存图草稿", exact: true })).toHaveCount(0);
       const labels = page.locator(".canonical-edge-label");
       await expect(labels).toHaveCount(graph.edges.length);
@@ -154,7 +177,76 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
         await expect.poll(() => scroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
         await scroll.evaluate(element => { element.scrollLeft = 0; });
       }
+      if (scenario.id === "four-node-split" && viewport.width === 1280 && viewport.height === 768 && mode === "creator" && !reload) {
+        const title = creatorInspector.getByRole("textbox", { name: "章节标题", exact: true });
+        await page.locator('.canonical-flow-node[data-id="sea-ending"]').click();
+        await expect(title).toHaveValue("继续照向海面");
+        await expect(creatorInspector.getByRole("textbox", { name: "剧情摘要", exact: true })).toHaveValue("航道上的船只看见信标。");
+        await expect(creatorInspector.getByRole("textbox", { name: "选项文字", exact: true })).toHaveValue("继续照向海面");
+        await expect(creatorInspector.getByRole("textbox", { name: "状态效果", exact: true })).toHaveValue("harbor_signal：visible\nlocation · loc_control：active");
+        const keyboardNode = page.locator('.canonical-flow-node[data-id="shore-ending"]');
+        await keyboardNode.focus(); await page.keyboard.press("Enter");
+        await expect(title).toHaveValue("照亮岸边石阶");
+        expectedCreatorSelection = "shore-ending";
+
+        const chartScroll = page.locator(".canonical-graph-scroll");
+        await chartScroll.evaluate(element => element.scrollIntoView({ block: "center" }));
+        const scrollBeforeWheel = await page.evaluate(() => window.scrollY);
+        const viewportBeforeWheel = await page.locator(".canonical-graph-flow .react-flow__viewport").getAttribute("style");
+        const wheelRect = (await chartScroll.boundingBox())!;
+        await page.mouse.move(wheelRect.x + Math.min(80, wheelRect.width / 2), wheelRect.y + wheelRect.height / 2);
+        await page.mouse.wheel(0, 240);
+        await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(scrollBeforeWheel);
+        expect(await page.locator(".canonical-graph-flow .react-flow__viewport").getAttribute("style")).toBe(viewportBeforeWheel);
+
+        await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
+        await expect(page.locator(".canonical-graph-reader")).toBeVisible();
+        await page.goto(readerUrl);
+        creatorInspector = page.getByRole("complementary", { name: "当前节点详情" });
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("照亮岸边石阶");
+        await page.reload();
+        creatorInspector = page.getByRole("complementary", { name: "当前节点详情" });
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("照亮岸边石阶");
+        await page.evaluate(projectId => localStorage.setItem(`plotloom:graph-selection:v1:${projectId}`, JSON.stringify("removed-node")), id);
+        await page.reload();
+        creatorInspector = page.getByRole("complementary", { name: "当前节点详情" });
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("共同开场");
+        expectedCreatorSelection = graph.startNodeId;
+
+        const separator = page.getByRole("separator", { name: "调整节点详情宽度" });
+        const initialWidth = (await creatorInspector.boundingBox())!.width;
+        await separator.focus(); await page.keyboard.press("ArrowLeft");
+        const keyboardWidth = (await creatorInspector.boundingBox())!.width;
+        expect(keyboardWidth).toBeGreaterThan(initialWidth);
+        const handle = (await separator.boundingBox())!;
+        await page.mouse.move(handle.x + handle.width / 2, handle.y + 40); await page.mouse.down();
+        await page.mouse.move(handle.x - 35, handle.y + 40, { steps: 4 });
+        expect((await creatorInspector.boundingBox())!.width).toBeGreaterThan(keyboardWidth);
+        await page.keyboard.press("Escape"); await page.mouse.up();
+        expect((await creatorInspector.boundingBox())!.width).toBeCloseTo(keyboardWidth, 0);
+        expect(await page.evaluate(projectId => JSON.parse(localStorage.getItem(`plotloom:creator-presentation:v1:${projectId}`)!).width, id)).toBe(keyboardWidth);
+      }
       if (scenario.id === "join-long-skip" && viewport.width === 1280 && viewport.height === 768 && mode === "creator" && !reload) {
+        await page.locator('.canonical-flow-node[data-id="join"]').click();
+        await expect(creatorInspector.getByRole("textbox", { name: "汇合衔接", exact: true })).toHaveValue("各路线回到值守台后继续。");
+        await expect(creatorInspector.getByRole("textbox", { name: "合同备注", exact: true })).toHaveValue("路线选择保留在连接效果中。");
+        await expect(creatorInspector.getByRole("textbox", { name: "输入节点", exact: true })).toHaveValue("选择航标路线\n检查西侧航标\n检查东侧航标");
+        await page.locator('.canonical-flow-node[data-id="decision"]').click();
+        await expect(creatorInspector.getByRole("textbox", { name: "选项文字", exact: true }).nth(2)).toHaveValue(longChoiceText);
+        const chartScroll = page.locator(".canonical-graph-scroll");
+        await chartScroll.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+        await expect.poll(() => chartScroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+        const savedChartX = await chartScroll.evaluate(element => element.scrollLeft);
+        expectedCreatorSelection = "decision";
+        await page.reload();
+        creatorInspector = page.getByRole("complementary", { name: "当前节点详情" });
+        await expect(creatorInspector.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue("选择航标路线");
+        await expect(creatorInspector.getByRole("textbox", { name: "节点类型", exact: true })).toHaveValue(storyNodeKindLabels.decision);
+        await expect(creatorInspector.getByRole("textbox", { name: "画面模式", exact: true })).toHaveValue(footageModeLabels.route_only);
+        await expect(creatorInspector.getByRole("textbox", { name: "选项文字", exact: true }).nth(2)).toHaveValue(longChoiceText);
+        await expect.poll(() => page.locator(".canonical-graph-scroll").evaluate(element => element.scrollLeft)).toBe(savedChartX);
+      }
+      if (scenario.id === "join-long-skip" && viewport.width === 1280 && viewport.height === 768 && mode === "graph" && !reload) {
         const graphCanvas = page.locator(".canonical-graph-canvas");
         // Focusing a lower label scrolls the page; interact with the visible
         // canvas below sticky chrome, not its now-offscreen document origin.
@@ -206,7 +298,9 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
   const afterStages = await json(request.get(stagesUrl));
   const afterWorkbench = await json(request.get(graphWorkbenchUrl));
   expect(afterStages.stages).toEqual(beforeStages.stages);
-  expect(afterWorkbench.readOnlyReason).toBe(beforeWorkbench.readOnlyReason);
+  expect(afterWorkbench).toEqual(beforeWorkbench);
+  expect(afterWorkbench.draft).toEqual(beforeWorkbench.draft);
+  expect(afterWorkbench.initialPayload).toEqual(beforeWorkbench.initialPayload);
   expect(writes).toEqual([]);
 });
 

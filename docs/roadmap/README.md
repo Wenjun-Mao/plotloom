@@ -13,6 +13,22 @@ no generation, activation, full test run, push or CI follows from planning.
 
 ## Approved canonical read-only graph fallback presentation
 
+The owner's follow-up approves restoring Creator's side-panel details, without
+enabling canonical/source-unbound editing or redesigning Professional. The
+[mode-versus-authority amendment](../adr/0122-creator-workspace-presentation.md#workspace-presentation-is-independent-of-write-authority-2026-10-22)
+owns this repair. Smallest real UI journey: an isolated four-node canonical split,
+open Creator, select the decision/each ending and read its side details; switch
+to Professional and back, then reload. At all three supported desktop sizes,
+verify the side panel stays beside the chart, selection/preferences stay scoped,
+labels remain readable, resizing/cancellation works and no authoring request or
+canonical/draft mutation occurs. Also retain one valid join/long-skip case and
+existing editable layout regressions. One implementation writer owns focused
+checks; the manager owns built-static browser/visual qualification, preservation
+and frontend-only activation after stable independent review. No provider/media
+generation, source binding, backend/schema/dependency change, push or CI is
+included. Stop when the sidebar is restored and these bounded checks pass; live
+Safari access remains unavailable and is not replaced with a live-data bypass.
+
 [ADR 0122's amendment](../adr/0122-creator-workspace-presentation.md#canonical-read-only-fallback-geometry-and-labels-2026-10-22)
 owns the shared topology geometry and accessible choice-label lanes for the
 accepted canonical reader used by creator and professional fallback modes. The

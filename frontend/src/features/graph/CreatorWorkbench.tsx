@@ -6,7 +6,7 @@ import type { WorkspaceSourceReviewRead } from "../../app/workspace/useWorkspace
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
 import { GraphSafetyNotice } from "./GraphSafetyNotice";
 import { GraphPreviewRecovery } from "./GraphPreviewRecovery";
-import { CanonicalGraphReader } from "./CanonicalGraphReader";
+import { CreatorCanonicalWorkbench } from "./CreatorCanonicalWorkbench";
 import { CreatorStoryInspector } from "./CreatorStoryInspector";
 import { GraphCommandDialog } from "./GraphCommandDialog";
 import { GraphDraftDiscard } from "./GraphDraftDiscard";
@@ -26,7 +26,7 @@ type CreatorProps = { project: WorkspaceProject; readOnly: boolean; sourceReview
 export function CreatorWorkbench({ project, readOnly, sourceReview, onNavigate, onOpenShot }: CreatorProps) {
   const owner = useGraphWorkbench();
   if (!project.id) return <section className="page"><PageHeader title="创作工作台" description="先保存项目简报，再建立来源与故事路线。" /><Button onClick={() => onNavigate("brief")}>返回项目简报</Button></section>;
-  if (owner.state?.readOnlyReason) return <section className="page"><h1>创作工作台</h1><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={project.storyGraph} /></section>;
+  if (owner.state?.readOnlyReason) return <CreatorCanonicalWorkbench project={project} readOnlyReason={owner.state.readOnlyReason} />;
   if (!owner.draft || !owner.state) return <section className="page"><GraphPreviewRecovery /></section>;
   return <CreatorCanvas project={project} readOnly={readOnly} source={sourceReview.value} sourceError={sourceReview.error} onSourceRetry={sourceReview.refresh} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
 }

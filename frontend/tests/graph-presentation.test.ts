@@ -4,6 +4,9 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { GraphNodeDetails } from "../src/features/graph/GraphNodeDetails";
 import { SourceStructureEditor } from "../src/pages/SourceStructureEditor";
 import { CanonicalGraphReader } from "../src/features/graph/CanonicalGraphReader";
+import { CanonicalGraphCanvas } from "../src/features/graph/CanonicalGraphCanvas";
+import { CreatorCanonicalStoryInspector } from "../src/features/graph/CreatorCanonicalStoryInspector";
+import { creatorCanonicalSelectionGeometry } from "../src/features/graph/CreatorCanonicalWorkbench";
 import { GraphWorkbenchContext, type GraphWorkbenchController } from "../src/features/graph/GraphWorkbenchContext";
 import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
 import type { StoryGraph } from "../src/types";
@@ -70,7 +73,7 @@ it("renders canonical choices through shared ranks and reserved lanes without ch
   };
   const original = structuredClone(value);
   await act(async () => root.render(createElement(CanonicalGraphReader, { value })));
-  const props = flowMock.mock.calls.at(-1)?.[0] as { nodes: Array<Record<string, any>>; edges: Array<Record<string, any>>; fitViewOptions: unknown; nodesDraggable: boolean; nodesConnectable: boolean; edgesReconnectable: boolean; elementsSelectable: boolean };
+  const props = flowMock.mock.calls.at(-1)?.[0] as { [key: string]: unknown; nodes: Array<Record<string, any>>; edges: Array<Record<string, any>>; fitViewOptions: unknown; nodesDraggable: boolean; nodesConnectable: boolean; edgesReconnectable: boolean; elementsSelectable: boolean };
   expect(props.nodes.map(node => node.id)).toEqual(value.nodes.map(node => node.id));
   expect(props.nodes.find(node => node.id === "start")).toMatchObject({ position: { y: 32 }, sourcePosition: "bottom", targetPosition: "top", width: 194, height: 112 });
   expect(props.nodes.filter(node => ["west", "east"].includes(node.id)).map(node => node.position.y)).toEqual([288, 288]);
@@ -83,7 +86,83 @@ it("renders canonical choices through shared ranks and reserved lanes without ch
   expect(new Set(joinLanes).size).toBe(3);
   expect(props).toMatchObject({ nodesDraggable: false, nodesConnectable: false, edgesReconnectable: false, elementsSelectable: false,
     fitViewOptions: { minZoom: 1, maxZoom: 1 } });
+  expect(props.zoomOnScroll).toBeUndefined();
+  expect(props.zoomOnPinch).toBeUndefined();
+  expect(props.zoomOnDoubleClick).toBeUndefined();
+  expect(props.panOnScroll).toBeUndefined();
+  expect(props.panOnDrag).toBeUndefined();
+  expect(props.preventScrolling).toBeUndefined();
+  expect(props.nodesFocusable).toBeUndefined();
   expect(value).toEqual(original);
+});
+
+it("aligns the Creator inspector and horizontal reveal to fitView-transformed node bounds", () => {
+  const selection = creatorCanonicalSelectionGeometry(
+    new DOMRect(0, 100, 900, 800),
+    new DOMRect(200, 200, 502, 400),
+    1,
+    500,
+    40,
+    new DOMRect(640, 456, 194, 112),
+  );
+  expect(selection).toEqual({ selectedY: 412, needsHorizontalReveal: true, scrollLeft: 326 });
+});
+
+it("selects canonical Creator nodes by pointer and keyboard while keeping chart navigation passive", async () => {
+  const value: StoryGraph = { startNodeId: "start", nodes: [
+    { id: "start", title: "开场", kind: "start", summary: "开始。", footageMode: "footage" },
+    { id: "ending", title: "结局", kind: "ending", summary: "结束。", footageMode: "footage" },
+  ], edges: [], joinContracts: [] };
+  const select = vi.fn();
+  await act(async () => root.render(createElement(CanonicalGraphCanvas, { value, selectedNodeId: "start", onNodeSelect: select })));
+  const props = flowMock.mock.calls.at(-1)?.[0] as Record<string, any>;
+  expect(props).toMatchObject({ nodesDraggable: false, nodesConnectable: false, edgesReconnectable: false, elementsSelectable: false,
+    zoomOnScroll: false, zoomOnPinch: false, zoomOnDoubleClick: false, panOnScroll: false, panOnDrag: false, preventScrolling: false });
+  expect(props.nodes.find((node: Record<string, any>) => node.id === "start")).toMatchObject({ focusable: true, selectable: true, selected: true });
+  props.onNodeClick({}, props.nodes[1]);
+  expect(select).toHaveBeenLastCalledWith("ending");
+
+  const canvas = host.querySelector<HTMLElement>(".canonical-graph-canvas")!;
+  const node = document.createElement("div"); node.className = "canonical-flow-node"; node.dataset.id = "start"; canvas.append(node);
+  node.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }));
+  expect(select).toHaveBeenLastCalledWith("start");
+});
+
+it("projects canonical node, route effects, and join details into the Creator inspector", async () => {
+  const value: StoryGraph = {
+    startNodeId: "start",
+    nodes: [
+      { id: "start", title: "开场", kind: "start", summary: "先行检查。", footageMode: "footage" },
+      { id: "choice", title: "选择航标", kind: "decision", summary: "海雾接近。", footageMode: "route_only" },
+      { id: "join", title: "回到值守台", kind: "join", summary: "两线归并。", footageMode: "route_only" },
+      { id: "ending", title: "信标恢复", kind: "ending", summary: "港湾重见信标。", footageMode: "footage" },
+    ],
+    edges: [
+      { id: "start-choice", sourceNodeId: "start", targetNodeId: "choice", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "choice-join", sourceNodeId: "choice", targetNodeId: "join", kind: "choice", choiceText: "启用备用信标", stateEffects: { harbor_signal: "visible" }, entityStateEffects: [{ entityType: "location", entityId: "loc_control", state: "active" }] },
+      { id: "join-ending", sourceNodeId: "join", targetNodeId: "ending", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+    ],
+    joinContracts: [{ id: "join-contract", joinNodeId: "join", incomingNodeIds: ["choice"], requiredStateKeys: ["harbor_signal"], allowedDifferences: ["weather"], reconciliation: "各路线回到值守台后继续。", notes: "路线选择保留在连接效果中。" }],
+  };
+  await act(async () => root.render(createElement(CreatorCanonicalStoryInspector, { graph: value, nodeId: "join" })));
+  const fields = [...host.querySelectorAll<HTMLElement>(".field")].map(field => ({
+    label: field.querySelector("label")?.textContent?.trim(),
+    control: field.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea"),
+  }));
+  const read = (label: string) => fields.filter(field => field.label === label).map(field => field.control?.value);
+  expect(read("章节标题")).toEqual(["回到值守台"]);
+  expect(read("节点类型")).toEqual(["汇合点"]);
+  expect(read("画面模式")).toEqual(["仅路线控制点"]);
+  expect(read("剧情摘要")).toEqual(["两线归并。"]);
+  expect(read("选项文字")).toEqual(["启用备用信标"]);
+  expect(read("状态效果")).toContain("harbor_signal：visible\nlocation · loc_control：active");
+  expect(read("输入节点")).toEqual(["选择航标"]);
+  expect(read("必需状态")).toEqual(["harbor_signal"]);
+  expect(read("允许差异")).toEqual(["weather"]);
+  expect(read("汇合衔接")).toEqual(["各路线回到值守台后继续。"]);
+  expect(read("合同备注")).toEqual(["路线选择保留在连接效果中。"]);
+  expect(fields.every(field => field.control?.readOnly)).toBe(true);
+  expect(host.querySelectorAll("button")).toHaveLength(0);
 });
 
 it.each(["decision", "join"])("explains %s footage production and playback without changing draft-only toggle semantics", async (kind) => {

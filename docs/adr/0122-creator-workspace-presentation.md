@@ -106,5 +106,33 @@ horizontally, and only the initial fit is held at 1:1; later pan and zoom remain
 available. HTML edge labels use the reserved coordinates, wrap within a bounded
 scrollable area and remain keyboard reachable with their full text exposed to
 assistive technology. Theme variables are scoped to this canvas so installed
-React Flow CSS order cannot force white label fills. The same reader serves both
-creator and professional fallback modes.
+React Flow CSS order cannot force white label fills. At the time of the original
+qualification, both fallback modes used this same reader; that records the
+evidence boundary then, not the enduring presentation contract. Canonical
+topology layout and label projection remain shared, while each workspace mode
+owns its read-only shell and inspector contract (see the decision below).
+
+## Workspace presentation is independent of write authority, 2026-10-22
+
+The owner reported that the canonical fallback makes Creator and Professional
+look the same and puts node details below the graph. The original fallback
+replaced the workspace shell, not just its data/write capabilities. Coverage
+separately checked editable Creator geometry and unbound read-only safety, but
+did not combine those supported conditions. The label repair above retained
+that omission; its shared-reader sentence does not authorize mode collapse.
+
+Choose presentation by workspace mode and mutation authority by current validated
+source/draft state. Creator keeps its automatic, selectable graph and bounded
+right-side inspector for accepted canonical reads too, reusing the existing
+geometry and private project-scoped presentation preferences. Professional keeps
+its technical canonical reader. Shared topology/field projections are allowed;
+creating a fake authoring draft or source binding is not. Canonical identity,
+content, currentness and read-only guards remain unchanged. Selection, scrolling
+and inspector resizing are viewing operations, never authoring writes.
+
+Guardrails combine mode and authority: supported desktop sizes, opening/default
+and changed selection, reload/mode switching, bounded sidebar geometry and resize
+cancellation, readable branch/join labels, and unchanged canonical/draft state
+with zero authored requests. Existing editable Creator/Professional behavior
+remains covered. The permanent C02/C03/C28/C45–C48 checks apply to the relevant
+canonical read-only states, not only editable fixtures.

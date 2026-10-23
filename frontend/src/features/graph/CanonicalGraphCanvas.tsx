@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MutableRefObject } from "react";
 import { BaseEdge, EdgeLabelRenderer, MarkerType, Position, ReactFlow, type Edge, type EdgeProps, type Node } from "@xyflow/react";
 import type { StoryGraph } from "../../types";
 import { storyNodeKindLabels } from "./presentation";
@@ -32,9 +32,18 @@ function CanonicalEdge({ id, data, markerEnd }: EdgeProps<CanonicalFlowEdge>) {
 const edgeTypes = { canonical: CanonicalEdge };
 const initialFitOptions = { minZoom: 1, maxZoom: 1, padding: 0.12 };
 
-export function CanonicalGraphCanvas({ value }: { value: StoryGraph }) {
+export function CanonicalGraphCanvas({ value, selectedNodeId, onNodeSelect, scrollRef }: {
+  value: StoryGraph;
+  selectedNodeId?: string | null;
+  onNodeSelect?: (identity: string) => void;
+  scrollRef?: MutableRefObject<HTMLDivElement | null>;
+}) {
   const scroll = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
+  const setScrollElement = (element: HTMLDivElement | null) => {
+    scroll.current = element;
+    if (scrollRef) scrollRef.current = element;
+  };
   useLayoutEffect(() => {
     const element = scroll.current;
     if (!element) return;
@@ -56,13 +65,17 @@ export function CanonicalGraphCanvas({ value }: { value: StoryGraph }) {
       position: { x: placed.x, y: placed.y },
       data: { label: `${storyNodeKindLabels[node.kind]} · ${node.title || node.id}` },
       className: `flow-node canonical-flow-node ${node.kind}`,
+      focusable: onNodeSelect ? true : undefined,
+      selectable: onNodeSelect ? true : undefined,
+      selected: onNodeSelect ? selectedNodeId === node.id : undefined,
+      ariaLabel: onNodeSelect ? `${storyNodeKindLabels[node.kind]} · ${node.title || node.id}` : undefined,
       width: CARD_WIDTH,
       height: CARD_HEIGHT,
       style: { width: CARD_WIDTH, height: CARD_HEIGHT, padding: 12 },
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top,
     };
-  }), [placements, value.nodes]);
+  }), [placements, value.nodes, onNodeSelect, selectedNodeId]);
   const edges = useMemo<CanonicalFlowEdge[]>(() => layout.edges.map(({ edge, path, labelX, labelY }) => {
     const source = value.nodes.find(node => node.id === edge.sourceNodeId)!;
     const target = value.nodes.find(node => node.id === edge.targetNodeId)!;
@@ -84,11 +97,27 @@ export function CanonicalGraphCanvas({ value }: { value: StoryGraph }) {
     };
   }), [layout.edges, value.nodes]);
 
-  return <div ref={scroll} className="canonical-graph-scroll" tabIndex={0} aria-label="已接受路线横向平移">
-    <div className="canonical-graph-canvas" style={{ width: layout.width, height: layout.height }}>
+  const selectFromKeyboard = onNodeSelect ? (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const nodeElement = (event.target as Element).closest<HTMLElement>(".canonical-flow-node");
+    const identity = nodeElement?.dataset.id;
+    if (!identity) return;
+    // The graph is controlled and has no authoring onNodesChange handler, so
+    // keyboard selection must update the presentation owner directly.
+    event.preventDefault();
+    event.stopPropagation();
+    onNodeSelect(identity);
+  } : undefined;
+
+  return <div ref={setScrollElement} className="canonical-graph-scroll" tabIndex={0} aria-label="已接受路线横向平移">
+    <div className="canonical-graph-canvas" style={{ width: layout.width, height: layout.height }} onKeyDownCapture={selectFromKeyboard}>
       <ReactFlow className="canonical-graph-flow" style={{ width: layout.width, height: layout.height }}
         nodes={nodes} edges={edges} edgeTypes={edgeTypes} fitView fitViewOptions={initialFitOptions}
-        nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false} elementsSelectable={false} />
+        nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false} elementsSelectable={false}
+        zoomOnScroll={onNodeSelect ? false : undefined} zoomOnPinch={onNodeSelect ? false : undefined}
+        zoomOnDoubleClick={onNodeSelect ? false : undefined} panOnScroll={onNodeSelect ? false : undefined}
+        panOnDrag={onNodeSelect ? false : undefined} preventScrolling={onNodeSelect ? false : undefined}
+        onNodeClick={onNodeSelect ? (_event, node) => onNodeSelect(node.id) : undefined} />
     </div>
   </div>;
 }
