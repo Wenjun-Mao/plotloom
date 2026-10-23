@@ -10,6 +10,7 @@ import { scriptWorkflowNextText } from "./recommendedScriptWorkflow";
 import { artWorkflowNextText } from "./recommendedArtWorkflow";
 import { castWorkflowNextText } from "./recommendedCastWorkflow";
 import { storyboardWorkflowNextText } from "./recommendedStoryboardWorkflow";
+import { acceptedOutlineIsCurrent } from "./sourceReviewCurrentness";
 
 export type RecommendedWorkflowStepId = CreativeWorkflowStepId;
 export type RecommendedWorkflowRoute = { stage: PageId; hash?: string };
@@ -73,11 +74,6 @@ const playbackStages: ServerStageName[] = ["story_graph", "scene_beats", "storyb
 
 export function branchSuggestionBasis(outline: AcceptedOutlineRevision | null, accepted: AcceptedSectionMapRevision | null, outlineCurrent: boolean, briefKey: string): string {
   return outline ? `map:${outline.revision}:${outline.contentHash}:${accepted?.revision ?? 0}:${outlineCurrent}:${briefKey}` : "";
-}
-
-function acceptedOutlineIsCurrent(review: SourceOutlineReviewState | null): boolean {
-  return Boolean(review?.source && review.outlineStatus === "accepted" && review.acceptedOutline
-    && review.acceptedOutline.sourceRevision === review.source.revision);
 }
 
 function currentSectionMap(review: SourceOutlineReviewState | null): boolean {

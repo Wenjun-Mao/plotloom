@@ -35,7 +35,7 @@
 .creator-port.input { top: -11px; }.creator-port.output { bottom: -11px; }
 .creator-port:hover { color: var(--accent); border-color: var(--accent); }
 .creator-edge-label { position: absolute; transform: translate(-50%, -50%); max-width: 182px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: var(--bg); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-.creator-edge-label { max-height: 80px; overflow: auto; scrollbar-width: thin; }
+.creator-edge-label { overflow: auto; scrollbar-width: thin; }
 .creator-edge-label:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .creator-edge-label.choice { color: var(--accent); }
 .canonical-graph-reader { min-width: 0; }

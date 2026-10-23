@@ -1,9 +1,15 @@
 import { expect, it } from "vitest";
-import { CARD_HEIGHT, CARD_WIDTH, COLUMN_GAP, creatorLayout, graphTopologyLayout, rowConnectionDefaults } from "../src/features/graph/creatorLayout";
+import { CARD_HEIGHT, CARD_WIDTH, COLUMN_GAP, EDITABLE_EDGE_LABEL_MAX_HEIGHT, creatorLayout, graphTopologyLayout, rowConnectionDefaults } from "../src/features/graph/creatorLayout";
 import { inspectorBounds } from "../src/features/graph/useCreatorGeometry";
 import { graphDraftFixture } from "./graph-workbench-fixture";
 
 type LayoutTopology = { startNodeId: string; nodes: Array<{ id: string }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string }> };
+it("reserves the row insertion lane below an editable label including its focus outline", () => {
+  const layout = creatorLayout(graphDraftFixture(), 700);
+  const source = layout.nodes.find(node => node.id === "opening")!;
+  const label = layout.edges[0];
+  expect(label.labelY + EDITABLE_EDGE_LABEL_MAX_HEIGHT / 2 + 5).toBeLessThan(source.y + CARD_HEIGHT + 106);
+});
 const topology = (nodes: string[], edges: Array<[string, string, string]>): LayoutTopology => ({
   startNodeId: "start",
   nodes: nodes.map(id => ({ id })),

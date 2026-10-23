@@ -10,7 +10,7 @@ performed in installed P or the default Narrative-Forge checkout.
 
 | Contract | Cause and repair layer |
 | --- | --- |
-| Editable labels | Fixed lanes had unbounded button height. Bound the full-text button to 80px with native internal scrolling, complete accessible text and keyboard exact-edge editing. No story truncation or schema change. |
+| Editable labels | Fixed lanes had unbounded button height. Bound the full-text button to its editable 48px lane with native internal scrolling, complete accessible text and keyboard exact-edge editing. Its focus outline clears row insertion controls. No story truncation or schema change. |
 | Pro selection | Controlled nodes omitted shared selected state; native Enter/Space never reached the owner. Project shared selection and route keyboard activation to the existing owner. |
 | Brief counts | Display wrongly required write-capable draft data. Share topology-only counting with draft completeness kept in its authoring wrapper. Snapshot the named draft/canonical/unknown basis together with before/after targets when opening preview. |
 | Global action status | Creator and Pro independently composed prerequisites. Share read-derived availability/currentness from existing graph, Source/Outline and production owners; actual commands and write guards remain unchanged. |
@@ -96,6 +96,50 @@ Generated build checks so far succeeded with the existing large-chunk warning.
 They are development builds, not final deterministic comparison/qualification.
 The test fixtures own process/root cleanup. Evidence copies preserve pixels and
 traces before later runs replace `frontend/test-results`.
+
+## Stable-candidate review and bounded corrections
+
+First reviewed source/static checkpoint: `9c07f670`. Independent read-only review
+found one currentness blocker: retained Source/Outline object presence is not
+proof of a current accepted outline. Root also directly observed the long editable
+label's lower-right corner overlapping the row insertion chip in all three pixels.
+Original candidate/observations remain retained, not retroactively passed.
+
+- Share the existing accepted-current predicate between the workflow guide and
+  action projection: status must be `accepted`, with the accepted outline's
+  source revision matching current Source. Both modes disable Confirm/Apply for
+  reopened or mismatched retained content while preserving ordinary draft Save.
+  Unit regressions cover both states; supported isolated API setup and recovery
+  prepare current complete drafts so stale-draft refusal cannot mask the check.
+- Editable labels share a row gap with insertion controls; canonical labels do
+  not. The earlier 80px cap ended 10px into the insertion lane. Use a named 48px
+  editable cap, accounting for the 3px outline plus 2px offset, without moving
+  topology or truncating content. Native checks now include focused-label versus
+  insertion/add controls and actual insertion hit/cancel at all three desktops.
+- Successful body-only attachments did not survive the list reporter. Write
+  structured JSON into the existing `testInfo.outputPath`, then attach that path.
+  Preserve fixture IDs, current receipts/readbacks, zero-write arrays, source
+  revision/working-tree status and static hashes alongside PNGs before replacing
+  test outputs. This is test-artifact retention, not new runtime machinery.
+
+Focused review-fix units: **94 passed in 3 files** (alignment, layout and existing
+workflow-guide owner). E2E type check and refreshed deterministic build pass.
+The whole affected browser selection is `review-fixes-focused-browser.log`.
+That invocation retained **20 passed / 2 failed** in `review-fix-first-failures/`:
+the built-static lifecycle test compared incidental whole inline style and caught
+React Flow's temporary `visibility:hidden` despite an identical retained node
+transform; it now asserts exact position plus visible state at each checkpoint.
+Source replacement also sets `outlineStatus=reopened`, so reason projection must
+prioritize the mismatched source revision. Both controls were already disabled;
+the revision mismatch now has the specific accurate explanation.
+
+After those causal corrections, **14 focused units and all 13 operations browser
+cases pass**, including checked-static review-fix journeys. See
+`review-fixes-corrected-focused.log` and `review-fixes-corrected/` for preserved
+JSON/readbacks and pixels. Direct inspection of all three new 48px-label desktop
+screens confirms the focus outline clears insertion text and target cards. Final
+selection also strengthens Enter and Space checks to change away from the opening
+node, rather than merely reselect it. Final qualification remains pending.
 
 ## Remaining qualification and limits
 

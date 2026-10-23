@@ -55,12 +55,15 @@ it("retains draft-only incompleteness and guards cyclic, detached and capped enu
 
 it("projects shared whole-graph prerequisites, uncertainty and currentness", () => {
   const graph = owner();
-  const source = { source: {}, acceptedOutline: {}, acceptedSectionMap: { mapping: draft.mapping, revision: 1, contentHash: "accepted" }, sectionMapStatus: "current", graphAdmission: null } as unknown as SourceOutlineReviewState;
+  const source = { source: { revision: 1 }, acceptedOutline: { sourceRevision: 1 }, outlineStatus: "accepted", acceptedSectionMap: { mapping: draft.mapping, revision: 1, contentHash: "accepted" }, sectionMapStatus: "current", graphAdmission: null } as unknown as SourceOutlineReviewState;
   const production = { identity: "current", bridge: {} as ProductionBridgeState, errors: [] };
   const project = (status: "ready" | "loading" | "failed", value: SourceOutlineReviewState | null = source) => graphActionProjection(graph, brief, false, { status, value }, production);
   expect(project("ready")).toMatchObject({ disabled: false, confirmDisabled: false, applyDisabled: false });
   for (const status of ["loading", "failed"] as const) expect(project(status)).toMatchObject({ confirmDisabled: true, applyDisabled: true, status: "来源与大纲尚未核实，请先重新读取。" });
   expect(project("ready", { ...source, acceptedOutline: null }).status).toContain("先保存来源并确认大纲");
+  expect(project("ready", { ...source, outlineStatus: "reopened" })).toMatchObject({ disabled: false, confirmDisabled: true, applyDisabled: true, status: "大纲修订已打开，请先确认当前大纲。" });
+  expect(project("ready", { ...source, source: { ...source.source!, revision: 2 } })).toMatchObject({ disabled: false, confirmDisabled: true, applyDisabled: true, status: "来源已变化，请先确认当前来源的大纲。" });
+  expect(project("ready", { ...source, outlineStatus: "reopened", source: { ...source.source!, revision: 2 } }).status).toBe("来源已变化，请先确认当前来源的大纲。");
   graph.draft!.fieldBuffers.unfinished = "{";
   expect(project("ready")).toMatchObject({ confirmDisabled: true, applyDisabled: true });
   graph.draft!.fieldBuffers = {};

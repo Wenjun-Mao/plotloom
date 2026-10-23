@@ -3,14 +3,60 @@ import { expect, type Workbench } from "../fixture";
 import { createScriptProject, json } from "../f5a-fixture";
 import { demoProject } from "../../src/demo";
 import { canonicalFourNodeSplit } from "./canonical-workbench";
+import { readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { acknowledgeGraphMapping } from "./graph-authoring";
 
 type Journey = { page: Page; request: APIRequestContext; workbench: Workbench };
-export async function actionReadUncertainty({ page, request, workbench }: Journey) {
+export async function retainWorkbenchEvidence(info: TestInfo, name: string, value: unknown) {
+  const artifact = info.outputPath(`${name}.json`);
+  const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: new URL("../../../", import.meta.url), encoding: "utf8" }).trim();
+  const workingTreeStatus = execFileSync("git", ["status", "--short"], { cwd: new URL("../../../", import.meta.url), encoding: "utf8" });
+  const staticHashes = Object.fromEntries(await Promise.all(["workbench.js", "workbench2.css"].map(async filename =>
+    [filename, createHash("sha256").update(await readFile(new URL(`../../../src/plotloom/static/${filename}`, import.meta.url))).digest("hex")])));
+  await writeFile(artifact, JSON.stringify({ sourceRevision, workingTreeStatus, staticHashes, evidence: value }, null, 2));
+  await info.attach(name, { path: artifact, contentType: "application/json" });
+}
+
+export async function noncurrentOutlineActions({ page, request, workbench }: Journey, info: TestInfo) {
+  for (const scenario of ["reopened", "source-changed"] as const) {
+    const id = await createScriptProject(request, workbench.apiOrigin, `action-${scenario}`, {}, []);
+    const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+    const accepted = await json(request.get(`${base}/source-outline`));
+    await acknowledgeGraphMapping(request, base, accepted.acceptedSectionMap.mapping);
+    if (scenario === "reopened") await json(request.post(`${base}/source-outline/reopen`, { data: { expectedOutlineRevision: accepted.acceptedOutline.revision } }));
+    else await json(request.put(`${base}/source-outline/source`, { data: { expectedSourceRevision: accepted.source.revision, material: { ...accepted.source.material, text: `${accepted.source.material.text}\nThe storm now approaches from the east.` } } }));
+    // Supported fixture recovery establishes the current complete shared draft;
+    // a stale-draft guard must not hide the prerequisite under test.
+    await acknowledgeGraphMapping(request, base, accepted.acceptedSectionMap.mapping);
+    const before = await json(request.get(`${base}/graph-workbench`)), source = await json(request.get(`${base}/source-outline`));
+    expect(before.draft.payload.bindingHash).toBe(before.bindingHash);
+    expect(source.acceptedOutline).toBeTruthy(); expect(source.source).toBeTruthy();
+    const writes: string[] = [], record = (r: { url(): string; method(): string }) => { if (new URL(r.url()).pathname.startsWith(`/api/v2/projects/${id}`) && !["GET", "HEAD", "OPTIONS"].includes(r.method())) writes.push(`${r.method()} ${new URL(r.url()).pathname}`); };
+    page.on("request", record);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
+    for (const mode of ["创作工作台", "专业工作台"]) {
+      await page.getByRole("group", { name: "同一剧情图的两种视图" }).getByRole("button", { name: mode, exact: true }).click();
+      const bar = page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true });
+      await expect(bar.getByRole("button", { name: "保存图草稿", exact: true })).toBeEnabled();
+      await expect(bar.getByRole("button", { name: "确认图内容", exact: true })).toBeDisabled();
+      await expect(bar.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
+      await expect(bar.locator(".graph-workflow-status")).toHaveText(scenario === "reopened" ? "大纲修订已打开，请先确认当前大纲。" : "来源已变化，请先确认当前来源的大纲。");
+    }
+    const after = await json(request.get(`${base}/graph-workbench`));
+    expect(after).toEqual(before); expect(writes).toEqual([]); page.off("request", record);
+    await retainWorkbenchEvidence(info, `noncurrent-${scenario}`, { id, source, before, after, writes });
+  }
+}
+export async function actionReadUncertainty({ page, request, workbench }: Journey, info: TestInfo) {
   const id = await createScriptProject(request, workbench.apiOrigin, "shared-action-uncertainty", {}, []);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
   const save = page.getByRole("button", { name: "保存图草稿", exact: true }); await save.click(); await expect(save).toBeEnabled();
   const before = await json(request.get(`${base}/graph-workbench`));
+  const stages = await json(request.get(`${base}/stages`)), writes: string[] = [];
+  page.on("request", r => { if (new URL(r.url()).pathname.startsWith(`/api/v2/projects/${id}`) && !["GET", "HEAD", "OPTIONS"].includes(r.method())) writes.push(`${r.method()} ${new URL(r.url()).pathname}`); });
   const switcher = page.getByRole("group", { name: "同一剧情图的两种视图" });
   for (const [endpoint, status] of [["source-outline", "来源与大纲尚未核实，请先重新读取。"], ["production-bridge", "投产状态尚未核对，暂不能应用路线。"]]) {
     const pattern = `**/api/v2/projects/${id}/${endpoint}`;
@@ -27,6 +73,9 @@ export async function actionReadUncertainty({ page, request, workbench }: Journe
     await page.unroute(pattern); await page.reload();
     await expect(page.locator(".graph-workflow-status")).toHaveText("当前图内容已应用到故事路线。");
   }
+  const after = await json(request.get(`${base}/graph-workbench`)), afterStages = await json(request.get(`${base}/stages`));
+  expect(after).toEqual(before); expect(afterStages).toEqual(stages); expect(writes).toEqual([]);
+  await retainWorkbenchEvidence(info, "action-read-uncertainty", { id, before, after, stages, afterStages, writes, simulatedFailures: ["source-outline", "production-bridge"] });
 }
 export async function canonicalBriefPreview({ page, request, workbench }: Journey, info: TestInfo) {
   const graph = canonicalFourNodeSplit();
@@ -50,6 +99,7 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await preview.getByRole("button", { name: "取消调整", exact: true }).click();
   expect((await json(request.get(base))).brief.nodeBudget).toBe(demoProject.brief.nodeBudget);
   expect(await json(request.get(`${base}/stages`))).toEqual(stages);
+  await retainWorkbenchEvidence(info, "canonical-preview-readback", { id: created.id, initial, stages, graphWorkbenchAfter: await json(request.get(`${base}/graph-workbench`)), formalBriefAfter: (await json(request.get(base))).brief });
   expect(await json(request.get(`${base}/graph-workbench`))).toEqual(initial);
   await page.route(`**/api/v2/projects/${created.id}/graph-workbench`, route => route.fulfill({ status: 503, json: { detail: "owned graph read failure" } }));
   const failedRead = page.waitForResponse(response => response.url().endsWith(`/projects/${created.id}/graph-workbench`) && response.status() === 503);
@@ -129,11 +179,13 @@ export async function longEditableLabel({ page, request, workbench }: Journey, i
     await page.setViewportSize(size);
     const label = page.locator(`[data-edge-label="${edgeId}"]`);
     await expect(label).toHaveText(text); await expect(label).toHaveAccessibleName(new RegExp(text));
+    await label.focus();
     const collisions = await page.locator(".creator-chart").evaluate(element => {
       const bounds = (selector: string) => [...element.querySelectorAll(selector)].map(e => e.getBoundingClientRect());
-      const labels = bounds(".creator-edge-label"), nodes = bounds(".creator-node");
+      const labels = bounds(".creator-edge-label"), nodes = bounds(".creator-node"), controls = bounds(".creator-row-insert, .creator-row-add");
       const overlaps = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      return labels.some((label, index) => nodes.some(node => overlaps(label, node)) || labels.slice(index + 1).some(other => overlaps(label, other)));
+      return labels.some((label, index) => nodes.some(node => overlaps(label, node)) || labels.slice(index + 1).some(other => overlaps(label, other))
+        || controls.some(control => overlaps(new DOMRect(label.x - 5, label.y - 5, label.width + 10, label.height + 10), control)));
     });
     expect(collisions).toBe(false);
     await label.focus(); for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowDown");
@@ -142,8 +194,12 @@ export async function longEditableLabel({ page, request, workbench }: Journey, i
     await page.keyboard.press("Enter");
     await expect(page.getByLabel("精确选项或后续", { exact: true })).toHaveValue(edgeId);
     await page.getByRole("dialog", { name: "编辑精确连接" }).getByRole("button", { name: "取消", exact: true }).click();
+    const sourceRank = Number(await page.locator(`[data-creator-node="${choice.sectionId}"]`).getAttribute("data-rank"));
+    const insert = page.getByRole("button", { name: `在第 ${sourceRank + 1} 行后插入新一行`, exact: true });
+    await insert.click(); await expect(page.getByRole("dialog", { name: "插入新一行", exact: true })).toBeVisible();
+    await page.getByRole("dialog", { name: "插入新一行", exact: true }).getByRole("button", { name: "取消", exact: true }).click();
   }
-  await info.attach("editable-label-readback", { body: JSON.stringify({ id, text, mapping: saved.draft.payload.mapping }), contentType: "application/json" });
+  await retainWorkbenchEvidence(info, "editable-label-readback", { id, text, initial, saved, graphWorkbenchAfter: await json(request.get(`${base}/graph-workbench`)) });
 }
 
 export async function professionalLifecycle({ page, request, workbench }: Journey, info: TestInfo) {
@@ -159,21 +215,22 @@ export async function professionalLifecycle({ page, request, workbench }: Journe
   const transform = page.locator(".react-flow__viewport");
   await expect(page.locator(".react-flow__node")).toHaveCount(4);
   const first = page.locator(".react-flow__node").first();
-  const initialPosition = await first.getAttribute("style");
+  const readPosition = () => first.evaluate(element => (element as HTMLElement).style.transform);
+  await expect(first).toBeVisible(); const initialPosition = await readPosition();
   await first.scrollIntoViewIfNeeded(); const box = (await first.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2 + 45, { steps: 5 }); await page.mouse.up();
-  await expect(first).not.toHaveAttribute("style", initialPosition!);
-  const position = await first.getAttribute("style");
+  await expect.poll(readPosition).not.toBe(initialPosition);
+  await expect(first).toBeVisible(); const position = await readPosition();
   await page.getByRole("button", { name: "Zoom In", exact: true }).click();
   const visual = await transform.getAttribute("style");
   const switcher = page.getByRole("group", { name: "同一剧情图的两种视图" });
   await switcher.getByRole("button", { name: "创作工作台", exact: true }).click();
   await switcher.getByRole("button", { name: "专业工作台", exact: true }).click();
-  await expect(first).toHaveAttribute("style", position!); await expect(transform).toHaveAttribute("style", visual!);
+  await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(position); await expect(transform).toHaveAttribute("style", visual!);
   expect(await json(request.get(`${base}/graph-workbench`))).toEqual(before); expect(await json(request.get(`${base}/stages`))).toEqual(stages); expect(writes).toEqual([]);
   await page.screenshot({ path: info.outputPath("pro-node-position-retained.png") });
-  await info.attach("pro-position-readback", { body: JSON.stringify({ id, other, initialPosition, position, visual, before, stages, writes }), contentType: "application/json" });
+  await retainWorkbenchEvidence(info, "pro-position-readback", { id, other, initialPosition, position, visual, before, stages, writes });
   const open = async (project: string) => {
     await page.getByRole("button", { name: /^当前项目 · 切换/ }).click();
     await page.locator(`[data-project-id="${project}"] .directory-open`).click();
@@ -181,10 +238,10 @@ export async function professionalLifecycle({ page, request, workbench }: Journe
     await expect(page.locator(".react-flow__node")).toHaveCount(4);
   };
   await open(other); await open(id);
-  await expect(first).toHaveAttribute("style", initialPosition!); await expect(transform).not.toHaveAttribute("style", visual!);
+  await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(initialPosition); await expect(transform).not.toHaveAttribute("style", visual!);
   await page.getByRole("button", { name: "Zoom In", exact: true }).click();
   const zoomed = await transform.getAttribute("style"); await page.reload();
-  await expect(first).toHaveAttribute("style", initialPosition!); await expect(transform).not.toHaveAttribute("style", zoomed!);
+  await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(initialPosition); await expect(transform).not.toHaveAttribute("style", zoomed!);
   await page.getByRole("button", { name: "Zoom In", exact: true }).click();
   const beforeClose = await transform.getAttribute("style");
   await page.getByRole("button", { name: /^当前项目 · 切换/ }).click();
@@ -192,6 +249,6 @@ export async function professionalLifecycle({ page, request, workbench }: Journe
   await row.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
   await row.getByRole("button", { name: "重新打开", exact: true }).click();
   await switcher.getByRole("button", { name: "专业工作台", exact: true }).click();
-  await expect(first).toHaveAttribute("style", initialPosition!);
+  await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(initialPosition);
   await expect(transform).not.toHaveAttribute("style", beforeClose!);
 }

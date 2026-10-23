@@ -5,12 +5,13 @@ import { expect, test, checkedStaticTest } from "./fixture";
 import { createCreatorGraph } from "./fixtures/creator-graph";
 import { createScriptProject, json } from "./f5a-fixture";
 import type { GraphAuthoringDraft } from "../src/features/graph/contracts";
-import { actionReadUncertainty, canonicalBriefPreview, canonicalProNavigation, longEditableLabel, professionalLifecycle } from "./fixtures/workbench-alignment";
+import { actionReadUncertainty, canonicalBriefPreview, canonicalProNavigation, longEditableLabel, noncurrentOutlineActions, professionalLifecycle, retainWorkbenchEvidence } from "./fixtures/workbench-alignment";
 
 checkedStaticTest("editable 300-character choice retains exact text and accessible bounded lanes", longEditableLabel);
 checkedStaticTest("Pro node positions and viewport retain across modes and reset at lifecycle boundaries", professionalLifecycle);
 checkedStaticTest("canonical Brief target preview names actual counts and read uncertainty without changing targets", canonicalBriefPreview);
 checkedStaticTest("both workbenches withdraw global action availability after owned source or production read failure", actionReadUncertainty);
+checkedStaticTest("retained reopened or source-mismatched outlines cannot enable either view's confirmation", noncurrentOutlineActions);
 
 const preview = (page: Page) => page.getByRole("dialog", { name: "确认结构修改" });
 checkedStaticTest("Pro native page navigation, shared selection and active-session view survive mode switches", async ({ page, request, workbench }, info) => {
@@ -38,10 +39,14 @@ checkedStaticTest("Pro native page navigation, shared selection and active-sessi
   await page.mouse.move(point.x, point.y); await page.keyboard.down("Control"); await page.mouse.wheel(0, -80); await page.keyboard.up("Control");
   await expect.poll(() => transform.getAttribute("style")).not.toBe(initialTransform);
   await page.mouse.move(point.x, point.y); await page.mouse.down(); await page.mouse.move(point.x + 40, point.y + 30, { steps: 4 }); await page.mouse.up();
-  const node = page.locator(".react-flow__node").first();
+  const node = page.locator(".react-flow__node").nth(1);
   await node.focus(); await page.keyboard.press("Enter");
   await expect(node).toHaveClass(/selected/);
-  const selectedId = await node.getAttribute("data-id");
+  let selectedId = await node.getAttribute("data-id");
+  await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue(initial.initialPayload.mapping.sections.find((s: { sectionId: string }) => s.sectionId === selectedId).title);
+  const spaceNode = page.locator(".react-flow__node").nth(2);
+  await spaceNode.focus(); await page.keyboard.press("Space");
+  await expect(spaceNode).toHaveClass(/selected/); selectedId = await spaceNode.getAttribute("data-id");
   await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue(initial.initialPayload.mapping.sections.find((s: { sectionId: string }) => s.sectionId === selectedId).title);
   const retainedTransform = await transform.getAttribute("style");
   const switcher = page.getByRole("group", { name: "同一剧情图的两种视图" });
@@ -53,7 +58,7 @@ checkedStaticTest("Pro native page navigation, shared selection and active-sessi
   expect(await json(request.get(`${base}/graph-workbench`))).toEqual(before);
   expect(await json(request.get(`${base}/stages`))).toEqual(stages); expect(writes).toEqual([]);
   await page.screenshot({ path: info.outputPath("pro-first-native-slice.png") });
-  await info.attach("pro-fixture-readback", { body: JSON.stringify({ id, initial, source, before, stages, writes }), contentType: "application/json" });
+  await retainWorkbenchEvidence(info, "pro-fixture-readback", { id, initial, source, before, stages, after: await json(request.get(`${base}/graph-workbench`)), writes });
 });
 async function confirm(page: Page) { await preview(page).getByRole("button", { name: "确认修改", exact: true }).click(); await expect(preview(page)).toHaveCount(0); }
 async function prepare(page: Page) { await page.getByRole("button", { name: "准备修改预览", exact: true }).click(); await expect(preview(page)).toBeVisible(); }

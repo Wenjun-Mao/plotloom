@@ -4,7 +4,7 @@ import { json } from "./f5a-fixture";
 import { demoProject } from "../src/demo";
 import { footageModeLabels, storyNodeKindLabels } from "../src/features/graph/presentation";
 import type { StoryGraph } from "../src/types";
-import { canonicalProNavigation } from "./fixtures/workbench-alignment";
+import { canonicalProNavigation, retainWorkbenchEvidence } from "./fixtures/workbench-alignment";
 import { canonicalFourNodeSplit } from "./fixtures/canonical-workbench";
 
 function canonicalJoinGraph(longChoice: string): StoryGraph {
@@ -300,6 +300,7 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
   expect(afterWorkbench.draft).toEqual(beforeWorkbench.draft);
   expect(afterWorkbench.initialPayload).toEqual(beforeWorkbench.initialPayload);
   expect(writes).toEqual([]);
+  await retainWorkbenchEvidence(info, "canonical-graph-readback", { id, scenario: scenario.id, viewport, beforeStages, afterStages, beforeWorkbench, afterWorkbench, writes });
 });
 
 for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) test(`creator desktop rows and tall inspector ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }, info) => {

@@ -1,6 +1,9 @@
 import type { GraphAuthoringDraft, DraftEdge } from "./contracts";
 
 export const CARD_WIDTH = 194, CARD_HEIGHT = 112, ROW_PITCH = 256, COLUMN_GAP = 34, GUTTER = 48;
+// Editable rows also reserve the insertion control below each label. Its focus
+// outline must fit before that control, unlike the canonical reader's 80px lane.
+export const EDITABLE_EDGE_LABEL_MAX_HEIGHT = 48;
 export interface PlacedNode { id: string; rank: number; x: number; y: number; detached: boolean }
 export interface PlacedEdge<Edge = DraftEdge> { edge: Edge; path: string; labelX: number; labelY: number }
 export interface CreatorLayout<Edge = DraftEdge> { nodes: PlacedNode[]; edges: Array<PlacedEdge<Edge>>; rows: Array<{ rank: number; nodes: string[]; y: number }>; width: number; height: number }
