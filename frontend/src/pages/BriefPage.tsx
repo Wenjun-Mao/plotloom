@@ -7,11 +7,13 @@ import { StageGuide } from "../components/StageGuide";
 import { GraphWorkbenchContext } from "../features/graph/GraphWorkbenchContext";
 import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 import { BriefTargetPreview, structureTargets } from "../features/graph/BriefTargetPreview";
+import { briefStructureBasis, type BriefStructureBasis } from "../features/graph/briefStructureBasis";
 import { AutopilotLaunch } from "../features/autopilot/AutopilotWorkspace";
 
 type BriefPageProps = {
   apiTextPipeline?: boolean | null;
   value: ProjectBrief;
+  savedValue?: ProjectBrief;
   hasSavedProject: boolean;
   saving: boolean;
   readOnly?: boolean;
@@ -35,13 +37,15 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, saving, readOnly = false, onSave, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ apiTextPipeline = null, value, savedValue = value, hasSavedProject, saving, readOnly = false, onSave, onContinueToSource, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const graphOwner = useContext(GraphWorkbenchContext);
-  const [targetPreview, setTargetPreview] = useState<ProjectBrief | null>(null);
+  const [targetPreview, setTargetPreview] = useState<{ before: ProjectBrief; after: ProjectBrief; basis: BriefStructureBasis } | null>(null);
   const requestSave = () => {
     const next = canonicalDraft();
-    if (structureTargets.some(key => next[key] !== value[key])) setTargetPreview(next);
+    // Recovered input tracks ongoing edits; only the saved Brief is the target
+    // baseline. Comparing against recovered input would bypass consent on Save.
+    if (structureTargets.some(key => next[key] !== savedValue[key])) setTargetPreview({ before: savedValue, after: next, basis: briefStructureBasis(graphOwner, graph, next) });
     else void onSave(next);
   };
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
@@ -50,7 +54,7 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
   });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
   const canonicalDraft = (): ProjectBrief => ({ ...draft, title: draft.title.trim() || defaultWorkingTitle });
-  const savedVisualDirection = [...(value.visualStyleSelections || []).map(item => item.value), ...(value.visualStyle ? [value.visualStyle] : [])].join("；") || null;
+  const savedVisualDirection = [...(savedValue.visualStyleSelections || []).map(item => item.value), ...(savedValue.visualStyle ? [savedValue.visualStyle] : [])].join("；") || null;
   const validDuration = Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
   const canSave = !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
   const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后可选择自动准备素材，或继续手动创作；保存本身不会启动任务。";
@@ -70,7 +74,7 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />
     <StageGuide title={hasSavedProject ? "修改当前项目的创作设置" : "从故事想法开始"}>{hasSavedProject ? "修改结构后，已保存的分支及后续内容需要重新检查；旧内容与媒体仍保留。新任务必须使用当前设置，不会自动重建或替换现有制作内容。故事来源正文独立保存，不会随简报梗概的修改而改变。" : "写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。"}</StageGuide>
-    <AutopilotLaunch saved={hasSavedProject} dirty={JSON.stringify(canonicalDraft()) !== JSON.stringify(value)} disabled={readOnly || saving}
+    <AutopilotLaunch saved={hasSavedProject} dirty={JSON.stringify(canonicalDraft()) !== JSON.stringify(savedValue)} disabled={readOnly || saving}
       visualDirection={savedVisualDirection} onContinueManually={onContinueToSource} />
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
@@ -131,6 +135,6 @@ export function BriefPage({ apiTextPipeline = null, value, hasSavedProject, savi
         <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{apiTextPipeline === true && onGenerateStoryboard && <Button variant="primary" busy={storyboardRunning} disabled={readOnly || !proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>
     </div>}
-    {targetPreview && <BriefTargetPreview before={value} after={targetPreview} draft={graphOwner?.draft ?? null} busy={saving} onCancel={() => setTargetPreview(null)} onConfirm={() => { const next = targetPreview; setTargetPreview(null); void onSave(next); }} />}
+    {targetPreview && <BriefTargetPreview before={targetPreview.before} after={targetPreview.after} basis={targetPreview.basis} busy={saving} onCancel={() => setTargetPreview(null)} onConfirm={() => { const next = targetPreview.after; setTargetPreview(null); void onSave(next); }} />}
   </div>;
 }

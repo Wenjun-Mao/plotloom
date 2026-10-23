@@ -1,5 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MutableRefObject } from "react";
-import { BaseEdge, EdgeLabelRenderer, MarkerType, Position, ReactFlow, type Edge, type EdgeProps, type Node } from "@xyflow/react";
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MutableRefObject, type ReactNode } from "react";
+import { BaseEdge, Controls, EdgeLabelRenderer, MarkerType, Position, ReactFlow, type Edge, type EdgeProps, type Node } from "@xyflow/react";
+import { professionalNavigation, useProfessionalPresentation } from "./ProfessionalPresentation";
 import type { StoryGraph } from "../../types";
 import { storyNodeKindLabels } from "./presentation";
 import { CARD_HEIGHT, CARD_WIDTH, graphTopologyLayout } from "./creatorLayout";
@@ -13,7 +14,7 @@ type CanonicalEdgeData = {
   kind: "choice" | "continuation";
 };
 type CanonicalFlowEdge = Edge<CanonicalEdgeData, "canonical">;
-type CanonicalFlowNode = Node<{ label: string }, "default">;
+type CanonicalFlowNode = Node<{ label: ReactNode }, "default">;
 
 function CanonicalEdge({ id, data, markerEnd }: EdgeProps<CanonicalFlowEdge>) {
   if (!data) return null;
@@ -32,12 +33,16 @@ function CanonicalEdge({ id, data, markerEnd }: EdgeProps<CanonicalFlowEdge>) {
 const edgeTypes = { canonical: CanonicalEdge };
 const initialFitOptions = { minZoom: 1, maxZoom: 1, padding: 0.12 };
 
-export function CanonicalGraphCanvas({ value, selectedNodeId, onNodeSelect, scrollRef }: {
+export function CanonicalGraphCanvas({ value, selectedNodeId, onNodeSelect, scrollRef, presentation = "creator" }: {
   value: StoryGraph;
   selectedNodeId?: string | null;
   onNodeSelect?: (identity: string) => void;
   scrollRef?: MutableRefObject<HTMLDivElement | null>;
+  presentation?: "creator" | "professional";
 }) {
+  const session = useProfessionalPresentation();
+  const [initialViewport] = useState(presentation === "professional" ? session.viewport : undefined);
+  const professional = presentation === "professional";
   const scroll = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState(0);
   const setScrollElement = (element: HTMLDivElement | null) => {
@@ -63,7 +68,7 @@ export function CanonicalGraphCanvas({ value, selectedNodeId, onNodeSelect, scro
       id: node.id,
       type: "default",
       position: { x: placed.x, y: placed.y },
-      data: { label: `${storyNodeKindLabels[node.kind]} · ${node.title || node.id}` },
+      data: { label: <div className="canonical-node-label nopan nowheel" tabIndex={0}>{storyNodeKindLabels[node.kind]} · {node.title || node.id}</div> },
       className: `flow-node canonical-flow-node ${node.kind}`,
       focusable: onNodeSelect ? true : undefined,
       selectable: onNodeSelect ? true : undefined,
@@ -109,15 +114,15 @@ export function CanonicalGraphCanvas({ value, selectedNodeId, onNodeSelect, scro
     onNodeSelect(identity);
   } : undefined;
 
-  return <div ref={setScrollElement} className="canonical-graph-scroll" tabIndex={0} aria-label="已接受路线横向平移">
-    <div className="canonical-graph-canvas" style={{ width: layout.width, height: layout.height }} onKeyDownCapture={selectFromKeyboard}>
-      <ReactFlow className="canonical-graph-flow" style={{ width: layout.width, height: layout.height }}
-        nodes={nodes} edges={edges} edgeTypes={edgeTypes} fitView fitViewOptions={initialFitOptions}
+  const canvasStyle = professional ? { width: "100%", height: 540 } : { width: layout.width, height: layout.height };
+  return <div ref={setScrollElement} className={`canonical-graph-scroll${professional ? " professional-canonical-scroll" : ""}`} tabIndex={0} aria-label={professional ? "专业路线画布" : "已接受路线横向平移"}>
+    <div className="canonical-graph-canvas" style={canvasStyle} onKeyDownCapture={selectFromKeyboard}>
+      <ReactFlow className="canonical-graph-flow" style={canvasStyle}
+        nodes={nodes} edges={edges} edgeTypes={edgeTypes} fitView={!initialViewport} fitViewOptions={professional ? { padding: .12 } : initialFitOptions} defaultViewport={initialViewport}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false} elementsSelectable={false}
-        zoomOnScroll={onNodeSelect ? false : undefined} zoomOnPinch={onNodeSelect ? false : undefined}
-        zoomOnDoubleClick={onNodeSelect ? false : undefined} panOnScroll={onNodeSelect ? false : undefined}
-        panOnDrag={onNodeSelect ? false : undefined} preventScrolling={onNodeSelect ? false : undefined}
-        onNodeClick={onNodeSelect ? (_event, node) => onNodeSelect(node.id) : undefined} />
+        {...(professional ? professionalNavigation : { zoomOnScroll: false, zoomOnPinch: false, zoomOnDoubleClick: false, panOnScroll: false, panOnDrag: false, preventScrolling: false })}
+        onMoveEnd={professional ? (_, viewport) => { session.viewport = viewport; } : undefined}
+        onNodeClick={onNodeSelect ? (_event, node) => onNodeSelect(node.id) : undefined}>{professional && <Controls showInteractive={false} />}</ReactFlow>
     </div>
   </div>;
 }

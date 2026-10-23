@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, PageHeader } from "../../components";
-import type { SourceOutlineReviewState, WorkspaceProject } from "../../types";
+import type { WorkspaceProject } from "../../types";
 import type { PageId } from "../../app/workspace/contracts";
 import type { WorkspaceSourceReviewRead } from "../../app/workspace/useWorkspaceSourceReview";
 import { useGraphWorkbench } from "./GraphWorkbenchContext";
@@ -14,11 +14,10 @@ import { GraphWorkflowActions } from "./GraphWorkflowActions";
 import { CreatorChart } from "./CreatorChart";
 import { CreatorEditDialog, type CreatorEdit } from "./CreatorEditDialog";
 import { creatorLayout, CARD_HEIGHT } from "./creatorLayout";
-import { creatorStructure } from "./creatorStructure";
+import { useGraphActionProjection } from "./graphActionProjection";
 import { useCreatorGeometry } from "./useCreatorGeometry";
 import { useWorkspaceProduction } from "./WorkspaceProductionContext";
 import { CreatorProductionInspector } from "./CreatorProductionInspector";
-import { creatorAdmission } from "./creatorAdmission";
 import { workspaceViewportTop } from "../../app/workspace/workspaceViewport";
 
 export type CreatorNavigate = (stage: PageId, hash?: string) => void;
@@ -28,19 +27,21 @@ export function CreatorWorkbench({ project, readOnly, sourceReview, onNavigate, 
   if (!project.id) return <section className="page"><PageHeader title="创作工作台" description="先保存项目简报，再建立来源与故事路线。" /><Button onClick={() => onNavigate("brief")}>返回项目简报</Button></section>;
   if (owner.state?.readOnlyReason) return <CreatorCanonicalWorkbench project={project} readOnlyReason={owner.state.readOnlyReason} />;
   if (!owner.draft || !owner.state) return <section className="page"><GraphPreviewRecovery /></section>;
-  return <CreatorCanvas project={project} readOnly={readOnly} source={sourceReview.value} sourceError={sourceReview.error} onSourceRetry={sourceReview.refresh} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
+  return <CreatorCanvas project={project} readOnly={readOnly} sourceReview={sourceReview} onNavigate={onNavigate} onOpenShot={onOpenShot} />;
 }
 
-function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, onNavigate, onOpenShot }: Omit<CreatorProps, "sourceReview"> & { source: SourceOutlineReviewState | null; sourceError: string; onSourceRetry: WorkspaceSourceReviewRead["refresh"] }) {
+function CreatorCanvas({ project, readOnly, sourceReview, onNavigate, onOpenShot }: CreatorProps) {
   const owner = useGraphWorkbench(), draft = owner.draft!;
+  const source = sourceReview.value, sourceError = sourceReview.error, onSourceRetry = sourceReview.refresh;
+  const actions = useGraphActionProjection(project.brief, readOnly, sourceReview);
   const [action, setAction] = useState<CreatorEdit | null>(null), [tab, setTab] = useState<"story" | "production">("story");
   const [selectedY, setSelectedY] = useState<number>();
   const production = useWorkspaceProduction();
-  const admission = creatorAdmission(draft, source, owner.state!.baseCanonicalRevision, production.data?.bridge);
+  const admission = actions.admission!;
   const geometry = useCreatorGeometry(project.id!, selectedY);
   const revealedSelection = useRef<string | null>(null);
   const layout = useMemo(() => creatorLayout(draft, geometry.chartWidth), [draft, geometry.chartWidth]);
-  const structure = useMemo(() => creatorStructure(draft, project.brief), [draft, project.brief]);
+  const structure = actions.structure!;
   const section = draft.mapping.sections.find(section => section.sectionId === owner.selectedNodeId);
   const disabled = readOnly || owner.readStatus !== "ready" || owner.busy || owner.stale || !geometry.desktop;
   useEffect(() => {
@@ -76,9 +77,9 @@ function CreatorCanvas({ project, readOnly, source, sourceError, onSourceRetry, 
     </details>
     <GraphWorkflowActions
       save={{ disabled, onClick: () => void owner.saveDraft() }}
-      confirm={{ disabled: disabled || !source?.acceptedOutline || structure.incomplete || structure.mismatches.length > 0 || !production.data?.bridge, onClick: () => source && void owner.confirmMapping(source) }}
-      apply={{ variant: "primary", disabled: disabled || admission.installBlocked, onClick: () => source && void owner.installMapping(source) }}
-      status={admission.reason}
+      confirm={{ disabled: disabled || actions.confirmDisabled, onClick: () => source && void owner.confirmMapping(source) }}
+      apply={{ variant: "primary", disabled: disabled || actions.applyDisabled, onClick: () => source && void owner.installMapping(source) }}
+      status={actions.status}
     />
     <div ref={geometry.layout} className="creator-layout">
       <div className="creator-chart-column"><p className="creator-pan-hint">图按连接自动排列；剧情图较宽时，可在图内横向平移。向下滚动页面可查看后续剧情。</p>

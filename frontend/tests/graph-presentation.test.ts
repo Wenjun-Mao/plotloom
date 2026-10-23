@@ -13,7 +13,7 @@ import type { StoryGraph } from "../src/types";
 import { creativeWorkflowStepReference } from "../src/creative-workflow-steps";
 
 const flowMock = vi.hoisted(() => vi.fn((_props: Record<string, unknown>) => null));
-vi.mock("@xyflow/react", () => ({ ReactFlow: flowMock, BaseEdge: () => null, EdgeLabelRenderer: () => null,
+vi.mock("@xyflow/react", () => ({ ReactFlow: flowMock, Controls: () => null, BaseEdge: () => null, EdgeLabelRenderer: () => null,
   MarkerType: { ArrowClosed: "closed" }, Position: { Bottom: "bottom", Top: "top" } }));
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root, owner: GraphWorkbenchController;
@@ -85,13 +85,9 @@ it("renders canonical choices through shared ranks and reserved lanes without ch
   expect(joinLanes).toHaveLength(3);
   expect(new Set(joinLanes).size).toBe(3);
   expect(props).toMatchObject({ nodesDraggable: false, nodesConnectable: false, edgesReconnectable: false, elementsSelectable: false,
-    fitViewOptions: { minZoom: 1, maxZoom: 1 } });
-  expect(props.zoomOnScroll).toBeUndefined();
-  expect(props.zoomOnPinch).toBeUndefined();
-  expect(props.zoomOnDoubleClick).toBeUndefined();
-  expect(props.panOnScroll).toBeUndefined();
-  expect(props.panOnDrag).toBeUndefined();
-  expect(props.preventScrolling).toBeUndefined();
+    fitViewOptions: { padding: .12 } });
+  expect(props).toMatchObject({ zoomOnScroll: false, zoomOnPinch: true, zoomOnDoubleClick: false,
+    panOnScroll: false, panOnDrag: true, preventScrolling: false, zoomActivationKeyCode: null });
   expect(props.nodesFocusable).toBeUndefined();
   expect(value).toEqual(original);
 });

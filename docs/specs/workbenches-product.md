@@ -89,7 +89,8 @@ Preserve supported Pro positions and canvas pan/zoom across mode switches within
 the active project session. Reset this visual state on project change, reload or
 close/reopen, not authored work or shared selection. Do not add durable layout
 storage or new read-only dragging ([lifetime decision](../adr/0122-creator-workspace-presentation.md#owner-approved-professional-visual-state-lifetime-2026-10-23)).
-These are agreed requirements, not implemented/qualified behavior.
+Implementation and qualification are recorded separately in the
+[alignment receipt](../verification/2026-10-23-workbench-spec-alignment.md).
 
 ## Exact structural editing (C09–C26, C33, C48–C50, C53)
 

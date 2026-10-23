@@ -11,7 +11,7 @@ const actions: { id: ActionId; label: string; explanation: string }[] = [
 ];
 const confirmationImpact = `如有已应用路线，确认新版本会将旧路线标记为过期；需重新应用，并在${creativeWorkflowStepReference("production")}核对已有剧本、分镜和制作内容（不删除）。`;
 
-/** Shared presentation only; each view retains its own admission and handlers. */
+/** Shared presentation; both views project the same reads and retain owner handlers. */
 export function GraphWorkflowActions(controls: Record<ActionId, ActionControl> & { status?: string }) {
   const id = useId(), titleId = `${id}-title`, descriptionId = `${id}-description`, scopeId = `${id}-scope`, generationHelpId = `${id}-generation`, confirmationImpactId = `${id}-confirmation-impact`;
   return <section className="graph-workflow-bar" aria-labelledby={titleId} aria-describedby={descriptionId}>

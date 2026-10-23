@@ -4,24 +4,8 @@ import { json } from "./f5a-fixture";
 import { demoProject } from "../src/demo";
 import { footageModeLabels, storyNodeKindLabels } from "../src/features/graph/presentation";
 import type { StoryGraph } from "../src/types";
-
-function canonicalFourNodeSplit(): StoryGraph {
-  return {
-    startNodeId: "start",
-    nodes: [
-      { id: "start", title: "共同开场", kind: "start", summary: "灯塔的值守夜。", footageMode: "footage" },
-      { id: "decision", title: "选择照明方向", kind: "decision", summary: "海雾正向港湾推进。", footageMode: "route_only" },
-      { id: "sea-ending", title: "继续照向海面", kind: "ending", summary: "航道上的船只看见信标。", footageMode: "footage" },
-      { id: "shore-ending", title: "照亮岸边石阶", kind: "ending", summary: "岸边的人们沿石阶撤离。", footageMode: "footage" },
-    ],
-    edges: [
-      { id: "start-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
-      { id: "decision-sea", sourceNodeId: "decision", targetNodeId: "sea-ending", kind: "choice", choiceText: "继续照向海面", stateEffects: { harbor_signal: "visible" }, entityStateEffects: [{ entityType: "location", entityId: "loc_control", state: "active" }] },
-      { id: "decision-shore", sourceNodeId: "decision", targetNodeId: "shore-ending", kind: "choice", choiceText: "照亮岸边石阶", stateEffects: {}, entityStateEffects: [] },
-    ],
-    joinContracts: [],
-  };
-}
+import { canonicalProNavigation } from "./fixtures/workbench-alignment";
+import { canonicalFourNodeSplit } from "./fixtures/canonical-workbench";
 
 function canonicalJoinGraph(longChoice: string): StoryGraph {
   return {
@@ -117,6 +101,7 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
         const reader = page.locator(".canonical-graph-reader");
         await expect(reader).toBeVisible();
         await expect(reader).toContainText(`已接受路线 · ${graph.nodes.length} 个节点 · ${graph.edges.length} 条连接`);
+        if (!reload && scenario.id === "four-node-split") await canonicalProNavigation(page);
       }
       await expect(page.getByRole("button", { name: "保存图草稿", exact: true })).toHaveCount(0);
       const labels = page.locator(".canonical-edge-label");
@@ -218,7 +203,18 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
         await separator.focus(); await page.keyboard.press("ArrowLeft");
         const keyboardWidth = (await creatorInspector.boundingBox())!.width;
         expect(keyboardWidth).toBeGreaterThan(initialWidth);
+        // Native focus can still be scrolling the document. Freeze geometry only
+        // after successive frames agree, then exercise the actual divider hit.
+        await separator.evaluate(element => new Promise<void>(resolve => {
+          let last = "", stable = 0;
+          const frame = () => {
+            const r = element.getBoundingClientRect(), current = `${r.x}:${r.y}:${r.height}:${scrollY}`;
+            stable = current === last ? stable + 1 : 0; last = current;
+            if (stable >= 3) resolve(); else requestAnimationFrame(frame);
+          }; requestAnimationFrame(frame);
+        }));
         const handle = (await separator.boundingBox())!;
+        expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[role="separator"]') !== null, { x: handle.x + handle.width / 2, y: handle.y + 40 })).toBe(true);
         await page.mouse.move(handle.x + handle.width / 2, handle.y + 40); await page.mouse.down();
         await page.mouse.move(handle.x - 35, handle.y + 40, { steps: 4 });
         expect((await creatorInspector.boundingBox())!.width).toBeGreaterThan(keyboardWidth);
@@ -284,7 +280,9 @@ for (const scenario of canonicalScenarios) for (const viewport of canonicalViewp
         expect(Math.abs((afterPan.labelX - beforePan.labelX) - (afterPan.translateX - beforePan.translateX))).toBeLessThan(2);
         expect(Math.abs((afterPan.labelY - beforePan.labelY) - (afterPan.translateY - beforePan.translateY))).toBeLessThan(2);
         await page.mouse.move(interaction.x + 40, interaction.y + 120);
+        await page.keyboard.down("Control");
         await page.mouse.wheel(0, -120);
+        await page.keyboard.up("Control");
         await expect.poll(async () => (await readAlignment()).scale).toBeGreaterThan(afterPan.scale);
         const afterZoom = await readAlignment();
         const zoomRatio = afterZoom.scale / afterPan.scale;

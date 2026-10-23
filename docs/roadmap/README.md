@@ -11,6 +11,10 @@ preservation-checked frontend activation, with no provider work, push or CI.
 The owner approved implementation and bounded activation on 2026-10-23. This does
 not reopen settled choices or the completed creator-completion/media milestones.
 
+The [implementation receipt](../verification/2026-10-23-workbench-spec-alignment.md)
+records source repairs, retained first failures and focused UI outcomes. Stable
+independent review, final qualification and root-owned activation remain separate.
+
 ## Approved specification consolidation and workbench audit
 
 The owner approved a single feature-oriented spec map, consolidation of agreed

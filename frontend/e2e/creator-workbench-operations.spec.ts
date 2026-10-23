@@ -1,12 +1,60 @@
 import type { Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { expect, test } from "./fixture";
+import { expect, test, checkedStaticTest } from "./fixture";
 import { createCreatorGraph } from "./fixtures/creator-graph";
-import { json } from "./f5a-fixture";
+import { createScriptProject, json } from "./f5a-fixture";
 import type { GraphAuthoringDraft } from "../src/features/graph/contracts";
+import { actionReadUncertainty, canonicalBriefPreview, canonicalProNavigation, longEditableLabel, professionalLifecycle } from "./fixtures/workbench-alignment";
+
+checkedStaticTest("editable 300-character choice retains exact text and accessible bounded lanes", longEditableLabel);
+checkedStaticTest("Pro node positions and viewport retain across modes and reset at lifecycle boundaries", professionalLifecycle);
+checkedStaticTest("canonical Brief target preview names actual counts and read uncertainty without changing targets", canonicalBriefPreview);
+checkedStaticTest("both workbenches withdraw global action availability after owned source or production read failure", actionReadUncertainty);
 
 const preview = (page: Page) => page.getByRole("dialog", { name: "确认结构修改" });
+checkedStaticTest("Pro native page navigation, shared selection and active-session view survive mode switches", async ({ page, request, workbench }, info) => {
+  await page.setViewportSize({ width: 1280, height: 460 });
+  const id = await createScriptProject(request, workbench.apiOrigin, "pro-native-slice", {}, []);
+  const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
+  const initial = await json(request.get(`${base}/graph-workbench`));
+  const source = await json(request.get(`${base}/source-outline`));
+  expect(initial.draft).toBeNull(); expect(initial.initialPayload.mapping).toEqual(source.acceptedSectionMap.mapping);
+  expect(source.graphAdmission.status).toBe("current");
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
+  await save(page);
+  const before = await json(request.get(`${base}/graph-workbench`));
+  const stages = await json(request.get(`${base}/stages`));
+  const writes: string[] = [];
+  page.on("request", r => { if (new URL(r.url()).pathname.startsWith(`/api/v2/projects/${id}`) && !["GET", "HEAD", "OPTIONS"].includes(r.method())) writes.push(`${r.method()} ${new URL(r.url()).pathname}`); });
+  const canvas = page.locator(".graph-canvas"), transform = page.locator(".react-flow__viewport");
+  await canvas.evaluate(element => element.scrollIntoView({ block: "start" }));
+  const point = await canvas.evaluate(element => { const r = element.getBoundingClientRect(); return { x: r.x + 30, y: Math.max(r.y + 30, 220) }; });
+  const initialTransform = await transform.getAttribute("style"), initialY = await page.evaluate(() => scrollY);
+  await page.mouse.move(point.x, point.y); await page.mouse.wheel(0, 130);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(initialY);
+  expect(await transform.getAttribute("style")).toBe(initialTransform);
+  await canvas.evaluate(element => element.scrollIntoView({ block: "start" }));
+  await page.mouse.move(point.x, point.y); await page.keyboard.down("Control"); await page.mouse.wheel(0, -80); await page.keyboard.up("Control");
+  await expect.poll(() => transform.getAttribute("style")).not.toBe(initialTransform);
+  await page.mouse.move(point.x, point.y); await page.mouse.down(); await page.mouse.move(point.x + 40, point.y + 30, { steps: 4 }); await page.mouse.up();
+  const node = page.locator(".react-flow__node").first();
+  await node.focus(); await page.keyboard.press("Enter");
+  await expect(node).toHaveClass(/selected/);
+  const selectedId = await node.getAttribute("data-id");
+  await expect(page.getByRole("textbox", { name: "章节标题", exact: true })).toHaveValue(initial.initialPayload.mapping.sections.find((s: { sectionId: string }) => s.sectionId === selectedId).title);
+  const retainedTransform = await transform.getAttribute("style");
+  const switcher = page.getByRole("group", { name: "同一剧情图的两种视图" });
+  await switcher.getByRole("button", { name: "创作工作台", exact: true }).click();
+  await switcher.getByRole("button", { name: "专业工作台", exact: true }).click();
+  await expect(transform).toHaveAttribute("style", retainedTransform!);
+  await expect(page.locator(`.react-flow__node[data-id="${selectedId}"]`)).toHaveClass(/selected/);
+  await canonicalProNavigation(page, true);
+  expect(await json(request.get(`${base}/graph-workbench`))).toEqual(before);
+  expect(await json(request.get(`${base}/stages`))).toEqual(stages); expect(writes).toEqual([]);
+  await page.screenshot({ path: info.outputPath("pro-first-native-slice.png") });
+  await info.attach("pro-fixture-readback", { body: JSON.stringify({ id, initial, source, before, stages, writes }), contentType: "application/json" });
+});
 async function confirm(page: Page) { await preview(page).getByRole("button", { name: "确认修改", exact: true }).click(); await expect(preview(page)).toHaveCount(0); }
 async function prepare(page: Page) { await page.getByRole("button", { name: "准备修改预览", exact: true }).click(); await expect(preview(page)).toBeVisible(); }
 async function undo(page: Page) {
@@ -42,7 +90,7 @@ test("graph action explanations identify whole-graph scope outside node details 
       await bar.evaluate(element => element.scrollIntoView({ block: "center" }));
       // Node selection can precede the production read. Assert this fixture's
       // settled state rather than freezing a transient status as the expectation.
-      const status = view === "创作" ? "先确认当前图内容，再应用到故事路线。" : "";
+      const status = "先保存来源并确认大纲，再确认图内容。";
       await expect(bar.locator(".graph-workflow-status")).toHaveText(status ? [status] : []);
       await expect(bar).toHaveAccessibleDescription(`作用于全部节点和连接，不仅是当前选中的节点。 三项操作均不会生成影片。${status ? ` ${status}` : ""}`);
       await expect(bar.locator("header > p")).toHaveCount(1);

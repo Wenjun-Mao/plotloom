@@ -63,6 +63,23 @@ it("marks required labels inline without giving optional inputs a native validat
   expect(host.querySelector("textarea")?.getAttribute("aria-required")).toBe("true");
 });
 
+it("compares restored Brief structure against saved targets and Cancel never confirms them", async () => {
+  const saved = structuredClone(demoProject.brief), recovered = { ...saved, nodeBudget: saved.nodeBudget + 1 };
+  const onSave = vi.fn();
+  await act(async () => root.render(createElement(BriefPage, { value: recovered, savedValue: saved,
+    hasSavedProject: true, saving: false, onSave })));
+  const save = [...host.querySelectorAll("button")].find(button => button.textContent === "保存修改")!;
+  await act(async () => save.click());
+  const dialog = host.querySelector("dialog")!;
+  expect(dialog.open).toBe(true);
+  expect([...dialog.querySelectorAll("tbody tr")][0].textContent).toBe(`节点上限${saved.nodeBudget}${recovered.nodeBudget}`);
+  expect(dialog.textContent).toContain("预览依据：当前图尚未核实");
+  await act(async () => [...dialog.querySelectorAll("button")].find(button => button.textContent === "取消调整")!.click());
+  expect(host.querySelector("dialog")).toBeNull(); expect(onSave).not.toHaveBeenCalled();
+  expect(saved.nodeBudget).toBe(demoProject.brief.nodeBudget);
+  expect(host.querySelector<HTMLInputElement>('[aria-label="剧情节点数量上限"]')?.value).toBe(String(recovered.nodeBudget));
+});
+
 it.each(["input", "select", "textarea"])("keeps %s field names separate from help text and retains existing descriptions", async (control) => {
   await act(async () => root.render(createElement(Field, {
     label: "一句话概述", hint: "详细背景写在故事前提中。",

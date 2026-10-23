@@ -192,3 +192,25 @@ in source chat `01a04525-e907-7630-9640-78790d69e8ae`, turn
 `01a166f5-3fed-7ef2-93a0-5ef6abd00f4b`. This closes the last intent question in the
 bounded reconciliation; implementation, activation and the audited code repairs
 remain on hold pending separate authorization, not completed behavior.
+
+## Approved implementation ownership, 2026-10-23
+
+The separately approved [alignment plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
+implements these decisions. One in-memory presentation provider at the stable
+workspace boundary owns only Pro positions and viewport, replacing its value on
+active-project change and disappearing on workspace exit. Each Pro mount captures
+that session's initial viewport, avoiding initial fit over restored context.
+Callbacks close over that session object, so retired project callbacks cannot
+populate the next session. Pro's local projection is keyed by project; the shared
+authoring provider/selection and Creator preferences retain their existing owners.
+
+Canonical canvas callers explicitly select Creator's passive natural-height shell
+or Pro's bounded technical viewport and controls. Scrollable label content excludes
+protruding handles from scroll geometry. Editable choice labels retain complete
+text in bounded keyboard-readable lanes. Brief preview snapshots before/after
+targets and a named current topology basis; topology counting requires no fake
+authoring draft. Recovered Brief input is distinct from the saved canonical Brief:
+target-before, saved visual-direction and launch dirty comparisons use canonical
+data, while recovery supplies editable hydration only. Both editable views consume one read-derived action projection,
+leaving actual command/admission authority unchanged. The [receipt](../verification/2026-10-23-workbench-spec-alignment.md)
+records implementation, review, qualification and activation separately.

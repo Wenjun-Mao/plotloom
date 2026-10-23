@@ -5,7 +5,7 @@ import type { StoryGraph, ValidationIssue } from "../../types";
 import { CanonicalGraphCanvas } from "./CanonicalGraphCanvas";
 import { footageModeLabels, storyNodeKindLabels } from "./presentation";
 
-export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { value: StoryGraph; issues?: ValidationIssue[]; onEntitySelect?: (identity: string) => void }) {
+export function CanonicalGraphReader({ value, issues = [], onEntitySelect, selectedNodeId, onNodeSelect }: { value: StoryGraph; issues?: ValidationIssue[]; onEntitySelect?: (identity: string) => void; selectedNodeId?: string | null; onNodeSelect?: (identity: string) => void }) {
   const root = useRef<HTMLDivElement>(null), signature = JSON.stringify(issues);
   useEffect(() => {
     const target = issues.map(issue => graphIssueTarget(value, issue)).find(Boolean);
@@ -16,7 +16,7 @@ export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { v
   }, [signature, value]);
   return <div ref={root} className="canonical-graph-reader">
     <p>已接受路线 · {value.nodes.length} 个节点 · {value.edges.length} 条连接</p>
-    <CanonicalGraphCanvas value={value} />
+    <CanonicalGraphCanvas value={value} presentation="professional" selectedNodeId={selectedNodeId} onNodeSelect={onNodeSelect} />
     <details open><summary>节点、关系与汇合合同</summary>
       {value.nodes.map(node => <section key={node.id}><strong>{node.id} · {storyNodeKindLabels[node.kind]} · {footageModeLabels[node.footageMode]}</strong>
         <Field label="章节标题"><input readOnly value={node.title} data-focus-key={graphFocusKey({ kind: "node", id: node.id }, "title")} /></Field>

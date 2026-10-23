@@ -27,7 +27,7 @@ export function CreatorChart({ layout, disabled, onEdit }: { layout: CreatorLayo
     </svg>
     {layout.edges.map(({ edge, labelX, labelY }) => {
       const option = draft.mapping.choices.flatMap(choice => choice.outcomes).find(option => option.outcomeId === edge.id);
-      return <button key={edge.id} type="button" className={`creator-edge-label ${edge.kind}`} data-edge-label={edge.id} style={{ left: labelX, top: labelY }} title={`${option?.label || "后续"} · ${title(edge.sourceNodeId!)} → ${title(edge.targetNodeId!)}`} disabled={disabled} onClick={() => onEdit({ type: "connection", nodeId: edge.sourceNodeId!, endpoint: "target", edgeId: edge.id })}>{option?.label || (edge.kind === "choice" ? "待填写选项" : "后续")}</button>;
+      return <button key={edge.id} type="button" className={`creator-edge-label ${edge.kind}`} data-edge-label={edge.id} style={{ left: labelX, top: labelY }} aria-label={`编辑连接：${option?.label || "后续"} · ${title(edge.sourceNodeId!)} → ${title(edge.targetNodeId!)}`} title={`${option?.label || "后续"} · ${title(edge.sourceNodeId!)} → ${title(edge.targetNodeId!)}`} disabled={disabled} onClick={() => onEdit({ type: "connection", nodeId: edge.sourceNodeId!, endpoint: "target", edgeId: edge.id })}>{option?.label || (edge.kind === "choice" ? "待填写选项" : "后续")}</button>;
     })}
     {layout.nodes.map(placed => {
       const node = draft.mapping.topology.nodes.find(node => node.id === placed.id)!, section = draft.mapping.sections.find(section => section.sectionId === placed.id)!;
