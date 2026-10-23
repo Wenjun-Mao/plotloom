@@ -84,3 +84,27 @@ controls are excluded from text-input sizing and use explicit compact geometry.
 Qualification covers the original cycle and capacity failures, direct node-role
 refusal, retained endpoint values and zero mutation, with separate viewport
 inspection. This changes feedback ownership, not graph validity or admission.
+
+## Canonical read-only fallback geometry and labels, 2026-10-22
+
+The canonical reader is also used when a source binding or graph draft is
+unavailable. Its index-based grid did not match the existing top/bottom edge
+handles or the ranked creator lanes, so choice labels could appear on top of
+nodes or away from the route they describe.
+
+The canonical reader and editable creator chart now share one topology-only
+geometry function. It ranks connected nodes by longest predecessor path, retains
+stable sibling order, and gives every incoming label its own lane, including
+converging and skip edges. The authoring wrapper continues to supply its existing
+presentation-only row hints. Canonical reads pass the graph itself; they do not
+construct an authoring draft or alter canonical identity, order, text, effects,
+read-only status or mutation ownership.
+
+The read-only React Flow canvas uses the shared card dimensions and explicit
+bottom/top handle directions. Its height follows the graph, wide layouts scroll
+horizontally, and only the initial fit is held at 1:1; later pan and zoom remain
+available. HTML edge labels use the reserved coordinates, wrap within a bounded
+scrollable area and remain keyboard reachable with their full text exposed to
+assistive technology. Theme variables are scoped to this canvas so installed
+React Flow CSS order cannot force white label fills. The same reader serves both
+creator and professional fallback modes.

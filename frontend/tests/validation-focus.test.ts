@@ -13,8 +13,11 @@ vi.mock("@xyflow/react", () => ({
   Background: () => null,
   BackgroundVariant: { Dots: "dots" },
   Controls: () => null,
+  BaseEdge: () => null,
+  EdgeLabelRenderer: () => null,
   MarkerType: { ArrowClosed: "arrow" },
   MiniMap: () => null,
+  Position: { Bottom: "bottom", Top: "top" },
   ReactFlow: ({ children }: { children?: React.ReactNode }) => createElement("div", { "data-testid": "flow-projection" }, children),
 }));
 

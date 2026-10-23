@@ -9,13 +9,16 @@ import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fix
 import type { StoryGraph } from "../src/types";
 import { creativeWorkflowStepReference } from "../src/creative-workflow-steps";
 
-vi.mock("@xyflow/react", () => ({ ReactFlow: () => null, MarkerType: { ArrowClosed: "closed" } }));
+const flowMock = vi.hoisted(() => vi.fn((_props: Record<string, unknown>) => null));
+vi.mock("@xyflow/react", () => ({ ReactFlow: flowMock, BaseEdge: () => null, EdgeLabelRenderer: () => null,
+  MarkerType: { ArrowClosed: "closed" }, Position: { Bottom: "bottom", Top: "top" } }));
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let host: HTMLDivElement, root: Root, owner: GraphWorkbenchController;
 const kinds = ["start", "scene", "decision", "join", "ending"] as const;
 const labels = ["开场", "故事发展", "选择点", "汇合点", "结局"];
 
 beforeEach(() => {
+  flowMock.mockClear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   const draft = graphDraftFixture();
   draft.mapping.topology.nodes = kinds.map(kind => ({ id: kind, kind }));
@@ -45,6 +48,42 @@ it("uses the same labels for accepted read-only nodes and footage modes", async 
   }), edges: [], joinContracts: [] };
   await act(async () => root.render(createElement(CanonicalGraphReader, { value })));
   expect([...host.querySelectorAll("details section > strong")].map(element => element.textContent)).toEqual(kinds.map((kind, index) => `${kind} · ${labels[index]} · ${kind === "decision" || kind === "join" ? "仅路线控制点" : "包含画面"}`));
+});
+
+it("renders canonical choices through shared ranks and reserved lanes without changing the accepted graph", async () => {
+  const value: StoryGraph = {
+    startNodeId: "start",
+    nodes: [
+      { id: "join", title: "汇合与重读", kind: "join", summary: "两条路线在此相遇。", footageMode: "route_only" },
+      { id: "west", title: "西侧航标", kind: "scene", summary: "沿西侧通道前进。", footageMode: "footage" },
+      { id: "start", title: "灯塔的抉择", kind: "decision", summary: "风暴迫近，值守人必须决定。", footageMode: "route_only" },
+      { id: "east", title: "东侧航标", kind: "scene", summary: "沿东侧通道前进。", footageMode: "footage" },
+    ],
+    edges: [
+      { id: "direct-skip", sourceNodeId: "start", targetNodeId: "join", kind: "choice", choiceText: "直接启用备用信标，暂时绕过两条侧廊，再回到汇合处。", stateEffects: {}, entityStateEffects: [] },
+      { id: "east-join", sourceNodeId: "east", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "start-west", sourceNodeId: "start", targetNodeId: "west", kind: "choice", choiceText: "检查西侧航标", stateEffects: {}, entityStateEffects: [] },
+      { id: "west-join", sourceNodeId: "west", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "start-east", sourceNodeId: "start", targetNodeId: "east", kind: "choice", choiceText: "检查东侧航标", stateEffects: {}, entityStateEffects: [] },
+    ],
+    joinContracts: [],
+  };
+  const original = structuredClone(value);
+  await act(async () => root.render(createElement(CanonicalGraphReader, { value })));
+  const props = flowMock.mock.calls.at(-1)?.[0] as { nodes: Array<Record<string, any>>; edges: Array<Record<string, any>>; fitViewOptions: unknown; nodesDraggable: boolean; nodesConnectable: boolean; edgesReconnectable: boolean; elementsSelectable: boolean };
+  expect(props.nodes.map(node => node.id)).toEqual(value.nodes.map(node => node.id));
+  expect(props.nodes.find(node => node.id === "start")).toMatchObject({ position: { y: 32 }, sourcePosition: "bottom", targetPosition: "top", width: 194, height: 112 });
+  expect(props.nodes.filter(node => ["west", "east"].includes(node.id)).map(node => node.position.y)).toEqual([288, 288]);
+  expect(props.nodes.find(node => node.id === "join")?.position.y).toBe(544);
+  expect(props.edges.map(edge => edge.id)).toEqual(value.edges.map(edge => edge.id));
+  expect(props.edges.find(edge => edge.id === "direct-skip")?.data).toMatchObject({ label: value.edges[0].choiceText, kind: "choice" });
+  expect(props.edges.find(edge => edge.id === "direct-skip")?.data.path).toContain(" L ");
+  const joinLanes = props.edges.filter(edge => edge.target === "join").map(edge => edge.data.labelX).sort((a: number, b: number) => a - b);
+  expect(joinLanes).toHaveLength(3);
+  expect(new Set(joinLanes).size).toBe(3);
+  expect(props).toMatchObject({ nodesDraggable: false, nodesConnectable: false, edgesReconnectable: false, elementsSelectable: false,
+    fitViewOptions: { minZoom: 1, maxZoom: 1 } });
+  expect(value).toEqual(original);
 });
 
 it.each(["decision", "join"])("explains %s footage production and playback without changing draft-only toggle semantics", async (kind) => {

@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
-import { ReactFlow, MarkerType } from "@xyflow/react";
 import { Field } from "../../components";
 import { graphEntityKey, graphFocusKey, graphIssueTarget } from "../../graph-editor";
 import type { StoryGraph, ValidationIssue } from "../../types";
+import { CanonicalGraphCanvas } from "./CanonicalGraphCanvas";
 import { footageModeLabels, storyNodeKindLabels } from "./presentation";
 
 export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { value: StoryGraph; issues?: ValidationIssue[]; onEntitySelect?: (identity: string) => void }) {
@@ -16,10 +16,7 @@ export function CanonicalGraphReader({ value, issues = [], onEntitySelect }: { v
   }, [signature, value]);
   return <div ref={root} className="canonical-graph-reader">
     <p>已接受路线 · {value.nodes.length} 个节点 · {value.edges.length} 条连接</p>
-    <div className="graph-canvas" style={{ height: 440 }}><ReactFlow fitView nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
-      nodes={value.nodes.map((node, index) => ({ id: node.id, position: { x: index % 4 * 230, y: Math.floor(index / 4) * 150 }, data: { label: node.title }, className: `flow-node ${node.kind}` }))}
-      edges={value.edges.map(edge => ({ id: edge.id, source: edge.sourceNodeId, target: edge.targetNodeId, label: edge.choiceText, markerEnd: { type: MarkerType.ArrowClosed } }))} />
-    </div>
+    <CanonicalGraphCanvas value={value} />
     <details open><summary>节点、关系与汇合合同</summary>
       {value.nodes.map(node => <section key={node.id}><strong>{node.id} · {storyNodeKindLabels[node.kind]} · {footageModeLabels[node.footageMode]}</strong>
         <Field label="章节标题"><input readOnly value={node.title} data-focus-key={graphFocusKey({ kind: "node", id: node.id }, "title")} /></Field>

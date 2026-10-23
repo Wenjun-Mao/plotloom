@@ -1,6 +1,214 @@
-import { expect, test } from "./fixture";
+import { expect, test, checkedStaticTest } from "./fixture";
 import { createCreatorGraph } from "./fixtures/creator-graph";
 import { json } from "./f5a-fixture";
+import { demoProject } from "../src/demo";
+import type { StoryGraph } from "../src/types";
+
+function canonicalFourNodeSplit(): StoryGraph {
+  return {
+    startNodeId: "start",
+    nodes: [
+      { id: "start", title: "共同开场", kind: "start", summary: "灯塔的值守夜。", footageMode: "footage" },
+      { id: "decision", title: "选择照明方向", kind: "decision", summary: "海雾正向港湾推进。", footageMode: "route_only" },
+      { id: "sea-ending", title: "继续照向海面", kind: "ending", summary: "航道上的船只看见信标。", footageMode: "footage" },
+      { id: "shore-ending", title: "照亮岸边石阶", kind: "ending", summary: "岸边的人们沿石阶撤离。", footageMode: "footage" },
+    ],
+    edges: [
+      { id: "start-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-sea", sourceNodeId: "decision", targetNodeId: "sea-ending", kind: "choice", choiceText: "继续照向海面", stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-shore", sourceNodeId: "decision", targetNodeId: "shore-ending", kind: "choice", choiceText: "照亮岸边石阶", stateEffects: {}, entityStateEffects: [] },
+    ],
+    joinContracts: [],
+  };
+}
+
+function canonicalJoinGraph(longChoice: string): StoryGraph {
+  return {
+    startNodeId: "start",
+    nodes: [
+      { id: "start", title: "共同开场", kind: "start", summary: "灯塔的值守夜。", footageMode: "footage" },
+      { id: "decision", title: "选择航标路线", kind: "decision", summary: "海雾正向港湾推进。", footageMode: "route_only" },
+      { id: "west", title: "检查西侧航标", kind: "scene", summary: "西侧信号仍可读取。", footageMode: "footage" },
+      { id: "east", title: "检查东侧航标", kind: "scene", summary: "东侧通道仍可进入。", footageMode: "footage" },
+      { id: "join", title: "回到值守台", kind: "join", summary: "两条侧廊在此汇合。", footageMode: "route_only" },
+      { id: "ending", title: "信标恢复", kind: "ending", summary: "港湾重新看见信标。", footageMode: "footage" },
+    ],
+    edges: [
+      { id: "start-decision", sourceNodeId: "start", targetNodeId: "decision", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-west", sourceNodeId: "decision", targetNodeId: "west", kind: "choice", choiceText: "检查西侧航标", stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-east", sourceNodeId: "decision", targetNodeId: "east", kind: "choice", choiceText: "检查东侧航标", stateEffects: {}, entityStateEffects: [] },
+      { id: "decision-skip", sourceNodeId: "decision", targetNodeId: "join", kind: "choice", choiceText: longChoice, stateEffects: {}, entityStateEffects: [] },
+      { id: "west-join", sourceNodeId: "west", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "east-join", sourceNodeId: "east", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      { id: "join-ending", sourceNodeId: "join", targetNodeId: "ending", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+    ],
+    joinContracts: [{ id: "join-contract", joinNodeId: "join", incomingNodeIds: ["decision", "west", "east"], requiredStateKeys: [], allowedDifferences: [], reconciliation: "各路线回到值守台后继续。", notes: "路线选择保留在连接效果中。" }],
+  };
+}
+
+const canonicalViewports = [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }];
+const longChoiceText = "风暴逼近时，先检查备用电源和两侧航标，再回到值守台核对海面信号后决定下一步。".repeat(5);
+const canonicalScenarios = [
+  {
+    id: "four-node-split",
+    graph: canonicalFourNodeSplit(),
+    brief: { decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, nodeBudget: 4, maxOutDegree: 2 },
+    choiceLabels: [{ id: "decision-sea", text: "继续照向海面" }, { id: "decision-shore", text: "照亮岸边石阶" }],
+  },
+  {
+    id: "join-long-skip",
+    graph: canonicalJoinGraph(longChoiceText),
+    brief: { decisionPointsPerPath: 1, endingCount: 1, desiredJoinCount: 1, nodeBudget: 6, maxOutDegree: 3 },
+    choiceLabels: [
+      { id: "decision-west", text: "检查西侧航标" },
+      { id: "decision-east", text: "检查东侧航标" },
+      { id: "decision-skip", text: longChoiceText },
+    ],
+    longChoiceEdgeId: "decision-skip",
+  },
+];
+
+for (const scenario of canonicalScenarios) for (const viewport of canonicalViewports) checkedStaticTest(`canonical read-only ${scenario.id} labels ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }, info) => {
+  await page.setViewportSize(viewport);
+  const graph = scenario.graph;
+  const created = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: {
+    brief: { ...demoProject.brief, ...scenario.brief, title: `Canonical ${scenario.id} fixture ${viewport.width}x${viewport.height}` },
+    initialStages: [{ stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: graph }],
+  } }));
+  const id = created.id as string;
+  const stagesUrl = `${workbench.apiOrigin}/api/v2/projects/${id}/stages`;
+  const graphWorkbenchUrl = `${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`;
+  const beforeStages = await json(request.get(stagesUrl));
+  const beforeWorkbench = await json(request.get(graphWorkbenchUrl));
+  expect(beforeWorkbench.readOnlyReason).toBeTruthy();
+  const writes: string[] = [];
+  page.on("request", browserRequest => {
+    const url = new URL(browserRequest.url());
+    if (url.pathname.startsWith(`/api/v2/projects/${id}`) && !["GET", "HEAD", "OPTIONS"].includes(browserRequest.method())) writes.push(`${browserRequest.method()} ${url.pathname}`);
+  });
+
+  for (const mode of ["creator", "graph"]) {
+    const readerUrl = `${workbench.frontendOrigin}/v2/?project=${id}&stage=${mode}`;
+    await page.goto(readerUrl);
+    for (const reload of [false, true]) {
+      if (reload) await page.reload();
+      const reader = page.locator(".canonical-graph-reader");
+      await expect(reader).toBeVisible();
+      await expect(reader).toContainText(`已接受路线 · ${graph.nodes.length} 个节点 · ${graph.edges.length} 条连接`);
+      await expect(page.getByRole("button", { name: "保存图草稿", exact: true })).toHaveCount(0);
+      const labels = page.locator(".canonical-edge-label");
+      await expect(labels).toHaveCount(graph.edges.length);
+      for (const choice of scenario.choiceLabels) await expect(page.locator(`[data-edge-label="${choice.id}"]`)).toHaveText(choice.text);
+      const geometry = await page.evaluate(() => {
+        const canvas = document.querySelector<HTMLElement>(".canonical-graph-canvas")!;
+        const scroll = document.querySelector<HTMLElement>(".canonical-graph-scroll")!;
+        const canvasRect = canvas.getBoundingClientRect();
+        const nodes = [...document.querySelectorAll<HTMLElement>(".canonical-flow-node")].map(element => {
+          const rect = element.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom };
+        });
+        const labels = [...document.querySelectorAll<HTMLElement>(".canonical-edge-label")].map(element => {
+          const rect = element.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom, visible: getComputedStyle(element).visibility === "visible" };
+        });
+        const intersects = (left: { x: number; y: number; right: number; bottom: number }, right: { x: number; y: number; right: number; bottom: number }) => left.x < right.right && left.right > right.x && left.y < right.bottom && left.bottom > right.y;
+        const labelsWithinGraph = labels.every(label => label.x >= canvasRect.left - 1 && label.right <= canvasRect.right + 1 && label.y >= canvasRect.top - 1 && label.bottom <= canvasRect.bottom + 1);
+        const probe = document.createElement("span");
+        probe.style.backgroundColor = "var(--xy-edge-label-background-color)";
+        probe.style.color = "var(--accent)";
+        canvas.append(probe);
+        const themeBackground = getComputedStyle(probe).backgroundColor, themeChoice = getComputedStyle(probe).color;
+        probe.remove();
+        const choiceLabel = document.querySelector<HTMLElement>(".canonical-edge-label.choice")!;
+        return { canvasHeight: canvasRect.height, scrollWidth: scroll.scrollWidth, clientWidth: scroll.clientWidth,
+          themeBackground, themeChoice, choiceColor: getComputedStyle(choiceLabel).color,
+          labelBackgrounds: [...document.querySelectorAll<HTMLElement>(".canonical-edge-label")].map(label => getComputedStyle(label).backgroundColor),
+          labels, labelsWithinGraph,
+          labelNodeOverlaps: labels.some(label => nodes.some(node => intersects(label, node))),
+          labelLabelOverlaps: labels.some((label, index) => labels.slice(index + 1).some(other => intersects(label, other))),
+          hasHorizontalOverflow: scroll.scrollWidth > scroll.clientWidth };
+      });
+      expect(geometry.canvasHeight).toBeGreaterThan(440);
+      expect(geometry.scrollWidth).toBeGreaterThanOrEqual(geometry.clientWidth);
+      expect(geometry.labelBackgrounds.every(background => background === geometry.themeBackground)).toBe(true);
+      expect(geometry.choiceColor).toBe(geometry.themeChoice);
+      expect(geometry.labels.every(label => label.visible)).toBe(true);
+      expect(geometry.labelsWithinGraph).toBe(true);
+      expect(geometry.labelNodeOverlaps).toBe(false);
+      expect(geometry.labelLabelOverlaps).toBe(false);
+      if (scenario.longChoiceEdgeId) {
+        const longLabel = page.locator(`[data-edge-label="${scenario.longChoiceEdgeId}"]`);
+        await expect(longLabel).toHaveAttribute("role", "note");
+        await expect(longLabel).toHaveAttribute("tabindex", "0");
+        await expect(longLabel).toHaveText(longChoiceText);
+        const scrollCapacity = await longLabel.evaluate(element => element.scrollHeight - element.clientHeight);
+        expect(scrollCapacity).toBeGreaterThan(0);
+        await longLabel.focus();
+        for (let key = 0; key < 4; key++) await page.keyboard.press("ArrowDown");
+        await expect.poll(() => longLabel.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+      }
+      await page.screenshot({ path: info.outputPath(`${scenario.id}-${mode}-${viewport.width}x${viewport.height}-${reload ? "reload" : "initial"}.png`) });
+      if (geometry.hasHorizontalOverflow) {
+        const scroll = page.locator(".canonical-graph-scroll");
+        await scroll.evaluate(element => { element.scrollLeft = element.scrollWidth; });
+        await expect.poll(() => scroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+        await scroll.evaluate(element => { element.scrollLeft = 0; });
+      }
+      if (scenario.id === "join-long-skip" && viewport.width === 1280 && viewport.height === 768 && mode === "creator" && !reload) {
+        const graphCanvas = page.locator(".canonical-graph-canvas");
+        // Focusing a lower label scrolls the page; interact with the visible
+        // canvas below sticky chrome, not its now-offscreen document origin.
+        const interaction = await graphCanvas.evaluate(element => {
+          const rect = element.getBoundingClientRect();
+          const chromeBottom = Math.max(0, ...[...document.querySelectorAll(".topbar, .recommended-workflow-guide")].map(header => header.getBoundingClientRect().bottom));
+          const top = Math.max(rect.top, chromeBottom), bottom = Math.min(rect.bottom, innerHeight);
+          const left = Math.max(rect.left, 0), right = Math.min(rect.right, innerWidth);
+          return { x: left + 42, y: top + 40, visibleWidth: right - left, visibleHeight: bottom - top };
+        });
+        expect(interaction.visibleWidth).toBeGreaterThan(120);
+        expect(interaction.visibleHeight).toBeGreaterThan(200);
+        const readAlignment = () => page.evaluate(() => {
+          const viewport = document.querySelector<HTMLElement>(".canonical-graph-flow .react-flow__viewport")!;
+          const matrix = new DOMMatrixReadOnly(getComputedStyle(viewport).transform);
+          const rect = (selector: string) => document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+          const node = rect('.canonical-flow-node[data-id="ending"]');
+          const label = rect('[data-edge-label="decision-skip"]');
+          return {
+            scale: matrix.a, translateX: matrix.e, translateY: matrix.f,
+            nodeX: node.left + node.width / 2, nodeY: node.top + node.height / 2,
+            labelX: label.left + label.width / 2, labelY: label.top + label.height / 2,
+          };
+        });
+        const beforePan = await readAlignment();
+        await page.mouse.move(interaction.x, interaction.y);
+        await page.mouse.down();
+        await page.mouse.move(interaction.x + 42, interaction.y + 28, { steps: 5 });
+        await page.mouse.up();
+        await expect.poll(async () => (await readAlignment()).translateX).not.toBe(beforePan.translateX);
+        const afterPan = await readAlignment();
+        expect(afterPan.scale).toBeCloseTo(beforePan.scale, 2);
+        expect(Math.abs((afterPan.nodeX - beforePan.nodeX) - (afterPan.translateX - beforePan.translateX))).toBeLessThan(2);
+        expect(Math.abs((afterPan.nodeY - beforePan.nodeY) - (afterPan.translateY - beforePan.translateY))).toBeLessThan(2);
+        expect(Math.abs((afterPan.labelX - beforePan.labelX) - (afterPan.translateX - beforePan.translateX))).toBeLessThan(2);
+        expect(Math.abs((afterPan.labelY - beforePan.labelY) - (afterPan.translateY - beforePan.translateY))).toBeLessThan(2);
+        await page.mouse.move(interaction.x + 40, interaction.y + 120);
+        await page.mouse.wheel(0, -120);
+        await expect.poll(async () => (await readAlignment()).scale).toBeGreaterThan(afterPan.scale);
+        const afterZoom = await readAlignment();
+        const zoomRatio = afterZoom.scale / afterPan.scale;
+        expect(Math.abs((afterZoom.labelX - afterZoom.nodeX) - (afterPan.labelX - afterPan.nodeX) * zoomRatio)).toBeLessThan(3);
+        expect(Math.abs((afterZoom.labelY - afterZoom.nodeY) - (afterPan.labelY - afterPan.nodeY) * zoomRatio)).toBeLessThan(3);
+        await page.screenshot({ path: info.outputPath(`${scenario.id}-${mode}-${viewport.width}x${viewport.height}-pan-wheel.png`) });
+      }
+    }
+  }
+
+  const afterStages = await json(request.get(stagesUrl));
+  const afterWorkbench = await json(request.get(graphWorkbenchUrl));
+  expect(afterStages.stages).toEqual(beforeStages.stages);
+  expect(afterWorkbench.readOnlyReason).toBe(beforeWorkbench.readOnlyReason);
+  expect(writes).toEqual([]);
+});
 
 for (const viewport of [{ width: 1280, height: 768 }, { width: 1280, height: 460 }, { width: 1700, height: 900 }]) test(`creator desktop rows and tall inspector ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }, info) => {
   await page.setViewportSize(viewport);

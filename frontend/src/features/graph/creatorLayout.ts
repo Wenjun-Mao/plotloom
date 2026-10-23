@@ -2,15 +2,21 @@ import type { GraphAuthoringDraft, DraftEdge } from "./contracts";
 
 export const CARD_WIDTH = 194, CARD_HEIGHT = 112, ROW_PITCH = 256, COLUMN_GAP = 34, GUTTER = 48;
 export interface PlacedNode { id: string; rank: number; x: number; y: number; detached: boolean }
-export interface PlacedEdge { edge: DraftEdge; path: string; labelX: number; labelY: number }
-export interface CreatorLayout { nodes: PlacedNode[]; edges: PlacedEdge[]; rows: Array<{ rank: number; nodes: string[]; y: number }>; width: number; height: number }
+export interface PlacedEdge<Edge = DraftEdge> { edge: Edge; path: string; labelX: number; labelY: number }
+export interface CreatorLayout<Edge = DraftEdge> { nodes: PlacedNode[]; edges: Array<PlacedEdge<Edge>>; rows: Array<{ rank: number; nodes: string[]; y: number }>; width: number; height: number }
+
+type LayoutTopology = {
+  nodes: Array<{ id: string }>;
+  edges: Array<Pick<DraftEdge, "id" | "sourceNodeId" | "targetNodeId">>;
+  startNodeId: string | null;
+};
 
 /** Stable node order breaks ties; row hints only place unconnected roots. */
-export function creatorLayout(draft: GraphAuthoringDraft, availableWidth: number): CreatorLayout {
-  const { topology } = draft.mapping, rank = new Map<string, number>(), reachable = new Set<string>();
+export function graphTopologyLayout<Topology extends LayoutTopology>(topology: Topology, availableWidth: number, rowHints: Record<string, number> = {}): CreatorLayout<Topology["edges"][number]> {
+  const rank = new Map<string, number>(), reachable = new Set<string>();
   const connected = topology.edges.filter(edge => edge.sourceNodeId && edge.targetNodeId);
   const incoming = (id: string) => connected.filter(edge => edge.targetNodeId === id);
-  for (const node of topology.nodes) rank.set(node.id, node.id === topology.startNodeId ? 0 : incoming(node.id).length ? 0 : Math.max(0, draft.rowHints[node.id] ?? 0));
+  for (const node of topology.nodes) rank.set(node.id, node.id === topology.startNodeId ? 0 : incoming(node.id).length ? 0 : Math.max(0, rowHints[node.id] ?? 0));
   // Valid command drafts are acyclic; the bounded pass also renders an unsafe
   // recovery record without entering an unbounded layout loop.
   for (let pass = 0; pass < topology.nodes.length; pass++) {
@@ -56,6 +62,11 @@ export function creatorLayout(draft: GraphAuthoringDraft, availableWidth: number
     return [{ edge, path, labelX, labelY }];
   });
   return { nodes, edges, rows, width, height: Math.max(320, (rows.at(-1)?.y ?? 0) + ROW_PITCH) };
+}
+
+/** Authoring retains its presentation-only row hints through the shared topology layout. */
+export function creatorLayout(draft: GraphAuthoringDraft, availableWidth: number): CreatorLayout {
+  return graphTopologyLayout(draft.mapping.topology, availableWidth, draft.rowHints);
 }
 
 export function rowConnectionDefaults(draft: GraphAuthoringDraft, nodeIds: string[]) {

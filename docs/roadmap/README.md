@@ -11,6 +11,23 @@ uses one fresh two-shot fixture. Character/branching quality and an uncoached
 colleague pilot follow later. This is a proposal, not implementation approval;
 no generation, activation, full test run, push or CI follows from planning.
 
+## Approved canonical read-only graph fallback presentation
+
+[ADR 0122's amendment](../adr/0122-creator-workspace-presentation.md#canonical-read-only-fallback-geometry-and-labels-2026-10-22)
+owns the shared topology geometry and accessible choice-label lanes for the
+accepted canonical reader used by creator and professional fallback modes. The
+checked-static fixtures are independent source-less projects. The smallest is a
+valid four-node split: start, decision, and two ending nodes, with the choices
+“继续照向海面” and “照亮岸边石阶”. A separate six-node graph adds two scene
+branches, a three-source join, a long direct skip choice, and a downstream
+ending. Read each in creator and professional graph modes at 1280×768, 1280×460
+and 1700×900; check branch/join lanes, label bounds and intersections, the long
+scrollable choice label, theme colors, pan/zoom alignment, reload behavior,
+unchanged canonical stage data and zero authoring writes. The manager owns the
+final checked-static browser run and visual inspection after the source diff is
+stable. This narrow reader presentation check makes no native generation,
+lifecycle or broader product-acceptance claim.
+
 ## Approved finished examples in three styles
 
 The owner's October 22 request authorizes finished watercolor paper-boat,
