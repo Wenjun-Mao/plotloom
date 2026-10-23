@@ -254,3 +254,45 @@ owner's supported browser. This is the remaining usability/input check because
 isolated Chromium assertions and pinch emulation do not establish live Safari,
 hardware-input or personal acceptance. No further source change is proposed
 without a concrete finding.
+
+## Supplemental live Safari check · 2026-10-23
+
+After the owner said “go”, root used the native Safari interface on the new
+minute-example project `df6bcbc9-c2a9-4274-a8e3-5db3735bf95f`. This was a
+source-less read-only canonical graph, with synthetic native input and no
+canonical/story/media/approval/selection/settings write. Root used one temporary
+twentieth tab, closed only that tab afterward and restored the worker's original
+player tab with nineteen tabs remaining.
+
+Creator wheel over the opening node moved the document scrollbar from 0 to
+0.3731343 without changing graph scale. Professional wheel over the opening node
+moved it from 0 to 0.06166983; wheel over edge N01→N02 then moved it to 0.1233397,
+with the same visible node dimensions. Professional Zoom In visibly enlarged the
+graph; that scale survived Creator→Professional switching. Zoom Out shrank it,
+and Fit View displayed the complete route. Creator inspector scrolling reached
+the bottom while keeping its header and the page/graph stationary; root restored
+the inspector to its top. No new defect was observed and no source repair followed.
+
+This supplements the retained isolated qualification with actual live Safari
+observations. It does not establish physical trackpad/pinch or owner acceptance,
+editable-Professional behavior, or background-drag/pinch behavior: those actions
+were not exercised in this native pass. Native observations are retained in the
+root chat's tool history; they are not relabelled as a new automated browser suite.
+
+### Second delegated manual Safari check · 2026-10-23
+
+Root exercised the same disposable canonical sample through native Safari with
+presentation-only input. Background drag `[1200,850] → [1280,880]` visibly moved
+all Pro graph objects by +80/+30 while the page stayed stationary. Ordinary wheel
+over empty pane scrolled the document from 0 to 0.6688805, not deliberate zoom;
+root restored the top. Selecting the outward ending in Pro and pressing Return,
+then switching Creator, showed the matching ending title, summary and edge label.
+With the workflow guide expanded, the inspector header remained reachable below
+it and internal scrolling reached the bottom without moving the graph/page.
+Root restored inspector top, collapsed the guide and restored opening selection.
+Pro pan survived Creator → Pro; Zoom In enlarged the graph and Fit View restored
+the complete route. No new defect or source/story data write was observed. Root
+closed only its temporary twentieth tab and restored the worker's nineteenth
+player tab. These are synthetic native inputs, not physical trackpad/pinch feel,
+editable-Pro qualification or owner creative acceptance; raw observations remain
+in root's native tool history.

@@ -1,11 +1,14 @@
 # One minute-long playable story example
 
-Status: owner authorized end-to-end delivery on 2026-10-23, including one new exact
-delegated-QA source scope and a controlled service reload. Nine actual keyframes
-are imported and the exact source grant passed 209 focused tests; provider execution
-remains pending root review, activation and original-runtime binding. Root owns independent review,
-activation/runtime binding and cleanup; the assigned worker owns source preparation
-serially and the new example's production after that activation checkpoint.
+Status: completed on 2026-10-23. Nine real H3 clips are reviewed/selected; both
+complete sixty-footage-second routes passed natural native Safari playback,
+deliberate choice hold and restart. Final direct preservation comparison passes
+for the older seven projects/settings/UNKNOWN holds. The exact source grant passed
+209 focused tests and independent review before root activation/runtime binding.
+See the [completion receipt](../verification/2026-10-23-minute-playable-example.md)
+for actual media/browser evidence, accepted model variations and listening limits.
+Owner creative/canon acceptance remains separate; root owns final independent
+handoff review and any cleanup.
 
 ## Finite outcome and smallest real journey
 
