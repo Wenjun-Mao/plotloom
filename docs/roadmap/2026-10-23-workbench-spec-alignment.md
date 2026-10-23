@@ -1,8 +1,9 @@
 # Creator and Professional workbench specification alignment
 
-Status: implementation plan for owner review, 2026-10-23. Planning is authorized;
-implementation and activation have not been approved or started. The product
-choices are settled; no additional design decision is needed before approval.
+Status: owner-approved implementation plan, 2026-10-23. The owner approved the
+reviewed plan and instructed Relay-directed implementation, retaining standing
+worker-chat authority. Approval includes the bounded qualification and quiet
+frontend activation below; it does not authorize GitHub CI or publication.
 
 Source baseline: clean retained checkout R
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`, `8040ec5e`, local `main` ahead of
@@ -239,13 +240,13 @@ unfiltered `full` gate when warranted; do not weaken gates to keep the smaller
 label. Preserve failures, diagnose them, and rerun failed/affected checks rather
 than unchanged broad suites. No checks in this section have been executed during planning.
 
-## Proposed execution permissions and activation
+## Approved execution permissions and activation
 
-Approval to implement this complete plan is intended to cover its six frontend
+The owner's approval to implement this complete plan covers its six frontend
 changes, regression-test updates, isolated test fixtures/browser actions, local
 qualification, generated assets, documentation, local checkpoint and quiet
-frontend activation/readback. These permissions are proposed for the approval
-step, not inferred from approval of the designs. Routine in-scope checkpoints
+frontend activation/readback. These permissions follow approval of this reviewed
+implementation plan, not merely approval of the designs. Routine in-scope checkpoints
 do not need repeated approval; new backend/schema scope, unavailable authority
 or a materially different deployment requires direction first.
 
@@ -281,8 +282,8 @@ Update the existing audit's finding dispositions with links to one dated
 implementation verification receipt; preserve its original failed observations.
 Report source/static/installed revisions, changed/retained checks, actual results,
 open limits and owner acceptance separately. Do not substitute test totals or
-service health for the observed workbench journey. Planning ends with this
-reviewed proposal; no implementation worker, application edit or activation starts.
+service health for the observed workbench journey. The planning review below
+records the pre-implementation checkpoint, not results for the approved repairs.
 
 Planning review: independent engineering and fixture/verification reads found no
 remaining blocker after distinguishing initial editable payload from a persisted

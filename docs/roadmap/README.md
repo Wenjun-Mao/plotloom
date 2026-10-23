@@ -1,14 +1,14 @@
 # Plotloom roadmap entrypoint
 
-## Proposed workbench specification alignment implementation
+## Approved workbench specification alignment implementation
 
 The owner requested implementation planning after settling all three workbench
 intent questions. The [bounded plan](2026-10-23-workbench-spec-alignment.md)
 combines the four audit deviations with C56 Pro page/canvas input and C57
-active-project visual-state lifetime. It proposes one frontend implementation
+active-project visual-state lifetime. It authorizes one frontend implementation
 writer, an early isolated real-UI slice, explicit final qualification and quiet
 preservation-checked frontend activation, with no provider work, push or CI.
-Planning is authorized; implementation and activation await approval. This does
+The owner approved implementation and bounded activation on 2026-10-23. This does
 not reopen settled choices or the completed creator-completion/media milestones.
 
 ## Approved specification consolidation and workbench audit
