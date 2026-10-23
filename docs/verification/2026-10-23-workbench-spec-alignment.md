@@ -1,8 +1,9 @@
 # Workbench specification alignment · 2026-10-23
 
-Status: implemented source candidate, focused verification in progress; independent
-review and final frontend qualification pending. Activation and owner acceptance
-remain separate. The approved [plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
+Status: implemented, independently reviewed and locally frontend-qualified at
+clean executable revision `dd71f0794938fab607c189283d2b3cbe25e384c9`.
+Root-owned activation and owner acceptance remain separate and pending at this
+handoff. The approved [plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
 binds this receipt. Source baseline is clean retained R at `d029e536`; no work was
 performed in installed P or the default Narrative-Forge checkout.
 
@@ -139,17 +140,77 @@ cases pass**, including checked-static review-fix journeys. See
 JSON/readbacks and pixels. Direct inspection of all three new 48px-label desktop
 screens confirms the focus outline clears insertion text and target cards. Final
 selection also strengthens Enter and Space checks to change away from the opening
-node, rather than merely reselect it. Final qualification remains pending.
+node, rather than merely reselect it; that final case passes below.
 
-## Remaining qualification and limits
+## Final local frontend qualification
 
-Freeze a stable source/static checkpoint for independent read-only review, then
-run the plan's unfiltered frontend unit suite, both type checks, two deterministic
-builds with sorted SHA-256 tree comparison, and native whole-file affected browser
-selection including checked-static workbench cases. Direct pixel inspection is
-separate from assertion success. Record final revisions/results here.
+Independent focused re-review closed both findings with no remaining blocker.
+Root separately reviewed the installed `21c6d6be` → candidate `dd71f079` actual
+diff and confirmed the frontend-only boundary above. One worker owned execution;
+root/reviewer did not duplicate software qualification. Inputs stayed clean and
+unchanged throughout these final runs.
+
+| Check | Result / retained log |
+| --- | --- |
+| `npm --prefix frontend test` | **1,490 passed in 169 files**, unfiltered; `final-unit.log` |
+| `npm --prefix frontend run typecheck` | PASS; `final-typecheck.log` |
+| `npm --prefix frontend run typecheck:e2e` | PASS; `final-typecheck-e2e.log` |
+| Two `build:deterministic` runs | PASS; `final-build-first.log`, `final-build-second.log` |
+| Sorted full static SHA-256 tree comparison | All **7 files identical**; `final-static-first.sha256`, `final-static-second.sha256` |
+| Native whole-file browser selection | **46 passed**, 65.509s; `final-browser-seven-files.log` |
+
+Browser selectors are exactly `creator-workbench-layout`,
+`creator-workbench-operations`, `graph-interactions`, `graph-read-recovery`,
+`project-folder-close`, `recommended-workflow-guide` and `shipped-static`, each
+as its whole `e2e/*.spec.ts` file through `verify.py focused`, without test-name or
+line filters. Affected new workbench journeys and canonical layout cases exercise
+the fresh checked-static assets; retained development-server evidence is separate.
+
+Both static manifests have SHA-256
+`7e23c2ddd53318954dc469eb802f899bb46fea3b16367dfc505396eb6b02a8c9`.
+Key qualified assets:
+
+- `workbench.js`: `ea3a782af33f69ab7f04bcb287e2fd3f5f0a4ba690f151c2cd551cda1f7ba53c`
+- `workbench2.css`: `624e3c8ffa554f49d06ad64877a862918fd1be78aff3fd79f40ddd2ee4b6f880`
+
+`final-browser/` preserves the complete final test outputs. Its 13 top-level
+structured evidence files all name clean `dd71f079` and the matching static hashes.
+Eleven explicitly scoped presentation/read-refusal segments record empty write
+arrays and complete graph readbacks; relevant canonical stage readbacks are
+retained with the navigation/recovery evidence. The long-label journey intentionally
+saves author text; Brief Cancel may retain ordinary form-draft autosave. Neither
+is described as zero writes across its whole journey. Fixture setup is API/file
+delivery and supported recovery, not a claimed creator setup action.
+
+| Scoped outcome | Fresh evidence |
+| --- | --- |
+| C06/C07/C15 labels | Exact 300-character Chinese option after UI Save/readback; unchanged topology; label/card/label/control bounds, focused reading and exact-edge editing; native insertion hit/Cancel at all three desktops. `editable-label-readback.json` and `editable-long-label-*.png`. |
+| C02/C07/C08/C28 selection | Native Enter and Space each change to a non-opening node and update shared details; actual mode switches retain selection. Existing pointer, Undo, dirty-buffer and late-ACK unit/browser regressions pass. `pro-fixture-readback.json`, first-slice and operations pixels. |
+| C29/C30 counts | Shared draft and canonical counting, named snapshot basis, explicit failed/stale reads, recovered-versus-canonical before targets and Cancel preserving formal Brief/graph. `canonical-preview-readback.json`, canonical preview pixel and focused unit contracts. |
+| ADR 0155 global actions | Missing prerequisites, incomplete/mismatch, current graph, source/production read failures, reopened outlines and source-revision mismatch share status/availability in both views; Save remains independent. `action-read-uncertainty.json`, both `noncurrent-*.json` and action-help pixels. |
+| C56 Pro navigation | Both authority states: native wheel over pane/node/edge moves the document without transform change; working zoom/fit, Ctrl-wheel pinch emulation and background pan; canonical nodes do not drag. Canonical full readbacks/writes and Pro slice JSON remain unchanged. |
+| C57 Pro lifetime | Native editable node movement and viewport survive actual mode switches; A→B→A, reload and close/reopen reset visuals. Canonical Pro mode retention/reload and common session/late-callback isolation are covered. Shared selection/content/Creator geometry owners remain intact. `pro-position-readback.json` plus existing layout/recovery tests. |
+
+Direct final pixel inspection covered the three `editable-long-label-*.png`,
+three desktop `expanded-guide-inspector.png`, canonical short-desktop view,
+1280×768 canonical controls/reload and join/skip pan/pinch views, Pro selection/
+position context, and canonical Brief preview. The editable focus outline clears
+insertion text and target cards. Expanded sticky guidance leaves the inspector
+header reachable with its body internally scrollable; the accepted height formula
+and cancellation checks pass. Pro position-context pixels do not alone establish
+simultaneous inspector visibility; the final short-desktop slice also shows the
+selected ending and matching chapter field with reachable controls.
+
+Existing nonfailing jsdom `window.scrollBy` notices from unchanged completion/
+media-navigation tests and the existing large-bundle build warning remain in logs.
+Isolated fixture teardown completed, settling its child processes and removing
+only test-owned temporary roots. No real projects were cleaned or reset. Product
+implementation/coordination time was not separately instrumented; the final
+browser runner duration is reported above without invented cost/time percentages.
 
 No backend/full-suite or hosted-CI pass is claimed. No GitHub Actions, workflow
-changes, push, provider call, real-project mutation, restart, runtime activation
-or live Safari access occurred. Root owns preservation-checked P activation.
-Isolated Chromium proof is not owner usability/creative acceptance.
+changes, push, provider call, real-project mutation, installed-service restart,
+runtime activation or live Safari access occurred. Root owns preservation-checked
+P activation. Safari/physical-trackpad input and owner usability/creative acceptance
+remain unperformed; Ctrl-wheel is Chromium pinch emulation. The final documentation
+checkpoint changes no qualified executable/static bytes.

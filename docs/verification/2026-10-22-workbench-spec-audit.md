@@ -4,8 +4,9 @@ Status: findings for owner review; **no application fixes implemented**.
 
 Historical audit status above describes its original checkpoint. The subsequent
 owner-approved repairs are tracked in the [October 23 implementation receipt](2026-10-23-workbench-spec-alignment.md):
-findings 1–4 have source repairs and focused regression evidence; stable review,
-final frontend qualification and activation are recorded separately there. Original
+findings 1–4 are repaired and independently reviewed, with final scoped local
+frontend qualification at `dd71f079`. Activation and owner acceptance are recorded
+separately there. Original
 failed observations and their evidence below remain unchanged.
 Code baseline `8d3b259a` (executable equivalent to installed `21c6d6be`);
 all changes in this assignment are documentation. No activation, live-project

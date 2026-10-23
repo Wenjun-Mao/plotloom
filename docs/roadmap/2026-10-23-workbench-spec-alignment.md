@@ -5,6 +5,13 @@ reviewed plan and instructed Relay-directed implementation, retaining standing
 worker-chat authority. Approval includes the bounded qualification and quiet
 frontend activation below; it does not authorize GitHub CI or publication.
 
+Execution checkpoint: clean `dd71f079` implements the bounded outcomes and passed
+independent review plus final scoped local frontend qualification. The
+[implementation receipt](../verification/2026-10-23-workbench-spec-alignment.md)
+retains failures, exact checks, structured readbacks and desktop pixels. Root-owned
+activation/preservation and owner acceptance remain separate at source handoff.
+The planning baseline and review statements below retain their original context.
+
 Source baseline: clean retained checkout R
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`, `8040ec5e`, local `main` ahead of
 `origin/main` by 12 commits. Its executable diff from audit baseline `8d3b259a`

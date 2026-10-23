@@ -12,8 +12,10 @@ The owner approved implementation and bounded activation on 2026-10-23. This doe
 not reopen settled choices or the completed creator-completion/media milestones.
 
 The [implementation receipt](../verification/2026-10-23-workbench-spec-alignment.md)
-records source repairs, retained first failures and focused UI outcomes. Stable
-independent review, final qualification and root-owned activation remain separate.
+records source repairs, retained first failures and final local qualification at
+`dd71f079`: independent review closed, 1,490 frontend unit cases, both type checks,
+identical deterministic static trees and 46 affected browser cases pass. Root-owned
+activation, Safari/hardware input and owner acceptance remain separate.
 
 ## Approved specification consolidation and workbench audit
 
