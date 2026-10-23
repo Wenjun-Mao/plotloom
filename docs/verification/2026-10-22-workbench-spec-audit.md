@@ -15,8 +15,9 @@ fresh test-owned fixtures, not the owner's Safari page or a live-data surrogate.
 - [Workbench product baseline](../specs/workbenches-product.md),
   [engineering contracts](../specs/workbenches-engineering.md) and
   [architecture responsibilities](../specs/workbenches-architecture.md).
-- [Two unresolved intent questions](../specs/conflicts.md): height formula and
+- [Intent questions](../specs/conflicts.md): initially height formula and
   Professional visual-state lifetime, each with suggestion/reason/trade-off.
+  The owner has since accepted the height formula; see the follow-up below.
 - Four deviations below: three targeted browser reproductions and one source/
   rendered-control omission. Their proposed repairs are not approved or executed.
 
@@ -156,7 +157,7 @@ The full permanent checklist and subchecks remain authoritative.
 | C33–C36 | Shared Undo/CAS/ACK/read/admission guards reviewed; no complete delayed-receipt/Undo replay in this audit. Pro currentness disclosure #4. |
 | C37–C39 | Independent read-only review and fresh isolated fixtures; no owner reset or whole-product/human acceptance claim. |
 | C40–C44 | Story exact section/scene projection, lossless JSON ownership, route-only modes and guarded installed-cut handoff source-reviewed. No new provider/media acceptance. |
-| C45–C47 | Supported three-size cases pass; right sidebar/resize cancellation retained. Height formula unresolved; real OS blur not exercised. |
+| C45–C47 | Supported three-size cases pass; right sidebar/resize cancellation retained. Height formula was unresolved during the original audit and is now settled by the owner follow-up; real OS blur not exercised. |
 | C48–C50 | Type/start/join/edge buffers and exact previews source-reviewed; no complete native conversion/join/delete/Undo matrix. Pro position lifetime unresolved. |
 | C51–C53 | GET-read withdrawal/recovery, project/epoch guards and consent stages source-reviewed; prior unchanged nine graph-read recovery cases retained, not rerun here. |
 | C54–C55 | Existing entrypoints/help ownership inspected; Brief target-preview journey reproduced. Not every source/report/help state visually replayed. |
@@ -206,7 +207,7 @@ canvas, so the subsequent key sequence is not keyboard evidence. After checking
 the installed CLI's callback signature, explicit focus + native Enter produced
 the separate successful observation above. No forced click, app-state injection,
 assertion weakening or product patch was used. Pro native drag feedback and Undo
-remain unverified; two intent ambiguities are not counted as product failures.
+remain unverified; the two then-open intent ambiguities were not counted as product failures.
 
 [Logs, JSON observations and fixtures](../../.local/workbench-spec-audit-20261022/)
 and [browser snapshots/captures](../../output/playwright/workbench-spec-audit-20261022/)
@@ -226,7 +227,8 @@ catalogue; they were removed before the final baseline-to-HEAD diff check.
 
 ## Owner handoff
 
-Suggested order after review: approve/adjust the two intent clarifications, then
+Suggested order after review: settle the remaining Professional interaction
+questions (height is now agreed), then
 authorize one bounded repair slice for selection, label containment, count
 projection and status parity with the proposed regressions. These share
 presentation/authority seams but do not require backend permission changes.
@@ -249,7 +251,7 @@ These documentation corrections do not change the executable baseline or the
 four reported code findings. Newly explicit native-workflow clauses link their
 existing bounded completion evidence; this audit did not freshly replay those
 provider/media journeys or certify their unexercised combinations. The two
-intent questions remain open with recommendations. No definite chat-only
+intent questions were left open with recommendations at that checkpoint. No definite chat-only
 agreement absent from all docs was established in this bounded pass; other chats
 and earlier history remain outside its coverage.
 
@@ -262,3 +264,53 @@ read-only GPT-6.1 Sol / Medium source cross-check and GPT-6 Luna / Max final
 consistency review found no blocking documentation issue (requested settings;
 effective settings not separately audited). No software suite, browser or
 provider journey was rerun for this documentation addendum.
+
+## Owner height decision and Professional scrolling follow-up
+
+The owner accepted `0.85 × full viewport height`, clamped to usable workspace,
+and reported that scrolling over the main Professional area zooms the canvas
+instead of moving the page. Exact source: chat turn
+`01a166e4-9f25-7df1-a9a7-e363d77a4348` (October 23 UTC / October 22 Toronto).
+The [0122 clarification](../adr/0122-creator-workspace-presentation.md#owner-clarification-of-inspector-height-2026-10-22),
+product baseline and C45 now record the accepted height formula.
+[useCreatorGeometry](../../frontend/src/features/graph/useCreatorGeometry.ts)
+lines 38–39 already targets `innerHeight × .85` before available-space clamping;
+this source observation is not new browser qualification.
+
+Professional wheel diagnosis: editable
+[ProfessionalGraphWorkbench](../../frontend/src/features/graph/ProfessionalGraphWorkbench.tsx)
+lines 57–67 supplies no explicit wheel policy. Its source-unbound path enters
+[CanonicalGraphReader](../../frontend/src/features/graph/CanonicalGraphReader.tsx),
+which invokes [CanonicalGraphCanvas](../../frontend/src/features/graph/CanonicalGraphCanvas.tsx)
+without Creator's selection callback; lines 117–119 therefore leave the wheel
+props undefined. Installed React Flow defaults enable wheel zoom and scrolling
+prevention. Its wheel handler calls `preventDefault()` before graph zoom, matching
+the user's observation. This is a presentation/input-ownership issue, not a
+graph, persistence or dispatch failure. No live browser reproduction was made.
+The installed version is React Flow 12.11.5. Disabling `zoomOnScroll` alone would
+still consume ordinary wheel input through the wrapper; the proposed policy
+must also allow native page scrolling with `preventScrolling={false}`.
+Current mocked presentation tests assert inherited Pro defaults, not actual
+wheel propagation, so they do not establish that page navigation is usable.
+
+This new usability report is distinct from the four earlier deviations: the
+old contract preserves Pro pan/zoom but did not specifically settle ordinary
+wheel ownership. [Proposed interaction](../specs/conflicts.md#owner-review-required):
+ordinary wheel/two-finger scroll navigates the page, deliberate pinch or visible
+zoom/fit controls zoom, and canvas dragging pans. Preserve intentional inner
+form/label scrolling and both editable/canonical Pro paths; do not apply a
+global wheel rewrite or disable Pro navigation. Reason: remove the left-rail
+pointer workaround. Trade-off: wheel-only zoom becomes explicit. Canvas-state
+persistence is a separate unresolved decision. Editable Pro already has visible
+zoom controls; extending equivalent controls to canonical-only Pro is part of
+the proposal, not an existing capability claim.
+
+After approval, native regressions should check wheel over background/nodes/edges,
+document movement with unchanged graph transform, intentional pinch/controls/pan,
+inner scrolling, both authority states and short desktop windows, with no
+authored writes. No implementation, tests, generated assets, activation, provider
+calls, push or CI are part of this follow-up.
+
+Follow-up documentation checks: 346 relative file/directory targets resolve,
+whitespace checks pass and the diff outside `docs/` is empty. Independent
+read-only review found no blocking inconsistency; no runtime test was run.

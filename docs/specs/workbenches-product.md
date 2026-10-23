@@ -57,7 +57,9 @@ Later approved creator-completion requirements are consolidated below from
   owns horizontal scrolling/private `chartX`. Three to six siblings stay one rank.
 - The right inspector follows the selected node's centre, clamped to usable
   workspace. Its body scrolls while header/actions remain reachable. Never move
-  it below the graph on short desktop windows. Height wording is [unresolved](conflicts.md#owner-review-required).
+  it below the graph on short desktop windows. Target height is `0.85 × full
+  viewport height`, clamped to usable visible workspace, not 85% of the reduced
+  usable height ([owner clarification](../adr/0122-creator-workspace-presentation.md#owner-clarification-of-inspector-height-2026-10-22)).
 - Automatic width: 380px at content width >=1120px, otherwise 300px. Manual range
   300–520px, <=45% of content, preserving 480px chart plus divider gap. Native drag,
   keyboard arrows/Home/End/Shift and double-click reset are supported. Cancel,

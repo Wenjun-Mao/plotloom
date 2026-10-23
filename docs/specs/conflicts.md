@@ -8,8 +8,8 @@ not silently normalized to current implementation.
 
 | Question | Conflicting or incomplete sources | Suggestion, reasoning and trade-off — not adopted |
 | --- | --- | --- |
-| Sidebar height basis | Original October 6 plan says approximately 85% of viewport; ADR 0122 says 85% viewport clamped to workspace below toolbar; C45 says about 85% of visible height | Keep the ADR's `0.85 × full viewport` target, then clamp to usable workspace. This follows the more precise geometry clause and preserves reachability as toolbar/guide height changes. Trade-off: short windows use available space rather than a uniform 85% of usable workspace; the formulas can differ. Centre/clamp, internal scrolling, no 500px cap and side-by-side short-desktop layout remain agreed regardless. |
 | Professional visual-state persistence | October 6 plan preserves existing Pro canvas behavior; ADR 0121 retires independent canonical-shaped editing; C28 shares node selection; C48 permits Pro positioning without changing structure. No explicit position/zoom lifetime is stated | Preserve per-project visual state across Creator↔Pro switches during the current project session; reset on project change/reload initially. This avoids losing technical context during ordinary navigation without durable authored layout or migration. Trade-off: reopening loses custom layout; durable browser-private preferences improve that at the cost of explicit lifetime/versioning work. This is a proposed clarification, not a finding that reload persistence is missing. |
+| Professional wheel and page navigation | Owner reports wheel input over the main Pro canvas zooms instead of scrolling the page. Editable and canonical Pro inherit canvas wheel-to-zoom defaults; previous decisions retain pan/zoom but do not expressly choose ordinary wheel ownership | Ordinary wheel/two-finger scroll moves the document; deliberate pinch or visible zoom/fit controls zoom the canvas; canvas dragging pans. Preserve intentional inner form/label scrolling. Reason: make page navigation work without moving the pointer to the left rail, while retaining Pro's technical canvas. Trade-off: wheel-only zoom becomes an explicit gesture/control. Apply one policy to both Pro authority states, not Creator or unrelated canvases. This remains a proposal, not an approved code change. |
 
 Sources: [approved plan](../roadmap/2026-10-06-graph-centred-creator-workbench.md#approved-reference-and-product-boundaries),
 [ADR 0122](../adr/0122-creator-workspace-presentation.md),
@@ -19,10 +19,11 @@ Audit other unambiguous clauses independently; these questions do not invalidate
 the whole baseline. Current code is evidence of an implementation choice, not
 proof that the owner selected that choice.
 
-## Resolved by explicit scoped supersession
+## Resolved by explicit decision or scoped supersession
 
 | Older wording | Current controlling clause | Preserve |
 | --- | --- | --- |
+| Sidebar height: full viewport versus visible/usable height | Owner accepted `0.85 × full viewport`, clamped to usable workspace; [0122 clarification](../adr/0122-creator-workspace-presentation.md#owner-clarification-of-inspector-height-2026-10-22), current C45 | Centre/clamp, internal scrolling, reachable header/actions, no 500px cap and side-by-side short-desktop layout; no code/activation approval |
 | First-install-only / general replacement excluded in the October 6 plan and ADRs 0079/0118/0121/0123 | [0138](../adr/0138-one-current-story-explicit-rebuild.md) explicitly supersedes first-install-only, enabling same-project reviewed rebuild | Source/CAS/currentness/dispatch guards, retained assets and separate fresh approval; not silent replacement |
 | Shared canonical fallback reader originally used by both modes | October 22 [0122 amendment](../adr/0122-creator-workspace-presentation.md#workspace-presentation-is-independent-of-write-authority-2026-10-22) and current C02/C03/C28/C45 | Shared topology/fields; distinct Creator side inspector and Pro technical shell; no new write authority |
 | Narrow stacking/touch qualification in ADR 0119 | October 6 approved workbench desktop boundary / ADR 0122 / C47 | No new narrow/mobile authoring scope; unrelated readers/media retain their own contracts |
@@ -70,7 +71,7 @@ approval to change the application.
 | Direct human decision | Primary chat reference | Current home and disposition |
 | --- | --- | --- |
 | Graph as main workspace, with capable Creator and detailed Professional views | October 5, `01a109eb-84b4-7893-9844-cb51528f580d`; naming agreement `01a109ed-029a-7161-8ec8-8ff46f7a2896` | [Approved October 6 plan](../roadmap/2026-10-06-graph-centred-creator-workbench.md), product shared-state clauses and ADRs 0121/0122 already capture one project/two views. |
-| Centre of inspector follows centre of node, without leaving the screen | October 5, explicit clarification `01a10a22-a01e-7450-92a2-3415fafa1616`, then “That's settled” in `01a10a25-8b54-7691-be0a-f17541d468c0` | Product layout and [0122](../adr/0122-creator-workspace-presentation.md) capture it. This does not resolve which height is the denominator of 85%. |
+| Centre of inspector follows centre of node, without leaving the screen | October 5, explicit clarification `01a10a22-a01e-7450-92a2-3415fafa1616`, then “That's settled” in `01a10a25-8b54-7691-be0a-f17541d468c0` | Product layout and [0122](../adr/0122-creator-workspace-presentation.md) capture it. The later owner follow-up below settles the previously unresolved height denominator. |
 | One row-level plus; broad incoming-connection editing and deletion | October 5, `01a10c37-45a2-7cd0-8fec-09c70b29f022`; October 6, `01a10ea8-c85d-7ba2-812f-6607f02689eb` | Product exact-editing clauses and C09–C26 capture the approved safe operations, not unrestricted invalid links/deletion. |
 | Story and Production organization | October 6, proposal `01a10ecf-f7f9-7253-8455-5f9ab0e0124a`, sketch trial `01a10ed2-5e14-7492-b770-d28c4bbf4a16`, later implementation approval below | [0123](../adr/0123-node-context-story-production-workflows.md), approved G3/G4 and product Story/Production clauses capture real workflows; sketch simulations do not establish production capability. |
 | Natural full-height chart, taller/wider inspector, divider and desktop boundary | October 6, `01a10f2d-9cde-7420-8a40-a0c2886c4e80`; explicit divider implementation and >=1280px instruction `01a10f40-4bd4-77f1-9f2a-d681b047d2d8` | Approved plan/0122/C45–C47 already capture these. Restored the plan's omitted “borderless” requirement to the consolidated product view. |
@@ -108,17 +109,20 @@ implementation deviation established by the initial idea alone.
 
 ### Remaining owner review
 
-The two questions at the top remain unresolved by the direct chat:
+The owner subsequently accepted the sidebar-height recommendation in turn
+`01a166e4-9f25-7df1-a9a7-e363d77a4348`: `Sidebar height - agreed`.
+The same message reports Professional's wheel/page-navigation problem. Height is
+now resolved above; the two Professional questions remain for review:
 
-- Sidebar height: keep `0.85 × full viewport`, clamped to usable workspace.
-  The precise ADR geometry supports it, while the chat establishes centring and
-  use of available space but not a different formula. Trade-off: short-window
-  height differs from taking 85% of the already-reduced usable area.
 - Pro visual state: preserve positions/pan/zoom per project during the current
   session, reset on project change/reload initially. This protects navigation
   context without introducing durable authored layout. Trade-off: reopen loses
   custom canvas layout; durable private preferences would need explicit lifetime
   and versioning semantics. Shared node selection is already agreed independently.
+- Pro wheel ownership: use ordinary scrolling for page navigation, pinch or
+  visible controls for zoom, and canvas dragging for pan. This removes the
+  pointer-location workaround without removing graph navigation. It changes the
+  existing default gesture, so requires explicit agreement before implementation.
 
 Both remain suggestions. Historical implementation approvals do not authorize
 the [four current code repairs](../verification/2026-10-22-workbench-spec-audit.md).

@@ -136,3 +136,17 @@ cancellation, readable branch/join labels, and unchanged canonical/draft state
 with zero authored requests. Existing editable Creator/Professional behavior
 remains covered. The permanent C02/C03/C28/C45–C48 checks apply to the relevant
 canonical read-only states, not only editable fixtures.
+
+## Owner clarification of inspector height, 2026-10-22
+
+The owner explicitly accepted the reconciliation recommendation: target
+`0.85 × full viewport height`, then clamp to the usable visible workspace below
+application chrome and its edge clearances. Do not take 85% of an already-reduced
+usable height. Selected-node centring, top/bottom clamping, internal body scroll,
+reachable header/actions and the short-desktop side-by-side layout remain.
+This resolves the older C45 phrase “85% of visible height”; it does not approve
+new Professional canvas interactions or code repairs.
+
+Direct approval: `Sidebar height - agreed`, source chat
+`01a04525-e907-7630-9640-78790d69e8ae`, turn
+`01a166e4-9f25-7df1-a9a7-e363d77a4348` (2026-10-23 UTC / October 22 Toronto).

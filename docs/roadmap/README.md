@@ -21,7 +21,7 @@ project edits, push or CI. Stop with documentation, conflicts and findings ready
 for owner review; proposed repairs remain unapproved.
 
 Documentation consolidation and audit are complete for review: [spec map](../specs/README.md),
-[two intent questions with recommendations](../specs/conflicts.md), and
+[intent decisions and questions with recommendations](../specs/conflicts.md), and
 [four deviations with causes, evidence and suggestions](../verification/2026-10-22-workbench-spec-audit.md).
 All numbered ADRs are catalogued; detailed consolidation and behavior audit cover
 the two workbenches, while other domains retain linked owners. No application
@@ -29,7 +29,10 @@ fixes or activation are included in this checkpoint.
 The owner's follow-up about agreements left in chat is included in the
 [chat-to-spec reconciliation](../specs/conflicts.md#chat-decision-reconciliation).
 It corrects stale approval status and consolidates already-agreed clauses;
-the two unresolved intent questions and four code findings remain for review.
+the four code findings remain for review. The owner subsequently accepted the
+sidebar-height formula. Professional visual-state lifetime remains open, and the
+new reported wheel/page-navigation problem has a separate interaction proposal;
+neither Professional proposal authorizes code changes.
 
 ## Completed bounded milestone: creator completion loop
 
