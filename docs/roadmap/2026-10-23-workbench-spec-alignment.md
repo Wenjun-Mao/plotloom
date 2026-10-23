@@ -9,7 +9,9 @@ Execution checkpoint: clean `dd71f079` implements the bounded outcomes and passe
 independent review plus final scoped local frontend qualification. The
 [implementation receipt](../verification/2026-10-23-workbench-spec-alignment.md)
 retains failures, exact checks, structured readbacks and desktop pixels. Root-owned
-activation/preservation and owner acceptance remain separate at source handoff.
+preservation-checked frontend activation is complete at installed `adda829a`, with
+unchanged service identities and all seven real projects preserved. Owner
+browser/hardware usability acceptance remains separate.
 The planning baseline and review statements below retain their original context.
 
 Source baseline: clean retained checkout R

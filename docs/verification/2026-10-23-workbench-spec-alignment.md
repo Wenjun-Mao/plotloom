@@ -2,10 +2,11 @@
 
 Status: implemented, independently reviewed and locally frontend-qualified at
 clean executable revision `dd71f0794938fab607c189283d2b3cbe25e384c9`.
-Root-owned activation and owner acceptance remain separate and pending at this
-handoff. The approved [plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
-binds this receipt. Source baseline is clean retained R at `d029e536`; no work was
-performed in installed P or the default Narrative-Forge checkout.
+The qualified frontend is activated in installed P at `adda829a`; owner acceptance
+remains separate. The approved [plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
+binds this receipt. Source baseline is clean retained R at `d029e536`;
+implementation and qualification used R, not P or the default Narrative-Forge
+checkout. The root-owned activation below followed the worker's idle handoff.
 
 ## Root causes and implemented boundaries
 
@@ -208,9 +209,48 @@ only test-owned temporary roots. No real projects were cleaned or reset. Product
 implementation/coordination time was not separately instrumented; the final
 browser runner duration is reported above without invented cost/time percentages.
 
-No backend/full-suite or hosted-CI pass is claimed. No GitHub Actions, workflow
-changes, push, provider call, real-project mutation, installed-service restart,
-runtime activation or live Safari access occurred. Root owns preservation-checked
-P activation. Safari/physical-trackpad input and owner usability/creative acceptance
-remain unperformed; Ctrl-wheel is Chromium pinch emulation. The final documentation
+No backend/full-suite or hosted-CI pass is claimed. At the worker handoff, no
+GitHub Actions, workflow changes, push, provider call, real-project mutation,
+installed-service restart, runtime activation or live Safari access had occurred.
+Safari/physical-trackpad input and owner usability/creative acceptance remain
+unperformed; Ctrl-wheel is Chromium pinch emulation. The final documentation
 checkpoint changes no qualified executable/static bytes.
+
+## Root-owned activation and preservation
+
+After collecting the idle worker handoff, root reviewed its six-file documentation
+delta and confirmed that `adda829a156d2165b4a0c75192ce2c9933f9f1dd` changes no
+qualified frontend, backend, service, script or dependency bytes from `dd71f079`.
+Installed P was clean at detached `21c6d6be`; its checkout hook path had no
+`post-checkout` hook. The supported quiet operation was a detached switch to
+`adda829a`, not a reset, rebuild, restart or data migration.
+
+- All seven static file hashes match the qualified second-build manifest in R,
+  installed P and the existing container's read-only checkout mount. HTTP readback
+  of `/v2/workbench.js` and `/v2/workbench2.css` matches the qualified hashes above.
+- `/healthz` remains `{"status":"ok"}`. Container identity
+  `cd2edcb105d80a076cac0e8dd022552d92e2d6e6c3f05ee97d0cee4c222503f5`, PID
+  `172415` and start time `2026-10-22T22:20:01.905879659Z` are unchanged. The
+  existing host bridge remains PID `66847`, run count 1, never exited.
+- Read-only fingerprints immediately before/after activation, and the earlier
+  root preflight versus final state, both compare as `preserved: true`, with no
+  unexpected differences and no controller-claim changes. All seven real projects,
+  their database content/media/selections, application and host accounting,
+  protected settings/credential fingerprints and frozen budgets are unchanged.
+- Active attempts, enabled queue entries, validators and frozen-budget errors
+  remain zero. Both historical `outcome_unknown` holds remain untouched:
+  `06e80972-9dde-41ff-be71-b477c1477465` and
+  `3405616d-55a3-4f81-9dee-01e79550f25b`.
+
+Private root evidence is `.local/workbench-alignment-20261023-root/`, including
+`preservation-{initial,before,after}.json`, comparison results and
+`runtime-{initial,final}.json`. No project was deleted/reset and no provider call,
+push, CI/workflow preparation, service restart or alternate live-browser access
+was used for this activation. The previous installed revision remains in Git.
+
+Recommendation for owner review: refresh both workbenches, then check ordinary
+wheel scrolling and intentional pinch with the physical Mac trackpad in the
+owner's supported browser. This is the remaining usability/input check because
+isolated Chromium assertions and pinch emulation do not establish live Safari,
+hardware-input or personal acceptance. No further source change is proposed
+without a concrete finding.
