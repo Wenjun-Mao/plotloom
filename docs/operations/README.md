@@ -30,7 +30,7 @@ One durable SQLite FIFO serializes managed inference: at most one H3 ComfyUI,
 Qwen SGLang or Voice Lab generation runs at a time. It is intentionally an unlimited queue;
 source download, input decoding, and managed-output transfer do not hold the
 GPU lane. See [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md)
-and its Voice Lab extension in [ADR 0097](../adr/0212-published-voice-performance-takes-and-shared-admission.md).
+and its Voice Lab extension in [ADR 0212](../adr/0212-published-voice-performance-takes-and-shared-admission.md).
 
 Both backends retain their gateway-managed delivery for 72 hours, and retain
 the job record plus transient gateway input for at most 30 days. Import a

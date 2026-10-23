@@ -1,5 +1,12 @@
 # Plotloom documentation
 
+## Specifications and agreed behavior
+
+Start at the [current specification map](specs/README.md): feature-oriented
+product/UX, engineering and architecture owners, a complete ADR catalogue,
+consolidated workbench requirements, unresolved conflicts and the deviation audit.
+Decision history, delivery scope and executed evidence remain separate.
+
 ## Creator guide
 
 - [中文创作者手册](creator/manual.zh-CN.md) — 从故事想法、审阅和双结局分支，到镜头媒体选择与播放检查。

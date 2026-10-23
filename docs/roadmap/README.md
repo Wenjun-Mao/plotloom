@@ -1,5 +1,32 @@
 # Plotloom roadmap entrypoint
 
+## Approved specification consolidation and workbench audit
+
+The owner approved a single feature-oriented spec map, consolidation of agreed
+requirements with provenance, and an audit of Creator and Professional before
+any application changes. Separate current product/UX requirements, engineering
+contracts and architecture views from decision history, delivery plans and run
+evidence. Preserve historical records/IDs and flag unresolved conflicts for owner
+review; implementation is evidence, not permission to redefine agreed behavior.
+
+Root is the sole documentation writer. Read-only workers inventory the corpus,
+extract authority chains and audit a frozen consolidated workbench baseline.
+Smallest observable outcome: every existing ADR is discoverable through the map,
+workbench requirements retain source and C/P/E coverage, and each reported
+deviation has an exact requirement, source evidence and a verification limit.
+Use retained unchanged evidence where applicable; any new browser inspection uses
+only fresh test-owned fixtures, never a bypass to the owner's live app. No
+application/test/generated-asset changes, provider/media work, activation, live
+project edits, push or CI. Stop with documentation, conflicts and findings ready
+for owner review; proposed repairs remain unapproved.
+
+Documentation consolidation and audit are complete for review: [spec map](../specs/README.md),
+[two intent questions with recommendations](../specs/conflicts.md), and
+[four deviations with causes, evidence and suggestions](../verification/2026-10-22-workbench-spec-audit.md).
+All numbered ADRs are catalogued; detailed consolidation and behavior audit cover
+the two workbenches, while other domains retain linked owners. No application
+fixes or activation are included in this checkpoint.
+
 ## Proposed next milestone: creator completion loop
 
 The owner agreed to prioritize one creator creating, revising and finishing a

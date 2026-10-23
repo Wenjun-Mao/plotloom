@@ -1,5 +1,10 @@
 # Architecture decision records
 
+The [current specification map](../specs/README.md) separates living requirements
+from this decision history. Its [complete catalogue](../specs/adr-catalogue.md)
+includes records not listed in the selected authority chains below. See
+[0217](0217-feature-oriented-specification-authority.md) for the approved convention.
+
 The [roadmap entrypoint](../roadmap/README.md) owns current delivery scope.
 ADRs record decisions at their adoption boundary; a later scoped decision may
 supersede one clause without erasing the earlier record. For a live instruction,
