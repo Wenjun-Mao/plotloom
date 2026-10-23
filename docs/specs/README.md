@@ -79,3 +79,6 @@ Provider/runbook details remain in [operations](../operations/README.md),
 
 This consolidation does not certify all product domains or authorize fixes.
 The workbench audit reports code/evidence deviations before application changes.
+The [workbench alignment implementation plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
+is the proposed delivery scope for the four findings and adopted C56/C57 behavior;
+it awaits implementation approval rather than changing requirement authority.

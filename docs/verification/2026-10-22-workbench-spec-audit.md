@@ -234,6 +234,10 @@ presentation/authority seams but do not require backend permission changes.
 Reason: address concrete observed defects first while preserving the agreed
 graph ownership; trade-off is leaving unrelated unverified lifecycle/media states
 for their separately scoped qualification. No repair is scheduled or started.
+The [October 23 alignment plan](../roadmap/2026-10-23-workbench-spec-alignment.md)
+now proposes that delivery together with adopted C56/C57 Pro behavior, with
+explicit early UI proof, qualification and activation boundaries. Implementation
+approval is still pending.
 
 ## Chat reconciliation addendum
 
