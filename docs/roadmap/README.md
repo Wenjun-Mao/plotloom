@@ -26,17 +26,25 @@ Documentation consolidation and audit are complete for review: [spec map](../spe
 All numbered ADRs are catalogued; detailed consolidation and behavior audit cover
 the two workbenches, while other domains retain linked owners. No application
 fixes or activation are included in this checkpoint.
+The owner's follow-up about agreements left in chat is included in the
+[chat-to-spec reconciliation](../specs/conflicts.md#chat-decision-reconciliation).
+It corrects stale approval status and consolidates already-agreed clauses;
+the two unresolved intent questions and four code findings remain for review.
 
-## Proposed next milestone: creator completion loop
+## Completed bounded milestone: creator completion loop
 
-The owner agreed to prioritize one creator creating, revising and finishing a
-small story through the UI, and requested planning first. The
-[bounded implementation proposal](2026-10-22-creator-completion-loop.md) combines
-native-image E2E, selective rejected-take replacement and truthful elapsed/status
-visibility. It identifies the narrow delegated-QA material/UI prerequisite and
-uses one fresh two-shot fixture. Character/branching quality and an uncoached
-colleague pilot follow later. This is a proposal, not implementation approval;
-no generation, activation, full test run, push or CI follows from planning.
+After planning, the owner explicitly approved implementation, real UI E2E and
+activation of the [creator-completion plan](2026-10-22-creator-completion-loop.md):
+native text/images, selective rejected-take replacement, truthful elapsed/status
+and exact delegated-QA material/UI attribution. The native two-shot journey
+completed on `b78bc6c9`; corrective code received composite local qualification
+and clean `b21505a0` was activated with matching qualified product bytes. The
+[verification record](../verification/2026-10-22-creator-completion-loop.md)
+retains the original failed full/browser runs, interventions and audio/crop/
+creative limitations. This is bounded functional completion, not owner creative
+acceptance or GA. Character/branching quality and an uncoached colleague pilot
+remain subsequent milestones; historical approval is not authority for new work,
+generation, activation, publication or CI in the current audit.
 
 ## Approved canonical read-only graph fallback presentation
 

@@ -32,6 +32,10 @@ ADRs retain rationale/history, roadmap records approved work, and verification
 records actual evidence. Update affected links/clauses together when a new
 decision is approved. Preserve historical files and IDs; do not mass-renumber,
 rewrite old receipts, create three decision logs or move workflow-local assets.
+Chat-origin agreements retain a direct human approval reference and enough
+proposal context to establish scope. An assistant proposal, prototype interaction
+or forwarded worker report cannot substitute for that decision. Later explicit
+approval/status must be reconciled with detailed owners before indexing it.
 
 ## Alternatives, consequences and guardrails
 

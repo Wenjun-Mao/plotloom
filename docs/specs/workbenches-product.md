@@ -15,6 +15,11 @@ including [0132](../adr/0132-creator-ui-reading-boundaries.md),
 [0138](../adr/0138-one-current-story-explicit-rebuild.md),
 [0145](../adr/0145-current-read-authority-for-graph-and-directory.md) and
 [0155](../adr/0155-recommended-creative-workflow-guide.md).
+Later approved creator-completion requirements are consolidated below from
+[the October 22 plan](../roadmap/2026-10-22-creator-completion-loop.md),
+[0198](../adr/0198-delegated-disposable-qa-authority.md) and
+[0204](../adr/0204-explicit-rejected-batch-take-replacement.md).
+[Chat provenance](conflicts.md#chat-decision-reconciliation) does not create new scope.
 
 ## Shared purpose and state (C02, C27–C28, C34–C36, C51–C54, P01–P06)
 
@@ -48,7 +53,7 @@ including [0132](../adr/0132-creator-ui-reading-boundaries.md),
 - Deterministic longest-path ranks, stable sibling order, no sibling wrapping or
   free node-position dragging. Real nodes are cards; actual choice text belongs
   to directed edges, with distinct incoming lanes/skip gutters, not fake nodes.
-- The graph grows naturally: document owns vertical navigation, graph container
+- The borderless graph grows naturally: document owns vertical navigation, graph container
   owns horizontal scrolling/private `chartX`. Three to six siblings stay one rank.
 - The right inspector follows the selected node's centre, clamped to usable
   workspace. Its body scrolls while header/actions remain reachable. Never move
@@ -101,6 +106,9 @@ including [0132](../adr/0132-creator-ui-reading-boundaries.md),
   nodes <=128, choice degree <=6; do not inherit sketch-only 30-node/100-edge caps.
 - Settings do not reshape the graph; graph edits do not silently raise capacity.
   Before/after target changes require explicit preview using actual graph counts.
+  Current structure targets/checks and a return to Brief stay reachable from the
+  graph workspace; moving every Brief parameter into an inline editor is not an
+  approved first-release requirement.
 - Incomplete/pending drafts may be saved but not confirmed/applied as complete.
   Distinguish structural error, incomplete and target mismatch. Fail atomically.
 - Suggestions create a reviewable shared draft; current settings and actual graph
@@ -125,6 +133,40 @@ including [0132](../adr/0132-creator-ui-reading-boundaries.md),
   package review/rebuild, new relevant approval/current selections and all-route
   playback are required. A new proposal never borrows installed authority.
   This narrowly supersedes old first-install-only exclusions, not safety guards.
+
+## Native completion, selective revision and status
+
+These clauses consolidate the separately approved October 22 milestone, not new
+C/P/E identities or a claim that the workbench audit exercised native generation.
+
+- The bounded creator journey is saved Brief → native text/images → material
+  review → video-batch setup and explicit Start → selective take revision →
+  complete-pack review → ending playback → reopen. Imported-image examples and
+  synthetic browser fixtures are not proof of native image completion.
+- Routine creator recovery must not require scripts, raw IDs, a reviewer-name
+  form, database edits or an operator-only API. Exceptional historical UNKNOWN
+  capacity retirement has a separately approved operator contract; it preserves
+  UNKNOWN outcomes/reservations/evidence and does not authorize replay.
+- Batch generation fills missing clips and stops for one final whole-pack review;
+  it does not automatically select clips for playback. Image/video completion
+  navigation exposes the result without hiding the useful top section or losing
+  dirty work. [The batch plan](../roadmap/2026-10-18-batch-video-production.md)
+  owns the detailed flow.
+- Per-take rejection records a concise reason and exposes the exact rejected-shot
+  set. Selective replacement retains rejected history and good siblings, shows
+  fresh versus reused work, and requires fresh English endorsement and explicit
+  Start. Reused takes remain in complete-pack review. This bounded path replaces
+  current unselected rejected takes before whole-pack approval; it does not imply
+  replacement of already-selected clips or storyboard changes.
+- Run/batch age includes waiting and must be labelled accordingly, not called
+  active generation time. Status uncertainty shows the last successful check.
+  Milestones belong to the current run/batch; reused media is labelled historical.
+  Terminal views use recorded completion or labelled creation dates. A ticking
+  age is not worker liveness; ETA and compute/phase duration are not promised.
+- Agent UI QA requires explicit visible project-local opt-in, reset by navigation.
+  Missing/failed/stale QA context refuses QA writes without falling back to a
+  human actor. The server owns exact grant/currentness checks; technical audio
+  inspection without listening never becomes perceptual or owner acceptance.
 
 ## Qualification is not a feature claim (C01, C37–C39, E01–E22)
 

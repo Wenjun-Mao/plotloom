@@ -233,3 +233,32 @@ presentation/authority seams but do not require backend permission changes.
 Reason: address concrete observed defects first while preserving the agreed
 graph ownership; trade-off is leaving unrelated unverified lifecycle/media states
 for their separately scoped qualification. No repair is scheduled or started.
+
+## Chat reconciliation addendum
+
+The owner's follow-up asked whether chat-agreed designs were absent from docs.
+[Direct chat reconciliation](../specs/conflicts.md#chat-decision-reconciliation)
+covers the original workbench design/implementation decisions and later relevant
+amendments, with exact human-decision references and bounded history coverage.
+The central map's false proposal-only status for the approved/completed October
+22 creator milestone was corrected alongside its stale roadmap index. Buried
+native-completion/recovery/replacement/timing/QA clauses and small layout/Brief
+discovery omissions were consolidated from their existing approved owners.
+
+These documentation corrections do not change the executable baseline or the
+four reported code findings. Newly explicit native-workflow clauses link their
+existing bounded completion evidence; this audit did not freshly replay those
+provider/media journeys or certify their unexercised combinations. The two
+intent questions remain open with recommendations. No definite chat-only
+agreement absent from all docs was established in this bounded pass; other chats
+and earlier history remain outside its coverage.
+
+Addendum checks: all 391 relative file/directory targets in the eight changed
+documents resolve; the 215 numbered ADRs still occur exactly once in the
+catalogue, and all 22 cited chat turn/message IDs occur in the read primary
+history. These are path/reference checks, not a general anchor/external-link
+crawl. `git diff --check` passes; the diff outside `docs/` is empty. Independent
+read-only GPT-6.1 Sol / Medium source cross-check and GPT-6 Luna / Max final
+consistency review found no blocking documentation issue (requested settings;
+effective settings not separately audited). No software suite, browser or
+provider journey was rerun for this documentation addendum.
