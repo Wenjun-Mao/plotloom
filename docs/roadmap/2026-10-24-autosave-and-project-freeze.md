@@ -1,9 +1,11 @@
 # Autosave, automatic resume and project Freeze
 
-Status: behavior choices confirmed in chat; implementation plan ready for owner review.
+Status: implementation, local qualification and bounded activation approved by
+the owner on 2026-10-24 through Relay Direct, carrying standing approvals forward.
 Planning baseline: retained R `main` at `01337c1b9892116a1cd0fc7f70d565ea8e32505a`.
-Installed P remains qualified `4c6db5ff`. No implementation, tests, live mutations,
-activation, restart, provider work, push or CI are authorized by this document alone.
+Installed P starts at qualified `4c6db5ff`. Approval covers this plan's bounded
+implementation, local tests, preservation-checked activation and necessary
+controlled backend restart. Excluded operations below remain excluded.
 
 ## Outcome and owner decisions
 
@@ -254,14 +256,14 @@ preferences keep their established lifetime.
 
 ## Execution permissions, rollout and rollback
 
-Planning is authorized now; implementation and activation await owner approval.
-That approval should cover the complete bounded sequence, local tests/fixtures,
-necessary typed draft/API/admission changes and a controlled backend restart at a
-verified quiet checkpoint. No recurring milestone approval is proposed. Work is
+The owner approved the complete bounded sequence through Relay Direct, including
+local tests/fixtures, necessary typed draft/API/admission changes and a controlled
+backend restart at a verified quiet checkpoint. Standing worker/model selection
+approvals continue; routine milestone approvals must not be requested again. Work is
 serial in retained R `/Users/wjmao/.codex/worktrees/b30f/plotloom`; installed P is
 `/Users/wjmao/projects/HU/plotloom`. Model/effort selection and announcements occur
 at native dispatch under Relay Direct, with attended read-only subagents and one
-source writer. No tasks are created during this planning step.
+source writer. Planning created no tasks; implementation may now dispatch them.
 
 No provider call, new QA grant, historical runtime-grant rebind, authored-value
 edit or Freeze/Delete of a live project, bridge restart, push or GitHub CI is

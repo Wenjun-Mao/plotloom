@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Autosave and project Freeze — plan for review
+## Approved autosave and project Freeze implementation
 
 The [autosave/no-Close plan](2026-10-24-autosave-and-project-freeze.md) records the
 owner's direction and five explicitly answered behavior choices: matching edits
@@ -9,8 +9,9 @@ teaching preview has an explicit editable-copy action, frozen projects remain
 readable/playable, and working edits reach production only through explicit
 Apply/Confirm. It inventories existing save gaps and covers editor-wide durability,
 navigation/failure handling, optional Freeze, local qualification and prospective
-preservation-checked backend activation. Planning only; implementation, task
-dispatch, runtime changes and activation are not yet authorized. The completed
+preservation-checked backend activation. The owner approved implementation through
+Relay Direct on 2026-10-24, including local qualification and the planned quiet
+backend activation/restart, with standing delegation approvals retained. The completed
 directory actions below remain the installed behavior pending this follow-up.
 
 ## Approved state-aware project directory actions
