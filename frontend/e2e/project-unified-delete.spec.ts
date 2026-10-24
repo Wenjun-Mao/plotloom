@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import { access, readFile, readdir, realpath, writeFile } from "node:fs/promises";
@@ -33,6 +34,7 @@ for (const state of ["cancelled", "paused"] as const) {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${neighbor.id}&stage=brief`);
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const row = page.locator(`.directory-item[data-project-id="${target.projectId}"]`);
+    await openProjectManagement(row);
     await row.getByRole("button", { name: "删除项目…", exact: true }).click();
     const title = state === "paused" ? "停止任务并删除项目" : "永久删除项目";
     const consent = page.getByRole("alertdialog", { name: title });
@@ -93,7 +95,8 @@ test("one deletion entry erases only the idle disposable home through real API a
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${neighbor.id}&stage=brief`);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   const row = page.locator(`[data-project-id="${target.id}"]`);
-  await expect(row.locator(".directory-actions").getByRole("button", { name: /删除/ })).toHaveCount(1);
+  await openProjectManagement(row);
+  await expect(row.getByRole("group", { name: "项目管理", exact: true }).getByRole("button", { name: /删除/ })).toHaveCount(1);
   await row.getByRole("button", { name: "删除项目…", exact: true }).click();
   const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
   await expect(consent.getByRole("checkbox")).toHaveCount(0);
@@ -132,6 +135,7 @@ for (const outcome of ["deleted", "scope_changed", "stop_lost_ack", "delete_lost
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();
     const row = page.locator(`[data-project-id="${target.id}"]`);
+    await openProjectManagement(row);
     await row.getByRole("button", { name: "删除项目…", exact: true }).click();
     const consent = page.getByRole("alertdialog", { name: "停止任务并删除项目" });
     await expect(consent).toContainText("paused（exact-run）");

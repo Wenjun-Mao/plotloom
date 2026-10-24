@@ -1,5 +1,5 @@
 import { Button, ErrorNotice } from "../../components";
-import { formatUiTimestamp } from "../../ui-time";
+import { ProjectDirectoryRow } from "./ProjectDirectoryRow";
 import type { ProjectListItem } from "../../types";
 import type { LifecycleAction } from "./useProjectLifecycle";
 import { PendingProjectDeletions, type PendingProjectDeletion } from "./PendingProjectDeletions";
@@ -33,23 +33,12 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
         <PriorProjectAbandonments refreshKey={projects} disabled={busy || loading} onAbandon={onAbandonPrior} feedback={deletionFeedback?.location === "prior" ? deletionFeedback : undefined} commandProjectId={commandProjectId} commandMessage={commandMessage} />
         {readError && <div className="notice warning" role="alert"><p>{readError}</p><p>{projects.length ? "当前显示上次读取的项目；重新读取成功前，列表中的项目操作暂不可用。仍可新建空白项目或打开示例项目。" : "项目目录尚未读入，请重新读取。"}</p><Button disabled={loading || busy} onClick={onRetry}>重新读取项目目录</Button></div>}
         {!readError && !loading && !projects.length && <div className="empty-state"><strong>还没有可用项目</strong><p>从空白项目开始，或先浏览教学示例。</p></div>}
-        <div className="directory-list">{projects.map(item => {
-          const archived = item.lifecycleStatus === "archived" || Boolean(item.archivedAt);
-          const closed = item.operationalState === "closed";
-          return <article key={item.id} className="directory-item" data-project-id={item.id}>
-            <button className="directory-open" disabled={rowBusy} onClick={() => onOpen(item)}><strong>{item.brief.title || "未命名项目"}</strong><small>{closed ? "已关闭 · 可安全复制" : archived ? "已归档 · 只读" : item.id === currentProjectId ? "当前项目" : "可打开"} · r{item.revision} · <time dateTime={item.updatedAt}>{formatUiTimestamp(item.updatedAt)}</time></small></button>
-            <div className="directory-actions">
-              <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "duplicate")}>复制简报与规范内容</Button>
-              {closed ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "open")}>重新打开</Button> : archived ? <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "restore")}>恢复</Button> : <>
-                <Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "archive")}>归档</Button>
-                {explicitProjectClose && <><Button variant="quiet" disabled={rowBusy} onClick={() => void onAction(item, "close")}>保存并关闭项目</Button><Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "force_close")}>退出工作区</Button></>}
-              </>}
-              <Button variant="danger" disabled={rowBusy} onClick={() => void onAction(item, "delete")}>删除项目…</Button>
-            </div>
-            {commandProjectId === item.id && commandMessage && <p role="status">{commandMessage}</p>}
-            {deletionFeedback?.location === "directory" && deletionFeedback.id === item.id && <p role={deletionFeedback.error ? "alert" : "status"}>{deletionFeedback.message}</p>}
-          </article>;
-        })}</div>
+        <p className="action-prerequisite">任务摘要不包含全部媒体占用；操作仍需服务器核对，未列出任务不表示空闲。</p>
+        <div className="directory-list">{projects.map(item => <ProjectDirectoryRow key={item.id} item={item} current={item.id === currentProjectId}
+          disabled={rowBusy} explicitProjectClose={explicitProjectClose} onOpen={onOpen} onAction={onAction}>
+          {commandProjectId === item.id && commandMessage && <p role="status">{commandMessage}</p>}
+          {deletionFeedback?.location === "directory" && deletionFeedback.id === item.id && <p role={deletionFeedback.error ? "alert" : "status"}>{deletionFeedback.message}</p>}
+        </ProjectDirectoryRow>)}</div>
         {hasMore && <div className="directory-more"><Button disabled={rowBusy} onClick={onLoadMore}>{loading ? "正在加载…" : "加载更多项目"}</Button></div>}
       </div>
       <footer><Button variant="quiet" disabled={busy} onClick={onClose}>关闭窗口</Button></footer>

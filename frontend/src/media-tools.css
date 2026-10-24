@@ -225,11 +225,15 @@
 .directory-onboarding label { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
 .directory-onboarding input { width: auto; }
 .directory-list { display: grid; gap: 8px; }
-.directory-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 0; border-top: 1px solid var(--line); background: var(--panel-3); }
-.directory-open { min-width: 0; border: 0; color: var(--text); text-align: left; background: transparent; }
+.directory-item { display: grid; gap: 8px; padding: 12px; border: 0; border-top: 1px solid var(--line); background: var(--panel-3); }
+.directory-row-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.directory-open { overflow-wrap: anywhere; flex: 1; min-width: 0; border: 0; color: var(--text); text-align: left; background: transparent; }
 .directory-open strong, .directory-open small { display: block; }
 .directory-open small { color: var(--muted); font-size: 12px; }
-.directory-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.directory-disclosure { display: contents; }
+.directory-management { flex-basis: 100%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; padding-top: 6px; border-top: 1px solid var(--line); }
+.directory-activity { margin: 0; }
+.directory-actions { max-width: 65%; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
 .modal-card > header, .modal-card > footer { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 17px; border-bottom: 1px solid var(--line); }
 .modal-card > footer { justify-content: flex-end; border-top: 1px solid var(--line); border-bottom: 0; }
 .modal-card header span { color: var(--accent); font: 12px var(--mono); text-transform: uppercase; }
@@ -247,7 +251,8 @@
 }
 
 @media (max-width: 620px) {
-  .directory-item { flex-direction: column; align-items: stretch; }
-  .directory-actions { justify-content: flex-start; }
+  .directory-row-heading { flex-direction: column; align-items: stretch; }
+  .directory-actions { max-width: 100%; justify-content: flex-start; }
+  .directory-management { justify-content: flex-start; }
   .modal-card header > button { min-width: 44px; min-height: 44px; }
 }

@@ -193,3 +193,17 @@ same project → Recover requires scoped current evidence. Unexercised combinati
 stay UNVERIFIED/PARTIAL. Agent QA, native-provider E2E and owner creative acceptance
 are separate. The current audit is not permission to generate, mutate live projects
 or repair code. See the dated audit for observations and limits.
+
+
+## Project directory actions (C58, approved 2026-10-24)
+
+Only the current workspace project offers 保存并关闭项目 / 退出工作区. Other rows
+have explicit 打开 / 重新打开 / 恢复 according to their existing folder/lifecycle
+state; archived open titles remain readable. Archived closed titles explain and
+require Restore before capability-gated Reopen. 更多 holds management copying, archive,
+noncurrent 关闭项目 and exact confirmed deletion. Keyboard and short-screen
+reachability are required. Positive latest-run activity explains ordinary Close/
+archive restrictions; incomplete/absent summary facts cannot claim idle or disable
+supported deletion preview/current Exit. [ADR 0113](../adr/0113-project-save-close-and-force-exit.md#state-aware-directory-actions--2026-10-24)
+owns the contract; the [dated plan](../roadmap/2026-10-24-project-directory-actions.md)
+separates implementation, verification, activation and owner acceptance.

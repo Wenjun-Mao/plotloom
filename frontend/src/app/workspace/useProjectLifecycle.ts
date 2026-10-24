@@ -84,10 +84,12 @@ export function useProjectLifecycle({
     action: LifecycleAction,
     draftDisposition?: "save" | "discard",
     openDirectoryFirst = false,
+    confirmedOperation?: ReturnType<LifecycleSession["capture"]>,
   ) => {
     if ((action === "close" || action === "force_close" || action === "open") && !explicitProjectClose) return;
+    const operation = confirmedOperation ?? session.capture();
+    if (action === "force_close" && (item.id !== operation.projectId || !session.isCurrent(operation))) return;
     await runCommand(item, action, async () => {
-      const operation = session.capture();
       directory.setError("");
       let closeAttempt: ReturnType<ProjectDraftQuiescence["beginClose"]> | undefined;
       let reads: ReturnType<typeof plotloomApi.suspendProjectReads> | undefined;
@@ -116,15 +118,17 @@ export function useProjectLifecycle({
             // This admission begins before either disposition or drain and stays
             // active until the Close response settles. It protects the requesting
             // client from stranding a late edit behind a closed project.
+            if (action === "force_close" && !session.isCurrent(operation)) return;
             closeAttempt = mediaDraftQuiescence.beginClose(item.id);
             reads = plotloomApi.suspendProjectReads(item.id);
             setClosingProjectId(item.id);
             setCloseNotice("");
             if (action === "force_close") {
+              if (!session.isCurrent(operation)) return;
               await closeAttempt.discardUnsent();
               if (!await reads.settle()) throw new Error("项目读取尚未确认完成；关闭未执行，请等待读取结束后重试。");
               if (!session.isCurrent(operation)) return;
-              const exitsWorkspace = session.project.id === item.id;
+              const exitsWorkspace = operation.projectId === item.id;
               let notice = "项目已关闭，已保存内容仍可重新打开。";
               try { await plotloomApi.closeProject(item.id); }
               catch (error) {
@@ -219,11 +223,13 @@ export function useProjectLifecycle({
     }
     if (action === "delete") return deletion.requestDeletion(item);
     if (action === "force_close") {
+      const operation = session.capture();
+      if (item.id !== operation.projectId || !session.isCurrent(operation)) return;
       confirmation.requestConfirmation({
         title: "退出工作区",
         message: "丢弃本标签页尚未保存的修改；已保存内容不会删除，后台任务继续运行。",
         details: `${item.brief.title || "未命名项目"}\n如果后台任务仍在运行，只退出工作区，不解除任务占用，也不标记为已安全关闭。`,
-        action: () => perform(item, "force_close"),
+        action: () => perform(item, "force_close", undefined, false, operation),
       });
       return;
     }

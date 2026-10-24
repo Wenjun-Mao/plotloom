@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import type { Locator, Page, Route, TestInfo } from "@playwright/test";
 import path from "node:path";
 import { readdir } from "node:fs/promises";
@@ -139,6 +140,7 @@ test.describe("M1-B0 real project journeys", () => {
     const retained = await assetEvidence();
 
     await openDirectory(page);
+    await openProjectManagement(projectItem(page, title));
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
     await expect(projectItem(page, title)).toHaveCount(0);
     await page.getByLabel("显示归档项目").check();
@@ -166,23 +168,27 @@ test.describe("M1-B0 real project journeys", () => {
 
     const archived = page.waitForResponse(response => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/archive`);
+    await openProjectManagement(projectItem(page, title));
     await projectItem(page, title).getByRole("button", { name: "归档" }).click();
     expect((await archived).ok()).toBeTruthy();
     // Delete exists on both active and archived rows; visibility is not an archive receipt.
     await expect(projectItem(page, title)).toContainText("已归档 · 只读");
     await expect(page.getByRole("status").filter({ hasText: "正在读取项目目录" })).toHaveCount(0);
+    await openProjectManagement(projectItem(page, title));
     await expect(projectItem(page, title).getByRole("button", { name: "删除项目…", exact: true })).toBeEnabled();
 
     let permanentDeleteRequests = 0;
     page.on("request", (request) => {
       if (new URL(request.url()).pathname.endsWith("/permanent-delete")) permanentDeleteRequests += 1;
     });
+    await openProjectManagement(projectItem(page, title));
     await projectItem(page, title).getByRole("button", { name: "删除项目…", exact: true }).click();
     const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
     await consent.getByLabel("输入完整片名以确认删除").fill(`${title} wrong`);
     await expect(consent.getByRole("button", { name: "确认永久删除项目" })).toBeDisabled();
     expect(permanentDeleteRequests).toBe(0);
     await consent.getByRole("button", { name: "取消" }).click();
+    await openProjectManagement(projectItem(page, title));
     await projectItem(page, title).getByRole("button", { name: "删除项目…", exact: true }).click();
     await expect(consent.getByLabel("输入完整片名以确认删除")).toHaveValue("");
     await consent.getByLabel("输入完整片名以确认删除").fill(title);
@@ -229,12 +235,14 @@ test.describe("M1-B0 real project journeys", () => {
     await page.route("**/api/v2/projects/*/duplicate", duplicateRoute);
     try {
       await openDirectory(page);
+      await openProjectManagement(projectItem(page, title));
       await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
       await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await expect(page.getByRole("alert")).toContainText("E2E lost duplicate response");
       await expect(projectItem(page, title)).toBeVisible();
 
+      await openProjectManagement(projectItem(page, title));
       await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
       await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();

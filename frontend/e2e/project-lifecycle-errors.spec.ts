@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import type { APIRequestContext, Page, TestInfo } from "@playwright/test";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
@@ -57,30 +58,34 @@ for (const action of ["archive", "restore"] as const) {
     const command = row(page, target.id).getByRole("button", { name: action === "archive" ? "归档" : "恢复", exact: true });
     const previousError = page.getByRole("alert").filter({ hasText: busyMessage });
     try {
+      if (action === "archive") await openProjectManagement(row(page, target.id));
       await command.click();
       await expect(previousError).toBeVisible();
+      if (action === "archive") await expect(row(page, target.id).getByRole("button", { name: /^更多 · / })).toBeFocused();
       await captureDirectory(page, info, `${action}-refused`);
       await page.getByLabel("显示归档项目").uncheck();
       await page.getByLabel("显示归档项目").check();
       await expect(previousError).toBeVisible();
       for (const title of ["复制简报与规范内容", "删除项目…"] as const) {
+        await openProjectManagement(row(page, target.id));
         await row(page, target.id).getByRole("button", { name: title, exact: true }).click();
         await page.getByRole("alertdialog").getByRole("button", { name: "取消", exact: true }).click();
         await expect(previousError).toBeVisible();
       }
+      if (action === "archive") await openProjectManagement(row(page, target.id));
       await command.click();
       await retryStarted;
       // A real new command owns the banner even before its response settles.
       await expect(previousError).toHaveCount(0);
       const directory = page.getByRole("dialog", { name: "项目目录" });
       await expect(directory.getByRole("status")).toContainText(action === "archive" ? "正在归档" : "正在恢复");
-      await expect(command).toBeDisabled();
+      await expect(row(page, target.id).getByRole("button", { name: /^更多 · / })).toBeDisabled();
       await expect(directory.getByRole("button", { name: "新建空白项目" })).toBeDisabled();
       await expect(directory.getByLabel("显示归档项目")).toBeDisabled();
-      await expect(row(page, current.id).getByRole("button", { name: "复制简报与规范内容" })).toBeDisabled();
+      await expect(row(page, current.id).getByRole("button", { name: /^更多 · / })).toBeDisabled();
       await captureDirectory(page, info, `${action}-retry-held`);
       release();
-      await expect(row(page, target.id)).toContainText(action === "archive" ? "已归档 · 只读" : "可打开");
+      await expect(row(page, target.id)).toContainText(action === "archive" ? "已归档 · 只读" : "未关闭");
       await expect(previousError).toHaveCount(0);
       await expect(directory.getByRole("status").filter({ hasText: action === "archive" ? "正在归档" : "正在恢复" })).toHaveCount(0);
       await captureDirectory(page, info, `${action}-retry-ack`);
@@ -135,6 +140,7 @@ test("only a confirmed delete retry clears its previous error and erases its dis
   });
   const consent = page.getByRole("alertdialog", { name: "永久删除项目" });
   const openConsent = async () => {
+    await openProjectManagement(row(page, target.id));
     await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
     await expect(consent).toBeVisible();
   };
@@ -189,12 +195,15 @@ test("an unavailable folder-open command does not erase a previous failure", asy
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   await expect(page.getByLabel("片名")).toHaveValue(target.brief.title);
   await openDirectory(page);
+  await openProjectManagement(row(page, target.id));
   await row(page, target.id).getByRole("button", { name: "归档", exact: true }).click();
   const previousError = page.getByRole("alert").filter({ hasText: busyMessage });
   await expect(previousError).toBeVisible();
   let opens = 0;
   page.on("request", req => { if (req.url().endsWith(`/projects/${closed.id}/open`)) opens += 1; });
-  await row(page, closed.id).getByRole("button", { name: "重新打开", exact: true }).click();
+  await expect(row(page, closed.id).getByRole("button", { name: "重新打开", exact: true })).toBeDisabled();
+  await expect(row(page, closed.id).locator(".directory-open")).toBeDisabled();
+  await expect(row(page, closed.id)).toContainText("当前后端未提供重新打开已关闭项目的能力");
   await expect(previousError).toBeVisible();
   expect(opens).toBe(0);
   await expect(page).toHaveURL(new RegExp(`project=${target.id}`));

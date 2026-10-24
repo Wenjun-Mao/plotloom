@@ -22,10 +22,10 @@ async function harness() {
   const target: ProjectListItem = { ...project, archivedAt: null, createdAt: "2026-10-09", updatedAt: "2026-10-09", operationalState: "open",
     stageStatuses: { story_bible: "ready", story_graph: "ready", scene_beats: "ready", storyboard: "ready" }, latestRun: null };
   const quiescence = createProjectDraftQuiescence();
-  let epoch = 0;
+  let epoch = 0, routeProjectId = project.id;
   const params: Parameters<typeof useProjectLifecycle>[0] = {
-    session: { project, activePage: "brief", capture: () => ({ epoch, projectId: project.id, stage: "brief" }),
-      isCurrent: operation => operation.epoch === epoch, acceptCanonicalProject: vi.fn() },
+    session: { project, activePage: "brief", capture: () => ({ epoch, projectId: routeProjectId, stage: "brief" }),
+      isCurrent: operation => operation.epoch === epoch && operation.projectId === routeProjectId, acceptCanonicalProject: vi.fn() },
     currentDraft: { current: undefined }, commitProject: vi.fn(async () => { params.currentDraft.current = undefined; }),
     commitStage: vi.fn(), discardCurrentAuthoringDraft: vi.fn(async () => true), mediaDraftQuiescence: quiescence,
     reviewDraftStore: createReviewDraftStore(quiescence, sessionStorage),
@@ -42,7 +42,7 @@ async function harness() {
   const root = createRoot(host);
   await act(async () => root.render(createElement(Probe)));
   return { get owner() { return owner; }, params, project, target, quiescence, archive, restore, snapshot, close,
-    changeEpoch: () => { epoch++; }, rerender: () => act(async () => root.render(createElement(Probe))),
+    changeEpoch: () => { epoch++; }, changeRoute: (id: string) => { routeProjectId = id; epoch++; }, rerender: () => act(async () => root.render(createElement(Probe))),
     dispose: async () => { await act(async () => root.unmount()); host.remove(); } };
 }
 
@@ -158,4 +158,44 @@ it.each([false, true])("deletion preparation serializes commands and ignores a s
     if (changed) expect(h.owner.deletionFeedback).toBeUndefined();
     else expect(h.owner.deletionFeedback).toMatchObject({ id: h.project.id, error: true, message: expect.stringContaining("exact-manual-job") });
   } finally { held.resolve(); await h.dispose(); }
+});
+
+it("rejects force exit for a noncurrent project without prompting or discarding its drafts", async () => {
+  const h = await harness();
+  const discard = vi.spyOn(h.quiescence, "beginClose");
+  try {
+    await act(async () => h.owner.mutate({ ...h.target, id: "other-project" }, "force_close"));
+    expect(h.owner.confirmation).toBeNull();
+    expect(discard).not.toHaveBeenCalled(); expect(h.close).not.toHaveBeenCalled();
+    expect(h.params.startBlank).not.toHaveBeenCalled();
+    await act(async () => h.owner.mutate({ ...h.target, id: "other-project" }, "close"));
+    expect(h.close).toHaveBeenCalledWith("other-project");
+    expect(h.params.startBlank).not.toHaveBeenCalled();
+  } finally { await h.dispose(); }
+});
+
+it.each(["before-confirmation", "pending-confirmation", "valid-current"] as const)("force exit binds disposition to route identity: %s", async scenario => {
+  const h = await harness();
+  const discard = vi.fn(async () => {}), suspend = vi.spyOn(plotloomApi, "suspendProjectReads");
+  h.quiescence.register(h.target.id, "unsent-A", async () => true, { discardUnsent: discard });
+  try {
+    if (scenario === "before-confirmation") h.changeRoute("loading-B");
+    await act(async () => h.owner.mutate(h.target, "force_close"));
+    if (scenario === "before-confirmation") expect(h.owner.confirmation).toBeNull();
+    else {
+      expect(h.owner.confirmation).not.toBeNull();
+      // B's route owns the workspace even while its load keeps A's snapshot painted.
+      if (scenario === "pending-confirmation") h.changeRoute("loading-B");
+      const confirm = [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "确认退出工作区")!;
+      await act(async () => confirm.click());
+    }
+    if (scenario === "valid-current") {
+      expect(discard).toHaveBeenCalledOnce(); expect(h.close).toHaveBeenCalledWith(h.target.id);
+      expect(h.params.startBlank).toHaveBeenCalledOnce();
+    } else {
+      expect(discard).not.toHaveBeenCalled(); expect(suspend).not.toHaveBeenCalled();
+      expect(h.close).not.toHaveBeenCalled(); expect(h.params.startBlank).not.toHaveBeenCalled();
+      expect(h.params.session.project.id).toBe(h.target.id);
+    }
+  } finally { await h.dispose(); }
 });

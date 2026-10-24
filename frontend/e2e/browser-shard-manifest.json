@@ -7,6 +7,7 @@
     "project-folder-snapshot-restore.spec.ts",
     "synopsis-proposal.spec.ts",
     "project-lifecycle-errors.spec.ts",
+    "project-directory-actions.spec.ts",
     "project-direct-delete.spec.ts",
     "project-unified-delete.spec.ts",
     "first-save.spec.ts",

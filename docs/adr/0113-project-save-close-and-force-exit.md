@@ -59,3 +59,55 @@ save/approve canonical content implicitly, snapshot the whole browser, or erase
 other clients' drafts. Regression coverage includes no-writer close, scoped
 force discard, failed saves, CAS/basis mismatch, restart recovery and busy jobs.
 The Chinese manual remains deferred by the creator's instruction.
+
+
+## State-aware directory actions — 2026-10-24
+
+Owner-approved refinement: workspace save/exit semantics belong only to the
+current project. Previously every active row offered the same save/exit labels,
+while force exit actually left only the current workspace. Keep current
+**保存并关闭项目 / 退出工作区**, and reject a programmatic noncurrent force exit
+before confirmation or draft disposal. Bind force-exit consent to the captured
+route-owned project/epoch/stage, not the last painted snapshot; reject a stale
+confirmation before draft disposition and preserve a newer workspace. Other rows have explicit **打开**, closed
+rows **重新打开**, and archived rows **恢复**. The title opens archived **open** content for read-only inspection. An archived
+**closed** title is disabled with a Restore-first explanation: it cannot invoke
+Open before Restore, and afterward Reopen still requires advertised capability. Archive and folder-close remain separate states;
+restoring an archived closed row does not silently reopen it. If the backend does not advertise explicit folder
+close, no save/exit/Close is exposed; an observed closed row disables Reopen and
+its title entry with an explanation rather than silently ignoring navigation.
+
+Management actions live in an accessible **更多** disclosure: copying, archive
+for open nonarchived rows, accurate **关闭项目** for other open projects, and
+existing deletion preview/consent. Close for another project retains its existing
+project-specific draft/read drain and safe backend admission; it never saves or
+discards the current project's input. An in-flow disclosure expands the scrollable
+row rather than overlaying/clipping at a short dialog edge. Native buttons retain
+Tab order; Escape dismisses the disclosure and returns focus, outside pointer/focus,
+action, identity/state change and read/command withdrawal dismiss it. Command
+ownership still locks competing controls through refresh.
+
+The unchanged directory API exposes only `latestRun` pipeline summary and
+`operationalState`, not complete native-media occupancy. Positive queued/running/
+cancel-requested facts explain and disable ordinary Close/archive, matching
+existing backend refusal. Copy, Open, current Exit and delete preview retain their
+supported paths. Null/terminal latest-run facts never establish idle; missing
+operational state never means closed. One shared explanation states this limit;
+backend refusal remains visible and authoritative for additional occupancy or
+changed state. Complete per-project activity disclosure would require a separately
+approved API contract and is excluded from this presentation change.
+
+Rejected alternatives: remove safe noncurrent Close; label every row save/exit;
+use the global pending-command flag as project activity; infer idle from an absent
+latest run; disable deletion preview or current Exit on incomplete summaries.
+Permanent regression owners: `project-directory-actions.test.ts`,
+`project-lifecycle-command.test.ts`, `project-directory-actions.spec.ts` and the
+existing lifecycle/close/deletion journeys. Implementation/qualification and
+activation evidence belongs in the dated roadmap/verification receipt.
+
+
+Keyboard focus leaving 更多 dismisses its disclosure, while Tab within its
+management group keeps it open. This prevents multiple keyboard-open row owners
+from retaining competing capture-Escape handlers: Escape closes the focused row
+and returns its own trigger focus. Use the same bounded outside-event owner for
+pointer and focus; no central menu framework or altered command admission.

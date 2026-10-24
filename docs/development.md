@@ -548,3 +548,13 @@ qualification run.
 Strict mode evaluates the two profiles concurrently while preserving serial
 sample and work-unit execution inside each profile. This reduces wall time
 without changing profile-local concurrency or deterministic receipt order.
+
+
+Directory action projection regression owners: run
+`uv run --locked --no-sync python scripts/verify.py focused --vitest tests/project-directory-actions.test.ts --vitest tests/project-directory-read-recovery.test.ts --vitest tests/project-lifecycle-command.test.ts --playwright e2e/project-directory-actions.spec.ts`.
+The two-project fixture performs actual isolated Close/Reopen/Open with zero
+provider dispatch at 1280×768, 1280×460 and 1700×900. Latest-run projection tests
+prove only positive summary restrictions, never complete native-media occupancy.
+For final frontend qualification retain the affected lifecycle/error/close/save-
+exit/deletion/read/snapshot whole-file journeys and inspect actual directory pixels;
+[the dated plan](roadmap/2026-10-24-project-directory-actions.md) owns scope/status.

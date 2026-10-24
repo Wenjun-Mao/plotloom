@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import type { APIRequestContext, Page } from "@playwright/test";
@@ -14,7 +15,9 @@ test("prior metadata load failure leaves the current directory usable", async ({
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${current.id}&stage=brief`);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   await expect(page.getByRole("alert")).toContainText("旧版项目删除入口读取失败");
+  await openProjectManagement(row(page, current.id));
   await expect(row(page, current.id).getByRole("button", { name: "删除项目…", exact: true })).toBeEnabled();
+  await openProjectManagement(row(page, current.id));
   await expect(row(page, current.id).getByRole("button", { name: "复制简报与规范内容" })).toBeEnabled();
 });
 
@@ -115,6 +118,7 @@ test("abandonment requires exact server preview, title and uncertainty checkbox;
   });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  await openProjectManagement(row(page, target.id));
   await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
   const dialog = page.getByRole("alertdialog", { name: "永久删除项目" });
   await expect(dialog).toContainText("unknown-exact-attempt");
@@ -184,6 +188,7 @@ async function create(request: APIRequestContext, origin: string, title: string)
   expect(response.status()).toBe(201); return await response.json();
 }
 async function confirm(page: Page, id: string, title: string) {
+  await openProjectManagement(row(page, id));
   await row(page, id).getByRole("button", { name: "删除项目…", exact: true }).click();
   const dialog = page.getByRole("alertdialog", { name: "永久删除项目" });
   await dialog.getByLabel("输入完整片名以确认删除").fill(title);
@@ -223,6 +228,7 @@ test("busy deletion retains partial source input and does not cancel a prepared 
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   let destructiveRequests = 0;
   page.on("request", request => { if (/\/(permanent-delete|stop-for-deletion|abandon-and-delete)$/.test(request.url())) destructiveRequests++; });
+  await openProjectManagement(row(page, target.id));
   await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
   await expect(row(page, target.id).getByRole("alert")).toContainText("手动文字候选任务");
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
@@ -238,6 +244,7 @@ test("stale Brief confirmation cannot erase another client's save", async ({ pag
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${target.id}&stage=brief`);
   await expect(page.getByLabel("片名")).toHaveValue(target.brief.title);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  await openProjectManagement(row(page, target.id));
   await row(page, target.id).getByRole("button", { name: "删除项目…", exact: true }).click();
   const changed = await request.patch(`${workbench.apiOrigin}/api/v2/projects/${target.id}`, { data: { expectedRevision: target.revision, brief: { ...target.brief, synopsis: "另一标签页已修改" } } });
   expect(changed.ok()).toBeTruthy();

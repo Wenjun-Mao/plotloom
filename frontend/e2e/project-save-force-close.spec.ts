@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { expect, saveBriefAndContinue, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import type { Page } from "@playwright/test";
@@ -116,7 +117,8 @@ test("closes an untouched directory project without changing the current one", a
   expect(created.ok()).toBeTruthy(); const other = (await created.json()).id;
   const current = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, other).getByRole("button", { name: "保存并关闭项目" }).click();
+  await openProjectManagement(row(page, other));
+  await row(page, other).getByRole("button", { name: "关闭项目", exact: true }).click();
   await expect(row(page, other)).toContainText("已关闭 · 可安全复制");
   await expect(page).toHaveURL(new RegExp(`project=${current}`));
   expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${current}`)).ok()).toBeTruthy();
@@ -158,7 +160,7 @@ test("force exits while a prepared job remains owned and running-admissible", as
   await expect(page.getByRole("alertdialog")).toContainText("后台任务继续运行");
   await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
   await expect(page.getByText("已退出工作区；后台任务继续运行。项目尚未安全关闭，可稍后重试。", { exact: true })).toBeVisible();
-  await expect(row(page, id)).toContainText("可打开");
+  await expect(row(page, id)).toContainText("未关闭");
   await expect(row(page, id)).not.toContainText("已关闭");
   await expect(page).not.toHaveURL(new RegExp(`project=${id}`));
   const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
@@ -176,7 +178,7 @@ test("unknown force-close outcome is visibly unconfirmed, never inferred closed"
   await expect(row(page, id)).not.toContainText("已关闭");
 });
 
-test("force closing another busy project keeps the current workspace and does not claim exit", async ({ page, request, workbench }) => {
+test("another busy project offers safe Close rather than workspace exit and preserves current input", async ({ page, request, workbench }) => {
   const other = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await page.getByRole("button", { name: "准备大纲任务" }).click();
@@ -184,12 +186,14 @@ test("force closing another busy project keeps the current workspace and does no
   const before = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`));
   const current = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, other).getByRole("button", { name: "退出工作区", exact: true }).click();
-  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
-  await expect(page.getByText("后台任务继续运行；项目尚未安全关闭，可稍后重试。", { exact: true })).toBeVisible();
+  await expect(row(page, other).getByRole("button", { name: "退出工作区", exact: true })).toHaveCount(0);
+  await expect(row(page, other).getByRole("button", { name: "保存并关闭项目", exact: true })).toHaveCount(0);
+  await openProjectManagement(row(page, other));
+  await row(page, other).getByRole("button", { name: "关闭项目", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("项目仍有读取、写入或后台任务占用");
   await expect(page).toHaveURL(new RegExp(`project=${current}`));
   await expect(row(page, current)).toContainText("当前项目");
-  await expect(row(page, other)).toContainText("可打开");
+  await expect(row(page, other)).toContainText("未关闭");
   expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`))).candidate).toEqual(before.candidate);
 });
 
@@ -249,4 +253,39 @@ for (const editor of ["cast", "art", "script"] as const) test(`Save-and-close re
   const after = await json(request.get(endpoint));
   const key = editor === "cast" ? "acceptedCast" : editor === "art" ? "acceptedArt" : "acceptedScript";
   expect(after[key]).toEqual(before[key]);
+});
+
+test("pending A exit cannot discard or close A while browser history holds B's load", async ({ page, request, workbench }) => {
+  const create = async (title: string) => {
+    const response = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: { ...demoProject.brief, title }, initialStages: [] } });
+    expect(response.status()).toBe(201); return (await response.json()).id as string;
+  };
+  const a = await create("退出确认 A"), b = await create("等待载入 B");
+  const aUrl = `${workbench.frontendOrigin}/v2/?project=${a}&stage=brief`, bUrl = `${workbench.frontendOrigin}/v2/?project=${b}&stage=brief`;
+  await page.goto(aUrl); await expect(page.getByLabel("片名")).toHaveValue("退出确认 A");
+  // Same-document browser history, as produced by normal workspace routing.
+  await page.evaluate(({ previous, current }) => { history.replaceState(null, "", previous); history.pushState(null, "", current); }, { previous: bUrl, current: aUrl });
+  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+  await row(page, a).getByRole("button", { name: "退出工作区", exact: true }).click();
+  const consent = page.getByRole("alertdialog", { name: "退出工作区", exact: true }); await expect(consent).toBeVisible();
+  let release!: () => void, markStarted!: () => void;
+  const held = new Promise<void>(done => { release = done; }), started = new Promise<void>(done => { markStarted = done; });
+  let closes = 0, discards = 0;
+  page.on("request", sent => {
+    if (sent.method() === "POST" && sent.url().endsWith(`/${a}/close`)) closes++;
+    if (sent.method() === "DELETE" && sent.url().includes(`/${a}/authoring-drafts`)) discards++;
+  });
+  await page.route(`**/api/v2/projects/${b}`, async route => {
+    if (route.request().method() !== "GET") return route.continue();
+    const response = await route.fetch(); markStarted(); await held; await route.fulfill({ response });
+  });
+  try {
+    await page.goBack(); await started;
+    await expect(page).toHaveURL(new RegExp(`project=${b}`)); await expect(consent).toBeVisible();
+    await consent.getByRole("button", { name: "确认退出工作区", exact: true }).click();
+    await expect(consent).toBeHidden(); await expect(page).toHaveURL(new RegExp(`project=${b}`));
+    expect(closes).toBe(0); expect(discards).toBe(0);
+    release(); await expect(page.getByLabel("片名")).toHaveValue("等待载入 B");
+    expect(closes).toBe(0); expect(discards).toBe(0);
+  } finally { release(); await page.unroute(`**/api/v2/projects/${b}`); }
 });

@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Approved state-aware project directory actions
+
+The [bounded plan](2026-10-24-project-directory-actions.md) owns current-only
+save/exit, explicit Open/Reopen/Restore, accessible 更多 management actions and
+honest existing-summary activity disclosure. One source/qualification writer,
+early disposable UI proof, stable review and frontend-only qualification;
+activation/Safari remain root-owned. Implementation, independent review and local
+frontend qualification are complete; [evidence](../verification/2026-10-24-project-directory-actions.md)
+retains first failures, exact final manifests and composite browser coverage.
+Activation and human acceptance remain separate.
+
 ## Approved new minute-long playable example
 
 The owner explicitly authorized one new interactive story end to end, including

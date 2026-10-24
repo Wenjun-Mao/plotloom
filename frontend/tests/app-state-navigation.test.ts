@@ -194,6 +194,7 @@ describe("App project/editor rehydration", () => {
       expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain("archive-project:brief:7");
       await act(async () => button("当前项目").click());
       await flush();
+      await act(async () => button("更多").click());
       const archiveButton = [...document.querySelectorAll("button")].find((candidate) => candidate.textContent === "归档") as HTMLButtonElement;
       await act(async () => archiveButton.click());
       await flush();
