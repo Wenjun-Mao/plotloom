@@ -1,8 +1,10 @@
 # State-aware project directory actions · 2026-10-24
 
-Status: implemented, independently reviewed and locally frontend-qualified
-with the composite evidence below. Retained R baseline `87d949de6678699a0334609571fc6b4530a797e9`.
-No activation, live Safari or human-acceptance claim. The
+Status: implemented, independently reviewed, locally frontend-qualified and
+activated with preservation-checked live Safari inspection. Qualified executable
+and clean installed revision: `4c6db5ffe94ee0e37008945c5d9b2170f2763c98`.
+Retained R baseline `87d949de6678699a0334609571fc6b4530a797e9`.
+Agent QA does not establish owner personal acceptance. The
 [approved plan](../roadmap/2026-10-24-project-directory-actions.md) owns scope.
 
 ## Root cause and boundary
@@ -257,3 +259,60 @@ GitHub Actions/workflow changes. Normal generated assets in retained R now match
 the final qualified manifest. Worker stops after the coherent scoped `main`
 commit; no additional edits or runs follow handoff. Activation and human/creative
 acceptance remain separate and unperformed by this worker.
+
+## Independent manager review and activation
+
+Root collected the actual worker final and verified the worker idle, clean `main`
+checkpoint, changed source and retained logs/manifests. The independent Luna/Max
+reviewer found the route-owned confirmation race, archived+closed title bypass
+and stale test interactions; its second read-only final resolved all three P2s.
+Root separately reviewed the subsequent three-line outside-focus repair and its
+actual red/green evidence, and viewed all three refreshed desktop captures.
+Requested model/effort settings remain unverified by the host.
+
+At 2026-10-24T22:31:18Z the fresh immediate-before snapshot matched the first
+successful current capture exactly except observation time. All eight projects,
+including the completed one-minute example, are protected without any historical
+row exclusions or controller-claim normalization. The initial preservation helper
+had incorrectly required DELETE header mode based on an immutable connection's
+PRAGMA response. The first root capture failed before producing JSON. All eight
+actual headers retain WAL mode without sidecars. The corrected diagnostic reads
+under each existing exclusive OS lease, refuses sidecars and requires unchanged
+database bytes through inspection; it changes no journal mode or application
+data. The failed capture and correction are retained in the private root evidence.
+
+Root confirmed both checkouts clean and compared the qualified candidate against
+installed `ac27bad98bb453fe39c1a16fdc6815b4795f6c54`: the backend tree differs only
+in the two generated frontend assets; dependency, package and build inputs are
+identical. The host installed checkout was switched, detached and clean, to
+`4c6db5ff`. No service or bridge restart was needed. All seven static paths in R,
+installed P, the running container, local HTTP and the HTTPS entrypoint match the
+qualified manifest exactly. Both HTTP paths return `Cache-Control: no-cache`;
+health remains OK. Container ID/start time/PID and bridge PID 66847 are unchanged.
+
+Native Safari inspection used one fresh temporary tab with the completed example
+as current project. Actual AX and pixels show all eight rows: current-only
+Save-and-close/Exit, Open/More on the other seven, and the truthful summary limit.
+Expanded noncurrent More exposes Copy/Archive/Close/Delete; Escape collapses it,
+returns focus to its own trigger and retains the directory. Outside focus also
+dismisses it. The full two-row Tab/Escape sequence is established by the retained
+isolated Chromium regression; no browser keyboard preferences were changed.
+No live lifecycle or content command was invoked. Root closed only its temporary
+tab, refreshed the original idle directory to the new build, retained all eighteen
+original tabs, and restored the previously selected tab.
+
+After activation and again after Safari (2026-10-24T22:35:38Z), the complete current
+snapshots equal immediate-before except observation time: every project database
+file byte, full table fingerprint and persistent file; every application/host
+table; settings, credential fingerprints and permissions; queue/validator/slot
+state; and both exact UNKNOWN holds. There are zero active attempts, enabled queue
+entries, validators or slots. Native runtime identities are unchanged. This is
+agent-operated UI verification, with destructive/live lifecycle paths established
+only on disposable fixtures. No provider dispatch, push or hosted CI occurred.
+
+Private manager evidence: `.local/project-directory-actions-20261024-root/`:
+`preservation-before-activation-v2.json`, `preservation-immediate-before.json`,
+`preservation-after-activation.json`, `preservation-after-safari.json`,
+`static-activation.json`, `native-safari.json`, and
+`preservation-probe-correction.md`. All three native assignments were attended;
+actual finals, source and relevant evidence were collected before cleanup.

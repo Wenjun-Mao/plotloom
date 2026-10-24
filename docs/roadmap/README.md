@@ -9,7 +9,9 @@ early disposable UI proof, stable review and frontend-only qualification;
 activation/Safari remain root-owned. Implementation, independent review and local
 frontend qualification are complete; [evidence](../verification/2026-10-24-project-directory-actions.md)
 retains first failures, exact final manifests and composite browser coverage.
-Activation and human acceptance remain separate.
+Qualified `4c6db5ff` is activated with native Safari inspection and exact fresh
+preservation checks for all eight projects/settings/UNKNOWN holds; services were
+not restarted. Owner personal acceptance remains separate.
 
 ## Approved new minute-long playable example
 

@@ -56,7 +56,12 @@ explicitly reused distinct cases from the prior 79-pass run, and direct pixels
 at all three desktop sizes. The [receipt](../verification/2026-10-24-project-directory-actions.md)
 retains original failures, exact commands/manifests, red-to-green proof and limits.
 
-The coherent scoped checkpoint is preserved on retained `main`; generated assets
-are fresh. Root owns fresh preservation checks, frontend-only activation, live
-Safari and cleanup. No installed-P edits, real providers, valued project changes,
-push, CI or human/creative acceptance are included in the worker handoff.
+The coherent scoped executable checkpoint `4c6db5ff` is preserved on retained
+`main` and activated in the clean detached installed checkout. Root verified all
+seven served assets against the qualified manifest and inspected the actual new
+directory in native Safari. Fresh before/after captures preserve all eight
+projects, complete application/host rows, settings and both UNKNOWN holds exactly;
+container and bridge identities are unchanged. No restart, real provider call,
+push or CI. The receipt records activation, probe correction and honest native
+coverage; owner personal acceptance remains separate. Native worker/reviewer
+finals were collected and the completed assignments closed after review.
