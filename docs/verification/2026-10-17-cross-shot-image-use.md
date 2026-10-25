@@ -51,20 +51,18 @@ timeouts, assertions or product guards were weakened. No duplicate import avoids
 the intended reuse path. The affected four cases plus both new cross-shot journeys
 passed together (**6/6**, session `51079`, completion `ae7be1`).
 
-## Final local evidence
+## Recorded local results
 
 The executable application, frontend/unit sources, checked assets, locks,
 dependencies and verification tooling are identical between `901e6270` and
-`cf689db9`. Following AGENTS' failure/evidence-reuse policy, retain the unchanged
-Python/frontend/build evidence and requalify the changed browser and unreached
-downstream checks:
+`cf689db9`. Following AGENTS' failure/evidence-reuse policy, the unchanged
+Python/frontend/build results were reused and the changed browser and unreached
+downstream checks were requalified:
 
 - Unfiltered `npm --prefix frontend run test:e2e`: **321/321 passed**, including
   browser TypeScript, session `78312`, `dbd516` → `2d0d74`, exit 0.
 - Current shard check: 94 specs / 321 cases, zero overlap or missing cases.
-- `uv build --wheel --out-dir .local/cross-shot-image-use-20261017/wheel-final`
-  and `uv run --locked --no-sync python scripts/smoke_installed_wheel.py
-  .local/cross-shot-image-use-20261017/wheel-final`: passed, session `95105`,
+- The final wheel build and installed-wheel smoke check passed, session `95105`,
   completion `844928`, exit 0.
 - Native module ownership, relevant type/lint checks and whitespace checks passed.
 
@@ -72,12 +70,14 @@ This completes local gate coverage through explicit unchanged-input reuse;
 **the original full invocation remains failed, and no second full was run**.
 Existing dependency/tool deprecation warnings were retained, not suppressed.
 
-Private evidence lives under `.local/cross-shot-image-use-20261017/`, including
-the original full log and four copied failure-artifact directories. SHA-256:
+## Evidence retirement
 
-- `full.log`: `edeeb8ad7e8ebb1c21d3781d66c841afb95f0d82df888cc022a582d85aade4cf`
-- `browser-final.log`: `4f9531e8a7877df3e5ad62cd30d97192581541685608a5bac1d243a174757ab1`
-- Final wheel: `32395b5c5db8437691b1030f058af91c82d83ec350b00534123c3db12d8cd425`
+The ignored `.local/cross-shot-image-use-20261017/` directory was permanently
+removed without an archive (23 files, 73,332,701 bytes; 71,660 KiB allocated).
+This retired all raw logs, the final wheel, Playwright traces and four copied
+failure-artifact directories. Their file hashes are omitted because the artifacts
+no longer exist. The outcomes above are historical results from the original
+qualification; no raw evidence remains for independent replay.
 
 ## Activation and acceptance boundary
 
