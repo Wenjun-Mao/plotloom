@@ -58,6 +58,7 @@ export function useMediaSelectionContext({
   selectedShot,
   storyboardRevision,
   mediaDraftsEnabled,
+  editingDisabled = false,
   draftQuiescence,
   currentApproval,
   workbench,
@@ -83,6 +84,7 @@ export function useMediaSelectionContext({
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
   mediaDraftsEnabled: boolean;
+  editingDisabled?: boolean;
   draftQuiescence?: ProjectDraftQuiescence;
   currentApproval: ApprovalDecision | undefined;
   workbench: VisualWorkbench;
@@ -262,6 +264,7 @@ export function useMediaSelectionContext({
     storyboardRevision,
     mediaDraftsEnabled,
     draftQuiescence,
+    editingDisabled,
   );
   const imageJobPrerequisite = !projectId
     ? "先保存项目。"

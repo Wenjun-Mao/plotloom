@@ -168,7 +168,10 @@ for (const viewport of sourceAuditViewports) {
     const story = page.getByLabel("故事内容", { exact: false });
     await expect(story).toHaveValue(material.text);
     const retained = `${material.text}\n这是我还没有确认的新剧情，读取与重试不得改写。`;
+    const saved = page.waitForResponse(response => response.request().method() === "PUT" && response.url().endsWith(`/projects/${project.id}/authoring-drafts`) && response.ok());
     await story.fill(retained);
+    await saved;
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
     const writes: string[] = [];
     page.on("request", request => {
       if (new URL(request.url()).pathname.startsWith("/api/") && !["GET", "HEAD"].includes(request.method())) writes.push(`${request.method()} ${request.url()}`);

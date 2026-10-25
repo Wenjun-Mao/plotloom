@@ -4,17 +4,22 @@ import { expect, test } from "./fixture";
 test("turns a synopsis into a reviewable Bible/Graph proposal without entering downstream production", async ({ page, request, workbench }) => {
   await configurePublicNoAuthProfile(request, workbench.apiOrigin, workbench.providerOrigin);
   await page.goto(`${workbench.frontendOrigin}/v2/?stage=brief`);
+  const created = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname === "/api/v2/projects");
   await page.getByRole("button", { name: "创建空白项目" }).click();
+  const creation = await created;
+  expect(creation.ok()).toBeTruthy();
+  expect(creation.request().postDataJSON()).toMatchObject({ brief: null });
   await page.getByLabel("故事梗概").fill("一名夜班气象员发现每一次改写暴风预报，都会让一座海岛从地图上消失；她必须决定公布真相还是保护岛上的家人。");
 
-  const created = page.waitForResponse((response) => response.request().method() === "POST"
-    && new URL(response.url()).pathname === "/api/v2/projects");
+  const applied = page.waitForResponse(response => response.request().method() === "PATCH"
+    && /\/api\/v2\/projects\/[^/]+$/.test(new URL(response.url()).pathname));
   const started = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
   await generateLegacyProposal(page);
-  const creation = await created;
-  expect(creation.ok()).toBeTruthy();
-  expect(creation.request().postDataJSON()).toMatchObject({
+  const confirmation = await applied;
+  expect(confirmation.ok()).toBeTruthy();
+  expect(confirmation.request().postDataJSON()).toMatchObject({
     brief: { title: "未命名故事", synopsis: expect.stringContaining("夜班气象员") },
   });
   await expect(page).toHaveURL(/[?&]project=/);

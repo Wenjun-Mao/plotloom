@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { imageJobTargetId, useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
 import { clientJournalStorage } from "../src/features/authoring/clientJournalStorage";
-import { plotloomApi } from "../src/api";
+import { ApiError, plotloomApi } from "../src/api";
 import { createProjectDraftQuiescence, type ProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -22,8 +22,8 @@ const render = async (props: Parameters<typeof Probe>[0] = {}) => {
 const edit = async (styleIntent: string) => {
   await act(async () => editor.update((value) => ({ ...value, styleIntent })));
 };
-function DirectionProbe({ project = "project", shot = "shot", target = "original", source, context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; source?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
-  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original", sceneContinuityBindingId: source } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
+function DirectionProbe({ project = "project", shot = "shot", target = "original", source, context = "approval-1", durable = false, quiescence, readOnly = false }: { project?: string; shot?: string; target?: string; source?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence; readOnly?: boolean }) {
+  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original", sceneContinuityBindingId: source } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence, readOnly);
   return null;
 }
 const renderDirection = async (props: Parameters<typeof DirectionProbe>[0] = {}) => {
@@ -336,4 +336,58 @@ it.each(["visual", "direction"])("first %s journal quota failure plus offline sa
     expect(unload.defaultPrevented).toBe(true);
     expect(kind === "visual" ? editor.value.styleIntent : directionEditor.value).toContain("visible unpreserved");
   } finally { write.mockRestore(); }
+});
+
+
+it("never recovers a retained-only direction before its exact current receipt hydrates", async () => {
+  const key = JSON.stringify(["project", "shot", "original"]);
+  localStorage.setItem("plotloom:image-job-direction-drafts:v1:client:other", JSON.stringify({ [key]: { contextId: "old", value: "foreign", expectedDraftRevision: 3 } }));
+  let finish!: (value: unknown[]) => void;
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockReturnValue(new Promise(resolve => { finish = resolve; }) as never);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 4 } as never);
+  await renderDirection({ durable: true });
+  expect(directionEditor.stale).toBe(true); expect(directionEditor.hasCurrentEntry).toBe(false);
+  const early = directionEditor.recoverForCurrentContext;
+  expect(early()).toBe(false); expect(directionEditor.canRecover).toBe(false);
+  await act(async () => finish([{ editorScope: "image_direction", entityId: "shot:original", baseCanonicalRevision: 1, draftRevision: 3,
+    payload: { shotId: "shot", targetId: "original", contextId: "old", presentationChange: "server text" } }]));
+  expect(early()).toBe(false);
+  expect(directionEditor.canRecover).toBe(true); expect(directionEditor.value).toBe("server text");
+  await act(async () => { expect(directionEditor.recoverForCurrentContext()).toBe(true); });
+  await act(async () => { expect(await directionEditor.flush()).toBe(true); });
+  expect(save.mock.lastCall?.[1]).toMatchObject({ expectedDraftRevision: 3, payload: { contextId: "approval-1", presentationChange: "server text" } });
+  expect(localStorage.getItem("plotloom:image-job-direction-drafts:v1:client:other")).toContain("foreign");
+});
+
+it("fences captured direction recovery after busy/read-only, Freeze and target changes", async () => {
+  const q = createProjectDraftQuiescence();
+  await renderDirection({ quiescence: q });
+  await act(async () => directionEditor.update("retained original"));
+  await renderDirection({ quiescence: q, context: "approval-2" });
+  const captured = directionEditor.recoverForCurrentContext;
+  await renderDirection({ quiescence: q, context: "approval-2", readOnly: true });
+  expect(directionEditor.canRecover).toBe(false); expect(captured()).toBe(false);
+  await renderDirection({ quiescence: q, context: "approval-2" });
+  q.setWriteAdmission("project", false); expect(captured()).toBe(false);
+  q.setWriteAdmission("project", true);
+  const transition = q.beginClose("project"); expect(captured()).toBe(false); transition.finish();
+  await renderDirection({ quiescence: q, shot: "other" }); expect(captured()).toBe(false);
+  await renderDirection({ quiescence: q, context: "approval-2" });
+  expect(directionEditor.value).toBe("retained original"); expect(directionEditor.stale).toBe(true);
+});
+
+
+it("a later CAS conflict revokes captured direction recovery without changing either payload", async () => {
+  const remote = { editorScope: "image_direction", entityId: "shot:original", baseCanonicalRevision: 1, draftRevision: 3,
+    payload: { shotId: "shot", targetId: "original", contextId: "old", presentationChange: "server text" } };
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([remote] as never);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockRejectedValue(new ApiError("conflict", 409));
+  await renderDirection({ durable: true });
+  await act(async () => directionEditor.update("new local text"));
+  expect(directionEditor.canRecover).toBe(true);
+  const captured = directionEditor.recoverForCurrentContext;
+  await act(async () => { expect(await directionEditor.flush()).toBe(false); });
+  expect(directionEditor.canRecover).toBe(false); expect(captured()).toBe(false);
+  expect(directionEditor.value).toBe("new local text"); expect(directionEditor.stale).toBe(true);
+  expect(clientJournalStorage.getItem("plotloom:image-job-direction-drafts:v1")).toContain('"contextId":"old"');
 });

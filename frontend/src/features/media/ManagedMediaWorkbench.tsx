@@ -171,6 +171,7 @@ export function ManagedMediaWorkbench({
     selectedShot,
     storyboardRevision,
     mediaDraftsEnabled: mediaDraftsReady,
+    editingDisabled: mediaOwnerReadOnly || busy,
     draftQuiescence,
     currentApproval,
     workbench,

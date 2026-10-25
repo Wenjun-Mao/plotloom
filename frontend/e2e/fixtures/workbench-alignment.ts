@@ -6,6 +6,7 @@ import { canonicalFourNodeSplit } from "./canonical-workbench";
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { openProjectManagement } from "../project-directory-controls";
 import { acknowledgeGraphMapping } from "./graph-authoring";
 
 type Journey = { page: Page; request: APIRequestContext; workbench: Workbench };
@@ -104,10 +105,8 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await page.route(`**/api/v2/projects/${created.id}/graph-workbench`, route => route.fulfill({ status: 503, json: { detail: "owned graph read failure" } }));
   const failedRead = page.waitForResponse(response => response.url().endsWith(`/projects/${created.id}/graph-workbench`) && response.status() === 503);
   await page.reload(); await failedRead;
-  const recover = page.getByRole("button", { name: "恢复草稿", exact: true });
-  // The cancelled preview still has the ordinary Brief form draft. Wait for
-  // hydration's explicit recovery surface rather than racing its publication.
-  await expect(recover).toBeVisible(); await recover.click();
+  // Matching working input resumes automatically; confirmed targets stay unchanged.
+  await expect(page.getByLabel("剧情节点数量上限", { exact: true })).toHaveValue("40");
   await expect(page.getByRole("dialog", { name: "发现可恢复草稿" })).toHaveCount(0);
   await page.getByLabel("剧情节点数量上限", { exact: true }).fill("41");
   await page.getByRole("button", { name: "应用修改", exact: true }).click();
@@ -116,8 +115,11 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await expect(preview).not.toContainText("当前实际图：");
   await preview.getByRole("button", { name: "取消调整", exact: true }).click();
   expect((await json(request.get(base))).brief.nodeBudget).toBe(demoProject.brief.nodeBudget);
-  await page.unroute(`**/api/v2/projects/${created.id}/graph-workbench`); await page.reload();
-  await expect(recover).toBeVisible(); await recover.click();
+  await page.unroute(`**/api/v2/projects/${created.id}/graph-workbench`);
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${created.id}&stage=creator`);
+  await expect(page.locator(".canonical-flow-node")).toHaveCount(4);
+  await page.getByRole("button", { name: /^项目简报与创作设置/ }).click();
+  await expect(page.getByLabel("剧情节点数量上限", { exact: true })).toHaveValue("41");
   await expect(page.getByRole("dialog", { name: "发现可恢复草稿" })).toHaveCount(0);
   await page.getByLabel("剧情节点数量上限", { exact: true }).fill("42");
   await page.getByRole("button", { name: "应用修改", exact: true }).click();
@@ -243,12 +245,16 @@ export async function professionalLifecycle({ page, request, workbench }: Journe
   const zoomed = await transform.getAttribute("style"); await page.reload();
   await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(initialPosition); await expect(transform).not.toHaveAttribute("style", zoomed!);
   await page.getByRole("button", { name: "Zoom In", exact: true }).click();
-  const beforeClose = await transform.getAttribute("style");
+  const beforeFreeze = await transform.getAttribute("style");
   await page.getByRole("button", { name: /^当前项目 · 切换/ }).click();
   const row = page.locator(`[data-project-id="${id}"]`);
-  await row.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-  await row.getByRole("button", { name: "重新打开", exact: true }).click();
-  await switcher.getByRole("button", { name: "专业工作台", exact: true }).click();
+  await openProjectManagement(row);
+  await row.getByRole("button", { name: "冻结项目", exact: true }).click();
+  await expect(row).toContainText("冻结");
+  await openProjectManagement(row);
+  await row.getByRole("button", { name: "解除冻结", exact: true }).click();
+  await page.locator(".directory-dialog > footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
   await expect(first).toBeVisible(); await expect.poll(readPosition).toBe(initialPosition);
-  await expect(transform).not.toHaveAttribute("style", beforeClose!);
+  // Freeze changes write admission while keeping the current workspace view.
+  await expect(transform).toHaveAttribute("style", beforeFreeze!);
 }

@@ -498,3 +498,34 @@ it("blocks subject departure with a pending File until explicit cancellation wit
   expect(host.querySelector("#reference-subject-title")?.textContent).toBe("Jo"); await expect(q.preserve("project")).resolves.toBe(true);
   expect(upload).not.toHaveBeenCalled();
 });
+
+
+it("a new cast session cannot overwrite an old File owner and exact old discard leaves the new File protected", async () => {
+  const { CharacterReferenceReviewPanel } = await import("../src/pages/CharacterReferenceGalleryPage");
+  const { ReviewDraftContext } = await import("../src/features/authoring/ReviewDraftContext");
+  const { createReviewDraftStore } = await import("../src/features/authoring/reviewDraftStore");
+  const { createProjectDraftQuiescence } = await import("../src/features/authoring/projectDraftQuiescence");
+  const response = galleryResponse("project", "File cast-session fixture"); installResolvedGallery(response);
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  const callbacks = new Map<string, () => Promise<void>>(), register = q.register.bind(q);
+  vi.spyOn(q, "register").mockImplementation((projectId, id, flush, options) => { if (id.startsWith("explicit_review:pending_file:") && options?.discardUnsent) callbacks.set(id, options.discardUnsent); return register(projectId, id, flush, options); });
+  const castOwner = { current: "cast-one" };
+  const render = async (session: string, revision: number) => {
+    castOwner.current = session;
+    await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "project", revision: 1, enabled: true }, children: createElement(CharacterReferenceReviewPanel, { projectId: "project", readOnly: false, castState: castAtRevision(response, "accepted", revision) as any, castSession: session, castSessionOwner: castOwner, castTransitionPending: false }) })));
+    await flushReact();
+  };
+  const choose = async (name: string) => { const input = host.querySelector('input[type="file"]') as HTMLInputElement; Object.defineProperty(input, "files", { configurable: true, value: [new File([name], name, { type: "image/png" })] }); await act(async () => input.dispatchEvent(new Event("change", { bubbles: true }))); };
+  await render("cast-one", 1); await choose("old.png");
+  const oldDiscard = [...callbacks.values()].at(-1)!;
+  await render("cast-two", 2);
+  await expect(q.preserve("project")).resolves.toBe(false);
+  expect(q.pending("project")).toBe(true);
+  await choose("new.png"); const newDiscard = [...callbacks.values()].at(-1)!;
+  expect(newDiscard).not.toBe(oldDiscard);
+  await act(async () => oldDiscard());
+  await expect(q.preserve("project")).resolves.toBe(false);
+  expect(button("取消所选本地图片")).toBeTruthy();
+  await act(async () => newDiscard());
+  await expect(q.preserve("project")).resolves.toBe(true); expect(q.pending("project")).toBe(false);
+});

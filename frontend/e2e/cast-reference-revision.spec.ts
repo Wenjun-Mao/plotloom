@@ -37,6 +37,11 @@ test("revises a character using a retained image without reviving its old propos
   const oldProposal = await proposal(request, workbench.apiOrigin, projectId, original.id);
   expect(oldProposal.current).toBe(false);
   const decisions = await getJson(request.get(`${endpoint}/character-references`));
+  // The old ideas belong to cast r1, not the accepted r2 refinement.
+  const oldIdeas = gallery.locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
+  await oldIdeas.getByText("查看保留内容", { exact: true }).click();
+  await expect(oldIdeas.locator("pre")).toContainText("Original hair design");
+  await oldIdeas.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
   await gallery.getByRole("radio", { name: "基于图片修改" }).check();
   await expect(gallery).toContainText("这张图来自旧版角色设定，仅作为修改依据");
   await gallery.getByLabel("想法").fill("Preserve the person, follow the confirmed compact low bun design.");

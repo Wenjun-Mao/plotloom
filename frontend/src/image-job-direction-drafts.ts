@@ -65,6 +65,7 @@ export function useImageJobDirectionDraft(
   baseCanonicalRevision?: number,
   serverDraftsEnabled = false,
   quiescence?: ProjectDraftQuiescence,
+  readOnly = false,
 ) {
   const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
   useMediaDraftErasure(imageJobStorageKey, setDrafts);
@@ -81,6 +82,15 @@ export function useImageJobDirectionDraft(
   activeWriterKey.current = writerKey;
   const writerState = durableWriterStateFor(writerStates.current, writerKey);
   const entry = drafts[key];
+  const recoveryOwner = useRef({ key, contextId, entry, readOnly });
+  recoveryOwner.current = { key, contextId, entry, readOnly };
+  const ownsEditableEntry = () => recoveryOwner.current.key === key
+    && recoveryOwner.current.contextId === contextId && recoveryOwner.current.entry === entry
+    && !recoveryOwner.current.readOnly && !writerState.abandoning && !writerState.suspended
+    && (!projectId || !quiescence || !quiescence.isClosing(projectId) && quiescence.canWrite(projectId));
+  const mayRecoverCurrentEntry = () => Boolean(entry && entry.contextId !== contextId && ownsEditableEntry()
+    && (!serverDraftsEnabled || writerState.serverReady && !writerState.serverConflict));
+  const canRecover = mayRecoverCurrentEntry();
   const retained = useRetainedMediaJournal({ namespace: imageJobStorageKey, key, projectId, entries: drafts, setEntries: setDrafts,
     serverRevision, serverReady, quiescence,
     validate: (value: unknown): value is ImageJobDraftEntry => Boolean(value && typeof value === "object" && typeof (value as ImageJobDraftEntry).value === "string" && typeof (value as ImageJobDraftEntry).contextId === "string"),
@@ -248,10 +258,11 @@ export function useImageJobDirectionDraft(
     });
   };
   const clearWithDisposition = async (consumed: boolean): Promise<boolean> => {
+    if (!consumed && !ownsEditableEntry()) return false;
     const buffered = entry;
     if (!buffered) return true;
     await writerState.persistence;
-    if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
+    if (!consumed && !ownsEditableEntry() || projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
       clientJournalStorage.discardCurrentEntry(imageJobStorageKey, key, buffered);
@@ -289,11 +300,14 @@ export function useImageJobDirectionDraft(
   };
   const clear = () => clearWithDisposition(false);
   const clearConsumed = () => clearWithDisposition(true);
-  const recoverForCurrentContext = () => setDrafts((current) => {
-    const currentEntry = current[key];
-    if (!currentEntry) return current;
-    return { ...current, [key]: { ...currentEntry, contextId } };
-  });
+  const recoverForCurrentContext = () => {
+    // A retained-only warning is not a loaded current entry. Captured callbacks
+    // cannot recover across hydration, ownership or admission changes.
+    if (!entry || !mayRecoverCurrentEntry()) return false;
+    setDrafts(current => current[key] === entry && mayRecoverCurrentEntry()
+      ? { ...current, [key]: { ...entry, contextId } } : current);
+    return true;
+  };
 
-  return { value, update, clear, clearConsumed, flush, recoverForCurrentContext, dirty, stale, storageFailed, targetId, serverConflict, serverReady, serverRevision, retainedNotice: retained.notice };
+  return { value, update, clear, clearConsumed, flush, recoverForCurrentContext, canRecover, hasCurrentEntry: Boolean(entry), dirty, stale, storageFailed, targetId, serverConflict, serverReady, serverRevision, retainedNotice: retained.notice };
 }

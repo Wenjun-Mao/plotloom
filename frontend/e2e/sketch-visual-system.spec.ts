@@ -87,8 +87,9 @@ for (const viewport of desktopViewports) {
     await json(request.post(`${endpoint(workbench.apiOrigin, id)}/accept`, { data: { jobId: prepared.jobId, expectedReviewRevision: prepared.expectedReviewRevision, binding: prepared.binding } }));
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开项目目录" }).click();
-    await expect(page.locator(".directory-item")).toHaveCount(1);
-    const updatedAt = page.locator(".directory-item time");
+    // New already persisted the earlier unnamed draft; accepted content is a second project.
+    await expect(page.locator(".directory-item")).toHaveCount(2);
+    const updatedAt = page.locator(`[data-project-id="${id}"] time`);
     await expect(updatedAt).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}T/);
     await expect(updatedAt).not.toContainText(/AM|PM/);
     await capture("directory-populated");

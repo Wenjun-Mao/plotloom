@@ -309,7 +309,7 @@ test("names the real next branch control through delivery, import, confirmation 
   await expect(page.getByTestId("script-review")).toBeVisible();
 });
 
-test("keeps the recommended workflow visible on supported desktops and retains draft navigation protection", async ({ page, workbench }, info) => {
+test("keeps the recommended workflow visible on supported desktops and preserves unapplied input on navigation", async ({ page, request, workbench }, info) => {
   await page.route("**/api/v2/runtime-capabilities", async route => {
     const response = await route.fetch();
     await route.fulfill({ response, json: { ...await response.json(), durableProjectDrafts: false } });
@@ -323,9 +323,9 @@ test("keeps the recommended workflow visible on supported desktops and retains d
   const sourceText = page.getByLabel("故事内容");
   await expect(sourceText).toBeEnabled();
   await sourceText.fill("为这个只用于界面检查的故事补充一处尚未保存的修改。");
-  await expect(guide).toContainText("故事内容有未保存修改");
+  await expect(guide).toContainText("故事输入已保留、尚未应用");
   await page.getByRole("button", { name: "确认改编内容" }).click();
-  await expect(guide).not.toContainText("故事内容有未保存修改");
+  await expect(guide).not.toContainText("故事输入已保留、尚未应用");
 
   await page.getByRole("button", { name: /项目简报与创作设置/ }).click();
   await expect(guide).toBeVisible();
@@ -370,10 +370,17 @@ test("keeps the recommended workflow visible on supported desktops and retains d
   }
 
   await page.setViewportSize({ width: 1280, height: 768 });
-  await page.getByLabel("故事梗概").fill("留下一份未保存的简报草稿。 ");
+  const projectId = new URL(page.url()).searchParams.get("project")!;
+  const confirmed = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).json();
+  const writes: string[] = [];
+  page.on("request", call => { if (!['GET', 'HEAD', 'OPTIONS'].includes(call.method()) && new URL(call.url()).pathname.startsWith(`/api/v2/projects/${projectId}`)) writes.push(`${call.method()} ${new URL(call.url()).pathname}`); });
+  const workingSynopsis = "留下一份已在本机保留、尚未应用的简报草稿。 ";
+  await page.getByLabel("故事梗概").fill(workingSynopsis);
   await guide.getByRole("button", { name: "打开来源与大纲" }).click();
-  const draftDialog = page.getByRole("dialog", { name: "保存当前草稿？" });
-  await expect(draftDialog).toBeVisible();
-  await expect(draftDialog).toContainText("即将离开当前页面");
-  await expect(page).toHaveURL(/stage=brief/);
+  await expect(page.getByRole("dialog", { name: "保存当前草稿？" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /项目简报与创作设置/ }).click();
+  await expect(page.getByLabel("故事梗概")).toHaveValue(workingSynopsis);
+  expect(await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).json()).toEqual(confirmed);
+  expect(writes).toEqual([]);
 });

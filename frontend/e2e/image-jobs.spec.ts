@@ -122,18 +122,56 @@ test.describe("P1 self-contained specialist image brief", () => {
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(
       originalDirection,
     );
-    await page.evaluate(() => {
-      const key = "plotloom:image-job-direction-drafts:v1";
-      const drafts = JSON.parse(window.sessionStorage.getItem(key) || "{}");
-      const first = Object.keys(drafts)[0];
-      if (first) drafts[first].contextId = "obsolete-context";
-      window.sessionStorage.setItem(key, JSON.stringify(drafts));
+    // A different client publishes a stale working receipt through the real CAS API.
+    // The original local journal remains separately addressable after refresh.
+    const draftsResponse = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
+    const drafts = await draftsResponse.json() as Array<{ editorScope: string; entityId: string; baseCanonicalRevision: number; draftRevision: number; payload: Record<string, unknown> }>;
+    const directionEntity = `${originalShotId}:original`;
+    const direction = drafts.find(item => item.editorScope === "image_direction" && item.entityId === directionEntity)!;
+    expect(direction?.payload).toMatchObject({ shotId: originalShotId, targetId: "original" });
+    expect(direction).toBeTruthy();
+    const staleSave = await request.put(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`, { data: {
+      editorScope: direction.editorScope, entityId: direction.entityId, baseCanonicalRevision: direction.baseCanonicalRevision,
+      expectedDraftRevision: direction.draftRevision, payload: { ...direction.payload, contextId: "obsolete-context" },
+    } });
+    expect(staleSave.ok(), await staleSave.text()).toBeTruthy();
+    const staleReceipt = await staleSave.json() as { draftRevision: number };
+    let getCount = 0, releaseDraftReads!: () => void, draftReadHeld!: () => void;
+    const heldDraftReads = new Promise<void>(resolve => { releaseDraftReads = resolve; });
+    const draftReadsStarted = new Promise<void>(resolve => { draftReadHeld = resolve; });
+    const draftsUrl = `**/api/v2/projects/${projectId}/authoring-drafts`;
+    await page.route(draftsUrl, async route => {
+      if (route.request().method() !== "GET" || ++getCount === 1) return route.continue();
+      // The loader's first GET establishes the project; hold media owners' reads.
+      const response = await route.fetch();
+      const loaded = await response.json() as typeof drafts;
+      expect(loaded.find(item => item.editorScope === "image_direction" && item.entityId === directionEntity)).toMatchObject({
+        draftRevision: staleReceipt.draftRevision, payload: { shotId: originalShotId, targetId: "original", contextId: "obsolete-context" },
+      });
+      draftReadHeld(); await heldDraftReads; await route.fulfill({ response });
     });
-    await page.reload();
-    await openMediaPreparation(page);
-    await expect(page.getByTestId("image-job-direction-stale")).toBeVisible();
-    await page.getByRole("button", { name: "确认后恢复到当前上下文" }).click();
-    await expect(page.getByTestId("image-job-direction-stale")).toHaveCount(0);
+    const recover = page.getByRole("button", { name: "确认后恢复到当前上下文" });
+    try {
+      await page.reload(); await openMediaPreparation(page); await draftReadsStarted;
+      await expect(page.getByTestId("image-job-direction-stale")).toBeVisible();
+      await expect(recover).toBeDisabled();
+      releaseDraftReads();
+      await expect(recover).toBeEnabled();
+      await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
+      const recovered = page.waitForResponse(response => response.request().method() === "PUT"
+        && response.url().endsWith(`/projects/${projectId}/authoring-drafts`) && response.ok()
+        && response.request().postDataJSON().editorScope === "image_direction"
+        && response.request().postDataJSON().entityId === directionEntity
+        && response.request().postDataJSON().payload.shotId === originalShotId
+        && response.request().postDataJSON().payload.targetId === "original"
+        && response.request().postDataJSON().expectedDraftRevision === staleReceipt.draftRevision
+        && response.request().postDataJSON().payload.contextId !== "obsolete-context");
+      await recover.click(); await recovered;
+      await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
+      await expect(page.getByTestId("image-job-direction-stale")).toHaveCount(0);
+    } finally {
+      releaseDraftReads(); await page.unroute(draftsUrl);
+    }
     const otherProjectId = await createCanonicalProject(
       request,
       workbench.apiOrigin,

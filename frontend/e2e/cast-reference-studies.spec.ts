@@ -410,14 +410,11 @@ test.describe("F2B cast-owned reference studies", () => {
     const preparationReleased = new Promise<void>((resolve) => { releasePreparation = resolve; });
     const heldRoute = async (route: import("@playwright/test").Route) => {
       if (route.request().method() !== "POST") return route.continue();
+      const response = await route.fetch();
+      expect(response.status()).toBe(201);
       signalPreparation?.();
       await preparationReleased;
-      try {
-        await route.continue();
-      } catch {
-        // Switching through the SPA can abort the old request after its
-        // operation has already captured busy ownership.
-      }
+      await route.fulfill({ response });
     };
     await page.route(`**/api/v2/projects/${firstProjectId}/character-reference-proposals`, heldRoute);
     try {
@@ -429,6 +426,14 @@ test.describe("F2B cast-owned reference studies", () => {
       const secondDirection = secondPanel.getByLabel("想法");
       await expect(secondDirection).toBeEditable();
       await secondDirection.fill("Second-project direction must survive the first request.");
+      // The server already owns the prepared publication while its browser
+      // acknowledgment is held. Departure preserves it; Freeze must refuse.
+      const before = await getJson(request.get(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/character-reference-proposals`));
+      const frozen = await request.post(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/freeze`);
+      expect(frozen.status()).toBe(409);
+      expect(await getJson(request.get(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}`))).toMatchObject({ operationalState: "open" });
+      expect(await getJson(request.get(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/character-reference-proposals`))).toEqual(before);
+      expect((await getJson<{ totalRequests: number }>(request.get(`${workbench.providerOrigin}/control/status`))).totalRequests).toBe(0);
       releasePreparation?.();
       await expect(secondDirection).toHaveValue("Second-project direction must survive the first request.");
     } finally {
@@ -460,24 +465,29 @@ test.describe("F2B cast-owned reference studies", () => {
       const released = new Promise<void>((resolve) => { release = resolve; });
       const heldRoute = async (route: import("@playwright/test").Route) => {
         if (route.request().method() !== "POST") return route.continue();
+        // Native continuation preserves the actual browser File body. Forwarding
+        // this intercepted multipart through route.fetch omits its file bytes.
         signal?.();
         await released;
-        try {
-          await route.continue();
-        } catch {
-          // Project navigation intentionally aborts an import that has not
-          // crossed the browser-to-server boundary.
-        }
+        await route.continue();
       };
       await page.route(`**/api/v2/projects/${firstProjectId}/managed-assets`, heldRoute);
       try {
         await firstPanel.getByLabel("图片标签").fill(label);
         await firstPanel.getByLabel("来源声明").fill(`Held technical import: ${label}`);
         await firstPanel.getByLabel("PNG 或 JPEG").setInputFiles(comparisonFixtureStills[0]!);
+        const imported = page.waitForResponse(response => response.request().method() === "POST"
+          && new URL(response.url()).pathname === `/api/v2/projects/${firstProjectId}/managed-assets`);
         await firstPanel.getByRole("button", { name: "导入为外观选项" }).click();
         await started;
         await duringHold();
         release?.();
+        const result = await imported;
+        expect(result.status(), await result.text()).toBe(201);
+        const asset = await result.json(); expect(asset.byteSize).toBeGreaterThan(0);
+        const actualBytes = await request.get(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/managed-assets/${asset.id}/original`);
+        expect(actualBytes.status()).toBe(200);
+        expect(await actualBytes.body()).toEqual(await readFile(comparisonFixtureStills[0]!));
         await page.waitForLoadState("networkidle");
       } finally {
         release?.();
@@ -486,7 +496,17 @@ test.describe("F2B cast-owned reference studies", () => {
     };
 
     await holdImport("Held project import", async () => {
-      await switchProjectInDirectory(page, secondProjectId);
+      await page.getByRole("button", { name: /当前项目 · 切换/ }).click();
+      const directory = page.getByRole("dialog", { name: "项目目录", exact: true });
+      await directory.locator(`[data-project-id="${secondProjectId}"] .directory-open`).click();
+      const blocked = page.getByRole("dialog", { name: "编辑输入尚未保留", exact: true });
+      await expect(blocked).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`project=${firstProjectId}`));
+      expect(attachmentPosts).toBe(0);
+      // A File is not autosaved. Only this concrete explicit discard permits
+      // departure while the old upload acknowledgment remains in flight.
+      await blocked.getByRole("button", { name: "丢弃本机未同步输入并离开", exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`project=${secondProjectId}`));
       await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "角色", exact: true }).click();
       await expect(page.getByTestId("character-reference-gallery")).not.toContainText("Held project import");
     });
@@ -502,6 +522,10 @@ test.describe("F2B cast-owned reference studies", () => {
         `${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/cast`,
       ));
       expect(state.status).toBe("reopened");
+      await page.getByRole("button", { name: "返回首页", exact: true }).click();
+      const blocked = page.getByRole("dialog", { name: "编辑输入尚未保留", exact: true });
+      await expect(blocked).toBeVisible();
+      await blocked.getByRole("button", { name: "取消", exact: true }).click();
     });
     // The delayed membership write uses the captured cast revision and is
     // stopped in the browser before it can be attached to a stale subject.
@@ -510,6 +534,12 @@ test.describe("F2B cast-owned reference studies", () => {
     const cast = page.getByTestId("cast-review");
     await cast.getByRole("button", { name: "取消编辑" }).click();
     await expect(firstPanel).toContainText("已确认角色设定 r1");
+    await page.getByRole("button", { name: "返回首页", exact: true }).click();
+    const retainedFile = page.getByRole("dialog", { name: "编辑输入尚未保留", exact: true });
+    await expect(retainedFile).toBeVisible();
+    await retainedFile.getByRole("button", { name: "丢弃本机未同步输入并离开", exact: true }).click();
+    await expect(page.getByRole("button", { name: "创建空白项目", exact: true })).toBeVisible();
+    expect(attachmentPosts).toBe(0);
   });
 
   test("invalidates held gallery reads after a project change", async ({ page, request, workbench }) => {

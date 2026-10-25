@@ -167,8 +167,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
     if (![input.direction, input.importLabel, input.importOrigin].every(value => typeof value === "string")) throw new Error("角色图片输入草稿无法读取。");
     setDirection(input.direction); setImportLabel(input.importLabel); setImportOrigin(input.importOrigin);
   }, readOnly || busy, undefined, subject.id);
-  useExplicitReviewCloseGuard(projectId, `pending_file:${subject.id}`, Boolean(importFile), busy,
-    () => setImportFile(null), "尚未导入的本地图片");
+  useExplicitReviewCloseGuard(projectId, `pending_file:${session}`, Boolean(importFile), busy,
+    () => setImportFile(null), "尚未导入的本地图片", importFile);
   const remember = (patch: Partial<{ direction: string; importLabel: string; importOrigin: string }>) => working.changed(JSON.stringify({ direction, importLabel, importOrigin, ...patch }));
   const active = useRef(true); const sessionRef = useRef(session);
   const operationOwner = useRef(0);

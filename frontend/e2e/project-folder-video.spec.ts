@@ -135,6 +135,13 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: st
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
   // All three deliberate candidates reuse one exact seed, while each new
   // review still has its own idempotency key and explicit submission.
+  const priorDirections = panel.getByTestId("h3-directions-review").locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
+  if (await priorDirections.isVisible()) {
+    // A new selected segment changes request basis, never reuses its old consent.
+    await priorDirections.getByText("查看保留内容", { exact: true }).click();
+    expect(JSON.parse(await priorDirections.locator("pre").innerText())).toMatchObject({ seedText: "2325339575976657" });
+    await priorDirections.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
+  }
   await freezeReviewedFixtureDirections(panel, "2325339575976657");
   const response = await preparedPost;
   expect(response.ok(), await response.text()).toBeTruthy();

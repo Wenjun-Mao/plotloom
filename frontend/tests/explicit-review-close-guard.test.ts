@@ -76,3 +76,19 @@ it("a late draft-discard receipt never resets a newer project's editor", async (
     expect(discardA).not.toHaveBeenCalled(); expect(discardB).not.toHaveBeenCalled();
   } finally { await act(async () => root.unmount()); vi.restoreAllMocks(); sessionStorage.clear(); }
 });
+
+
+it("a busy action without File is preserved for departure without status/unload loss or an unmounted ghost", async () => {
+  const root = createRoot(document.createElement("div"));
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  const discard = vi.fn();
+  function Guard() { useExplicitReviewCloseGuard("a", "file", false, true, discard, "File"); return null; }
+  await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "a", revision: 1, enabled: true }, children: createElement(Guard) })));
+  try {
+    expect(q.pending("a")).toBe(false); expect(q.locallyPreserved("a")).toBe(true);
+    await expect(q.preserve("a")).resolves.toBe(true);
+    const exclusive = q.beginClose("a"); await expect(exclusive.drain()).rejects.toThrow("操作未完成"); exclusive.finish();
+    expect(discard).not.toHaveBeenCalled();
+  } finally { await act(async () => root.unmount()); }
+  await expect(q.flush("a")).resolves.toBe(true); expect(q.pending("a")).toBe(false);
+});

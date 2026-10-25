@@ -9,19 +9,29 @@ const noSubscribe = () => () => undefined;
 const noSnapshot = () => 0;
 
 /** Explicit review/dispatch inputs cannot be implicitly accepted by Close. */
-export function useExplicitReviewCloseGuard(projectId: string, editorId: string, dirty: boolean, busy: boolean, discardLocal: () => void, label: string) {
+export function useExplicitReviewCloseGuard(projectId: string, editorId: string, dirty: boolean, busy: boolean, discardLocal: () => void, label: string, retainedFile: File | null = null) {
   const context = useContext(ReviewDraftContext);
   const binding = `${projectId}:${editorId}`;
-  const current = useRef({ binding, dirty, busy, discardLocal, label });
-  if (current.current.binding !== binding) current.current = { binding, dirty, busy, discardLocal, label };
-  else Object.assign(current.current, { dirty, busy, discardLocal, label });
+  const current = useRef({ binding, dirty, busy, discardLocal, label, retainedFile, mounted: true });
+  if (current.current.binding !== binding) current.current = { binding, dirty, busy, discardLocal, label, retainedFile, mounted: true };
+  else Object.assign(current.current, { dirty, busy, discardLocal, label, retainedFile });
   useEffect(() => {
     if (!context?.enabled || context.projectId !== projectId) return;
     const owner = current.current;
-    return context.quiescence.register(projectId, `explicit_review:${editorId}`, async () => {
+    owner.mounted = true;
+    const unregister = context.quiescence.register(projectId, `explicit_review:${editorId}`, async () => {
       if (owner.dirty || owner.busy) throw new Error(`${owner.label}尚有未导入文件或操作未完成；请先完成、复制或明确丢弃该输入。`);
       return true;
-    }, { pending: () => owner.dirty || owner.busy, locallyPreserved: () => !owner.dirty && !owner.busy, retainOnUnmount: dirty || busy, discardUnsent: async () => { if (current.current === owner) owner.discardLocal(); } });
+    }, {
+      pending: () => owner.dirty, locallyPreserved: () => !owner.dirty,
+      preserveForDeparture: () => !owner.dirty, retainOnUnmount: dirty,
+      discardUnsent: async () => {
+        owner.dirty = false; owner.retainedFile = null;
+        if (owner.mounted && current.current === owner) owner.discardLocal();
+        else owner.busy = false;
+      },
+    });
+    return () => { owner.mounted = false; unregister(); };
   }, [context?.enabled, context?.quiescence, context?.projectId, projectId, editorId, dirty, busy]);
 }
 

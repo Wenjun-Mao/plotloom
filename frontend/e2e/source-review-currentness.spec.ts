@@ -170,7 +170,12 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
   await expect(retained.getByRole("button", { name: "保存此章节，不覆盖其他章节" })).toBeDisabled();
   await captureDesktopState(page, test.info(), `script-retained-dirty-${authority}`, retained.getByRole("textbox"));
   await captureDesktopState(page, test.info(), `script-retained-dirty-actions-${authority}`, retained.getByRole("button", { name: "用当前章节替换草稿" }));
-  await retained.getByRole("button", { name: "用当前章节替换草稿" }).click();
+  // Resolve the exact old-basis journal before adopting the new confirmed section.
+  const oldJournal = panel.locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
+  await oldJournal.getByText("查看保留内容", { exact: true }).click();
+  expect(JSON.parse(await oldJournal.locator("pre").innerText())).toMatchObject({ text: draft });
+  await oldJournal.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
+  // Explicit discard clears the old section buffer; no new version is applied.
   await expect(retained).toHaveCount(0);
   const current = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`));
   if (authority === "head") {

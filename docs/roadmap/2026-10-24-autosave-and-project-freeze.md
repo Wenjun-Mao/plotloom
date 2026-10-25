@@ -365,3 +365,15 @@ post-boundary fallback; no live rollback/migration was executed.
 ## Qualification execution boundary
 
 Implementation is committed on local main at `008898d7`, followed by the final Freeze wording/receipt checkpoint `4f072cca`. Independent original/residual and bounded branch query/departure delta reviews are closed. The single unfiltered full invocation is retained as failed at 1506 frontend passes / 14 failures; test-only fixture repair `33b3813c` passed its21 causal cases and the rerun entire failed frontend step (1520 cases). Exact unchanged upstream evidence is reused while existing full downstream commands continue. The [durable verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md) owns the final executed outcome, complete asset manifests and rollback limits; qualification and installed activation remain separate.
+
+
+The original complete downstream browser step finished328/29; its result and all
+29 classifications remain in the receipt. Shared ordinary-preservation proof and
+exact cast-session File lifetime were corrected and independently closed; fresh
+frontend1529 passed. Browser adaptation then revealed an image-direction action
+boundary: retained-only warning recovery must await a loaded current entry and
+recheck live ownership/admission/readiness even inside its deferred state updater.
+The final focused2 real UI journeys and entire1532 frontend suite passed on the
+four-file recovery correction. No backend/Python inputs changed. Final complete
+357-case browser and existing package/smoke steps follow stable source/test review
+and fresh deterministic two-tree parity; the receipt owns exact final execution.

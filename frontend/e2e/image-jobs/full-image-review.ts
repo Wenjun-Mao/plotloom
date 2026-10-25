@@ -5,6 +5,8 @@ import { expect } from "../fixture";
 export async function inspectFullImageReview(page: Page, candidateId: string, info: TestInfo) {
   const candidate = page.getByTestId(`keep-candidate-${candidateId}`);
   const retained = await candidate.getAttribute("aria-pressed");
+  // Prior reviewer observations must finish autosaving before this read-only phase.
+  await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
   const mutations: string[] = [];
   const observe = (request: import("@playwright/test").Request) => {
     if (request.method() !== "GET" && request.url().includes("/api/v2/")) mutations.push(request.url());

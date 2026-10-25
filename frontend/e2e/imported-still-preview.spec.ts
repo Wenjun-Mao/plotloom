@@ -38,6 +38,11 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture A");
     await page.getByTestId("save-visual-intent").click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
+    // A's observations remain on their original no-intent basis.
+    const staleObservations = page.locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
+    await staleObservations.getByText("查看保留内容", { exact: true }).click();
+    await expect(staleObservations.locator("pre")).toContainText("Unsubmitted observations for fixture A only.");
+    await staleObservations.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
     await page.getByLabel("审核兼容性说明").fill("The retained still matches the approved first-shot composition.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r1");

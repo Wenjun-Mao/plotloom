@@ -155,11 +155,12 @@ export function ImageJobPanel({
             分镜批准、镜头或参考上下文。文本已保留但不会自动提交。
             <Button
               variant="quiet"
+              disabled={readOnly || busy || !imageJobDirection.canRecover}
               onClick={imageJobDirection.recoverForCurrentContext}
             >
               确认后恢复到当前上下文
             </Button>
-            <Button variant="quiet" onClick={imageJobDirection.clear}>
+            <Button variant="quiet" disabled={readOnly || busy || !imageJobDirection.hasCurrentEntry} onClick={imageJobDirection.clear}>
               放弃此草稿
             </Button>
           </div>

@@ -65,10 +65,11 @@ for (const width of [1440, 1920, 1280]) {
     // Diagnostics remain useful while authoring, but must never cover Save.
     await page.locator(".topbar-technical-status > summary").click();
     await expect(page.locator(".topbar-technical-status")).toHaveAttribute("open", "");
-    await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
+    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
     await save.click();
     await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-    await expect(page.getByText("简报已保存", { exact: true })).toBeVisible();
+    await expect(page.getByText("简报已确认", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "继续手动创作", exact: true })).toBeVisible();
     await expect(page.locator(".topbar-technical-status")).toHaveAttribute("open", "");

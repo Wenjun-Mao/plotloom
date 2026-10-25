@@ -100,3 +100,40 @@ it("withdraws only one project's retained writers and invalidates a drain across
   await expect(q.flush("other")).resolves.toBe(true); expect(other).toHaveBeenCalledOnce();
   q.setWriteAdmission("first", true); await expect(q.flush("first")).resolves.toBe(true); expect(first).toHaveBeenCalledOnce();
 });
+
+
+it("ordinary preservation accepts acknowledged clean-owner cleanup and replacement", async () => {
+  const q = createProjectDraftQuiescence(); let release!: () => void;
+  const clean = { pending: () => false, locallyPreserved: () => true };
+  q.register("a", "input", () => new Promise(resolve => { release = () => resolve(true); }), clean);
+  const remove = q.register("a", "projection", async () => true, clean);
+  const preserving = q.preserve("a");
+  remove(); q.register("a", "input", async () => true, clean);
+  release(); await expect(preserving).resolves.toBe(true);
+});
+
+it.each(["unpreserved", "rejected", "file", "unknown"])("ordinary preservation refuses a late %s owner", async kind => {
+  const q = createProjectDraftQuiescence(); let release!: () => void;
+  q.register("a", "old", () => new Promise(resolve => { release = () => resolve(true); }));
+  const preserving = q.preserve("a");
+  q.register("a", "late", async () => false, kind === "unknown" ? {} : { pending: () => true, locallyPreserved: () => false });
+  release(); await expect(preserving).resolves.toBe(false);
+});
+
+it("the latest unpreserved input overrides its own earlier successful flush receipt", async () => {
+  const q = createProjectDraftQuiescence(); let release!: () => void; let pending = false;
+  q.register("a", "input", () => new Promise(resolve => { release = () => resolve(true); }), { pending: () => pending, locallyPreserved: () => !pending });
+  const preserving = q.preserve("a"); pending = true; release();
+  await expect(preserving).resolves.toBe(false);
+});
+
+it("captured removed input still needs preservation and newer verified input may leave", async () => {
+  const q = createProjectDraftQuiescence(); let release!: () => void;
+  const remove = q.register("a", "captured", () => new Promise(resolve => { release = () => resolve(true); }), { pending: () => true, locallyPreserved: () => false });
+  const preserving = q.preserve("a"); remove(); release(); await expect(preserving).resolves.toBe(false);
+  const durable = createProjectDraftQuiescence(); let acknowledge!: () => void;
+  durable.register("a", "old", () => new Promise(resolve => { acknowledge = () => resolve(true); }));
+  const leaving = durable.preserve("a");
+  durable.register("a", "newer", async () => false, { pending: () => true, locallyPreserved: () => true });
+  acknowledge(); await expect(leaving).resolves.toBe(true);
+});

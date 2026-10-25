@@ -94,6 +94,11 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
     await page.getByTestId("save-visual-intent").click();
     await expect(page.getByText(`已保存 r${revision}；审核选择会固定这一版本。`, { exact: true })).toBeVisible();
   }
+  // The previous B observations remain tied to r2, independently of its reviewed receipt.
+  const priorB = page.locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
+  await priorB.getByText("查看保留内容", { exact: true }).click();
+  await expect(priorB.locator("pre")).toContainText("Unchanged pixels independently inspected against target shot.");
+  await priorB.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
   await page.getByLabel("审核兼容性说明").fill("B reviewed again after both unselected intent edits.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r4");

@@ -282,9 +282,10 @@ test("a late admitted draft refuses old consent, preserves newer typing and perm
       const drafts = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}/authoring-drafts`)).json();
       return drafts.find((draft: { editorScope: string }) => draft.editorScope === "brief")?.payload.title;
     }).toBe("不要再发送的新草稿");
-    await confirm(page, target.id, target.brief.title);
+    await confirm(page, target.id, "不要再发送的新草稿");
     await expect(row(page, target.id)).toHaveCount(0);
-    await expect(page.getByLabel("片名")).toHaveValue("");
+    await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
+    await expect(page).not.toHaveURL(new RegExp(`[?&]project=${target.id}`));
     expect(writes).toBe(2);
     expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${target.id}`)).status()).toBe(404);
   } finally { release(); }

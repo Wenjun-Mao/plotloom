@@ -91,6 +91,87 @@ observed. Exact files and hashes remain at
 `.local/autosave-checked-static-pixels.json`. Final gate captures and their
 relationship to unchanged layout inputs will be recorded with final results.
 
+## Browser failure classification and departure correction
+
+The first unfiltered browser step on `7f8c554a` completed357 cases:328 passed /
+29 failed (`.local/autosave-final-full-downstream.log`). It remains a failed run.
+All29 original failure identities are retained in
+`.local/autosave-full-browser-triage.json` and their traces/screenshots in
+`.local/autosave-evidence/full-browser-first/`. The following groups account for
+all29; later checks close only the causal assertions stated here.
+
+| Original cases | Count | Cause and current assertion |
+| --- | ---: | --- |
+| branching-video-preview route playback | 1 | Ordinary preservation incorrectly required unchanged writer registration despite six successful receipts; current captured/current-owner proof permits clean churn without masking new input. Real route journey passed after the reviewed correction. |
+| cast-reference-studies held preparation/import | 2 | Busy no-File work was treated as lost input; File ownership omitted cast session. Stronger owned fixtures prove backend POST201 then Freeze409 after ordinary leave, and native nonempty import201/exact bytes after explicit File discard with no stale attachment. |
+| cast-reference-revision | 1 | r1 ideas survive r2 as old-basis notes; explicitly inspect/discard that exact journal before new refinement. Old proposal/selection never revive. |
+| creator-ui-polish | 3 | Typed input now autosaves and explicit adoption confirms Brief; assert saved working input then confirmed Brief, retaining no-generation/layout checks. |
+| creator-workbench-operations | 2 | Matching Brief resumes automatically; Freeze changes admission without closing/resetting the current view. Retain canonical-target evidence and real project-switch/reload layout reset coverage. |
+| cross-shot-image-use | 2 | Original shot departure showed the same preservation refusal dialog. After correction, the journey reaches successive B intent changes; explicitly inspect/discard r2 observations before fresh r4 review, preserving both independent target review and pinned A source. |
+| synopsis-proposal | 1 | New immediately returns a persisted null-Brief identity; explicit proposal action PATCHes confirmed Brief before the requested Bible/Graph pipeline. The affected diagnostic selection passed the full proposal, no downstream production and authored-Bible preservation assertions. |
+| frozen-profile-session-key; m1b1-workbench | 2 | Teaching preview requires explicit editable copy; wait for persisted identity before navigation, preserving frozen-key and canonical-authoring assertions. |
+| image-jobs | 1 | Old fixture mutated retired session-only storage. Actual competing-client CAS then exposed a product action defect: a retained-only warning offered recovery before current-entry hydration and lacked late admission fencing. Recovery now requires the exact loaded current entry, ready conflict-free receipt and current editing/admission ownership. Held real GET proves disabled→enabled; exact CAS recovery and later read-only image inspection preserve all original production/refinement/integrity assertions. |
+| imported-still-preview | 1 | Unsubmitted candidate observations have their own pre-intent basis. Inspect/discard that exact note before independent current-intent review; candidate/shot separation remains asserted. |
+| project-direct-delete | 1 | Fresh deletion consent follows visible autosaved working title; keep old-consent refusal and exact newer input, then explicitly confirm the current title. |
+| project-folder-video | 1 | The second candidate changes H3 request source identity. Inspect/discard that exact preceding English/seed journal, then freshly read/review/compile with the deliberately reused seed; retain selected-candidate history, exact media and direct-folder restore assertions. |
+| recommended-workflow-guide | 1 | Working input is preserved but unapplied; guidance distinguishes those facts while retaining confirmed downstream eligibility. |
+| sketch-visual-system | 3 | New already persisted the earlier unnamed draft. Assert both projects and scope accepted-fixture timestamp instead of assuming preview-like noncreation. |
+| source-entry-settings; end-frame-read-state | 3 | Setup typing's queued autosave crossed the observer boundary. Finish exact working-input synchronization before measuring strictly read-only refreshes; retain zero writes during read and unchanged canonical/jobs. |
+| source-review-currentness | 2 | Exact old-basis Script journal must be inspected/discarded before adopting current content; retained original prose, accepted head/status and authority checks remain. |
+| video-pilot selected pairs | 2 | Original shot departure preservation modal obstructed candidate interaction; rerun existing independent review/playback/restart assertions after coordinator correction. |
+
+The reviewed three-source-file correction is bound by
+`.local/autosave-departure-source-manifest.json`, SHA-256
+`8be48df780babc404d0e7931fc8cf09687fb745e72149742942fe55a3a651451`.
+Focused76 cases passed; the fresh unfiltered frontend unit suite passed1529 cases
+in172 files (`autosave-departure-unit-all.log`). The first causal browser log
+passed branching playback and admitted no-File preparation; held File import
+failed before navigation because `route.fetch` forwarded an empty multipart
+image. That failure remains retained. Native `route.continue` subsequently
+proved actual201/nonempty media and exact fixture bytes after concrete discard,
+with no attachment to the new cast session (`autosave-held-file-browser-final.log`).
+Independent departure/File review closed with no source findings. These passes
+are not yet the required final unfiltered browser result.
+
+The77-case affected diagnostic selection completed61 passed /16 failed while fixture
+inputs were being adapted; it is not a frozen qualification run. The next stable
+16-case causal check passed15 and retained the image-direction failure. The first
+exact image-direction recheck then advanced through actual recovery and failed
+because prior compatibility autosave crossed the full-image read-only observer;
+that observer now begins after verified synchronization and retains its strict
+zero-mutation assertion. The next entire image journey passed in28.1 seconds.
+Root source review correctly identified the still-exposed early recovery action
+as a product defect rather than merely a test wait. The bounded four-source-file
+correction requires loaded exact entry/receipt and current ownership/admission;
+foreign-only inputs remain separately addressed and never implicitly recovered.
+`autosave-direction-recovery-unit.log` passed38 focused cases and
+`autosave-direction-recovery-unit-all.log` passed all1531 cases in172 files.
+The updated source manifest is
+`.local/autosave-direction-recovery-source-manifest.json`, SHA-256
+`be1bf002dc4b866f5af9441d763664527d69f94cf212e0167ca6518b16b96e0f`.
+A final shared eligibility predicate rechecks readiness/conflict inside the
+React state updater as well as at click admission. Its new409 regression first
+mistakenly flushed an already-acknowledged payload (no CAS); the failed1531/1
+unit result is retained. The corrected fixture creates actual unsent local text
+before the conflict. `autosave-direction-recovery-unit-all-final-2.log` passed
+all1532 cases in172 files; `autosave-direction-recovery-types-final.log` passed.
+Final750-source manifest:
+`.local/autosave-direction-recovery-source-manifest-final.json`, SHA-256
+`5a2176894fda4a175e5819f66b772f61605b7f8689072f3f8bf4f7a75f3aa4c3`.
+Final focused browser2 passed29.1 seconds in
+`autosave-direction-recovery-browser-final.log`: actual held GET verifies exact
+entity/revision/context, recovery stays disabled until release, then the recovered
+PUT consumes that exact expected revision; no-File Freeze409 leaves the project
+open with unchanged proposals and zero provider calls. Foreign namespace data
+is retained rather than implicitly recovered. Final deterministic build A passed;
+complete7-file tree is `.local/autosave-recovery-final-static-first-tree.json`,
+SHA-256 `376652c643974485e7fd5fd4dd658c06cdf3c7e63458054fdd0e0efee74fc888`;
+`workbench.js` SHA-256 is
+`461d922158fce4a279ecf70803f22444440e5c86dff7ba1dc7ac345809a3d03d`.
+Older image fixture failures remain failed in original logs and copied artifacts;
+final complete browser, second-build parity and installed-wheel gates remain
+pending below.
+
 ## Recovery and limits
 
 Prior `4c6db5ff` directly refuses a null-Brief home with

@@ -46,6 +46,8 @@ for (const [width, height] of [[1280, 768], [1280, 460], [1700, 900]]) {
     await directions.locator("summary").click();
     const readSource = directions.getByRole("button", { name: "读取当前来源", exact: true });
     await expect(readSource).toBeEnabled();
+    // Finish setup working-input autosaves before observing the read-only phase.
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
     const writes: string[] = [];
     page.on("request", call => { if (!["GET", "HEAD", "OPTIONS"].includes(call.method())) writes.push(`${call.method()} ${new URL(call.url()).pathname}`); });
 

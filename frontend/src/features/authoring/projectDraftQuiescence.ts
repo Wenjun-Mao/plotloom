@@ -68,13 +68,29 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
     locallyPreserved: projectId => [...writers.get(projectId)?.values() ?? []].every(writer => !writer.pending?.() || writer.locallyPreserved?.() === true),
     async preserve(projectId) {
       const admitted = [...writers.get(projectId)?.values() ?? []];
-      const revision = revisions.get(projectId) ?? 0;
       const results = await Promise.all(admitted.map(async writer => {
-        if (writer.preserveForDeparture) return writer.preserveForDeparture();
-        try { if (await writer.flush()) return true; } catch { /* local preservation still governs departure */ }
+        try {
+          if (writer.preserveForDeparture) return await writer.preserveForDeparture();
+          if (await writer.flush()) return true;
+        } catch { /* verified preservation still governs ordinary departure */ }
         return writer.locallyPreserved?.() === true;
       }));
-      return results.every(Boolean) && (revisions.get(projectId) ?? 0) === revision;
+      const receipts = new Map(admitted.map((writer, index) => [writer, results[index]]));
+      const settledRevision = revisions.get(projectId) ?? 0;
+      // A successful refresh can replace clean registrations. Judge actual
+      // current AND captured input, including retained owners and newer typing;
+      // an old receipt cannot prove a newly unpreserved buffer is safe.
+      const observed = new Set([...admitted, ...writers.get(projectId)?.values() ?? []]);
+      const proofs = await Promise.all([...observed].map(async writer => {
+        if (writer.preserveForDeparture) {
+          try { return await writer.preserveForDeparture(); } catch { return false; }
+        }
+        const pending = writer.pending?.();
+        if (pending === false || writer.locallyPreserved?.() === true) return true;
+        if (pending === true) return false;
+        return receipts.get(writer) === true;
+      }));
+      return proofs.every(Boolean) && (revisions.get(projectId) ?? 0) === settledRevision;
     },
     register(projectId, writerId, flush, options) {
       // A Close owns admission from its first drain through the server reply.

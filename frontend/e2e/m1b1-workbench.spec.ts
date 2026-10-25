@@ -26,11 +26,11 @@ test.describe("M1-B1 canonical workbench journey", () => {
     const allowedStates = "focused\nstrained\nresolved";
     // Bootstrap the valid current prefix. Source-less Graph remains read-only.
     // Bible changes follow approval to prove their real downstream staleness.
-    await navigateToStage(page, "05 分镜工作台");
     const created = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === "/api/v2/projects");
-    await page.getByRole("button", { name: "应用分镜修改" }).click();
+    await page.getByRole("button", { name: "创建编辑副本" }).click();
     expect((await created).ok()).toBeTruthy();
+    await navigateToStage(page, "05 分镜工作台");
     await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
 
