@@ -312,9 +312,9 @@ from agent-operated functional verification.
   resume → backend restart → fresh context exact readback. Canonical Brief null,
   runs empty, provider requests empty. Focused API restart/replay test also passed.
 - Two first failures were test locator errors before round-trip assertions;
-  retained logs `.local/autosave-first-slice-browser{,-2}.log` and screenshots/
-  traces under `.local/autosave-evidence/`. Accessibility snapshot supplied the
-  numeric role/name for the causal selector correction. Passing log:
+  original logs `.local/autosave-first-slice-browser{,-2}.log` record the
+  failures. Accessibility snapshot supplied the numeric role/name for the
+  causal selector correction. Passing log:
   `.local/autosave-first-slice-browser-3.log`. No full gate run.
 - Next: complete typed editor coverage and frozen pure reads, then stable review,
   one final full qualification and manager-owned preservation/activation.
@@ -322,7 +322,7 @@ from agent-operated functional verification.
 ## Execution inventory — source review checkpoint
 
 The following is the locally qualified source inventory. Composite execution
-and retained failed runs are detailed in the verification receipt; root-owned
+and failed-run classifications are detailed in the verification receipt; root-owned
 installed preservation/activation remains separate. All rows use existing typed
 project draft CAS; the graph keeps its single writer. A server receipt preserves
 working input, never semantic acceptance. Ordinary settings/credentials remain
@@ -369,8 +369,9 @@ old canonical draft validator refuses the empty numeric payload with
 `ValidationError`. Current source reopens both and preserves exact logical rows
 and files (`.local/autosave-rollback-proof-2.log`, 1 passed). This does not claim
 all raw read-open paths refuse extended payloads, nor that an old binary can
-safely continue editing them. Retained qualified source/static remains the
-post-boundary fallback; no live rollback/migration was executed.
+safely continue editing them. The single current source/static/wheel recovery
+bundle is the post-boundary fallback; see the GC status for its location. No live
+rollback/migration was executed.
 
 ## Qualification execution boundary
 
@@ -388,13 +389,15 @@ command objects close composite qualification under AGENTS.md; no failed run is
 renamed green. Fresh frontend1532 passed; both types passed; full affected
 lifecycle6 passed after the Restore acknowledgement fixture correction; the351
 unaffected final browser cases are reused. Complete deterministic7-file trees
-match, final3viewport pixels are retained/inspected, wheel build and installed
-smoke passed. No second complete Python run or second `full` invocation occurred.
+match, final3viewport renders were inspected, wheel build and installed smoke
+passed. No second complete Python run or second `full` invocation occurred.
 The [durable verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md)
 owns exact selections/results, complete manifests, failure classifications,
-evidence reuse and rollback-reader versus old-validator limits. The qualified
-source/static/wheel recovery package is retained. Root owns installed data
-preservation, activation and Safari review after the worker's actual idle handoff.
+evidence reuse and rollback-reader versus old-validator limits. The later single
+current source/wheel recovery bundle and capture retirement are recorded in the
+[GC status](../../services/creator_workbench/deleted-project-garbage-collection.md).
+Root owns installed data preservation, activation and Safari review after the
+worker's actual idle handoff.
 No push, hosted CI, live project/UNKNOWN mutation or installed operation is claimed.
 
 
@@ -406,17 +409,19 @@ Restore, while teaching-only identity/nav/toolbar/Pro placeholders suggested Sav
 The existing lifecycle and `teachingPreview` facts now select truthful status and
 next-step wording. No API, persistence, admission, generation, dependency or
 preview-data behavior changes. Source review closed on the four-file frontend
-manifest `b74ac4e1…`. The original qualification and failures remain retained.
+manifest `b74ac4e1…`. The original qualification outcomes and failures remain
+classified in the verification receipt.
 
 Focused98 and fresh entire1538 frontend cases passed; both types passed. Bounded
 browser9 first returned8 passed/1 new ambiguous region locator failure; exact-name
 selector correction passed the preview case (including zero writes/provider calls
 and exactly one explicit editable copy). Frozen/archive/archivedFrozen guidance
 retains project/drafts/runs and admits no browser mutations. Three new checked-
-static desktop pixels were retained and inspected. Both complete7-file build
+static desktop renders were inspected. Both complete7-file build
 trees match; checked-static parity, exact wheel/installed smoke and all478 package
-file hashes passed. Current readable source/static recovery package is retained
-separately from the unchanged938 fallback. Tested candidate: `d98ef343`; the
+file hashes passed. The single current source/wheel recovery bundle and retirement
+of superseded per-candidate archives are recorded in the GC status. Tested
+candidate: `d98ef343`; the
 verification receipt owns exact hashes and the bounded frontend-only handoff. No repeat Python/full/browser358 run
 is required by this reviewed presentation-only dependency surface. Root owns P,
 Safari and later static activation; the worker does not operate them.

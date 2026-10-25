@@ -33,7 +33,9 @@ later freeze.
 
 ## Focused evidence and independent review
 
-Logs and exact pixels are retained under `.local/` in the retained checkout.
+This receipt records qualification outcomes and the visual reviews performed;
+later capture retirement and recovery-bundle consolidation are recorded in the
+[GC status](../../services/creator_workbench/deleted-project-garbage-collection.md).
 Mixed logs remain failed even where an individual step passed. Later causal
 checks supersede only the diagnosed failed cases; unchanged passed inputs are
 reused under AGENTS.md.
@@ -61,9 +63,7 @@ mutation. The bounded fix changes four source files, represented by manifest5
 SHA-256 `66e31aa25e2e6589f50f3404f256c62b5396dead4f6ee7e9ac64dd480ff13c91`.
 Its independent delta review closed after 27 frontend and 5 real UI causal checks. A final Close→Freeze error-message correction is the only later executable delta; `.local/autosave-qualified-source-manifest.json` records it. Full results will be recorded below.
 
-First failures remain in their original logs and copied trace/screenshot folders,
-including `.local/autosave-evidence/lifecycle-first/` and
-`.local/autosave-evidence/final-browser-contracts-{first,second}/`. The readonly
+First failures retain their original failed classifications. The readonly
 `BEGIN IMMEDIATE` regression failed before its query fix. The first full-root
 query inventory compared API startup changes accidentally; the corrected test
 settles startup before the exact query boundary and preserves the original
@@ -87,23 +87,20 @@ The final-source deterministic build A passed in
 `.local/autosave-static-qualified-first-tree.json`. `workbench.js` SHA-256:
 `886ec73fdfe89dfc8ca03f9cf16d5d2470510221a4c21a63ca4ad09897b5250b`.
 The full gate's build is the second tree comparison. An earlier build/pixel set
-is retained, not substituted for later changed executable bytes.
+was part of the initial qualification; it does not substitute for later changed
+executable bytes.
 
-Root independently viewed the three earlier checked-static directory pixels
+Root independently viewed the three earlier checked-static renders
 (1280×768, 1280×460, 1700×900); actions/footer were reachable and no overlap was
-observed. Exact files and hashes remain at
-`.local/autosave-evidence/checked-static-directory/` and
-`.local/autosave-checked-static-pixels.json`. Final gate captures and their
-relationship to unchanged layout inputs will be recorded with final results.
+observed. Final gate renders were also inspected as recorded below.
 
 ## Browser failure classification and departure correction
 
 The first unfiltered browser step on `7f8c554a` completed357 cases:328 passed /
 29 failed (`.local/autosave-final-full-downstream.log`). It remains a failed run.
 All29 original failure identities are retained in
-`.local/autosave-full-browser-triage.json` and their traces/screenshots in
-`.local/autosave-evidence/full-browser-first/`. The following groups account for
-all29; later checks close only the causal assertions stated here.
+`.local/autosave-full-browser-triage.json`. The following groups account for all29;
+later checks close only the causal assertions stated here.
 
 | Original cases | Count | Cause and current assertion |
 | --- | ---: | --- |
@@ -177,7 +174,7 @@ Older image fixture failures remain failed in original logs and copied artifacts
 final complete browser, second-build parity and installed-wheel gates remain
 pending below.
 
-## Final composite result and retained package
+## Final composite result and package qualification
 
 The final stable downstream run used clean `main` candidate
 `efd665b870f74d2eecb416e0e2e8de8e1800b8cf`. All2776 tracked files were pinned
@@ -201,9 +198,6 @@ its nonarchived row state. The entire affected lifecycle file passed6 cases in
 scoped deletion, duplicate lost-response replay and delayed-selection ownership.
 The351 unaffected final browser cases outside that file are reused. This is
 composite coverage of the357-case allocation, not a relabeled green357 run.
-The failed trace is retained in
-`.local/autosave-evidence/final-stable-browser-first/`.
-
 Runtime source remains exactly the750-file manifest `5a217689…`; the final
 lifecycle change is five fixture lines only. The unchanged Python3971 initial
 positive cases are reused except where the reviewed five-file backend correction
@@ -223,21 +217,20 @@ Both complete7-file static trees match exactly, manifest SHA-256
 All three final checked-static PNGs were copied before Playwright reset its output,
 then visually inspected by worker and manager: readable rows, clear More focus,
 reachable actions/footer and no material overlap at1280×768,1280×460,1700×900.
-`.local/autosave-final-checked-static-pixels.json` binds full pixel hashes, exact
-original paths and candidate/JS identity; files are under
-`.local/autosave-evidence/final-checked-static-directory/`.
+`.local/autosave-final-checked-static-pixels.json` records full pixel hashes,
+original capture paths and candidate/JS identity.
 
 The existing remaining wheel and installed-wheel smoke steps passed in
 `autosave-final-package.log` (4.535s total). The smoke installs into a disposable
-environment and probes outside the checkout. Retained exact wheel:
-`.local/autosave-qualified-wheels/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+environment and probes outside the checkout. The qualified wheel from that run
+had SHA-256
 `77ca35762d4dda2754ad8454d45925f8ccdb204ba59147719e4f01abf552ca63`.
-The current source/static recovery archive and complete package/hash manifest are
-retained under `.local/autosave-qualified-recovery/`; this is code recovery,
-not a live project backup or rollback. `.local/autosave-evidence/README.md` is the
-local evidence entrypoint. No worker-owned source/package gate remains for this
-bounded local handoff; manager-owned preservation/activation and installed
-Safari review remain separate. Hosted CI was not requested or run.
+That per-candidate wheel and recovery archive were superseded. The single current
+source/wheel recovery bundle is `.local/current-qualified-recovery/`; its
+`manifest.json` is authoritative for the current revision and hashes. It is code
+recovery, not a live project backup or rollback. No worker-owned source/package
+gate remains for this bounded local handoff; manager-owned preservation/activation
+and installed Safari review remain separate. Hosted CI was not requested or run.
 
 ## Recovery and limits
 
@@ -247,8 +240,9 @@ old canonical draft validator rejects the empty numeric payload with
 `ValidationError`. Thus old workflow compatibility is unqualified after new
 writes; blanket old-reader refusal is not claimed. Current source reopens both
 same fixture homes with original logical rows and files exact. No live rollback,
-SQL migration, deletion or canonical-history rewrite was performed. The qualified
-current source/static recovery package is retained at final handoff.
+SQL migration or canonical-history rewrite was performed during qualification.
+The later capture retirement and current recovery bundle are recorded in the
+[GC status](../../services/creator_workbench/deleted-project-garbage-collection.md).
 
 Browser evidence uses Chromium and owned synthetic ready media, not installed
 Safari or a valued story. Functional local QA does not establish the owner's
@@ -294,11 +288,10 @@ First deterministic complete7-file tree:
 JS is `250537a412fa4d26627117caa377ac15237abe17b7a99bef007b7a99d6f97a97`.
 The navigation content-hashed chunk is replaced, and its production/demo imports
 are regenerated; activation must use the complete seven-file tree. Three exact
-checked-static pixels—teaching Pro1280×460, Frozen1280×768, archived Frozen1700×900—
-are under `.local/autosave-evidence/guidance-final-pixels/`, bound to source/static
-hashes by `.local/autosave-guidance-final-pixels.json`. Worker inspection found
-readable guidance with no material overlap. Initial locator failure/positive
-state pixels are retained in `guidance-browser-first/`.
+checked-static renders—teaching Pro1280×460, Frozen1280×768, archived Frozen1700×900—
+were bound to source/static hashes in the qualification record. Worker inspection
+found readable guidance with no material overlap. The initial locator failure
+and correction are classified above.
 
 The exact2776 tracked candidate inputs were pinned in
 `.local/autosave-guidance-candidate-files.json` (SHA-256
@@ -311,14 +304,12 @@ build, checked-static parity, unfiltered browser allocation census, wheel build
 and installed-wheel smoke all passed in `autosave-guidance-frontend-package.log`
 (8.232s). Census is allocation evidence, not an unfiltered browser execution.
 
-Retained exact wheel:
-`.local/autosave-guidance-qualified-wheels/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+The qualified wheel from that run had SHA-256
 `c66761cd8e044b771b7951be7b4b72bbe799b22da8fd545b7439b084bfd433d2`.
 All478 packaged source/static files match the final manifests; the retired
-navigation chunk is absent. The current readable source/static recovery archive
-and complete hash/evidence manifest are under
-`.local/autosave-guidance-qualified-recovery/`. Original938 source/static/wheel
-fallback and every prior failed run remain intact. No broader gate is invalidated
+navigation chunk is absent. These per-candidate package artifacts were superseded
+by the single current source/wheel recovery bundle at `.local/current-qualified-recovery/`;
+the former938 source/static/wheel fallback is not retained. No broader gate is invalidated
 by this four-file presentation-only change, and no second Python/full/browser358
 execution occurred. Root owns installed review and full static-tree replacement;
 this follow-up does not claim that the worker touched P/runtime/Safari/bridge.
@@ -326,9 +317,11 @@ this follow-up does not claim that the worker touched P/runtime/Safari/bridge.
 ## Manager installed activation and Safari review
 
 The manager independently reviewed both actual worker finals, source/test deltas,
-causal logs, complete static trees and all final desktop pixels. Both retained
-recovery archives were opened and every one of their 2,776 files verified. Both
-wheels' 478 source/static files matched the corresponding qualified manifests.
+causal logs, complete static trees and the desktop renders available at handoff.
+At that handoff, both recovery archives were opened and their 2,776 files were
+verified; both wheels' 478 source/static files matched the corresponding qualified
+manifests. Those are historical qualification results; the current bundle is the
+single retained recovery copy.
 The final installed checkout is b63aef4306e7bbfc92b7e0481b709549aff1af1f; its runtime
 inputs match the tested guidance candidate d98ef343. Later manager edits are
 documentation only.

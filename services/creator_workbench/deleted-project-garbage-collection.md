@@ -74,15 +74,22 @@ coverage-mapping verifier/inventory and the unused `runtime.recover_runtime_jobs
 helper with its exclusive protocols/tests. Current behavior, extraction and
 shared-runtime safety tests remain; production startup still uses
 `ProjectRunDispatcher._reconcile_project` → `generation.reconcile_startup_jobs`.
-Old local CI evidence and superseded package deletion is a separate operator
-step: the manager removed the approved old run/CI and superseded recovery/wheel
+The manager removed the approved old CI run and superseded recovery/wheel
 artifacts. A single current source/wheel recovery bundle is kept in
-`.local/current-qualified-recovery/`. The obsolete copied CI checkout was then
+`.local/current-qualified-recovery/`; its `manifest.json` is authoritative for
+the current revision and hashes. The obsolete copied CI checkout was then
 reviewed against retained main: all 26 changed/untracked paths were already
 integrated or superseded, with no unique missing changes. It was removed without
 archive: 9,349 regular files, 18 inert links and 390,940 allocated KiB (about
 382 MiB). Git independence and absence of open handles/container mounts were
 checked before removal.
+
+The obsolete autosave/Freeze QA capture directory `.local/autosave-evidence/`
+was also removed without archive: 434 files, 432,182,520 logical bytes and
+422,928 allocated KiB (77 Markdown, 191 PNG, 78 WEBM, 76 ZIP and 12 JSON files).
+It contained no database, project manifest, working code or Git data; no open
+handles or active container mounts remained. Historical qualification outcomes
+remain in the verification receipt, while capture files were not retained.
 
 Separately, the October 25 compatibility review classified all 28 database
 copies and 19 project IDs in five legacy QA workspaces as unsupported.
