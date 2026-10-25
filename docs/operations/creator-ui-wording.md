@@ -168,6 +168,12 @@ retaining browse and eligible playback. 解除冻结 restores admission only. Us
 只读 and separate 归档/恢复 wording; retain internal closed codes only in diagnostics.
 Close/save-close/force-exit and manual matching-restoration copy is superseded by
 [ADR 0218](../adr/0218-working-input-autosave-and-optional-freeze.md).
+Read-only guidance names the existing reason: teaching previews use 创建编辑副本,
+archives use 恢复, Frozen projects permit browsing/eligible play and optional
+解除冻结, and other temporary read-only states remain neutral. Restoring an
+archived Frozen project keeps it frozen. Teaching identity, navigation, toolbar
+and graph placeholders must not call the preview an unsaved draft or recommend
+Save; browsing alone creates no project.
 
 Use 此任务缺少可用密钥 and 此任务的模型配置 in primary frozen-run guidance;
 keep the exact profile identifier secondary. A missing configuration and a failed

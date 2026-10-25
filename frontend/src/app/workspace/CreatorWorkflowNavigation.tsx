@@ -18,15 +18,16 @@ function ordinaryNavigationClick(event: MouseEvent<HTMLAnchorElement>) {
 }
 
 /** Links only to existing project-scoped owners; their panels retain readiness and next-action authority. */
-export function CreatorWorkflowNavigation({ projectId, activePage, activeHash, disabled, onNavigate }: {
+export function CreatorWorkflowNavigation({ projectId, teachingPreview = false, activePage, activeHash, disabled, onNavigate }: {
   projectId: string;
+  teachingPreview?: boolean;
   activePage: PageId;
   activeHash: string;
   disabled: boolean;
   onNavigate: (destination: WorkspaceDestination) => void;
 }) {
   const selectedSourceTarget = activePage === "source" ? sourceWorkflowTarget(activeHash) || "source" : "";
-  if (!projectId) return <section className="creator-workflow-navigation unavailable" aria-label="创作流程"><strong>创作流程</strong><small>保存项目后，可在这里返回来源、角色和各项已接受的审阅工作。</small></section>;
+  if (!projectId) return <section className="creator-workflow-navigation unavailable" aria-label="创作流程"><strong>创作流程</strong><small>{teachingPreview ? "这是只读示例预览；选择「创建编辑副本」后，可使用来源、角色和各项审阅工作区。" : "保存项目后，可在这里返回来源、角色和各项已接受的审阅工作。"}</small></section>;
   return <nav className="creator-workflow-navigation" aria-label="创作流程">
     <div className="creator-workflow-heading"><strong>创作流程</strong></div>
     <div className="creator-workflow-links">

@@ -180,8 +180,23 @@ function playbackStatus(input: RecommendedWorkflowInput): string {
   return "等待路线、场景与分镜";
 }
 
+/** Read-only causes have different exits; none of them is an implicit snapshot. */
+function readOnlyGuidance(input: RecommendedWorkflowInput): { status: string; text: string } | undefined {
+  const project = input.project;
+  if (project.teachingPreview) return { status: "示例预览 · 只读", text: "这是只读示例预览，可浏览教学内容。选择「创建编辑副本」后，才能编辑自己的项目；浏览示例不会创建项目。" };
+  if (project.lifecycleStatus === "archived" || project.archivedAt) return {
+    status: "归档只读",
+    text: project.operationalState === "closed"
+      ? "项目已归档，可只读查看保留内容。请在项目目录选择「恢复」；恢复后仍保持冻结，如需编辑，再明确选择「解除冻结」。"
+      : "项目已归档，可只读查看保留内容。如需继续创作，请在项目目录选择「恢复」，再核实当前状态。",
+  };
+  if (project.operationalState === "closed") return { status: "冻结只读", text: "项目已冻结，可只读浏览和播放符合条件的已有视频。如需编辑，请在项目目录「更多」中选择「解除冻结」；不会自动继续任务。" };
+  if (input.readOnly) return { status: "暂时只读", text: "当前工作区暂不可编辑，可查看已有内容；请等待状态稳定后，再核实编辑条件。" };
+}
+
 function statusFor(input: RecommendedWorkflowInput, id: RecommendedWorkflowStepId, currentStep: RecommendedWorkflowStepId): string {
-  if (input.readOnly) return "只读快照";
+  const readonly = readOnlyGuidance(input);
+  if (readonly) return readonly.status;
   if (!input.project.id && !input.projectPending) return id === "brief" ? "尚未保存" : "项目未保存";
   if (!input.workspaceAvailable) return "无法核实";
   if (id === "brief") return input.project.hasConfirmedBrief === false ? "输入已保留 · 尚未确认" : input.project.id && input.project.revision > 0 ? "已有确认版本" : "尚未确认";
@@ -243,8 +258,8 @@ function productionNextText(input: RecommendedWorkflowInput): WorkflowRecommenda
 }
 
 function nextRecommendation(input: RecommendedWorkflowInput, currentStep: RecommendedWorkflowStepId): WorkflowRecommendation {
-  const archived = input.project.lifecycleStatus === "archived" || Boolean(input.project.archivedAt);
-  if (archived || input.readOnly) return { text: "项目为只读快照，可查看保留内容；恢复项目后再核实当前状态并继续创作。" };
+  const readonly = readOnlyGuidance(input);
+  if (readonly) return { text: readonly.text };
   if (input.projectPending) return { text: "正在读取当前项目版本；读取完成后再核实已有确认和后续步骤。" };
   if (!input.project.id || input.project.hasConfirmedBrief === false) return currentStep === "brief"
     ? { text: "编辑输入自动保留。填写完整后明确确认项目简报，再开始准备来源、大纲与制作。" }

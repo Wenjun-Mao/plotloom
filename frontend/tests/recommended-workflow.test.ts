@@ -189,7 +189,7 @@ describe("recommended creative workflow", () => {
     expect(failed.action).toBeUndefined();
     const readOnly = buildRecommendedWorkflow({ ...input, readOnly: true })!;
     expect(readOnly.currentStep).toBe(model.currentStep);
-    expect(readOnly.steps.every(step => step.status === "只读快照")).toBe(true);
+    expect(readOnly.steps.every(step => step.status === "暂时只读")).toBe(true);
     expect(readOnly.action).toBeUndefined();
     expect(buildRecommendedWorkflow({ ...base, activePage: "source", sourceReview: acceptedReview() })?.currentViewLabel).toBeUndefined();
   });
@@ -382,7 +382,7 @@ describe("recommended creative workflow", () => {
     expect(failed.steps.find(step => step.id === "source")?.status).toBe("无法核实");
     expect(failed.nextText).toContain("无法核实");
     const archived = buildRecommendedWorkflow({ ...base, activePage: "source", project: { ...project, lifecycleStatus: "archived" }, readOnly: true })!;
-    expect(archived.steps.every(step => step.status === "只读快照")).toBe(true);
+    expect(archived.steps.every(step => step.status === "归档只读")).toBe(true);
     expect(archived.action).toBeUndefined();
   });
 });
@@ -394,4 +394,24 @@ describe("recommended creative workflow", () => {
   input.sourceReview!.graphAdmission = null;
   const step = buildRecommendedWorkflow(input)!.steps.find(step => step.id === "branches")!;
   expect(step.adoptedArtifact).toBeUndefined(); expect(step.adoptionUnknown).toBe(true);
+});
+
+
+it.each([
+  [{ teachingPreview: true }, "示例预览 · 只读", "创建编辑副本", ["恢复", "解除冻结"]],
+  [{ lifecycleStatus: "archived" }, "归档只读", "选择「恢复」", ["解除冻结", "创建编辑副本"]],
+  [{ archivedAt: "2026-10-24T00:00:00Z" }, "归档只读", "选择「恢复」", ["解除冻结"]],
+  [{ operationalState: "closed" }, "冻结只读", "解除冻结", ["选择「恢复」", "恢复项目", "创建编辑副本"]],
+  [{ lifecycleStatus: "archived", operationalState: "closed" }, "归档只读", "恢复后仍保持冻结", ["自动解除"]],
+  [{}, "暂时只读", "等待状态稳定", ["恢复", "解除冻结", "创建编辑副本"]],
+] as const)("read-only guidance names the existing cause %j", (state, status, text, excluded) => {
+  const input = { ...base, project: { ...project, ...state }, readOnly: true };
+  const before = JSON.stringify(input);
+  const model = buildRecommendedWorkflow(input)!;
+  expect(model.steps.every(step => step.status === status)).toBe(true);
+  expect(model.nextText).toContain(text);
+  expect(model.nextText).not.toContain("只读快照");
+  for (const value of excluded) expect(model.nextText).not.toContain(value);
+  expect(model.action).toBeUndefined();
+  expect(JSON.stringify(input)).toBe(before);
 });

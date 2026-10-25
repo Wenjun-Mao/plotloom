@@ -17,7 +17,7 @@ import { GraphWorkflowActions } from "./GraphWorkflowActions";
 import { professionalNavigation, useProfessionalPresentation } from "./ProfessionalPresentation";
 import { useGraphActionProjection } from "./graphActionProjection";
 
-export function ProfessionalGraphWorkbench({ projectId, canonical, brief, readOnly, sourceReview, onOpenSource }: { projectId: string; canonical: StoryGraph; brief: ProjectBrief; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onOpenSource: () => void }) {
+export function ProfessionalGraphWorkbench({ projectId, teachingPreview = false, canonical, brief, readOnly, sourceReview, onOpenSource }: { projectId: string; teachingPreview?: boolean; canonical: StoryGraph; brief: ProjectBrief; readOnly: boolean; sourceReview: WorkspaceSourceReviewRead; onOpenSource: () => void }) {
   const owner = useGraphWorkbench(), mapping = owner.draft?.mapping;
   const source = sourceReview.value;
   const actions = useGraphActionProjection(brief, readOnly, sourceReview);
@@ -47,7 +47,7 @@ export function ProfessionalGraphWorkbench({ projectId, canonical, brief, readOn
     if (!id) return;
     event.preventDefault(); event.stopPropagation(); owner.selectNode(id);
   };
-  if (!projectId) return <section className="page"><p>先保存项目，再从来源与大纲建立当前图草稿。</p></section>;
+  if (!projectId) return <section className="page"><p>{teachingPreview ? "这是只读示例预览。选择「创建编辑副本」后，可从来源与大纲建立当前图草稿。" : "先保存项目，再从来源与大纲建立当前图草稿。"}</p></section>;
   if (owner.state?.readOnlyReason) return <section className="page"><GraphPreviewRecovery /><p className="notice warning">{owner.state.readOnlyReason}</p><CanonicalGraphReader value={canonical} selectedNodeId={owner.selectedNodeId} onNodeSelect={owner.selectNode} /></section>;
   return <section className="page professional-graph-workbench">
     <PageHeader eyebrow="专业工作台" title="剧情图与结构规则" description="同一剧情图的专业视图：自由查看画布，编辑连接与结构规则。与创作工作台共用图草稿；保存、确认、应用仍是三项独立操作。" />

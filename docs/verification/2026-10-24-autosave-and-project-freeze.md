@@ -254,3 +254,52 @@ Browser evidence uses Chromium and owned synthetic ready media, not installed
 Safari or a valued story. Functional local QA does not establish the owner's
 personal review, creative/canon acceptance, general release or production
 activation. Root retains installed preservation and activation ownership.
+
+
+## Installed-Safari guidance follow-up · source candidate
+
+This same-assignment frontend follow-up starts from938c7e46. Manager's read-only
+Safari inspection found generic read-only guidance recommending Restore for the
+teaching preview and Frozen state, plus teaching placeholders recommending Save.
+The four-file source correction projects existing teaching/lifecycle facts into
+status and wording. Previews direct explicit editable copy; archives direct
+Restore and retain Frozen where applicable; Frozen permits read-only browsing
+and eligible playback with optional explicit Unfreeze; other read-only states
+remain neutral. Teaching identity/nav/toolbar/Pro placeholders use explicit copy.
+No new preview architecture, project creation, source content or semantic action
+is introduced. Only frontend source and generated assets change at runtime;
+Python/API/persistence/admission/provider/auth/settings/dependencies/build tooling
+and package contracts are byte-unchanged from the qualified baseline. This is
+bounded local frontend qualification under AGENTS.md, not a second full run.
+
+Source manifest `.local/autosave-guidance-source-manifest.json`:750 files,
+SHA-256 `b74ac4e1c608f4bc5cd997ed1284afc463a45316b4ac342566cc5d1f7c0a5979`.
+Focused selector/opening98 passed; fresh unfiltered frontend1538/172 passed;
+both frontend and browser-fixture types passed (`autosave-guidance-{focused,unit-all,types,browser-types}.log`).
+The bounded9-case browser selection covers teaching/Pro/copy, Frozen/restart,
+archive/archivedFrozen, existing saved-Pro layout/canonical preview and ordinary
+guidance journeys. Its first result8 passed/1 failed remains failed: a new region
+locator matched both 创作流程 and 推荐创作流程. Adding exact-name matching changed
+only the fixture; the complete preview/copy case then passed2.4s in
+`autosave-guidance-preview-causal.log`. The8 unchanged positives are reused.
+Browser reads preserve exact project/drafts/runs, issue zero browser mutations
+and zero provider calls; preview creates no project until explicit copy, which
+creates once and carries no run history. No Python/full/unfiltered358 browser
+execution was repeated for this bounded presentation-only delta.
+
+First deterministic complete7-file tree:
+`.local/autosave-guidance-static-first-tree.json`, SHA-256
+`72183481022c4ce7db944d72284b05978a4fd5c70f9dbdd2d119ca482bc45078`.
+JS is `250537a412fa4d26627117caa377ac15237abe17b7a99bef007b7a99d6f97a97`.
+The navigation content-hashed chunk is replaced, and its production/demo imports
+are regenerated; activation must use the complete seven-file tree. Three exact
+checked-static pixels—teaching Pro1280×460, Frozen1280×768, archived Frozen1700×900—
+are under `.local/autosave-evidence/guidance-final-pixels/`, bound to source/static
+hashes by `.local/autosave-guidance-final-pixels.json`. Worker inspection found
+readable guidance with no material overlap. Initial locator failure/positive
+state pixels are retained in `guidance-browser-first/`.
+
+Second-build parity, wheel/installed smoke and readable current source/static
+recovery package are pending. Original938 source/static/wheel fallback and all
+prior failed runs remain intact. Root owns installed review and activation;
+this follow-up does not claim that the worker touched P/runtime/Safari/bridge.

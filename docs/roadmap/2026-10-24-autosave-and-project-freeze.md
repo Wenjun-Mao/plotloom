@@ -387,3 +387,25 @@ evidence reuse and rollback-reader versus old-validator limits. The qualified
 source/static/wheel recovery package is retained. Root owns installed data
 preservation, activation and Safari review after the worker's actual idle handoff.
 No push, hosted CI, live project/UNKNOWN mutation or installed operation is claimed.
+
+
+## Installed guidance follow-up — same assignment
+
+Manager's read-only Safari review of installed938c7e46 found a guidance projection
+defect: generic read-only copy called teaching/Frozen states snapshots and advised
+Restore, while teaching-only identity/nav/toolbar/Pro placeholders suggested Save.
+The existing lifecycle and `teachingPreview` facts now select truthful status and
+next-step wording. No API, persistence, admission, generation, dependency or
+preview-data behavior changes. Source review closed on the four-file frontend
+manifest `b74ac4e1…`. The original qualification and failures remain retained.
+
+Focused98 and fresh entire1538 frontend cases passed; both types passed. Bounded
+browser9 first returned8 passed/1 new ambiguous region locator failure; exact-name
+selector correction passed the preview case (including zero writes/provider calls
+and exactly one explicit editable copy). Frozen/archive/archivedFrozen guidance
+retains project/drafts/runs and admits no browser mutations. Three new checked-
+static desktop pixels were retained and inspected. Fresh complete7-file buildA
+is recorded; second-build parity, exact wheel/smoke and current readable recovery
+package finish this frontend-only handoff. No repeat Python/full/browser358 run
+is required by this reviewed presentation-only dependency surface. Root owns P,
+Safari and later static activation; the worker does not operate them.
