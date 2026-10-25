@@ -404,8 +404,10 @@ browser9 first returned8 passed/1 new ambiguous region locator failure; exact-na
 selector correction passed the preview case (including zero writes/provider calls
 and exactly one explicit editable copy). Frozen/archive/archivedFrozen guidance
 retains project/drafts/runs and admits no browser mutations. Three new checked-
-static desktop pixels were retained and inspected. Fresh complete7-file buildA
-is recorded; second-build parity, exact wheel/smoke and current readable recovery
-package finish this frontend-only handoff. No repeat Python/full/browser358 run
+static desktop pixels were retained and inspected. Both complete7-file build
+trees match; checked-static parity, exact wheel/installed smoke and all478 package
+file hashes passed. Current readable source/static recovery package is retained
+separately from the unchanged938 fallback. Tested candidate: `d98ef343`; the
+verification receipt owns exact hashes and the bounded frontend-only handoff. No repeat Python/full/browser358 run
 is required by this reviewed presentation-only dependency surface. Root owns P,
 Safari and later static activation; the worker does not operate them.

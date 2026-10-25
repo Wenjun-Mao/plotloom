@@ -256,9 +256,10 @@ personal review, creative/canon acceptance, general release or production
 activation. Root retains installed preservation and activation ownership.
 
 
-## Installed-Safari guidance follow-up · source candidate
+## Installed-Safari guidance follow-up · locally qualified frontend
 
-This same-assignment frontend follow-up starts from938c7e46. Manager's read-only
+This same-assignment frontend follow-up starts from938c7e46; its tested source/asset
+candidate is `d98ef3435fa24038c8d2fdd4a828c7f1a265fcbe`. Manager's read-only
 Safari inspection found generic read-only guidance recommending Restore for the
 teaching preview and Frozen state, plus teaching placeholders recommending Save.
 The four-file source correction projects existing teaching/lifecycle facts into
@@ -299,7 +300,25 @@ hashes by `.local/autosave-guidance-final-pixels.json`. Worker inspection found
 readable guidance with no material overlap. Initial locator failure/positive
 state pixels are retained in `guidance-browser-first/`.
 
-Second-build parity, wheel/installed smoke and readable current source/static
-recovery package are pending. Original938 source/static/wheel fallback and all
-prior failed runs remain intact. Root owns installed review and activation;
+The exact2776 tracked candidate inputs were pinned in
+`.local/autosave-guidance-candidate-files.json` (SHA-256
+`4ab0cb32055fdefa7180eb2baedb2adc6a501cc6fcd1e4d64cf912333b2b2969`);
+`.local/autosave-guidance-qualification-inputs.json` records all10 filters unset.
+Every pinned file matched after the package gates. The second complete7-file
+asset tree matches the first byte for byte (`autosave-guidance-static-second-tree.json`,
+same manifest SHA72183481…). Existing command objects for second deterministic
+build, checked-static parity, unfiltered browser allocation census, wheel build
+and installed-wheel smoke all passed in `autosave-guidance-frontend-package.log`
+(8.232s). Census is allocation evidence, not an unfiltered browser execution.
+
+Retained exact wheel:
+`.local/autosave-guidance-qualified-wheels/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+`c66761cd8e044b771b7951be7b4b72bbe799b22da8fd545b7439b084bfd433d2`.
+All478 packaged source/static files match the final manifests; the retired
+navigation chunk is absent. The current readable source/static recovery archive
+and complete hash/evidence manifest are under
+`.local/autosave-guidance-qualified-recovery/`. Original938 source/static/wheel
+fallback and every prior failed run remain intact. No broader gate is invalidated
+by this four-file presentation-only change, and no second Python/full/browser358
+execution occurred. Root owns installed review and full static-tree replacement;
 this follow-up does not claim that the worker touched P/runtime/Safari/bridge.
