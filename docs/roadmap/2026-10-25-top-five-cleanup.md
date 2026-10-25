@@ -39,17 +39,17 @@ whole batch or justify keeping an entire historical directory.
 
 ## Approved dispositions (executed)
 
-| Group | Allocated KiB | Main-source conclusion | Recommended disposition |
+| Group | Allocated KiB | Main-source conclusion | Executed disposition |
 | --- | ---: | --- | --- |
-| Five parked checkouts under `W` | 3,451,240 | One useful committed reader proposal; remaining dirty product changes incorporated or superseded | Remove checkouts through Git lifecycle after exact source disposition; no original-image or census archive |
-| `R/.local/native-proof` | 1,945,772 | Production fixes already on main; old source copies add no missing feature | Retire isolated proof envelopes and all unused QA media, provenance, derivatives, environments and logs |
-| `R/.local/remaining-cost` | 590,932 | Three optimization families incorporated; private census is defective and unaccepted | Discard the private prototype, helper copies, fixtures, profiles and historical decisions; keep the performance requirement already on main |
-| `P/.local/relay` | 289,048 | No missing production source or skill; Lighthouse material is agent-authored development data | Delete obsolete media, task folders and fixture DBs; no creative-source export prerequisite |
-| `R/.local/specialist-integration-20261022-preserved` | 213,760 | Specialist source already merged; archive semantically matches main | Remove old media, container images, duplicate source, browser captures and build output |
+| Five parked checkouts under `W` | 3,451,240 | One useful committed reader proposal; remaining dirty product changes incorporated or superseded | Removed checkouts through Git lifecycle after exact source disposition; no original-image or census archive |
+| `R/.local/native-proof` | 1,945,772 | Production fixes already on main; old source copies add no missing feature | Retired isolated proof envelopes and all unused QA media, provenance, derivatives, environments and logs |
+| `R/.local/remaining-cost` | 590,932 | Three optimization families incorporated; private census is defective and unaccepted | Discarded the private prototype, helper copies, fixtures, profiles and historical decisions; retained the performance requirement already on main |
+| `P/.local/relay` | 289,048 | No missing production source or skill; Lighthouse material is agent-authored development data | Deleted obsolete media, task folders and fixture DBs; no creative-source export prerequisite |
+| `R/.local/specialist-integration-20261022-preserved` | 213,760 | Specialist source already merged; archive semantically matches main | Removed old media, container images, duplicate source, browser captures and build output |
 
 Total allocation is approximately **6.19 GiB**, without double-counting the two
-linked worktrees inside `remaining-cost`. Nearly all is a retirement candidate;
-there is no longer a proposed 243 MiB media collection or 0.6 MB prototype archive.
+linked worktrees inside `remaining-cost`. The approved storage batch was retired;
+no 243 MiB media collection or 0.6 MB prototype archive was retained.
 The execution result below reports actual removed allocation; it makes no
 filesystem free-space claim.
 

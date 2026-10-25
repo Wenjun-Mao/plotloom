@@ -69,7 +69,7 @@ selected source hashes stayed unchanged. The first 41 cases were reused.
 
 The affected result (retired local artifact)
 has SHA `8c77a281361ad53d730a514305b3ca26842c4d50fdf682714783afb961d11bc2`;
-its sibling original native receipt and log retain exact commands and pins.
+its sibling original native receipt and log recorded exact commands and pins.
 Fixed QA metadata, explicit environment/PYTHONPATH and source hashes bind this
 focused evidence; same-pytest-child module attestation and global host/process
 silence are not established. This successor documentation does not change tested
@@ -89,7 +89,8 @@ One control-first pair and one separately released reversed pair passed:
 
 Whole-command clocks include the focused runner and immediate owned-group
 settlement. Preparation, source/QA probes, extraction and final parent removal
-are outside; copies and parents remain retained. Exact source/QA endpoints
+were outside; copies and parents were retained at that checkpoint and
+subsequently retired. Exact source/QA endpoints
 matched in all four natural passes. The observed direction survives reversal;
 the two modest differences do not establish attribution, variance or whole-suite
 savings. Cache history, roots and generated IDs remain limits; no same-pytest-child
@@ -138,7 +139,7 @@ transactions, geometry, image safety, late receipts and verification ownership.
 That union passed 96 cases, for 143 distinct focused cases across nine files.
 Scoped F/I, syntax, static ownership and diff checks passed. The
 union receipt (retired local artifact)
-retains exact full IDs, original native terminal and unchanged source/QA pins.
+recorded exact full IDs, original native terminal and unchanged source/QA pins.
 
 One separately released natural complete-pack pair passed the unchanged case
 once per arm: control 43.038875542s, candidate 42.129494000s for the whole pytest
