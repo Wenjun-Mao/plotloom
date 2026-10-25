@@ -205,12 +205,15 @@ uv run --locked pytest tests/services/creator_workbench/test_h3_runtime.py servi
 Use `isolated.py` for an already restored, verified test installation. It owns
 one loopback server and native bridge in the same process, with an ephemeral
 outbound shim and one shared installation-local specialist registry. Do not
-copy/edit launcher scripts or point the copy at the normal LaunchAgent.
+copy/edit launcher scripts or point the copy at the normal LaunchAgent. Pass an
+existing disposable installation containing real `outputs/` and `application/`
+directories; the launcher does not create, restore or repair installations.
+Use the checkout's current generated frontend assets for `--static-dir`.
 
 ```sh
 uv run --locked python services/creator_workbench/isolated.py \
-  --data-root .local/unattended-2026-10-02/final-installation \
-  --static-dir .local/unattended-2026-10-02/static \
+  --data-root /absolute/path/to/verified-test-installation \
+  --static-dir src/plotloom/static \
   --codex /absolute/path/to/native/codex \
   --token-file /absolute/private/directory/bridge-token \
   --port 8851 --bridge-port 8852

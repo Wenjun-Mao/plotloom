@@ -13,16 +13,12 @@ gate passed 910 Python tests, 37 service checks, 289 frontend unit tests and bot
 typechecks. Those are implementation checks, separate from the live evidence below.
 
 After confirming idle workers and free reservations, the coordinator restarted
-only its owned isolated runtime and copied the reviewed frontend assets into
-`.local/unattended-2026-10-02/static`. Owned PID is **83040**, exec session **86937**,
-ports **8851/8852**. Data root is
-`.local/unattended-2026-10-02/final-installation`. Normal services on 8841/8842
-were not restarted. The static copy exactly matches `src/plotloom/static`.
-External bridge credentials retain their existing private permissions; no values
-were included in evidence. Workbench health on 8841/8851 and authenticated owned
-bridge health on 8852 passed. Unknown earlier roots/jobs remain quarantined.
-
-Stable UI: <http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=source#storyboard-review>.
+the isolated runtime and copied the reviewed frontend assets into its test
+installation. The static copy exactly matched `src/plotloom/static`; normal
+services on 8841/8842 were not restarted. External bridge credentials retained
+their private permissions and no values were included in evidence. Workbench
+health on 8841/8851 and authenticated bridge health on 8852 passed. Unknown
+earlier roots/jobs remained quarantined at that checkpoint.
 
 ## Actual UI outcome
 
@@ -71,16 +67,13 @@ were retained from their earlier reviewed copy decisions; no blanket regeneratio
 
 ## Verification and preservation
 
-Evidence lives under `.local/unattended-2026-10-02/evidence/`:
-`f5-r3-full-fidelity-review.json`, `f5-r2-current-reader-receipt.json`,
-`p01-front-view-final-receipt.json`, `s01-two-directions-final-receipt.json`,
-`stage23-complete-state.json` and `stage23-complete-preservation.json`.
-Delivered job/request/revision/skill pins and output hashes match; new image
-filenames are exact returned basenames and copied bytes equal staging sources.
-Previous image proposals/decisions and both older frozen six-file job sets remain
-unchanged. Historical renamed receipts were not rewritten to satisfy the new rule.
-Fresh `stage23-complete-original.json` exactly equals the manager's baseline
-across seven API states, 73 SQLite tables and 67 managed files.
+At that checkpoint, delivered job/request/revision/skill pins and output hashes
+matched; new image filenames were exact returned basenames and copied bytes
+matched staging sources. Previous image proposals/decisions and both older
+frozen six-file job sets were unchanged. Historical renamed receipts were not
+rewritten to satisfy the new rule. The fresh original capture exactly matched
+the manager's baseline across seven API states, 73 SQLite tables and 67 managed
+files.
 
 Cleanup refused the tool-owned 0755 staging root. All generated sources remain
 unchanged, including both S01 attempts. No chmod, deletion, original canon write,

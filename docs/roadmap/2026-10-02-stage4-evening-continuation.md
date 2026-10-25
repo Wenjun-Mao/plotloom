@@ -20,10 +20,8 @@ source-fidelity, dispatch-safety, root-cause, serial-writer, review and closeout
 rules remain authoritative. Root owns browser/provider mutations and source
 integration. Do not change global service, power, security or model settings.
 
-The existing test installation is
-`.local/unattended-2026-10-02/final-installation`, ports 8851/8852, project
-`ee271b49-f384-414c-9711-452ee6333b84`. The original remains on port 8841 under
-`.local/creator-walkthrough`; do not backfill test decisions into it.
+The test and original workbenches remained separate; no test decisions were
+backfilled into the original. The original stayed on its normal 8841 service.
 Start revision: `cc0a9c4293bd0da2b89eb62610c7d1ce951c682f`, clean `main`.
 Fresh `manager-next-window-preflight-original.json` equals the preserved
 baseline: 73 tables, 67 file hashes and seven API projections unchanged.

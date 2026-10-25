@@ -47,13 +47,7 @@ ran through normal project opening, with exact predecessor-schema admission.
 | Normal specialist settings hash |Unchanged |
 | Isolated copy's job/segment/selection/review projection |Unchanged |
 
-Local evidence is retained in `.local/unattended-2026-10-02/evidence/`:
-
-- `manager-normal-activation-before.json`: `621259c3578a334a9cfe6b245b41acfbe7946c3f6796123f219ad55af5d916c1`.
-- `manager-normal-activation-after.json`: `7ab3d1b5d69dd6e5fb6c551caa1b2cf697959edf054ef5b314381576f431ba63`.
-- `normal-backend-activation-source.jpg`: `a9530ffa2022b1e0a01f5dfd11635500dc74cac1e4bd084744447e87872223a2`.
-
-The two capture hashes intentionally differ because of the new empty table;
+The pre/post capture hashes differed because of the new empty table;
 the comparison removes only that named table when checking the old rows.
 No claim of whole-database byte equality is made.
 
@@ -70,9 +64,10 @@ report `5.1.9-0+deb12u1`. `/api/v2/video-pilot-budget` still reports
 The actual normal browser was freshly reloaded after deployment. It renders
 the original **雨停以后** source, accepted outline r1 and current story routes
 without captured browser errors; no edit/confirm/generate controls were used.
-The retained screenshot is the original normal project, not the completed
-test-copy production. The normal original has not acquired the copy's script,
-storyboard, clips or approvals. The isolated8851 copy and its17 ingested jobs,
-12 selected/current segments and owner listening history remain intact.
+The screenshot was from the original normal project, not the completed
+test-copy production. The normal original did not acquire the copy's script,
+storyboard, clips or approvals. At that checkpoint, the isolated copy and its
+17 ingested jobs, 12 selected/current segments and listening history were
+unchanged by this activation.
 Final-film polishing, assembled-route sound approval, copy promotion and H3
 enablement are separate decisions, not implied by this successful deployment.

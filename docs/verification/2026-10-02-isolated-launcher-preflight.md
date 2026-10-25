@@ -47,48 +47,15 @@ records the durable composition and lifecycle contract.
   existing painterly fields in only its own fixture, verifies cancellation,
   explicitly replaces them, preserves the complete unrelated accepted cast and
   mappings, and inspects the new frozen reference context: **1 E2E passed**.
-- Frontend and E2E typechecks passed. Vite staged build passed at
-  `.local/unattended-2026-10-02/static`; `src/plotloom/static/` remains unchanged
-  pending manager review/promotion. Existing bundle-size advisory remains.
+- Frontend and E2E typechecks passed. The Vite staged build passed;
+  `src/plotloom/static/` remained unchanged pending manager review/promotion.
+  Existing bundle-size advisory remains.
 - Real no-queue startup/shutdown probe: passed, with zero shim directories left.
 - Original API state, all **73 database tables** and **67 retained files** still
   equal launch baseline. Normal specialist settings/leases and deployment bytes
   unchanged across the probe. Both quarantined attempted roots are byte-preserved.
   All **35 snapshot-manifest files** in the final copy still match the pristine
   snapshot. Final binding IDs are null, dispatch roots empty and no inflight lease.
-
-## Evidence and handoff
-
-Workflow-local evidence lives under `.local/unattended-2026-10-02/`:
-
-- `evidence/launcher-preflight-final.json`: authoritative final no-queue gate.
-- `evidence/launcher-preflight-pytest.log`, `evidence/launcher-signal-pytest.log`.
-- `launcher-preflight-verified/` and `launcher-preflight-signal/`: retained fake
-  packages, native call logs, receipts and reservations used by the tests.
-- `evidence/launcher-cleanup-original-before.json` and
-  `evidence/launcher-cleanup-original-after.json`, compared with `baseline.json`.
-- `evidence/launcher-startup-cleanup.log`; earlier startup evidence is retained.
-
-Final root: `.local/unattended-2026-10-02/final-installation`; intended URL after
-restart: `http://127.0.0.1:8851/v2/`, private bridge port 8852. Both are stopped at
-this checkpoint. The dedicated credential is outside project/application state
-at `~/Library/Application Support/Plotloom/unattended-2026-10-02-isolated/bridge-token`
-(parent 0700, file 0600); credential contents are absent from evidence.
-
-Unknown jobs `ij_5a327be2cd19489d8d5f873c5c09546e` and
-`ch_d5b3330baa5f41448462f39dc243ace3` remain in their original quarantined roots.
-Do not clear, relabel, replay or infer definitive no-queue from later healthy
-configuration. Typed trusted prequeue refusal remains an unresolved follow-up.
-
-Stopping condition reached: source is quiescent for independent review and the
-manager's scoped verified commit. `project_folder.py` is part of the pinned image
-execution owner, so no live image package is prepared/sent while that owner is
-dirty. After manager review/commit and explicit continuation, configure fresh
-dedicated native chats through the copy UI, verify binding paths, then resume
-reference review and script/storyboard. Existing test-copy Cast still needs an
-explicit painterly-to-live-action revision and downstream refresh. No new UI
-journey milestone or owner creative approval is claimed. Measured usage/cost
-deltas are unavailable at this checkpoint.
 
 ## Manager integration review
 

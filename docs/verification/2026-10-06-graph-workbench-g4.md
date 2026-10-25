@@ -1,7 +1,6 @@
 # G4 Production context qualification, 2026-10-06
 
-Current source/static manifest `.local/graph-workbench/g4-source-manifest.json`,
-aggregate `58e1fba5f40f71e623cca5634c024a94e1ac10111bbb0ac9db5abfd58fb3c64a`.
+Current source/static aggregate `58e1fba5f40f71e623cca5634c024a94e1ac10111bbb0ac9db5abfd58fb3c64a`.
 Retained `main`, baseline `e542f49`; no publishing or service activation yet.
 
 ## Implementation
@@ -24,27 +23,25 @@ while retaining installed content. ADR 0123 records the current ownership contra
 
 ## Executed verification
 
-All terminal results collected, with local logs under `.local/graph-workbench/`.
-
-- Projection/admission regression **13 passed**, `g4-projection-final.txt`, including
+- Projection/admission regression **13 passed**, including
   deliberately different JSON key ordering with equal content.
-- Full frontend **528 passed**, 74 files, `g4-frontend.txt`.
-- App types and deterministic static build exit **0**, `g4-types.txt`, `g4-build.txt`;
+- Full frontend **528 passed**, 74 files.
+- App types and deterministic static build exit **0**;
   E2E types exit **0** through the completed native commands.
-- Graph footage/bridge/presentation backend **45 passed**, `g4-production-backend.txt`.
-- Clean combined native creator Production and professional shot handoff **2 passed**,
-  `g4-native-qualified.txt`. Creator includes two S01 occurrences/nine cuts, exact
+- Graph footage/bridge/presentation backend **45 passed**.
+- Clean combined native creator Production and professional shot handoff **2 passed**.
+  Creator includes two S01 occurrences/nine cuts, exact
   second-scene cut handoff, route-only zero cuts, graph draft pause, installed
   structural replacement refusal and downstream revision drift. Browse writes zero;
   installed stages/bridge evidence read back unchanged before disposable drift.
-- Existing native still/image/H3/branch playback **4 passed**, `g4-media-current.txt`:
+- Existing native still/image/H3/branch playback **4 passed**:
   imported/reviewed still survives restart; frozen specialist image prepare/send/
   refresh/refine and stale intent guards; reviewed H3 profile; both native-ended
   routes and episode reset. Only test-owned roots and fake transport; no live calls.
 
 Initial new native test failed on a decision ID guessed from another fixture.
-The test now reads the accepted route-only binding; retained diagnostic log
-`g4-native-first.txt`. No application contract was weakened. Existing Starlette
+The test now reads the accepted route-only binding; no application contract was
+weakened. Existing Starlette
 and NO_COLOR/FORCE_COLOR warnings remain documented.
 
 ## Independent and visual observations

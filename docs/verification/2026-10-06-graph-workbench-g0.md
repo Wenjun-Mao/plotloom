@@ -4,7 +4,6 @@ Qualified on 2026-10-06, on retained local `main`, based on
 `e542f49c4e815d797f17e0a83c0631c54f9f6ea3`. This is the G0 source candidate,
 not the G1–G5 UI or release receipt. Source/frontend/tests aggregate SHA-256:
 `84b674a92890e9b3fed77856c7b26b6a78d4ad6226f7f57f0653a7271a75f75c`.
-The local per-file manifest is `.local/graph-workbench/g0-source-manifest.json`.
 
 ## Contract and positive evidence
 

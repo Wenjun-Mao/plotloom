@@ -11,10 +11,10 @@ documentation baseline `e760620`; no generation, canon or media selection writes
 
 - Original UI-origin QA project `b3a933f7-b6fc-40e3-826f-5162f95a119a`,
   “QA 新全程 灯房两条路 2026-10-07”, in isolated8861/8862.
-- Restored same-ID copy in a DIFFERENT outputs/application installation:
-  `.local/full-creator-2026-10-07/native-recovery-196/installation`,8873/8874.
-  Only this disposable restored home was permanently deleted.
-- Original project and exported snapshot remain intact. Owner projects,
+- Restored same-ID copy in a different outputs/application installation, on
+  ports 8873/8874. Only this disposable restored home was permanently deleted.
+- At the time of recovery, the original project and exported snapshot were
+  intact. Owner projects,
   credentials and protected settings were never reset, imported or deleted.
 - Evidence below is in `output/playwright/full-lifecycle-2026-10-07/`.
   Native playback proves functional delivery, not artistic/audio approval.
@@ -36,9 +36,8 @@ documentation baseline `e760620`; no generation, canon or media selection writes
 | Owned idle restart | Verified exact owned processes idle (`busy:false`,zero activeTasks), gracefully stopped original35767 and restored48672, restarted same compositions as56164/56165. Original six-view readback and assets unchanged in `196-native-after-idle-restart.json`; restarted8873 directory remains empty |
 | Restarted native playback | `197-native-restart-routes.txt`: original opening/East/West complete both routes, trusted terminal events,5s/120 frames/0 drops/no errors, no writes and unchanged jobs; `197-native-restarted-west-ended.png` |
 
-Snapshot remains at
-`.local/full-creator-2026-10-07/installation/outputs/.snapshots/b3a933f7-b6fc-40e3-826f-5162f95a119a/20261008T181152279138Z__d1a4d39e-b1d0-49b2-a541-67d3a71dda79`.
-It does not copy provider credentials/settings or replay dispatches.
+Snapshot restoration copied project data only; it did not copy provider
+credentials/settings or replay dispatches.
 
 ## Dedicated visual/text findings — original diagnosis, subsequently repaired
 

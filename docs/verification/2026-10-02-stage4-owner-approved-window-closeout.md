@@ -198,21 +198,9 @@ staging source was preserved after the required cleanup attempt refused its
 non-private staging root; no forced chmod/deletion occurred. Other retained
 cleanup refusals remain preserved. No measured provider-cost total is available.
 
-The existing `creator-walkthrough-reporting-guard` heartbeat is confirmed
+The existing `creator-walkthrough-reporting-guard` heartbeat was confirmed
 **PAUSED** by both tool and saved record. No service was stopped at closeout;
-the normal workbench and labelled isolated review copy remain available.
-
-Workflow-local evidence under `.local/unattended-2026-10-02/` includes:
-
-- `stage4-live/c5-third-window-*` and `a1-third-window-*`: actual submitted UI,
-  served review MP4s, all-frame/native sheets and A1 frozen snapshot.
-- `stage4-live/b2-third-window-*`: served raw/segment, all-frame and independent
-  text/detail sheets, submission and rejection-banner proof.
-- `stage4-live/a2-third-window-exported.jpg`; the immutable A2 package and
-  complete delivery under `final-installation/.../runs/20261002T184954065886Z__ij_bfb865af05054969b94180ff08fa4c17/`.
-- `stage4-live/retained-candidate-verified-ui.jpg` and
-  `h3-read-recovery-{withdrawn,revalidated}-ui.jpg`; `h3-recovery-static/`.
-- `evidence/manager-third-window-final-original.json` and the retained baseline.
+the normal workbench and isolated review copy were then available.
 
 ## Post-window owner listening verdict
 
@@ -238,8 +226,6 @@ worker reactivation or heartbeat resumption occurred. A2/A3/B1–B4 still lack
 selected media; both full routes and cross-shot audiovisual continuity remain
 incomplete and unaccepted.
 
-[Open selected A1](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aending-a-s1-c1#video-segment-preview-vj_177a64801d574581b42698d2308b19a6).
-[Open selected C5](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aopening-s1-c5#video-segment-preview-vj_76a72a982acb44058115e67aa963d523).
 A further explicitly bounded production window is required for
 remaining route media and reassessed phone action, followed by whole-route
 audiovisual/continuity review. Do not select merely to unlock playback.

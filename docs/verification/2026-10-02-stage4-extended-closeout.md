@@ -112,13 +112,11 @@ Neither real ending route is playable. The failed phone-text experiments do not
 prove a universal model limitation; pixel scale versus generated reconstruction
 has not been isolated. Exact still text does not establish exact video text.
 
-Complete IDs, hashes, review notes and limitations are retained under
-`.local/unattended-2026-10-02/stage4-live/extended-closeout-receipt.json` and
-`extension-handoff.md`. Their original 15:34 deadline records are historical;
-the owner's later extension is recorded here and in the active plan. The C2/C4
-image receipts have unknown model/effort metadata; intended worker settings are
-not substituted for actual receipt values. Staging cleanup refusals and earlier
-invalid receipt observations remain preserved, not bypassed or erased.
+Their original 15:34 deadline records were historical; the owner's later
+extension was recorded here and in the active plan. The C2/C4 image receipts
+had unknown model/effort metadata; intended worker settings were not substituted
+for actual receipt values. Staging cleanup refusals and earlier invalid receipt
+observations were preserved, not bypassed or erased.
 
 ## Preservation and handoff
 
@@ -129,23 +127,13 @@ change is explained in the earlier checkpoint and is not a data mutation.
 After the deployed browser checks, all six copy video outputs, reviews,
 selections and segment records also exactly match the pre-check receipt.
 
-Evidence in `.local/unattended-2026-10-02/` includes:
-
-- `evidence/manager-confirmation-predeployment-original.json`
-- `evidence/manager-confirmation-after-promote-original.json`
-- `evidence/manager-confirmation-after-iab-original.json`
-- `stage4-live/accessible-confirmation-iab.jpg` — synthetic fixture proof
-- `stage4-live/manager-deployed-confirmation-iab.png` — deployed real dialog,
-  subsequently cancelled without a review write
-
-The fixture server is stopped. Finished image and implementation chats were
+The fixture server was stopped. Finished image and implementation chats were
 reviewed, confirmed idle, archived in child-before-parent order, and their exact
 Relay routes removed. The unrelated quarantined route and unknown-dispatch
-evidence are preserved. The owned isolated server remains available on 8851/8852;
-normal services are unchanged. The temporary continuation heartbeat is stopped
+evidence were preserved. The owned isolated server was available on 8851/8852;
+normal services were unchanged. The temporary continuation heartbeat was stopped
 at this closeout; it is not permission to resume generation later.
 
-Review copy: [isolated storyboard](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard).
 Normal workbench: [localhost:8841](http://127.0.0.1:8841/v2/).
 The copy is local to this Mac; remote access was not needed or newly configured.
 

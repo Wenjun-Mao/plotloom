@@ -34,10 +34,9 @@ full frontend: 577 tests/78 files PASS; full Python/browser/wheel gates running.
 These API/runtime changes supersede frozen-v3 backend qualification: that gate is
 historical, not a current-backend final gate.
 
-The isolated candidate bundle is
-`d77dad53aecb81f2d350f8e83a61a4d128203dd7967303fee305cc2d8e1f6509`
-at `.local/full-creator-2026-10-07/candidate-static/workbench.js`. Checked static
-remains `4d7b2d47eef211af18cabbb271b038603258531ce698c1cc37dae278738a272b`;
+The isolated candidate bundle hash was
+`d77dad53aecb81f2d350f8e83a61a4d128203dd7967303fee305cc2d8e1f6509`. Checked
+static remains `4d7b2d47eef211af18cabbb271b038603258531ce698c1cc37dae278738a272b`;
 normal8841 still runs old Python. No absent-field compatibility fallback is used.
 New capability bundle activation requires paired runtime maintenance. Existing
 frontend-only checked changes were already served, so normal static bytes are
@@ -267,10 +266,8 @@ sandbox/no-referrer retained. Pixels36–38 distinguish host/body/header views.
 Baseline `8782dab`, clean main. Manager independently captured protected owner
 rows, 67+17 files and three protected configurations: aggregate
 `df1716a80d93bdf9aeaf2565464ac030340ab035cf86198d5355befea075f2a5`.
-New isolated8861/8862 `.local/full-creator-2026-10-07/installation`, initially
-process7211 then idle-restarted13666 before first send,23408 before branch dispatch,
-30338 after branch completion (zero inflight/two completed receipts). Prior8851 projects and evidence
-remain retained. This ledger never records credentials.
+The separate isolated 8861/8862 test installation ended with zero inflight work
+and two completed receipts. This ledger never recorded credentials.
 
 ## Inventory and root causes
 

@@ -18,7 +18,6 @@ targets `93002f4da53d2c8f0db067667998309edbb6e7a7` and ended in failure.
   or flaky cases. Reports/results11288938529/11289122626 were uploaded.
 - Browser shard1/job111325613123 finished with3 persistent failures,3 flaky
   and60 passed in18.3m. Reports/results11289173476/11289078612 were uploaded.
-  Local copies remain under `.local/unattended-2026-10-02/ci-37164168705/`.
 
 These results are not a green release. Exact trace/error evidence, not merely
 retry success or an agent's statement, determines the repair layer.
@@ -112,8 +111,7 @@ job111333141214, passed all66 cases in9.7m with no failed/flaky/skipped cases;
 the job completed in11m4s and uploaded results/report11290327176/11290232249.
 Shard1/job111333141200 ended with2 persistent failures,1 flaky and64 passed
 in23.2m; its job finished in24m26s. Results/report11290647744/11290277173 are
-retained on GitHub, and the failed shard's results are copied under
-`.local/unattended-2026-10-02/ci-37166752916/shard-1/`.
+retained on GitHub.
 At that checkpoint there was no full-browser acceptance or completed
 implementation claim.
 No further provider jobs, media changes, owner sound acceptance, normal backend

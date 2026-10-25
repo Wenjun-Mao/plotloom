@@ -41,11 +41,10 @@ repair; the normal native bridge was untouched. Normal H3 remains disabled.
 Fresh checks at approximately 12:37 UTC confirm both workbench health endpoints,
 the healthy normal container, the owned copy process, and matching static.
 The earlier isolated online gap remains unexplained; uninterrupted availability
-is not claimed. The current copy process is deliberately retained for review.
+is not claimed. At this checkpoint, the copy process was deliberately retained
+for review.
 
-Copy URL: <http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84>.
-Data root: `.local/unattended-2026-10-02/final-installation`.
-Normal workbench: <http://127.0.0.1:8841/v2/>.
+The test copy used port 8851; the normal workbench used port 8841.
 
 Original-project verification after deployment and again at 12:43 UTC shows
 **all 73 database tables and 67 file hashes exactly equal the launch baseline**.
@@ -55,11 +54,6 @@ Those defaults do not rewrite their stored declarations, acquire rights, or
 prove that no additions were made. Other original source/state facts are
 unchanged. The latest API capture exactly equals the post-deployment capture;
 the original launch baseline was not rewritten.
-
-Evidence: `evidence/manager-provenance-after-deploy-original.json`,
-`evidence/manager-real-media-midrun-original.json` and
-`evidence/manager-stage4-lock-checkpoint-original.json`, beneath the workflow root
-`.local/unattended-2026-10-02/`.
 
 ## Actual creator UI milestones
 
@@ -195,23 +189,10 @@ wording finding was corrected: four still deliveries are not four selected
 keyframes. The manager also verified the distinct third-image height, all four
 image output hashes/pins and all three retained video-copy hashes.
 
-Evidence directory: `.local/unattended-2026-10-02/stage4-live/`.
-
-- `stable-live-checkpoint.json`, `manual-review-notes.json` and refreshed
-  `live-{bridge,image,video,visual}-state.json` contain exact job, request,
-  output, currentness, approval and selection facts.
-- `recovered-approval.jpg`, `c1-h3-actual-playback.jpg`,
-  `c1-h3-submitted.json`, `c2-h3-prepared.json` document actual live milestones.
-- `c1-h3-raw.mp4`, `c2-h3-raw.mp4`, `c1-h3-segment-0-60.mp4` are verified
-  copies of the retained managed originals/derivative, not fixture media.
-- `c1-all60frames.png`, `c2-boundaries.png`, `c2-text-pixel-detail.png` and
-  `manager-c*-*.png` record visual review. Contact sheets are sampled or
-  downscaled views, never audio evidence or proof of continuous legibility.
-
-The image worker and coordinator are idle; the image worker remains available
+The image worker and coordinator were idle; the image worker remained available
 for a possible owner-authorized continuation before cutoff. No provider dispatch
-is pending or uncertain at this checkpoint. The manager retains the copy server
-and owns final documentation/runtime/monitor cleanup.
+was pending or uncertain at this checkpoint. The manager retained the copy server
+and owned final documentation/runtime/monitor cleanup.
 
 ## Exact continuation
 

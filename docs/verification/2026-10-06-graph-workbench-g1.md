@@ -3,7 +3,6 @@
 Qualified 2026-10-06 on retained `main`, baseline `e542f49c4e815d797f17e0a83c0631c54f9f6ea3`.
 Source/static/frontend/tests aggregate SHA-256:
 `8ce8418843d338cea57b15be89b707ad8b584074ae82dcc5c2549b902b69e1ef`.
-Per-file manifest: `.local/graph-workbench/g1-source-manifest.json`.
 This checkpoint does not qualify the G2–G5 creator presentation or release.
 
 ## Delivered contract
@@ -34,18 +33,16 @@ protection remain intact.
 
 ## Executed verification
 
-- Focused backend: **58 passed**, one existing Starlette warning,
-  `.local/graph-workbench/g1-final-backend-focused.txt`.
-- Complete frontend: **511 passed**, 71 files,
-  `g1-final-frontend-suite.txt`. Counts changed because obsolete mutation tests retired
+- Focused backend: **58 passed**, one existing Starlette warning.
+- Complete frontend: **511 passed**, 71 files. Counts changed because obsolete mutation tests retired
   and current recovery/ordering regressions replaced them.
 - Frontend types, E2E types and deterministic bundled-static build passed.
-- Real browser source→map confirmation→installation→reopen: **1 passed**, recorded
-  in `g1-focused-browser.txt`; its separate graph test failed on a collapsed navigator
+- Real browser source→map confirmation→installation→reopen: **1 passed**; its
+  separate graph test failed on a collapsed navigator
   selector. The next graph attempt reached the detail field and failed on an exact
   label selector. Native accessible-role selection and explicit disclosure navigation
-  resolved those test assumptions. Final graph exercise **1 passed** in
-  `g1-graph-browser-final.txt`: cancel, commit, Undo, save/reload unfinished prose,
+  resolved those test assumptions. Final graph exercise **1 passed**: cancel,
+  commit, Undo, save/reload unfinished prose,
   unchanged accepted map/graph and zero pipeline runs. These observations are G1
   functional evidence, not G2 visual acceptance.
 

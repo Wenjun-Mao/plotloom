@@ -20,7 +20,7 @@ New production image snapshots freeze `physical-visible-runtime.v1`, a presentat
 - Whole presentation browser journey: explicit span ownership, complete-package confirmation, saved evidence/reload, independent intent gate and explicit installation in disposable fixture roots.
 - Existing H3 browser tests were stale to the current English-review/catalog/segment workflow. They now use explicit fixture translations, prompt preview/freeze and segment confirmation; no product guards were relaxed. Synthetic offline gateway reports the submitted quality instead of a hardcoded value.
 - Both-route native browser playback/episode reset/reopen passes with reviewed synthetic segments. This demonstrates browser lifecycle, not real media or dialogue/text fidelity.
-- Production Vite build staged at `.local/unattended-2026-10-02/stage4-static`; normal/copy served assets were not promoted. Build has the existing large-chunk advisory. `git diff --check` passed.
+- Production Vite build passed in staging; normal/copy served assets were not promoted. Build has the existing large-chunk advisory. `git diff --check` passed.
 
 ## Live boundary and remaining work
 
@@ -44,7 +44,7 @@ The implementation reopened only for four demonstrated contract findings and fiv
 
 Executed after these fixes: **89 passed** across isolated service, normal config/runtime boundary, H3 prompt and presentation tests; **25 playback frontend tests passed** and app typecheck passed. Focused new/extracted-owner F401 and `git diff --check` pass; the separate pre-existing runtime TextProviderProfileSnapshot warning remains unchanged. Final frontend unit/typecheck/staged rebuild results follow. No live actions occurred. Manager reported the prior frozen candidate full Python **956 passed**, all41 service/bridge/manage checks and292 frontend/typechecks passed; those are prior-candidate gates, not verification of reopened source. Targeted independent closure and manager final gate remain pending.
 
-Refrozen at 11:16 UTC: complete frontend **294 passed / 44 files**, both app/E2E typechecks pass, external-output Vite build passes (existing chunk-size advisory only). Updated staged assets remain at `.local/unattended-2026-10-02/stage4-static`; no served assets promoted. F401 checks for config/new/extracted owners and `git diff --check` pass. Source remains uncommitted on the same `main` base. Sole source owner stops edits for targeted reviewer closure and manager final gate/commit/release.
+Refrozen at 11:16 UTC: complete frontend **294 passed / 44 files**, both app/E2E typechecks pass, external-output Vite build passes (existing chunk-size advisory only). Updated staged assets were not promoted to the served roots. F401 checks for config/new/extracted owners and `git diff --check` pass. Source remains uncommitted on the same `main` base. Sole source owner stops edits for targeted reviewer closure and manager final gate/commit/release.
 
 ## Manager release gate, 11:22 UTC
 
@@ -129,9 +129,7 @@ backend/media/recovery gate passes **111 tests** (58.74 s). Deployment follows
 this frozen checkpoint. The prior 964-test full Python gate
 preceded this small repair and is not relabelled as a rerun of it.
 
-Evidence is under `.local/unattended-2026-10-02/stage4-live/`: installed source/state
-receipts, `provenance-crash-receipt.json`, `provenance-crash.jpg`, and sanitized
-`gateway-preflight.json`. Actual H3 preflight passed contract 6 with required
+Actual H3 preflight passed contract 6 with required
 image/text modes and an empty queue; no H3 submission occurred. The current image
 package supplies character identity references, not selected S01/S02/P01 image
 attachments. Environmental/prop continuity must therefore be reported as text-guided
@@ -208,8 +206,8 @@ Executed verification:
   reviewed prompt/segment path. The handoff now seeds a disposable accepted
   2.5-second bridge and verifies exact coordinates and 60/124-frame guidance;
   actual H3 controls verify six/twelve-second 158/294-frame projections.
-- Production build succeeds at
-  `.local/unattended-2026-10-02/stage4-timing-static`, outside both served roots.
+- Production build succeeds in an external staging directory, outside both
+  served roots.
   Only the existing large-chunk advisory remains. No served static promotion,
   product UI reload, normal restart, commit or push was performed by this worker.
 
@@ -233,8 +231,7 @@ and those refusal boundaries; ADR 0100 records the distinction. The same
 independent reviewer verified the fix and reported no further concrete finding.
 
 Manager verification: all **366 frontend tests / 47 files** pass, both app and
-E2E typechecks pass, and the final external production build succeeds at
-`.local/unattended-2026-10-02/stage4-timing-final-static`. The fractional-source
+E2E typechecks pass, and the final external production build succeeds. The fractional-source
 handoff and H3 controls browser flows were independently rerun: **2 passed**.
 Only the existing large-chunk advisory remains. The final generated tree differs
 from the served tree only in `workbench.js`; canonical source, Python services

@@ -79,3 +79,11 @@ step: the manager removed the approved old run/CI and superseded recovery/wheel
 artifacts. A single current source/wheel recovery bundle is kept in
 `.local/current-qualified-recovery/`; the copied source checkout containing
 uncommitted work was preserved.
+
+Separately, the October 25 compatibility review classified all 28 database
+copies and 19 project IDs in five legacy QA workspaces as unsupported.
+All five workspaces were removed without archive: 4,712 regular files, 77 inert
+links and 1,292,800 allocated KiB (about 1.23 GiB); no mounts, open descriptors
+or process references remained. Current projects (eight, 672 tables, 263 files),
+application/host state (85 attempts), 15 settings fingerprints, container/bridge
+identities and service health were unchanged.

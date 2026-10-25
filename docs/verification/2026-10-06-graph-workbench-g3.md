@@ -1,8 +1,8 @@
 # G3 real Story workflow qualification, 2026-10-06
 
-Source/static candidate `2a3c7cfaf3ff3c30d0b3ffabd25322dc584440e9ade9b4bd3ccee811ab530b75`; manifest
-`.local/graph-workbench/g3-source-manifest.json`. Retained `main`, baseline
-`e542f49`, serial source owner; G4 Production presentation remains unqualified.
+Source/static candidate `2a3c7cfaf3ff3c30d0b3ffabd25322dc584440e9ade9b4bd3ccee811ab530b75`.
+Retained `main`, baseline `e542f49`, serial source owner; G4 Production
+presentation remains unqualified.
 
 ## Implementation
 

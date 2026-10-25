@@ -61,8 +61,7 @@ entered those observations in the UI, and explicitly settled once. Readback
 showed no busy reservation and an exact dispatch receipt with `state: completed`,
 the marker and operator review retained. The original executor pin still hashes
 to `609ed3fa7f0c5525d4fea2b12237bd82ac80fd22d7cc18222c6e34f5cce0ae4e`.
-The cancelled job and original package remain evidence; no image completion or
-candidate was fabricated. Screenshot and rejected-marker evidence are retained
-under `.local/unattended-2026-10-02/stage4-live/`.
+The cancelled job and original package were the evidence at that checkpoint; no
+image completion or candidate was fabricated.
 
 This confirms the bounded live recovery path, not image or route acceptance.

@@ -52,73 +52,66 @@ directory entry, shared Root close/recovery and an explicitly configured late
 footage fault. No binary/V1 execution, old section-map buffer, shape fallback,
 historical reader or automatic data upgrade was restored.
 
-## Executed gates and retained diagnostics
+## Executed gates and diagnostics
 
-All logs below are in ignored `.local/graph-workbench/`; a launched process is
-not a passing gate. The final source/static/wheel identities are recorded below.
+A launched process is not a passing gate. The final source and static identities
+are recorded below; wheel build and installed-smoke results are listed with the
+other checks.
 
 - `uv lock --check`, configured API F401 lint and full Python gate exited 0:
   **1182 passed**, 374.54s, one existing Starlette/httpx warning. Backend behavior
-  has not changed since that run (`g5-lock.txt`, `g5-lint.txt`, `g5-python.txt`).
+  has not changed since that run.
 - Earlier frontend suite **531 passed / 74 files**, app types and deterministic
-  static build exited 0 (`g5-final-frontend.txt`, `g5-final-types.txt`,
-  `g5-final-build.txt`). E2E types run before each native invocation.
-- Earlier rebuilt wheel and isolated installed smoke exited 0
-  (`g5-final-wheel-build.txt`, `g5-final-wheel-smoke.txt`); superseded below.
-- Current-contract native run: **70 passed / 2 failed**, exit1, 2.2m
-  (`g5-current-contract-native.txt`). Both failures were the test's incorrect
-  Brief link locator; captured UI proved the standalone button. Reassessed after
+  static build exited 0. E2E types run before each native invocation.
+- Earlier rebuilt wheel and isolated installed smoke exited 0; superseded below.
+- Current-contract native run: **70 passed / 2 failed**, exit1, 2.2m. Both failures
+  were the test's incorrect Brief link locator; captured UI proved the standalone
+  button. Reassessed after
   two unsuccessful attempts. Corrected final viewport/Close run: **15 passed**,
-  exit0, 42.5s (`g5-final-viewport.txt`).
+  exit0, 42.5s.
 - Initial full E2E diagnostic was deliberately interrupted after a runtime fix
   invalidated the unchanged candidate: **132 passed, 14 failed, 4 interrupted,
-  36 not run**, exit130 (`g5-full-e2e.txt`). It is not qualification.
-- `g5-qualified-full-e2e.txt`: **183 passed / 2 failed**, exit1, 5.6m.
+  36 not run**, exit130. It is not qualification.
+- Full E2E candidate: **183 passed / 2 failed**, exit1, 5.6m.
   Operations read raced Undo's durable acknowledgement; the test now awaits the
   actual PUT response and writer readiness. Snapshot collided with initial media
   reads. Its isolated follow-up (**5 passed / 1 failed**, exit1) incorrectly
   expected automatic Brief recovery. After two attempts, trace/screenshot review
   established the exact server draft behind the explicit Restore dialog. The
   corrected journey chooses Restore and retains snapshot/media lineage checks.
-- `g5-candidate-native.txt`: **13 passed**, exit0, 27.4s; frontend **531 / 74**,
+- Candidate native run: **13 passed**, exit0, 27.4s; frontend **531 / 74**,
   app types/static build exited0. Candidate wheel/installed smoke/compile exited0.
   These identities precede the window-blur/lifecycle delta and are historical.
-- `g5-final-full-e2e.txt`: **185 passed / 1 failed**, exit1, 5.7m. Shared Root
+- Final full E2E run: **185 passed / 1 failed**, exit1, 5.7m. Shared Root
   Save-and-close saved rev1 correctly but raced an owned Script GET holding a
   shared lease. Close returned project_busy safely. The requesting client's read
   admission/settlement contract and incorrect blanket409 revision-conflict copy
   were corrected at their owners under ADR 0124; server exclusive/unknown-dispatch
   safety remains required.
-- `g5-window-event-after.txt`: **4 passed**, exit0, 18.3s; separate Tab/Escape at
+- Window-event checks: **4 passed**, exit0, 18.3s; separate Tab/Escape at
   all three viewports and deterministic delivered-window-blur with native pointer
-  and textarea focus. Both pre-fix diagnostics are retained (`g5-window-focus-before`
-  event probe failed; `g5-window-event-before` reproduced width not restored).
+  and textarea focus. Both pre-fix diagnostics were an event-probe failure and
+  width not being restored.
 - Current stable frontend **538 passed / 76 files**, app/E2E types and
-  deterministic static build exited0 (`g5-read-stable-frontend.txt`,
-  `g5-read-stable-types.txt`, `g5-read-stable-build.txt`). Focused native
-  **37 passed**, exit0, 1.3m (`g5-read-stable-native.txt`), covers JSON/HTML read
+  deterministic static build exited0. Focused native **37 passed**, exit0, 1.3m,
+  covering JSON/HTML read
   settlement, Close/save/force-close, late edits, snapshot lineage, Story,
-  delivered blur and all three desktop viewports. Initial read-route teardown
-  and ApiError fixture diagnostics remain retained; neither is qualification.
+  delivered blur and all three desktop viewports. Earlier read-route teardown
+  and ApiError fixture diagnostics were not counted as qualification.
 - Fresh wheel build, isolated installed-wheel smoke and compileall exited0
-  (`g5-release-wheel-build.txt`, `g5-release-wheel-smoke.txt`,
-  `g5-release-compile.txt`). The preceding smoke invocation supplied a file
-  where the helper requires a directory; its argument-only exit1 is retained
-  separately. Fresh lock, configured API lint and archived-reader verification
-  exited0 (`g5-release-lock.txt`, `g5-release-lint.txt`,
-  `g5-release-archived-reader.txt`).
-- `g5-release-full-e2e.txt`: **189 passed / 1 failed**, exit1, 5.6m.
+  The preceding smoke invocation supplied a file where the helper requires a
+  directory; the corrected invocation passed. Fresh lock, configured API lint and
+  archived-reader verification exited0.
+- Release full E2E run: **189 passed / 1 failed**, exit1, 5.6m.
   The prepared-publication guard correctly refused permanent deletion with
   actual409/code project_busy; only the test's raw-code UI text expectation was
   obsolete. The bounded test-only correction verifies that response, human
   occupation/explicit retry guidance, no false version conflict, exact partial
   input and prepared-candidate retention and continued project existence.
-  All six direct-delete cases passed, exit0, 22.7s
-  (`g5-release-delete-e2e.txt`). No runtime/static/wheel changed.
-  The complete unchanged candidate rerun, `g5-release-qualified-full-e2e.txt`,
-  finished **190 passed**, exit0, **5.5m**. A subsequent deterministic rebuild
-  exited0 and all801 manifest hashes remained identical
-  (`g5-release-static-recheck.txt`).
+  All six direct-delete cases passed, exit0, 22.7s. No runtime/static/wheel
+  changed. The complete unchanged candidate rerun finished **190 passed**, exit0,
+  **5.5m**. A subsequent deterministic rebuild exited0 and all801 manifest hashes
+  remained identical.
   The staged diff subsequently found one trailing space in a newly added Python
   test, omitted by the earlier unstaged check. Formatting alone was corrected
   before publication; the focused module passed8, exit0, 1.35s. The final staged
@@ -180,9 +173,9 @@ the selected card's left edge; a subsequent new selection reveals it. This is
 not claimed as a fresh centred view. Full-page Story screenshots supplement
 content evidence and do not establish sticky-toolbar geometry.
 
-The stable read-admission candidate produced34 permanent screenshots under
-`supporting/graph-workbench-g5/`, with per-image hashes/source paths in
-`screenshots.json`. Twenty-seven were byte-identical to inspected predecessors;
+The stable read-admission candidate produced34 checked-in screenshots in
+`supporting/graph-workbench-g5/`, with per-image hashes and paths in the
+[screenshot inventory](supporting/graph-workbench-g5/screenshots.json). Twenty-seven were byte-identical to inspected predecessors;
 all seven changed images were directly inspected, including literal text, all
 Story occurrences and changed normal/short parallel-row views. The manager also
 directly inspected six current desktop/Production captures. Direct raw-media
@@ -238,7 +231,7 @@ readback are verified below; owner acceptance is separate.
 | C36 | API stale/double submission; provider deferred receipt tests; OPS actual held Undo selection. |
 | C37 | G0–G4 attended reviews retained; stable G5 Sol/Medium review and manager Sol/High review closed with no concrete blocker, all801 fingerprints independently verified. Manager separately cleared the precise one-test busy-copy delta and its six-case native result. |
 | C38 | DEL clean isolated9/9, opening/Story, exact ACK, no accepted map/run/write, start scroll/closed checks. |
-| C39 | Current801-file source manifest plus static/wheel hashes; exact one-native-receipt / five-DB-row retirement and unchanged postactivation evidence in the linked operation receipts. |
+| C39 | Current 801-file source manifest and static hashes; exact one-native-receipt / five-DB-row retirement and unchanged postactivation evidence in the linked operation receipts. |
 | C40 | STORY all repeated scenes/actions/dialogue; PROD exact repeated occurrence/cut order and shared node. |
 | C41 | STORY/OWN explicit package prepare/check/cancel/accept/report; API explicit confirm/first installation. |
 | C42 | PROD prose/footage/board drift pauses handoff while retaining records; BRIEF and Script currentness. |
@@ -274,12 +267,12 @@ Only the busy-delete test correction changes the release aggregate to
 all other800 entries were identical at the full browser gate. A later one-space
 Python test formatting correction makes the publication aggregate
 `28e9b376708a2601c1f48041ca38dc2f094c87564b4e3e19ef4ab473bbb9a466`;
-runtime and test semantics are unchanged. The permanent source manifest and
-`artifacts.json` record exact identities:
+runtime and test semantics are unchanged. The [source manifest](supporting/graph-workbench-g5/source-manifest.json)
+records the source aggregate, and the [candidate artifact inventory](supporting/graph-workbench-g5/artifacts.json)
+records static asset hashes from that qualification:
 
 - JS `47c7d7073601043c83f2e567efef6319014d401b123de1e6e03f5615a1959dc6`.
 - CSS `740bf83cf5643e916f98ae353cea8bcba9b7b58ee9625bd6b66443436381a7d1`.
-- Wheel `3027bbd4de1f42154b6491d9a886f9bb4b1e2bfc06fe129add07916e46403b7d`.
 
 Read-only normal preflight identifies two projects. Only 雨停以后
 `ee271b49-f384-414c-9711-452ee6333b84` has an incompatible retained Graph and

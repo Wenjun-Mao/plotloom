@@ -10,10 +10,9 @@ Contract: [ADR 0111](../adr/0111-journey-first-creator-presentation.md).
 ## Baseline and preservation
 
 Normal 8841 and its native specialists were healthy/idle at preflight. The
-existing read-only capture helper wrote
-`.local/unattended-2026-10-02/evidence/manager-ui-polish-preflight-original.json`:
-74 table projections, 67 managed file hashes and 7 API projections, exactly equal
-to the authorized normal-activation after-capture. The retained copy's 17 jobs,
+existing read-only capture measured 74 table projections, 67 managed file hashes
+and 7 API projections, exactly equal to the authorized normal-activation
+after-capture. The test copy's 17 jobs,
 12 selected/current segments and review identities were separately read as a
 preservation baseline, not used as the interactive iteration environment.
 The initial source is `a6507cb734c7d8674851badf86a0ac2215cafa01`.

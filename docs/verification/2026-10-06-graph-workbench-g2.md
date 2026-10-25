@@ -3,10 +3,7 @@
 Qualified 2026-10-06 on retained `main`, baseline `e542f49c4e815d797f17e0a83c0631c54f9f6ea3`.
 Source/static/frontend/tests aggregate SHA-256:
 `bc3363a9006bf324af8a973bff5af8bdb1368e3578fb608130b1cb6fe97334a5`.
-Manifest `.local/graph-workbench/g2-source-manifest.json` enumerates current files
-from src/plotloom, frontend/src/tests/e2e, tests and ADRs 0120–0122; aggregate is
-SHA-256 of sorted `path NUL file-sha256 LF` entries. No G3–G5 release or product
-acceptance is implied by this checkpoint.
+No G3–G5 release or product acceptance is implied by this checkpoint.
 
 ## Delivered and independently reviewed
 
@@ -39,30 +36,24 @@ no further blocker. No parallel writer was used.
 
 All listed process exit statuses were collected:
 
-- Graph commands/API: **20 passed**, existing Starlette warning,
-  `.local/graph-workbench/g2-commands.txt`.
-- Full frontend: **513 passed**, 72 files, `g2-final-frontend.txt`.
-- App types and E2E types: exit **0**, `g2-final-types.txt` and
-  `g2-final-e2e-types.txt`.
-- Deterministic current bundled static build: exit **0**,
-  `g2-final-styled-build.txt`.
-- Native G2 browser: **6 passed**, `g2-qualified-browser.txt`: three desktop
+- Graph commands/API: **20 passed**, existing Starlette warning.
+- Full frontend: **513 passed**, 72 files.
+- App types and E2E types and deterministic current bundled static build: exit **0**.
+- Native G2 browser: **6 passed** across three desktop
   cases, repeated operations, capacity/reuse/restoration and target preview.
-  Final preview styling reran the three operation cases: **3 passed**,
-  `g2-preview-styled-browser.txt`.
-- Current playback fixture correction: **2 passed** (1.9 min),
-  `g2-footage-browser-current.txt`; the playback decision explicitly has footage,
+  Final preview styling reran the three operation cases: **3 passed**.
+- Current playback fixture correction: **2 passed** (1.9 min); the playback decision explicitly has footage,
   with original scene, shot and video assertions retained. This closes the G1
   receipt's dated E2E-type correction, not a new creative/media acceptance.
 
-Earlier failed G2 matrix/fixture logs remain local. The first matrix exposed last
-row controls beyond declared chart height; layout height now includes that row gap.
+The first matrix exposed last row controls beyond declared chart height; layout
+height now includes that row gap.
 A screenshot review exposed initial restore/reveal ordering in short windows;
 geometry readiness now sequences initial scroll restore before selection reveal.
 The first capacity test expected a nonexistent diagnostic name; the existing
 `out_degree:choose` contract correctly refused the seventh option without writes.
-No tolerance or alternate executor was introduced. Earlier frontend logs include
-a React SettingsDialog missing-key warning; its unchanged stage-number mapping is
+No tolerance or alternate executor was introduced. An earlier frontend run
+included a React SettingsDialog missing-key warning; its unchanged stage-number mapping is
 present at baseline and is unrelated to graph changes. Browser runner emits the
 NO_COLOR/FORCE_COLOR environment warning. These are not described as warning-free.
 

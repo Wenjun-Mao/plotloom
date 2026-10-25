@@ -176,8 +176,8 @@ the installable r3. Editorial QA metadata was not turned into a depicted event.
 
 - Source baseline retained main `93b6553`; initial normal8841 backend `c8f59b7`,
   checked frontend `02fcc30`.
-- New empty installation `.local/full-creator-2026-10-06/installation`;
-  isolated workbench `http://127.0.0.1:8851/v2/`, bridge8852, source static assets.
+- New empty installation; isolated workbench on port 8851, bridge8852, source
+  static assets.
   H3 explicitly opted in with process-local catalog_v7, matching source adapter.
   The protected environment file retains catalog_v5. Two startup refusals
   (v5, then documentation-derived v6) occurred before queue or provider contact;
@@ -457,9 +457,6 @@ Root also corroborated healthy final container and exact loaded stylesheet order
 workbench2.css then workbench.css, plus JS identity, on both ports; no cached-Python
 object inspection is claimed.
 
-Retained terminal logs under `.local/full-creator-2026-10-06/`:
-`final-browser.log`, `final-frontend.log`, `final-typecheck.log`, `final-build.log`,
-`python-full-gate.log`, `normal-activation-24935d1.log`, `normal-restart-24935d1.log`.
 Wheel/smoke exit0 was observed terminal output, not an invented logfile.
 One full workflow_dispatch (`browser_grep=.*`) created
 [CI37576375714](https://github.com/Wenjun-Mao/plotloom/actions/runs/37576375714),

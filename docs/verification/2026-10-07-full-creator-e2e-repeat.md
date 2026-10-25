@@ -464,14 +464,6 @@ advisory→advisory no-op for direct/draft saves, with unchanged no-op revision 
 exact draft consumption. Focused module: 11 PASS/2.85s. Production behavior and
 bounds were not weakened; V8 full Python includes this correction.
 
-Durable gate artifacts live in `.local/full-creator-e2e-repeat-2026-10-07/gates/`:
-`independent-final-v8-python.log`, `independent-final-v8-before.json`,
-`independent-final-v8-python-after.json`; `independent-final-v7-browser.log`,
-`independent-final-v7-before.json`, `independent-final-v7-browser-after.json`;
-and `independent-final-v7-{frontend,typecheck,lock,lint,diff,wheel,smoke}.log`.
-`independent-final-v7-python.log` retains the failed attempt, not a passing gate.
-Wheel SHA256: `82bee9d078bcd01c4001183adf25d2661ea778dc0d546aa2c20b20d8544bdcde`.
-
 Qualified software is activated on normal8841 and its exact source is published.
 Served JS matches the exact checked hash above. The required runtime capability is
 `intentGeneration=unavailable/not_configured` for normal's bare composition, not
@@ -586,8 +578,8 @@ this tab's surviving join despite another tab's stored start preference, newer
 prose readback and new preview Cancel. Pixel39 qualifies the corrected selection.
 
 Snapshot `20261007T171218926407Z__540792a9-a7e1-4436-b207-4ecbcde33ec5` was created
-by UI. Operator restore into separate `.local/full-creator-2026-10-07/e21-restored-outputs`
-has byte-equal project.sqlite3; no second API/writer or configuration restore.
+by UI. Operator restore into a separate output root had byte-equal project.sqlite3;
+no second API/writer or configuration restore.
 Actual archive/unarchive and wrong-name/cancel/exact-name typed delete passed for
 disposable brief-only copy `1154579c-dc16-4915-ba9d-e32778bea500` only (API404).
 Source QA274 and snapshot retained; this does not prove media-bearing deletion.

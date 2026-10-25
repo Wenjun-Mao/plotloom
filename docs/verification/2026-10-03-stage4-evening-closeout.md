@@ -135,10 +135,8 @@ dispatch remains. Both routes still lack required media and are unaccepted.
 No new sound or assembly acceptance is inferred from prior owner listening.
 
 `manager-evening-final-original.json` equals the pre-window capture exactly:
-**73 tables, 67 file hashes and seven API projections unchanged**. All local
-media, screenshots, rejected-marker evidence and provisional design notes stay
-workflow-local under `.local/unattended-2026-10-02/`. Root remained sole source,
-UI and provider writer. Read-only subagent finals were attended. The idle Luna
+**73 tables, 67 file hashes and seven API projections unchanged**. Root remained
+sole source, UI and provider writer. Read-only subagent finals were attended. The idle Luna
 image chat was archived after review and its Relay route removed. The existing
 `creator-walkthrough-reporting-guard` heartbeat is confirmed **PAUSED** while
 awaiting owner direction; it was not duplicated. The full goal is not marked

@@ -132,17 +132,6 @@ Return to the creator workbench preserved media selections. Authored route
 durations are **20 seconds / 22.5 seconds**, excluding the user's choice pause;
 these are not a claim of 30-second production pacing or personal audio audition.
 
-Local exact screenshots/media are under
-`.local/unattended-2026-10-02/stage4-live/`. `runtime-choice-proof.jpg` is a
-494×188 crop of the actual choice controls, SHA-256
-`4438e27ea5c17133dff7dc114c63ba3077a3410ce8a3d9cd0dbb26dc7febab7f`.
-`home-route-end-proof.jpg` preserves the first complete reader ending screenshot;
-`final-home-route-proof.jpg` and `final-cafe-route-proof.jpg` preserve both
-endings after the display-label repair and repeated natural route playback.
-These are original CUA JPEG bytes, not reconstructed UI. New MP4 mirrors retain
-their managed hashes; the original independent bubble experiment is not relabeled
-as a canonical job.
-
 ## First stable checkpoint: verification, activation and preservation
 
 - Full backend after the final shared conflict guard: **1,047 passed**;

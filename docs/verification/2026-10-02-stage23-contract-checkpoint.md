@@ -132,18 +132,10 @@ owned restart and explicit Settings reconciliation check.
   passed. Full Script-file Ruff has four pre-existing I001/TRY004 findings, and
   repository.py has one pre-existing F401 finding, reproduced unchanged from
   `HEAD`. New lifecycle modules, settings and regression files pass full Ruff.
-- Original API states, all 73 SQLite tables and 67 managed files equal the
-  launch baseline. Current evidence is
-  `.local/unattended-2026-10-02/evidence/stage23-contract-checkpoint-original.json`.
-  Current copy state and failed Script hashes are in
-  `stage23-contract-checkpoint-state.json`. Earlier failure traces remain in
-  `creator-navigation-fixed`, `creator-consumers-fixed`, `creator-current-contracts`
-  and `ownership-current-actions`; passing storyboard evidence is in
-  `storyboard-current-task-check`.
-- Fresh original evidence `terminal-reconciliation-original.json` still equals
-  the launch baseline. `terminal-reconciliation-live-preservation.json` proves
-  all 12 failed Script files and the live specialist reservation remain equal
-  to the preceding checkpoint.
+- Original API states, all 73 SQLite tables and 67 managed files equalled the
+  launch baseline. The fresh original capture matched that baseline; the
+  live-preservation check confirmed all 12 failed Script files and the live
+  specialist reservation matched the preceding checkpoint.
 
 No live H3/video work was attempted in this slice. Fixture results are synthetic
 verification, not real media acceptance. No measured cost delta is available.
@@ -179,24 +171,6 @@ tests passed on the committed implementation. Browser evidence is under
 separate evidence. Only the existing Starlette/httpx dependency warning remains.
 No gate was waived, no live reservation was cleared during verification, and
 no normal-service restart or generated-asset change occurred.
-
-## Owned runtime and next action
-
-The isolated runtime remains at
-`http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84`,
-with bridge 8852 and final installation rooted under
-`.local/unattended-2026-10-02/final-installation`. Session `33475` / PID 12237
-remains owned and running after the authorized restart from session `8066` /
-PID 41667. Normal 8841/8842 are untouched. The process has the committed
-Script/lifecycle fixes loaded but predates the pending basename correction.
-Restart only the owned runtime after manager review/commit and a safe dispatch
-checkpoint before preparing another image package.
-
-Native image chat `01a0fb4f-5f01-7e21-a8c6-ea5f662c676f` used GPT-6 Luna/Max;
-text chat `01a0fb4f-60d9-7062-883a-e00f1d17d493` used GPT-6.1 Sol/Medium.
-Keep both available. Continue the remaining scene/prop iteration and source
-currentness journey after the basename source gate. Preserve the absolute
-13:04:18 UTC stop-new-work and 13:34:18 UTC hard cutoff.
 
 ## Live continuation and basename source gate, 08:30 UTC
 
@@ -285,7 +259,8 @@ not establish a successful live exact-basename delivery; that is the next test.
 ## Exact-basename delivery and source-currentness gate, 09:28 UTC
 
 Owned isolated restart session `11027` / PID 37975 loaded pushed revision
-`25fb66765aa738f4c2e75c920402a1fc98969249`; ports 8851/8852 remain running.
+`25fb66765aa738f4c2e75c920402a1fc98969249`; ports 8851/8852 were still running
+at that checkpoint.
 Normal 8841/8842 and both quarantined roots remain untouched. Native image and
 text specialists are idle, and both copy reservation slots are free.
 
@@ -340,14 +315,12 @@ seconds), including its canonical route installation and reopen. Diff checks pas
 Fresh copy specialist API inspection confirms reservations are free; compact native
 snapshots confirm both workers remain idle.
 
-The build succeeded into the isolated staging directory
-`.local/unattended-2026-10-02/source-currentness-static` only. Its existing large
-chunk warning remains. Neither normal `src/plotloom/static` nor the currently
-served copy static root was promoted. Fresh original capture
-`stage23-currentness-review-original.json` exactly equals the preceding manager
-baseline across seven API states, 73 tables and 67 files.
-`source-currentness-review-preservation.json` verifies the sole Script change,
-retained Storyboard evidence and staged bundle hashes.
+The build succeeded into an isolated staging directory only, with its existing
+large-chunk warning. Neither normal static assets nor the served copy assets
+were promoted. A fresh original capture exactly matched the preceding manager
+baseline across seven API states, 73 tables and 67 files. The preservation
+review found only the Script change, retained Storyboard evidence and staged
+bundle hashes.
 
 Current copy state intentionally remains Script r3 / stale Storyboard r1. No new
 native package, H3 call, production action, receipt rewrite or staging cleanup

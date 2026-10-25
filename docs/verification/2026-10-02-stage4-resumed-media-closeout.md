@@ -122,18 +122,8 @@ tool and saved record. Finished read-only review results have been collected;
 no native worker was reopened. The manager-owned isolated server remains
 available; no service, security or original-project setting was altered.
 
-Evidence is local under `.local/unattended-2026-10-02/`:
-
-- `stage4-live/resumed-video-jobs.json`: complete retained video snapshots.
-- `stage4-live/c2-fixed-seed-{raw,segment-0-60}.mp4`, detail/sample/text PNGs,
-  and `c2-fixed-seed-{submitted,review}.jpg`: raw, derivative and review proof.
-- `stage4-live/c4-h3-segment-0-60.mp4` and `c4-h3-segment-all60.png`.
-- `evidence/manager-{media-resume,seed-deployed,resumed-closeout}-original.json`.
-- `seed-control-static/` and `seed-control-independent-static/`: matching builds.
-
-[Open the current C2 review](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aopening-s1-c2).
-The normal workbench remains [localhost:8841](http://127.0.0.1:8841/v2/).
-Next: obtain actual original/final sound verdicts; reconcile scene/identity/prop
-continuity; authorize a further bounded production window for missing/rejected
+Next acceptance at the time was to obtain actual original/final sound verdicts;
+reconcile scene/identity/prop continuity; authorize a further bounded production
+window for missing/rejected
 route media. Do not select solely to make playback run. No measured provider
 cost total is available. The full real-media walkthrough remains incomplete.
