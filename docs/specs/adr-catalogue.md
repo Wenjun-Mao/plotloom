@@ -1,7 +1,8 @@
 # Complete ADR discovery catalogue
 
 Snapshot: 2026-10-22, source baseline `8d3b259a` plus documentation-only ADR 0217.
-Amended 2026-10-24 to include ADR 0218's owner-approved autosave/optional Freeze decision. Earlier opening status cues remain historical excerpts, not new qualification claims.
+Amended 2026-10-24 to include ADR 0218's owner-approved autosave/optional Freeze decision.
+Amended 2026-10-25 to include ADR 0219's owner-approved validated installation-only reader. Earlier opening status cues remain historical excerpts, not new qualification claims.
 Each numbered Markdown file is linked once below; `docs/adr/README.md` remains
 a selected decision-chain guide, not this exhaustive inventory. The feature map
 is [README](README.md); this catalogue preserves full slugs and historical IDs.
@@ -267,6 +268,12 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 | [0214-read-only-gateway-dashboard](../adr/0214-read-only-gateway-dashboard.md) | Status: accepted for the owner-approved dashboard slice, 2026-10-20. |
 | [0215-h3-dashboard-submission-boundary](../adr/0215-h3-dashboard-submission-boundary.md) | Status: accepted by owner, 2026-10-21. Extends ADR 0214's read-only surface. |
 | [0216-media-services-monorepo-boundaries](../adr/0216-media-services-monorepo-boundaries.md) | Status: repository direction and implementation approved by the owner on 2026-10-22. |
+
+## Validated installed-production reads
+
+| Record (full slug) | Opening status cue — inspect source for exact scope |
+| --- | --- |
+| [0219-validated-installation-only-reader](../adr/0219-validated-installation-only-reader.md) | Status: accepted for implementation, 2026-10-25, under the owner-approved |
 
 ## Specification organization
 

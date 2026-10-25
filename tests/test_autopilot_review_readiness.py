@@ -24,11 +24,7 @@ def test_inventory_requires_present_current_installation_before_loading_material
         assert missing not in {"cast", "art"}, (
             "missing text must refuse before bridge inspection"
         )
-        return SimpleNamespace(
-            installation=None
-            if missing == "installation"
-            else SimpleNamespace(status="outdated")
-        )
+        return None if missing == "installation" else SimpleNamespace(status="outdated")
 
     store = SimpleNamespace(
         cast_state=lambda: SimpleNamespace(
@@ -37,7 +33,7 @@ def test_inventory_requires_present_current_installation_before_loading_material
         art_state=lambda: SimpleNamespace(
             accepted_art=None if missing == "art" else object()
         ),
-        production_bridge_state=bridge,
+        production_bridge_installation=bridge,
     )
     with pytest.raises(
         InvalidTransitionError, match="current accepted text and installation"

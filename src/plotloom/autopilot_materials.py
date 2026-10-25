@@ -65,7 +65,7 @@ def initial_inventory(store, policy, *, enforce_limits=True):
     readiness_error = "complete material inventory requires current accepted text and installation"
     if cast is None or art is None:
         raise InvalidTransitionError(readiness_error)
-    installation = store.production_bridge_state().installation
+    installation = store.production_bridge_installation()
     if installation is None or installation.status != "current":
         raise InvalidTransitionError(readiness_error)
     subjects = cast_reference_subjects(cast)

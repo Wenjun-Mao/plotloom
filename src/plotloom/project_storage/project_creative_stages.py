@@ -7,7 +7,7 @@ from ..cast_style import CandidateCastRenderStyle
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgePrepareRequest, ProductionBridgeState
+from ..production_bridge_contracts import InstalledProduction, ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgePrepareRequest, ProductionBridgeState
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..source_outline_contracts import OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceMaterial, SourceOutlineReviewState
 from ..storyboard_review_contracts import DEFAULT_STORYBOARD_MAX_CUT_SECONDS, StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
@@ -180,6 +180,9 @@ class ProjectCreativeStages(ProjectCreativeHandoffs):
 
     def storyboard_review_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
         return self.repository.storyboard_review.candidate_request(self.manifest.project_id, job_id)
+
+    def production_bridge_installation(self) -> InstalledProduction | None:
+        return self.repository.production_bridge.get_installation(self.manifest.project_id)
 
     def production_bridge_state(self) -> ProductionBridgeState:
         return self.repository.production_bridge.get_state(self.manifest.project_id)

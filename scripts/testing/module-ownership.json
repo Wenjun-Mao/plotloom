@@ -183,6 +183,7 @@
           "tests/test_identity_review_refusal.py",
           "tests/test_native_wake_art.py",
           "tests/test_production_bridge.py",
+          "tests/test_production_bridge_installation_read.py",
           "tests/test_production_bridge_fresh_preinstall.py",
           "tests/test_production_bridge_intent.py",
           "tests/test_production_bridge_seed.py",

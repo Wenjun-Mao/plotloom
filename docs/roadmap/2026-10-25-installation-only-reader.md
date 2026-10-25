@@ -1,8 +1,10 @@
 # Validated installation-only reader
 
-Status: proposed implementation plan, 2026-10-25. Planning and read-only review
-are authorized; implementation, activation and branch retirement await the owner's
-approval of this plan.
+Status: owner-approved implementation plan, 2026-10-25. The owner approved scoped
+implementation, qualification, quiet activation/rollback and old proposal retirement
+through Relay Direct. Source implementation passed independent review; final local qualification is
+pending. Activation remains
+with the manager after independent review and local qualification.
 
 ## Outcome and reason
 
@@ -17,8 +19,9 @@ projection. This is a separation of responsibilities with a current consumer;
 no measured speedup, performance target or new benchmark is claimed.
 
 Retained source R is /Users/wjmao/.codex/worktrees/b30f/plotloom, local main
-65a9128e. Installed checkout P is /Users/wjmao/projects/HU/plotloom at the same
-revision when planned. Refresh identities/status at execution rather than
+c0d4630587e3d85d5aa9ec72d466c1f14de99b53 at implementation start. Installed checkout
+P is /Users/wjmao/projects/HU/plotloom; its current identity is checked by the
+manager before activation. Refresh identities/status at execution rather than
 assuming those revisions or current host counts remain unchanged.
 
 ## Design and scope
@@ -166,8 +169,8 @@ Approval of this plan is intended to cover scoped implementation, local
 verification, local main checkpoint, temporary-ref retirement and controlled
 quiet backend activation at the existing P installation. It also covers planned
 rollback and normal in-scope fixes without repeated milestone approvals.
-That operational scope is proposed here; prior storage-cleanup approval alone
-does not authorize deploying this backend change.
+That operational scope is now owner-approved through Relay Direct; activation
+remains a manager-owned step after source handoff and qualification.
 
 At activation, use existing deployment tooling and the same data root, providers,
 profiles, settings and credentials. Backend Python imports require service
@@ -229,3 +232,72 @@ unverified) found no unnecessary approval, budget, attempt or serialization gate
 Its bridge-reload finding is incorporated above; package qualification reuses
 the final full gate rather than adding a duplicate broad run. No implementation,
 activation, branch retirement or product test was performed during planning.
+
+## Implementation checkpoint, 2026-10-25
+
+Worker `01a173e0-83be-7912-8bb9-012c7e550a41` is the serial source writer in R.
+The three product changes retain existing installation validation and read leases;
+only initial inventory switches consumers. ADR 0219 records the internal reader.
+
+Small local persistence/API journey passed before broader checks: the focused
+runner selected
+`tests/test_production_bridge_installation_read.py::test_persistent_inventory_journey_observes_upstream_drift`
+and `tests/test_autopilot_review_readiness.py` (10 passed, 5.41s pytest; 7.980s runner).
+The real disposable project used current fixture prepare/review/accept operations,
+read back identical installed authority/inventory after reopen, then observed a
+separate handle's committed Script reopen as outdated and refused inventory.
+Logical persisted rows were unchanged by reads; the actual review/handoff API
+refused incomplete material without mutation. This is local reader/API evidence,
+not provider or media-production acceptance. No generation or grants were used.
+
+Envelope: locked existing environment, CPython 3.12.13, macOS 27.0.1 arm64.
+Focused affected-contract command:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --pytest tests/test_production_bridge_installation_read.py \
+  --pytest tests/test_bridge_operation_context.py \
+  --pytest tests/test_production_bridge.py \
+  --pytest tests/test_production_bridge_fresh_preinstall.py \
+  --pytest tests/test_production_rebuild.py \
+  --pytest tests/test_production_rebuild_freshness.py \
+  --pytest tests/test_production_rebuild_guards.py \
+  --pytest tests/test_production_rebuild_dependencies.py \
+  --pytest tests/test_autopilot_material_imports.py \
+  --pytest tests/test_autopilot_handoff.py \
+  --pytest tests/test_autopilot_review_readiness.py
+```
+
+First result: **99 passed, 1 failed**, 104.29s pytest / 114.978s runner.
+The failed new canonical-status fixture injected `outdated`, outside supported
+`StageStatus`/`CanonicalReplacementHead` vocabulary. The full review projection
+correctly rejected that invalid fixture. Corrected it to `stale`; production code
+was unchanged. Also strengthened inventory equality against the full-reader path
+and added an ordinary supported canonical-edit regression. Reran only the changed
+file with
+`uv run --locked --no-sync python scripts/verify.py focused --pytest tests/test_production_bridge_installation_read.py`:
+**15 passed**, 10.81s pytest / 12.449s runner. The **86 unchanged existing affected
+cases** from the first run retain their passing evidence; this was not a second
+broad run. The corrected file covers absent/prepared/current/pending installation,
+upstream and canonical drift, reopen/separate-handle freshness, committed reversal,
+corrupt evidence, admission failures, unexpected context errors, read-only logical
+rows and projection separation. Existing full-reader exception-order/atomic
+rollback regressions passed in the wider selection.
+
+The existing module-plan command
+`uv run --locked --no-sync python scripts/verify.py module --module creative-production --depth contract --show`
+confirmed the new file in creative-production (43 pytest owner files); this is
+expansion evidence, not module qualification. Readiness remains story-authoring.
+Changed Python files passed `ruff check --select F401`; `git diff --check` passed.
+The old proposal was inspected as reference; no branch merge/cherry-pick occurred.
+Its ref still resolved to `76d6a916b4368e63dd8fe36479cd2f57e6f17c09` at this check.
+
+Disposable pytest project roots from these runs were removed after readback or
+had already been removed by pytest retention. No raw media/evidence archive or
+historical QA root was created. Independent read-only review completed with no
+findings; manager inspected the actual product/test diff and agreed. The manager
+requested the missing exhaustive ADR catalogue entry, now added with a dated
+amendment cue. No source correction was required. The stable full local gate is
+next under the same sole qualification owner. No full/hosted gate, installation,
+recovery refresh, live-state edit or proposal-ref deletion has yet been performed. Manager owns activation/recovery/ref
+retirement. Known phase timings beyond the runner measurements are unavailable.

@@ -62,6 +62,13 @@ class ProductionBridgeInstallation:
             return ["production rebuild replacement target changed"]
         return []
 
+    def get_installation(self, project_id: str) -> InstalledProduction | None:
+        """Read validated installed authority without projecting proposal review UI."""
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            self._head(session, project_id)
+            return self.installation_in_session(session, project_id)
+
     def installation_in_session(self, session, project_id):
         return self._installation_state(session, project_id, lambda inputs: self._current(session, project_id, inputs))
 

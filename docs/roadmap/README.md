@@ -1,14 +1,15 @@
 # Plotloom roadmap entrypoint
 
-## Proposed validated installation-only reader
+## Approved validated installation-only reader
 
 The [bounded plan](2026-10-25-installation-only-reader.md) adapts the remaining
 useful historical proposal to current read leases and installation validation,
 changes only the inventory consumer, and specifies early disposable API/persistence
 proof, focused regressions, independent review and one stable full local gate.
-Approval is requested for implementation through quiet preservation-checked
-backend activation and retirement of the temporary proposal ref; planning alone
-authorizes none of those actions. No speedup, generation, push or CI is claimed.
+The owner approved implementation through quiet preservation-checked backend
+activation/rollback and retirement of the temporary proposal ref. Focused source
+verification is in progress; independent review and final qualification precede
+manager-owned activation. No speedup, generation, push or CI is claimed.
 
 ## Completed top-five historical storage cleanup
 
