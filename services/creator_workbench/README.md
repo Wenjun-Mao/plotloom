@@ -93,6 +93,8 @@ See [ADR 0095](../../docs/adr/0095-persistent-creator-workbench.md).
 
 For a full image lane held by historical UNKNOWN work on revoked/deleted
 projects, use the [explicit local-capacity recovery guide](codex-exec-capacity-recovery.md).
+For permanently revoked, deleted project history, use the guarded
+[garbage-collection operator commands](deleted-project-garbage-collection.md).
 It separates local occupancy from remote uncertainty, provides the supported
 authenticated preview/commit commands, and preserves UNKNOWN and spending holds.
 Bridge health and login readiness do not establish generation availability.

@@ -24,6 +24,7 @@ class CodexExecSupervisorControlMixin:
         with self._guard:
             with closing(self._connect()) as connection:
                 connection.execute("BEGIN IMMEDIATE")
+                self._assert_project_publication(connection, attempt.project_id)
                 row = connection.execute(
                     "SELECT * FROM exec_attempts WHERE attempt_id=?", (str(attempt_id),)
                 ).fetchone()

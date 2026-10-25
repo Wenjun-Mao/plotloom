@@ -181,6 +181,21 @@ def handler_for(bridge: QueueBridge):
         def do_POST(self):
             if not self.authenticated():
                 return
+            if self.path in {"/exec-project-gc-preview", "/exec-project-gc"}:
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 1 <= length <= 1048576:
+                        raise ValueError("invalid garbage collection request size")
+                    self.connection.settimeout(5)
+                    packet = json.loads(self.rfile.read(length))
+                    supervisor = bridge.exec_supervisor()
+                    action = (supervisor.project_gc_preview if self.path.endswith("-preview")
+                              else supervisor.collect_deleted_project)
+                    result = action(packet)
+                    self.reply(200, result.model_dump(mode="json", by_alias=True))
+                except Exception:  # noqa: BLE001 - keep private host diagnostics off the transport
+                    self.reply(409, {"error": "project_garbage_collection_not_acknowledged"})
+                return
             if self.path in {"/exec-capacity-retirement-preview", "/exec-capacity-retire"}:
                 try:
                     length = int(self.headers.get("Content-Length", "0"))

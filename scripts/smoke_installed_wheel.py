@@ -196,6 +196,13 @@ def main() -> None:
             assert snapshot.status == "complete"
             assert not (RETIRED_MODULES & set(sys.modules))
 
+            from plotloom import runtime
+            assert not hasattr(runtime, "recover_runtime_jobs")
+            assert not hasattr(runtime, "StartupRecoveryRepository")
+            assert not hasattr(runtime, "StartupRecoveryRunner")
+            from plotloom.codex_exec_gc_contracts import ProjectGarbageCollectionRequest
+            assert ProjectGarbageCollectionRequest(project_id=project_id).expected_preview_hash is None
+
             # Installed receiving must remain library-only, including direct
             # ready/acceptance paths that do not pass through filesystem intake.
             class BlockCheckoutValidators(importlib.abc.MetaPathFinder):

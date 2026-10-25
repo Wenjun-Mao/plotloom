@@ -61,20 +61,13 @@ receipts/manifests, permanent revocation or disabled queue. It does not drain a
 queue, publish an output or raise the 4-total/2-image default limits. Reduced
 persisted installations keep their own exact limits.
 
-## Closed historical incidents
+## Permanently deleted project history
 
-The two historical examples below were retired on October 22. A fresh read-only
-review on October 24 returned both original receipts and confirmed zero held
-slots, zero enabled queues and zero active execution states. Their operational
-incidents are closed; the UNKNOWN outcome rows and one project image-budget
-reservation each remain historical audit facts. Describe them as historical
-UNKNOWN records with local capacity retired, rather than unfinished work.
-
-The [closeout receipt](../../docs/verification/2026-10-24-historical-unknown-closeout.md)
-records exact identities, evidence limits and readback. Do not repeat retirement
-or generation for these cases. Routine preservation can verify their unchanged
-records without reopening them; stronger outcome or accounting disposition needs
-new authoritative evidence or a separately scoped decision.
+After an explicit local retirement, permanently revoked and absent projects can
+have their host history erased using the separately explicit
+[garbage-collection operation](deleted-project-garbage-collection.md). It keeps
+revocation and makes no terminal-outcome or accounting refund claim. Do not repeat
+retirement or generation merely to recreate erased history.
 
 ## Supported operator commands
 
@@ -87,34 +80,26 @@ scripts. Find the exact container read-only:
 docker ps --filter label=com.docker.compose.project=plotloom-creator --filter label=com.docker.compose.service=workbench --format '{{.ID}} {{.Names}}'
 ```
 
-Replace `<container-id>` with that single verified running container. For the
-first retained historical attempt, inspect:
+Replace `<container-id>`, `<project-uuid>` and `<attempt-uuid>` with one exact
+retained revoked/absent project and UNKNOWN image attempt:
 
 ```sh
-docker exec -i <container-id> codex exec-capacity-retirement-preview --packet-json '{"projectId":"765ce4d9-12e3-4d96-8944-b49ba381fdf2","attemptId":"06e80972-9dde-41ff-be71-b477c1477465"}'
+docker exec -i <container-id> codex exec-capacity-retirement-preview --packet-json '{"projectId":"<project-uuid>","attemptId":"<attempt-uuid>"}'
 ```
 
 Inspect `eligible`, `blockers`, `localCapacityState`, `remoteOutcome`,
-`imageBudgetState`, `reservedImageOutputs` and `previewHash`. If eligible, replace
-`<fresh-preview-hash>` with that exact returned 64-hex hash and explicitly commit:
+`imageBudgetState`, `reservedImageOutputs` and `previewHash`. If eligible, bind
+that fresh hash and the operator's explicit reason:
 
 ```sh
-docker exec -i <container-id> codex exec-capacity-retire --packet-json '{"projectId":"765ce4d9-12e3-4d96-8944-b49ba381fdf2","attemptId":"06e80972-9dde-41ff-be71-b477c1477465","expectedPreviewHash":"<fresh-preview-hash>","reason":"Explicitly retire positively absent local processes on this revoked deleted QA project; preserve UNKNOWN and spending reservations."}'
+docker exec -i <container-id> codex exec-capacity-retire --packet-json '{"projectId":"<project-uuid>","attemptId":"<attempt-uuid>","expectedPreviewHash":"<fresh-preview-hash>","reason":"Explicit local-only retirement; preserve remote uncertainty."}'
 ```
 
-The second separate preview/consent uses project
-`f03a5e3d-6a75-4f5c-b29a-21420ce9a7b6`, attempt
-`3405616d-55a3-4f81-9dee-01e79550f25b`; never reuse the first preview hash.
-Each success returns `localCapacityState=retired`, `alreadyRetired=true`, an exact
-receipt, `remoteOutcome=preserved_unknown` and unchanged reserved-image facts.
-The private ledger retains the complete pre-retirement attempt/slot/revocation
-facts, fresh absence observations, maintenance source/hash and commit time.
-
-The CLI sends once and does not retry a lost acknowledgement. Re-run the same
-read-only preview first: an exact committed retirement returns the original
-receipt. An explicit exact repeat of the same consent also returns that receipt;
-changed facts/reason or a restored slot refuse. Historical proof is not a claim
-that its numeric PIDs remain unused forever. Readback grants no new release.
+The CLI sends once and never retries a lost acknowledgement. Read the same
+preview first: a committed retirement returns its original immutable receipt,
+without probing historical numeric PIDs again. Changed facts/reason or a restored
+slot refuse. Retirement retains UNKNOWN and spending reservations until explicit
+project garbage collection; it grants no new remote-outcome or refund claim.
 
 ## Continuing the current project after a source change
 

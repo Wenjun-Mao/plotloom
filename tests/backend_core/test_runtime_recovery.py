@@ -3,64 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from plotloom.config import PlotloomSettings
-from plotloom.domain import StartupRecoveryPlan
-from plotloom.generation.exceptions import SecretLeaseError
 from plotloom import runtime
-
-
-class RecoveryRepository:
-    def __init__(self, plan: StartupRecoveryPlan) -> None:
-        self.plan = plan
-        self.calls = 0
-
-    def reconcile_startup_jobs(self) -> StartupRecoveryPlan:
-        self.calls += 1
-        return self.plan
-
-
-class RecordingRunner:
-    def __init__(self) -> None:
-        self.submissions: list[str] = []
-
-    def submit(self, resource_id: str) -> None:
-        self.submissions.append(resource_id)
-
-
-class MissingSessionKeyRunner(RecordingRunner):
-    def submit(self, resource_id: str) -> None:
-        self.submissions.append(resource_id)
-        raise SecretLeaseError("browser-only key was intentionally not persisted")
-
-
-def test_runtime_recovery_dispatches_only_repository_approved_actions() -> None:
-    plan = StartupRecoveryPlan(
-        resubmit_run_ids=["run-queued"],
-        resubmit_media_task_ids=["media-queued"],
-        resume_media_poll_task_ids=["media-polling"],
-        terminated_run_ids=["run-interrupted"],
-        terminated_media_task_ids=["media-ambiguous"],
-    )
-    repository = RecoveryRepository(plan)
-    run_runner = RecordingRunner()
-    media_runner = RecordingRunner()
-
-    result = runtime.recover_runtime_jobs(repository, run_runner, media_runner)
-
-    assert result == plan
-    assert repository.calls == 1
-    assert run_runner.submissions == ["run-queued"]
-    assert media_runner.submissions == ["media-queued", "media-polling"]
-
-
-def test_runtime_recovery_leaves_session_key_run_queued_for_explicit_resume() -> None:
-    plan = StartupRecoveryPlan(resubmit_run_ids=["run-needs-browser-key"])
-    repository = RecoveryRepository(plan)
-    run_runner = MissingSessionKeyRunner()
-
-    result = runtime.recover_runtime_jobs(repository, run_runner, RecordingRunner())
-
-    assert result == plan
-    assert run_runner.submissions == ["run-needs-browser-key"]
 
 
 def test_runtime_lifespan_performs_reconciliation_before_serving(

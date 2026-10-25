@@ -9,8 +9,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from pydantic import Field
 
 from .artifacts import ArtifactStore
-from .domain import Artifact, CamelModel, GenerationRun, StageName, StartupRecoveryPlan
-from .generation.exceptions import SecretLeaseError
+from .domain import Artifact, CamelModel, GenerationRun, StageName
 from .providers import ProviderPorts
 
 if TYPE_CHECKING:
@@ -48,14 +47,6 @@ class GenerationEngine(Protocol):
     ) -> RunExecutionResult: ...
 
 
-class StartupRecoveryRepository(Protocol):
-    def reconcile_startup_jobs(self) -> StartupRecoveryPlan: ...
-
-
-class StartupRecoveryRunner(Protocol):
-    def submit(self, resource_id: str) -> Any: ...
-
-
 def select_available_port(host: str, preferred_port: int, fallback_count: int) -> int:
     for port in range(preferred_port, preferred_port + fallback_count + 1):
         if port > 65535:
@@ -78,30 +69,6 @@ def select_available_port(host: str, preferred_port: int, fallback_count: int) -
     raise OSError(f"configured port {preferred_port} is unavailable")
 
 
-def recover_runtime_jobs(
-    repository: StartupRecoveryRepository,
-    run_runner: StartupRecoveryRunner,
-    media_runner: StartupRecoveryRunner,
-) -> StartupRecoveryPlan:
-    """Reconcile durable state once, then dispatch only the safe recovery actions."""
-
-    plan = repository.reconcile_startup_jobs()
-    for run_id in plan.resubmit_run_ids:
-        try:
-            run_runner.submit(run_id)
-        except SecretLeaseError:
-            # Browser-session credentials are intentionally not durable.  A
-            # safely recoverable bearer run remains queued until a browser
-            # explicitly resumes it with the matching profile key.
-            continue
-    for task_id in (
-        *plan.resubmit_media_task_ids,
-        *plan.resume_media_poll_task_ids,
-    ):
-        media_runner.submit(task_id)
-    return plan
-
-
 def build_runtime_app(
     settings: PlotloomSettings,
     *,
@@ -122,9 +89,7 @@ def build_runtime_app(
     from .api import create_project_folder_authoring_app
     from .codex_image_dispatch import NativeCodexImageDispatcher
     from .domain import ProviderProfileCapabilities, ProviderSettings
-    from .video_backends.minimax_h3 import (
-        MiniMaxH3GatewayAdapter,
-    )
+    from .generation.contracts import ReasoningMode, RequestExtension
     from .pipeline import (
         RunSecretBroker,
         SnapshotTextProviderResolver,
@@ -136,11 +101,12 @@ def build_runtime_app(
         PresetId,
         StageMaxOutputTokens,
         TextProviderCapabilities,
-        TextProviderProfileSnapshot,
         TextProviderProfileSnapshotV3,
         V2ExtractionPolicy,
     )
-    from .generation.contracts import ReasoningMode, RequestExtension
+    from .video_backends.minimax_h3 import (
+        MiniMaxH3GatewayAdapter,
+    )
 
     provider_defaults = ProviderSettings(
         text_provider=settings.text_provider,

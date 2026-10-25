@@ -69,15 +69,9 @@ rewrote their coverage population. The durable correction belongs at the current
 project/application owner test layer, not in a facade shim or storage
 compatibility mode.
 
-`docs/verification/2026-09-14-retained-runtime-coverage-inventory.json`
-classifies the baseline tests as migrated current contracts, existing assertion
-equivalents, or approved breaking-storage retirements. Its verifier rejects an
-unclassified baseline test, a missing parameter case, a file-level default, or
-a stale/missing current assertion record. It preserves each baseline trigger
-and assertion expression alongside exact current test IDs, while explicitly
-leaving semantic equivalence to review. The prior file-level inventory was not
-accepted as final evidence because target existence did not establish matching
-assertions. The restored
+The migration's baseline-mapping inventory and its dedicated verifier were
+retired on 2026-10-25 after completing their one-time purpose. Current behavior
+is checked directly at its project/application owner. The restored
 project-generation tests assert the two-correction cap and lineage,
 dispatch-before-call, reasoning-only separation, durable primary/correction
 response recovery without replay, provider-echo redaction, correction audit

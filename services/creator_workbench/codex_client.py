@@ -13,7 +13,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "command",
-        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume", "exec-abandonment-preview", "exec-project-revoke", "exec-capacity-retirement-preview", "exec-capacity-retire"],
+        choices=["queue", "bridge-health", "exec-profile", "exec-readiness", "exec-admit", "exec-status", "exec-cancel", "exec-suspend", "exec-resume", "exec-abandonment-preview", "exec-project-revoke", "exec-capacity-retirement-preview", "exec-capacity-retire", "exec-project-gc-preview", "exec-project-gc"],
     )
     parser.add_argument("--thread")
     parser.add_argument("--message")
@@ -34,7 +34,13 @@ def main(argv=None):
     token = Path(os.environ["PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE"]).read_text().strip()
     url = os.environ["PLOTLOOM_CODEX_BRIDGE_URL"].rstrip("/")
     payload = None
-    if args.command in {"exec-capacity-retirement-preview", "exec-capacity-retire"}:
+    if args.command in {"exec-project-gc-preview", "exec-project-gc"}:
+        try:
+            from plotloom.codex_exec_gc_contracts import ProjectGarbageCollectionRequest
+            payload = ProjectGarbageCollectionRequest.model_validate_json(args.packet_json).model_dump(mode="json", by_alias=True)
+        except (TypeError, ValueError):
+            parser.error("--packet-json must bind one exact deleted project")
+    elif args.command in {"exec-capacity-retirement-preview", "exec-capacity-retire"}:
         try:
             from plotloom.codex_exec_capacity_contracts import CapacityRetirementRequest
             payload = CapacityRetirementRequest.model_validate_json(args.packet_json).model_dump(mode="json", by_alias=True)
@@ -74,6 +80,8 @@ def main(argv=None):
             "exec-status": f"/exec-status/{args.attempt_id}" if args.attempt_id else "",
             "exec-abandonment-preview": "/exec-abandonment-preview",
             "exec-project-revoke": "/exec-project-revoke",
+            "exec-project-gc-preview": "/exec-project-gc-preview",
+            "exec-project-gc": "/exec-project-gc",
             "exec-capacity-retirement-preview": "/exec-capacity-retirement-preview",
             "exec-capacity-retire": "/exec-capacity-retire",
         }[args.command]
@@ -93,6 +101,15 @@ def main(argv=None):
     except (HTTPError, URLError, TimeoutError, OSError, ValueError):
         print("Native Codex bridge did not acknowledge the request.", file=sys.stderr)
         return 1
+    if args.command in {"exec-project-gc-preview", "exec-project-gc"}:
+        try:
+            from plotloom.codex_exec_gc_contracts import ProjectGarbageCollectionPreview
+            context = ProjectGarbageCollectionPreview.model_validate(result)
+        except (TypeError, ValueError):
+            print("Project garbage collection acknowledgement is invalid.", file=sys.stderr)
+            return 1
+        print(context.model_dump_json(by_alias=True))
+        return 0
     if args.command == "bridge-health":
         print("Native Codex bridge is available.")
         return 0

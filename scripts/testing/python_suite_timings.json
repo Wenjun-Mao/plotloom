@@ -1062,13 +1062,6 @@
       "teardown_seconds": 0.0004988330038031563
     },
     {
-      "call_seconds": 1.1044654579964117,
-      "case_count": 1,
-      "path": "tests/test_retained_runtime_coverage_inventory.py",
-      "setup_seconds": 0.000057332996220793575,
-      "teardown_seconds": 0.00013979199866298586
-    },
-    {
       "call_seconds": 0.3092869580068509,
       "case_count": 4,
       "path": "tests/test_retained_video_evidence.py",

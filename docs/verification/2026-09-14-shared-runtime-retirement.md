@@ -22,12 +22,9 @@ was too broad. The retirement diff deleted or materially rewrote 301 baseline
 test functions (including 25 parameterized cases). Some were truly
 shared-facade-only, but retained behavior also lost direct proof when its shared
 fixture disappeared. This follow-up preserves the facade removal and records
-the exact disposition in
-`docs/verification/2026-09-14-retained-runtime-coverage-inventory.json`:
-255 migrated current contracts, 11 named existing equivalents, and 35 approved
-breaking-storage retirements. The inventory is deterministic from `e658057`,
-checks replacement test identifiers, and is guarded by
-`tests/test_retained_runtime_coverage_inventory.py`.
+the correction at the current project/application-owner tests. The completed
+migration's baseline-mapping verifier and JSON inventory were removed on
+2026-10-25; current behavior and shared-runtime boundary tests remain executable.
 
 ## Caller disposition
 
@@ -38,7 +35,7 @@ checks replacement test identifiers, and is guarded by
 | `conformance.py` | Migrated | Read-only current application-profile snapshots plus disposable `ProjectFolderStorage` samples; the normal project generation owner creates run, trace, evidence, and secret-safe receipt. |
 | `alpha_acceptance.py` | Migrated | The same application-profile snapshot and disposable project homes preserve the 18-cell matrix, blinded review pack, atomic publication, provenance, and private mapping boundary. |
 | `media_jobs.py`, `tests/media_jobs` | Retired | No production caller existed. Project image publication is covered through `ProjectMediaRepository`; direct-video ownership, accounting, unknown-outcome/no-replay, and playback remain in current project-folder/runtime/browser coverage. |
-| Shared API/repository backend tests | Split by contract | Route/facade-only tests are retired; retained generation, repair, profile, media, lifecycle, and repository behavior is mapped to named project/application-owner tests in the coverage inventory. |
+| Shared API/repository backend tests | Split by contract | Route/facade-only tests are retired; retained generation, repair, profile, media, lifecycle, and repository behavior is covered by current project/application-owner tests. |
 | Legacy Alembic/shared-store migration tests | Retired as historical serialization tests | The authorized breaking cutover has no retained database importer. Historical documents stay immutable; current format/recovery tests validate supported project-folder serialization. |
 
 ## Regression guards
@@ -51,9 +48,6 @@ checks replacement test identifiers, and is guarded by
 - The qualification/Alpha tests assert read-only profile loading, explicit
   application/project ownership, cleanup of temporary evidence, and secret-free
   receipts/review material.
-- `scripts/retained_runtime_coverage_inventory.py --check` derives the exact
-  affected baseline function set and rejects missing classifications or current
-  replacement test identifiers.
 - `tests/test_project_storage_generation_contracts.py` directly exercises the
   retained project-generation recovery, lineage, correction, redaction, and
   tamper contracts without a shared facade.
@@ -62,10 +56,9 @@ checks replacement test identifiers, and is guarded by
   retryable response during same-key initialization, and converges after an
   expired initializer lease.
 
-## Verification
+## Historical verification (2026-09-14)
 
 - Current coverage-preservation suite: `uv run --locked pytest
-  tests/test_retained_runtime_coverage_inventory.py
   tests/test_project_storage_route_contracts.py
   tests/test_project_storage_generation_contracts.py
   tests/test_project_storage_work_unit_contracts.py tests/test_project_storage.py
