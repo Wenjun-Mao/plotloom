@@ -1,7 +1,6 @@
 # ADR 0219: Validated installation-only reader
 
-Status: implemented and locally qualified, 2026-10-25; installed activation is
-tracked separately under the owner-approved
+Status: implemented, locally qualified and activated, 2026-10-25, under the owner-approved
 [retained plan](../roadmap/2026-10-25-installation-only-reader.md).
 
 Material inventory requires installed-production authority but previously obtained

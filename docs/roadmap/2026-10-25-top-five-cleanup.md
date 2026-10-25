@@ -83,24 +83,20 @@ These are functional exclusions, not permission to retain every capture, source
 copy or receipt stored near them. Do not expand this cleanup into deleting live
 projects, actual valued work, current guards or the only usable recovery package.
 
-## The one useful product change: separate from cleanup
+## Installation-reader follow-up — completed separately
 
-Current `autopilot_materials.initial_inventory()` still calls
-`production_bridge_state().installation`, constructing proposal, presentation,
-preparation and job views along the way. Main's context reuse does not eliminate
-that unrelated projection work.
+The owner separately approved the [bounded implementation](2026-10-25-installation-only-reader.md)
+after storage cleanup. Material inventory now uses the existing validated
+installation-only read lease through its store facade, avoiding unrelated
+proposal, presentation, preparation and job projections. ADR
+[0219](../adr/0219-validated-installation-only-reader.md) owns the decision.
 
-The committed installation-only reader proposal `11b7ad65` on existing
-`refs/heads/codex/python85-release` (`76d6a916`) is now covered by the single
-[proposed implementation plan](2026-10-25-installation-only-reader.md). It adapts
-the existing validator/read lease, store facade and inventory caller, with local
-qualification and proposed quiet installed activation. No speedup is established.
-
-That plan owns the implementation and operational approval boundary; storage
-cleanup alone does not authorize either. Keep the existing ref only until the
-narrow change is incorporated and qualified on main or explicitly rejected,
-then retire it. No new archive or checkout is needed, and the hold does not block
-completed storage cleanup.
+The useful part of historical proposal `11b7ad65` was adapted to current main,
+independently reviewed, locally qualified and activated with exact preservation
+checks. The old `refs/heads/codex/python85-release` ref was compare-and-deleted at
+its reviewed `76d6a916` value. No new archive, checkout or preservation ref was
+created. The temporary hold is resolved; no speedup is established, and the
+separate performance target remains unqualified.
 
 ## Reviewed parked source dispositions
 
@@ -110,7 +106,7 @@ completed storage cleanup.
 | `W/pre-video-autopilot` | 185 of 188 added nonblank plan lines already on main; remaining three call completed work unapproved | Discard stale plan delta and unused development media |
 | `W/python85-baseline-timing` | Clean; revision reachable from main | Remove checkout |
 | `W/python85-profiling` | Three commits patch-equivalent; `e4948ac3` executable changes incorporated by `da4bf5b3` and later owners | Remove checkout; no source merge |
-| `W/python85-release` | Only the committed reader proposal is useful; dirty command-transaction optimization and authority tests are incorporated | Retain temporary proposal ref; discard superseded dirty changes |
+| `W/python85-release` | Only the committed reader proposal was useful; dirty command-transaction optimization and authority tests are incorporated | Initially retained the proposal ref; subsequent qualified reader adaptation resolved the hold and retired that ref |
 
 Recheck exact tracked/untracked status before forced worktree removal. If a new
 change appears, identify its actual owner/value before deleting it; investigate
@@ -144,7 +140,7 @@ through the supported lifecycle; do not fabricate settlement or clear a live hol
    target identity, source status, consumers, quiescence and no-follow boundaries.
    Existing current dependencies stay excluded. Do not create new preservation
    collections, bulk archives, creative exports or census preservation commits.
-3. Verify the reader proposal remains reachable by its existing temporary ref;
+3. At storage cleanup, verify the reader proposal through its then-existing temporary ref;
    remove registered linked worktrees with Git's lifecycle after reviewed dirty
    disposition. Handle embedded repositories and zero-byte uv cache markers
    according to their actual ownership, not their `.git` name alone.
@@ -200,10 +196,11 @@ The three isolated historical UNKNOWN envelopes were retired locally with their
 remote outcomes still unknown. They were not installed host attempts, and no
 settlement, current reservation release, replay or provider outcome is inferred.
 No QA images/provenance, private census prototype, Lighthouse exports, new UNKNOWN
-record, archive, library, preservation commit or new ref was created. The sole
-temporary source exception is the existing `codex/python85-release` ref at
-`76d6a916`, with reader proposal `11b7ad65` still an ancestor, for the bounded
-accept/reject action above. It does not retain a checkout or establish a speedup.
+record, archive, library, preservation commit or new ref was created. At that
+checkpoint the sole temporary source exception was `codex/python85-release` at
+`76d6a916`, containing reader proposal `11b7ad65`. The separately approved reader
+follow-up above subsequently resolved that hold and retired the ref. Neither
+storage cleanup nor that reader establishes a speedup.
 
 Documentation retirement removes artifact links and obsolete operational holds,
 while retaining current ADR/API contracts, useful performance requirements and
@@ -324,8 +321,8 @@ No archive, creative export, new library or source-preservation ref was created.
 The adjudicated inventory and temporary verification code/hash metadata are
 retired at closeout. Current dependencies, live data, deployment metadata and
 the single usable recovery package remain for their named functions. The
-existing installation-reader proposal above is still a separate accept/reject
-decision; cleanup neither implements nor merges it. No product code, provider
+installation-reader follow-up was separate from this storage batch and is now
+complete, including retirement of its old ref. No product code, provider
 call, service restart, hosted CI or push is part of this batch.
 
 Post-removal HTTP readback returned the same eight catalog projects and all 26

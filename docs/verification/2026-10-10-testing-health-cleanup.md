@@ -1,5 +1,11 @@
 # Testing health cleanup
 
+> The [installation-reader follow-up](../roadmap/2026-10-25-installation-only-reader.md)
+> was separately qualified and activated on 2026-10-25; its temporary
+> `python85-release` ref is retired. Older isolation/hold wording below describes
+> historical checkpoints. The performance target remains unqualified; the reader
+> makes no speedup claim.
+
 > Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
 > retires their storage, replay/launch/cutback instructions and preservation holds.
 > Recorded outcomes and limits remain; current ADR/API contracts still apply.

@@ -1,10 +1,10 @@
 # Validated installation-only reader
 
-Status: owner-approved implementation plan, 2026-10-25. The owner approved scoped
+Status: completed and activated, 2026-10-25. The owner approved scoped
 implementation, qualification, quiet activation/rollback and old proposal retirement
-through Relay Direct. Source implementation passed independent review and completed local software
-qualification by evidence reuse plus scoped repair. Activation remains
-with the manager after independent review and local qualification.
+through Relay Direct. Independent review, composite local qualification, verified
+activation and old-ref retirement are complete. The original failed full command
+remains failed; the scoped repair and downstream passes are recorded below.
 
 ## Outcome and reason
 
@@ -369,12 +369,13 @@ uv build --wheel --out-dir /tmp/plotloom-installation-reader-wheel.CKbGWb
 uv run --locked --no-sync python scripts/smoke_installed_wheel.py /tmp/plotloom-installation-reader-wheel.CKbGWb
 ```
 
-Both passed. Exact passing wheel, retained only for the manager's existing single
-functional recovery-package update after activation:
+Both passed. The exact passing wheel was held temporarily for the manager's
+single functional recovery-package update after activation:
 `/tmp/plotloom-installation-reader-wheel.CKbGWb/plotloom-0.1.0-py3-none-any.whl`,
 SHA-256 `6c27fdae73d3c7c799e5752959a987ca84c8e0d892f442a9f3091a266f72b2a2`.
-Manager consumes this task-owned temporary artifact and removes its directory;
-there is no second permanent archive. The smoke's isolated environment was removed
+Manager closeout consumes this task-owned artifact into the existing recovery
+package and removes its directory; these are historical command/path identities,
+not available replay artifacts. There is no second permanent archive. The smoke's isolated environment was removed
 by its existing lifecycle. Build emitted a non-fatal uv-version-range warning and completed. Installed smoke resolved its
 normal package environment (including Pydantic 2.14.1), separately from source's
 locked Pydantic 2.13.5 environment; this is the existing smoke contract.
@@ -400,3 +401,52 @@ steps. No installed P, live data, provider/grant, deployment, ref deletion, push
 or hosted CI action was performed by this worker. Known full execution time was
 2098.419s plus 140.159s focused repair verification; other phase times/cost deltas
 were not separately measured.
+
+## Manager activation and retirement — completed 2026-10-25
+
+Manager independently inspected the actual product/test diff, all five selector
+corrections and their failure contexts, native qualification output and the passing
+wheel. All three changed modules inside the wheel matched qualified source bytes.
+The source handoff was clean main 1b8d9855; executable inputs match b0ce2e66 and
+the corrected browser fixture checkpoint is 72701254.
+
+Fresh read-only baselines were captured before activation and after stopping the
+quiet service. All current eight projects, application/host state, 15 protected
+fingerprints, both checked validators and functional recovery matched exactly;
+there was no owner-write drift to discard. Host state had 82 completed and three
+settled attempts, zero queue/slots/validators and five functional revocation guards.
+Current project runs/batches were terminal or handed off, not resumable work.
+
+The manager stopped the owned container through manage.py, switched installed P
+from 65a9128e to qualified source handoff 1b8d9855, explicitly restarted the quiet
+owned bridge through launchd, then ran the existing manage.py start. Dependency
+build layers were cached; the rebuilt container became healthy and native bridge
+health passed. Fresh container 02d521cc3e95 and bridge PID 16178 confirm process
+reload. Container imports resolve the three changed modules from P with the new
+reader present and initial_inventory calling it; their bytes match the candidate.
+
+Post-activation project rows/files (672 tables, eight databases plus 263 other
+persistent files), all application/host tables, protected settings, validator
+identities and mount contracts match baseline exactly. HTTPS health returned 200.
+The actual material-review API response and served JavaScript are byte-identical
+to pre-activation; catalog contains the same eight projects and all 26 selected
+playback streams pass byte-range access, including the one-minute story's nine
+clips. This is deployed read/access verification, not new browser playback,
+provider generation or personal creative/audio acceptance. Rollback was available
+but not needed.
+
+After incorporated/qualified code and successful activation, the manager deleted
+refs/heads/codex/python85-release using its exact reviewed old object ID
+76d6a916b4368e63dd8fe36479cd2f57e6f17c09. The ref is absent; no other branch,
+checkout or preservation ref was created. Current hold wording in cleanup and
+roadmap records is resolved; historical failed qualification/performance results
+remain truthful.
+
+The existing [functional recovery manifest](../../.local/current-qualified-recovery/manifest.json)
+owns final source/wheel hashes and qualified-code identity. Closeout refreshes
+that one usable source/wheel package to current main with the passing wheel above,
+verifies all archive members and the 93 pinned submodule files, and removes the
+temporary wheel directory. No raw project backup, media/provenance archive or
+new receipt bundle is kept. Final documentation sync changes no executable bytes
+and requires no second service restart or full gate. Current runtime/data checks
+are repeated after closeout. No provider call, new grant, push or GitHub CI ran.

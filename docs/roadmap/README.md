@@ -1,17 +1,16 @@
 # Plotloom roadmap entrypoint
 
-## Approved validated installation-only reader
+## Completed validated installation-only reader
 
-The [bounded plan](2026-10-25-installation-only-reader.md) adapts the remaining
-useful historical proposal to current read leases and installation validation,
-changes only the inventory consumer, and specifies early disposable API/persistence
-proof, focused regressions, independent review and one stable full local gate.
-The owner approved implementation through quiet preservation-checked backend
-activation/rollback and retirement of the temporary proposal ref. Source
-implementation passed independent review and local qualification through a single
-full run plus scoped fixture repair and skipped packaging checks. The original
-full browser failure remains recorded; manager-owned activation follows. No
-speedup, generation, push or CI is claimed.
+The [completed plan](2026-10-25-installation-only-reader.md) adapted the useful
+historical proposal to current read leases and installation validation, changing
+only the inventory consumer. Independent review and composite local qualification
+passed: 4,019 Python cases, 1,538 frontend cases and complete browser coverage with
+six test-locator failures corrected through four-spec verification. The original
+full command remains failed; subsequent scoped and packaging passes are explicit.
+Quiet activation preserved all eight projects, settings, host guards and selected
+media. The old proposal ref is retired and the single recovery package is current.
+No speedup, provider generation, push or CI is claimed.
 
 ## Completed top-five historical storage cleanup
 
@@ -22,9 +21,9 @@ a filesystem free-space guarantee. Fresh checks exactly preserved eight current
 projects, settings, runtime/bridge and validator identities, functional recovery,
 85 host attempts (82 completed, three settled, zero UNKNOWN) and five revocation
 guards. No archive, export, new UNKNOWN record or source-preservation ref was made.
-The existing installation-reader proposal ref remains temporarily for a separate
-accept/reject decision; product implementation and the performance target remain
-separate. The [remaining disposable batch](2026-10-25-top-five-cleanup.md#remaining-disposable-batch--completed-2026-10-25) is also complete: 370 filesystem targets removed,
+The separately approved installation-reader follow-up above resolved and retired
+the temporary proposal ref; the performance target remains unqualified. The
+[remaining disposable batch](2026-10-25-top-five-cleanup.md#remaining-disposable-batch--completed-2026-10-25) is also complete: 370 filesystem targets removed,
 two stale worktree registrations pruned, 29,348 regular files and three symlinks,
 4,414,808 allocated KiB (approximately 4.2103 GiB, including caches and all 13
 obsolete receipt/helper roots). Final snapshots exactly matched the current
