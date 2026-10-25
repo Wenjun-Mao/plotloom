@@ -18,8 +18,9 @@ Aliases:
 - `W`: `/Users/wjmao/projects/HU/plotloom-worktrees`.
 
 The existing [storage inventory](../../.local/cleanup-inventory-20261025.json)
-records pre-cleanup allocations, not current availability. This plan resolves its first five review groups;
-it does not replace the earlier approximately 4.2 GiB disposable-batch proposal.
+lists the remaining candidates; completed targets have been removed from it.
+This plan closes its first five review groups and does not replace the separate
+approximately 4.2 GiB disposable-batch proposal.
 
 ## Owner's preservation rule
 
