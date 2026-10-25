@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## G1 and retired execution locally qualified; activation pending
+## Completed G1 and retired-execution delivery
 
 The owner accepted the audit's direction to extract generation response/repair
 contracts first and retire the three obsolete execution paths. The
@@ -14,19 +14,19 @@ and independently reviewed. Early provider-free runtime proof and composite loca
 qualification are complete: the original full attempt failed only on an obsolete
 helper-consumer expectation, corrected in focused checks; all remaining gates,
 358 browser cases and exact isolated installed-wheel smoke passed. The original
-full result remains failed. Manager-owned activation/preservation/recovery is
-pending; installed state remains unchanged. G2–G5 and other audit batches remain
-unselected.
+full result remains failed. Quiet activation is complete with all eight projects,
+settings, safety state and 26 selected playback ranges preserved. The single
+functional recovery package owns final source/wheel identity; no new archive,
+provider work, push or CI was created. G2–G5 and other audit batches remain unselected.
 
-## Completed modularity audit; first selected batch in progress
+## Completed modularity audit; first selected batch complete
 
 The [source audit](../verification/2026-10-25-modularity-audit.md) reviews all 120
 handwritten source-like files above 400 lines (42 at or above 500), plus selected
 smaller ownership clusters. Each has an explicit extract, retain or retire
 recommendation with reasoning; proposed changes map to named finite batches,
-not an implicit promise to extract on the next edit. Start with generation leaf
-contracts (G1); the three retired-execution decisions (R1–R3) are separately
-flagged for owner review. The subsequently approved delivery plan authorizes G1/R1–R3 only. This audit
+not an implicit promise to extract on the next edit. The subsequently approved
+G1/R1–R3 delivery above is complete; all other batches remain pending. This audit
 alone does not authorize other implementation, provider work, push or CI.
 
 ## Completed validated installation-only reader

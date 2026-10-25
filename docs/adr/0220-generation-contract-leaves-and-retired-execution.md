@@ -1,7 +1,7 @@
 # ADR 0220: Generation contract leaves and retired execution
 
 Status: implemented, independently reviewed and locally qualified by composite
-evidence; activation pending, 2026-10-25, under the owner-approved
+evidence and activated with preservation checks, 2026-10-25, under the owner-approved
 [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 
 Response DTOs, repair authority and frozen prompt records lived beside compiler,

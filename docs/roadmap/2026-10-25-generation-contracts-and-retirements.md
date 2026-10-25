@@ -1,6 +1,6 @@
 # Generation contract leaves and retired execution paths
 
-Status: **owner approved implementation (Go, 2026-10-25); G1/R1–R3 independently reviewed and locally qualified by composite evidence; activation/recovery pending**.
+Status: **G1/R1–R3 complete: independently reviewed, locally qualified by composite evidence and activated with preservation checks; 2026-10-25. The single recovery manifest owns final closeout identity.**
 Date: 2026-10-25. Source baseline: `096a573eef0081234e3309d0a8d1902afd05e248`
 on retained `main` at `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
 Installed checkout: `/Users/wjmao/projects/HU/plotloom` (P).
@@ -20,7 +20,7 @@ generic raw-media execution and Atlas/Wan fallback. Preserve the supported
 durable generation/exact-repair path, managed image/H3 work, readable current
 projects, snapshot/restore, credentials and uncertain-dispatch safeguards.
 
-The complete implementation outcome proposed for approval includes source
+The complete implementation outcome approved by the owner includes source
 changes, assertion-preserving tests, current ADR amendments, one local main
 checkpoint, local qualification, quiet activation in P, preservation checks and
 refresh of the existing single functional recovery package. No push or GitHub
@@ -360,11 +360,11 @@ GitHub workflow changes, CI or push is proposed.
 - [x] Small provider-free project/repair proof, focused checks, stable review,
   final full-local qualification and exact installed-package checks have
   honest evidence. Provider and owner creative acceptance are not claimed.
-- [ ] Quiet activation/profile identity, preservation checks and single
+- [x] Quiet activation/profile identity, preservation checks and single
   functional recovery update are complete, or precisely reported incomplete.
 - [x] Scoped source checkpoint is on local main; actual code sizes and remaining
   named audit batches are stated; no unwanted source/QA artifacts remain.
-- [ ] Delegated work is attended through actual final, manager review, access
+- [x] Delegated work is attended through actual final, manager review, access
   release and archival/Relay unregister. No duplicate qualification owner.
 
 Implementer may choose cohesive file names, helper placement, focused selectors,
@@ -575,3 +575,61 @@ Source/local qualification is complete; manager-owned quiet activation,
 preservation, profile/package readback, single recovery refresh and final
 operational documentation remain pending. No P/live/settings/database/provider
 operation, hosted CI or push was performed by this qualification owner.
+
+## Manager activation and closeout — 2026-10-25
+
+Manager reviewed the actual stable diff and evidence, independently confirmed
+the two review corrections, and verified that the source handoff
+`49ee641e46eb4603d0e8d1ad4a7c0f305377bb54` has identical executable inputs to
+product candidate `51178b87`; the two-line test expectation correction is
+`a2d2ed99`. All 481 wheel package files match source. The qualified wheel SHA-256
+is `2af848359463ad26039e20a05161acb984ff18b4729bfa25782741c97355a623`.
+The original full command remains failed, with its focused repair and all six
+downstream passes retained above; no replacement full result is invented.
+
+Fresh read-only baselines before stopping the service and after it stopped
+matched the early baseline exactly. All eight projects, 672 project tables,
+258 persistent files excluding operational locks, 14 application tables, nine
+host tables and seven protected configuration/credential fingerprints were
+preserved. Aggregate semantic fingerprint:
+`45a33b4605f86167f8f87a7e4cccb0342ce5884321b40dc3eca7afd21788112c`.
+Host state was 82 completed and three settled attempts, five revocation guards
+and zero queue/slot/validator occupancy. Existing video jobs were ingested;
+project controller runs were terminal or handed off. No work was cancelled,
+replayed, repinned or cleared to manufacture a quiet checkpoint.
+
+Manager stopped the owned service through `manage.py`, unloaded the quiet
+owned launchd bridge, switched P from `cfc55173` to the qualified handoff, then
+used the supported start lifecycle. Container `b319f3361284` and bridge PID
+56108 confirm fresh processes; both are healthy/ready. Actual container
+imports use the new leaves in P/src and the three retired modules are absent.
+The installed source SHA-256 equals the qualified
+`a9cdcc468a9ae25fb235c6adeb593f242953eb6af5f4fd73c86207de3c0b41b9`.
+P derives its own v8 profile: validator hash
+`1b90da8a5fdbb6ff3cb319f178236ffd6b93756e280226ca1b44768e016ebd25`;
+only this expected source/toolchain-bound field differs from the pre-activation
+profile. Login readiness is ready; old attempt/profile evidence is unchanged.
+
+Post-activation semantic/file/protected fingerprints match exactly. Directory,
+project and video-job response bytes, served HTML and four JS/CSS assets are
+unchanged. All 26 selected playback byte ranges pass unchanged, including the
+minute-long story. Private HTTPS health and /v2/ return 200. This is deployed
+read/access verification, not new browser playback, provider generation or
+owner creative/audio acceptance. Local qualification used macOS arm64 CPython
+3.12.13; installed readback used Linux aarch64 CPython 3.12.15. No full Linux
+suite or performance improvement is claimed. Rollback was available and unused.
+
+Closeout reseals this documentation checkpoint and the exact qualified wheel
+into the existing [single functional recovery package](../../.local/current-qualified-recovery/manifest.json).
+Its manifest records the final source revision, qualified code/test checkpoint,
+source/wheel hashes and pinned submodule contents. Every archive member is
+checked before replacing the old package; no second archive is retained.
+Temporary derived preservation snapshots and `.local/g1-retirements` handoff
+files are removed after consumption. This documentation-only closeout/sync
+changes no executable bytes and requires no second restart or full run.
+
+All delegated reviewers and the sole implementation/qualification owner
+returned actual finals, released access, were archived and had Relay routes
+removed. G1/R1–R3 is complete. G2–G5 and other audit batches remain unselected.
+No provider calls, new grants, live project/settings changes, GitHub CI or push
+occurred in this delivery.
