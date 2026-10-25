@@ -1,9 +1,9 @@
 # Working input autosave and optional Freeze · 2026-10-24
 
-Status: locally qualified source candidate through composite evidence under
-AGENTS.md. Original failed full/browser runs remain failed; this is not a single
-clean full-suite pass. Installed activation and preservation belong to the manager
-and are not claimed here.
+Status: implemented and activated locally, with manager preservation and installed
+Safari review completed below. Qualification uses documented composite evidence
+under AGENTS.md. Original failed full/browser runs remain failed; this is not a
+single clean full-suite pass or owner creative acceptance.
 
 The [approved plan](../roadmap/2026-10-24-autosave-and-project-freeze.md) retains the
 owner's five explicit choices and the complete editor/entity/basis inventory.
@@ -322,3 +322,48 @@ fallback and every prior failed run remain intact. No broader gate is invalidate
 by this four-file presentation-only change, and no second Python/full/browser358
 execution occurred. Root owns installed review and full static-tree replacement;
 this follow-up does not claim that the worker touched P/runtime/Safari/bridge.
+
+## Manager installed activation and Safari review
+
+The manager independently reviewed both actual worker finals, source/test deltas,
+causal logs, complete static trees and all final desktop pixels. Both retained
+recovery archives were opened and every one of their 2,776 files verified. Both
+wheels' 478 source/static files matched the corresponding qualified manifests.
+The final installed checkout is b63aef4306e7bbfc92b7e0481b709549aff1af1f; its runtime
+inputs match the tested guidance candidate d98ef343. Later manager edits are
+documentation only.
+
+Fresh complete catalog/folder discovery found eight projects and no missing or
+unclassified homes. After a quiescent capture, the existing deployment command
+stopped the backend, installed qualified 938c7e46 and started a healthy new backend.
+The later complete guidance asset tree was installed without another restart:
+Python, service and dependency bytes were identical. The native bridge remained
+PID 66847 with its original October 22 start time and matching LaunchAgent definition.
+The final backend is the same healthy container started at 2026-10-25T02:59:40Z.
+HTTP and HTTPS each served all seven final assets byte-exactly, including the new
+navigation chunk; all 750 installed source files matched the final source manifest.
+
+Final before/after comparison preserves all eight project databases byte for byte,
+their 672 table fingerprints and 263 persistent files, all 14 application tables,
+all 10 host tables, all 15 protected file fingerprints, accounting, grants and both
+UNKNOWN holds. Active attempts, enabled queues, validators and slots remain zero;
+the 15 disabled queued entries remain intact. An initial final capture correctly
+refused transient SQLite sidecars after returning to an original Safari tab. The
+sidecars disappeared normally; no checkpoint, deletion or repair was performed.
+The separately retained settled capture completed with exact equality and no issues.
+
+Native Safari showed eight ordinary directory rows with no Close status, optional
+Freeze under More, and the final teaching identity/navigation/toolbar/Pro guidance
+directing explicit editable-copy creation. Preview alone created no project.
+The existing one-minute story played to both route endings: 沿着暖光回港, then
+restart and 迎着月光远行. Each replay paused for an explicit choice; no seek/skip
+was used. Scoped accessibility records and actual video-frame screenshots are
+retained. The temporary tab was closed and the original selected tab restored,
+with all 18 original tabs intact. This establishes agent-operated visual/playback
+QA, not perceptual audio listening, physical-trackpad feel or owner creative acceptance.
+
+Exact identities, phase captures, hashes and scoped Safari evidence are under
+.local/autosave-freeze-20261024-root/, especially manager-activation-final.json,
+activation-verification.json and guidance-activation-verification.json. Workers
+used for this assignment were reviewed, confirmed idle, archived and unregistered individually.
+No push, hosted CI, provider dispatch, grant/UNKNOWN reset or bridge restart occurred.

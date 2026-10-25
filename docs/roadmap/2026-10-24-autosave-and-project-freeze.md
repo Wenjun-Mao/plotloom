@@ -7,6 +7,15 @@ Installed P starts at qualified `4c6db5ff`. Approval covers this plan's bounded
 implementation, local tests, preservation-checked activation and necessary
 controlled backend restart. Excluded operations below remain excluded.
 
+Current outcome (manager, 2026-10-24 Toronto): implementation, documented composite
+local qualification, preservation-checked activation and installed Safari review
+are complete. Installed runtime: b63aef43, matching tested candidate d98ef343.
+All eight valued projects/settings/accounting/UNKNOWN holds are unchanged; both
+one-minute story routes were played to their endings. The [verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md#manager-installed-activation-and-safari-review)
+owns exact activation evidence and agent-QA limits. Historical checkpoints below
+retain their original pending/failed observations; current completion does not
+relabel failed runs.
+
 ## Outcome and owner decisions
 
 The creator works without a project Close ritual: unfinished edits are preserved
