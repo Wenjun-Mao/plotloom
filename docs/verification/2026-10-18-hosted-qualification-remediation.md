@@ -261,9 +261,8 @@ This run is completed FAILURE, not qualification.
 The original and retry of `imported-still-preview.spec.ts` both exceeded the
 unchanged 45-second body budget at different late assertions (lines 145/144).
 The downloaded native artifact is `playwright-test-results-3`, ID `12151312415`.
-Both traces, screenshots and contexts remain under
-`.local/batch-video/hosted-ci-39166995435-shard3-artifacts/`; complete job log and
-ANSI-free copy are `hosted-ci-39166995435-shard3-job.log` / `-job-plain.log`.
+The complete job log and ANSI-free copy are
+`hosted-ci-39166995435-shard3-job.log` / `-job-plain.log`.
 
 The traces support cumulative journey-budget exhaustion, not an approval
 contract failure. Before Hooks ended at 253191.020 / 311617.878ms; After Hooks

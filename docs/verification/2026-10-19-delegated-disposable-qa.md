@@ -220,8 +220,8 @@ The local result is composite scoped evidence, not a passing full gate:
   schema. The third test expected an approval button after its fixture had
   already approved the storyboard. The first two failures were fixed at the
   exact-prior admission boundary; only the stale test control assertion changed.
-  The original run and failure artifacts remain preserved; the 338-case suite
-  was not rerun.
+  The original run's outcome remains documented here; the 338-case suite was
+  not rerun.
 - The approved four-file focused Python union passed 113 tests in 67.79 seconds
   (runner 76.077 seconds). The delegated-QA file was rerun after an import-only
   formatting change: 44 passed in 30.64 seconds (runner 34.068 seconds).
@@ -270,11 +270,9 @@ Retained evidence and complete logs:
   `.local/batch-video/final-full-bb65510a-outcome.json`,
   `.local/batch-video/final-full-bb65510a-fingerprints.json`,
   `.local/batch-video/final-local-full-bb65510a.log`.
-- Initial suffix fingerprints/log and preserved browser-failure traces:
+- Initial suffix fingerprints and log:
   `.local/batch-video/suffix-446db168-inputs.json`,
-  `.local/batch-video/suffix-446db168.log`,
-  `.local/batch-video/full-suffix-first-failure-artifacts-446db168.json`,
-  `.local/batch-video/full-suffix-first-failures-446db168/test-results/`.
+  `.local/batch-video/suffix-446db168.log`.
 - Focused logs:
   `.local/batch-video/causal-fix-focused-python-446db168.log`,
   `.local/batch-video/causal-fix-focused-browser-446db168.log`,
