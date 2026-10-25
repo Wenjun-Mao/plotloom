@@ -136,6 +136,12 @@ Project-management display and deletion consent use the autosaved working title 
 
 Read validation depth and operational admission are separate obligations. Explicit media/project metadata inspection retains ADR 0192's requested-byte/hash/schema contract instead of validating unrelated authority domains; both it and default strict authority reads require an initialized shared OS lease before database opening and reject acknowledged deletion quarantine. [Inspection admission](../../tests/test_project_inspection_admission.py) binds damaged unrelated authority, open/Frozen byte reads, strict authority refusal, pre-open missing-lock refusal, exclusive exclusion and exact query purity; [deletion quarantine](../../tests/test_project_deletion_quarantine.py) checks both modes.
 
+Project metadata GET therefore remains available for an open or Frozen project
+with unrelated corrupt autopilot authority. This does not admit that authority:
+strict reads and mutations refuse it, startup holds it, and run-index rebuilding
+excludes it while healthy projects remain recoverable. [Startup isolation](../../tests/test_project_startup_isolation.py)
+checks these boundaries, exact query preservation and project-scoped diagnostics.
+
 The current raw abandonment reader validates only the existing title field shapes before projection: whole Brief JSON null is allowed, otherwise canonical title is a string of1..200 characters; a present working row requires a string of0..200. Nonstring/empty canonical fields do not become an unnamed project through falsey fallback. Whitespace string display rules remain unchanged. This does not newly validate unrelated Brief fields or alter the prior-layout reader; the raw refusal matrix in deletion preparation checks both boundaries before host calls.
 
 

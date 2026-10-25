@@ -63,9 +63,11 @@ All eight current project databases, 672 project tables, 263 persistent project
 files, application tables and 15 protected settings/configuration fingerprints
 were unchanged. The service is healthy and its HTTPS player and qualified
 JavaScript still respond correctly. Focused GC/recovery/tooling checks, an
-independent 126-case review and isolated installed-wheel smoke passed. Two
-startup-isolation GET assertions (expected 422, actual 200) also fail with the
-pre-change runtime and remain a separate issue.
+independent 126-case review and isolated installed-wheel smoke passed. The two
+pre-existing startup-isolation failures were stale metadata-GET expectations;
+the tests now follow ADR 0218's inspection contract while checking strict
+authority/mutation refusal, healthy recovery, index exclusion and query purity
+for open and Frozen corrupt projects. This correction changes tests/docs only.
 
 The same cleanup retires the completed shared-runtime migration's historical
 coverage-mapping verifier/inventory and the unused `runtime.recover_runtime_jobs`

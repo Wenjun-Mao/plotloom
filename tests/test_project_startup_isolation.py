@@ -12,6 +12,7 @@ from plotloom.runtime import build_runtime_app
 from tests.autopilot_fixtures import start_run
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 from tests.test_production_project_folder_runtime_boundaries import _settings
+from tests.working_input_preservation import preservation_inventory
 
 
 @pytest.mark.parametrize("closed", [False, True])
@@ -32,6 +33,7 @@ def test_corrupt_authority_is_catalogued_but_excluded_from_startup_and_run_index
         current = store.repository.autopilot.current(rejected)
         store.repository.autopilot.control(rejected, expected_revision=current.revision, action="takeover")
         database = store.database_path
+        project_home = store.home
     runs = [dispatcher.create_run(identifier, kind=RunKind.PIPELINE,
         requested_stages=list(STAGE_ORDER),
         provider_snapshot=fixture_profile().model_dump(mode="json", by_alias=True)) for identifier in projects]
@@ -45,6 +47,7 @@ def test_corrupt_authority_is_catalogued_but_excluded_from_startup_and_run_index
         connection.commit()
         connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     before = database.read_bytes()
+    home_before = preservation_inventory(project_home)
     assert set(home.manifest.project_id for home in storage.projects.discover()) == set(projects)
     with pytest.raises(ProjectStorageCorruptionError, match="autopilot authority"):
         storage.projects.open(rejected)
@@ -52,12 +55,29 @@ def test_corrupt_authority_is_catalogued_but_excluded_from_startup_and_run_index
     restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
     with TestClient(restarted) as client:
         assert restarted.state.startup_recovery[rejected] == StartupRecoveryPlan()
-        assert healthy in restarted.state.startup_recovery
+        assert restarted.state.startup_recovery[healthy] == StartupRecoveryPlan(resubmit_run_ids=[runs[1].id])
+        query_before = preservation_inventory(tmp_path)
         assert {item["id"] for item in client.get("/api/v2/projects").json()["projects"]} == set(projects)
-        failure = client.get(f"/api/v2/projects/{rejected}")
-        assert failure.status_code == 422
-        assert failure.json() == {"code": "project_storage_error", "message": "persisted autopilot authority is invalid"}
+        # Metadata inspection does not attest unrelated retained authority,
+        # including when Frozen. Strict reads and writes must still refuse it.
+        metadata = client.get(f"/api/v2/projects/{rejected}")
+        assert metadata.status_code == 200, metadata.text
+        assert metadata.json()["id"] == rejected
+        assert metadata.json()["displayTitle"] == "Rejected retained authority"
+        assert metadata.json()["operationalState"] == ("closed" if closed else "open")
+        authority = client.get(f"/api/v2/projects/{rejected}/autopilot")
+        mutation = client.patch(f"/api/v2/projects/{rejected}", json={
+            "expectedRevision": metadata.json()["revision"],
+            "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+        })
+        for failure in (authority, mutation):
+            assert failure.status_code == 422, failure.text
+            assert failure.json() == {"code": "project_storage_error", "message": "persisted autopilot authority is invalid"}
+        with pytest.raises(ProjectStorageCorruptionError, match="autopilot authority"):
+            restarted.state.project_folder_storage.projects.read_open(rejected)
         assert client.get(f"/api/v2/projects/{healthy}").status_code == 200
+        assert client.get(f"/api/v2/projects/{healthy}/autopilot").status_code == 200
+        assert preservation_inventory(tmp_path) == query_before
         application = restarted.state.project_folder_storage.application
         assert application.project_for_run(runs[0].id) is None
         assert application.project_for_run(runs[1].id) == healthy
@@ -66,7 +86,12 @@ def test_corrupt_authority_is_catalogued_but_excluded_from_startup_and_run_index
         assert application.project_for_run(runs[0].id) is None
         assert application.project_for_run(runs[1].id) == healthy
     assert database.read_bytes() == before
-    assert any(rejected in record.message and "autopilot authority" in record.message for record in caplog.records)
+    assert preservation_inventory(project_home) == home_before
+    assert any(rejected in record.message and "excluded from run index" in record.message
+               and "autopilot authority" in record.message for record in caplog.records)
+    if not closed:
+        assert any(rejected in record.message and "held during startup reconciliation" in record.message
+                   and "autopilot authority" in record.message for record in caplog.records)
 
 
 def test_unexpected_startup_failure_is_not_swallowed(tmp_path, monkeypatch):
