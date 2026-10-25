@@ -8,12 +8,14 @@ import pytest
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_directives import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+    SUPPORTED_CORRECTION_ISSUE_CODES,
     CorrectionDirectivePlanError,
     GraphEntityStateEffectCorrectionPlanError,
-    SUPPORTED_CORRECTION_ISSUE_CODES,
     compile_correction_instruction_plan,
 )
-from plotloom.generation.work_units import parse_semantic_repair_fact
+from plotloom.generation.repair_facts import (
+    parse_semantic_repair_fact,
+)
 
 
 def _issue(code: str, path: tuple[str | int, ...]) -> ValidationIssue:

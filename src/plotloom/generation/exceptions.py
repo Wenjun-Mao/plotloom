@@ -77,11 +77,3 @@ class ResponseValidationError(GenerationError):
 
 class SecretLeaseError(GenerationError):
     """A secret lease is invalid, expired, revoked, or exhausted."""
-
-
-class GenerationRunFailed(GenerationError):
-    """A generation run ended without an accepted value."""
-
-    def __init__(self, message: str, *, run: object) -> None:
-        super().__init__(message)
-        self.run = run

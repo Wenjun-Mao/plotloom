@@ -1,6 +1,6 @@
 # Generation contract leaves and retired execution paths
 
-Status: **independently reviewed plan; awaiting owner implementation approval**.
+Status: **owner approved implementation (Go, 2026-10-25); G1/R1–R3 stable source checkpoint; review/final qualification pending**.
 Date: 2026-10-25. Source baseline: `096a573eef0081234e3309d0a8d1902afd05e248`
 on retained `main` at `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
 Installed checkout: `/Users/wjmao/projects/HU/plotloom` (P).
@@ -9,8 +9,9 @@ Installed checkout: `/Users/wjmao/projects/HU/plotloom` (P).
 
 The owner accepted the [modularity audit](../verification/2026-10-25-modularity-audit.md)
 recommendation to start G1 and retire R1–R3, then requested planning through Relay
-Brainstorm and Plan. This approves the design direction and planning, **not
-implementation or operational changes yet**. Standing permission for separate
+Brainstorm and Plan. The owner subsequently approved this complete implementation plan with **Go**
+on 2026-10-25; source, qualification and the scoped operational outcome below
+are authorized. Standing permission for separate
 Codex worker threads and model/reasoning choices remains valid.
 
 Deliver **G1 leaf generation contracts**, remove its import-cycle workaround,
@@ -348,13 +349,13 @@ GitHub workflow changes, CI or push is proposed.
 
 ## Acceptance checklist and handoff
 
-- [ ] G1 response/fact/prompt contracts have cohesive direct owners and no
+- [x] G1 response/fact/prompt contracts have cohesive direct owners and no
   compiler return dependency; supported schemas/hashes/nulls are unchanged.
-- [ ] Class-name admission workaround is removed; evidence model-name labels
+- [x] Class-name admission workaround is removed; evidence model-name labels
   remain stable; unsupported/forged types fail closed.
-- [ ] Scope-less stage repair, raw-media execution and Atlas fallback and their
+- [x] Scope-less stage repair, raw-media execution and Atlas fallback and their
   exclusive tests/assets/exports are gone; current supported contracts pass.
-- [ ] Exact repair, H3 diagnostics, frozen readback, snapshot/restore,
+- [x] Exact repair, H3 diagnostics, frozen readback, snapshot/restore,
   transaction/lease ordering and UNKNOWN safety remain intact.
 - [ ] Small provider-free project/repair proof, focused checks, stable review,
   final full-local qualification and exact installed-package checks have
@@ -386,5 +387,102 @@ model settings were requested explicitly and remain unverified by the host.
 Manager checked source boundaries, current prompt/package consumers, local link
 targets, documented verification commands and the documentation-only diff.
 The reviewer returned its actual final and released access; archival/reporting
-cleanup is completed before handoff. Implementation, tests/builds, provider
-work, live inspections and operational actions remain unstarted.
+cleanup is completed before handoff. At planning closeout implementation, tests/builds, provider work, live
+inspections and operational actions were unstarted; the approved implementation
+receipt below records subsequent execution.
+
+## Implementation receipt — stable source checkpoint
+
+One source owner is executing G1/R1–R3 in R from `e6c4b3e`. The smallest
+proof is a disposable one-choice/two-ending project with one scene/beat and
+one shot per footage node, no dialogue/audio, the existing V3 fixture provider,
+real ProjectPipelineExecutor/LifecycleJobRunner validators and storage, and
+canonical/provenance readback after reopen. Resource limit: local deterministic
+fixture responses only, no provider/media calls; qualification owner cleans
+its temporary fixtures. Existing exact-repair sibling/recovery fixtures prove
+quarantine → exact child → reuse/seal/atomic install.
+
+Pre-edit baseline retains 36 model/union schema hashes, representative response
+serialization, five fact round trips including authorized nested nulls, and
+compiled prompt/schema/rendered hashes in ignored `.local/g1-retirements/`.
+This is provider-free runtime integration, not provider or creative acceptance.
+Final full qualification and manager-owned activation/recovery remain pending.
+
+G1 and R1–R3 source implementation is complete. [ADR 0220](../adr/0220-generation-contract-leaves-and-retired-execution.md)
+records the current decision and precise supersessions. The new contract owners
+are 64–313 lines. `work_units.py` is 3,583 lines after moving response models,
+fact contracts/codec and prompt/request records. It deliberately retains mixed
+compiler/binder/stage-validation/repair-derivation responsibilities for G2;
+this checkpoint does not claim the remainder is cohesive. No new responsibility
+was added there. `correction_directives.py` remains 829 lines: this change removes
+name admission and duplicate serialization while retaining its versioned registry,
+selection and evidence projection for G4. `correction_schema.py` (669) and the
+durable runner (1,807) received direct import changes only; their algorithms and
+G4/G5 boundaries remain. G2–G5 and all other audit batches remain unselected.
+
+The actual R interpreter is `.venv/bin/python` (locked CPython 3.12.13 macOS arm64),
+and the parity probe asserts `plotloom` imports from R's `src/`. All 36 baseline
+model/union schema hashes agree, including every fact family through the closed
+union, as do representative Scene Beats/Storyboard dumps, five fact round trips
+with nested authorized nulls, the frozen prompt record, response schema and
+prompt render/input hashes. Comparable contract digest:
+`b5c7e2574131d11523539636dceb47512eeedfc9d1e07736298ec36ce40c15a5`.
+The first aggregate rendered-envelope digest also included wall-clock
+`PromptTrace.rendered_at`; that non-contract aggregate is excluded from equality,
+while the actual contract/rendered hashes and message serialization remain
+covered. No version bump, schema rewrite, frozen pin or old evidence rewrite was
+needed. Existing surviving prompt files are unchanged.
+
+Executed development evidence (scoped, not full release qualification):
+
+- Early response boundary: 11 fragment cases; the minimal four-stage split
+  project then passed ordinary installation and close/reopen canonical plus
+  prompt-provenance equality. Existing pending-sibling reuse and pre-seal
+  process-loss exact-repair cases passed before broader extraction.
+- Shared-generation module contract: 201 Python and 33 Vitest cases, frontend
+  type checks and complete native owner-union preflight passed.
+- Affected runtime/safety focus: 164 cases passed, covering exact child
+  eligibility/recovery/reuse, durable generation, UNKNOWN, H3 transport/dispatch/
+  reconciliation, frozen video integrity, managed images and snapshot/restore.
+- R3 follow-up: 90 affected H3/current-authority/frozen-readback cases passed.
+  A leftover `None` production-contract path had still synthesized a new Wan
+  request; it is removed from both service and persistence admission. Refusal
+  tests prove no persistence/lease/reservation/provider operation is reached.
+- Final changed-boundary selection: 33 cases passed, including cold imports in
+  both orders without loading the compiler, exact-type forged/subclass refusal,
+  nested null serialization/projection, scope-less admission before profile/
+  lease/row/plan work, corrupt exact scope before provider resolution, explicit
+  adapter/production contract, H3 submissions and current prompt inventory.
+- Fresh native ownership guard: 3,983 Python cases in 324 files; 1,538 Vitest
+  cases and 358 browser cases remain unchanged. This is discovery evidence,
+  not execution of all cases. Changed-file unused/duplicate import checks and
+  whitespace checks pass.
+
+Retired-test accounting: five standalone orchestrator cases, twelve raw-media
+cases and 33 Atlas transport cases are retired with their contracts (50 total).
+All four diagnostic allowlist cases move unchanged to
+`tests/backend_core/test_video_dispatch_diagnostics.py`. Fourteen new cases
+cover the supported boundaries and smallest integration. The surviving prompt
+suite retains all canonical assertions; only the obsolete raw-media rendering
+tail and three retired inventory entries are removed. Module ownership records
+the new/deleted/moved files. Native Python delta is -36 (4,019 → 3,983).
+
+Development corrections were fixture/import issues: the minimal topology uses
+choice edges rather than a choice node kind; a single fact is ungrouped; frozen
+lease injection needs an owner replacement; one surviving timing DTO consumer
+needed a direct timing-owner import. These were corrected without weakening
+current-contract assertions. A broad unconfigured F401 scan also reported
+pre-existing intentional reexports; the actual changed-file import checks and
+configured API lint are kept distinct.
+
+Only the small ignored `.local/g1-retirements/baseline.json`, parity probe and
+concise execution summary are retained for integrated qualification. Disposable
+runtime fixtures use pytest temporary roots outside installed/live roots and
+have closed runners. No application/frontend source schema, database migration,
+provider/media generation, P activation, service reload, recovery replacement,
+GitHub CI or push was performed. Source/profile identity changes prospectively;
+old pins are unchanged. Independent stable review, one final full-local gate,
+exact wheel/isolated installed smoke and manager-owned activation/preservation/
+recovery remain pending. Runtime timings are available in the concise temporary
+summary; detailed product/infrastructure/coordination time allocation is
+unavailable. These are coordination checkpoints, not new owner-approval gates.

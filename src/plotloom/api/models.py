@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import base64
 import binascii
-from datetime import datetime
 import json
+from datetime import datetime
 from typing import Any, Mapping, Protocol
 
 from fastapi import HTTPException, Request, status
@@ -11,13 +11,13 @@ from fastapi import HTTPException, Request, status
 from ..domain import (
     PUBLIC_PROVIDER_SETTING_FIELDS,
     GenerationRun,
-    MediaKind,
-    MediaPromptContext,
     ProviderAuthMode,
     ProviderSettings,
     ProviderSnapshot,
     validate_public_provider_snapshot,
 )
+from ..generation.providers import ProviderAdapter
+from ..generation.secrets import SecretLease
 from ..persistence import ApprovalClosure, ApprovalDecision
 from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
@@ -28,43 +28,104 @@ from ..provider_profiles import (
     V2ExtractionPolicy,
     execution_preset,
 )
-from ..generation.providers import ProviderAdapter
-from ..generation.secrets import SecretLease
 from .contracts import (
     ApprovalClosureView as ApprovalClosureView,
+)
+from .contracts import (
     ApprovalDecisionView as ApprovalDecisionView,
+)
+from .contracts import (
     AuthoringDraftDiscardRequest as AuthoringDraftDiscardRequest,
+)
+from .contracts import (
     AuthoringDraftUpsertRequest as AuthoringDraftUpsertRequest,
+)
+from .contracts import (
     CanonicalDraftConsumption as CanonicalDraftConsumption,
+)
+from .contracts import (
     ExactWorkUnitRepairRequest as ExactWorkUnitRepairRequest,
+)
+from .contracts import (
     ImageJobCancellationRequest as ImageJobCancellationRequest,
+)
+from .contracts import (
     LifecycleRequest as LifecycleRequest,
-    MediaTaskRequest as MediaTaskRequest,
+)
+from .contracts import (
     PipelineRunRequest as PipelineRunRequest,
+)
+from .contracts import (
     ProjectCreateRequest as ProjectCreateRequest,
+)
+from .contracts import (
     ProjectDuplicateRequest as ProjectDuplicateRequest,
+)
+from .contracts import (
     ProjectFolderImageJobCreateRequest as ProjectFolderImageJobCreateRequest,
+)
+from .contracts import (
     ProjectFolderVisualIntentRequest as ProjectFolderVisualIntentRequest,
+)
+from .contracts import (
     ProjectListResponse as ProjectListResponse,
-    ProjectOperationalState as ProjectOperationalState,
+)
+from .contracts import (
     ProjectMediaTasksResponse as ProjectMediaTasksResponse,
+)
+from .contracts import (
+    ProjectOperationalState as ProjectOperationalState,
+)
+from .contracts import (
     ProjectPatchRequest as ProjectPatchRequest,
+)
+from .contracts import (
     ProjectPermanentDeleteRequest as ProjectPermanentDeleteRequest,
+)
+from .contracts import (
     ProjectRunsResponse as ProjectRunsResponse,
+)
+from .contracts import (
     ProviderSettingsUpdate as ProviderSettingsUpdate,
+)
+from .contracts import (
     RebuildRequest as RebuildRequest,
+)
+from .contracts import (
     StageEnvelopesResponse as StageEnvelopesResponse,
+)
+from .contracts import (
     StagePatchRequest as StagePatchRequest,
+)
+from .contracts import (
     StoryboardApprovalRequest as StoryboardApprovalRequest,
+)
+from .contracts import (
     StoryboardReviewResponse as StoryboardReviewResponse,
+)
+from .contracts import (
     TextBackendReadiness as TextBackendReadiness,
+)
+from .contracts import (
     TextProviderProbeResponse as TextProviderProbeResponse,
+)
+from .contracts import (
     TextProviderProfileActivate as TextProviderProfileActivate,
+)
+from .contracts import (
     TextProviderProfileAvailabilityUpdate as TextProviderProfileAvailabilityUpdate,
+)
+from .contracts import (
     TextProviderProfileCreate as TextProviderProfileCreate,
-    TextProviderProfileUpdate as TextProviderProfileUpdate,
-    TextProviderProfileView as TextProviderProfileView,
+)
+from .contracts import (
     TextProviderProfilesResponse as TextProviderProfilesResponse,
+)
+from .contracts import (
+    TextProviderProfileUpdate as TextProviderProfileUpdate,
+)
+from .contracts import (
+    TextProviderProfileView as TextProviderProfileView,
 )
 
 
@@ -74,14 +135,8 @@ class RunScheduler(Protocol):
     def request_cancel(self, run_id: str) -> GenerationRun: ...
 
 
-class MediaScheduler(Protocol):
-    def submit(self, task_id: str, *, session_api_key: str | None = None) -> Any: ...
 
 
-class MediaPromptCompiler(Protocol):
-    def compile(
-        self, context: MediaPromptContext, kind: MediaKind
-    ) -> tuple[str, dict[str, Any]]: ...
 
 
 class TextProviderResolver(Protocol):

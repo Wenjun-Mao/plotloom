@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Protocol
 
-
 from ..domain import (
     GenerationRun,
-    MediaKind,
-    MediaPromptContext,
     ProviderAuthMode,
 )
 from ..generation.providers import ProviderAdapter
@@ -19,14 +16,8 @@ class RunScheduler(Protocol):
     def request_cancel(self, run_id: str) -> GenerationRun: ...
 
 
-class MediaScheduler(Protocol):
-    def submit(self, task_id: str, *, session_api_key: str | None = None) -> Any: ...
 
 
-class MediaPromptCompiler(Protocol):
-    def compile(
-        self, context: MediaPromptContext, kind: MediaKind
-    ) -> tuple[str, dict[str, Any]]: ...
 
 
 class TextProviderResolver(Protocol):

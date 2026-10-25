@@ -21,7 +21,6 @@ from plotloom.domain import (
     StoryGraphV2,
     StoryNodeV2,
 )
-from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
@@ -29,25 +28,33 @@ from plotloom.generation.correction_contract import (
     CORRECTION_ISSUE_SELECTION_VERSION,
     CORRECTION_RESPONSE_SCHEMA_VERSION,
 )
-from plotloom.generation.validation import SemanticValidationContext
+from plotloom.generation.dialogue_repair_contracts import (
+    DialogueCapacityRepairFact,
+)
+from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.scene_response_contracts import (
+    BeatContent,
+    DialogueCueContent,
+    DramaticSceneContent,
+    SceneBeatsFragmentOutput,
+)
 from plotloom.generation.storyboard_presence_repair import (
     RequiredEntityPresenceRepairFact,
     assert_required_entity_presence_repair_fact_matches_source,
     storyboard_required_entity_presence_repair_facts,
 )
-from plotloom.generation.work_units import (
-    BeatContent,
+from plotloom.generation.storyboard_repair_contracts import (
     AudioTimingRepairFact,
-    DialogueCueContent,
-    DialogueCapacityRepairFact,
-    DramaticSceneContent,
     RequiredEntityStateRepairFact,
-    SceneBeatsFragmentOutput,
+)
+from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
-    compile_work_unit_request,
+)
+from plotloom.generation.validation import SemanticValidationContext
+from plotloom.generation.work_units import (
     canonical_audio_event_id,
-    canonical_fragment_id,
+    compile_work_unit_request,
     scene_beats_dialogue_capacity_repair_facts,
     semantic_repair_facts,
     storyboard_audio_timing_repair_facts,

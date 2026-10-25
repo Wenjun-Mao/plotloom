@@ -53,11 +53,8 @@ class ProjectVideoRepository:
         storyboard_revision: int,
         expected_selection_revision: int,
         idempotency_key: str,
-        requested_seconds: int = 5,
-        resolution: str = "720p",
-        audio: bool = True,
         playback_intent: str = "source_exact",
-        production_contract: VideoProductionContract | None = None,
+        production_contract: VideoProductionContract,
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
@@ -77,9 +74,6 @@ class ProjectVideoRepository:
             storyboard_revision=storyboard_revision,
             expected_selection_revision=expected_selection_revision,
             idempotency_key=idempotency_key,
-            requested_seconds=requested_seconds,
-            resolution=resolution,
-            audio=audio,
             playback_intent=playback_intent,
             production_contract=production_contract,
             backend_binding=backend_binding,
@@ -335,7 +329,7 @@ class ProjectVideoRepository:
         self, video_job_id: str, *, backend_binding: VideoBackendBinding
     ) -> None:
         self.assert_video_authority(self.project_id)
-        from ..video_batch_basis import batch_for_job, assert_batch_dispatch_scope
+        from ..video_batch_basis import assert_batch_dispatch_scope, batch_for_job
         with self._dispatch.read() as session:
             assert_batch_dispatch_scope(session, self.project_id, video_job_id)
             batch = batch_for_job(session, self.project_id, video_job_id)

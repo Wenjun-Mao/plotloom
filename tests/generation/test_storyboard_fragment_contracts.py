@@ -8,12 +8,16 @@ from pydantic import ValidationError
 from plotloom.domain import BeatV2, SceneBeatPlanV2, StageName
 from plotloom.generation.fragments import StoryboardFragment
 from plotloom.generation.planning import plan_stage
-from plotloom.generation.validation import SemanticValidationContext
-from plotloom.generation.work_units import (
-    AUDIO_EVENT_ID_BINDING_VERSION,
+from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
+)
+from plotloom.generation.validation import SemanticValidationContext
+from plotloom.generation.work_unit_contracts import (
+    AUDIO_EVENT_ID_BINDING_VERSION,
     WorkUnitPromptContract,
+)
+from plotloom.generation.work_units import (
     canonical_audio_event_id,
     compile_work_unit_request,
 )

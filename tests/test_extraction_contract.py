@@ -25,10 +25,7 @@ FRONTEND_ROOT = REPOSITORY_ROOT / "frontend"
 ENV_EXAMPLE = REPOSITORY_ROOT / ".env.example"
 
 PROMPT_FILENAMES = {
-    "media_image.yaml",
-    "media_video.yaml",
     "production_bridge_intent.yaml",
-    "repair_json.yaml",
     "scene_beats.yaml",
     "scene_beats_fragment.yaml",
     "story_bible.yaml",
@@ -341,7 +338,7 @@ def test_distribution_wheel_is_complete_and_isolated(tmp_path: Path) -> None:
         package_root = Path(plotloom.__file__).resolve().parent
         assert package_root.is_relative_to(unpacked)
         assert set(PromptRepository().list_ids()) == {
-            "media_image", "media_video", "production_bridge_intent", "repair_json", "scene_beats",
+            "production_bridge_intent", "scene_beats",
             "scene_beats_fragment", "story_bible", "story_graph", "story_graph_content_fill", "storyboard",
                 "storyboard_fragment", "work_unit_correction",
         }

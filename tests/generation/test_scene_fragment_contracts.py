@@ -26,8 +26,10 @@ from plotloom.generation.scene_beats_edge_entry import (
     assert_edge_entry_entity_state_repair_fact_matches_source,
 )
 from plotloom.generation.validation import SemanticValidationContext
-from plotloom.generation.work_units import (
+from plotloom.generation.work_unit_contracts import (
     WorkUnitContractError,
+)
+from plotloom.generation.work_units import (
     compile_work_unit_request,
     semantic_repair_facts,
 )

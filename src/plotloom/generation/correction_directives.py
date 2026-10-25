@@ -2,22 +2,23 @@
 
 The correction prompt must not carry directives for unrelated semantic domains.
 This module selects only trusted, repository-owned directive text after the
-runner has revalidated durable issues and typed facts.  It deliberately does
-not import the fact models: the eventual work-unit integration can import this
-module without creating a cycle back into ``work_units``.  Runtime callers
-already parse facts there; this module additionally verifies each current
-fact's stable code, path, and concrete model name.
+runner has revalidated durable issues and typed facts. Leaf contracts supply
+closed concrete-type authority without an import back into the compiler.
+Model-name strings in registry/evidence remain stable serialized labels.
 """
 
 from __future__ import annotations
 
-from copy import deepcopy
-from dataclasses import dataclass
 import hashlib
 import json
+from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from .contracts import FrozenModel, ValidationIssue
+from .repair_facts import SEMANTIC_REPAIR_FACT_TYPES, serialize_semantic_repair_fact
+
+_FACT_TYPE_BY_NAME = {model.__name__: model for model in SEMANTIC_REPAIR_FACT_TYPES}
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CORRECTION_EVIDENCE_PROJECTION_VERSION,
@@ -512,7 +513,7 @@ def compile_correction_instruction_plan(
             raise CorrectionDirectivePlanError(
                 f"repair fact code is not supported by the directive registry: {code}"
             )
-        if type(fact).__name__ != expected_model:
+        if type(fact) is not _FACT_TYPE_BY_NAME.get(expected_model):
             raise CorrectionDirectivePlanError(
                 f"repair fact for {code} is not the current {expected_model}"
             )
@@ -737,45 +738,12 @@ def _is_base_issue_code(code: str) -> bool:
 
 
 def _serialize_current_fact(fact: Any) -> dict[str, Any]:
-    if not hasattr(fact, "model_dump"):
+    if type(fact) not in SEMANTIC_REPAIR_FACT_TYPES:
         raise CorrectionDirectivePlanError("repair fact is not a typed current fact")
     try:
-        payload = fact.model_dump(mode="json", by_alias=True, exclude_none=True)
+        return deepcopy(serialize_semantic_repair_fact(fact))
     except (TypeError, ValueError) as exc:
         raise CorrectionDirectivePlanError("repair fact cannot be serialized") from exc
-    if not isinstance(payload, dict):
-        raise CorrectionDirectivePlanError("repair fact serialization must be an object")
-    # ``expectedValue: null`` is meaningful only with explicit authority.
-    if payload.get("hasExpectedValue") is True and hasattr(fact, "expected_value"):
-        payload["expectedValue"] = deepcopy(fact.expected_value)
-    if type(fact).__name__ == "JoinStateEffectRepairFact":
-        for serialized_effect, effect in zip(
-            payload.get("preservedStateEffects", []),
-            fact.preserved_state_effects,
-            strict=True,
-        ):
-            for serialized_incoming, incoming in zip(
-                serialized_effect["incomingEffects"],
-                effect.incoming_effects,
-                strict=True,
-            ):
-                serialized_incoming["expectedValue"] = deepcopy(incoming.expected_value)
-    if type(fact).__name__ == "ContinuitySequenceRepairFact":
-        for serialized_boundary, boundary in zip(
-            payload.get("boundaries", []),
-            fact.boundaries,
-            strict=True,
-        ):
-            for serialized_assignment, assignment in zip(
-                serialized_boundary.get("assignments", []),
-                boundary.assignments,
-                strict=True,
-            ):
-                if type(assignment).__name__ == "ContinuityFactAssignment":
-                    serialized_assignment["expectedValue"] = deepcopy(
-                        assignment.expected_value
-                    )
-    return deepcopy(payload)
 
 
 def _project_prompt_evidence(

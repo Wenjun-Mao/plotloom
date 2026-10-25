@@ -4,17 +4,15 @@ from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import Field, field_validator, model_validator
-from ..delegated_qa_contracts import AgentQaAttribution
-from ..human_confirmation_contracts import UnnamedCreatorConfirmation
 
+from ..delegated_qa_contracts import AgentQaAttribution
 from ..domain import (
     STAGE_ORDER,
     AuthoringDraftScope,
     CamelModel,
-    GenerationRun,
     GateEvaluation,
+    GenerationRun,
     InitialStage,
-    MediaKind,
     MediaTask,
     ProjectBrief,
     ProjectSummary,
@@ -25,14 +23,15 @@ from ..domain import (
     StageName,
     contains_secret_setting,
     contains_secret_value,
-    validate_public_api_root,
     validate_initial_stage_prefix,
+    validate_public_api_root,
+)
+from ..human_confirmation_contracts import UnnamedCreatorConfirmation
+from ..image_job_contracts import (
+    ImageJobCreateRequest,
 )
 from ..managed_media import (
     VisualIntentInput,
-)
-from ..image_job_contracts import (
-    ImageJobCreateRequest,
 )
 from ..provider_profiles import (
     PROFILE_ID_PATTERN,
@@ -349,40 +348,6 @@ class TextProviderProbeResponse(TextBackendReadiness):
     """The explicit probe returns the same secret-free observation shown in UI."""
 
 
-class MediaTaskRequest(CamelModel):
-    kind: MediaKind
-    provider: str | None = None
-    public_settings: dict[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def reject_secrets(self) -> MediaTaskRequest:
-        if contains_secret_value(self.provider):
-            raise ValueError("provider must be a public identifier, not a credential")
-        if self.provider is not None:
-            raise ValueError(
-                "media tasks cannot override the provider; save a trusted provider profile first"
-            )
-        if contains_secret_setting(self.public_settings) or contains_secret_value(
-            self.public_settings
-        ):
-            raise ValueError(
-                "publicSettings must not contain API keys, tokens, credentials, or other secrets"
-            )
-        for key in self.public_settings:
-            normalized = "".join(
-                character for character in str(key).lower() if character.isalnum()
-            )
-            if (
-                normalized.endswith("baseurl")
-                or normalized.endswith("endpoint")
-                or normalized.endswith("authmode")
-                or normalized.endswith("provider")
-                or normalized.endswith("model")
-            ):
-                raise ValueError(
-                    "media tasks cannot override the trusted provider profile; save profile settings first"
-                )
-        return self
 
 
 class ImageJobCancellationRequest(CamelModel):

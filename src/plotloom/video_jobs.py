@@ -5,11 +5,9 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Any, Callable
 
 from .artifacts import ArtifactStore
-from .exceptions import InvalidTransitionError
 from .video_backends.minimax_h3.prompt import compile_i2va_prompt_v1
 from .video_ingestion import ObservedVideo, probe_video
 from .video_provider import (
-    AtlasWanAdapter,
     RemoteOutcomeUnknown,
     RemotePredictionFailed,
     VideoAdapterPort,
@@ -22,7 +20,9 @@ from .video_provider import (
 )
 
 if TYPE_CHECKING:
-    from .project_storage.project_video import ProjectVideoRepository as VideoJobRepository
+    from .project_storage.project_video import (
+        ProjectVideoRepository as VideoJobRepository,
+    )
 
 
 class VideoJobService:
@@ -34,14 +34,14 @@ class VideoJobService:
         artifacts: ArtifactStore,
         provider: VideoProviderPort,
         *,
-        adapter: VideoAdapterPort | None = None,
+        adapter: VideoAdapterPort,
         backend_binding: VideoBackendBinding | None = None,
         claim_before_provider_calls: bool = False,
         verify_backend_binding: Callable[[str], None] | None = None,
         probe: Callable[[bytes], ObservedVideo] = probe_video,
     ) -> None:
         self.repository, self.artifacts, self.provider, self.probe = repository, artifacts, provider, probe
-        self.adapter = adapter or AtlasWanAdapter()
+        self.adapter = adapter
         self.backend_binding = backend_binding
         self.claim_before_provider_calls = claim_before_provider_calls
         self.verify_backend_binding = verify_backend_binding
@@ -80,26 +80,8 @@ class VideoJobService:
             seed=seed,
             profile_id=profile_id,
         )
-        if contract is not None:
-            return self.repository.prepare_video_job(
-                project_id,
-                approval_id=approval_id,
-                shot_id=shot_id,
-                storyboard_revision=storyboard_revision,
-                expected_selection_revision=expected_selection_revision,
-                idempotency_key=idempotency_key,
-                playback_intent=playback_intent,
-                reviewed_directions=reviewed_directions,
-                preview_only=preview_only,
-                production_contract=contract,
-                backend_binding=self.backend_binding,
-            )
-
-        # Adapters that return no production contract retain their historical
-        # snapshot projection. Atlas's adapter has already rejected fields it
-        # does not support before this compatibility path is reached.
-        if reviewed_directions is not None or preview_only:
-            raise InvalidTransitionError("reviewed prompt directions require the H3 production contract")
+        if contract is None:
+            raise VideoProviderError("video preparation requires an explicit production contract")
         return self.repository.prepare_video_job(
             project_id,
             approval_id=approval_id,
@@ -108,9 +90,9 @@ class VideoJobService:
             expected_selection_revision=expected_selection_revision,
             idempotency_key=idempotency_key,
             playback_intent=playback_intent,
-            requested_seconds=5 if requested_seconds is None else requested_seconds,
-            resolution="720p" if resolution is None else resolution,
-            audio=True if audio is None else audio,
+            reviewed_directions=reviewed_directions,
+            preview_only=preview_only,
+            production_contract=contract,
             backend_binding=self.backend_binding,
         )
 

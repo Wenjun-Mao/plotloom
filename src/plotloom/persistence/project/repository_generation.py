@@ -7,11 +7,25 @@ from contextlib import contextmanager
 from typing import Any
 
 from ...domain import (
-    Artifact, AttemptStatus, CanonicalSnapshot, FragmentReuseBinding,
-    GenerationAttempt, GenerationAttemptKind, GenerationRun,
-    GenerationWorkUnitTrace, RepairSource, RunExecutionTrace, RunKind, RunTrace,
-    RunProgress, SealedStageAggregateTrace, StageName, StagePayload, StartupRecoveryPlan,
-    WorkUnitFailureDisposition, WorkUnitRepairRunCreation, WorkUnitRepairScope,
+    Artifact,
+    AttemptStatus,
+    CanonicalSnapshot,
+    FragmentReuseBinding,
+    GenerationAttempt,
+    GenerationAttemptKind,
+    GenerationRun,
+    GenerationWorkUnitTrace,
+    RunExecutionTrace,
+    RunKind,
+    RunProgress,
+    RunTrace,
+    SealedStageAggregateTrace,
+    StageName,
+    StagePayload,
+    StartupRecoveryPlan,
+    WorkUnitFailureDisposition,
+    WorkUnitRepairRunCreation,
+    WorkUnitRepairScope,
 )
 from ...exceptions import InvalidTransitionError
 from ...generation.planning import GenerationPlan, StagePlan
@@ -25,8 +39,8 @@ from .generation_plans import ProjectGenerationPlanningPersistence
 from .generation_progress import ProjectGenerationProgressPersistence
 from .generation_recovery import ProjectGenerationRecoveryPersistence
 from .generation_repairs import ProjectGenerationRepairPersistence
-from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_reuse import ProjectGenerationReusePersistence
+from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 
 
@@ -69,14 +83,12 @@ class ProjectGenerationRepository:
 
     def create_run(
         self, project_id: str, kind: RunKind, requested_stages: Sequence[StageName],
-        *, instructions: str | None = None, parent_run_id: str | None = None,
-        repair_stage: StageName | None = None, repair_source: RepairSource | None = None,
+        *, instructions: str | None = None,
         provider_snapshot: dict[str, Any] | None = None, run_id: str | None = None,
     ) -> GenerationRun:
         return self._snapshots.create_run(
             project_id, kind, requested_stages, instructions=instructions,
-            parent_run_id=parent_run_id, repair_stage=repair_stage,
-            repair_source=repair_source, provider_snapshot=provider_snapshot, run_id=run_id,
+            provider_snapshot=provider_snapshot, run_id=run_id,
         )
 
     def get_run(self, run_id: str) -> GenerationRun:

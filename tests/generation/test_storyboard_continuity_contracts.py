@@ -13,6 +13,9 @@ from plotloom.domain import (
     SceneBeatPlanV2,
     StageName,
 )
+from plotloom.generation.continuity_repair_contracts import (
+    ContinuityEntityStateRepairFact,
+)
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_directives import (
     compile_correction_instruction_plan,
@@ -22,12 +25,15 @@ from plotloom.generation.correction_postconditions import (
 )
 from plotloom.generation.correction_schema import compile_correction_response_schema
 from plotloom.generation.planning import plan_stage
-from plotloom.generation.validation import SemanticValidationContext
-from plotloom.generation.work_units import (
-    ContinuityEntityStateRepairFact,
+from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
+)
+from plotloom.generation.validation import SemanticValidationContext
+from plotloom.generation.work_unit_contracts import (
     WorkUnitContractError,
+)
+from plotloom.generation.work_units import (
     assert_continuity_entity_state_repair_fact_matches_source,
     compile_work_unit_request,
     continuity_entity_state_repair_facts,

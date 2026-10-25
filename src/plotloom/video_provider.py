@@ -6,15 +6,15 @@ string never selects a permissive compatibility path.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from hashlib import sha256
 import json
 import re
+from dataclasses import dataclass
+from hashlib import sha256
 from typing import Any, ClassVar, Literal, Protocol
 from urllib.parse import urlparse
 
 from .domain import contains_secret_setting, contains_secret_value
-from .video_ingestion import ObservedVideo, assert_public_https_url
+from .video_ingestion import ObservedVideo
 
 
 class VideoProviderError(RuntimeError):
@@ -305,18 +305,9 @@ class VideoProductionContract:
         return request
 
 
-@dataclass(frozen=True)
-class WanCapabilities:
-    provider: str = "atlascloud"
-    model: str = "alibaba/wan-3.0/image-to-video"
-    request_image_field: str = "image"
-    durations: tuple[int, ...] = (5,)
-    resolutions: tuple[str, ...] = ("720p",)
-    native_audio: bool = True
-    request_version: int = 1
 
 
-WAN_3_IMAGE_TO_VIDEO = WanCapabilities()
+
 
 
 class VideoProviderPort(Protocol):
@@ -394,181 +385,6 @@ class VideoAdapterPort(Protocol):
         allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
-    ) -> VideoProductionContract | None: ...
+    ) -> VideoProductionContract: ...
 
     def public_capability(self) -> dict[str, Any]: ...
-
-
-class AtlasWanAdapter:
-    """Compile only fields documented for Wan 3 image-to-video.
-
-    The documented generic and model response envelopes disagree.  Rather
-    than recursively scanning arbitrary JSON, this adapter accepts only the
-    two explicitly evidenced envelopes.  A real observed response can extend
-    this narrow parser in a later, reviewed change.
-    """
-
-    capabilities = WAN_3_IMAGE_TO_VIDEO
-
-    adapter_id = "atlas_wan"
-    adapter_version = "1"
-
-    def production_contract(
-        self,
-        *,
-        requested_seconds: int | None,
-        resolution: str | None,
-        audio: bool | None,
-        aspect_policy: str | None,
-        allow_letterbox: bool,
-        allow_center_crop: bool,
-        seed: int | None,
-        profile_id: str | None = None,
-    ) -> None:
-        # V1 Wan snapshots have no seed or aspect-policy fields. Keep that
-        # historical request projection exact rather than allowing future
-        # backend fields to leak into it.
-        if aspect_policy is not None or allow_letterbox or allow_center_crop or seed is not None or profile_id is not None:
-            raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
-        return None
-
-    def public_capability(self) -> dict[str, Any]:
-        caps = self.capabilities
-        return {
-            "enabled": True,
-            "adapterId": self.adapter_id,
-            "adapterVersion": self.adapter_version,
-            "provider": caps.provider,
-            "model": caps.model,
-            "durationSeconds": caps.durations[0],
-            "resolution": caps.resolutions[0],
-            "width": None,
-            "height": None,
-            "fps": None,
-            "frameCount": None,
-            "nativeAudio": caps.native_audio,
-            "requiresAspectPolicy": False,
-            "tracksPaidWanPilot": True,
-        }
-
-    def compile(
-        self,
-        *,
-        prompt: str,
-        uploaded_asset: str,
-        duration: int,
-        resolution: str,
-        audio: bool,
-        aspect_policy: str | None = None,
-        seed: int | None = None,
-        profile_id: str | None = None,
-    ) -> dict[str, Any]:
-        caps = self.capabilities
-        if duration not in caps.durations or resolution not in caps.resolutions or audio is not True:
-            raise VideoProviderError("Wan P2 capability mismatch")
-        if aspect_policy is not None or seed is not None or profile_id is not None:
-            raise VideoProviderError("Wan P2 request includes unsupported H3 fields")
-        if not uploaded_asset.startswith("https://"):
-            raise VideoProviderError("uploaded image URL must be HTTPS")
-        return {"model": caps.model, "prompt": prompt, "image": uploaded_asset, "duration": duration, "resolution": resolution, "audio": True}
-
-    @staticmethod
-    def prediction_id(
-        payload: dict[str, Any],
-        *,
-        expected_profile_id: str | None = None,
-        expected_aspect_policy: str | None = None,
-        expected_duration_seconds: int | None = None,
-        expected_frame_count: int | None = None,
-        expected_seed: int | None = None,
-        expected_profile_version: int | None = None,
-        expected_width: int | None = None,
-        expected_height: int | None = None,
-        expected_fps: int | None = None,
-    ) -> str:
-        if (
-            expected_profile_id is not None
-            or expected_aspect_policy is not None
-            or expected_duration_seconds is not None
-            or expected_frame_count is not None
-            or expected_seed is not None
-            or expected_profile_version is not None
-            or expected_width is not None
-            or expected_height is not None
-            or expected_fps is not None
-        ):
-            raise VideoProviderError("Wan P2 response includes an unsupported profile")
-        data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
-        value = data.get("id") if isinstance(data, dict) else None
-        if not isinstance(value, str) or not value.strip():
-            raise VideoProviderError("Atlas response has no documented prediction id")
-        return value
-
-    @staticmethod
-    def completed_output(
-        payload: dict[str, Any],
-        *,
-        expected_profile_id: str | None = None,
-        expected_aspect_policy: str | None = None,
-        expected_duration_seconds: int | None = None,
-        expected_frame_count: int | None = None,
-        expected_seed: int | None = None,
-        expected_profile_version: int | None = None,
-        expected_width: int | None = None,
-        expected_height: int | None = None,
-        expected_fps: int | None = None,
-    ) -> str | None:
-        if (
-            expected_profile_id is not None
-            or expected_aspect_policy is not None
-            or expected_duration_seconds is not None
-            or expected_frame_count is not None
-            or expected_seed is not None
-            or expected_profile_version is not None
-            or expected_width is not None
-            or expected_height is not None
-            or expected_fps is not None
-        ):
-            raise VideoProviderError("Wan P2 response includes an unsupported profile")
-        data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
-        if not isinstance(data, dict):
-            raise VideoProviderError("Atlas prediction response is not a documented object")
-        status = data.get("status")
-        if not isinstance(status, str):
-            raise VideoProviderError("Atlas prediction response has no documented status")
-        if status in {"failed", "error", "cancelled", "canceled"}:
-            raise RemotePredictionFailed("Atlas prediction reported failure")
-        if status not in {"completed", "succeeded", "success"}:
-            return None
-        outputs = data.get("outputs")
-        if not isinstance(outputs, list) or len(outputs) != 1 or not isinstance(outputs[0], str):
-            raise VideoProviderError("completed Atlas prediction has no single documented output URL")
-        return outputs[0]
-
-    @staticmethod
-    def validate_output_reference(value: str) -> None:
-        # Atlas remains the only adapter permitted to resolve an external
-        # public output. The generic job service delegates this boundary to
-        # the selected adapter rather than branching on adapter class.
-        assert_public_https_url(value)
-
-    @staticmethod
-    def validate_observed_output(
-        _observed: ObservedVideo, *, profile_id: str | None = None,
-        requested_seconds: int | None = None, expected_frame_count: int | None = None,
-        expected_fps: int | None = None, expected_profile_version: int | None = None,
-        expected_width: int | None = None, expected_height: int | None = None,
-    ) -> None:
-        # Browser-playability and native-audio checks remain shared ingestion
-        # requirements. Atlas has no separately evidenced fixed frame profile.
-        if (
-            profile_id is not None
-            or requested_seconds is not None
-            or expected_frame_count is not None
-            or expected_fps is not None
-            or expected_profile_version is not None
-            or expected_width is not None
-            or expected_height is not None
-        ):
-            raise VideoProviderError("Wan P2 output includes an unsupported profile")
-        return None

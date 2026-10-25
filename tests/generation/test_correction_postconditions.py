@@ -2,19 +2,23 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from plotloom.generation.contracts import ValidationIssue
-from plotloom.generation.correction_postconditions import (
-    validate_correction_postconditions,
-)
-from plotloom.generation.work_units import (
+from plotloom.generation.continuity_repair_contracts import (
     ContinuityBoundaryRepair,
     ContinuityEntityStateAssignment,
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     ContinuityStateEndpoint,
+)
+from plotloom.generation.contracts import ValidationIssue
+from plotloom.generation.correction_postconditions import (
+    validate_correction_postconditions,
+)
+from plotloom.generation.dialogue_repair_contracts import (
     CueOrderRepairAssignment,
     CueOrderRepairFact,
+)
+from plotloom.generation.graph_repair_contracts import (
     JoinAllowedDifferencesRepairFact,
     JoinIncomingEdgeRepairTarget,
     JoinNewRequiredKeyIncomingEdges,

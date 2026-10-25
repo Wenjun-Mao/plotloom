@@ -1,22 +1,15 @@
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from plotloom.canonical_schema import V2ShotSize
-from tests.backend_core.conftest import make_scene_beats, make_storyboard
 from plotloom.generation.exceptions import PromptRenderError
 from plotloom.generation.prompts import PromptRenderer, PromptRepository
 
 
-def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
+def test_repository_contains_all_current_versioned_prompts() -> None:
     repository = PromptRepository()
     assert repository.list_ids() == (
-        "media_image",
-        "media_video",
         "production_bridge_intent",
-        "repair_json",
         "scene_beats",
         "scene_beats_fragment",
         "story_bible",
@@ -182,7 +175,7 @@ def test_graph_prompts_render_the_typed_direct_incoming_edge_agreement() -> None
         assert "改变图拓扑" in instruction or "修改节点、边和汇流合同的图拓扑" in instruction
 
 
-def test_storyboard_schema_and_media_prompts_are_separate() -> None:
+def test_storyboard_schema_keeps_audio_and_visual_semantics() -> None:
     renderer = PromptRenderer()
     storyboard_schema = {
         "type": "object",
@@ -216,19 +209,3 @@ def test_storyboard_schema_and_media_prompts_are_separate() -> None:
     assert "不生成供应商专用的图片或视频提示词" in storyboard.messages[1].content
     for field in ("audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"):
         assert field in storyboard.messages[1].content
-
-    shot = make_storyboard(make_scene_beats()).shots[0].model_copy(update={"id": "shot-1", "title": "苏醒", "shot_size": V2ShotSize.CLOSE_UP, "visual_intent": "身份迷失", "motion_intent": "缓慢睁眼"})
-    image = renderer.render(
-        "media_image",
-        {
-            "story_bible": {"logline": "测试"},
-            "storyboard_shot": shot,
-            "continuity_context": {},
-            "media_constraints": {"aspectRatio": "16:9"},
-        },
-    )
-    assert image.output.format == "text"
-    assert image.trace.stage == "media_image"
-    assert '"visualIntent":"身份迷失"' in image.messages[1].content
-    assert "visual_intent" not in image.messages[1].content
-    assert json.loads(json.dumps(image.trace.model_dump(mode="json"), default=str))

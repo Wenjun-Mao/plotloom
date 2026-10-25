@@ -23,11 +23,15 @@ from plotloom.generation.fragment_semantics import (
 )
 from plotloom.generation.planning import plan_stage
 from plotloom.generation.prompts import PromptRenderer
-from plotloom.generation.work_units import (
-    WorkUnitPromptContract,
-    compile_work_unit_request,
+from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
     serialize_semantic_repair_fact,
+)
+from plotloom.generation.work_unit_contracts import (
+    WorkUnitPromptContract,
+)
+from plotloom.generation.work_units import (
+    compile_work_unit_request,
 )
 from plotloom.validation_state import (
     _continuity_state_issues,

@@ -8,7 +8,6 @@ each sample a disposable project folder and application store.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import re
@@ -16,18 +15,30 @@ import sys
 import tempfile
 import time
 from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
 from .config import PlotloomSettings
 from .domain import (
+    STAGE_ORDER,
     ArtifactKind,
     AttemptStatus,
     GenerationAttemptKind,
     ProjectBrief,
     RunKind,
-    STAGE_ORDER,
     StageStatus,
+)
+from .generation.planning import PLANNING_POLICY_VERSION
+from .generation.prompts import PromptRepository, canonical_json, sha256_text
+from .generation.story_graph_topology import (
+    STORY_GRAPH_CONTENT_FILL_SCHEMA_ID,
+    STORY_GRAPH_TOPOLOGY_VERSION,
+)
+from .generation.work_unit_contracts import (
+    SCENE_BEATS_FRAGMENT_SCHEMA_ID,
+    STORYBOARD_FRAGMENT_SCHEMA_ID,
+    WORK_UNIT_PROMPT_CONTRACT_VERSION,
 )
 from .jobs import LifecycleJobRunner
 from .pipeline import (
@@ -36,22 +47,11 @@ from .pipeline import (
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import TextProviderProfileSnapshot
 from .project_storage import ProjectFolderStorage, ProjectStore
 from .project_storage.application_profile_snapshot import load_saved_text_profiles
+from .provider_profiles import TextProviderProfileSnapshot
 from .providers import ProviderPorts
 from .runtime import RunContext
-from .generation.planning import PLANNING_POLICY_VERSION
-from .generation.prompts import PromptRepository, canonical_json, sha256_text
-from .generation.story_graph_topology import (
-    STORY_GRAPH_CONTENT_FILL_SCHEMA_ID,
-    STORY_GRAPH_TOPOLOGY_VERSION,
-)
-from .generation.work_units import (
-    SCENE_BEATS_FRAGMENT_SCHEMA_ID,
-    STORYBOARD_FRAGMENT_SCHEMA_ID,
-    WORK_UNIT_PROMPT_CONTRACT_VERSION,
-)
 
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2

@@ -16,12 +16,16 @@ from plotloom.domain import (
     StoryNodeV2,
 )
 from plotloom.generation.planning import create_generation_plan, plan_stage
-from plotloom.generation.work_units import (
+from plotloom.generation.scene_response_contracts import (
     BeatContent,
     DramaticSceneContent,
     SceneBeatsFragmentOutput,
+)
+from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
+)
+from plotloom.generation.work_units import (
     compile_work_unit_request,
 )
 

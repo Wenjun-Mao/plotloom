@@ -34,27 +34,28 @@ from pydantic import (
     ValidationError,
     field_validator,
 )
+
 from .alpha_review_templates import (
-    CODEX_EXTERNAL_REVIEWER,
     CODEX_EXTERNAL_REVIEW_FIELDS,
     CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
     CODEX_EXTERNAL_REVIEW_SCORE_FIELDS,
-    CodexExternalReviewer,
-    CodexExternalReviewRubricVersion,
+    CODEX_EXTERNAL_REVIEWER,
     COMMIT_SHA_PATTERN,
     CONTENT_HASH_PATTERN,
     OPAQUE_REVIEW_ID_PATTERN,
+    CodexExternalReviewer,
+    CodexExternalReviewRubricVersion,
     is_unfilled_codex_external_review_template,
     write_codex_external_review_templates,
 )
 from .config import PlotloomSettings
 from .domain import (
+    STAGE_ORDER,
     ArtifactKind,
     AttemptStatus,
     GenerationAttemptKind,
     ProjectBrief,
     RunKind,
-    STAGE_ORDER,
     StageName,
     StageStatus,
 )
@@ -64,7 +65,7 @@ from .generation.story_graph_topology import (
     STORY_GRAPH_CONTENT_FILL_SCHEMA_ID,
     STORY_GRAPH_TOPOLOGY_VERSION,
 )
-from .generation.work_units import (
+from .generation.work_unit_contracts import (
     SCENE_BEATS_FRAGMENT_SCHEMA_ID,
     STORYBOARD_FRAGMENT_SCHEMA_ID,
     WORK_UNIT_PROMPT_CONTRACT_VERSION,
@@ -76,12 +77,11 @@ from .pipeline import (
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import TextProviderProfileSnapshot
 from .project_storage import ProjectFolderStorage, ProjectStore
 from .project_storage.application_profile_snapshot import load_saved_text_profiles
+from .provider_profiles import TextProviderProfileSnapshot
 from .providers import ProviderPorts
 from .runtime import RunContext
-
 
 ALPHA_ACCEPTANCE_VERSION = "alpha_chinese_three_story.v1"
 ALPHA_PROFILE_COUNT = 2

@@ -18,11 +18,18 @@ ProjectBrief
   -> StoryGraph (DAG + joins)
   -> SceneBeatPlan
   -> Storyboard (Shot + ShotBeatLink)
-  -> package-owned, versioned media prompt compiler
-  -> one-shot image/video tasks
+  -> managed image packages / explicit H3 video jobs
 ```
 
 A valid first run may advance through all four canonical stages. Editing a stage creates a new revision and marks downstream stages stale; it never spends provider credits until the user explicitly starts a rebuild.
+
+Generation response, repair-fact and frozen prompt contracts have direct leaf
+owners; `generation/work_units.py` retains compilation, binding and derivation.
+Generic run admission supports generation/rebuild; exact repair uses immutable
+work-unit scope. Scope-less stage repair, generic raw-media execution and Atlas
+fallback are retired. Video services require their composed adapter. See
+[ADR 0220](adr/0220-generation-contract-leaves-and-retired-execution.md) for the
+current execution and retained readback/safety boundaries.
 
 ## Repository shape
 

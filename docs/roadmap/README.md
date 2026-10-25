@@ -1,17 +1,21 @@
 # Plotloom roadmap entrypoint
 
-## Reviewed G1 and retired-execution plan; implementation pending
+## Approved G1 and retired-execution implementation; review pending
 
 The owner accepted the audit's direction to extract generation response/repair
 contracts first and retire the three obsolete execution paths. The
 [reviewed implementation plan](2026-10-25-generation-contracts-and-retirements.md)
 covers G1, scope-less stage repair (R1), raw media (R2) and Atlas fallback (R3),
 with exact supported-contract preservation, early provider-free runtime proof,
-one final local qualification owner and proposed quiet activation/rollback.
+one final local qualification owner and scoped quiet activation/rollback.
 Independent execution-limits review passed with two clarity refinements applied.
-Implementation approval remains pending; no code or installed state changed.
+The owner approved implementation with Go on 2026-10-25. G1/R1–R3 source is
+implemented with early provider-free runtime proof and focused checks; stable
+independent review, final local qualification and manager-owned activation are
+pending. Installed state remains unchanged. G2–G5 and other audit batches remain
+unselected.
 
-## Completed modularity audit; implementation pending
+## Completed modularity audit; first selected batch in progress
 
 The [source audit](../verification/2026-10-25-modularity-audit.md) reviews all 120
 handwritten source-like files above 400 lines (42 at or above 500), plus selected
@@ -19,8 +23,8 @@ smaller ownership clusters. Each has an explicit extract, retain or retire
 recommendation with reasoning; proposed changes map to named finite batches,
 not an implicit promise to extract on the next edit. Start with generation leaf
 contracts (G1); the three retired-execution decisions (R1–R3) are separately
-flagged for owner review. Audit authority does not authorize implementation,
-retirement, activation, provider work, push or CI. No application code changed.
+flagged for owner review. The subsequently approved delivery plan authorizes G1/R1–R3 only. This audit
+alone does not authorize other implementation, provider work, push or CI.
 
 ## Completed validated installation-only reader
 

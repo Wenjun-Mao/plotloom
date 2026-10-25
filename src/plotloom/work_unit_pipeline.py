@@ -25,11 +25,14 @@ from .domain import (
     RunStatus,
     StageName,
     StagePayload,
-    WorkUnitRepairScope,
     WorkUnitFailureDisposition,
+    WorkUnitRepairScope,
     stage_payload_model,
 )
 from .exceptions import QuarantinedOutputError, RunExecutionError
+from .generation.continuity_repair_contracts import (
+    ContinuityEntityStateRepairFact,
+)
 from .generation.contracts import (
     ExtractionPolicy,
     GenerationRequest,
@@ -60,52 +63,57 @@ from .generation.exceptions import (
     ResponseExtractionError,
 )
 from .generation.fragments import StoryBibleFragment, StoryGraphFragment
+from .generation.graph_repair_contracts import (
+    JoinStateEffectRepairFact,
+)
 from .generation.planning import GenerationWorkUnit, StagePlan
 from .generation.prompts import PromptRenderer
 from .generation.providers import ProviderAdapter
+from .generation.repair_facts import (
+    SemanticRepairFact,
+    parse_semantic_repair_fact,
+    serialize_semantic_repair_fact,
+)
 from .generation.responses import (
     extract_assistant_text,
     parse_json_text,
     redact_provider_boundary_evidence,
-)
-from .generation.secrets import SecretLease
-from .generation.validation import SemanticValidationContext
-from .generation.storyboard_presence_repair import (
-    RequiredEntityPresenceRepairFact,
-    assert_required_entity_presence_repair_fact_matches_source,
 )
 from .generation.scene_beats_edge_entry import (
     EdgeEntryEntityStateRepairFact,
     assert_edge_entry_entity_state_repair_fact_matches_source,
     edge_entry_state_requirements,
 )
-from .generation.work_units import (
-    AUDIO_EVENT_ID_BINDING_VERSION,
-    FRAGMENT_ID_BINDING_VERSION,
-    CompiledWorkUnitRequest,
-    JoinStateEffectRepairFact,
-    ContinuityEntityStateRepairFact,
-    SemanticRepairFact,
-    StoryboardTimingRepairPlanFact,
-    WorkUnitContractError,
-    compile_work_unit_request,
-    assert_cue_order_repair_fact_matches_source,
-    assert_join_state_effect_repair_fact_matches_source,
-    parse_semantic_repair_fact,
-    assert_continuity_repair_fact_matches_source,
-    assert_continuity_entity_state_repair_fact_matches_source,
-    assert_semantic_repair_fact_matches_issue,
-    semantic_repair_facts,
-    serialize_semantic_repair_fact,
+from .generation.secrets import SecretLease
+from .generation.story_graph_topology import StoryGraphTopology
+from .generation.storyboard_presence_repair import (
+    RequiredEntityPresenceRepairFact,
+    assert_required_entity_presence_repair_fact_matches_source,
 )
 from .generation.storyboard_timing_repair import (
     StoryboardTimingGuidance,
+    StoryboardTimingRepairPlanFact,
     build_storyboard_timing_repair_plan,
     storyboard_timing_guidance_hash,
 )
+from .generation.validation import SemanticValidationContext
+from .generation.work_unit_contracts import (
+    AUDIO_EVENT_ID_BINDING_VERSION,
+    FRAGMENT_ID_BINDING_VERSION,
+    CompiledWorkUnitRequest,
+    WorkUnitContractError,
+)
+from .generation.work_units import (
+    assert_continuity_entity_state_repair_fact_matches_source,
+    assert_continuity_repair_fact_matches_source,
+    assert_cue_order_repair_fact_matches_source,
+    assert_join_state_effect_repair_fact_matches_source,
+    assert_semantic_repair_fact_matches_issue,
+    compile_work_unit_request,
+    semantic_repair_facts,
+)
 from .persistence.codec import stable_hash
 from .provider_profiles import TextProviderProfileSnapshot
-from .generation.story_graph_topology import StoryGraphTopology
 from .runtime import RunExecutionResult
 
 if TYPE_CHECKING:

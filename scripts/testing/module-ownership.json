@@ -297,7 +297,6 @@
           "tests/test_image_job_exchange_contracts.py",
           "tests/test_image_terminal_settlement.py",
           "tests/test_managed_asset_provenance.py",
-          "tests/test_media.py",
           "tests/test_project_storage_image_delivery_contracts.py",
           "tests/test_project_storage_image_identity_contracts.py",
           "tests/test_project_storage_image_keyframe_acceptance.py",
@@ -440,7 +439,9 @@
           "tests/test_script_receiving.py",
           "tests/test_storyboard_brief_style.py",
           "tests/test_working_project_autosave.py",
-          "tests/test_working_project_rollback.py"
+          "tests/test_working_project_rollback.py",
+          "tests/test_generation_contract_integration.py",
+          "tests/test_stage_repair_retirement.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
@@ -533,7 +534,6 @@
           "tests/generation/test_join_state_values.py",
           "tests/generation/test_json_schema.py",
           "tests/generation/test_m12a_contracts.py",
-          "tests/generation/test_orchestration.py",
           "tests/generation/test_planning_and_aggregation.py",
           "tests/generation/test_prompts.py",
           "tests/generation/test_provider_profiles.py",
@@ -546,7 +546,8 @@
           "tests/generation/test_storyboard_fragment_contracts.py",
           "tests/generation/test_validation.py",
           "tests/generation/test_work_unit_prompts.py",
-          "tests/generation/test_work_unit_scene_facts.py"
+          "tests/generation/test_work_unit_scene_facts.py",
+          "tests/generation/test_leaf_contract_boundaries.py"
         ],
         "vitest": [
           "frontend/tests/app-state-generation.test.ts",
@@ -560,7 +561,7 @@
       "description": "Provider, specialist, Codex bridge and task-dispatch contracts.",
       "selectors": {
         "pytest": [
-          "tests/backend_core/test_atlas_wan_transport.py",
+          "tests/backend_core/test_video_dispatch_diagnostics.py",
           "tests/backend_core/test_jobs.py",
           "tests/backend_core/test_m15_config_profiles.py",
           "tests/services/creator_workbench/test_codex_exec_supervisor_environment.py",

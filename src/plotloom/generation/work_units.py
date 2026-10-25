@@ -10,35 +10,28 @@ work-unit IDs, or input hashes.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Annotated, Any, Literal, Mapping, TypeAlias
+from typing import Any, Literal, Mapping, TypeAlias
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import (
     BaseModel,
-    ConfigDict,
-    Field,
-    TypeAdapter,
     ValidationError,
-    model_validator,
 )
 
+from ..canonical_schema import V2CoverageRole
 from ..domain import (
     AudioEvent,
     AudioPlan,
-    CanonicalSnapshot,
     BeatV2,
-    CamelModel,
-    ContinuityStateV2,
+    CanonicalSnapshot,
     DialogueCue,
     DialogueDeliveryPace,
     DialogueTimingProfile,
     DramaticSceneV2,
     EntityType,
     ProjectBrief,
-    SceneBeatPlanV2,
-    ShotV2,
     ShotBeatLinkV2,
+    ShotV2,
     StageName,
     StoryBibleV2,
     StoryGraphV2,
@@ -49,8 +42,17 @@ from ..json_value_contract import (
     finite_json_values_equal,
 )
 from ..validation import DomainValidationError, validate_story_graph
-from ..canonical_schema import NonBlankText, V2CoverageRole
-from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
+from .continuity_repair_contracts import (
+    ContinuityBoundaryRepair,
+    ContinuityEntityStateAssignment,
+    ContinuityEntityStateRepairFact,
+    ContinuityFactAssignment,
+    ContinuityRepairAssignment,
+    ContinuityScalarAssignment,
+    ContinuitySequenceRepairFact,
+    ContinuityStateEndpoint,
+)
+from .contracts import ValidationIssue, ValidationReport
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CORRECTION_EVIDENCE_PROJECTION_VERSION,
@@ -64,17 +66,36 @@ from .dialogue_capacity import (
     dialogue_timing_profile_hash,
     plan_dialogue_capacity,
 )
-from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
+from .dialogue_repair_contracts import (
+    CueOrderRepairAssignment,
+    CueOrderRepairFact,
+    DialogueCapacityDeliveryLimit,
+    DialogueCapacityRepairFact,
+    DialogueNodeBudgetRemainingCue,
+    DialogueNodeBudgetRepairFact,
+)
 from .fragment_semantics import (
     FragmentSemanticContextError,
     allowed_entity_states,
-    continuity_sequence_repair_boundaries,
     continuity_sequence_is_compatible,
+    continuity_sequence_repair_boundaries,
     continuity_state_from_context,
     continuity_state_issues,
     cue_canonical_order_key,
     cue_duration_units,
     required_entity_is_in_shot,
+)
+from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
+from .graph_repair_contracts import (
+    EdgeStateEffectJsonRepairFact,
+    JoinAllowedDifferencesRepairFact,
+    JoinEntryStateValueRepairFact,
+    JoinIncomingEdgeRepairTarget,
+    JoinNewRequiredKeyIncomingEdges,
+    JoinPreservedIncomingStateEffect,
+    JoinPreservedStateEffect,
+    JoinReconciliationRepairFact,
+    JoinStateEffectRepairFact,
 )
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 from .planning import (
@@ -82,37 +103,51 @@ from .planning import (
     GenerationWorkUnit,
     PlanningError,
     StagePlan,
-    WorkUnitSelectorKind,
     assert_work_unit_input_contract,
     content_hash,
     work_unit_context,
 )
 from .prompts import PromptRenderer, canonical_json, sha256_text
-from .scene_timing_allocation import (
-    SceneTimingAllocation,
-    SceneTimingAllocationError,
-    plan_scene_timing_allocation,
-)
+from .repair_facts import SemanticRepairFact
 from .scene_beats_edge_entry import (
-    EdgeEntryEntityStateRepairFact,
     edge_entry_entity_state_repair_facts,
     edge_entry_state_requirements,
     first_scene_entry_issues,
     require_first_scene_entity_state_values,
 )
+from .scene_response_contracts import (
+    BeatContent,
+    DialogueCueContent,
+    DramaticSceneContent,
+    SceneBeatsFragmentOutput,
+)
+from .scene_timing_allocation import (
+    SceneTimingAllocation,
+    SceneTimingAllocationError,
+    plan_scene_timing_allocation,
+)
 from .story_graph_topology import (
     STORY_GRAPH_CONTENT_FILL_SCHEMA_ID,
     StoryGraphContentBindingError,
     StoryGraphContentFill,
-    StoryGraphJoinContentFill,
     StoryGraphTopology,
     bind_story_graph_content_fill,
     story_graph_content_fill_join_diagnostic_issues,
     story_graph_content_fill_manifest,
     story_graph_content_fill_schema,
 )
+from .storyboard_presence_repair import (
+    storyboard_required_entity_presence_repair_facts,
+)
+from .storyboard_repair_contracts import (
+    AudioTimingRepairFact,
+    RequiredEntityStateRepairFact,
+)
+from .storyboard_response_contracts import (
+    ShotContent,
+    StoryboardFragmentOutput,
+)
 from .storyboard_timing_repair import (
-    StoryboardCueTimingGuidance,
     StoryboardTimingGuidance,
     StoryboardTimingInfeasibleError,
     StoryboardTimingRepairPlanFact,
@@ -120,937 +155,22 @@ from .storyboard_timing_repair import (
     build_storyboard_timing_repair_plan,
     storyboard_timing_guidance_hash,
 )
-from .storyboard_presence_repair import (
-    AudioEventContent,
-    AudioPlanContent,
-    RequiredEntityPresenceRepairFact,
-    ShotContent,
-    StoryboardFragmentOutput,
-    SupportingBeatLinkContent,
-    storyboard_required_entity_presence_repair_facts,
-    assert_required_entity_presence_repair_fact_matches_source,
+from .validation import (
+    CanonicalStageValidationAdapter,
+    SemanticValidationContext,
+    ValidationAdapter,
 )
-from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
-
-
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.15"
-FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
-AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
-STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v13"
-STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v6"
-
-
-class WorkUnitContractError(ValueError):
-    """A planned unit cannot be rendered or bound at the trusted boundary."""
-
-    def __init__(self, message: str, *, code: str = "contract.work_unit_invalid") -> None:
-        self.code = code
-        super().__init__(message)
-
-
-class _FrozenModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-
-class DramaticSceneContent(CamelModel):
-    """Model-authored scene fields, without the selector-owned story-node ID."""
-
-    local_scene_id: str = Field(min_length=1)
-    order: int = Field(ge=1)
-    title: str = Field(min_length=1)
-    objective: str = Field(min_length=1)
-    location_id: str | None
-    character_ids: list[str]
-    # This is a relative creative weight, not an authored clock value.  The
-    # trusted binder partitions the node's frozen millisecond cap.
-    duration_weight: int = Field(default=1, ge=1, le=1_000)
-    entry_state: ContinuityStateV2
-    exit_state: ContinuityStateV2
-
-
-class BeatContent(CamelModel):
-    """Model-authored beat fields, with only local scene correlation."""
-
-    local_beat_id: str = Field(min_length=1)
-    scene_local_id: str = Field(min_length=1)
-    order: int = Field(ge=1)
-    description: str = Field(min_length=1)
-    purpose: str = Field(min_length=1)
-    visible_event: str
-    immediate_result: str
-    dramatic_change: str
-    entry_state: ContinuityStateV2
-    exit_state: ContinuityStateV2
-    continuity_anchors: list[str]
-    continuity_delta: dict[str, Any]
-
-
-class DialogueCueContent(CamelModel):
-    """Model-authored dialogue tied to a local beat before trusted ID binding."""
-
-    local_cue_id: str = Field(min_length=1)
-    beat_local_id: str = Field(min_length=1)
-    order: int = Field(
-        ge=1,
-        description="One-based contiguous dialogue order within this cue's beatLocalId.",
-    )
-    speaker_id: Annotated[
-        str | None,
-        Field(
-            description=(
-                "Story Bible character ID for spoken dialogue, or null for voice-over; "
-                "exactly one of speakerId and voiceOver must be non-null."
-            )
-        ),
-    ]
-    voice_over: Annotated[
-        NonBlankText | None,
-        Field(
-            description=(
-                "Non-blank voice-over identity when speakerId is null, otherwise null; "
-                "exactly one of speakerId and voiceOver must be non-null."
-            )
-        ),
-    ]
-    # Canonical timing is deliberately absent.  Trusted binding derives it
-    # from these semantic values under a frozen versioned policy; the model is
-    # never asked to count Unicode code points or perform timing arithmetic.
-    text: NonBlankText
-    language: NonBlankText
-    delivery: DialogueDeliveryPace
-    performance_notes: str = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def validate_voice_source(self) -> "DialogueCueContent":
-        if (self.speaker_id is None) == (self.voice_over is None):
-            raise ValueError("DialogueCue requires exactly one of speakerId or voiceOver")
-        if self.voice_over is not None and not self.voice_over.strip():
-            raise ValueError("DialogueCue voiceOver must be a non-blank identity or label")
-        return self
-
-
-class SceneBeatsFragmentOutput(CamelModel):
-    """Model content for one node; trusted code injects selector-owned parents."""
-
-    scenes: list[DramaticSceneContent] = Field(min_length=1)
-    beats: list[BeatContent] = Field(min_length=1)
-    dialogue_cues: list[DialogueCueContent]
-
-
-
-
-class DialogueCapacityDeliveryLimit(CamelModel):
-    """One frozen delivery option made safe by the portable schema cap."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    delivery: DialogueDeliveryPace
-    max_text_codepoints: int = Field(ge=0)
-
-
-class DialogueCapacityRepairFact(CamelModel):
-    """Exact, non-prose authority for one rejected Scene Beats cue.
-
-    The fact never copies the cue text.  It makes the one trusted capacity cap
-    and compatible delivery choices directly visible to a bounded correction,
-    rather than asking a provider to traverse a larger contract and recreate
-    Unicode arithmetic.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.dialogue_cue_capacity_exceeded"]
-    path: tuple[str | int, ...]
-    authoring_language: NonBlankText
-    language: NonBlankText
-    delivery: DialogueDeliveryPace
-    current_text_codepoints: int = Field(ge=1)
-    max_text_codepoints: int = Field(ge=0)
-    compatible_delivery_limits: tuple[DialogueCapacityDeliveryLimit, ...] = Field(
-        min_length=1
-    )
-
-    @model_validator(mode="after")
-    def validate_issue_identity_and_limits(self) -> "DialogueCapacityRepairFact":
-        if (
-            len(self.path) != 3
-            or self.path[0] != "dialogueCues"
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] != "text"
-        ):
-            raise ValueError("path must identify one dialogueCues text value")
-        if self.language != self.authoring_language:
-            raise ValueError("capacity facts only authorize the frozen authoring language")
-        deliveries = [item.delivery for item in self.compatible_delivery_limits]
-        if len(deliveries) != len(set(deliveries)):
-            raise ValueError("compatible delivery limits must be unique")
-        current = next(
-            (item for item in self.compatible_delivery_limits if item.delivery == self.delivery),
-            None,
-        )
-        if current is None or current.max_text_codepoints != self.max_text_codepoints:
-            raise ValueError("current delivery must carry the exact text cap")
-        return self
-
-
-class DialogueNodeBudgetRemainingCue(CamelModel):
-    """One retained cue's deterministic post-deletion order."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    local_cue_id: NonBlankText
-    beat_local_id: NonBlankText
-    expected_order: int = Field(ge=1)
-
-
-class DialogueNodeBudgetRepairFact(CamelModel):
-    """A complete, text-free repair plan for an over-budget dialogue node.
-
-    The model cannot reliably count CJK code points or recompute a frozen
-    timing profile.  This fact therefore selects the smallest deterministic
-    deletion set and the only required renumbering.  It remains a correction
-    instruction, never a server-side mutation of the rejected response.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.dialogue_exceeds_node_budget"]
-    path: tuple[str | int, ...]
-    node_id: NonBlankText
-    node_duration_budget_units: int = Field(ge=1)
-    current_minimum_duration_units: int = Field(ge=1)
-    remove_local_cue_ids: tuple[NonBlankText, ...] = Field(min_length=1)
-    remaining_cues: tuple[DialogueNodeBudgetRemainingCue, ...]
-    remaining_minimum_duration_units: int = Field(ge=0)
-    repair_strategy: Literal["remove_and_renumber"] = "remove_and_renumber"
-
-    @model_validator(mode="after")
-    def validate_deterministic_plan(self) -> "DialogueNodeBudgetRepairFact":
-        if self.path != ("dialogueCues",):
-            raise ValueError("path must identify the complete dialogueCues collection")
-        if self.current_minimum_duration_units <= self.node_duration_budget_units:
-            raise ValueError("dialogue node budget fact requires an actual overage")
-        if self.remaining_minimum_duration_units > self.node_duration_budget_units:
-            raise ValueError("deterministic deletion plan must fit the frozen node budget")
-        if len(self.remove_local_cue_ids) != len(set(self.remove_local_cue_ids)):
-            raise ValueError("removeLocalCueIds must be unique")
-        retained_ids = [item.local_cue_id for item in self.remaining_cues]
-        if len(retained_ids) != len(set(retained_ids)):
-            raise ValueError("remaining cue IDs must be unique")
-        if set(self.remove_local_cue_ids) & set(retained_ids):
-            raise ValueError("a cue cannot be both removed and retained")
-        by_beat: dict[str, list[int]] = {}
-        for item in self.remaining_cues:
-            by_beat.setdefault(item.beat_local_id, []).append(item.expected_order)
-        if any(sorted(orders) != list(range(1, len(orders) + 1)) for orders in by_beat.values()):
-            raise ValueError("remaining cue orders must be contiguous within each beat")
-        return self
-
-
-class CueOrderRepairAssignment(CamelModel):
-    """One response-local cue's exact beat ownership and repaired order."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    # Fragment-local handles are the only stable identities available before
-    # trusted canonical binding.  Canonical cue IDs intentionally cannot be
-    # used here because their derivation includes the mutable cue order.
-    local_cue_id: NonBlankText
-    beat_local_id: NonBlankText
-    expected_order: int = Field(ge=1)
-
-
-class CueOrderRepairFact(CamelModel):
-    """Complete, identity-preserving renumbering for Scene Beats dialogue.
-
-    The aggregate semantic issue has no individual cue path.  This fact makes
-    every response-local cue identity, its existing beat ownership, and its
-    exact contiguous replacement order explicit without carrying dialogue
-    text or validator prose.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.cue_order"]
-    path: tuple[str | int, ...]
-    assignments: tuple[CueOrderRepairAssignment, ...] = Field(min_length=1)
-    repair_strategy: Literal["preserve_membership_and_renumber"] = (
-        "preserve_membership_and_renumber"
-    )
-
-    @model_validator(mode="after")
-    def validate_complete_renumbering(self) -> "CueOrderRepairFact":
-        if self.path != ("dialogueCues",):
-            raise ValueError("path must identify the complete dialogueCues collection")
-        cue_ids = [item.local_cue_id for item in self.assignments]
-        if len(cue_ids) != len(set(cue_ids)):
-            raise ValueError("cue-order assignment local cue IDs must be unique")
-        expected_sort = tuple(
-            sorted(self.assignments, key=lambda item: item.local_cue_id)
-        )
-        if self.assignments != expected_sort:
-            raise ValueError("cue-order assignments must use canonical local cue ID order")
-        by_beat: dict[str, list[int]] = {}
-        for item in self.assignments:
-            by_beat.setdefault(item.beat_local_id, []).append(item.expected_order)
-        if any(
-            sorted(orders) != list(range(1, len(orders) + 1))
-            for orders in by_beat.values()
-        ):
-            raise ValueError("cue-order assignments must be contiguous within each beat")
-        return self
-
-
-
-
-
-
-class JoinIncomingEdgeRepairTarget(CamelModel):
-    """Frozen direct incoming edge identity, never a model-selected endpoint."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    edge_id: NonBlankText
-    source_node_id: NonBlankText
-
-
-class JoinNewRequiredKeyIncomingEdges(CamelModel):
-    """Edges that must receive a key promoted into a join requirement."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    state_key: NonBlankText
-    incoming_edges: tuple[JoinIncomingEdgeRepairTarget, ...] = Field(min_length=2)
-
-
-class JoinAllowedDifferencesRepairFact(CamelModel):
-    """Complete, intent-preserving replacement arrays for one join contract.
-
-    A reconstruction correction must not infer the pre-existing required keys
-    or allowed differences from the previous untrusted response. This fact
-    therefore carries both complete arrays after the safe subset repair, while
-    retaining the exact missing keys as auditable derivation evidence.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.join_allowed_differences_must_be_required"]
-    path: tuple[str | int, ...]
-    join_contract_id: str = Field(min_length=1)
-    missing_required_state_keys: tuple[NonBlankText, ...] = Field(min_length=1)
-    expected_required_state_keys: tuple[NonBlankText, ...] = Field(
-        min_length=1,
-    )
-    expected_allowed_differences: tuple[NonBlankText, ...] = Field(
-        min_length=1,
-    )
-    new_required_key_incoming_edges: tuple[JoinNewRequiredKeyIncomingEdges, ...]
-
-    @model_validator(mode="after")
-    def validate_issue_identity_and_missing_keys(self) -> "JoinAllowedDifferencesRepairFact":
-        expected_path = (
-            "joinContracts",
-            self.join_contract_id,
-            "allowedDifferences",
-        )
-        if self.path != expected_path:
-            raise ValueError(
-                "path must identify allowedDifferences for joinContractId"
-            )
-        if len(self.missing_required_state_keys) != len(
-            set(self.missing_required_state_keys)
-        ):
-            raise ValueError("missingRequiredStateKeys must be unique")
-        if len(self.expected_required_state_keys) != len(
-            set(self.expected_required_state_keys)
-        ):
-            raise ValueError("expectedRequiredStateKeys must be unique")
-        if len(self.expected_allowed_differences) != len(
-            set(self.expected_allowed_differences)
-        ):
-            raise ValueError("expectedAllowedDifferences must be unique")
-        required = set(self.expected_required_state_keys)
-        allowed = set(self.expected_allowed_differences)
-        missing = set(self.missing_required_state_keys)
-        if not allowed <= required:
-            raise ValueError(
-                "expectedAllowedDifferences must be a subset of expectedRequiredStateKeys"
-            )
-        if not missing <= allowed:
-            raise ValueError(
-                "missingRequiredStateKeys must belong to expectedAllowedDifferences"
-            )
-        targets = {item.state_key: item for item in self.new_required_key_incoming_edges}
-        if set(targets) != missing:
-            raise ValueError(
-                "newRequiredKeyIncomingEdges must name exactly the promoted keys"
-            )
-        for item in targets.values():
-            edge_ids = [edge.edge_id for edge in item.incoming_edges]
-            if len(edge_ids) != len(set(edge_ids)):
-                raise ValueError("incoming edge targets must be unique")
-        return self
-
-
-class JoinPreservedIncomingStateEffect(CamelModel):
-    """One source-validated state value retained on a frozen incoming edge."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    edge_id: NonBlankText
-    expected_value: Any
-
-    @model_validator(mode="after")
-    def validate_expected_value(self) -> "JoinPreservedIncomingStateEffect":
-        finite_canonical_json(self.expected_value)
-        return self
-
-
-class JoinPreservedStateEffect(CamelModel):
-    """One still-valid required key and its exact values on every incoming edge."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    state_key: NonBlankText
-    incoming_effects: tuple[JoinPreservedIncomingStateEffect, ...] = Field(min_length=2)
-
-    @model_validator(mode="after")
-    def validate_incoming_effects(self) -> "JoinPreservedStateEffect":
-        edge_ids = [effect.edge_id for effect in self.incoming_effects]
-        if len(edge_ids) != len(set(edge_ids)):
-            raise ValueError("preserved incoming edge effects must be unique")
-        return self
-
-
-class JoinStateEffectRepairFact(CamelModel):
-    """Path-bound join edge repair guidance derived from frozen topology."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal[
-        "semantic.join_state_effect_missing",
-        "semantic.join_state_effect_conflict",
-    ]
-    path: tuple[str | int, ...]
-    join_contract_id: NonBlankText
-    join_node_id: NonBlankText
-    state_key: NonBlankText
-    mode: Literal["convergent", "variant"]
-    incoming_edges: tuple[JoinIncomingEdgeRepairTarget, ...] = Field(min_length=2)
-    repair_action: Literal[
-        "set_missing",
-        "make_all_equal",
-    ]
-    # JSON null is a legitimate exact state value, so absence cannot be
-    # represented by ``expectedValue is None`` alone.
-    has_expected_value: bool = False
-    expected_value: Any | None = None
-    # Sibling keys are authority only when this rejected response already
-    # satisfies their full join contract. Keys with their own repairable issue
-    # are deliberately absent, so simultaneous repairs never freeze invalid
-    # fields or contradict one another.
-    preserved_state_effects: tuple[JoinPreservedStateEffect, ...] = ()
-
-    @model_validator(mode="after")
-    def validate_join_effect_target(self) -> "JoinStateEffectRepairFact":
-        edge_ids = [edge.edge_id for edge in self.incoming_edges]
-        if len(edge_ids) != len(set(edge_ids)):
-            raise ValueError("incoming edge targets must be unique")
-        if self.code == "semantic.join_state_effect_conflict":
-            if self.path != (
-                "joinContracts",
-                self.join_contract_id,
-                "requiredStateKeys",
-                self.state_key,
-            ):
-                raise ValueError("conflict path must identify one join requiredStateKey")
-        elif (
-            len(self.path) != 4
-            or self.path[0] != "edges"
-            or not isinstance(self.path[1], str)
-            or self.path[1] not in edge_ids
-            or self.path[2] != "stateEffects"
-            or self.path[3] != self.state_key
-        ):
-            raise ValueError("path must identify one direct incoming edge state effect")
-        if self.repair_action == "make_all_equal" and self.mode != "convergent":
-            raise ValueError("only convergent join keys may require equal values")
-        if self.has_expected_value:
-            finite_canonical_json(self.expected_value)
-        elif "expected_value" in self.model_fields_set:
-            # ``null`` is an authorized state value only when the explicit
-            # presence bit says so.  Accepting an explicit null here would
-            # turn absence of repair authority into an ambiguous instruction.
-            raise ValueError("expectedValue requires hasExpectedValue=true")
-        preserved_keys = [effect.state_key for effect in self.preserved_state_effects]
-        if len(preserved_keys) != len(set(preserved_keys)):
-            raise ValueError("preservedStateEffects must use unique state keys")
-        if self.state_key in preserved_keys:
-            raise ValueError("preservedStateEffects cannot constrain the repaired state key")
-        incoming_edge_ids = tuple(edge.edge_id for edge in self.incoming_edges)
-        for effect in self.preserved_state_effects:
-            if tuple(item.edge_id for item in effect.incoming_effects) != incoming_edge_ids:
-                raise ValueError(
-                    "preservedStateEffects must cover the exact ordered incoming edge set"
-                )
-        return self
-
-
-CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION = "continuity_sequence.boundary_owner.v1"
-
-
-class ContinuityStateEndpoint(CamelModel):
-    """One state boundary identified without relying on an array index."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    kind: Literal["scene", "beat", "shot"]
-    id: NonBlankText
-    id_scope: Literal["response_local", "canonical_context"]
-    state: Literal["entry", "exit"]
-
-
-class ContinuityFactAssignment(CamelModel):
-    """Copy one finite JSON fact from a prior boundary to its successor."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    kind: Literal["fact"]
-    key: NonBlankText
-    expected_value: Any
-
-    @model_validator(mode="after")
-    def validate_finite_expected_value(self) -> "ContinuityFactAssignment":
-        finite_canonical_json(self.expected_value)
-        return self
-
-
-class ContinuityEntityStateAssignment(CamelModel):
-    """Copy an already-valid entity state without changing its identity."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    kind: Literal["entity_state"]
-    entity_type: EntityType
-    entity_id: NonBlankText
-    expected_state: NonBlankText
-
-
-class ContinuityScalarAssignment(CamelModel):
-    """Copy one shared visual/audio scalar at an incompatible boundary."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    kind: Literal["scalar"]
-    field: Literal["screenDirection", "lighting", "sound"]
-    expected_value: NonBlankText
-
-
-ContinuityRepairAssignment: TypeAlias = Annotated[
-    ContinuityFactAssignment
-    | ContinuityEntityStateAssignment
-    | ContinuityScalarAssignment,
-    Field(discriminator="kind"),
-]
-
-
-class ContinuityBoundaryRepair(CamelModel):
-    """All exact assignments at one left-to-right sequence boundary."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    source: ContinuityStateEndpoint
-    target: ContinuityStateEndpoint
-    assignments: tuple[ContinuityRepairAssignment, ...] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def validate_direction_and_unique_targets(self) -> "ContinuityBoundaryRepair":
-        if self.source == self.target:
-            raise ValueError("continuity boundary source and target must differ")
-        keys: list[tuple[str, str, str]] = []
-        for assignment in self.assignments:
-            if isinstance(assignment, ContinuityFactAssignment):
-                keys.append(("fact", assignment.key, ""))
-            elif isinstance(assignment, ContinuityEntityStateAssignment):
-                keys.append(("entity_state", assignment.entity_type.value, assignment.entity_id))
-            else:
-                keys.append(("scalar", assignment.field, ""))
-        if len(keys) != len(set(keys)):
-            raise ValueError("continuity boundary assignments must not overlap")
-        return self
-
-
-class ContinuitySequenceRepairFact(CamelModel):
-    """A complete exact repair plan for one incompatible local sequence.
-
-    The versioned ownership rule uses sequence order for Scene Beats.  For
-    Storyboard, frozen canonical scene context owns both outer boundaries.
-    It is deliberately a correction-only policy; canonical validation
-    continues to reject a mismatched response before any plan is derived.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal[
-        "semantic.continuity_beat_sequence_mismatch",
-        "semantic.continuity_shot_sequence_mismatch",
-    ]
-    path: tuple[str | int, ...]
-    ownership_policy_version: Literal[CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION] = (
-        CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION
-    )
-    sequence_kind: Literal["beat", "shot"]
-    owner: ContinuityStateEndpoint
-    ordered_item_ids: tuple[NonBlankText, ...] = Field(min_length=1)
-    boundaries: tuple[ContinuityBoundaryRepair, ...] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def validate_issue_identity_and_direction(self) -> "ContinuitySequenceRepairFact":
-        if len(self.ordered_item_ids) != len(set(self.ordered_item_ids)):
-            raise ValueError("continuity sequence item IDs must be unique")
-        if self.code == "semantic.continuity_beat_sequence_mismatch":
-            if (
-                self.sequence_kind != "beat"
-                or len(self.path) != 2
-                or self.path[0] != "scenes"
-                or not isinstance(self.path[1], int)
-                or isinstance(self.path[1], bool)
-                or self.path[1] < 0
-                or self.owner.kind != "scene"
-                or self.owner.id_scope != "response_local"
-                or self.owner.state != "entry"
-            ):
-                raise ValueError("beat continuity repair must identify one response-local scene")
-        elif (
-            self.sequence_kind != "shot"
-            or self.path != ("shots",)
-            or self.owner.kind != "scene"
-            or self.owner.id_scope != "canonical_context"
-            or self.owner.state != "entry"
-        ):
-            raise ValueError("shot continuity repair must identify the canonical selected scene")
-        legal_boundaries = _legal_continuity_repair_boundaries(
-            sequence_kind=self.sequence_kind,
-            owner=self.owner,
-            ordered_item_ids=self.ordered_item_ids,
-        )
-        for boundary in self.boundaries:
-            if (boundary.source, boundary.target) not in legal_boundaries:
-                raise ValueError(
-                    "continuity repair boundary is not adjacent in its owned sequence"
-                )
-        targets = [(boundary.target.kind, boundary.target.id, boundary.target.state) for boundary in self.boundaries]
-        if len(targets) != len(set(targets)):
-            raise ValueError("continuity sequence boundaries must not share a target state")
-        return self
-
-
-def _legal_continuity_repair_boundaries(
-    *,
-    sequence_kind: Literal["beat", "shot"],
-    owner: ContinuityStateEndpoint,
-    ordered_item_ids: tuple[str, ...],
-) -> set[tuple[ContinuityStateEndpoint, ContinuityStateEndpoint]]:
-    item_scope: Literal["response_local"] = "response_local"
-    item_entries = [
-        ContinuityStateEndpoint(
-            kind=sequence_kind,
-            id=item_id,
-            id_scope=item_scope,
-            state="entry",
-        )
-        for item_id in ordered_item_ids
-    ]
-    item_exits = [
-        ContinuityStateEndpoint(
-            kind=sequence_kind,
-            id=item_id,
-            id_scope=item_scope,
-            state="exit",
-        )
-        for item_id in ordered_item_ids
-    ]
-    legal = {
-        (item_exits[index], item_entries[index + 1])
-        for index in range(len(ordered_item_ids) - 1)
-    }
-    legal.add((owner, item_entries[0]))
-    if sequence_kind == "beat":
-        legal.add(
-            (
-                item_exits[-1],
-                ContinuityStateEndpoint(
-                    kind="scene",
-                    id=owner.id,
-                    id_scope="response_local",
-                    state="exit",
-                ),
-            )
-        )
-    else:
-        legal.add(
-            (
-                ContinuityStateEndpoint(
-                    kind="scene",
-                    id=owner.id,
-                    id_scope="canonical_context",
-                    state="exit",
-                ),
-                item_exits[-1],
-            )
-        )
-    return legal
-
-
-class EdgeStateEffectJsonRepairFact(CamelModel):
-    """One frozen topology edge whose state value must become finite JSON.
-
-    Finite-JSON is a graph-wide invariant, not a special property of join
-    edges.  The correction boundary therefore binds the selected edge to its
-    topology-owned endpoints, while deliberately withholding a guessed
-    replacement value.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.state_effect_not_json"]
-    path: tuple[str | int, ...]
-    edge_id: NonBlankText
-    source_node_id: NonBlankText
-    target_node_id: NonBlankText
-    state_key: NonBlankText
-    repair_action: Literal["replace_with_finite_json"] = "replace_with_finite_json"
-
-    @model_validator(mode="after")
-    def validate_edge_state_effect_target(self) -> "EdgeStateEffectJsonRepairFact":
-        if self.path != ("edges", self.edge_id, "stateEffects", self.state_key):
-            raise ValueError("path must identify the frozen edge state effect")
-        return self
-
-class JoinReconciliationRepairFact(CamelModel):
-    """Typed non-prose authority for a missing required reconciliation."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.join_allowed_difference_without_reconciliation"]
-    path: tuple[str | int, ...]
-    join_contract_id: NonBlankText
-    allowed_difference_keys: tuple[NonBlankText, ...] = Field(min_length=1)
-    repair_action: Literal["write_non_blank_reconciliation"] = "write_non_blank_reconciliation"
-
-    @model_validator(mode="after")
-    def validate_reconciliation_target(self) -> "JoinReconciliationRepairFact":
-        if self.path != ("joinContracts", self.join_contract_id, "reconciliation"):
-            raise ValueError("path must identify the join reconciliation")
-        if len(self.allowed_difference_keys) != len(set(self.allowed_difference_keys)):
-            raise ValueError("allowed difference keys must be unique")
-        return self
-
-
-class JoinEntryStateValueRepairFact(CamelModel):
-    """Exact join-entry value compiled from sealed incoming edge effects."""
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal[
-        "semantic.join_entry_state_value_missing",
-        "semantic.join_entry_state_value_mismatch",
-        "semantic.join_entry_state_value_not_json",
-    ]
-    path: tuple[str | int, ...]
-    contract_version: str = Field(min_length=1)
-    contract_hash: str = Field(min_length=64, max_length=64)
-    state_key: NonBlankText
-    expected_value: Any
-
-    @model_validator(mode="after")
-    def validate_exact_join_entry_path(self) -> "JoinEntryStateValueRepairFact":
-        if (
-            len(self.path) != 5
-            or self.path[0] != "scenes"
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] != "entryState"
-            or self.path[3] != "facts"
-            or self.path[4] != self.state_key
-        ):
-            raise ValueError("path must identify one scene entryState fact")
-        # Ensure the frozen repair authority uses the same finite JSON
-        # identity as the compiler and both validators before it is rendered.
-        finite_canonical_json(self.expected_value)
-        return self
-
-
-class AudioTimingRepairFact(CamelModel):
-    """One deterministic, path-bound correction for a timed audio event.
-
-    Audio timing relates two sibling model fields and cannot be expressed by
-    the portable provider JSON Schema subset.  The semantic validator owns the
-    relationship, then supplies one exact replacement or removal action rather
-    than asking a model to redo timing arithmetic from an error message.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.audio_timing"]
-    path: tuple[str | int, ...]
-    shot_local_id: NonBlankText
-    event_index: int = Field(ge=0)
-    start_offset_units: int = Field(ge=0)
-    duration_units: int = Field(ge=1)
-    shot_duration_units: int = Field(ge=1)
-    repair_action: Literal["replace_duration", "remove_event"]
-    replacement_duration_units: int | None = Field(default=None, ge=1)
-
-    @model_validator(mode="after")
-    def validate_exact_timing_action(self) -> "AudioTimingRepairFact":
-        # The shot index is intentionally not duplicated as an independently
-        # mutable field.  It is the second component of the immutable issue
-        # path, while ``event_index`` is the final selected event component.
-        if (
-            len(self.path) != 6
-            or self.path[0] != "shots"
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] != "audioPlan"
-            or self.path[3] != "events"
-            or self.path[4] != self.event_index
-            or self.path[5] != "durationUnits"
-        ):
-            raise ValueError("path must identify one audioPlan event duration")
-        remaining = self.shot_duration_units - self.start_offset_units
-        if self.start_offset_units + self.duration_units <= self.shot_duration_units:
-            raise ValueError("audio timing fact requires an out-of-bounds event")
-        if remaining >= 1:
-            if (
-                self.repair_action != "replace_duration"
-                or self.replacement_duration_units != remaining
-            ):
-                raise ValueError("replace_duration must use the exact remaining shot duration")
-        elif (
-            self.repair_action != "remove_event"
-            or self.replacement_duration_units is not None
-        ):
-            raise ValueError("an event starting at or after shot end must be removed")
-        return self
-
-
-class RequiredEntityStateRepairFact(CamelModel):
-    """Trusted Story Bible choices for one invalid Storyboard state.
-
-    The model-authored invalid value and validator prose are deliberately not
-    carried forward.  A correction receives only the immutable entity identity
-    and the exact allowed values from the frozen Story Bible dependency.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.invalid_required_entity_state"]
-    path: tuple[str | int, ...]
-    entity_type: EntityType
-    entity_id: NonBlankText
-    allowed_states: tuple[NonBlankText, ...] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def validate_issue_identity_and_allowed_states(
-        self,
-    ) -> "RequiredEntityStateRepairFact":
-        if (
-            len(self.path) != 5
-            or self.path[0] != "shots"
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] != "requiredEntityStates"
-            or not isinstance(self.path[3], int)
-            or isinstance(self.path[3], bool)
-            or self.path[3] < 0
-            or self.path[4] != "state"
-        ):
-            raise ValueError(
-                "path must identify one requiredEntityStates state value"
-            )
-        if len(self.allowed_states) != len(set(self.allowed_states)):
-            raise ValueError("allowedStates must be unique")
-        return self
-
-
-class ContinuityEntityStateRepairFact(CamelModel):
-    """One source-bound Bible vocabulary repair at a continuity boundary.
-
-    This fact deliberately names both the original response array path and
-    its response-local parent identity.  A correction cannot evade the
-    rejected assignment by deleting, replacing, or moving that entry.
-    """
-
-    model_config = CamelModel.model_config | {"frozen": True}
-
-    code: Literal["semantic.invalid_continuity_entity_state"]
-    path: tuple[str | int, ...]
-    target: ContinuityStateEndpoint
-    entity_state_index: int = Field(ge=0)
-    entity_type: EntityType
-    entity_id: NonBlankText
-    allowed_states: tuple[NonBlankText, ...] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def validate_exact_response_target(self) -> "ContinuityEntityStateRepairFact":
-        collections = {
-            "scenes": ("scene", "localSceneId"),
-            "beats": ("beat", "localBeatId"),
-            "shots": ("shot", "localShotId"),
-        }
-        if (
-            len(self.path) != 6
-            or self.path[0] not in collections
-            or not isinstance(self.path[1], int)
-            or isinstance(self.path[1], bool)
-            or self.path[1] < 0
-            or self.path[2] not in {"entryState", "exitState"}
-            or self.path[3] != "entityStates"
-            or self.path[4] != self.entity_state_index
-            or self.path[5] != "state"
-        ):
-            raise ValueError("path must identify one continuity entityStates state value")
-        expected_kind, _identity = collections[self.path[0]]
-        if (
-            self.target.kind != expected_kind
-            or self.target.id_scope != "response_local"
-            or self.target.state != ("entry" if self.path[2] == "entryState" else "exit")
-        ):
-            raise ValueError("target must identify the exact response-local continuity boundary")
-        if len(self.allowed_states) != len(set(self.allowed_states)):
-            raise ValueError("allowedStates must be unique")
-        return self
-
-
-
-
-SemanticRepairFact: TypeAlias = Annotated[
-    DialogueCapacityRepairFact
-    | DialogueNodeBudgetRepairFact
-    | CueOrderRepairFact
-    | StoryboardTimingRepairPlanFact
-    | JoinAllowedDifferencesRepairFact
-    | JoinStateEffectRepairFact
-    | ContinuitySequenceRepairFact
-    | EdgeStateEffectJsonRepairFact
-    | JoinReconciliationRepairFact
-    | JoinEntryStateValueRepairFact
-    | EdgeEntryEntityStateRepairFact
-    | AudioTimingRepairFact
-    | RequiredEntityStateRepairFact
-    | RequiredEntityPresenceRepairFact
-    | ContinuityEntityStateRepairFact,
-    Field(discriminator="code"),
-]
-_SEMANTIC_REPAIR_FACT_ADAPTER = TypeAdapter(SemanticRepairFact)
-
+from .work_unit_contracts import (
+    AUDIO_EVENT_ID_BINDING_VERSION,
+    FRAGMENT_ID_BINDING_VERSION,
+    SCENE_BEATS_FRAGMENT_SCHEMA_ID,
+    STORYBOARD_FRAGMENT_SCHEMA_ID,
+    STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION,
+    WORK_UNIT_PROMPT_CONTRACT_VERSION,
+    CompiledWorkUnitRequest,
+    WorkUnitContractError,
+    WorkUnitPromptContract,
+)
 
 FragmentOutput: TypeAlias = SceneBeatsFragmentOutput | StoryboardFragmentOutput
 
@@ -1191,272 +311,6 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
         except DomainValidationError as exc:
             return ValidationReport(accepted=False, issues=exc.issues)
         return ValidationReport(accepted=True, value=canonical_graph)
-
-
-class WorkUnitPromptContract(_FrozenModel):
-    """Compact public provenance for a compiled unit request.
-
-    The fields identify the exact public prompt/schema contract without
-    duplicating user text or server-managed canonical objects into traces.
-    Scene Beats additionally carries its small deterministic capacity guidance
-    so a later bounded correction can obey the same frozen limits.
-    """
-
-    contract_version: str
-    correction_policy_version: str
-    correction_directive_registry_version: str
-    correction_evidence_projection_version: str
-    correction_issue_selection_version: str
-    correction_response_schema_version: str
-    # These hashes are correction-variant provenance.  Primary attempts have
-    # no selected directives/evidence overlay; correction attempts require all
-    # four and bind the exact issue selection, prompt projection, and narrowed
-    # response schema.
-    correction_directive_set_hash: str | None = Field(
-        default=None,
-        min_length=64,
-        max_length=64,
-        pattern=r"^[0-9a-f]{64}$",
-    )
-    correction_evidence_projection_hash: str | None = Field(
-        default=None,
-        min_length=64,
-        max_length=64,
-        pattern=r"^[0-9a-f]{64}$",
-    )
-    correction_issue_selection_hash: str | None = Field(
-        default=None,
-        min_length=64,
-        max_length=64,
-        pattern=r"^[0-9a-f]{64}$",
-    )
-    correction_response_schema_hash: str | None = Field(
-        default=None,
-        min_length=64,
-        max_length=64,
-        pattern=r"^[0-9a-f]{64}$",
-    )
-    correction_ordinal: int | None = Field(default=None, ge=1, le=2)
-    correction_strategy: Literal[
-        "repair_previous_final", "reconstruct_from_schema"
-    ] | None = None
-    stage_plan_hash: str = Field(min_length=1)
-    work_unit_id: str = Field(min_length=1)
-    stage: StageName
-    selector_kind: WorkUnitSelectorKind
-    selector_id: str = Field(min_length=1)
-    prompt_id: str = Field(min_length=1)
-    prompt_version: str = Field(min_length=1)
-    prompt_spec_hash: str = Field(min_length=1)
-    schema_id: str = Field(min_length=1)
-    schema_hash: str = Field(min_length=1)
-    variables_hash: str = Field(min_length=1)
-    rendered_hash: str = Field(min_length=1)
-    work_unit_input_hash: str = Field(min_length=1)
-    dependency_hash: str = Field(min_length=1)
-    dialogue_timing_profile_version: str | None = None
-    dialogue_timing_profile_hash: str | None = None
-    scene_timing_allocation_version: str | None = None
-    scene_timing_allocation_hash: str | None = None
-    node_duration_budget_units: int | None = Field(default=None, ge=1)
-    dialogue_capacity_policy_version: str | None = None
-    dialogue_capacity_plan_hash: str | None = None
-    dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None = None
-    join_state_value_contract_version: str | None = None
-    join_state_value_contract_hash: str | None = None
-    edge_entry_state_contract_version: str | None = None
-    edge_entry_state_contract_hash: str | None = None
-    # Current Storyboard corrections require a tiny projection of sealed cue
-    # timings and the selected scene cap.  It contains no dialogue text,
-    # provider response, secret, or mutable project data.
-    storyboard_timing_guidance: StoryboardTimingGuidance | None = None
-    unit_dependency_hash: str = Field(min_length=1)
-    fragment_id_binding_version: str = FRAGMENT_ID_BINDING_VERSION
-    audio_event_id_binding_version: str | None
-    storyboard_primary_coverage_binding_version: str | None = None
-
-    def snapshot_dump(self) -> dict[str, Any]:
-        """Serialize the complete current prompt contract."""
-        return self.model_dump(mode="json", by_alias=True)
-
-    @model_validator(mode="after")
-    def validate_correction_schedule(self) -> WorkUnitPromptContract:
-        """Keep primary and correction provenance structurally unambiguous."""
-
-        if self.contract_version != WORK_UNIT_PROMPT_CONTRACT_VERSION:
-            raise ValueError("unsupported work-unit prompt contract version")
-        has_ordinal = self.correction_ordinal is not None
-        has_strategy = self.correction_strategy is not None
-        if has_ordinal != has_strategy:
-            raise ValueError(
-                "correction_ordinal and correction_strategy must be set together"
-            )
-        if has_ordinal:
-            expected_strategy = {
-                1: "repair_previous_final",
-                2: "reconstruct_from_schema",
-            }[self.correction_ordinal]
-            if self.correction_strategy != expected_strategy:
-                raise ValueError(
-                    "correction_strategy does not match correction_ordinal"
-                )
-        correction_versions = (
-            self.correction_directive_registry_version,
-            self.correction_evidence_projection_version,
-            self.correction_issue_selection_version,
-            self.correction_response_schema_version,
-        )
-        if self.correction_policy_version != CORRECTION_POLICY_VERSION:
-            raise ValueError(
-                "current work-unit contracts require the current correction policy"
-            )
-        expected_versions = (
-            CORRECTION_DIRECTIVE_REGISTRY_VERSION,
-            CORRECTION_EVIDENCE_PROJECTION_VERSION,
-            CORRECTION_ISSUE_SELECTION_VERSION,
-            CORRECTION_RESPONSE_SCHEMA_VERSION,
-        )
-        if correction_versions != expected_versions:
-            raise ValueError(
-                "current work-unit contracts require the current correction compiler versions"
-            )
-        correction_hashes = (
-            self.correction_directive_set_hash,
-            self.correction_evidence_projection_hash,
-            self.correction_issue_selection_hash,
-            self.correction_response_schema_hash,
-        )
-        has_all_correction_hashes = all(value is not None for value in correction_hashes)
-        if any(value is not None for value in correction_hashes) != has_all_correction_hashes:
-            raise ValueError("correction compiler hashes must be set together")
-        if has_ordinal != has_all_correction_hashes:
-            raise ValueError(
-                "correction attempts and correction compiler hashes must be set together"
-            )
-        has_timing_version = self.dialogue_timing_profile_version is not None
-        has_timing_hash = self.dialogue_timing_profile_hash is not None
-        if has_timing_version != has_timing_hash:
-            raise ValueError(
-                "dialogue timing profile version and hash must be set together"
-            )
-        if self.stage == StageName.SCENE_BEATS and not has_timing_version:
-            raise ValueError("Scene Beats contracts require a dialogue timing profile")
-        if self.stage != StageName.SCENE_BEATS and has_timing_version:
-            raise ValueError("dialogue timing profiles only belong to Scene Beats")
-        timing_allocation_values = (
-            self.scene_timing_allocation_version,
-            self.scene_timing_allocation_hash,
-            self.node_duration_budget_units,
-        )
-        has_timing_allocation = all(value is not None for value in timing_allocation_values)
-        if any(value is not None for value in timing_allocation_values) != has_timing_allocation:
-            raise ValueError("scene timing allocation fields must be set together")
-        if self.stage == StageName.SCENE_BEATS and not has_timing_allocation:
-            raise ValueError("Scene Beats contracts require a scene timing allocation")
-        if self.stage != StageName.SCENE_BEATS and has_timing_allocation:
-            raise ValueError("scene timing allocations only belong to Scene Beats")
-        capacity_values = (
-            self.dialogue_capacity_policy_version,
-            self.dialogue_capacity_plan_hash,
-            self.dialogue_capacity_guidance,
-        )
-        has_capacity = all(value is not None for value in capacity_values)
-        if any(value is not None for value in capacity_values) != has_capacity:
-            raise ValueError("dialogue capacity fields must be set together")
-        if self.stage == StageName.SCENE_BEATS and not has_capacity:
-            raise ValueError("Scene Beats contracts require dialogue capacity")
-        if self.stage != StageName.SCENE_BEATS and has_capacity:
-            raise ValueError("dialogue capacity only belongs to Scene Beats")
-        if has_capacity:
-            assert self.dialogue_capacity_guidance is not None
-            if self.dialogue_capacity_guidance.node_id != self.selector_id:
-                raise ValueError(
-                    "dialogue capacity guidance must match the selected Story Graph node"
-                )
-        has_join_version = self.join_state_value_contract_version is not None
-        has_join_hash = self.join_state_value_contract_hash is not None
-        if has_join_version != has_join_hash:
-            raise ValueError(
-                "join state value contract version and hash must be set together"
-            )
-        has_join_contract = has_join_version and has_join_hash
-        if (
-            self.stage == StageName.SCENE_BEATS
-            and not has_join_contract
-        ):
-            raise ValueError(
-                "current Scene Beats contracts require exact join state values"
-            )
-        if self.stage != StageName.SCENE_BEATS and has_join_contract:
-            raise ValueError(
-                "join state value contracts only belong to Scene Beats"
-            )
-        has_edge_entry_version = self.edge_entry_state_contract_version is not None
-        has_edge_entry_hash = self.edge_entry_state_contract_hash is not None
-        if has_edge_entry_version != has_edge_entry_hash:
-            raise ValueError(
-                "edge entry state contract version and hash must be set together"
-            )
-        has_edge_entry_contract = has_edge_entry_version and has_edge_entry_hash
-        if (
-            self.stage == StageName.SCENE_BEATS
-            and not has_edge_entry_contract
-        ):
-            raise ValueError(
-                "current Scene Beats contracts require exact typed edge-entry states"
-            )
-        if self.stage != StageName.SCENE_BEATS and has_edge_entry_contract:
-            raise ValueError(
-                "edge entry state contracts only belong to Scene Beats"
-            )
-        if (
-            self.stage == StageName.STORYBOARD
-            and self.storyboard_timing_guidance is None
-        ):
-            raise ValueError("current Storyboard contracts require timing guidance")
-        if self.stage != StageName.STORYBOARD and self.storyboard_timing_guidance is not None:
-            raise ValueError("Storyboard timing guidance only belongs to Storyboard")
-        if (
-            self.storyboard_timing_guidance is not None
-            and self.storyboard_timing_guidance.scene_id != self.selector_id
-        ):
-            raise ValueError("Storyboard timing guidance must match the selected scene")
-        has_audio_event_binding = self.audio_event_id_binding_version is not None
-        if (
-            self.stage == StageName.STORYBOARD
-            and not has_audio_event_binding
-        ):
-            raise ValueError(
-                "current Storyboard contracts require audio event ID provenance"
-            )
-        if self.stage != StageName.STORYBOARD and has_audio_event_binding:
-            raise ValueError(
-                "audio event ID provenance only belongs to Storyboard"
-            )
-        if (
-            has_audio_event_binding
-            and self.audio_event_id_binding_version != AUDIO_EVENT_ID_BINDING_VERSION
-        ):
-            raise ValueError("unsupported audio event ID binding version")
-        return self
-
-
-@dataclass(frozen=True)
-class CompiledWorkUnitRequest:
-    """Pure hand-off object consumed later by Pipeline/Provider adapters."""
-
-    rendered: RenderedPrompt
-    validator: ValidationAdapter[Any]
-    contract: WorkUnitPromptContract
-    response_schema: dict[str, Any]
-    # Audit-only correction selection. The runner persists this beside the
-    # rendered messages but never sends it through a provider adapter.
-    audit_issue_selection: dict[str, Any] | None = None
-    # Executable exact facts are retained only in memory so trusted
-    # application validation can enforce them even when a provider does not
-    # support native JSON Schema. Recovery re-derives them from immutable
-    # validation evidence; they are never silently reconstructed from prose.
-    correction_repair_facts: tuple[SemanticRepairFact, ...] = ()
 
 
 class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
@@ -2334,8 +1188,6 @@ def _fragment_semantic_issues(
             dialogue_capacity_guidance=dialogue_capacity_guidance,
         )
     return _storyboard_semantic_issues(output, work_unit=work_unit, brief=brief, bible=bible, scoped_context=scoped_context)
-
-
 
 
 def _story_graph_edge_state_effect_json_repair_facts(
@@ -3796,47 +2648,6 @@ def semantic_repair_facts(
             *cue_order_facts,
         )
     return ()
-
-
-def parse_semantic_repair_fact(value: Any) -> SemanticRepairFact:
-    """Revalidate current repair evidence; retired witness shapes are rejected."""
-    return _SEMANTIC_REPAIR_FACT_ADAPTER.validate_python(value)
-
-
-def serialize_semantic_repair_fact(fact: SemanticRepairFact) -> dict[str, Any]:
-    """Serialize current evidence, preserving authorized JSON null assignments."""
-
-    payload = fact.model_dump(mode="json", by_alias=True, exclude_none=True)
-    if isinstance(fact, JoinStateEffectRepairFact) and fact.has_expected_value:
-        payload["expectedValue"] = fact.expected_value
-    if isinstance(fact, JoinStateEffectRepairFact):
-        # A preserved sibling may deliberately be JSON null.  Unlike the
-        # repair target, every preserved assignment carries exact authority,
-        # so restore nulls stripped by ``exclude_none`` at every nested edge.
-        for serialized_effect, effect in zip(
-            payload.get("preservedStateEffects", []),
-            fact.preserved_state_effects,
-            strict=True,
-        ):
-            for serialized_incoming, incoming in zip(
-                serialized_effect["incomingEffects"],
-                effect.incoming_effects,
-                strict=True,
-            ):
-                serialized_incoming["expectedValue"] = incoming.expected_value
-    if isinstance(fact, ContinuitySequenceRepairFact):
-        # ``exclude_none`` is correct for optional evidence fields, but a
-        # continuity fact assignment may deliberately copy JSON null.  Keep
-        # that value so persisted facts remain executable and round-trip.
-        for serialized_boundary, boundary in zip(
-            payload["boundaries"], fact.boundaries, strict=True
-        ):
-            for serialized_assignment, assignment in zip(
-                serialized_boundary["assignments"], boundary.assignments, strict=True
-            ):
-                if isinstance(assignment, ContinuityFactAssignment):
-                    serialized_assignment["expectedValue"] = assignment.expected_value
-    return payload
 
 
 def assert_semantic_repair_fact_matches_issue(

@@ -251,7 +251,6 @@ On the machine that runs Plotloom, add these server-only values to the
 repository-root `.env` (or equivalent protected process environment):
 
 ```dotenv
-PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090

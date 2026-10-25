@@ -5,35 +5,55 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from .generation_access import GenerationPersistenceAccess
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import (
-    STAGE_ORDER, ProjectBrief, CanonicalSnapshot, GenerationRun, RunKind, RunStatus,
-    StageName, StagePayload, StageStatus, upstream_stages,
+    STAGE_ORDER,
+    CanonicalSnapshot,
+    GenerationRun,
+    ProjectBrief,
+    RunKind,
+    RunStatus,
+    StageName,
+    StagePayload,
+    StageStatus,
+    upstream_stages,
     validate_public_provider_snapshot,
 )
 from ...exceptions import (
-    InvalidTransitionError, NotFoundError, RevisionConflictError,
-    SchemaResetRequiredError, StagePrerequisiteError,
+    InvalidTransitionError,
+    NotFoundError,
+    RevisionConflictError,
+    SchemaResetRequiredError,
+    StagePrerequisiteError,
 )
 from ...generation.planning import (
-    DEFAULT_STAGE_BUDGETS, GenerationPlan, StageBudget, create_generation_plan,
+    DEFAULT_STAGE_BUDGETS,
+    GenerationPlan,
+    StageBudget,
+    create_generation_plan,
 )
 from ...generation.prompts import canonical_json
-from ...generation.story_graph_topology import StoryGraphTopology, plan_story_graph_topology
+from ...generation.story_graph_topology import (
+    StoryGraphTopology,
+    plan_story_graph_topology,
+)
 from ...provider_profiles import (
-    TextProviderProfileSnapshot, TextProviderProfileSnapshotV3, is_v2_snapshot,
+    TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
+    is_v2_snapshot,
     is_v3_snapshot,
 )
 from ..codec import stable_hash
 from ..schema import (
-    EntityRevisionRow, GenerationPlanRow, GenerationRunRow, StageHeadRow,
+    EntityRevisionRow,
+    GenerationPlanRow,
+    GenerationRunRow,
+    StageHeadRow,
     StoryGraphTopologyRow,
 )
-from ...domain import RepairSource
+from .generation_access import GenerationPersistenceAccess
 
 
 class ProjectGenerationSnapshots:
@@ -157,10 +177,13 @@ class ProjectGenerationSnapshots:
 
     def create_run(
         self, project_id: str, kind: RunKind, requested_stages: Sequence[StageName], *,
-        instructions: str | None = None, parent_run_id: str | None = None,
-        repair_stage: StageName | None = None, repair_source: RepairSource | None = None,
+        instructions: str | None = None,
         provider_snapshot: dict[str, Any] | None = None, run_id: str | None = None,
     ) -> GenerationRun:
+        if kind == RunKind.REPAIR:
+            raise InvalidTransitionError(
+                "scope-less stage repair is retired; use exact work-unit repair admission"
+            )
         access = self._access
         normalized_provider_snapshot = validate_public_provider_snapshot(provider_snapshot)
         supplied_stages = list(requested_stages)
@@ -174,16 +197,6 @@ class ProjectGenerationSnapshots:
             raise InvalidTransitionError("requested stages must be unique, ordered, and form one contiguous canonical range")
         with access.leases.lifecycle_write() as session:
             access.admission.assert_new_run_profile_enabled(session, normalized_provider_snapshot)
-            if kind == RunKind.REPAIR and (parent_run_id is None or repair_stage is None or repair_source is None):
-                raise InvalidTransitionError("repair runs require a quarantined parent, repair stage, and frozen evidence")
-            if kind != RunKind.REPAIR and (parent_run_id is not None or repair_stage is not None or repair_source is not None):
-                raise InvalidTransitionError("only repair runs may have repair lineage")
-            if repair_stage is not None and repair_stage not in ordered_stages:
-                raise InvalidTransitionError("repair stage must belong to requestedStages")
-            if parent_run_id is not None:
-                parent = access.rows.run(session, parent_run_id)
-                if parent.project_id != project_id or RunStatus(parent.status) != RunStatus.QUARANTINED:
-                    raise InvalidTransitionError("repair parent must be a quarantined run from the same project")
             project_row = access.rows.project(session, project_id)
             access.admission.assert_active_project(project_row)
             snapshot = self.snapshot_in_session(session, project_id)
@@ -191,9 +204,9 @@ class ProjectGenerationSnapshots:
                 **({"id": run_id} if run_id is not None else {}),
                 project_id=project_id,
                 kind=kind,
-                parent_run_id=parent_run_id,
-                repair_stage=repair_stage,
-                repair_source=repair_source,
+                parent_run_id=None,
+                repair_stage=None,
+                repair_source=None,
                 provider_snapshot=normalized_provider_snapshot,
                 requested_stages=ordered_stages,
                 canonical_snapshot=snapshot,
@@ -201,8 +214,8 @@ class ProjectGenerationSnapshots:
                 legacy_unsealed=False,
             )
             session.add(GenerationRunRow(id=run.id, project_id=project_id, kind=kind.value,
-                parent_run_id=parent_run_id, repair_stage=repair_stage.value if repair_stage else None,
-                repair_source=repair_source.model_dump(mode="json", by_alias=False) if repair_source else None,
+                parent_run_id=None, repair_stage=None,
+                repair_source=None,
                 work_unit_repair_scope_id=None, provider_snapshot=run.provider_snapshot,
                 requested_stages=[stage.value for stage in ordered_stages], status=run.status.value,
                 canonical_snapshot=snapshot.model_dump(mode="json", by_alias=False), instructions=instructions,

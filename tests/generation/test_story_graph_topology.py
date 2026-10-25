@@ -7,26 +7,35 @@ from time import perf_counter
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, V2StoryEdgeKind, V2StoryNodeKind
-from plotloom.generation.contracts import ValidationIssue
+from plotloom.domain import (
+    ProjectBrief,
+    StageName,
+    StoryBibleV2,
+    V2StoryEdgeKind,
+    V2StoryNodeKind,
+)
+from plotloom.generation.graph_repair_contracts import (
+    EdgeStateEffectJsonRepairFact,
+    JoinStateEffectRepairFact,
+)
 from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.repair_facts import (
+    parse_semantic_repair_fact,
+)
 from plotloom.generation.story_graph_topology import (
     StoryGraphContentBindingError,
     StoryGraphTopologyError,
     bind_story_graph_content_fill,
     plan_story_graph_topology,
 )
+from plotloom.generation.storyboard_repair_contracts import (
+    RequiredEntityStateRepairFact,
+)
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
-    EdgeStateEffectJsonRepairFact,
-    JoinAllowedDifferencesRepairFact,
-    JoinStateEffectRepairFact,
-    RequiredEntityStateRepairFact,
     StoryGraphContentFillValidationAdapter,
     assert_join_state_effect_repair_fact_matches_source,
-    assert_semantic_repair_fact_matches_issue,
     compile_work_unit_request,
-    parse_semantic_repair_fact,
     semantic_repair_facts,
 )
 from plotloom.validation import validate_story_graph

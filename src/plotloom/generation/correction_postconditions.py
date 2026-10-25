@@ -12,24 +12,31 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ..json_value_contract import CanonicalJsonValueError, finite_json_values_equal
-from .contracts import ValidationIssue
-from .work_units import (
+from .continuity_repair_contracts import (
     ContinuityEntityStateAssignment,
     ContinuityEntityStateRepairFact,
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
+)
+from .contracts import ValidationIssue
+from .dialogue_repair_contracts import (
     CueOrderRepairFact,
+)
+from .graph_repair_contracts import (
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
+)
+from .repair_facts import (
     SemanticRepairFact,
-    StoryboardTimingRepairPlanFact,
 )
 from .scene_beats_edge_entry import (
     EdgeEntryEntityStateRepairFact,
     edge_entry_entity_state_satisfied,
 )
-
+from .storyboard_timing_repair import (
+    StoryboardTimingRepairPlanFact,
+)
 
 _MISMATCH_CODE = "contract.correction_output_constraint_mismatch"
 _MISMATCH_MESSAGE = "Correction output does not satisfy an exact repair constraint."

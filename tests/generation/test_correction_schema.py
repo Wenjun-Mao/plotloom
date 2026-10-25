@@ -4,20 +4,24 @@ from copy import deepcopy
 
 import pytest
 
-from plotloom.generation.correction_schema import (
-    CORRECTION_RESPONSE_SCHEMA_VERSION,
-    CorrectionResponseSchemaError,
-    compile_correction_response_schema,
-)
-from plotloom.generation.work_units import (
+from plotloom.generation.continuity_repair_contracts import (
     ContinuityBoundaryRepair,
     ContinuityEntityStateAssignment,
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     ContinuityStateEndpoint,
+)
+from plotloom.generation.correction_schema import (
+    CORRECTION_RESPONSE_SCHEMA_VERSION,
+    CorrectionResponseSchemaError,
+    compile_correction_response_schema,
+)
+from plotloom.generation.dialogue_repair_contracts import (
     CueOrderRepairAssignment,
     CueOrderRepairFact,
+)
+from plotloom.generation.graph_repair_contracts import (
     JoinAllowedDifferencesRepairFact,
     JoinIncomingEdgeRepairTarget,
     JoinNewRequiredKeyIncomingEdges,

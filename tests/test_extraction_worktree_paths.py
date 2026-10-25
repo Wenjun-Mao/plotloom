@@ -13,8 +13,8 @@ from tests.extraction_worktree_paths import (
 
 @pytest.mark.parametrize("local", [".local", "outputs", ".playwright-cli", "data"])
 def test_declared_root_runtime_clones_are_outside_prompt_authority(tmp_path, local):
-    owned = tmp_path / "src/plotloom/prompt_templates/media_image.yaml"
-    clone = tmp_path / local / "clone/src/plotloom/prompt_templates/media_image.yaml"
+    owned = tmp_path / "src/plotloom/prompt_templates/scene_beats_fragment.yaml"
+    clone = tmp_path / local / "clone/src/plotloom/prompt_templates/scene_beats_fragment.yaml"
     for path in (owned, clone):
         path.parent.mkdir(parents=True)
         path.touch()
@@ -25,7 +25,7 @@ def test_declared_root_runtime_clones_are_outside_prompt_authority(tmp_path, loc
 
 @pytest.mark.parametrize("directory", ["src/plotloom/duplicate", "undeclared", ".undeclared", "src/plotloom/.local"])
 def test_product_and_undeclared_prompt_duplicates_remain_visible(tmp_path, directory):
-    duplicate = tmp_path / directory / "media_image.yaml"
+    duplicate = tmp_path / directory / "scene_beats_fragment.yaml"
     duplicate.parent.mkdir(parents=True)
     duplicate.touch()
     assert _find_named_files(tmp_path, {duplicate.name}) == {duplicate}
@@ -34,12 +34,12 @@ def test_product_and_undeclared_prompt_duplicates_remain_visible(tmp_path, direc
 
 
 def test_forbidden_roots_and_any_depth_dependency_pruning_remain_strict(tmp_path):
-    forbidden = tmp_path / "backend/media_image.yaml"
-    cached = tmp_path / "src/plotloom/node_modules/copy/media_image.yaml"
+    forbidden = tmp_path / "backend/scene_beats_fragment.yaml"
+    cached = tmp_path / "src/plotloom/node_modules/copy/scene_beats_fragment.yaml"
     for path in (forbidden, cached):
         path.parent.mkdir(parents=True)
         path.touch()
     assert _find_named_files(tmp_path, {forbidden.name}) == {forbidden}
     assert _unexpected_worktree_roots(tmp_path) == ["backend"]
-    assert _unexpected_tracked_roots([Path("backend/media_image.yaml")]) == ["backend"]
+    assert _unexpected_tracked_roots([Path("backend/scene_beats_fragment.yaml")]) == ["backend"]
     assert _present_forbidden_repository_roots(tmp_path) == ["backend"]

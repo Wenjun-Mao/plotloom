@@ -29,10 +29,9 @@ from ..schema import (
 class VideoJobPreparation:
     def prepare_video_job(
         self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
-        expected_selection_revision: int, idempotency_key: str, requested_seconds: int = 5,
-        resolution: str = "720p", audio: bool = True,
+        expected_selection_revision: int, idempotency_key: str,
         playback_intent: str = "source_exact",
-        production_contract: VideoProductionContract | None = None,
+        production_contract: VideoProductionContract,
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
@@ -40,39 +39,26 @@ class VideoJobPreparation:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
         self.assert_video_authority(project_id)
         if production_contract is None:
-            if requested_seconds != 5 or resolution != "720p" or audio is not True:
-                raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
-            compiler_version = "p2-wan-v1"
-            provider_snapshot = {
-                "adapterId": "atlas_wan", "adapterVersion": "1",
-                "provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video",
-                "capabilityVersion": 1, "imageField": "image",
-                "costPolicy": "wan_paid_pilot_v1",
-            }
-            request_snapshot = {
-                "durationSeconds": requested_seconds, "resolution": resolution, "audio": audio,
-            }
-            tracks_paid_wan_pilot = True
-        else:
-            requested_seconds = production_contract.requested_seconds
-            resolution = production_contract.resolution
-            audio = production_contract.audio
-            compiler_version = (
-                "plotloom.h3-reviewed-frame.v5-presentation" if production_contract.profile_id is not None
-                else "p2-video-adapters-v1"
-            )
-            provider_snapshot = production_contract.provider_snapshot()
-            request_snapshot = production_contract.request_snapshot()
-            tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
-            if backend_binding is not None:
-                if (
-                    backend_binding.adapter_id != production_contract.adapter_id
-                    or backend_binding.adapter_version != production_contract.adapter_version
-                ):
-                    raise InvalidTransitionError(
-                        "video backend binding does not match the adapter production contract"
-                    )
-                provider_snapshot["backendBinding"] = backend_binding.snapshot()
+            raise InvalidTransitionError("video preparation requires an explicit production contract")
+        requested_seconds = production_contract.requested_seconds
+        resolution = production_contract.resolution
+        audio = production_contract.audio
+        compiler_version = (
+            "plotloom.h3-reviewed-frame.v5-presentation" if production_contract.profile_id is not None
+            else "p2-video-adapters-v1"
+        )
+        provider_snapshot = production_contract.provider_snapshot()
+        request_snapshot = production_contract.request_snapshot()
+        tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
+        if backend_binding is not None:
+            if (
+                backend_binding.adapter_id != production_contract.adapter_id
+                or backend_binding.adapter_version != production_contract.adapter_version
+            ):
+                raise InvalidTransitionError(
+                    "video backend binding does not match the adapter production contract"
+                )
+            provider_snapshot["backendBinding"] = backend_binding.snapshot()
         with self._access.leases.lifecycle_write() as session:
             from .autopilot_authority import video_eligible
             if not video_eligible(session, project_id):
@@ -95,7 +81,7 @@ class VideoJobPreparation:
                 session, project_id, shot_id, shot.duration_units
             )
             authored_units = source_timing["durationUnits"]
-            if production_contract is not None and production_contract.adapter_id == "minimax_h3_gateway":
+            if production_contract.adapter_id == "minimax_h3_gateway":
                 frame_count = production_contract.frame_count
                 if authored_units <= 0 or authored_units * 24 % 1_000:
                     raise InvalidTransitionError("authored shot duration is not representable at 24 fps")
@@ -123,8 +109,7 @@ class VideoJobPreparation:
             # to crop the frozen original. Neither waives profile, provenance,
             # or output checks and neither creates a local derivative.
             if (
-                production_contract is not None
-                and production_contract.profile_id is not None
+                production_contract.profile_id is not None
                 and production_contract.width is not None
                 and production_contract.height is not None
             ):
@@ -184,8 +169,7 @@ class VideoJobPreparation:
                 raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
             snapshot = {
                 "snapshotVersion": (
-                    1 if production_contract is None
-                    else 4 if production_contract.profile_id is not None
+                    4 if production_contract.profile_id is not None
                     else 2
                 ),
                 "compilerVersion": compiler_version, "approvalId": approval.id,
@@ -201,17 +185,17 @@ class VideoJobPreparation:
                 "sourceTiming": source_timing, "playbackIntent": playback_intent,
                 "endFrame": self._end_frames.current(session, project_id, shot_id, approval_id,
                                                       storyboard_revision, source_timing)
-                    if production_contract is not None and production_contract.adapter_id == "minimax_h3_gateway" else None,
+                    if production_contract.adapter_id == "minimax_h3_gateway" else None,
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
             end_frame = snapshot["endFrame"]
             if presentation is not None:
                 snapshot["shotPresentation"] = presentation
-                if production_contract is not None and production_contract.profile_id is not None:
+                if production_contract.profile_id is not None:
                     snapshot["compilerVersion"] = "plotloom.h3-reviewed-frame.v6-shot-presentation"
             if isinstance(end_frame, dict) and end_frame.get("assetId") is not None:
-                if production_contract is None or production_contract.width is None or production_contract.height is None:
+                if production_contract.width is None or production_contract.height is None:
                     raise InvalidTransitionError("ending frame requires an H3 profile")
                 if end_frame["aspectPolicy"] != production_contract.aspect_policy:
                     raise InvalidTransitionError("H3 start and ending frames need one reviewed gateway aspect treatment")
@@ -223,7 +207,7 @@ class VideoJobPreparation:
                         end_frame["width"], end_frame["height"],
                         production_contract.width, production_contract.height,
                     )
-            if production_contract is not None and production_contract.profile_id is not None:
+            if production_contract.profile_id is not None:
                 from ...video_backends.minimax_h3.directions import direction_sources
                 from ...video_backends.minimax_h3.prompt import compile_i2va_prompt
 

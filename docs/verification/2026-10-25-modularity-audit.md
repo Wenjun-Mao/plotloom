@@ -4,6 +4,13 @@
 
 **Audit complete; implementation is not started or authorized by this report.** The owner requested architectural review using ~400 lines as a target and 500 as a review threshold, then rejected “extract when next changed” as an adequate disposition. Every oversized candidate below has an explicit **EXTRACT**, **RETAIN** or **RETIRE** recommendation, reason and, where work is proposed, a named finite batch. These are proposed work items, not promises that an unspecified future edit will address them.
 
+
+Implementation update: the owner approved G1/R1–R3 with Go on 2026-10-25.
+Those source boundaries are now implemented and undergoing stable review/final
+qualification in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
+The census and line references below remain the audit baseline; unselected
+G2–G5 and all other extraction batches remain pending.
+
 Baseline: clean retained `main` at `cfc55173df4418bc0d929ed93f2992daf99f03fb`, in `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Three read-only reviews covered generation, backend/services and frontend; the manager independently reconciled the census, inspected material evidence and reviewed scripts, other tests and documentation code. This report and its roadmap pointer are the only intended changes.
 
 **120 files exceed 400 lines; 42 reach the 500-line review threshold.** Recommendations: **52 EXTRACT, 65 RETAIN, 3 RETIRE**. An EXTRACT recommendation can move only a shared helper or a subset of responsibilities; it does not imply dividing every test case or meeting an exact resulting line count. RETIRE can remove one obsolete execution branch while retaining live neutral contracts.
@@ -275,7 +282,7 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 ## Proposed finite implementation batches
 
-**All batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
+**G1/R1–R3 are approved and implemented; stable review/final qualification is pending. All other batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
 
 ### Recommended order and boundaries
 
@@ -343,6 +350,6 @@ Manager documentation checks passed: every inventory line count matches the
 baseline source, no missing/duplicate oversized candidate, all local report and
 roadmap link targets exist, and the staged documentation diff is whitespace
 clean. All three audit workers returned actual finals, released access and were
-archived; their reporting registrations were removed. No runtime qualification
-or owner implementation decision is implied. Stop here with the report ready
-for review; G1 and R1–R3 remain proposed.
+archived; their reporting registrations were removed. No runtime qualification or implementation decision was implied by that audit
+closeout. The later owner-approved G1/R1–R3 implementation is tracked in the
+delivery plan; other batches remain proposed.
