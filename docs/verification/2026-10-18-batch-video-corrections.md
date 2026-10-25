@@ -1,5 +1,9 @@
 # Batch-video manager-review corrections, 2026-10-18
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: correction checkpoint for manager review. Push, publication and activation
 remain held. Product source: `20e3c65b`; later checkpoint documentation changes no
 executable inputs. Retained checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`,
@@ -96,7 +100,7 @@ file-byte attestation or claim an undiscovered authority bypass was fixed.
 
 ## Executed verification and reuse
 
-All logs below are under `.local/batch-video/` in the retained checkout.
+Historical logs below were recorded under `.local/batch-video/` in the retained checkout.
 
 | Selection/gate | Result | Evidence |
 | --- | --- | --- |
@@ -157,7 +161,7 @@ no push, restart, deletion or activation is authorized by this checkpoint report
 
 The manager's independent focused retest at `468b2d0e` passed 13 backend, eight
 frontend and 23 browser cases, `VERIFY_SUMMARY exit_code=0`, in 97.703 seconds.
-Exact retained log: `.local/batch-video/manager-correction-retest.log`. Selections:
+Historical log: `.local/batch-video/manager-correction-retest.log`. Selections:
 `tests/test_project_startup_isolation.py`, `tests/test_video_batch_adoption.py`,
 `tests/test_retained_proof_boundaries.py`, frontend
 `tests/autopilot-completion-owner.test.ts`, `tests/completion-reveal.test.ts`, and

@@ -1,9 +1,8 @@
 # Board3 recovery and final candidate qualification
 
-> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
-> were retired. References to those artifacts describe historical
-> runs, not available files or current launch/recovery instructions.
-> Recorded outcomes and limits stand.
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
 
 Current continuation of the single [Create → Revise → Recover playbook](../creative-workflow/graph-workbench-acceptance.md)
 and [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md). Overall status:
@@ -40,13 +39,11 @@ Native UI created snapshot `2ac66146-fd83-484b-8f51-bb20e76d420d` once,201 at
 20:31:33UTC. It contains183 files including58 managed assets, projectFormat11,
 snapshot format1; database SHA256
 `d683ba03e8bb144797c00c4e0fb6eda5da5395c167a11e796c2909f2894ef0cd`.
-Its exact retained location is:
+The obsolete QA snapshot and installation were retired after dependency review.
 
-`/Users/wjmao/projects/HU/plotloom/.local/current-story-native-2026-10-08/installation/outputs/.snapshots/90c0f895-48de-4b57-8725-4b6f72797633/20261009T203133160144Z__2ac66146-fd83-484b-8f51-bb20e76d420d`.
-
-Operator CLI restore, not a UI restore claim: `uv run plotloom restore --source`
-that exact snapshot `--outputs-dir /private/tmp/plotloom-board3-recover.ZwCCeE/outputs`
-completed0. Fresh isolated8875/8876 uses the restored project and no H3. It did
+An operator CLI restore of that snapshot, not a UI restore claim, completed0
+into a disposable isolated output directory. Isolated8875/8876 used the restored
+project and no H3. It did
 not import application configuration or specialist runtime credentials.
 
 Root sequentially read eight domain responses, freshly hashed all58 asset bytes

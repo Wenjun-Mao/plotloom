@@ -1,5 +1,9 @@
 # Three genuinely branching examples · 2026-10-22
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: three live playable examples delivered under delegated agent QA; all
 six browser routes verified. Owner creative acceptance remains separate.
 
@@ -29,7 +33,7 @@ creative acceptance.
 Six owned ImageGen originals are reimported unchanged with truthful reused-art
 provenance. Three new B-ending originals were generated with built-in ImageGen,
 each using its style's original SH02 image as the sole reference. The actual
-[prompt/file record](../../.local/playable-examples-20261022/image-generation.md)
+prompt/file record
 distinguishes those calls from the author's two-reference prompt proposals.
 All nine video clips must be fresh: the supported import accepts images, not
 cross-project selected video/job/approval records. No media files or database
@@ -77,13 +81,13 @@ checkout `e74a3e86` → start recreated healthy container `cd2edcb105d8`;
 the unchanged owned bridge remained PID 66847. No specialist gateway/Voice Lab
 service was activated by the source checkout update.
 
-The [before](../../.local/playable-examples-20261022/before-grant-activation.json)
-and [after](../../.local/playable-examples-20261022/after-grant-activation.json)
+The before
+and after
 activation fingerprints are exactly equal for all seven projects, protected
 settings, accounting and host tables, including historical UNKNOWN records.
 The trusted operator then verified each exact newly created original home and
 bound its scope inside the actual container's path/stat view; the
-[grant receipt](../../.local/playable-examples-20261022/runtime-grants.jsonl)
+grant receipt
 records successful eligible QA context for precisely those three projects.
 
 ## Live media and playback
@@ -102,8 +106,8 @@ The actual browser journey hid choices during the opening, naturally reached
 the two-button decision, played each different ending to its natural end, and
 reset time/history on restart. Both ending videos reported three seconds,
 576×1024, unmuted, no media error and distinct source URLs. The
-[route receipt](../../.local/playable-examples-20261022/cinematic-browser-routes.json),
-[choice screenshot](../../.local/playable-examples-20261022/cinematic-browser-choice.jpg)
+route receipt,
+choice screenshot
 and two ending screenshots retain the observations. Creation, healthy startup
 and visible controls alone are not playback acceptance.
 
@@ -115,15 +119,15 @@ authored lighting variation rather than exact physical beam optics. The same
 decode/sample/signal-only audio checks passed; no listening is claimed. Both
 natural browser routes and restart passed with distinct current SH02/SH03
 sources, three-second ends, no media error and no premature choice. Its
-[route receipt](../../.local/playable-examples-20261022/stylized3d-browser-routes.json)
-and [choice screenshot](../../.local/playable-examples-20261022/stylized3d-browser-choice.jpg)
+route receipt
+and choice screenshot
 retain those actual observations.
 
 The initial watercolor SH03 was rejected after its full 72-frame window and raw
 H3 source showed a substantial unwanted pigment/illumination wash-out. This is
 visible before application cropping or playback, so no downstream pixel,
 duration or player change is an appropriate repair. The internal model cause
-is unknown. The [root-cause/evidence note](../../.local/playable-examples-20261022/watercolor-rejected-sh03.md)
+is unknown. The root-cause/evidence note
 and initial media are retained. Supported settled predecessor cancellation and
 explicit rejected-take succession keep the two good SH01/SH02 jobs and segments
 unchanged. The first replacement clarified the author's existing constant
@@ -134,7 +138,7 @@ the rejected take is not relabeled as passing.
 The replacement also failed the same visual criterion. A separate read-only
 audit measured raw-source luma increasing from 142.6 to 223.2 over the selected
 window, while the two good sources stayed near their opening values. The
-[diagnostic note](../../.local/playable-examples-20261022/watercolor-fade-diagnosis.md)
+diagnostic note
 records saturation changes, source hashes and layer exclusions. It does not
 identify prompt conditioning versus model/sampler/VAE behavior. Repeated
 negative concepts in the single conditioning channel are only a hypothesis;
@@ -155,15 +159,15 @@ good original jobs/segments remain exactly unchanged.
 The third watercolor pack is approved under delegated QA, with the same
 technical-only native-audio limits. Both actual natural browser routes and
 restart passed, including the selected new SH03, no media errors and no early
-choices. Its [route receipt](../../.local/playable-examples-20261022/watercolor-browser-routes.json)
-and [choice screenshot](../../.local/playable-examples-20261022/watercolor-browser-choice.jpg)
+choices. Its route receipt
+and choice screenshot
 retain the final observations. An initial confirmation request was refused
 before selection because its 18 evidence references exceeded the existing
 16-reference limit. The corrected request references the retained manifest
 instead of separately repeating two source-audio references; the operator now
 validates the complete native request model locally. All evidence files and the
 existing contract limit remain intact. The
-[422 note](../../.local/playable-examples-20261022/watercolor-confirmation-request-422.md)
+422 note
 records this operator-input error, not a product failure or provider retry.
 
 ## Final playback and preservation
@@ -174,10 +178,10 @@ records this operator-input error, not a product failure or provider retry.
 | [Cinematic cup](https://plotloom.tail6040ad.ts.net/v2/?project=7690e55d-3f08-4056-8f7b-8455814c4928&view=play) | Warm cup rim / cool rain window | `94acd17e-e1a4-4372-819f-05cca8ffa26b` |
 | [Clay lighthouse](https://plotloom.tail6040ad.ts.net/v2/?project=02a9c60d-9b37-46fd-9446-806cb0aa8a1f&view=play) | Sea beacon / illuminated shore steps | `9e123463-4af1-4b69-8b99-76078e41b826` |
 
-Read-only [closeout assertions](../../.local/playable-examples-20261022/closeout.py)
+Read-only closeout assertions
 passed against actual native readback, the three browser receipts, the
-[before](../../.local/playable-examples-20261022/before-task-state.json) and
-[final](../../.local/playable-examples-20261022/final-task-state.json) snapshots.
+before and
+final snapshots.
 They bind each browser ending to the current selected SH02/SH03 job and N03/N04
 node, verify every retained job's exact H3 adapter/profile/request, all nine
 selected three-second segments and 96,000 audio sample frames, and preserve both
@@ -196,7 +200,7 @@ remains. The installed checkout is clean at `e74a3e86`; its container is running
 and healthy. This checkout assertion and historical activation evidence are
 separate from a new byte-for-byte runtime certification.
 
-The [closeout result](../../.local/playable-examples-20261022/playable-examples-closeout.json)
+The closeout result
 records three fresh built-in ImageGen originals, six reused originals, eleven
 H3 jobs / 55 requested seconds including both rejected takes, and nine selected
 clips / 27 unique playback seconds. Each of the six routes lasts six seconds

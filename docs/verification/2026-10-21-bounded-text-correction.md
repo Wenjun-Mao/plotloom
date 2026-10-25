@@ -1,5 +1,9 @@
 # Bounded text correction: composite local qualification
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Scope: ADR 0202 in retained R (`/Users/wjmao/.codex/worktrees/b30f/plotloom`).
 No existing installation, live project, provider, queue permission, budget, UNKNOWN
 reservation, GitHub CI or remote branch is changed.
@@ -39,7 +43,7 @@ fences, runtime/refusal/UNKNOWN exclusions and creation-transaction rollback.
 Five follow-up cases passed for duplicate preparation, omitted authority and the
 versioned correction prompt. Original failure history remains immutable.
 
-Logs are retained under `.local/verification/2026-10-21-text-correction/` with the
+Historical logs were recorded under `.local/verification/2026-10-21-text-correction/` with the
 module selection and deterministic asset hashes. The real-host fixture now writes
 `text-correction-proof.json` containing frozen policy, original/corrective evidence,
 receipt and snapshot-file hashes; the manager retained the full gate's fresh

@@ -1,5 +1,9 @@
 # Paid synthetic fixture: passive diagnostic correction
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Approved scope: improve failure evidence only in the paid synthetic test boundary.
 Review baseline: `01025bc8c63f41d97f7c78ba8eb8294e359a40c2`.
 

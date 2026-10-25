@@ -1,5 +1,9 @@
 # Image instruction access and no-dispatch recovery checkpoint
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Local source checkpoint on `main`, based on `b1e0bf98`; implementation is defined
 by the commit containing this record and [ADR 0197](../adr/0197-codex-exec-image-instruction-access.md).
 At the initial implementation checkpoint, no push, CI, full release gate,

@@ -1,9 +1,8 @@
 # Creator completion loop: implementation and acceptance evidence
 
-> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
-> were retired. References to those artifacts describe historical
-> runs, not available files or current launch/recovery instructions.
-> Recorded outcomes and limits stand.
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
 
 Status: bounded native UI journey completed on `b78bc6c9`; composite-qualified
 corrective build `b21505a0` activated with exact preservation and ending playback.
@@ -98,7 +97,7 @@ recorded below; no placeholder/wildcard grant was used.
 Both native image slots were held by historical UNKNOWN attempts on deleted,
 permanently revoked projects, so the initial native images could not start.
 The exact read-only observation is retained in the
-[native image capacity note](../../.local/creator-completion-20261022/native-image-capacity-observation.md).
+native image capacity note.
 The owner explicitly authorized the bounded recovery below. No live retirement
 has been performed by this worker; UNKNOWN outcomes and reservations are intact.
 Manager-owned live inspection/playback and final activation are recorded below;
@@ -199,7 +198,7 @@ The exact `NativeMaterialQaScope` now freezes project
 closure `cb0f5586bd2c3697b163c781992074622adb3e19762fea88d4942640f471286d`,
 ordered reference decisions/originals and shot-frame originals, existing H3
 profile and prospective null budgets. Prior four grants are unchanged.
-The retained raw [review artifact](../../.local/creator-completion-20261022/native-material-review-raw.json)
+The retained raw review artifact
 was read without JavaScript normalization. Python stable hashing reproduces its
 review hash `8d3859e258c5c98d0240138d2f0fa0b042547a402ba222ec15606f16f088ad0d`;
 `require_native_bundle` matches every granted fact. The full immutable scope
@@ -260,9 +259,9 @@ three seconds to `ended=true` without media error. Final AV receipt
 `agent_operated_qa` / `creator-completion-native-20261022`, not the owner's review.
 Story playback advanced from opening to replacement ending, held its last frame,
 and repeated after UI save-close/reopen. See the retained
-[journey notes](../../.local/creator-completion-20261022/ui-journey-notes.md),
-[ending](../../.local/creator-completion-20261022/native-story-ending.png) and
-[reopened ending](../../.local/creator-completion-20261022/native-reopened-ending.png).
+journey notes,
+ending and
+reopened ending.
 
 Independent source-worker readback comparison confirms after-confirm/reopened
 jobs, dispatches, selections, segments, reviews, receipts and batches are exactly
@@ -294,9 +293,9 @@ guard, archived prompt reader, 1,473 frontend tests and frontend typecheck passe
 Deterministic bundle/parity, unfiltered browser and wheel/installed-wheel steps
 were not reached, not skipped-as-pass.
 
-Exact [log](../../.local/creator-completion-20261022/final-full-b78bc6c9.log)
+Exact log
 SHA-256: `722abf8bd5e2237f0f2ecc36dc69fc94e02a9259d93661113b233477efddf5fe`.
-[Fingerprints](../../.local/creator-completion-20261022/final-full-b78bc6c9-fingerprints.json)
+Fingerprints
 retain source/dependency/host identity: input
 `00a743e736cbf87c08018c2226e89a497525aa218de1283b5cf4dc20186c927b`,
 native inventory `904e4ac52f88a7aac5697d1b04648e44d296291bdce0456ca8f4c4d73f02383e`;
@@ -358,7 +357,7 @@ remaining nine view cases passed in 0.13 seconds and two API retry cases passed
 in 46.63 seconds. All 98 original failed/error IDs are selected, 87 passed in the
 owning run and the other 11 passed those corrected whole-file reruns. No original
 case is missing and no unexpected residual family remains. The ignored
-[reconciliation](../../.local/creator-completion-20261022/qualification-failure-reconciliation.json)
+reconciliation
 and `corrected-full-families-focused.log` retain this composite accounting;
 neither the original full nor intermediate failed run is rewritten as passing.
 
@@ -391,7 +390,7 @@ browser-fixture typecheck passed. Independent narrow review found no issue.
 
 Product/package/static bytes are unchanged from `6a44b8eb`; reuse those passes and
 unchanged original-full passing inputs. No full/browser-full retry or CI occurred.
-Exact logs and [fingerprints](../../.local/creator-completion-20261022/final-tail-6a44b8eb-fingerprints.json)
+Exact logs and fingerprints
 retain final input `780631c0973767030b8faafab359baeb9c9eff83a13402ee54fbb3c6d36858dc`,
 production-file hashes, wheel hash, failed browser log and fixture correction.
 Vite chunk-size and uv/uv-build version-range advisories were non-failing; no gate
@@ -406,10 +405,10 @@ Container `181d239fb9e2` started 17:29:46 UTC healthy; owned bridge PID 66847 ru
 Three health routes returned 200/ok; public JS and all three corrected product
 hashes match qualified bytes. Settings are readable/busy false; active/queue/validator
 counts are zero. Source-worker comparison confirms before-corrections and
-[after-final snapshots](../../.local/creator-completion-20261022/after-final-activation.json)
+after-final snapshots
 are exactly equal: all four projects, settings, host and historical UNKNOWN rows.
-[Final readback](../../.local/creator-completion-20261022/after-qualification-readback.json)
+Final readback
 matches all seven reopened media/decision arrays. Fresh browser reload/playback
 reached the replacement ending at 3/3 seconds with last-frame hold and explicit QA
-attribution; see [post-activation ending](../../.local/creator-completion-20261022/native-post-activation-ending.png).
+attribution; see post-activation ending.
 No new paid call, approval, CI or push occurred. Audio/crop/creative limits above remain.

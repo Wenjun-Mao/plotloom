@@ -1,5 +1,9 @@
 # Optional aggregate provider budgets: first source checkpoint
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Date: October 19, 2026. Source owner: Relay worker
 `01a15548-2c38-7bc0-a701-1e5d99e34d98`; manager
 `01a04525-e907-7630-9640-78790d69e8ae`.
@@ -58,8 +62,8 @@ empty. No provider output or creative acceptance is claimed. Fixture teardown
 owns the temporary roots/processes; no actual installation service was operated.
 
 Inspected desktop captures at 1280×768 show both Unlimited selects and the frozen
-finite summary/blocker. These captures and command logs are retained locally in
-[the local evidence folder](../../.local/batch-video/optional-provider-budgets/)
+finite summary/blocker. These captures and command logs were recorded locally in
+the local evidence folder
 (ignored, no secrets).
 The other existing browser regression cases use synthetic provider transport;
 their media results are software evidence only.

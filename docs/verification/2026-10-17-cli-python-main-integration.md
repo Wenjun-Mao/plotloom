@@ -1,5 +1,9 @@
 # Completed CLI/Python main integration — October 17, 2026
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 ## Scope and tested identity
 
 The owner requested parking optimization and speculative image batching, merging
@@ -38,7 +42,7 @@ All fourteen steps passed, with natural exit 0 in **1,267.774 seconds**:
 - Wheel build and installed-wheel smoke.
 
 Original native handle `5175` closed naturally: `ce3312` to `7ffcf3`, exit 0.
-Full log is retained locally at
+The historical full log was recorded at
 `.local/release-cli-python-main-20261017/full.log`, SHA-256
 `9341611caf670ed8d95eb805b529366f07a68d1c34e4b791bd982cdfc9f835bc`.
 Deprecation, color-environment, bundle-size and build-tool compatibility warnings

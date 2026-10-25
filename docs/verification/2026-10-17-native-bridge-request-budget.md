@@ -1,9 +1,8 @@
 # Native bridge request budget correction — October 17, 2026
 
-> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
-> were retired. References to those artifacts describe historical
-> runs, not available files or current launch/recovery instructions.
-> Recorded outcomes and limits stand.
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
 
 ## Root cause and owning contract
 
@@ -59,7 +58,7 @@ recorded one and four warnings respectively. Total gate elapsed: **1,311.148s**.
 Original native session `45351` closed naturally, `f5bd2c` → `9ec6ab`, exit 0.
 Full-log SHA-256:
 `7f8757581fffc4951810a436c6096d25cc4777ea341dd337a074dfb02eb44e94`.
-The log is retained privately at
+The historical log was recorded at
 `.local/outline-instruction-startup-20261017/bridge-budget-full.log`, with the
 diagnosis and measured facts in `.local/bridge-request-budget-20261017/rca.json`.
 These pointers record technical evidence, not a project recovery archive.

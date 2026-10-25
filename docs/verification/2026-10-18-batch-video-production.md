@@ -1,5 +1,9 @@
 # Batch-video implementation qualification, 2026-10-18
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: initial integrated source checkpoint; local qualification combines full-run
 evidence with an exact test-contract rerun and downstream package checks.
 Publication and activation are held for manager review. Technical evidence does
@@ -58,7 +62,7 @@ changes address measured work at its owning layers, rather than weakening review
 
 ## Executed qualification
 
-Logs are retained under `.local/batch-video/` in the source checkout.
+Historical logs were recorded under `.local/batch-video/` in the source checkout.
 
 ### Final full candidate
 

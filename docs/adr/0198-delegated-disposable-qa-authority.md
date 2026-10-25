@@ -1,5 +1,9 @@
 # 0198: Explicit delegated disposable-QA decisions
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: accepted implementation decision, 2026-10-19
 
 ## Minute-long playable example scope addition · 2026-10-23

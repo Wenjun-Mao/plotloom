@@ -1,5 +1,9 @@
 # Frozen Outline startup correction — October 17, 2026
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 ## Cause and ownership
 
 The walkthrough's first Outline attempt on `2bb54595` crossed native Popen, then
@@ -55,7 +59,7 @@ Full-log SHA-256:
 `ca1096c54949e9055f956a786dcf598c275ac0755edabf4f195a98980ab9a165`.
 This is a single full pass, not a composite of focused results or a speed claim.
 
-Technical evidence is retained under `.local/outline-instruction-startup-20261017/`:
+Technical evidence was recorded under `.local/outline-instruction-startup-20261017/`:
 the original error hashes and inspected ledger facts in `rca.json`, the no-turn
 diagnostic and results, expected-red output, focused/service logs and full log.
 This is not an archive of the discarded user's run.

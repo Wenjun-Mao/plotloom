@@ -1,5 +1,9 @@
 # Minute-long playable example · 2026-10-23
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: completed and ready to try. Nine current real H3 clips are reviewed and
 selected; both complete sixty-footage-second routes passed natural native Safari
 playback, deliberate choice hold and restart. Seven older projects/settings/
@@ -30,8 +34,8 @@ The decision has no timeout; an unmeasured 3–8-second choice assumption estima
 | Exact complete grant hash | `ad5aa30c0876699789c9fa5285b2c627e9dc4741791e612cc6a79fcc29276fc3` |
 | Canonical request file SHA-256 | `093b2b4a046df00904b142b795dc86c2033a39c610eefee2e08b98023c218f9d` |
 
-The ignored [workflow entrypoint](../../.local/minute-playable-example-20261023/README.md)
-links the local authoring route. Actual corrected native creation is retained in
+The completed local authoring route and its scratch entrypoint were retired.
+Actual corrected native creation was recorded in
 `project-create-corrected.json`; nine `shNN-import-corrected.json` receipts bind
 each original's actual bytes to the new exact project and current source scope.
 `grant-checkpoint.json` recomputes every source material/receipt/local/native hash
@@ -49,23 +53,23 @@ island is distant, so its split rock is not separately resolved. These limits do
 not become claims of unseen continuity or future video quality.
 
 The original SH05 pointed toward open water instead of the homeward steps. Its
-unchanged rejected original, source hash and causal note remain in the workflow
-folder; one in-place orientation edit preserved the surrounding scene and made
+rejected scratch original and causal note were retired; one in-place orientation
+edit preserved the surrounding scene and made
 the bow face the steps. This is a targeted semantic repair, not evidence of a
 general ImageGen correction guarantee. Actual prompts, references, tool source
-paths and selected workspace copies are retained in `image-provenance.json`,
+paths and selected workspace copies were recorded in the now-retired `image-provenance.json`,
 `opening-keyframe-provenance.json`, `branch-home-provenance.json` and
 `branch-outward-provenance.json`. No CLI/API image fallback was used.
 
 The private author's tuple extraction originally put dramatic-result sentences
 into boat allowed states. Review identified the index error before creation;
-the author now derives entry/exit states and asserts exact boundary-state equality,
+the corrected authoring package derived entry/exit states with exact boundary-state equality,
 excluding dramatic prose. All four native stage validators and 214 storyboard
 gates pass on the corrected package.
 
 Actual master review then exposed a separate authoring error: a fixed lower-left
 homeward screen direction disagreed with the steps above-left in that camera.
-The durable sample input now binds the physical route to landmarks and specifies
+The corrected project input binds the physical route to landmarks and specifies
 local shot motion. The first supported bible correction on bootstrap project
 `81f468e9-4c66-440a-b277-74af3926aa24` correctly staled downstream heads; the next
 direct graph PATCH returned 409 under the existing source-graph admission guard.
@@ -78,11 +82,11 @@ bootstrap, verified quiescence, all nine retained local original hashes and no
 provider work, then used supported ordinary permanent deletion (204). All seven
 prior projects/settings/application/host rows and UNKNOWN holds compared exactly
 to the initial baseline afterward, without exclusions. Root's deletion request,
-preview, response and before/after snapshots are retained under
+preview, response and before/after snapshots were recorded under the retired
 `.local/minute-playable-example-20261023-root/`. This was deletion of a failed
 bootstrap, not restoration or alteration of an existing project. One corrected
 native recreation and nine new import identities produced the current project
-above. Both creation histories remain retained.
+above. Both scratch creation histories were retired; the current project remains.
 
 ## Grant preparation boundary and preservation
 
@@ -94,8 +98,8 @@ Ten requested seconds map to 243 native frames at 24 fps; intended selected wind
 are 240 frames / ten seconds. This arithmetic does not establish output quality,
 observed native duration, native audio fidelity or completed playback.
 
-`checkpoint.py` directly evaluates baseline revision `0a7f0375`'s registry and
-compares all eight old scope dataclasses field for field against the candidate.
+The historical `checkpoint.py` evaluated baseline revision `0a7f0375`'s registry and
+compared all eight old scope dataclasses field for field against the candidate.
 All are identical, including original finite limits. It also compares all seven
 old project table/file/state records and protected settings/host/UNKNOWN2 against
 the pre-write baseline. All pre-existing application rows match; only the exact

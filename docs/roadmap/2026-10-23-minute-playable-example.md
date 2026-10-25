@@ -1,5 +1,9 @@
 # One minute-long playable story example
 
+> Historical local artifacts in [the cleanup scope](2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: completed on 2026-10-23. Nine real H3 clips are reviewed/selected; both
 complete sixty-footage-second routes passed natural native Safari playback,
 deliberate choice hold and restart. Final direct preservation comparison passes
@@ -41,12 +45,13 @@ browser routes through natural playback, held choice and restart at time zero.
 
 ## Evidence and preservation
 
-Ignored workflow entrypoint: `.local/minute-playable-example-20261023/README.md`.
-It retains canonical inputs, actual image prompts/provenance, create/import/write
-receipts, validation and timing arithmetic. Capture read-only preservation before
-the first live write; compare all seven prior projects/files/tables, protected
-settings, host state and both UNKNOWN holds. Application comparisons may exclude
-only exact new-project/create/grant/dispatch identities, never entire tables.
+The completed workflow's local authoring/inspection scratch was retired after
+dependency review. The current project owns its canonical inputs, imported media,
+decisions and playable selections; no scratch authoring entrypoint is required.
+The original execution required a read-only baseline before the first live write
+and exact comparisons of all seven prior projects/files/tables, protected
+settings, host state and both then-existing UNKNOWN holds. Application comparisons
+excluded only exact new-project/create/grant/dispatch identities, never tables.
 
 The actual native Safari app is readable during preflight. Open a task-owned new
 tab for this new project and respect any actual access refusal; no alternative

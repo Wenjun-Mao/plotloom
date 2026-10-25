@@ -1,9 +1,8 @@
 # Playable MVP milestones — Shuohao-first delivery
 
-> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
-> were retired. References to those artifacts describe historical
-> runs, not available files or current launch/recovery instructions.
-> Recorded outcomes and limits stand.
+> Historical local artifacts in [the cleanup scope](2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
 
 Revision 4 — **Approved direction and checkpoint roadmap**, 2026-09-17.
 The user approved the architecture and requested this full roadmap. This is the
@@ -815,11 +814,11 @@ Captured from creator review on 2026-09-27; open, not implemented:
   the ADR 0074 transport. The isolated runner explicitly omits media dispatch;
   this is not a failed image generation. No verified reusable specialist task
   identity was found in the inspected host-local configuration. The earlier
-  `.local/native-image-proof` dispatcher retains an inflight reservation; it
-  must not be cleared or bypassed to connect this walkthrough. Next: obtain
-  an explicitly authorized dedicated image-specialist chat, bind its host-local
-  identity and lease directory, and restart the same storage-backed runner.
-  Configuration must not automatically send the prepared proposal.
+  isolated native-image trial had an inflight reservation at that checkpoint;
+  it was not cleared or bypassed to connect the walkthrough. That obsolete
+  trial was retired on October 25 without inferring a remote outcome. It is
+  not a current reservation or an instruction to revive the old runner.
+  Configuration did not automatically send the prepared proposal.
   Follow-up: the creator identified the existing `Plotloom Image Specialist`
   chat, which was outside the 50-most-recent chat lookup. Exact-title lookup
   and task inspection confirmed its latest assignment completed with a

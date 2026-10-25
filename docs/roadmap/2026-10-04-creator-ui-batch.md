@@ -1,5 +1,9 @@
 # Creator UI batch for the next walkthrough
 
+> Historical local artifacts in [the cleanup scope](2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: **implemented, independently reviewed, fully locally qualified, published and activated; owner walkthrough pending**.
 Approved October 4, 2026, Toronto time. Baseline: retained clean `main` at
 `a5f353835b9d6e6834da862205d89925ae1e17bf`.
@@ -18,9 +22,8 @@ in the outline. At every stage, the UI makes the current task, result, required
 review, next action and recovery path understandable. Existing acceptable media
 and the dark visual direction remain; final-film quality is not the target.
 
-The agreed observations and examples are in the manager's local
-`.local/creator-ux-batch-2026-10-04/notes.md`. This tracked plan now owns the
-approved scope and progress. The prior
+This tracked plan owns the agreed observations, approved scope and progress.
+The redundant local transcription was retired after reconciliation. The prior
 [UI-polish plan](2026-10-03-creator-ui-polish.md) records already completed work;
 do not count those fixes again. The
 [contract-repair receipt](../verification/2026-10-04-current-contract-repairs.md)

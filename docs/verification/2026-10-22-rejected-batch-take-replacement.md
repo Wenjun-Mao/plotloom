@@ -1,5 +1,9 @@
 # Rejected batch take replacement: source checkpoint and operator path
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Source owner: retained `/Users/wjmao/.codex/worktrees/b30f/plotloom`, local main
 based on `28be88a9`. Root manager owns installation/runtime/provider operations
 and actual example inspection. [ADR 0204](../adr/0204-explicit-rejected-batch-take-replacement.md)
@@ -12,8 +16,8 @@ six seconds of story playback: [watercolor paper boat](https://plotloom.tail6040
 [cinematic teacup](https://plotloom.tail6040ad.ts.net/v2/?project=d7deb82f-4801-4c9f-bfa8-9195c3b36489&view=play),
 and [stylized 3D lighthouse](https://plotloom.tail6040ad.ts.net/v2/?project=21dd0cbd-3ba9-4cfa-927a-88a877b047ea&view=play).
 Root observed each actual browser player reach its ending, final-frame hold and
-restart control. Screenshots: [watercolor](../../.local/finished-examples-20261022/watercolor-playback-final-frame.png),
-[cinematic](../../.local/finished-examples-20261022/cinematic-playback-final-frame.png), [3D](../../.local/finished-examples-20261022/stylized3d-playback-final-frame.png).
+restart control. Screenshots: watercolor,
+cinematic, 3D.
 
 Root activated executable `6b1cf1969b5da1ffb678f8c915d7ebbc655de67b` through
 supported stop/switch/bridge/start; healthy container `20b6387cc463` serves tailnet
@@ -21,8 +25,8 @@ v2 HTTP 200. Before/after activation snapshots compare exactly equal across all
 three homes' tables/files, settings, protected files and host state, before new
 generation. Final protection checks preserve host tables, protected files and
 both old UNKNOWN attempts; enabled queues/validators are zero and active attempts
-are empty. Evidence: [before](../../.local/finished-examples-20261022/before-replacement-activation.json),
-[after](../../.local/finished-examples-20261022/after-replacement-activation.json), [final protection](../../.local/finished-examples-20261022/final-preservation-summary.json).
+are empty. Evidence: before,
+after, final protection.
 
 The new endpoint returned HTTP 200; successor `86ddf431-f6e7-4a87-b240-e1f51ea0a872` started at 14:01:02 UTC and was observed complete at 14:06:34 UTC. Replacement
 SH01 job `vj_5301c782204042ffbfa6ab7c5b299cbe`, segment
@@ -31,9 +35,9 @@ SH01 job `vj_5301c782204042ffbfa6ab7c5b299cbe`, segment
 passed root's actual frame inspection. The rejected original remains unselected;
 SH02's job, segment and bytes are unchanged. Atomic confirmation returned HTTP
 200, receipt `894a8bf6-eb33-402f-ad46-933eb40f619e`; successor is approved at rev 9.
-[Native assertions and three-project inventory](../../.local/finished-examples-20261022/finished-examples-closeout.json),
-[confirmation](../../.local/finished-examples-20261022/cinematic-final-confirmation.json), [frame/audio evidence](../../.local/finished-examples-20261022/cinematic-inspection-evidence.json)
-and [actual QA observations](../../.local/finished-examples-20261022/cinematic-av-inspection.json)
+Native assertions and three-project inventory,
+confirmation, frame/audio evidence
+and actual QA observations
 retain exact identities, hashes and limitations.
 
 This is delegated agent-operated example QA, not personal owner review. Native

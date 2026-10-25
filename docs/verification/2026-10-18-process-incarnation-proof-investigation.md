@@ -1,5 +1,9 @@
 # Process-incarnation quiescence investigation, 2026-10-18
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Status: **fail-closed; no executable correction qualified or installed**.
 Source baseline: `5f7dbf43369e3b57e84edd9cf1ee2cab2fee8f69`, retained checkout
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Deployment remains at `7b90bbc7`.

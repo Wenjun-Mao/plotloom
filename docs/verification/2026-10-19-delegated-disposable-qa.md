@@ -1,5 +1,9 @@
 # Delegated disposable-QA source checkpoint
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Scope: ADR 0198, exact project `326a5137-1851-4b5c-8ab2-b600ec7bda23`, board
 `b4da9c96f5bfa09548446249960605e7a87671936d75e8fbec62ecef73043295`, two retained
 ImageGen originals, existing quality-8 portrait H3 gateway, `cover_center_crop`,

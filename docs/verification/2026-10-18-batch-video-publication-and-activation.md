@@ -1,5 +1,9 @@
 # Batch-video publication and activation attempt, 2026-10-18
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Current status: locally activated at `93441fc1` on October 18, 2026, 22:01 EDT.
 See [completed activation](#completed-activation-october-18-2201-edt). Hosted
 qualification remains failed and GitHub CI is held pending Wenjun's direct request.
@@ -12,7 +16,7 @@ an activation, restart, provider-smoke or creative-acceptance receipt.
 
 Qualified product source is `20e3c65b`. The manager independently retested clean
 `468b2d0e`: 13 backend, eight frontend and 23 browser cases passed, exit zero in
-97.703 seconds. Exact retained log:
+97.703 seconds. Historical log:
 `.local/batch-video/manager-correction-retest.log`. Both independent correction
 reviewers closed their concrete findings, as reported by the manager. See the
 [correction record](2026-10-18-batch-video-corrections.md) for exact selections,
@@ -215,7 +219,7 @@ rows and the original image slot for
 Every prior application table is unchanged except the removed project's creation
 reservation (one row to zero); the new `video_batch_grants` table is empty.
 
-Evidence remains under `.local/batch-video/`:
+Historical evidence was recorded under `.local/batch-video/`:
 
 | File | Evidence |
 | --- | --- |

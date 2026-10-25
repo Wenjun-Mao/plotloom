@@ -1,5 +1,9 @@
 # Automatic image content ownership checkpoint
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Source candidate `04219ba296a77e457f6fe4d7988e67df75a73e3c`, based on clean
 `210974c0`; this later documentation checkpoint leaves its executable inputs
 unchanged. Installed/full-qualified source remains `081d56d4`.

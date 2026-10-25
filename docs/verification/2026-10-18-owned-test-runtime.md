@@ -1,5 +1,9 @@
 # Owned copied hosted-test runtime checkpoint — 2026-10-18
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Sections through “Retention and remaining gaps” preserve the initial
 `f7fcf080` checkpoint. The follow-up below supersedes its pending execution and
 authority statements; retained failed evidence is unchanged.
@@ -54,7 +58,7 @@ parallelism change was added.
 
 ## Executed scoped evidence
 
-Evidence below is in retained checkout `.local/batch-video/`.
+Historical evidence below was recorded in `.local/batch-video/`.
 
 1. **Feasibility:** existing owned nonroot Linux container/checkout, CPython
    **3.12.3 / aarch64**, UID 65534, umask 022. Fresh `venv --copies --without-pip`,

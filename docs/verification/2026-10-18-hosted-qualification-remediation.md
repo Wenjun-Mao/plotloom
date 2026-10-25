@@ -1,9 +1,8 @@
 # Hosted qualification remediation, 2026-10-18
 
-> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
-> were retired. References to those artifacts describe historical
-> runs, not available files or current launch/recovery instructions.
-> Recorded outcomes and limits stand.
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
 
 Status: `2b3c8d66` was published after composed local release qualification and
 manager review. Its unfiltered hosted run failed in browser shard 3 and Python;
@@ -27,7 +26,7 @@ The 14 changed executable/test inputs are pinned in
 failed at `00773e659fa95a311d8c6ec0c714182352bd9e06`. Browser shards 2/3/4
 passed; shard 1's Storyboard static report overflow failed twice. The verify
 job printed Python failures/errors before its 45-minute timeout, with no final
-pytest failure report. Complete failed logs remain at
+pytest failure report. Complete failed logs were recorded at
 `.local/batch-video/hosted-ci-39146800414-failed.log`; hosted Playwright artifact
 `12144236084` was the manager's read-only browser evidence lead. No gate budget
 or required coverage was changed. Subsequent hosted dispatches are recorded

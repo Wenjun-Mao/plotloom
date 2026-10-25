@@ -17,10 +17,9 @@ Aliases:
 - `P`: `/Users/wjmao/projects/HU/plotloom` (installed checkout).
 - `W`: `/Users/wjmao/projects/HU/plotloom-worktrees`.
 
-The existing [storage inventory](../../.local/cleanup-inventory-20261025.json)
-lists the remaining candidates; completed targets have been removed from it.
-This plan closes its first five review groups and now includes the owner-approved
-remaining disposable batch below. Remaining review-first groups stay in the inventory.
+This plan closes the first five groups, the remaining disposable batch and the
+final necessity review below. All inventory candidates are adjudicated; the
+obsolete ignored inventory is retired after final preservation verification.
 
 ## Owner's preservation rule
 
@@ -74,7 +73,7 @@ No new private experiment, prototype resume or benchmark campaign is part of cle
 
 | Item outside deletion scope | Current consumer / consequence of deletion | Practical use |
 | --- | --- | --- |
-| Current eight projects and their media/settings, plus owner-valued installations and work | Workbench/player and the owner's projects; deletion loses working content or edits | Continue viewing, playing and editing actual projects |
+| Current eight projects and their project-owned media/settings | Workbench/player and the owner's projects; deletion loses working content or edits | Continue viewing, playing and editing actual projects |
 | Current source, validator environments and active dependencies | Running bridge/workbench, validators and development tools | Operate and maintain the current application |
 | Single functional current recovery package | Current source/wheel recovery path | Rebuild or recover the working installation after a real failure |
 | Five current project-revocation tombstones | Actual admission/publication guards query them | Continue refusing revoked-project work and unsafe late publication |
@@ -250,7 +249,7 @@ and were removed after the final full comparison. Baselines stayed in memory.
 No unused images, media, provenance, logs, snapshots, archive or private completion
 bundle are retained merely for audit, uniqueness or past cost. Old cleanup
 receipts and their launch/recovery instructions are retired with their roots.
-The existing inventory remains while unresolved review groups need it.
+The inventory remained until the final review groups were resolved below.
 
 Tracked documentation removes dead artifact links and identifies historical
 paths/commands as unavailable rather than launch or recovery directions. Current
@@ -282,3 +281,65 @@ were checked; only Markdown changed from source baseline `f5edde15`. No product
 tests, provider calls, service restart, hosted CI or push occurred. The manager
 will update the existing inventory in place, refresh the single functional
 recovery package and synchronize installed documentation after this checkpoint.
+
+## Final necessity review — completed 2026-10-25
+
+The owner approved reviewing the remaining 17 roots and disposing of material
+without a demonstrated current consumer or concrete long-term practical use.
+Three read-only reviews covered source/design reconciliation, example media
+dependencies and old story installations. No preservation exception or useful
+missing product source was found. Requested models were GPT-6.1 Sol / High for
+the old story review and Sol / Medium for the other two; effective settings
+were unverified.
+
+| Retired group | Disposition and reason |
+| --- | --- |
+| `R/.local/finished-examples-20261022`, `playable-examples-20261022`, `minute-playable-example-20261023`, `minute-playable-example-20261023-root`, `creator-completion-20261022` | Removed completed authoring/inspection scratch, copied media and QA attachments. Current images, selected clips, authoring state and native decisions are project-owned under `P/.local/creator-walkthrough`. Receipt evidence references are bounded text; validity checks do not reopen these attachments. |
+| `R/.local/batch-video`, `verification` | Removed historical fixtures, diagnostics, profiles, candidate patches, test output and packages. Necessary fixes are already on main; no historical run is resumed. |
+| `R/.local/pool-implementation-20261014`, `outline-instruction-startup-20261017`, `release-cli-python-main-20261017`, `manual-walkthrough-20261017`, `debug_codex_exec_worker` | Removed ancestor source copies, obsolete operation helpers, isolated Codex home and debug injection. All 405 copied pool files match ancestor `1368dbd7`; current source supersedes that snapshot. |
+| `P/.local/current-story-native-2026-10-08`, `P/outputs` | Removed old QA/pilot projects, snapshots, media and generated packages. Two pilots had historical human review; that alone established no continuing editing/playback purpose or necessary recovery consumer. No current project ID, managed media or actual path dependency points into these roots. |
+| `P/.local/creator-ux-batch-2026-10-04`, `documentation-batch-2026-10-04`, `native-image-proof` | Removed transcribed notes, old cursor and isolated native-image trial. Accepted design decisions remain in tracked plans/specs/ADRs. Direct outline editing, speculative bottom-inspector behavior and C1 Relay deduplication were unapproved proposals, not decisions to promote. |
+
+Current readers import media into owned content-addressed assets and use those
+owned inventories for playback, authoring and snapshots. Ten old QA attachment
+references remain as immutable receipt text/notes in two current projects;
+deletion removes attachment access without invalidating those decisions or their
+selected media. Generic `delivery/outputs/...` paths resolve beneath each owned
+job directory and do not consume the retired standalone `P/outputs`.
+
+Accepted pool, frozen-worker startup, bridge request-budget and cross-shot
+contracts remain in ADRs 0174, 0187, 0188 and 0189. Creator presets, waiting and
+recovery, outline reading, revision return, branch suggestions and shared visual
+decisions remain in the October 4 plan, ADRs 0117–0119 and workbench specs. No
+unaccepted old note was converted into implementation authority.
+
+All 17 roots are absent: **4,561 regular files, zero symlinks,
+1,230,419,076 logical bytes and 1,217,520 allocated KiB (about 1.16 GiB)**.
+No exact mount, process, open handle or current configuration consumed them.
+Historical databases were inspected read-only, using temporary DB-family copies
+only when sidecars existed; original families were unchanged before removal.
+An old isolated inflight reservation was retired without claiming its remote
+outcome became known or creating a current host reservation.
+
+The small deletion and full removal both matched the fresh preservation baseline
+exactly: eight current projects, 672 tables, eight databases plus 263 other
+persistent files, all application/host tables, 15 protected fingerprints, both
+checked validators, runtime/bridge identity and functional recovery files. Host
+accounting remains 85 attempts, zero queues/slots/validators and five unchanged
+functional revocation guards. The current examples, including both one-minute
+routes, remain outside the removed scratch roots.
+
+No archive, creative export, new library or source-preservation ref was created.
+The adjudicated inventory and temporary verification code/hash metadata are
+retired at closeout. Current dependencies, live data, deployment metadata and
+the single usable recovery package remain for their named functions. The
+existing installation-reader proposal above is still a separate accept/reject
+decision; cleanup neither implements nor merges it. No product code, provider
+call, service restart, hosted CI or push is part of this batch.
+
+Post-removal HTTP readback returned the same eight catalog projects and all 26
+selected playback streams, including the one-minute story's nine clips. HTTPS
+health returned 200 and served JavaScript matched qualified static bytes. This
+is media-access verification, not a new browser-playback or creative acceptance
+claim. Independent review of the documentation diff found no actionable issue;
+whitespace and added local links were checked. Only Markdown changed on main.

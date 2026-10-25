@@ -1,5 +1,9 @@
 # Text failure visibility and explicit correction — local composite closeout
 
+> Historical local artifacts in [the cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md) were retired
+> on 2026-10-25. References to those files are not available attachments or resumption
+> instructions; recorded outcomes, limits and current project-owned media stand.
+
 Date:2026-10-22. Baseline:`748e6d6f`, retained `b30f/plotloom`, local main.
 [ADR0203](../adr/0203-explicit-text-correction-and-diagnostics.md) binds the
 approved source contract. Requested model/reasoning:Sol/High; effective native
@@ -36,7 +40,7 @@ duplicate observation never rebases an ordinary manual Brief edit.
 
 ## Executed qualification
 
-The durable ignored evidence home is
+The former ignored evidence home was
 `.local/verification/2026-10-22-text-failure-controls/`.
 Its `commands.md` records every focused command/result, including failed fixture
 assumptions, refused selectors and the intermediate Vite failure. Earlier raw
