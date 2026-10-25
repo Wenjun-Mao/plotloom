@@ -244,6 +244,11 @@ def test_manifest_maps_cross_module_pytest_helper_consumers():
     }
 
     known_consumers = {
+        "tests/project_storage_generation_support.py": {
+            "tests/test_project_storage_exact_generation_scenarios.py",
+            "tests/test_generation_repair_authority_integration.py",
+            "tests/test_generation_artifact_secret_context.py",
+        },
         "tests/backend_core/conftest.py": {
             "tests/test_current_stage_evidence.py",
             "tests/test_graph_authoring_contract.py",

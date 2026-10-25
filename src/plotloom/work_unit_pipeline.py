@@ -30,6 +30,9 @@ from .domain import (
     stage_payload_model,
 )
 from .exceptions import QuarantinedOutputError, RunExecutionError
+from .generation.continuity_repair import (
+    assert_continuity_repair_fact_matches_source,
+)
 from .generation.continuity_repair_contracts import (
     ContinuityEntityStateRepairFact,
 )
@@ -54,6 +57,9 @@ from .generation.correction_schema import (
     CorrectionResponseSchemaError,
     compile_correction_response_schema,
 )
+from .generation.entity_state_repair import (
+    assert_continuity_entity_state_repair_fact_matches_source,
+)
 from .generation.exceptions import (
     ProviderCapabilityError,
     ProviderError,
@@ -65,6 +71,9 @@ from .generation.exceptions import (
 from .generation.fragments import StoryBibleFragment, StoryGraphFragment
 from .generation.graph_repair_contracts import (
     JoinStateEffectRepairFact,
+)
+from .generation.graph_semantic_repair import (
+    assert_join_state_effect_repair_fact_matches_source,
 )
 from .generation.planning import GenerationWorkUnit, StagePlan
 from .generation.prompts import PromptRenderer
@@ -79,12 +88,19 @@ from .generation.responses import (
     parse_json_text,
     redact_provider_boundary_evidence,
 )
+from .generation.scene_beats_dialogue_repair import (
+    assert_cue_order_repair_fact_matches_source,
+)
 from .generation.scene_beats_edge_entry import (
     EdgeEntryEntityStateRepairFact,
     assert_edge_entry_entity_state_repair_fact_matches_source,
     edge_entry_state_requirements,
 )
 from .generation.secrets import SecretLease
+from .generation.semantic_repair import (
+    assert_semantic_repair_fact_matches_issue,
+    semantic_repair_facts,
+)
 from .generation.story_graph_topology import StoryGraphTopology
 from .generation.storyboard_presence_repair import (
     RequiredEntityPresenceRepairFact,
@@ -104,13 +120,7 @@ from .generation.work_unit_contracts import (
     WorkUnitContractError,
 )
 from .generation.work_units import (
-    assert_continuity_entity_state_repair_fact_matches_source,
-    assert_continuity_repair_fact_matches_source,
-    assert_cue_order_repair_fact_matches_source,
-    assert_join_state_effect_repair_fact_matches_source,
-    assert_semantic_repair_fact_matches_issue,
     compile_work_unit_request,
-    semantic_repair_facts,
 )
 from .persistence.codec import stable_hash
 from .provider_profiles import TextProviderProfileSnapshot

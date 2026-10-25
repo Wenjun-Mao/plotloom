@@ -6,6 +6,9 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.domain import BeatV2, SceneBeatPlanV2, StageName
+from plotloom.generation.fragment_binding import (
+    canonical_audio_event_id,
+)
 from plotloom.generation.fragments import StoryboardFragment
 from plotloom.generation.planning import plan_stage
 from plotloom.generation.storyboard_response_contracts import (
@@ -18,7 +21,6 @@ from plotloom.generation.work_unit_contracts import (
     WorkUnitPromptContract,
 )
 from plotloom.generation.work_units import (
-    canonical_audio_event_id,
     compile_work_unit_request,
 )
 from tests.generation.work_unit_contract_fixtures import (

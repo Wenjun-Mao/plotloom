@@ -15,6 +15,7 @@ from pydantic import ConfigDict, Field, model_validator
 
 from ..domain import CamelModel
 from ..json_value_contract import finite_canonical_json
+from .contracts import ValidationIssue
 
 
 STORYBOARD_TIMING_REPAIR_PLAN_VERSION = "storyboard_timing_repair_plan.v1"
@@ -525,3 +526,46 @@ def _required_int(value: Mapping[str, Any], key: str, message: str) -> int:
 
 def _sha256(value: Any) -> str:
     return hashlib.sha256(finite_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def storyboard_timing_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    guidance: StoryboardTimingGuidance | None,
+) -> tuple[StoryboardTimingRepairPlanFact, ...]:
+    """Build issue-bound references to one complete executable timing plan.
+
+    This intentionally declines to help when response identity/coverage is
+    unsafe.  Coverage has its own repair contract; a later correction can
+    create this plan only after that contract made its identity complete.
+    """
+
+    if guidance is None:
+        return ()
+    relevant = tuple(
+        issue
+        for issue in issues
+        if issue.code
+        in {
+            "semantic.shot_duration_budget_exceeded",
+            "semantic.cue_duration_exceeds_shot",
+        }
+    )
+    if not relevant:
+        return ()
+    if not isinstance(value, Mapping):
+        return ()
+    plan = build_storyboard_timing_repair_plan(value, guidance=guidance)
+    if plan is None:
+        return ()
+    return tuple(
+        StoryboardTimingRepairPlanFact(
+            code=issue.code,
+            path=issue.path,
+            plan=plan,
+            guidance_hash=storyboard_timing_guidance_hash(guidance),
+            plan_hash=plan.plan_hash,
+        )
+        for issue in relevant
+    )

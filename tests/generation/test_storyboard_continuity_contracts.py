@@ -24,7 +24,14 @@ from plotloom.generation.correction_postconditions import (
     validate_correction_postconditions,
 )
 from plotloom.generation.correction_schema import compile_correction_response_schema
+from plotloom.generation.entity_state_repair import (
+    assert_continuity_entity_state_repair_fact_matches_source,
+    continuity_entity_state_repair_facts,
+)
 from plotloom.generation.planning import plan_stage
+from plotloom.generation.semantic_repair import (
+    semantic_repair_facts,
+)
 from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
@@ -34,10 +41,7 @@ from plotloom.generation.work_unit_contracts import (
     WorkUnitContractError,
 )
 from plotloom.generation.work_units import (
-    assert_continuity_entity_state_repair_fact_matches_source,
     compile_work_unit_request,
-    continuity_entity_state_repair_facts,
-    semantic_repair_facts,
 )
 from tests.generation.work_unit_contract_fixtures import (
     _bible_with_hero,

@@ -1,4 +1,4 @@
-"""Model-authored Scene Beats response contracts; trusted binding stays in work_units."""
+"""Model-authored Scene Beats response contracts; trusted binding lives in fragment_binding."""
 
 from __future__ import annotations
 

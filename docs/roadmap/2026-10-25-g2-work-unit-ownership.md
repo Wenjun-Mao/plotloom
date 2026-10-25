@@ -1,6 +1,6 @@
 # G2: Work-unit binding, validation and repair ownership
 
-Status: **independently reviewed plan; awaiting owner implementation approval**.
+Status: **implementation candidate complete; independent review, final local qualification and activation pending**.
 Date: 2026-10-25. Source baseline: clean `main` at
 `f7da50ee503f38c0cb8a63f36c169b930445319c` in
 `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
@@ -21,9 +21,10 @@ response schema/validation and repair derivation/source revalidation. Leave
 Preserve current accepted/rejected behavior, field authority, deterministic
 IDs, timing, issue/fact order, schemas, hashes, prompt bytes and persistence.
 
-Standing authority for separate Codex tasks and model/reasoning selection
-continues. Planning authorizes no implementation, tests, live inspection or
-operational changes. A subsequent approval of this plan is intended to cover
+The owner approved implementation on 2026-10-25 with “Go ahead with Relay direct”.
+The retained implementation baseline is clean local `main` at
+`be17c45bef5d31a899639d70612263cdbc7a847a`. Standing authority for separate
+Codex tasks and model/reasoning selection continues. This approval covers
 the entire scoped implementation, local verification, local main checkpoint,
 quiet activation, preservation checks, rollback and single recovery refresh
 below, without repeated human milestone approvals.
@@ -331,13 +332,13 @@ manifest suffices; do not accumulate raw browser/failure/media archives.
 
 ## Acceptance and implementation discretion
 
-- [ ] Canonical binding, schema/presence, stage semantics/adapters and repair
+- [x] Canonical binding, schema/presence, stage semantics/adapters and repair
   families have actual cohesive owners and no return import to compiler/runner.
-- [ ] Compilation contains compilation orchestration only; repair routing is
+- [x] Compilation contains compilation orchestration only; repair routing is
   explicit and independently owned. Consumers use actual owners, not wrappers.
-- [ ] Current schemas/prompts/versions, canonical IDs/durations/coverage and
+- [x] Current schemas/prompts/versions, canonical IDs/durations/coverage and
   exact issue/fact/artifact outputs match the baseline, including nulls.
-- [ ] Trusted program faults remain fail-closed; malformed/foreign repair
+- [x] Trusted program faults remain fail-closed; malformed/foreign repair
   evidence cannot widen authority, become retryable or bypass source checking.
 - [ ] All surviving tests/assertions/native ownership and relevant consumers
   are preserved; small runtime/repair proof and stable review are complete.
@@ -376,3 +377,140 @@ effective host settings remain unverified. It returned its actual final and
 released access. Manager documentation checks and archive/reporting cleanup
 complete the planning handoff. No implementation, tests/builds, live inspection,
 provider, installed-state or recovery operation occurred during planning.
+
+
+## Implementation and stable-review receipt — 2026-10-25
+
+The owner approved “Go ahead with Relay direct”. Sole source/test/docs worker
+`01a1754c-d457-77c2-806b-3e72488bb0dc` registered its native Relay route to manager
+`01a04525-e907-7630-9640-78790d69e8ae` before edits. Requested GPT-6.1 Sol / High
+settings remain host-unverified. Work uses R's locked `.venv/bin/python`, Python
+3.12.13 on macOS 27.0.1 arm64, importing R's actual `src/plotloom`; dependencies
+remain unchanged and `uv lock --check` passes.
+
+### Actual ownership and cohesion
+
+| Owner | Lines | Responsibility |
+|---|---:|---|
+| `fragment_binding.py` | 327 | Canonical scene/beat/cue/shot/audio identity, integer duration allocation and canonical coverage construction. |
+| `frozen_join_requirements.py` | 41 | Existing frozen join requirement validation/deepcopy, shared by compiler/schema/Scene Beats semantics. |
+| `fragment_schema.py` / `json_schema.py` | 203 / 218 | Stage-specific schema constraints / generic reference, branch and presence traversal. |
+| `scene_beats_semantics.py` / `storyboard_semantics.py` | 400 / 402 | Ordered stage acceptance without binding side effects or repair-derivation imports. |
+| `fragment_validation.py` / `story_graph_validation.py` | 286 / 189 | Presence, alias-only parsing, semantics and trusted binding / existing graph-topology adapter. |
+| `graph_semantic_repair.py` | 447 | Graph/join facts with complete preserved-sibling source assertion. |
+| `continuity_repair.py` / `entity_state_repair.py` | 360 / 221 | Sequence facts/source checks / frozen Bible state facts/source checks. |
+| `scene_beats_dialogue_repair.py` / `scene_beats_join_repair.py` | 384 / 104 | Capacity, node-budget and source-bound cue order / frozen join-entry facts. |
+| `storyboard_audio_repair.py` / `storyboard_timing_repair.py` | 108 / 571 | Exact overflowing audio events / complete text-free timing guidance, plan and issue-bound constructor. |
+| `semantic_repair.py` | 208 | Explicit ordered family dispatch and exact issue admission, independent of compilation. |
+| `work_units.py` | 489 | Frozen input/membership checks, timing/capacity agreement, prompt variables/rendering and provenance assembly. |
+
+No G2 algorithms remain in the compiler behind forwarding helpers. Lower owners
+import neither compiler, dispatcher nor runner. The compiler directly consumes
+actual validation and requirement owners; runner changes are imports only.
+The pre-existing edge-entry/presence owners remain cohesive and directly reused.
+All 47 original top-level algorithms/adapters have a real owner; AST comparison
+found only the correction of a deferred nested graph-join annotation to its
+actual `StoryGraphJoinContentFill` type, with no algorithm change.
+
+The compiler remains above the 400-line target because frozen input agreement,
+prompt construction and the explicit provenance record are one compilation
+operation; it is below 500. The timing owner was reviewed at its pre-existing
+527 lines. Adding its matching 43-line fact constructor leaves 571 lines: the
+constructor references the same complete guidance/plan/hash authority, so a new
+wrapper owner would fragment that responsibility. No unrelated oversized files
+were refactored or split solely for counts. Generation evidence remains 350 lines.
+
+### Early product proof and exact preservation
+
+Before broad extraction, the binder cut passed 40 focused cases including the
+small current V3 project through actual `ProjectPipelineExecutor` and
+`LifecycleJobRunner`, canonical installation, close/reopen and exact canonical
+plus prompt-provenance trace readback. It uses one choice/two endings, one
+scene/beat/shot per footage node, no dialogue/audio. Separate nonempty
+cue/audio/coverage cases passed at this early checkpoint. New authored-order
+rounding coverage proves dialogue floors, a largest-remainder tie and exact
+budget conservation even when the response array order is reversed.
+
+The pre-edit 107-case selection captured 620 return hashes for fresh narrowed
+schemas, prompt/contract hashes, accepted bound fragments, rejected ordered
+issues, ordered repair families and actual null-preserving codec returns.
+The final same selection passes and all 620 hashes match, with no missing,
+added or changed observation. No schema, prompt byte, version, ID namespace,
+coverage authority or timing algorithm changed. Supporting source/name/null
+assertions and malformed-source empty-fact behavior remain intact.
+
+The exact-child pending-sibling case now also closes/reopens and compares
+canonical plus child trace readback after quarantine → eligible child → sibling
+reuse/pending execution → ordered seal/install. Current pre-seal process-loss,
+durable primary/correction response reuse, tamper, snapshot/restore and secret
+regressions pass. This is provider-free runtime integration, not live generation
+or creative acceptance.
+
+### One demonstrated persistence false-positive correction
+
+The new actual persisted-continuity proof exposed a predecessor blocker:
+`ContinuityFactAssignment.key` was treated as a credential field by the generic
+artifact setting-name guard. Direct codec tests had not exercised this durable
+boundary. The manager explicitly included its narrow causal repair because the
+approved plan requires artifact → JSON → codec → source revalidation.
+This is the sole intended behavior correction, separate from the 620 unchanged
+pure-extraction observations; it restores persistence of an already admitted
+current typed contract.
+
+`generation_evidence.py` checks credential-shaped values against original whole
+content first. Only a rejected work-unit VALIDATION artifact with matching
+current contract/stage/unit and stable issues can receive a nonmutating scan
+projection. Its raw repair list is closed-union parsed and must exactly match
+the existing canonical serialization; raw extras/duplicate aliases are retained
+and refused, never dropped. Only actual continuity fact assignments have their
+structural `key` omitted from the setting-name scan. Secret-shaped fact names,
+expected values/nested fields and every other content location remain screened.
+Persisted content, aliases, nulls and hashes stay exact. Generic raw response
+persistence and existing `[redacted]` behavior remain unchanged; no lease,
+transaction, runner lifecycle or global secret policy was changed.
+
+Actual persisted join/null/sibling and continuity/null facts survive JSON/codec
+parsing and runner source assertions. Tampered assignments refuse before another
+provider-boundary call. Twenty-three credential-context cases cover secret fact
+names/values/nested fields, sibling/outside keys, malformed/unknown/extra/duplicate
+aliases, typed/untyped lookalikes, wrong kinds/context and raw response persistence.
+Refusals precede any write lease and create no artifact row. The stable independent
+review must include this guard correction before final full qualification.
+
+### Executed scope and remaining gates
+
+- `focused`: original parity selection, **107 passed**; final 620/620 hashes equal.
+- `module --module shared-generation --depth contract`: native ownership guard,
+  frontend type contracts, **207 Python + 33 Vitest passed** (17.034 s).
+- Final runtime/authority/ownership focused union: **96 passed** (21.403 s),
+  including both real-owner integrations, exact repair/recovery, all 23 security
+  cases, generation secret regressions and module/support assertions.
+- Native union: **3,985 → 4,019 Python cases**, all 3,985 retained unchanged;
+  34 additions (4 owner/isolation/rounding, 2 schema-presence, 5 durable authority,
+  23 security/redaction). No current family or assertion retired.
+- Source imports, locked dependencies and whitespace checks pass. The existing
+  FastAPI/httpx deprecation warning is unchanged.
+
+The exact-scenario runner/provider helpers moved once into non-collected
+`tests/project_storage_generation_support.py`. Native module/support ownership
+and `tests/test_verification_module_ownership.py` consumer expectations changed
+atomically. No collected test imports or duplicate fixture builders were added.
+
+Compact review evidence is ignored under R's `.scratch/g2/`: `baseline.json`,
+`final-parity.json`, `ownership-parity-summary.json`, `case-union-summary.json`,
+`parity-final.log`, `module-shared-generation-final.log` and
+`runtime-focused-final.log`. The raw large native collection was replaced with
+small case-identity hashes; no old-source fork or new archive exists. These are
+consumable task evidence, retained through review/final qualification; the source
+worker removes consumed R artifacts on follow-up, coordinated with the manager's
+single recovery refresh. Fixtures are disposable pytest projects; current runner
+and project handles close after the new reopen proofs.
+
+Independent stable review and the sole-owner final `verify.py full` gate remain
+pending. The manager owns P activation, preservation, rollback/readiness and the
+single recovery refresh after qualification; this worker touched no P/live data,
+settings, provider operation or recovery package. Hosted CI/push were not requested
+and were not run. G3–G5, API/domain/frontend and unrelated T1/T2 remain excluded.
+Known execution times are recorded above; separate implementation/infrastructure/
+coordination wall-time measurements are unavailable. This checkpoint releases
+source/process access for review, and is not final delivery or a new owner gate.

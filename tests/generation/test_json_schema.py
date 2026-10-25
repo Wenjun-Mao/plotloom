@@ -71,3 +71,33 @@ def test_explicit_presence_requires_properties_without_default_annotations() -> 
     assert "default" not in strict["properties"]["facts"]
     assert "default" not in strict["properties"]["note"]
     assert source["properties"]["facts"]["default"] == {}
+
+
+@pytest.mark.parametrize("branch", ["anyOf", "oneOf"])
+def test_presence_retains_local_reference_branch_and_allof_missing_order(
+    branch: str,
+) -> None:
+    from plotloom.generation.json_schema import _presence_issues
+
+    schema = {
+        "$defs": {
+            "Record": {
+                "type": "object",
+                "properties": {"nullable": {"type": "null"}},
+                "required": ["nullable"],
+            }
+        },
+        branch: [
+            {"type": "null"},
+            {
+                "type": "object",
+                "allOf": [{"$ref": "#/$defs/Record"}, {"required": ["extra"]}],
+            },
+        ],
+    }
+    assert _presence_issues(None, schema) == ()
+    assert [(issue.code, issue.path) for issue in _presence_issues({}, schema)] == [
+        ("schema.missing", ("nullable",)),
+        ("schema.missing", ("extra",)),
+    ]
+    assert _presence_issues({"nullable": None, "extra": False}, schema) == ()

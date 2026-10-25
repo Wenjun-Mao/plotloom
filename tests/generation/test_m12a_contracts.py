@@ -31,12 +31,27 @@ from plotloom.generation.correction_contract import (
 from plotloom.generation.dialogue_repair_contracts import (
     DialogueCapacityRepairFact,
 )
+from plotloom.generation.entity_state_repair import (
+    storyboard_required_entity_state_repair_facts,
+)
+from plotloom.generation.fragment_binding import (
+    canonical_audio_event_id,
+)
 from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.scene_beats_dialogue_repair import (
+    scene_beats_dialogue_capacity_repair_facts,
+)
 from plotloom.generation.scene_response_contracts import (
     BeatContent,
     DialogueCueContent,
     DramaticSceneContent,
     SceneBeatsFragmentOutput,
+)
+from plotloom.generation.semantic_repair import (
+    semantic_repair_facts,
+)
+from plotloom.generation.storyboard_audio_repair import (
+    storyboard_audio_timing_repair_facts,
 )
 from plotloom.generation.storyboard_presence_repair import (
     RequiredEntityPresenceRepairFact,
@@ -53,12 +68,7 @@ from plotloom.generation.storyboard_response_contracts import (
 )
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
-    canonical_audio_event_id,
     compile_work_unit_request,
-    scene_beats_dialogue_capacity_repair_facts,
-    semantic_repair_facts,
-    storyboard_audio_timing_repair_facts,
-    storyboard_required_entity_state_repair_facts,
 )
 
 

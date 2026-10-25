@@ -441,7 +441,9 @@
           "tests/test_working_project_autosave.py",
           "tests/test_working_project_rollback.py",
           "tests/test_generation_contract_integration.py",
-          "tests/test_stage_repair_retirement.py"
+          "tests/test_stage_repair_retirement.py",
+          "tests/test_generation_repair_authority_integration.py",
+          "tests/test_generation_artifact_secret_context.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
@@ -547,7 +549,8 @@
           "tests/generation/test_validation.py",
           "tests/generation/test_work_unit_prompts.py",
           "tests/generation/test_work_unit_scene_facts.py",
-          "tests/generation/test_leaf_contract_boundaries.py"
+          "tests/generation/test_leaf_contract_boundaries.py",
+          "tests/generation/test_work_unit_owner_boundaries.py"
         ],
         "vitest": [
           "frontend/tests/app-state-generation.test.ts",
@@ -1967,6 +1970,14 @@
         "media-lifecycle",
         "project-lifecycle",
         "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/project_storage_generation_support.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "project-lifecycle"
       ]
     }
   ]

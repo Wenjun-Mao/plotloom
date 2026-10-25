@@ -9,11 +9,16 @@ Implementation update: the owner approved G1/R1–R3 with Go on 2026-10-25.
 Those source boundaries are now implemented, independently reviewed and locally
 qualified by composite evidence and activated with preservation checks in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 The census and line references below remain the audit baseline; unselected
-G2–G5 and all other extraction batches remain pending.
+G3–G5 and all other extraction batches remain pending.
 
-The subsequent [reviewed G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
-defines its binder/validation/repair boundaries and verification; G2
-implementation approval is pending. No other batch is activated by planning.
+The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
+with “Go ahead with Relay direct”. Its source candidate now owns canonical binding,
+schema/presence, stage semantics/adapters and repair derivation/source assertions
+outside the 489-line compiler. Exact extraction parity and early/scoped runtime
+proof pass; stable/security review, full-local qualification and manager activation
+remain pending. The plan records the sole narrow continuity evidence persistence
+false-positive correction and the 571-line cohesive timing-owner rationale.
+The audit census below remains historical; no other batch is activated.
 
 Baseline: clean retained `main` at `cfc55173df4418bc0d929ed93f2992daf99f03fb`, in `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Three read-only reviews covered generation, backend/services and frontend; the manager independently reconciled the census, inspected material evidence and reviewed scripts, other tests and documentation code. This report and its roadmap pointer are the only intended changes.
 

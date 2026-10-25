@@ -18,9 +18,15 @@ from plotloom.generation.graph_repair_contracts import (
     EdgeStateEffectJsonRepairFact,
     JoinStateEffectRepairFact,
 )
+from plotloom.generation.graph_semantic_repair import (
+    assert_join_state_effect_repair_fact_matches_source,
+)
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
+)
+from plotloom.generation.semantic_repair import (
+    semantic_repair_facts,
 )
 from plotloom.generation.story_graph_topology import (
     StoryGraphContentBindingError,
@@ -28,15 +34,15 @@ from plotloom.generation.story_graph_topology import (
     bind_story_graph_content_fill,
     plan_story_graph_topology,
 )
+from plotloom.generation.story_graph_validation import (
+    StoryGraphContentFillValidationAdapter,
+)
 from plotloom.generation.storyboard_repair_contracts import (
     RequiredEntityStateRepairFact,
 )
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
-    StoryGraphContentFillValidationAdapter,
-    assert_join_state_effect_repair_fact_matches_source,
     compile_work_unit_request,
-    semantic_repair_facts,
 )
 from plotloom.validation import validate_story_graph
 

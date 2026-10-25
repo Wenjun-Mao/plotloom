@@ -83,7 +83,8 @@ class _StoryboardResolver:
 def test_exact_repair_reuses_accepted_siblings_and_executes_frozen_pending_sibling(
     tmp_path: Path,
 ) -> None:
-    store = storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
+    owner = storage(tmp_path)
+    store = owner.projects.create(FIXED_CHINESE_BRIEF)
     resolver = _SceneResolver(reject_scene_number=fixed_workload_footage_count() - 1)
     parent = ProjectPipelineExecutor(resolver).execute(
         store, profile=fixture_profile(max_semantic_corrections=0)
@@ -132,6 +133,16 @@ def test_exact_repair_reuses_accepted_siblings_and_executes_frozen_pending_sibli
     assert parent_after.pop("snapshot_is_current") is False
     assert parent_trace.pop("snapshot_is_current") is True
     assert parent_after == parent_trace
+    canonical_before = [item.model_dump(mode="json") for item in store.canonical_stages()]
+    trace_before = child_trace.model_dump(mode="json")
+    project_id = store.project().id
+    store.close()
+    reopened = owner.projects.open(project_id)
+    try:
+        assert [item.model_dump(mode="json") for item in reopened.canonical_stages()] == canonical_before
+        assert reopened.run_trace(child.id).model_dump(mode="json") == trace_before
+    finally:
+        reopened.close()
 
 
 def _quarantined_storyboard_parent(tmp_path: Path):

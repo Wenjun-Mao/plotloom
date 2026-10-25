@@ -2,13 +2,47 @@
 
 from __future__ import annotations
 
-from ...domain import Artifact, ArtifactKind, AttemptStatus, CanonicalSnapshot, GenerationAttempt, GenerationAttemptKind, RunStatus, RunTrace, StageName, WorkUnitFailureDisposition, WorkUnitStatus, contains_secret_setting, contains_secret_value, utc_now
-from ..schema import ArtifactRow, GenerationAttemptRow, GenerationRunRow, GenerationWorkUnitRow
-from ...exceptions import InvalidTransitionError, NotFoundError
-from ..codec import _contains_unredacted_secret_setting, _json_data
+from copy import deepcopy
+
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ...domain import (
+    Artifact,
+    ArtifactKind,
+    AttemptStatus,
+    CanonicalSnapshot,
+    GenerationAttempt,
+    GenerationAttemptKind,
+    RunStatus,
+    RunTrace,
+    StageName,
+    WorkUnitFailureDisposition,
+    WorkUnitStatus,
+    contains_secret_setting,
+    contains_secret_value,
+    is_secret_setting_name,
+    utc_now,
+)
+from ...exceptions import InvalidTransitionError, NotFoundError
+from ...generation.continuity_repair_contracts import (
+    ContinuityFactAssignment,
+    ContinuitySequenceRepairFact,
+)
+from ...generation.contracts import ValidationIssue
+from ...generation.repair_facts import (
+    parse_semantic_repair_fact,
+    serialize_semantic_repair_fact,
+)
+from ...generation.work_unit_contracts import WorkUnitPromptContract
+from ..codec import _contains_unredacted_secret_setting, _json_data
+from ..schema import (
+    ArtifactRow,
+    GenerationAttemptRow,
+    GenerationRunRow,
+    GenerationWorkUnitRow,
+)
 from .generation_access import GenerationPersistenceAccess
 from .generation_integrity import GenerationWorkUnitIntegrity
 from .generation_snapshots import ProjectGenerationSnapshots
@@ -119,7 +153,7 @@ class ProjectGenerationEvidencePersistence:
             return access.codecs.attempt(row)
     def add_artifact(self, artifact: Artifact) -> Artifact:
         access = self._access
-        self._assert_secret_free_artifact_content(artifact.content)
+        self._assert_secret_free_artifact_content(artifact.content, artifact=artifact)
         with access.leases.write() as session:
             access.rows.run(session, artifact.run_id)
             attempt: GenerationAttemptRow | None = None
@@ -227,10 +261,18 @@ class ProjectGenerationEvidencePersistence:
             )
 
     @staticmethod
-    def _assert_secret_free_artifact_content(content: object) -> None:
-        if contains_secret_value(content) or (
-            contains_secret_setting(content) and _contains_unredacted_secret_setting(content)
-        ):
+    def _assert_secret_free_artifact_content(content: object, *, artifact: Artifact | None = None) -> None:
+        # Credential-shaped values are always screened in the original evidence.
+        # Only a validated structural field in rejected continuity evidence can
+        # be omitted from the separate setting-name scan; persisted bytes stay exact.
+        if contains_secret_value(content):
+            raise InvalidTransitionError("artifact evidence must not contain secret-shaped values")
+        projection = (
+            _continuity_secret_scan_projection(artifact)
+            if artifact is not None and artifact.content is content
+            else content
+        )
+        if contains_secret_setting(projection) and _contains_unredacted_secret_setting(projection):
             raise InvalidTransitionError("artifact evidence must not contain secret-shaped values")
 
     def _run_outputs_are_current(self, session: Session, run_row: GenerationRunRow) -> bool:
@@ -255,3 +297,54 @@ class ProjectGenerationEvidencePersistence:
             for requested_stage in requested for stage in upstream_stages(requested_stage)
             if stage not in requested
         )
+
+
+def _continuity_secret_scan_projection(artifact: Artifact) -> object:
+    """Recognize only typed fact-name slots in rejected work-unit validation.
+
+    This is a nonmutating scan projection, never a persistence transformation or
+    source-authority grant. Malformed, noncanonical or misplaced evidence keeps
+    the original generic rejection. Source revalidation remains the runner's job.
+    """
+    content = artifact.content
+    if (
+        artifact.kind != ArtifactKind.VALIDATION
+        or artifact.stage not in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+        or artifact.attempt_id is None
+        or artifact.work_unit_id is None
+        or not isinstance(content, dict)
+        or content.get("accepted") is not False
+        or not isinstance(content.get("repairFacts"), list)
+        or not isinstance(content.get("issues"), list)
+    ):
+        return content
+    try:
+        contract = WorkUnitPromptContract.model_validate(content.get("contract"))
+        if contract.stage != artifact.stage or contract.work_unit_id != artifact.work_unit_id:
+            return content
+        if any(not isinstance(item, dict) for item in content["repairFacts"]):
+            raise InvalidTransitionError("artifact evidence requires canonical typed repair facts")
+        issues = tuple(ValidationIssue.model_validate(item) for item in content["issues"])
+        facts = tuple(parse_semantic_repair_fact(item) for item in content["repairFacts"])
+        if any(serialize_semantic_repair_fact(fact) != raw for fact, raw in zip(facts, content["repairFacts"], strict=True)):
+            return content
+    except (ValidationError, TypeError, ValueError):
+        return content
+    projection = deepcopy(content)
+    for fact_index, fact in enumerate(facts):
+        if type(fact) is not ContinuitySequenceRepairFact:
+            continue
+        expected_code = (
+            "semantic.continuity_beat_sequence_mismatch"
+            if artifact.stage == StageName.SCENE_BEATS
+            else "semantic.continuity_shot_sequence_mismatch"
+        )
+        if fact.code != expected_code or not any(issue.code == fact.code and issue.path == fact.path for issue in issues):
+            return content
+        for boundary_index, boundary in enumerate(fact.boundaries):
+            for assignment_index, assignment in enumerate(boundary.assignments):
+                if type(assignment) is ContinuityFactAssignment:
+                    if is_secret_setting_name(assignment.key):
+                        return content
+                    del projection["repairFacts"][fact_index]["boundaries"][boundary_index]["assignments"][assignment_index]["key"]
+    return projection

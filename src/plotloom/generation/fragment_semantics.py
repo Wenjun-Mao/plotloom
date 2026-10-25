@@ -335,3 +335,11 @@ def cue_duration_units(cue: Mapping[str, Any]) -> int:
             "Storyboard context has an invalid dialogue cue duration"
         )
     return duration
+
+
+def _issue(
+    code: str, path: str | tuple[str | int, ...], message: str
+) -> ValidationIssue:
+    return ValidationIssue(
+        code=code, path=(path,) if isinstance(path, str) else path, message=message
+    )

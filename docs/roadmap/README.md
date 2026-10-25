@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Reviewed G2 work-unit ownership plan; implementation pending
+## G2 implementation candidate; stable review and qualification pending
 
 The [G2 plan](2026-10-25-g2-work-unit-ownership.md) follows completed G1/R1–R3:
 canonical binding/IDs/durations, response schema and stage validation, then
@@ -8,7 +8,11 @@ repair-family derivation/source checks with independent explicit dispatch.
 It preserves current behavior/hashes and defines early provider-free runtime
 proof, final local qualification, proposed quiet activation/preservation and
 rollback without renewed milestone approvals. Independent technical and
-execution-limits review is complete; implementation approval remains pending.
+execution-limits review is complete. The owner approved implementation on
+2026-10-25 with “Go ahead with Relay direct”. Source ownership, early runtime proof
+and scoped verification are complete; the plan records exact parity and one narrow
+typed-continuity persistence guard correction. Independent stable/security review,
+final local qualification and manager-owned activation/preservation remain pending.
 G3–G5 and unrelated audit batches remain outside this scope.
 
 ## Completed G1 and retired-execution delivery

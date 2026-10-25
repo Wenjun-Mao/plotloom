@@ -12,6 +12,9 @@ from plotloom.domain import (
     StageName,
     StoryBibleV2,
 )
+from plotloom.generation.continuity_repair import (
+    assert_continuity_repair_fact_matches_source,
+)
 from plotloom.generation.continuity_repair_contracts import (
     ContinuityBoundaryRepair,
     ContinuityFactAssignment,
@@ -29,13 +32,12 @@ from plotloom.generation.scene_response_contracts import (
     DramaticSceneContent,
     SceneBeatsFragmentOutput,
 )
+from plotloom.generation.semantic_repair import (
+    semantic_repair_facts,
+)
 from plotloom.generation.storyboard_response_contracts import (
     ShotContent,
     StoryboardFragmentOutput,
-)
-from plotloom.generation.work_units import (
-    assert_continuity_repair_fact_matches_source,
-    semantic_repair_facts,
 )
 
 
