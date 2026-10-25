@@ -32,42 +32,40 @@ permanent regression; no CI/workflow preparation or hosted execution occurs.
 
 ## Executed development evidence
 
-Evidence root: `.local/project-directory-actions-20261024/` in retained R.
-
-- `early-ui.log`: 3 real isolated two-project Close→Reopen/Open journeys pass at
-  1280×768, 1280×460 and 1700×900. More Enter/Escape/focus return/outside dismissal,
-  current-only save/exit, noncurrent exact Close and continued current identity.
-  `early-pixels/` retains all three screenshots; worker and root inspected actual
-  short/large pixels. This is Vite development evidence, not final static proof.
-- `focused-safety.log`: 4 passes, archive/restore refusal+retry, unchanged exact
-  typed deletion and safe noncurrent busy-Close refusal preserving current work.
-- `focused-expanded.log`: units 29 pass; UI 3 pass/1 fails because the added
-  combination fixture used an incorrect welcome button label. Retained failure
-  trace/pixels: `first-combination-failure/`. Corrected the test entry to the
-  actual “打开项目目录”; no product workaround.
-- `focused-ui-corrected.log`: combined archived+closed real Restore→Reopen and
-  current+archived read-only title pass; three new post-command focus assertions
-  fail. `first-focus-failure/` retains traces/pixels. Browser disables the focused
-  More trigger before the effect can record its owner; root cause is disclosure
-  focus ownership. Capture intent before admission; after settlement restore only
-  within the same project/current identity, and never steal an active dialog input.
-- `focus-failed-success.log`: 2 exact causal browser cases pass: 1280×768 full
-  journey now checks post-command focus; archive refusal/retry checks returned
-  More focus. `focus-fix.log` separately retains the initial one-case repair pass.
-- `focused-freeze.log`: all 40 cases in the four affected unit files pass,
-  including app-state navigation, directory projection/read recovery and command
-  ownership. Tests cover every nonterminal/terminal summary, unknown folder state,
-  closed+archived ordering, no explicit-close capability, current+archived, changed
-  row facts/read withdrawal and no focus theft across confirmation/workspace.
-  `freeze-typecheck.log`: frontend typecheck passes. Browser invocation also passes
-  its native E2E typecheck. `git diff --check` passes.
+- Three real isolated two-project Close→Reopen/Open journeys passed at 1280×768,
+  1280×460 and 1700×900. They covered More Enter/Escape/focus return/outside
+  dismissal, current-only save/exit, noncurrent exact Close and continued current
+  identity. Worker and root inspected the short and large views. This was Vite
+  development evidence, not final static proof.
+- Four focused safety cases passed: archive/restore refusal and retry, unchanged
+  exact typed deletion, and safe noncurrent busy-Close refusal preserving current
+  work.
+- An expanded run had **29 unit passes and 3 browser passes / 1 failure** because
+  the added combination fixture used an incorrect welcome button label. The test
+  entry was corrected to the actual “打开项目目录”; no product workaround was
+  needed.
+- The corrected UI selection passed combined archived+closed real Restore→Reopen
+  and current+archived read-only title navigation, but **3 new post-command focus
+  assertions failed**. The browser disables the focused More trigger before the
+  effect can record its owner; the cause was disclosure focus ownership. Capture
+  intent before admission; after settlement restore it only within the same
+  project/current identity, and never steal an active dialog input.
+- Two causal browser cases then passed: the 1280×768 full journey checks
+  post-command focus, and archive refusal/retry checks returned More focus. The
+  initial one-case repair pass also passed.
+- All **40 cases in four affected unit files** passed, covering app-state
+  navigation, directory projection/read recovery and command ownership. Cases
+  cover every nonterminal/terminal summary, unknown folder state, closed+archived
+  ordering, no explicit-close capability, current+archived, changed row facts/read
+  withdrawal and no focus theft across confirmation/workspace. Frontend typecheck
+  and the browser runner's E2E typecheck passed; `git diff --check` passed.
 
 The repository quick development tier was mistakenly invoked before stable review;
-it includes unfiltered frontend units. Preserve `quick.log` as **failed**: 1,504
-pass/1 fails on the old always-visible Archive selector. The affected app-state
-unit now opens More before invoking the same draft-guard action; its focused
-regression passes above. Quick stopped before its typechecks. This run is not
-final qualification and is not relabelled green.
+it includes unfiltered frontend units. It had **1,504 passes / 1 failure** on the
+old always-visible Archive selector. The affected app-state unit now opens More
+before invoking the same draft-guard action; its focused regression passes above.
+Quick stopped before its typechecks. This run is not final qualification and is
+not relabelled green.
 
 All browser data roots/processes are fixture-owned and isolated. The new journey
 checks zero dispatch requests and the offline provider's zero request counter.
@@ -89,7 +87,7 @@ review, live Safari, preservation-checked frontend-only activation and cleanup.
 Product outcome at that initial checkpoint: actual isolated directory Close/Reopen/Open and
 combined lifecycle states; final static qualification and activation remain
 pending. Product/infrastructure/coordination timing breakdown was not measured;
-logs retain individual check elapsed times rather than invented percentages.
+individual check elapsed times were not summarized into such a breakdown.
 
 ## Stable review repairs (before final qualification)
 
@@ -100,10 +98,10 @@ in the frontend layer:
    Force exit now captures route project/epoch/stage before confirmation, carries
    that exact operation into execution, rechecks before admission/disposition and
    preserves the existing post-await checks. It cannot discard A or blank B from
-   stale consent. `review-repairs-units.log` covers before-confirmation/pending-
-   confirmation invalidation and valid A exit; `review-causal-corrected.log`
-   proves actual same-document browser history with B's GET held and A's pending
-   confirmation, zero Close/discard requests and successful B readback.
+   stale consent. Focused units cover before-confirmation/pending-confirmation
+   invalidation and valid A exit. A causal browser case exercised same-document
+   history with B's GET held and A's pending confirmation, zero Close/discard
+   requests and successful B readback.
 2. Archived+closed title navigation could call Open before Restore. Disable that
    title with Restore-first guidance; archived+open title retains read-only
    navigation. Both capability states are covered; after Restore, Reopen remains
@@ -115,47 +113,46 @@ in the frontend layer:
    regression now asserts disabled Reopen/title plus the same prior-error and
    zero-Open requirements rather than trying an impossible click.
 
-Focused repaired freeze evidence:
+Focused repaired freeze checks:
 
-- `repaired-freeze-units.log`: 45 cases across all four affected unit files pass.
-- `review-causal-browser.log`: two pass/two fail; preserved trace shows the
-  chained fixture's post-Reopen direct archive got 409 `another local writer is
-  active`. The deletion count also matched the More label's project title.
-- `review-causal-corrected.log`: held-B/exit, unavailable-capability/error and
-  exact-one idle deletion pass; combined fixture's follow-up fails because it
-  awaited Brief even though Reopen correctly routes Creator. After these two
-  fixture failures the method was reassessed: split current-archived state into
-  a separate fresh pre-archived fixture rather than chaining timing/route
-  assumptions. No product retry/tolerance or backend guard change.
-- `review-combination-split.log`: exact combined Restore→Reopen and separate
-  current-archived read-only title cases pass (2).
-- `review-no-capability.log`: archived+closed Restore then disabled Reopen/title,
-  clear capability explanation and zero Open requests pass (1).
+- 45 cases across all four affected unit files passed.
+- The first causal browser selection had **2 passes / 2 failures**: one fixture's
+  post-Reopen direct archive got 409 `another local writer is active`, and the
+  deletion count also matched the More label's project title.
+- In the corrected run, held-B/exit, unavailable-capability/error and exact-one
+  idle deletion passed; a chained fixture follow-up failed because it awaited
+  Brief even though Reopen correctly routes Creator. After those fixture
+  failures, current-archived state was split into a separate fresh pre-archived
+  fixture rather than chaining timing/route assumptions. No product retry,
+  tolerance or backend guard changed.
+
+The split-fixture cases then passed: exact combined Restore→Reopen and separate
+current-archived read-only title cases (**2**), plus archived+closed Restore with
+disabled Reopen/title, clear capability explanation and zero Open requests (**1**).
 
 The new directory spec now uses existing `checkedStaticTest`. Focused review
-proof used explicit isolated Vite output `review-static-current/` through
-`PLOTLOOM_STATIC_DIR`; normal checked assets and installed P remain untouched.
-Its build log is `review-static-current-build.log`. This is focused development
+proof used isolated Vite output selected through `PLOTLOOM_STATIC_DIR`; normal
+checked assets and installed P remained untouched. This was focused development
 proof, not final two-build determinism or final static qualification. Tests for
-held B continue to use their existing Vite fixture. Source is refrozen for root
-review; final qualification has not started.
+held B continued to use their existing Vite fixture. Source was refrozen for root
+review; final qualification had not started.
 
-## First final frontend qualification, retained before keyboard follow-up
+## First final frontend qualification before keyboard follow-up
 
 Root and independent review closed the three P2 findings before these runs.
 All checks passed on that stable pre-focus-follow-up candidate:
 
-| Check | Result / evidence under `.local/project-directory-actions-20261024/` |
+| Check | Result |
 | --- | --- |
-| Unfiltered frontend units | 1,511 cases / 170 files pass; `final-units.log` |
-| Frontend / E2E typechecks | Pass; `final-typecheck.log`, `final-e2e-typecheck.log` |
-| Two isolated complete builds | Identical 7-file trees; `final-build-a.log`, `final-build-b.log`, `final-build-a.sha256`, `final-build-b.sha256` |
-| Formal checked-static refresh | Standard `build:deterministic`; exact match to both isolated trees, `final-checked-refresh.log`, `final-checked.sha256`, `final-build-comparison.log` |
-| Local test ownership manifest contract | 7 pass; `final-manifest-contract.log` |
-| Explicit 11 whole-file browser selection | 79 pass in 5.8m; `final-browser.log`, artifacts in `final-browser/` |
+| Unfiltered frontend units | 1,511 cases / 170 files pass |
+| Frontend / E2E typechecks | Pass |
+| Two isolated complete builds | Identical 7-file trees |
+| Formal checked-static refresh | Standard `build:deterministic`; exact match to both isolated trees |
+| Local test ownership manifest contract | 7 pass |
+| Explicit 11 whole-file browser selection | 79 pass in 5.8m |
 
 The browser command was `npm --prefix frontend run test:e2e -- --workers=1
---output=../.local/project-directory-actions-20261024/final-browser` followed by
+--output=<fresh-output-dir>` followed by
 exact whole `e2e/*.spec.ts` files: `project-directory-actions`, `project-lifecycle`,
 `project-lifecycle-errors`, `project-folder-close`, `project-save-force-close`,
 `project-direct-delete`, `project-unified-delete`, `project-read-close`,
@@ -163,15 +160,13 @@ exact whole `e2e/*.spec.ts` files: `project-directory-actions`, `project-lifecyc
 No test-name/line filters were used. The new directory file's six cases use
 checked static; existing files retain their established fixtures.
 
-Two isolated build commands used the standard Vite build/config with explicit
-`--outDir ../.local/project-directory-actions-20261024/final-build-a` and `-b`.
+Two isolated build commands used the standard Vite build/config with distinct
+`--outDir <build-a>` and `--outDir <build-b>` destinations.
 The normal checked tree was verified unchanged before the formal refresh.
 Full relative-path SHA manifests include every file; all seven paths agree,
 not just the two changed assets. Worker and root directly inspected the final
-1280×768, 1280×460 and 1700×900 captures in `final-browser/project-directory-actions--*/directory-more-*.png`:
-primary/current hierarchy, management text, focus ring and reachability are
-clear with no material clipping/overlap. These original passing logs/bytes are
-retained rather than overwritten by follow-up qualification.
+1280×768, 1280×460 and 1700×900 views. Primary/current hierarchy, management
+text, focus ring and reachability were clear with no material clipping/overlap.
 
 ## Keyboard ownership follow-up and focused red-to-green proof
 
@@ -181,21 +176,18 @@ while A remains open. A's earlier capture-Escape handler can then steal B's
 Escape/focus. Root confirmed this is an in-scope owning-layer contract defect,
 allowed the unchanged 79-case run to finish, and authorized a causal repair.
 
-`keyboard-red-unit.log` and `keyboard-red-browser.log` retain the expected failed
-new assertions: after outside focus/actual Tab into B, A remains expanded. The
-browser trace/pixels are in `keyboard-red-browser/`. The small repair adds
+The red unit and browser checks failed the new assertions: after outside
+focus/actual Tab into B, A remains expanded. The small repair adds
 `focusin` to the same bounded outside-event owner, preserving Tab within the
 management group and removing competing stale Escape owners when focus leaves.
 No central menu abstraction or command/admission change.
 
-`keyboard-green-units.log`: all 18 directory projection cases pass.
-`keyboard-green-browser.log`: the new exact two-row case passes on the isolated
-`keyboard-green-static/` build (explicit `--outDir`, `keyboard-green-build.log`).
-It checks Enter into A, Tab within A, actual Tab into B closing A, opening B,
-then Escape closing only B and returning B's focus. Original normal static assets
-are still the preceding qualified bytes at this review checkpoint. The new
-source/test/ADR/playbook amendment is refrozen for root review before refreshed
-final qualification.
+All **18 directory projection unit cases** passed after the repair. The exact
+two-row browser case passed on an isolated `--outDir` build. It checks Enter into
+A, Tab within A, actual Tab into B closing A, opening B, then Escape closing only
+B and returning B's focus. Normal static assets were still the preceding
+qualified bytes at this review checkpoint. The source/test/ADR/playbook amendment
+was refrozen for root review before refreshed final qualification.
 
 
 ## Final refreshed qualification and idle handoff
@@ -210,19 +202,19 @@ is reused; no full backend, hosted CI, live-provider or installed-service run is
 claimed. This is bounded local frontend qualification, not full release or owner
 creative acceptance.
 
-| Refreshed check | Result / exact evidence root `.local/project-directory-actions-20261024/` |
+| Refreshed check | Result |
 | --- | --- |
-| Unfiltered units | **1,512 pass / 170 files**; `refreshed-units.log` |
-| Both typechecks | Pass; `refreshed-typecheck.log`, `refreshed-e2e-typecheck.log` |
-| Two isolated complete builds | All **7 paths/SHA-256s identical**; `refreshed-build-a.log`, `refreshed-build-b.log`, matching `.sha256` files |
-| Formal deterministic static refresh | Exactly matches both isolated trees; `refreshed-checked-refresh.log`, `refreshed-build-comparison.log`, `refreshed-checked.sha256` |
-| Four whole-file browser owners | **25 pass in 1.6m**; `refreshed-browser.log` |
-| Three exact force-consent cases | **3 pass in 9.6s**; `refreshed-force-consent.log` |
-| Pixel inspection | Worker directly viewed final **1280×768 / 1280×460 / 1700×900** captures in `refreshed-browser/project-directory-actions--*/directory-more-*.png`; labels, focus ring and all More commands remain reachable without clipping/overlap |
-| Diff integrity | `git diff --check` passes; scoped source/docs/tests/generated checkpoint on `main` |
+| Unfiltered units | **1,512 pass / 170 files** |
+| Both typechecks | Pass |
+| Two isolated complete builds | All **7 paths/SHA-256s identical** |
+| Formal deterministic static refresh | Exactly matches both isolated trees |
+| Four whole-file browser owners | **25 pass in 1.6m** |
+| Three exact force-consent cases | **3 pass in 9.6s** |
+| Pixel inspection | Worker directly viewed final **1280×768 / 1280×460 / 1700×900** views; labels, focus ring and all More commands remain reachable without clipping/overlap |
+| Diff integrity | `git diff --check` passed; scoped source/docs/tests/generated checkpoint on `main` |
 
 The two standard Vite/config build invocations use explicit isolated outputs
-`--outDir ../.local/project-directory-actions-20261024/refreshed-build-a` and `-b`.
+`--outDir <build-a>` and `--outDir <build-b>`.
 The preceding checked manifest remained unchanged until the standard
 `npm --prefix frontend run build:deterministic` formal refresh. Sorted complete
 relative-path manifests include every file. Final manifest file SHA-256:
@@ -233,24 +225,24 @@ Final `workbench.js`:
 `5d694081b283fbc901de0edcad9f2ad7e79621d1994d43dc71cc45cb99e5c19a`.
 
 The 25-case command is the existing `npm --prefix frontend run test:e2e --
---workers=1 --output=../.local/project-directory-actions-20261024/refreshed-browser`
+--workers=1 --output=<fresh-output-dir>`
 with whole files `e2e/project-directory-actions.spec.ts` (7 checked-static cases),
 `e2e/project-lifecycle-errors.spec.ts`, `e2e/project-lifecycle.spec.ts`, and
 `e2e/project-unified-delete.spec.ts`. The separate existing save/force-close file
 uses exact grep `failed draft save retains input; force consent|force exits while
-a prepared job|pending A exit`, one worker, and output `refreshed-force-consent`.
+a prepared job|pending A exit`, one worker, and a fresh output directory.
 This is intentionally 28 refreshed cases, not another automatic 79-case run.
 
-Explicit evidence reuse: retain **52 distinct unchanged cases** from the prior
+Explicit evidence reuse: **52 distinct unchanged cases were reused** from the prior
 79-case pass: art review (9), direct deletion (11), folder Close (8), snapshot/
 restore (5), owned read/Close (3), desktop visual system (5), and the other eleven
 save/force-close cases. Only outside-focus dismissal changed after that run;
 request/lifecycle/backend inputs, consent/disposition semantics and those cases'
 asserted owning behavior remain unchanged. Their concrete confirmation/refusal/
 deletion consumers were refreshed above. The result covers **80 distinct browser
-cases compositionally (28 refreshed + 52 retained)**, not a single 80-case
+cases compositionally (28 refreshed + 52 reused)**, not a single 80-case
 invocation. Original failed quick/development/red results remain failed history.
-The local manifest contract's unchanged 7 passes are also retained.
+The unchanged 7-pass local manifest contract result was also reused.
 
 Root owns live Safari, a fresh eight-project/settings/accounting/UNKNOWN2 baseline,
 any preservation-checked frontend-only activation, and task/Relay cleanup. Worker
@@ -262,10 +254,10 @@ acceptance remain separate and unperformed by this worker.
 
 ## Independent manager review and activation
 
-Root collected the actual worker final and verified the worker idle, clean `main`
-checkpoint, changed source and retained logs/manifests. The independent Luna/Max
-reviewer found the route-owned confirmation race, archived+closed title bypass
-and stale test interactions; its second read-only final resolved all three P2s.
+Root collected the worker's final report and verified the worker idle, clean
+`main` checkpoint, and changed source. The independent Luna/Max reviewer found
+the route-owned confirmation race, archived+closed title bypass and stale test
+interactions; its second read-only final resolved all three P2s.
 Root separately reviewed the subsequent three-line outside-focus repair and its
 actual red/green evidence, and viewed all three refreshed desktop captures.
 Requested model/effort settings remain unverified by the host.
