@@ -6,8 +6,8 @@
 
 
 Implementation update: the owner approved G1/R1–R3 with Go on 2026-10-25.
-Those source boundaries are now implemented and undergoing stable review/final
-qualification in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
+Those source boundaries are now implemented, independently reviewed and locally
+qualified by composite evidence in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 The census and line references below remain the audit baseline; unselected
 G2–G5 and all other extraction batches remain pending.
 
@@ -282,7 +282,7 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 ## Proposed finite implementation batches
 
-**G1/R1–R3 are approved and implemented; stable review/final qualification is pending. All other batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
+**G1/R1–R3 are implemented, independently reviewed and locally qualified by composite evidence; activation is pending. All other batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
 
 ### Recommended order and boundaries
 

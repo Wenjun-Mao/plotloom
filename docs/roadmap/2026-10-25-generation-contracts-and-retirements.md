@@ -1,6 +1,6 @@
 # Generation contract leaves and retired execution paths
 
-Status: **owner approved implementation (Go, 2026-10-25); G1/R1–R3 stable source checkpoint; review/final qualification pending**.
+Status: **owner approved implementation (Go, 2026-10-25); G1/R1–R3 independently reviewed and locally qualified by composite evidence; activation/recovery pending**.
 Date: 2026-10-25. Source baseline: `096a573eef0081234e3309d0a8d1902afd05e248`
 on retained `main` at `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
 Installed checkout: `/Users/wjmao/projects/HU/plotloom` (P).
@@ -357,12 +357,12 @@ GitHub workflow changes, CI or push is proposed.
   exclusive tests/assets/exports are gone; current supported contracts pass.
 - [x] Exact repair, H3 diagnostics, frozen readback, snapshot/restore,
   transaction/lease ordering and UNKNOWN safety remain intact.
-- [ ] Small provider-free project/repair proof, focused checks, stable review,
+- [x] Small provider-free project/repair proof, focused checks, stable review,
   final full-local qualification and exact installed-package checks have
   honest evidence. Provider and owner creative acceptance are not claimed.
 - [ ] Quiet activation/profile identity, preservation checks and single
   functional recovery update are complete, or precisely reported incomplete.
-- [ ] Scoped source checkpoint is on local main; actual code sizes and remaining
+- [x] Scoped source checkpoint is on local main; actual code sizes and remaining
   named audit batches are stated; no unwanted source/QA artifacts remain.
 - [ ] Delegated work is attended through actual final, manager review, access
   release and archival/Relay unregister. No duplicate qualification owner.
@@ -391,7 +391,7 @@ cleanup is completed before handoff. At planning closeout implementation, tests/
 inspections and operational actions were unstarted; the approved implementation
 receipt below records subsequent execution.
 
-## Implementation receipt — stable source checkpoint
+## Implementation and local qualification receipt
 
 One source owner is executing G1/R1–R3 in R from `e6c4b3e`. The smallest
 proof is a disposable one-choice/two-ending project with one scene/beat and
@@ -406,7 +406,8 @@ Pre-edit baseline retains 36 model/union schema hashes, representative response
 serialization, five fact round trips including authorized nested nulls, and
 compiled prompt/schema/rendered hashes in ignored `.local/g1-retirements/`.
 This is provider-free runtime integration, not provider or creative acceptance.
-Final full qualification and manager-owned activation/recovery remain pending.
+Local qualification is closed by the full attempt and composite repair receipt
+below; manager-owned activation/recovery remains pending.
 
 G1 and R1–R3 source implementation is complete. [ADR 0220](../adr/0220-generation-contract-leaves-and-retired-execution.md)
 records the current decision and precise supersessions. The new contract owners
@@ -482,9 +483,9 @@ have closed runners. No application/frontend source schema, database migration,
 provider/media generation, P activation, service reload, recovery replacement,
 GitHub CI or push was performed. Source/profile identity changes prospectively;
 old pins are unchanged. Independent stable review identified the two concrete corrections below.
-Manager verification of those corrections, one final full-local gate, exact
-wheel/isolated installed smoke and manager-owned activation/preservation/
-recovery remain pending. Runtime timings are available in the concise temporary
+Manager verification closed those review corrections. The local full attempt,
+composite closure and exact wheel/isolated installed smoke are recorded below;
+manager-owned activation/preservation/recovery remains pending. Runtime timings are available in the concise temporary
 summary; detailed product/infrastructure/coordination time allocation is
 unavailable. These are coordination checkpoints, not new owner-approval gates.
 
@@ -502,3 +503,75 @@ ownership passed with 3,985 Python cases (same 324 files), unchanged 1,538 Vites
 and 358 browser cases. All 156 local links in the audit/plan/ADR resolve;
 changed-import and whitespace checks pass. No full gate or installed/live
 operation was run for this correction checkpoint.
+
+
+### Local qualification outcome — composite, not an original full pass
+
+Product code is qualified at `51178b87c6ffa6139722ec6d0212d1f0ffd83ba8`.
+The actual command `uv run --locked --no-sync python scripts/verify.py full`
+ran once and **failed**, exit 1, after 1,183.597 seconds. Its Python step took
+1,172.242 seconds: 3,984 passed and one failed. The sole failure was
+`tests/test_verification_module_ownership.py::test_manifest_maps_cross_module_pytest_helper_consumers`,
+whose expected helper consumers still named retired `tests/test_media.py` and
+the removed raw-media tail in `tests/generation/test_prompts.py`.
+
+Commit `a2d2ed994d8eaf843c6aae5f20f730e8904671c3` removes exactly those two
+obsolete expectations, preserving every surviving assertion. Manager review
+confirmed the correction. Focused ownership/verification-tool checks passed
+28 cases in 3.591 seconds. No product, dependency, schema, prompt, source/profile
+or bundle input changed; the 3,984 passing Python results and earlier full
+phases were reused, with no second full run. Native allocation remains 3,985
+Python, 1,538 Vitest and 358 browser cases. Historical timing entries for deleted
+tests remain historical and are ignored by current native allocation.
+
+The existing `verify.py` step builder/runner then executed its exact six unrun
+steps after Python, in order, using a retained wheel directory. No new runner
+or verification policy was introduced. All passed in 650.985 seconds:
+
+| Remaining full step | Result | Seconds |
+|---|---|---:|
+| Deterministic production bundle | passed | 2.048 |
+| Checked asset parity | passed; no tracked static diff | 0.022 |
+| Complete browser allocation | passed | 1.861 |
+| Unfiltered browser suite + fixture type check | 358 passed | 643.056 |
+| Wheel build | passed | 0.127 |
+| Isolated installed-wheel smoke | passed | 3.870 |
+
+The original full attempt already passed locked dependencies, ffmpeg/ffprobe,
+API lint, archived prompt reader, all 1,538 frontend tests and app type checks.
+The combined local gate is complete; **the original full command remains failed**.
+There was no browser failure, skipped browser coverage or executable repair.
+
+The exact passing retained artifact is
+`.local/g1-retirements/wheel/plotloom-0.1.0-py3-none-any.whl`, 1,568,370 bytes,
+SHA-256 `2af848359463ad26039e20a05161acb984ff18b4729bfa25782741c97355a623`.
+All 481 package files match current source bytes; its 461 Python files and nine
+prompt files exactly match source inventories, with no retired execution files,
+retired prompts or bytecode. Package payload digest:
+`4a75fa9e73df6963499ea1c1c564c556444a453014676730d940a3280daa6812`.
+The installed smoke used a fresh environment and `python -I` from an unrelated
+working directory, checking site-packages imports, current prompt inventory,
+project persistence/snapshot and installed receiving without checkout leakage.
+The wheel is retained from that exact smoke; no redundant build is required.
+
+The prospective source/profile check used the existing builder, checked Python
+receipt, validator/toolchain identity and ordinary login readiness: v8 **ready**,
+CLI `0.164.0-alpha.11.1`. Source tree SHA-256 remains
+`a9cdcc468a9ae25fb235c6adeb593f242953eb6af5f4fd73c86207de3c0b41b9`;
+prospective R profile hash is
+`4fdc37268f6545945ed8791dd85fb1037a0c5711828dfc552ce3849c7d3dc8ac`.
+The full profile includes R-specific checked-environment identity; manager
+activation must derive P's own profile while matching the qualified source.
+No frozen pin was rewritten and no opt-in serial/parallel qualification pair or
+live generation was launched. The 36-schema/serialization parity probe still
+passes with the same contract digest.
+
+Ignored handoff evidence is limited to the parity baseline/probe, concise
+`checks.txt`, `qualification.json` with safe source/package/profile identities
+and the exact passing wheel. Successful browser outputs and verbose task logs
+are removed; actionable failure context is retained in the concise summary.
+G2–G5 remain unselected, with the oversized-file rationale above unchanged.
+Source/local qualification is complete; manager-owned quiet activation,
+preservation, profile/package readback, single recovery refresh and final
+operational documentation remain pending. No P/live/settings/database/provider
+operation, hosted CI or push was performed by this qualification owner.

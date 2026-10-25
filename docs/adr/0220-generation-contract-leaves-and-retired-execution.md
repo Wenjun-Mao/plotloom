@@ -1,7 +1,7 @@
 # ADR 0220: Generation contract leaves and retired execution
 
-Status: implemented and independently reviewed; required corrections implemented,
-manager verification and final local qualification pending, 2026-10-25, under the owner-approved
+Status: implemented, independently reviewed and locally qualified by composite
+evidence; activation pending, 2026-10-25, under the owner-approved
 [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 
 Response DTOs, repair authority and frozen prompt records lived beside compiler,
@@ -54,3 +54,10 @@ introduces no compatibility barrel or architecture framework. Source/profile
 identity changes prospectively; frozen source pins and prior evidence remain
 unchanged. No provider generation or creative acceptance is established by the
 provider-free fixture integration, and hosted CI remains unrequested.
+
+Local qualification is complete through one failed full attempt (only an
+obsolete retired-test helper expectation), its assertion-preserving focused
+correction and all ordered remaining full gates, including 358 browser cases
+and exact installed-wheel smoke. The original full result remains failed;
+see the plan's qualification receipt for revisions, timings and artifact hashes.
+Activation and recovery refresh remain separate manager-owned operations.

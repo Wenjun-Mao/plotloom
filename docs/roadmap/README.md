@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Approved G1 and retired-execution implementation; review pending
+## G1 and retired execution locally qualified; activation pending
 
 The owner accepted the audit's direction to extract generation response/repair
 contracts first and retire the three obsolete execution paths. The
@@ -9,11 +9,13 @@ covers G1, scope-less stage repair (R1), raw media (R2) and Atlas fallback (R3),
 with exact supported-contract preservation, early provider-free runtime proof,
 one final local qualification owner and scoped quiet activation/rollback.
 Independent execution-limits review passed with two clarity refinements applied.
-The owner approved implementation with Go on 2026-10-25. G1/R1–R3 source is
-implemented with early provider-free runtime proof and focused checks; stable
-independent review identified two concrete corrections, now implemented.
-Manager verification, final local qualification and manager-owned activation are
-pending. Installed state remains unchanged. G2–G5 and other audit batches remain
+The owner approved implementation with Go on 2026-10-25. G1/R1–R3 is implemented
+and independently reviewed. Early provider-free runtime proof and composite local
+qualification are complete: the original full attempt failed only on an obsolete
+helper-consumer expectation, corrected in focused checks; all remaining gates,
+358 browser cases and exact isolated installed-wheel smoke passed. The original
+full result remains failed. Manager-owned activation/preservation/recovery is
+pending; installed state remains unchanged. G2–G5 and other audit batches remain
 unselected.
 
 ## Completed modularity audit; first selected batch in progress
