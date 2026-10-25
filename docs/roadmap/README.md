@@ -259,9 +259,9 @@ pending acknowledged erasure retain their supported explicit consent paths.
 The source correction at `bdbaf800` passed exact-finding review and the subsequently
 approved frontend/package follow-through, composed with the unchanged backend's
 full gate at `dcd6f115`. [The closeout](../verification/2026-10-19-unified-project-deletion.md#composite-local-qualification-closeout)
-retains actual logs, strict-route fixture evidence and the controller-quiescence
-limitation. That qualification checkpoint did not activate the build or perform
-live deletion, push or hosted CI.
+records qualification outcomes and the controller-quiescence limitation. That
+checkpoint did not activate the build or perform live deletion, push or hosted
+CI.
 
 A subsequent [installed-wheel desktop journey](../verification/2026-10-19-unified-project-deletion.md#installed-wheel-runtime-acceptance)
 passed idle erase and paused no-dispatch local-authority stop→ordinary erase with

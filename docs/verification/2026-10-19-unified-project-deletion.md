@@ -8,6 +8,11 @@ The source-checkpoint sections below retain their historical scope. Current
 status: qualified and owner-authorized activation completed October 21; see
 [activation](#owner-authorized-activation-october-21).
 
+The ignored raw QA output bundle was permanently removed on October 25, 2026,
+with no archive or recovery copy. The reported outcomes and failure descriptions
+below remain historical claims; raw logs, traces, manifests and screenshots from
+that bundle are no longer retained.
+
 ## Root causes and resulting behavior
 
 - Two unconditional row controls delegated prerequisite discovery to failures.
@@ -167,18 +172,10 @@ ran on clean `dcd6f115688f8626b72189aedf56bbf3d274567c`. All 14 gates passed:
 deterministic build/parity, allocation, wheel build and installed-wheel smoke.
 Runner elapsed: 1,807.808 seconds; exit 0. Shell capture: 1,808 seconds.
 
-Actual local artifacts are under
-`.local/unified-project-deletion/dcd6f115688f8626b72189aedf56bbf3d274567c/`:
-`full.log`, `command.txt`, `start.txt`, `outcome.txt`, `source-sha.txt`,
-`source-tree.txt`, `git-status-before.txt`, `git-status-after.txt`,
-`dependency-tool-fingerprints.sha256`, `static-before.sha256`,
-`static-after.sha256`, `runtime-and-filter-preflight.txt`, `inventory-preflight.txt`.
-`full.log` SHA-256 is
-`780c637550e71c0be25486ec73f4847526b9b59150a735360423207286dd852d`.
 Before/after tracked status is clean; static trees match. Native owner discovery
-and retained assertion-replacement checks passed before dispatch. The established
-runner removed its temporary wheel directory at exit: build/smoke evidence is in
-the log; no surviving wheel or wheel hash is claimed.
+and assertion-replacement checks passed before dispatch. The established runner
+removed its temporary wheel directory at exit; no surviving wheel or wheel hash
+is claimed from this full run.
 
 During that frozen run, root and independent re-review found a P1 transport seam
 missed by the earlier no-findings review: current-project abandonment passed a full
@@ -205,8 +202,8 @@ The first background-enabled paused attempt returned genuine final 409
 case passed. The exact historical holder was not proven; the controller's immediate
 wake and retained cancelled-run reconciliation provide a plausible contender.
 That contention is not fixed or hidden by the serialization correction. Its first
-trace/video/screenshot/context are retained under
-`.local/unified-project-deletion/serialization-correction-first-attempt/project-unified-delete-cur-f6de3--API-and-exact-home-erasure/`.
+trace, video, screenshots and context were captured with the raw QA outputs that
+have since been retired.
 
 Root approved an explicitly controller-quiescent execution envelope for the strict
 transport happy-path cases. The fixture holds the existing leader `flock` on its
@@ -236,8 +233,8 @@ re-review remain root-owned. No second full run is started by this correction.
 The first leader-lease attempt failed before mutation because Python records the
 canonical `/private/var/...` path while Node's temporary root used `/var/...`.
 The assertion now applies `realpath` before exact equality; no alias-tolerance or
-admission change was added. Those two preflight failures remain retained under
-`.local/unified-project-deletion/serialization-correction-path-preflight/`.
+admission change was added. The two preflight failures remain recorded here as
+historical failures; their raw captures were retired with the QA outputs.
 After that fixture-only correction all seven browser cases passed, including both
 real current-layout paths. Standard per-case `strict-deletion-evidence` JSON
 attachments retain actual command member sets/statuses, exact leader path/held
@@ -247,8 +244,7 @@ seven-case file, rather than adding a new recorder or broad qualification.
 
 Final corrective evidence: 26 API unit cases passed; the final seven-case browser
 run passed in 37.237 seconds, including both genuine controller-quiescent strict
-routes and all retained blocked/lost-ACK cases. Its complete log is
-`.local/unified-project-deletion/serialization-correction-final-focused-browser.log`.
+routes and all retained blocked/lost-ACK cases.
 Successful proof JSON and consent pixels remain at
 `output/playwright/unified-delete-current-cancelled-evidence.json`,
 `output/playwright/unified-delete-current-paused-evidence.json`,
@@ -277,25 +273,18 @@ subsequently authorized frontend/package follow-through passed on that clean SHA
   e2e/project-lifecycle-errors.spec.ts`: all 16 affected browser cases passed,
   exit 0, 57.172 seconds. The latest seven unified cases and their exact strict
   request/status proof are reused rather than rerun again.
-- `uv build --wheel --out-dir <evidence>/wheel` followed by the established
-  `uv run --locked --no-sync python scripts/smoke_installed_wheel.py <evidence>/wheel`:
-  both exited 0. The isolated installed-package probe passed.
+- The wheel build and established isolated installed-wheel smoke both exited 0.
+  The installed-package probe passed.
 
-Here `<evidence>` is the actual checkout-relative directory
-`.local/unified-project-deletion/bdbaf800f7a7f16695091d5f6797cd6a6bff4743/final-frontend-package/`.
-It retains exact command files; complete `quick.log`, `build-1.log`, `build-2.log`,
-`browser.log`, `wheel-build.log`, `installed-wheel-smoke.log`; per-stage outcome
-files; source/tree identity; before/after clean Git status; dependency/tool hashes;
-and static before/after/two-build manifests. A separate Git boundary check proves
-production backend, strict schemas, dependencies and build tools are unchanged
-from full-qualified `dcd6f115`; only frontend consent projection and its generated
-bundle change product behavior. No final scoped gate failed.
+The raw logs, command captures, source identities, dependency fingerprints and
+static manifests for this follow-through were part of the retired QA outputs. A
+separate Git boundary check recorded that production backend, strict schemas,
+dependencies and build tools were unchanged from full-qualified `dcd6f115`; only
+frontend consent projection and its generated bundle changed product behavior.
+No final scoped gate failed.
 
-Unlike the earlier full runner's temporary wheel, this authorized scoped build
-retains `wheel/plotloom-0.1.0-py3-none-any.whl` under that evidence directory.
-Its measured SHA-256 is
-`d4e2d530d164481f8ced21e05bb6f38a05bd0035a42bfb50e2d272918418eea4`;
-`wheel.sha256` records the exact path and digest.
+The authorized scoped build's recorded wheel SHA-256 is
+`d4e2d530d164481f8ced21e05bb6f38a05bd0035a42bfb50e2d272918418eea4`.
 
 The qualified result is explicitly composite: frozen full on `dcd6f115` plus
 exact-finding closure and scoped frontend/package qualification on `bdbaf800`.
@@ -304,7 +293,7 @@ only; no second full/backend sweep, publication, deployment, activation, real
 provider operation, live-project deletion or human product/creative acceptance is
 claimed. The controller-quiescent strict-route fixture and real background-enabled
 409 remain distinct evidence; a supported stop does not guarantee immediate
-erasure. Earlier failed runs remain failed, with their retained artifacts.
+erasure. Earlier failed runs remain failed; their raw artifacts were retired.
 
 ## Installed-wheel runtime acceptance
 
@@ -327,16 +316,11 @@ target 404 / target 404 / neighbor 200, with only the neighbor home retained.
 Both owned consoles shut down gracefully, the browser closed, both process IDs
 disappeared, port 18887 closed and the controller lease was released.
 
-Evidence is retained in checkout-relative
-`.local/unified-project-deletion/01b8dcfdb0c9477baeeebd4b9a1ea1ea3e8ec5b4-installed-runtime-KetdCn/`:
-`commands.txt`, `isolated-command.sh`, `seed.json`, `identity.json`,
-`controller-before.json`, `runtime-first.log`, `runtime-restart.log`,
-`restart-readback.json`, `shutdown-{first,final}.json`, `outcome.json`,
-`artifact-manifest.sha256`, `browser/*{http,body,ack}.txt`, desktop PNGs and the
-existing CLI `.playwright-cli/traces/` action/network/resources. The retained
-evidence checker asserts exact consent members/scope, statuses/counts, readback,
-package identity and settlement. Wheel member, installed file and independently
-served `/v2/workbench.js` probe share SHA-256
+At the time, command, seed, runtime, readback and browser captures were stored with
+the raw QA outputs, which have since been retired. The evidence checker asserted
+exact consent members/scope, statuses/counts, readback, package identity and
+settlement. Wheel member, installed file and independently served `/v2/workbench.js`
+probe share SHA-256
 `28c6eee0ec0c4a0c4947ee9515e75c169efc0fa00726fe9699618462c354910b`.
 Browser access logs record the asset GET 200, but the trace started after loading;
 no captured browser-response digest is claimed. Navigation-aborted GETs and two
@@ -396,13 +380,11 @@ fields, database/WAL/SHM and `.lock` file bytes. It records regular-file hashes,
 mode and owner UID, not GID/ACL or whole-filesystem equality; row hashes are not
 DDL hashes. Separate read-only database transactions rely on verified quiescence.
 
-Actual evidence is retained under
-`.local/unified-project-deletion/activation-2026-10-21-f2ZA7K/`:
-`preservation.py`, `before.json`, `after.json`, `final.json`, `comparison.json`,
-`final-comparison.json`, `stop.log` and `start.log`. Browser screenshot, snapshots,
-action/network trace and captured resources are under
+The preservation script, before/after/final snapshots, comparisons and service
+logs were captured with the raw QA outputs, which have since been retired. Browser
+screenshot, snapshots, action/network trace and captured resources are under
 `output/playwright/activation-2026-10-21/`; the captured bundle resource is
-`.playwright-cli/traces/resources/5f5457d4e80b80b426056c73747687025010e28f.js`.
+`output/playwright/activation-2026-10-21/.playwright-cli/traces/resources/5f5457d4e80b80b426056c73747687025010e28f.js`.
 No new full/test-suite run was necessary for activation. Existing host-termination
 and contention coverage limits remain; this observation does not approve, stop,
 resume or erase the owner's pending work.
