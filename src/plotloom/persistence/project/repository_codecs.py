@@ -84,7 +84,8 @@ def project_from_row(row: ProjectRow) -> Project:
         id=row.id, revision=row.revision, lifecycle_revision=row.lifecycle_revision,
         lifecycle_status=ProjectLifecycleStatus(row.lifecycle_status),
         archived_at=_stored_utc(row.archived_at) if row.archived_at else None,
-        brief=ProjectBrief.model_validate(row.brief), created_at=_stored_utc(row.created_at),
+        brief=ProjectBrief.model_validate(row.brief) if row.brief is not None else None,
+        display_title=(row.brief or {}).get("title", "未命名项目"), created_at=_stored_utc(row.created_at),
         updated_at=_stored_utc(row.updated_at),
     )
 

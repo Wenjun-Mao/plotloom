@@ -1,12 +1,14 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { ApprovalDecision, ManagedAsset, Shot, VisualIntent } from "../../../types";
+import { useReviewEditorDraft } from "../../authoring/ReviewDraftContext";
 import type { MediaReadPhase } from "../useMediaWorkbenchData";
 
 /** Reviewer observations belong to one candidate and approved source, not the panel. */
 export function useKeyframeCompatibilityDraft({
-  projectId, shot, assetId, approval, storyboardRevision, intent, asset, mediaReadPhase,
+  projectId, shot, assetId, approval, storyboardRevision, intent, asset, mediaReadPhase, readOnly = false,
 }: {
   projectId?: string;
+  readOnly?: boolean;
   shot?: Shot;
   assetId: string;
   approval?: ApprovalDecision;
@@ -37,17 +39,21 @@ export function useKeyframeCompatibilityDraft({
     });
   }, [scopeKey, basisKey]);
 
+  const working = useReviewEditorDraft(projectId || "", "keyframe_compatibility", `${scopeKey}:${basisKey ?? "unverified"}`, value => {
+    setDraft({ scopeKey, basisKey, value });
+  }, readOnly || mediaReadPhase !== "ready" || !assetId, undefined, `${shot?.id || ""}:${assetId}`);
   const setCompatibility: Dispatch<SetStateAction<string>> = (next) => {
+    if (working.stale || readOnly) return;
+    const value = typeof next === "function" ? next(compatibility) : next;
+    working.changed(value);
     setDraft((current) => {
       const sameScope = current.scopeKey === scopeKey;
-      const currentValue = sameScope
-        && (basisKey === undefined || current.basisKey === basisKey) ? current.value : "";
       return {
         scopeKey,
         basisKey: basisKey ?? (sameScope ? current.basisKey : undefined),
-        value: typeof next === "function" ? next(currentValue) : next,
+        value,
       };
     });
   };
-  return { compatibility, setCompatibility };
+  return { compatibility, setCompatibility, notice: working.notice, stale: working.stale };
 }

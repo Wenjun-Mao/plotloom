@@ -3,9 +3,7 @@ import { Field } from "../components";
 
 const splitLines = (value: string) =>
   value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
+    .split("\n");
 const joinLines = (value: string[]) => value.join("\n");
 
 export function LinesField({

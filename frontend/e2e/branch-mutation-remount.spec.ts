@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { expect, test } from "./fixture";
 import { createAcceptedCastProject } from "./art-review-fixture";
 
@@ -46,7 +47,7 @@ test("owns a held branch cancellation across Source Brief Source remount", async
   } finally { release(); }
 });
 
-for (const lifecycle of ["close", "snapshots"] as const) {
+for (const lifecycle of ["freeze", "snapshots"] as const) {
   test(`${lifecycle} joins branch cancellation without suspended-read deadlock`, async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, `branch-${lifecycle}`);
     const base = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
@@ -66,8 +67,15 @@ for (const lifecycle of ["close", "snapshots"] as const) {
       const panel = page.getByRole("region", { name: "助手剧情分支建议", exact: true });
       await panel.getByRole("button", { name: "放弃此建议任务", exact: true }).click();
       await expect.poll(() => mutationStarted).toBe(true);
-      await page.getByRole("button", { name: lifecycle === "close" ? "保存并关闭项目" : "创建恢复快照", exact: true }).click();
-      await expect(page.getByText(lifecycle === "close" ? "正在关闭项目" : "正在创建恢复快照", { exact: true })).toBeVisible();
+      if (lifecycle === "freeze") {
+        await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+        const row = page.locator(`.directory-item[data-project-id="${projectId}"]`);
+        await openProjectManagement(row);
+        await row.getByRole("button", { name: "冻结项目", exact: true }).click();
+      } else {
+        await page.getByRole("button", { name: "创建恢复快照", exact: true }).click();
+        await expect(page.getByText("正在创建恢复快照", { exact: true })).toBeVisible();
+      }
       expect(lifecycleRequests).toBe(0);
       const acknowledgment = page.waitForResponse(response => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/${lifecycle}`);
       release();
@@ -76,7 +84,7 @@ for (const lifecycle of ["close", "snapshots"] as const) {
       if (lifecycle === "snapshots") {
         await expect(page.getByRole("status").filter({ hasText: "恢复快照已完成" })).toBeVisible();
         await expect(panel.getByRole("button", { name: "准备剧情分支建议", exact: true })).toBeEnabled();
-      } else await expect(page.getByRole("button", { name: "新建空白项目", exact: true })).toBeVisible();
+      } else await expect(page.locator(`.directory-item[data-project-id="${projectId}"]`)).toContainText("已冻结 · 只读");
     } finally { release(); }
   });
 }

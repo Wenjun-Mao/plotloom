@@ -1,8 +1,6 @@
-import { openProjectManagement } from "./project-directory-controls";
 import { expect, saveBriefAndContinue, test } from "./fixture";
-import { demoProject } from "../src/demo";
-import type { Page } from "@playwright/test";
 import { createScriptProject, json } from "./f5a-fixture";
+import type { Page } from "@playwright/test";
 
 async function newSourceProject(page: Page, origin: string) {
   await page.goto(`${origin}/v2/`);
@@ -11,204 +9,58 @@ async function newSourceProject(page: Page, origin: string) {
   await expect(page.getByLabel("故事内容")).toBeEditable();
   return new URL(page.url()).searchParams.get("project")!;
 }
-const row = (page: Page, id: string) => page.locator(`.directory-item[data-project-id="${id}"]`);
 
-test("cached directory rows cannot close a project while directory inspection is held", async ({ page, workbench }) => {
-  const id = await newSourceProject(page, workbench.frontendOrigin);
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await expect(row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true })).toBeEnabled();
-  await page.getByRole("dialog", { name: "项目目录", exact: true }).locator("footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
-  let release!: () => void; let readStarted!: () => void;
-  const held = new Promise<void>(resolve => { release = resolve; });
-  const started = new Promise<void>(resolve => { readStarted = resolve; });
-  await page.route("**/api/v2/projects?*", async route => { const response = await route.fetch(); readStarted(); await held; await route.fulfill({ response }); });
-  try {
-    await page.getByRole("button", { name: "当前项目 · 切换" }).click(); await started;
-    await expect(row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true })).toBeDisabled();
-    await expect(row(page, id).getByRole("button", { name: "退出工作区", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "新建空白项目", exact: true })).toBeEnabled();
-    release();
-    await expect(row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true })).toBeEnabled();
-    await row(page, id).getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-    await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-  } finally { release(); }
-});
-
-test("workspace close waits for its directory read before requesting exclusive close", async ({ page, workbench }) => {
-  const id = await newSourceProject(page, workbench.frontendOrigin);
-  let release!: () => void; let readStarted!: () => void; let closes = 0;
-  const held = new Promise<void>(resolve => { release = resolve; });
-  const started = new Promise<void>(resolve => { readStarted = resolve; });
-  await page.route("**/api/v2/projects?*", async route => {
-    const response = await route.fetch(); readStarted(); await held;
-    await route.fulfill({ response });
-  });
-  await page.route("**/api/v2/projects/*/close", async route => { closes += 1; await route.continue(); });
-  try {
-    await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-    await started;
-    await expect(page.getByRole("heading", { name: "项目目录", exact: true })).toBeVisible();
-    expect(closes).toBe(0);
-    release();
-    await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-    expect(closes).toBe(1);
-  } finally { release(); }
-});
-
-test("leaving during directory inspection abandons the pending close without clearing the newer workspace", async ({ page, request, workbench }) => {
-  const id = await newSourceProject(page, workbench.frontendOrigin);
-  const other = await json(request.post(`${workbench.apiOrigin}/api/v2/projects`, {
-    data: { brief: { ...demoProject.brief, title: "新的工作区" }, initialStages: [] },
-  }));
-  await page.goto(`${workbench.frontendOrigin}/v2/?project=${other.id}&stage=brief`);
-  await expect(page.getByLabel("片名")).toHaveValue("新的工作区");
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, id).locator(".directory-open").click();
-  await expect(page).toHaveURL(new RegExp(`project=${id}`));
-  let release!: () => void; let readStarted!: () => void; let closes = 0;
-  const held = new Promise<void>(resolve => { release = resolve; });
-  const started = new Promise<void>(resolve => { readStarted = resolve; });
-  await page.route("**/api/v2/projects?*", async route => {
-    const response = await route.fetch(); readStarted(); await held;
-    await route.fulfill({ response });
-  });
-  await page.route("**/api/v2/projects/*/close", async route => { closes += 1; await route.continue(); });
-  try {
-    await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click(); await started;
-    await expect(page.getByRole("button", { name: "新建空白项目", exact: true })).toBeDisabled();
-    // Competing directory controls are excluded, but browser-history navigation
-    // may still supersede the admitted command's originating workspace.
-    await page.goBack();
-    await expect(page).toHaveURL(new RegExp(`project=${other.id}.*stage=brief`));
-    await page.getByLabel("片名").fill("新的工作区不会被旧关闭清空");
-    release();
-    // Let the held inspection settle without another API read competing with
-    // exclusive Close. A stale callback would have dispatched by this point.
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByLabel("片名")).toHaveValue("新的工作区不会被旧关闭清空");
-    expect(closes).toBe(0);
-    expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).ok()).toBeTruthy();
-  } finally { release(); }
-});
-
-test("Save-and-close recovers unfinished source after restart without confirming it", async ({ page, request, workbench }) => {
+test("autosave resumes incomplete source in a fresh browser after backend restart without confirming it", async ({ page, browser, request, workbench }) => {
   const id = await newSourceProject(page, workbench.frontendOrigin);
   await page.getByLabel("来源类型").selectOption("imported_text");
-  await page.getByLabel("故事内容").fill("未完成的原作输入：先留在这里，明天继续。");
-  await page.getByLabel("改编目标").fill("");
-  await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-  await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-  await page.evaluate(() => sessionStorage.clear());
+  const text = "未完成的原作输入：先留在这里，明天继续。";
+  await page.getByLabel("故事内容").fill(text); await page.getByLabel("改编目标").fill("");
+  await page.locator(".brand-home").click();
+  await expect.poll(async () => JSON.stringify(await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)))).toContain(text);
   await workbench.restartBackend();
-  await row(page, id).getByRole("button", { name: "重新打开" }).click();
-  await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" }).click();
-  await page.getByRole("button", { name: "恢复编辑草稿" }).click();
-  await expect(page.getByLabel("故事内容")).toHaveValue("未完成的原作输入：先留在这里，明天继续。");
-  await expect(page.getByLabel("改编目标")).toHaveValue("");
-  await expect(page.getByRole("button", { name: "确认改编内容" })).toBeDisabled();
-  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json()).source).toBeNull();
-  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/runs`)).json()).runs).toEqual([]);
+  const context = await browser.newContext(); const fresh = await context.newPage();
+  try {
+    await fresh.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+    await expect(fresh.getByLabel("故事内容")).toHaveValue(text); await expect(fresh.getByLabel("改编目标")).toHaveValue("");
+    await expect(fresh.getByRole("button", { name: "确认改编内容" })).toBeDisabled();
+    expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`))).source).toBeNull();
+    expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/runs`))).runs).toEqual([]);
+  } finally { await context.close(); }
 });
 
-test("closes an untouched directory project without changing the current one", async ({ page, request, workbench }) => {
-  const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, {
-    headers: { "Idempotency-Key": "unloaded-close-project" }, data: { brief: { ...demoProject.brief, title: "另一个尚未加载的项目" }, initialStages: [] },
-  });
-  expect(created.ok()).toBeTruthy(); const other = (await created.json()).id;
-  const current = await newSourceProject(page, workbench.frontendOrigin);
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await openProjectManagement(row(page, other));
-  await row(page, other).getByRole("button", { name: "关闭项目", exact: true }).click();
-  await expect(row(page, other)).toContainText("已关闭 · 可安全复制");
-  await expect(page).toHaveURL(new RegExp(`project=${current}`));
-  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${current}`)).ok()).toBeTruthy();
-  await expect(page.getByText("编辑草稿未能保存", { exact: false })).not.toBeVisible();
+test("local-only input survives Home and synchronizes on reconnect while its editor is unmounted", async ({ page, request, workbench }) => {
+  const id = await newSourceProject(page, workbench.frontendOrigin), text = "网络中断期间的未确认编辑";
+  const endpoint = `**/api/v2/projects/${id}/authoring-drafts`;
+  await page.route(endpoint, route => route.request().method() === "PUT" ? route.fulfill({ status: 503, json: { message: "owned fixture offline" } }) : route.continue());
+  await page.getByLabel("故事内容").fill(text); await page.locator(".brand-home").click();
+  await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).toContain(text);
+  await page.unroute(endpoint); await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect.poll(async () => JSON.stringify(await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)))).toContain(text);
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+  await expect(page.getByLabel("故事内容")).toHaveValue(text);
+  expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`))).source).toBeNull();
 });
 
-test("failed draft save retains input; force consent discards only unsent edits", async ({ page, request, workbench }) => {
+test("ordinary Home preserves a prepared task without Freeze or dispatch changes", async ({ page, request, workbench }) => {
   const id = await newSourceProject(page, workbench.frontendOrigin);
-  const original = await page.getByLabel("故事内容").inputValue();
-  await page.getByLabel("故事内容").fill("这段尚未发送的编辑将由明确强制关闭丢弃。");
-  await page.route("**/api/v2/projects/*/authoring-drafts", async route => {
-    if (route.request().method() === "PUT") await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "draft unavailable" }) });
-    else await route.continue();
-  });
-  await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("编辑草稿未能保存");
-  await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未发送的编辑将由明确强制关闭丢弃。");
-  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).ok()).toBeTruthy();
-  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
-  await page.getByRole("alertdialog").getByRole("button", { name: "取消", exact: true }).click();
-  await expect(page.getByLabel("故事内容")).toHaveValue("这段尚未发送的编辑将由明确强制关闭丢弃。");
-  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
-  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
-  await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-  await row(page, id).getByRole("button", { name: "重新打开" }).click();
-  await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "来源与大纲" }).click();
-  await expect(page.getByLabel("故事内容")).toHaveValue(original);
-  expect(await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)).json()).toEqual([]);
-});
-
-test("force exits while a prepared job remains owned and running-admissible", async ({ page, request, workbench }) => {
-  const id = await newSourceProject(page, workbench.frontendOrigin);
-  await page.getByRole("button", { name: "确认改编内容" }).click();
-  await page.getByRole("button", { name: "准备大纲任务" }).click();
+  await page.getByRole("button", { name: "确认改编内容" }).click(); await page.getByRole("button", { name: "准备大纲任务" }).click();
   await expect(page.getByText(/^任务尚未交付 · 发送状态见下方 ·/)).toBeVisible();
-  const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
-  await expect(page.getByRole("alertdialog")).toContainText("后台任务继续运行");
-  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
-  await expect(page.getByText("已退出工作区；后台任务继续运行。项目尚未安全关闭，可稍后重试。", { exact: true })).toBeVisible();
-  await expect(row(page, id)).toContainText("未关闭");
-  await expect(row(page, id)).not.toContainText("已关闭");
-  await expect(page).not.toHaveURL(new RegExp(`project=${id}`));
-  const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
-  expect(after.candidate).toEqual(before.candidate);
-  expect(after.candidate.status).toBe("prepared");
+  const before = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`));
+  const writes: string[] = []; page.on("request", sent => { if (sent.method() !== "GET" && /\/(freeze|unfreeze|resume|send|cancel)$/.test(sent.url())) writes.push(sent.url()); });
+  await page.locator(".brand-home").click(); await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
+  expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`))).candidate).toEqual(before.candidate);
+  expect(writes).toEqual([]);
 });
 
-test("unknown force-close outcome is visibly unconfirmed, never inferred closed", async ({ page, workbench }) => {
-  const id = await newSourceProject(page, workbench.frontendOrigin);
-  await page.route("**/api/v2/projects/*/close", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "close unknown" }) }));
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, id).getByRole("button", { name: "退出工作区", exact: true }).click();
-  await page.getByRole("button", { name: "确认退出工作区", exact: true }).click();
-  await expect(page.getByText(/已退出工作区，但未能确认安全关闭/)).toBeVisible();
-  await expect(row(page, id)).not.toContainText("已关闭");
-});
-
-test("another busy project offers safe Close rather than workspace exit and preserves current input", async ({ page, request, workbench }) => {
-  const other = await newSourceProject(page, workbench.frontendOrigin);
-  await page.getByRole("button", { name: "确认改编内容" }).click();
-  await page.getByRole("button", { name: "准备大纲任务" }).click();
-  await expect(page.getByText(/^任务尚未交付 · 发送状态见下方 ·/)).toBeVisible();
-  const before = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`));
-  const current = await newSourceProject(page, workbench.frontendOrigin);
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await expect(row(page, other).getByRole("button", { name: "退出工作区", exact: true })).toHaveCount(0);
-  await expect(row(page, other).getByRole("button", { name: "保存并关闭项目", exact: true })).toHaveCount(0);
-  await openProjectManagement(row(page, other));
-  await row(page, other).getByRole("button", { name: "关闭项目", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("项目仍有读取、写入或后台任务占用");
-  await expect(page).toHaveURL(new RegExp(`project=${current}`));
-  await expect(row(page, current)).toContainText("当前项目");
-  await expect(row(page, other)).toContainText("未关闭");
-  expect((await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${other}/source-outline`))).candidate).toEqual(before.candidate);
-});
-
-test("Save-and-close restores the shared Root graph draft without confirming it", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "close-shared-graph");
-  const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
-  const before = await json(request.get(endpoint));
-  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
-  const text = "共享图正文保存为草稿，尚未确认。";
-  await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(text);
-  await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-  await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-  await page.evaluate(() => sessionStorage.clear());
-  await workbench.restartBackend();
-  await row(page, id).getByRole("button", { name: "重新打开" }).click();
+test("one shared Root graph draft autosaves across leave and restart without confirmation", async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, "autosave-shared-graph"), endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
+  const before = await json(request.get(endpoint)), text = "共享图正文保存为草稿，尚未确认。";
+  const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`;
+  await page.goto(url); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(text);
+  await page.locator(".brand-home").click();
+  await expect.poll(async () => JSON.stringify(await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)))).toContain(text);
+  await workbench.restartBackend(); await page.goto(url);
   await expect(page.getByRole("textbox", { name: "剧情摘要", exact: true })).toHaveValue(text);
   expect((await json(request.get(endpoint))).acceptedSectionMap).toEqual(before.acceptedSectionMap);
   const drafts = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`));
@@ -216,8 +68,8 @@ test("Save-and-close restores the shared Root graph draft without confirming it"
   expect(drafts.some((draft: any) => draft.editorScope === "section_map")).toBe(false);
 });
 
-for (const editor of ["cast", "art", "script"] as const) test(`Save-and-close recovers ${editor} input without changing accepted content`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, `close-${editor}`);
+for (const editor of ["cast", "art", "script"] as const) test(`Autosave resumes ${editor} input without changing accepted content`, async ({ page, request, workbench }) => {
+  const id = await createScriptProject(request, workbench.apiOrigin, `autosave-${editor}`);
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/${editor}`;
   const before = await json(request.get(endpoint));
   const url = editor === "cast" ? `${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`
@@ -238,54 +90,17 @@ for (const editor of ["cast", "art", "script"] as const) test(`Save-and-close re
     await scope.getByRole("combobox").selectOption({ label: "opening · episode 1" });
     await scope.locator("textarea.source-outline-json").fill(text);
   }
-  await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
-  await expect(row(page, id)).toContainText("已关闭 · 可安全复制");
-  await page.evaluate(() => sessionStorage.clear());
+  await page.locator(".brand-home").click();
+  await expect.poll(async () => (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`))).some((draft: any) => draft.editorScope === "review_buffer" && draft.payload.editor === editor && draft.payload.text.includes(text))).toBe(true);
   await workbench.restartBackend();
-  await row(page, id).getByRole("button", { name: "重新打开" }).click();
   await page.goto(url);
-  await scope.getByRole("button", { name: "恢复编辑草稿" }).click();
+  if (editor === "script") await scope.getByRole("combobox").selectOption({ label: "opening · episode 1" });
   if (editor === "cast") await expect(scope.getByLabel("气质与举止", { exact: true })).toHaveValue(text);
   else {
-    if (editor === "art") await scope.locator(".art-json-editor summary").last().click();
+    if (editor === "art" && !await scope.locator("textarea.source-outline-json:not([disabled])").isVisible()) await scope.locator(".art-json-editor summary").last().click();
     await expect(scope.locator("textarea.source-outline-json:not([disabled])")).toHaveValue(text);
   }
   const after = await json(request.get(endpoint));
   const key = editor === "cast" ? "acceptedCast" : editor === "art" ? "acceptedArt" : "acceptedScript";
   expect(after[key]).toEqual(before[key]);
-});
-
-test("pending A exit cannot discard or close A while browser history holds B's load", async ({ page, request, workbench }) => {
-  const create = async (title: string) => {
-    const response = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: { ...demoProject.brief, title }, initialStages: [] } });
-    expect(response.status()).toBe(201); return (await response.json()).id as string;
-  };
-  const a = await create("退出确认 A"), b = await create("等待载入 B");
-  const aUrl = `${workbench.frontendOrigin}/v2/?project=${a}&stage=brief`, bUrl = `${workbench.frontendOrigin}/v2/?project=${b}&stage=brief`;
-  await page.goto(aUrl); await expect(page.getByLabel("片名")).toHaveValue("退出确认 A");
-  // Same-document browser history, as produced by normal workspace routing.
-  await page.evaluate(({ previous, current }) => { history.replaceState(null, "", previous); history.pushState(null, "", current); }, { previous: bUrl, current: aUrl });
-  await page.getByRole("button", { name: "当前项目 · 切换" }).click();
-  await row(page, a).getByRole("button", { name: "退出工作区", exact: true }).click();
-  const consent = page.getByRole("alertdialog", { name: "退出工作区", exact: true }); await expect(consent).toBeVisible();
-  let release!: () => void, markStarted!: () => void;
-  const held = new Promise<void>(done => { release = done; }), started = new Promise<void>(done => { markStarted = done; });
-  let closes = 0, discards = 0;
-  page.on("request", sent => {
-    if (sent.method() === "POST" && sent.url().endsWith(`/${a}/close`)) closes++;
-    if (sent.method() === "DELETE" && sent.url().includes(`/${a}/authoring-drafts`)) discards++;
-  });
-  await page.route(`**/api/v2/projects/${b}`, async route => {
-    if (route.request().method() !== "GET") return route.continue();
-    const response = await route.fetch(); markStarted(); await held; await route.fulfill({ response });
-  });
-  try {
-    await page.goBack(); await started;
-    await expect(page).toHaveURL(new RegExp(`project=${b}`)); await expect(consent).toBeVisible();
-    await consent.getByRole("button", { name: "确认退出工作区", exact: true }).click();
-    await expect(consent).toBeHidden(); await expect(page).toHaveURL(new RegExp(`project=${b}`));
-    expect(closes).toBe(0); expect(discards).toBe(0);
-    release(); await expect(page.getByLabel("片名")).toHaveValue("等待载入 B");
-    expect(closes).toBe(0); expect(discards).toBe(0);
-  } finally { release(); await page.unroute(`**/api/v2/projects/${b}`); }
 });

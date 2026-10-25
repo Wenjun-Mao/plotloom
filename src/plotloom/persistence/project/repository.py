@@ -338,7 +338,7 @@ class ProjectSQLiteRepository(ProjectCommandTransactions):
             project_row = ProjectRow(
                 id=project.id, revision=project.revision, lifecycle_revision=project.lifecycle_revision,
                 lifecycle_status=project.lifecycle_status.value, archived_at=project.archived_at,
-                brief=project.brief.model_dump(mode="json", by_alias=False),
+                brief=project.brief.model_dump(mode="json", by_alias=False) if project.brief else None,
                 created_at=project.created_at, updated_at=project.updated_at,
             )
             session.add(project_row)

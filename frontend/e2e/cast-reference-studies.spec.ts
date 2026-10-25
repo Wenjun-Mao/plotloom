@@ -368,10 +368,10 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(late.deliveries).toMatchObject([{ state: "inapplicable", candidates: [] }]);
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
 
-    const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
     expect(closed.ok(), await closed.text()).toBeTruthy();
     await workbench.restartBackend();
-    const opened = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/open`);
+    const opened = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/unfreeze`);
     expect(opened.ok(), await opened.text()).toBeTruthy();
     await page.reload();
     await expect(panel).toContainText("已取消，未交付");

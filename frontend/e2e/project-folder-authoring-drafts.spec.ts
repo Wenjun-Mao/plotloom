@@ -9,7 +9,7 @@ test.describe("project-folder authoring drafts", () => {
     await expect(page).toHaveURL(/[?&]project=/);
     const savedProjectId = new URL(page.url()).searchParams.get("project")!;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${savedProjectId}&stage=brief`);
-    await expect(page.getByRole("button", { name: "保存修改" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "应用修改" })).toBeVisible();
     await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = savedProjectId;
@@ -40,7 +40,7 @@ test.describe("project-folder authoring drafts", () => {
     } finally {
       releaseFirstDraftRequest?.();
     }
-    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
     await expect.poll(async () => (await workbenchRequest(
       workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`,
     ))[0]?.payload.title).toBe(coalescedTitle);
@@ -49,12 +49,41 @@ test.describe("project-folder authoring drafts", () => {
     await expect(page.getByLabel("片名")).toHaveValue(coalescedTitle);
 
     const secondTab = await page.context().newPage();
+    // Hold a real pre-A read so this is a server CAS conflict, independently
+    // of the separate foreign-journal recovery journey. A's acknowledged local
+    // journal must retire before this tab hydrates its deliberately old read.
+    let releaseOldRead!: () => void;
+    const oldReadReleased = new Promise<void>((resolve) => { releaseOldRead = resolve; });
+    let markOldRead!: () => void;
+    const oldReadStarted = new Promise<void>((resolve) => { markOldRead = resolve; });
+    let heldOldRead = false;
+    await secondTab.route(draftEndpoint, async (route) => {
+      if (!heldOldRead && route.request().method() === "GET") {
+        heldOldRead = true;
+        const response = await route.fetch();
+        expect(await response.json()).toEqual([]);
+        markOldRead();
+        await oldReadReleased;
+        await route.fulfill({ response });
+        return;
+      }
+      await route.continue();
+    });
     await secondTab.goto(page.url());
-    await expect(secondTab.getByLabel("片名")).toHaveValue(coalescedTitle);
+    await oldReadStarted;
 
     const durableTitle = "E2E：只保存到项目目录的草稿";
-    await page.getByLabel("片名").fill(durableTitle);
-    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    try {
+      await page.getByLabel("片名").fill(durableTitle);
+      await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
+      await expect.poll(() => page.evaluate((id) => Object.entries(localStorage)
+        .filter(([key]) => key.startsWith("plotloom:workbench-drafts:v1:entry:"))
+        .map(([, value]) => JSON.parse(value))
+        .filter((record) => record.projectId === id), projectId)).toEqual([]);
+    } finally {
+      releaseOldRead();
+    }
+    await expect(secondTab.getByLabel("片名")).toHaveValue(coalescedTitle);
     const canonicalBeforeSave = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
     expect(canonicalBeforeSave.brief.title).toBe(coalescedTitle);
     const durableDrafts = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`);
@@ -67,12 +96,21 @@ test.describe("project-folder authoring drafts", () => {
     // A second tab starts from the same canonical revision. Its old draft CAS
     // cannot replace the first tab's server-acknowledged authoring buffer.
     const losingTitle = "E2E：保留在冲突标签页的内容";
+    const losingSave = secondTab.waitForResponse((response) => response.request().method() === "PUT"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/authoring-drafts`
+      && response.status() === 409);
     await secondTab.getByLabel("片名").fill(losingTitle);
+    expect((await losingSave).status()).toBe(409);
     await expect(secondTab.getByText("草稿版本已过期", { exact: true })).toBeVisible();
     await expect(secondTab.getByLabel("片名")).toHaveValue(losingTitle);
     const afterConflict = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`);
     expect(afterConflict).toHaveLength(1);
     expect(afterConflict[0].payload.title).toBe(durableTitle);
+    // Resolve only this losing client's unsynced journal before testing a new
+    // independent restart edit; the winner's server receipt stays exact.
+    await secondTab.getByRole("button", { name: "丢弃冲突草稿", exact: true }).click();
+    await secondTab.close();
+    expect(await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`)).toEqual(afterConflict);
 
     let releaseCanonicalSave!: () => void;
     const heldCanonicalSave = new Promise<void>((resolve) => { releaseCanonicalSave = resolve; });
@@ -94,7 +132,7 @@ test.describe("project-folder authoring drafts", () => {
     });
     const durableSave = waitForBriefSave(page, projectId, durableTitle);
     try {
-      await page.getByRole("button", { name: "保存修改" }).click();
+      await page.getByRole("button", { name: "应用修改" }).click();
       await canonicalSaveStarted;
       const canonicalWhileSaveHeld = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
       expect(canonicalWhileSaveHeld.brief.title).toBe(coalescedTitle);
@@ -102,6 +140,7 @@ test.describe("project-folder authoring drafts", () => {
       releaseCanonicalSave();
     }
     await expectBriefSave(durableSave, durableTitle);
+    await expect(page.getByRole("button", { name: "应用修改", exact: true })).toBeEnabled();
     await page.unroute(projectEndpoint);
     await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
     const canonicalAfterSave = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
@@ -111,22 +150,19 @@ test.describe("project-folder authoring drafts", () => {
 
     const restartDraft = "E2E：重启后的服务器草稿";
     await page.getByLabel("片名").fill(restartDraft);
-    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
     await workbench.restartBackend();
     await page.reload();
     await page.locator(".topbar-technical-status > summary").click();
-    await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(restartDraft);
     const editedAfterRecovery = "E2E：恢复后继续编辑的草稿";
     await page.getByLabel("片名").fill(editedAfterRecovery);
-    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    await expect(page.locator(".draft-save-status")).toHaveText("已自动保存");
     const recoveredDrafts = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`);
     expect(recoveredDrafts).toHaveLength(1);
     expect(recoveredDrafts[0].payload.title).toBe(editedAfterRecovery);
     const canonicalAfterRestart = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
     expect(canonicalAfterRestart.brief.title).toBe(durableTitle);
-    await secondTab.close();
   });
 });
 
@@ -157,6 +193,6 @@ async function expectBriefSave(saved: Promise<Response>, expectedTitle: string):
 
 async function saveBriefAndAwaitPatch(page: Page, projectId: string, expectedTitle: string): Promise<void> {
   const saved = waitForBriefSave(page, projectId, expectedTitle);
-  await page.getByRole("button", { name: "保存修改" }).click();
+  await page.getByRole("button", { name: "应用修改" }).click();
   await expectBriefSave(saved, expectedTitle);
 }

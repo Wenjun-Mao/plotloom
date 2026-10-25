@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useReviewEditorDraft } from "../authoring/ReviewDraftContext";
 import { Button, Field } from "../../components";
 import type { QaActor } from "../../components/ProjectQaContext";
 import { batchApi } from "./api";
@@ -14,6 +15,8 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
   const pending = useRef(false); const uncertain = useRef(false);
   const rejected = review.proposals.filter(item => item.job?.reviews.at(-1)?.decision === "reject");
   const chosen = review.proposals.find(item => item.shotId === shot);
+  useEffect(() => setReason(""), [shot]);
+  const working = useReviewEditorDraft(projectId, "take_rejection", `${batch.id}:${review.reviewHash}:${chosen?.jobId ?? ""}:${chosen?.job?.selectionRevision ?? 0}`, setReason, disabled || busy || !chosen, undefined, chosen?.jobId || "");
   const attribution = actor ? { attribution: actor } : {};
   async function readOriginal() {
     const current = await batchApi.current(projectId);
@@ -27,7 +30,8 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
     return { current, updated };
   }
   async function act(operation: "reject" | "replace" | "read") {
-    if (pending.current || disabled) return;
+    if (pending.current || disabled || operation === "reject" && working.stale) return;
+    const clearApplied = working.clear;
     pending.current = true; setBusy(true); onPending(true); setMessage("");
     let completed = "";
     try {
@@ -37,7 +41,7 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
         if (!chosen?.job || !reason.trim() || chosen.job.selected || chosen.job.reviews.at(-1)?.decision === "reject") return;
         await batchApi.reject(projectId, chosen.jobId, { decision: "reject", reviewer: "", note: reason.trim(),
           expectedSelectionRevision: chosen.job.selectionRevision, ...attribution });
-        completed = "已保存此镜头的拒绝与修改原因。";
+        completed = "已保存此镜头的拒绝与修改原因。"; await clearApplied();
         setShot(""); setReason(""); await readOriginal(); setMessage(`${completed}尚未派发新视频。`);
         return;
       }
@@ -65,14 +69,15 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
   }
   const frozen = batch.state === "approved" || !!batch.manifest.rejectedHistory?.some(item => item.jobId === chosen?.jobId);
   return <section aria-label="选择性重做镜头">
+    {working.notice}
     {message && <p role="status">{message}</p>}
     {message && <Button disabled={busy || disabled} onClick={() => void act("read")}>核对原批次保存结果</Button>}
     {!frozen && <><Field label="选择要重新制作的镜头"><select value={shot} disabled={busy || disabled} onChange={event => setShot(event.target.value)}>
       <option value="">选择镜头…</option>{review.proposals.filter(item => item.job?.state === "ingested" && !item.job.selected && item.job.reviews.at(-1)?.decision !== "reject").map(item => <option key={item.shotId} value={item.shotId}>{item.title} · {item.shotId}</option>)}
     </select></Field>
-    {shot && <><Field label="重做原因或期望变化"><textarea value={reason} disabled={busy || disabled} onChange={event => setReason(event.target.value)} /></Field>
+    {shot && <><Field label="重做原因或期望变化"><textarea value={reason} disabled={busy || disabled || working.stale} onChange={event => { setReason(event.target.value); working.changed(event.target.value); }} /></Field>
       <p>将此原片保留为已拒绝历史；其他好镜头保留。此操作不发送新作业。</p>
-      <Button disabled={busy || disabled || !reason.trim()} onClick={() => void act("reject")}>保存拒绝与修改原因</Button></>}
+      <Button disabled={busy || disabled || working.stale || !reason.trim()} onClick={() => void act("reject")}>保存拒绝与修改原因</Button></>}
     {review.proposals.map(item => item.job?.state === "ingested" && !item.job.selected && item.job.reviews.at(-1)?.decision !== "reject" && <Button key={item.shotId} disabled={busy || disabled} onClick={() => setShot(item.shotId)}>重新制作这个镜头… · {item.shotId}</Button>)}</>}
     {rejected.length > 0 && <><p>已拒绝：{rejected.map(item => item.shotId).join("、")}。仅为这些镜头创建后继清单；新方向仍须重新审阅并明确开始。</p>
       {rejected.map(item => <p key={item.jobId}>{item.shotId} · 拒绝原因：{item.job?.reviews.at(-1)?.note}</p>)}

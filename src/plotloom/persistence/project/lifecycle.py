@@ -79,7 +79,7 @@ class ProjectLifecyclePersistence:
             self._access.guards.lifecycle_revision(project, expected_lifecycle_revision)
             if ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ARCHIVED:
                 raise InvalidTransitionError("only archived projects can be permanently deleted")
-            if confirmation_title != ProjectBrief.model_validate(project.brief).title:
+            if confirmation_title != ((project.brief or {}).get("title") or "未命名项目"):
                 raise InvalidTransitionError("confirmation title does not match the project title")
             if self._access.guards.busy(session, project_id):
                 raise ProjectBusyError()

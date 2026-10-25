@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import (
-    STAGE_ORDER, CanonicalSnapshot, GenerationRun, RunKind, RunStatus,
+    STAGE_ORDER, ProjectBrief, CanonicalSnapshot, GenerationRun, RunKind, RunStatus,
     StageName, StagePayload, StageStatus, upstream_stages,
     validate_public_provider_snapshot,
 )
@@ -64,12 +64,13 @@ class ProjectGenerationSnapshots:
         rows = session.scalars(select(StageHeadRow).where(StageHeadRow.project_id == project_id)).all()
         by_stage = {StageName(row.stage): access.codecs.stage_head(row) for row in rows}
         heads = [by_stage[stage] for stage in STAGE_ORDER]
+        brief = ProjectBrief.require_confirmed(project.brief)
         return CanonicalSnapshot(
             project_id=project_id,
             project_revision=project.revision,
-            brief=project.brief,
+            brief=brief,
             stage_heads={head.stage: head for head in heads},
-            snapshot_hash=stable_hash(self.snapshot_fingerprint(project.revision, project.brief, heads)),
+            snapshot_hash=stable_hash(self.snapshot_fingerprint(project.revision, brief, heads)),
         )
 
     def capture_snapshot(self, project_id: str) -> CanonicalSnapshot:

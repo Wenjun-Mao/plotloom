@@ -24,9 +24,9 @@ beforeEach(() => { host = document.createElement("div"); document.body.append(ho
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 it.each([
-  [false, true, "保存分镜", true],
+  [false, true, "应用分镜修改", true],
   [true, false, "正在保存…", true],
-  [false, false, "保存分镜", false],
+  [false, false, "应用分镜修改", false],
 ])("separates saving %s from read-only %s while retaining action locks", async (saving, readOnly, label, locked) => {
   await render(`shot:${demoProject.storyboard.shots[0].id}`, saving, readOnly);
   const save = host.querySelector<HTMLButtonElement>(".page-actions button")!;

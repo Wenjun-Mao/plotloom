@@ -97,8 +97,8 @@ test("structural help reserves normal-flow space without intercepting required f
     }
     await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).click();
     await page.screenshot({ path: info.outputPath(`help-flow-${size.width}-${size.height}.png`), fullPage: true });
-    await page.getByRole("button", { name: "保存项目简报" }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole("button", { name: "保存项目简报" })).toBeVisible();
+    await page.getByRole("button", { name: "确认项目简报" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("button", { name: "确认项目简报" })).toBeVisible();
     await page.getByRole("button", { name: `说明：${labels[0]}`, exact: true }).focus();
     await page.keyboard.press("Escape");
     await page.mouse.move(0, 0);
@@ -186,7 +186,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   await page.getByRole("button", { name: "确认并保存目标", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${id}&stage=brief`));
   await page.getByRole("button", { name: "返回来源与大纲" }).click();

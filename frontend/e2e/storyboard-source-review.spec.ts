@@ -87,7 +87,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     await expect(panel.getByRole("button", { name: "取消此任务" })).toBeEnabled();
     const lifecycle = `${workbench.apiOrigin}/api/v2/projects/${id}`;
     expect((await request.post(`${lifecycle}/snapshots`)).status()).toBe(409);
-    expect((await request.post(`${lifecycle}/close`)).status()).toBe(409);
+    expect((await request.post(`${lifecycle}/freeze`)).status()).toBe(409);
     await panel.getByRole("button", { name: "取消此任务" }).click();
     await expect(panel.getByRole("button", { name: "准备分镜任务" })).toBeEnabled();
     await writeDelivery(next);

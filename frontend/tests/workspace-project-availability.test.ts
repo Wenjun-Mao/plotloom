@@ -1,6 +1,8 @@
 import {act, createElement} from "react";
 import {createRoot, type Root} from "react-dom/client";
 import {afterEach, beforeEach, expect, it, vi} from "vitest";
+import { creationResponse } from "./app-state-fixtures";
+import { blankWorkspace } from "../src/app/workspace/contracts";
 import App from "../src/App";
 import {ApiError, plotloomApi} from "../src/api";
 import {demoProject, demoRun} from "../src/demo";
@@ -97,14 +99,14 @@ it("keeps failed capabilities unknown and retries explicitly without a provider 
 
 it("keeps a closed shot link unavailable without claiming a missing shot or unsaved draft", async () => {
   vi.mocked(plotloomApi.getProject).mockRejectedValue(closed());
-  const open = vi.spyOn(plotloomApi, "openProjectFolder");
+  const open = vi.spyOn(plotloomApi, "unfreezeProject");
   const create = vi.spyOn(plotloomApi, "createProject");
   const patch = vi.spyOn(plotloomApi, "patchProject");
   const url = "/?project=a&stage=storyboard&entity=shot%3Aone#shot-workbench";
   await render(url);
   expect(document.querySelector('[data-testid="workspace-project-unavailable"]')).not.toBeNull();
   expect(document.querySelector(".editor-host")).toBeNull();
-  expect(document.body.textContent).toContain("项目已关闭");
+  expect(document.body.textContent).toContain("项目已冻结");
   for (const text of ["尚未保存的项目草稿", "请求的镜头不属于当前分镜", "先保存项目", "未命名项目"]) expect(document.body.textContent).not.toContain(text);
   expect(location.search + location.hash).toBe(url.slice(1));
   await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="关闭错误"]')!.click());
@@ -131,7 +133,7 @@ it("retry reads the same exact deep-linked shot without automatically opening or
   const shot = demoProject.storyboard.shots[0]!;
   vi.mocked(plotloomApi.getProject).mockRejectedValueOnce(closed());
   vi.mocked(plotloomApi.getStages).mockResolvedValue({stages: envelopes()});
-  const open = vi.spyOn(plotloomApi, "openProjectFolder"), patch = vi.spyOn(plotloomApi, "patchProject");
+  const open = vi.spyOn(plotloomApi, "unfreezeProject"), patch = vi.spyOn(plotloomApi, "patchProject");
   const url = `/?project=a&stage=storyboard&entity=${encodeURIComponent(`shot:${shot.id}`)}#shot-workbench`;
   await render(url);
   await act(async () => button("重新读取项目").click());
@@ -223,6 +225,7 @@ it("preserves a real unsaved editor buffer when the late capability reread fails
 
 it("permits an explicit real blank draft after an unavailable project", async () => {
   vi.mocked(plotloomApi.getProject).mockRejectedValue(closed());
+  const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue({ ...creationResponse("new-reserved", ""), brief: blankWorkspace().brief, hasConfirmedBrief: false });
   await render("/?project=a&stage=brief");
   await act(async () => button("打开项目目录").click());
   await flush();
@@ -230,6 +233,6 @@ it("permits an explicit real blank draft after an unavailable project", async ()
   await flush();
   expect(document.querySelector('[data-testid="workspace-project-unavailable"]')).toBeNull();
   expect(document.querySelector(".form-card input")).not.toBeNull();
-  expect(document.body.textContent).toContain("尚未保存的项目草稿");
-  expect(new URLSearchParams(location.search).has("project")).toBe(false);
+  expect(create).toHaveBeenCalledWith({ brief: null }, expect.stringMatching(/^project-create-/));
+  expect(new URLSearchParams(location.search).get("project")).toBe("new-reserved");
 });

@@ -85,7 +85,18 @@ export async function writeArtReferenceDelivery(response: import("@playwright/te
 }
 
 export async function prepareFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string): Promise<ArtPreparation> {
-  await panel.getByLabel("美术风格", { exact: true }).selectOption("realistic");
+  // A cancelled/replaced candidate can retain its authored JSON on the old
+  // basis. Resolve that exact input explicitly before preparing a successor.
+  const retained = panel.getByRole("button", { name: "丢弃保留草稿", exact: true });
+  const settings = panel.locator("details").filter({ has: page.locator("summary").filter({ hasText: /:art_settings$/ }) });
+  const style = panel.getByLabel("美术风格", { exact: true });
+  await expect.poll(async () => await style.isEnabled().catch(() => false) || await retained.isVisible() || await settings.count() > 0).toBe(true);
+  if (await retained.isVisible()) await retained.click();
+  if (await settings.count()) {
+    await settings.locator("summary").click();
+    await settings.getByRole("button", { name: "作为本会话输入恢复", exact: true }).click();
+  }
+  await style.selectOption("realistic");
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates`);
   await panel.getByRole("button", { name: "准备美术设定任务" }).click();

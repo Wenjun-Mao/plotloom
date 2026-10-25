@@ -106,7 +106,7 @@ class NativeBridgeCandidateService:
         return delivery
 
     def report(self, project_id: str, job_id: str) -> bytes:
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.read_open(project_id)) as store:
             request, _data = self._request(store, project_id, job_id)
             delivery = self._delivery(store, request)
             if delivery is None:
@@ -119,7 +119,7 @@ class NativeBridgeCandidateService:
             store.repository.production_bridge_intent.cancel(project_id, job_id)
 
     def status(self, project_id: str, job_id: str) -> dict:
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.read_open(project_id)) as store:
             request, data = self._request(store, project_id, job_id)
             self.registry.assert_creative_task_identity(job_id, project_id=project_id, stage=request.stage)
             evidence = data["responseEvidence"]

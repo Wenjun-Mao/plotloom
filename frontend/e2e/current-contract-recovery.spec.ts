@@ -1,4 +1,5 @@
 import { expect, saveBriefAndContinue, test } from "./fixture";
+import { demoProject } from "../src/demo";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -54,7 +55,9 @@ test("temporary draft authority failure allows read-only export, retry and exact
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json()).brief.title).toBe(authority.brief.title);
   await page.unroute(endpoint);
   await dialog.getByRole("button", { name: "重试核实项目" }).click();
-  await page.getByRole("button", { name: "恢复草稿", exact: true }).click();
+  const verifiedConflict = page.getByRole("dialog", { name: "草稿版本已过期", exact: true });
+  await expect(verifiedConflict).toBeVisible();
+  await verifiedConflict.getByRole("button", { name: "复制草稿为新项目", exact: true }).click();
   await expect(page.getByLabel("片名")).toHaveValue("Retained offline author title");
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json()).brief.title).toBe(authority.brief.title);
 });
@@ -62,25 +65,19 @@ test("temporary draft authority failure allows read-only export, retry and exact
 for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
   test(`conflict reload preserves exact drafts through held failure and retry at ${viewport.width}x${viewport.height}`, async ({ page, request, workbench }, testInfo) => {
     await page.setViewportSize(viewport);
-    await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByLabel("片名", { exact: true }).fill("Disposable conflict visual audit");
-    await saveBriefAndContinue(page);
-    await expect(page).toHaveURL(/[?&]project=/);
-    const id = new URL(page.url()).searchParams.get("project")!;
+    const originalProject = await (await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: { ...demoProject.brief, title: "Disposable conflict visual audit" }, initialStages: [] } })).json();
+    const id = originalProject.id;
     const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`;
-    await page.goto(url);
-    await expect(page.getByLabel("片名", { exact: true })).toHaveValue("Disposable conflict visual audit");
+    await request.put(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`, { data: { editorScope: "brief", entityId: "root", baseCanonicalRevision: originalProject.revision, expectedDraftRevision: 0, payload: { ...originalProject.brief, title: "Server-saved winning draft" } } });
     const second = await page.context().newPage();
     try {
       await second.setViewportSize(viewport);
-      await second.goto(url); await expect(second.getByLabel("片名", { exact: true })).toHaveValue("Disposable conflict visual audit");
-      const winner = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/authoring-drafts"));
-      await page.getByLabel("片名", { exact: true }).fill("Server-saved winning draft");
-      expect((await winner).ok()).toBe(true);
-      const loser = second.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/authoring-drafts"));
-      await second.getByLabel("片名", { exact: true }).fill("Exact retained conflicting draft");
-      expect((await loser).status()).toBe(409);
+      await second.goto(`${workbench.frontendOrigin}/v2/`);
+      await second.evaluate(({ id, project }) => {
+        const key = `${id}:brief:${project.revision}:retained-fixture`;
+        sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({ [key]: { key, projectId: id, scope: "brief", baseRevision: project.revision, serverDraftRevision: 0, localRevision: 1, payload: { ...project.brief, title: "Exact retained conflicting draft" }, updatedAt: "2026-10-24" } }));
+      }, { id, project: originalProject });
+      await second.goto(url);
       const conflict = second.getByRole("dialog", { name: "草稿版本已过期" });
       await expect(conflict).toBeVisible();
       const original = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json();
@@ -133,10 +130,11 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
       const create = second.waitForRequest(req => req.method() === "POST" && new URL(req.url()).pathname === "/api/v2/projects");
       await conflict.getByRole("button", { name: "复制草稿为新项目" }).click();
       const copiedRequest = (await create).postDataJSON();
-      expect(copiedRequest).toMatchObject({ brief: { title: "Exact retained conflicting draft（冲突副本）" } });
-      expect(copiedRequest).not.toHaveProperty("initialStages");
-      await expect(second.getByLabel("片名", { exact: true })).toHaveValue("Exact retained conflicting draft（冲突副本）");
-      expect(writes).toEqual(["POST /api/v2/projects"]);
+      expect(copiedRequest).toMatchObject({ brief: null });
+      expect(copiedRequest.initialStages).toEqual([]);
+      await expect(second.getByLabel("片名", { exact: true })).toHaveValue("Exact retained conflicting draft");
+      const copyId = new URL(second.url()).searchParams.get("project")!;
+      expect(writes).toEqual(["POST /api/v2/projects", `PUT /api/v2/projects/${copyId}/authoring-drafts`]);
       expect(await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json()).toEqual(original);
     } finally { await second.close(); }
   });
@@ -144,36 +142,21 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
 
 test("unsafe conflict discard removes only the selected retained input without resurrecting its workflow", async ({ page, request, workbench }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 460 });
-  await page.goto(`${workbench.frontendOrigin}/v2/`);
-  await page.getByRole("button", { name: "打开示例项目" }).click();
-  await saveBriefAndContinue(page);
-  await expect(page).toHaveURL(/[?&]project=/);
-  const id = new URL(page.url()).searchParams.get("project")!;
+  const created = await (await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [] } })).json();
+  const id = created.id;
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`;
-  await page.goto(url); await expect(page.getByLabel("片名", { exact: true })).toHaveValue("月城余晖");
+  await request.put(`${endpoint}/authoring-drafts`, { data: { editorScope: "brief", entityId: "root", baseCanonicalRevision: created.revision, expectedDraftRevision: 0, payload: { ...created.brief, title: "Winning retained server input" } } });
   const second = await page.context().newPage();
   try {
     await second.setViewportSize({ width: 1280, height: 460 });
-    await second.goto(url); await expect(second.getByLabel("片名", { exact: true })).toHaveValue("月城余晖");
-    const winner = page.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/authoring-drafts"));
-    await page.getByLabel("片名", { exact: true }).fill("Winning retained server input"); expect((await winner).ok()).toBe(true);
-    const loser = second.waitForResponse(r => r.request().method() === "PUT" && r.url().endsWith("/authoring-drafts"));
-    let markStarted!: () => void, release!: () => void;
-    const started = new Promise<void>(resolve => { markStarted = resolve; });
-    const released = new Promise<void>(resolve => { release = resolve; });
-    await second.route(`**/api/v2/projects/${id}/authoring-drafts`, async route => {
-      if (route.request().method() === "PUT") { markStarted(); await released; }
-      await route.continue();
-    });
-    try {
-      await second.getByLabel("片名", { exact: true }).fill("Older submitted input"); await started;
-      await second.getByLabel("片名", { exact: true }).fill("Latest retained conflicting input");
-    } finally { release(); }
-    expect((await loser).status()).toBe(409);
-    await second.unroute(`**/api/v2/projects/${id}/authoring-drafts`);
+    await second.goto(`${workbench.frontendOrigin}/v2/`);
+    await second.evaluate(({ id, project }) => {
+      const key = `${id}:brief:${project.revision}:retained-fixture`;
+      sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({ [key]: { key, projectId: id, scope: "brief", baseRevision: project.revision, serverDraftRevision: 0, localRevision: 2, payload: { ...project.brief, title: "Latest retained conflicting input" }, updatedAt: "2026-10-24" } }));
+    }, { id, project: created });
+    await second.goto(url);
     const conflict = second.getByRole("dialog", { name: "草稿版本已过期" }); await expect(conflict).toBeVisible();
-    expect(await second.evaluate(() => sessionStorage.getItem("plotloom:workbench-drafts:v1"))).toContain("Latest retained conflicting input");
     const unrelated = await second.evaluate(() => {
       const key = "unrelated-local-owner:brief:1";
       const all = JSON.parse(sessionStorage.getItem("plotloom:workbench-drafts:v1")!);
@@ -204,10 +187,9 @@ test("unsafe conflict discard removes only the selected retained input without r
     await expect(readError).toBeInViewport(); await expect(notice).toBeInViewport();
     await second.screenshot({ path: testInfo.outputPath("discard-after.png") });
     await second.unroute(`**/api/v2/projects/${id}`); await second.goto(url);
-    await expect(second.getByRole("dialog", { name: "发现可恢复草稿" })).toBeVisible();
-    await expect(second.getByRole("dialog")).toContainText("此草稿已保存在项目中");
+    await expect(second.getByRole("dialog")).toHaveCount(0);
     await expect(second.getByRole("button", { name: "复制草稿为新项目" })).toHaveCount(0);
-    await expect(second.getByLabel("片名", { exact: true })).toHaveValue(original.brief.title);
+    await expect(second.getByLabel("片名", { exact: true })).toHaveValue("Winning retained server input");
     await expect(second.getByText("已丢弃本标签页选中的保留草稿", { exact: false })).toHaveCount(0);
     await second.screenshot({ path: testInfo.outputPath("discard-reverified.png") });
     expect(writes).toEqual([]);

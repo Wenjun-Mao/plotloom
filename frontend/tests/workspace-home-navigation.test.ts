@@ -8,13 +8,13 @@ import { putDraft } from "../src/draft-registry";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => window.sessionStorage.clear());
 
-async function harness({ persisted = false, durable = false, closing = false } = {}) {
+async function harness({ persisted = false, durable = false, closing = false, preserveProject = undefined as undefined | ((projectId: string) => Promise<boolean>) } = {}) {
   const project = { ...blankWorkspace("home-test"), ...(persisted ? { id: "project-a", revision: 1 } : {}) };
   const session = {
     project, activePage: "brief", connection: persisted ? "connected" : "blank",
     routeRef: { current: { project: project.id || "", stage: "brief", entity: "", run: "", hash: "" } },
     clearForEmptyRoute: vi.fn(), navigate: vi.fn(), navigateToProject: vi.fn(),
-    setUnsafeDraft: vi.fn(), needsCanonicalRefresh: () => false,
+    cancelRunSelection: vi.fn(), beginRunSelection: vi.fn(), setUnsafeDraft: vi.fn(), needsCanonicalRefresh: () => false,
     run: { id: "run-a", projectId: "project-a", status: "running" },
   };
   const drafts = {
@@ -25,7 +25,7 @@ async function harness({ persisted = false, durable = false, closing = false } =
   const loadProject = vi.fn(); const pollRun = vi.fn();
   let navigation!: ReturnType<typeof useWorkspaceNavigation>;
   function Harness() {
-    navigation = useWorkspaceNavigation({ session, drafts, loadProject, pollRun, isProjectClosing: () => closing } as never);
+    navigation = useWorkspaceNavigation({ session, drafts, loadProject, pollRun, isProjectClosing: () => closing, preserveProject } as never);
     return null;
   }
   const root = createRoot(document.createElement("div"));
@@ -95,5 +95,22 @@ it("does not detach a project during its admitted Close or Delete", async () => 
     await state.home();
     expect(state.session.clearForEmptyRoute).not.toHaveBeenCalled();
     expect(state.navigation.pendingNavigation).toBeUndefined();
+  } finally { await state.unmount(); }
+});
+
+it.each(["sample-first", "route-first"])("newer route intent supersedes pending Sample in either completion order (%s)", async order => {
+  let resolveRoute!: (value: boolean) => void, resolveSample!: (value: boolean) => void;
+  const route = new Promise<boolean>(resolve => { resolveRoute = resolve; });
+  const sample = new Promise<boolean>(resolve => { resolveSample = resolve; });
+  const state = await harness({ persisted: true, preserveProject: () => route });
+  const openSample = vi.fn();
+  try {
+    const owns = state.navigation.reserveNavigation();
+    const old = sample.then(preserved => { if (preserved && owns()) openSample(); });
+    await act(async () => state.navigation.requestNavigation({ project: "B", stage: "brief" }));
+    if (order === "sample-first") { await act(async () => resolveSample(true)); await act(async () => resolveRoute(true)); }
+    else { await act(async () => resolveRoute(true)); await act(async () => resolveSample(true)); }
+    await old; expect(openSample).not.toHaveBeenCalled();
+    expect(state.session.navigateToProject).toHaveBeenCalledWith(expect.objectContaining({ project: "B" }), "push");
   } finally { await state.unmount(); }
 });

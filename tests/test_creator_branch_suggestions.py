@@ -418,3 +418,74 @@ def test_explicit_return_retains_identity_and_refuses_changed_source_or_candidat
                 }
             )
         )
+
+
+def test_branch_query_boundaries_use_read_admission_without_creating_heads(store, tmp_path):
+    from contextlib import closing
+    from plotloom.project_storage import ProjectStore
+    from tests.working_input_preservation import preservation_inventory
+
+    request = prepare(store)
+    store.admit_branch_delivery(_deliver_stage(store, request, "branches.json", proposal(request.source["topology"]), "query-only-branches"))
+    expected_state = store.branch_state()
+    expected_draft = store.branch_draft(request.job_id)
+    expected_report = store.branch_candidate_report(request.job_id)
+    before = preservation_inventory(tmp_path)
+    with closing(ProjectStore.open(store.home, read_only=True)) as reader:
+        assert reader.branch_state() == expected_state
+        assert reader.branch_draft(request.job_id) == expected_draft
+        assert reader.branch_candidate_report(request.job_id) == expected_report
+    assert preservation_inventory(tmp_path) == before
+    store.close()
+    storage = _storage(tmp_path)
+    storage.projects.close_project(request.project_id)
+    before = preservation_inventory(tmp_path)
+    with closing(storage.projects.read_open(request.project_id)) as reader:
+        assert reader.branch_state() == expected_state
+        assert reader.branch_draft(request.job_id) == expected_draft
+        assert reader.branch_candidate_report(request.job_id) == expected_report
+    assert preservation_inventory(tmp_path) == before
+    from fastapi.testclient import TestClient
+    from plotloom.api import create_project_folder_authoring_app
+    with TestClient(create_project_folder_authoring_app(storage)) as client:
+        # Startup owns application/controller initialization, outside this query.
+        before = preservation_inventory(tmp_path)
+        response = client.get(f"/api/v2/projects/{request.project_id}/branch-suggestions")
+        assert response.status_code == 200, response.text
+        refused = client.post(f"/api/v2/projects/{request.project_id}/branch-suggestions")
+        assert refused.status_code == 409, refused.text
+        assert preservation_inventory(tmp_path) == before
+
+
+@pytest.mark.parametrize("head_kind", ["source", "section-map"])
+def test_branch_queries_refuse_missing_basis_without_repairing_it(store, tmp_path, head_kind):
+    from plotloom.persistence.schema import SourceOutlineHeadRow, SourceOutlineSectionMapHeadRow
+    from tests.working_input_preservation import preservation_inventory
+
+    prepare(store)
+    with store.repository.branches._access.leases.lifecycle_write() as session:
+        row_type = SourceOutlineHeadRow if head_kind == "source" else SourceOutlineSectionMapHeadRow
+        session.delete(session.get(row_type, store.manifest.project_id))
+    before = preservation_inventory(tmp_path)
+    with pytest.raises(NotFoundError, match="review state is missing"):
+        store.branch_state()
+    assert preservation_inventory(tmp_path) == before
+
+
+def test_empty_branch_projection_never_initializes_absent_heads(tmp_path):
+    from plotloom.persistence.schema import SourceOutlineHeadRow, SourceOutlineSectionMapHeadRow
+    from tests.working_input_preservation import preservation_inventory
+
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    with store.repository.branches._access.leases.lifecycle_write() as session:
+        for row_type in (SourceOutlineHeadRow, SourceOutlineSectionMapHeadRow):
+            session.delete(session.get(row_type, project_id))
+    before = preservation_inventory(tmp_path)
+    state = store.branch_state()
+    assert state.candidate is None and state.planned_topology is not None
+    with pytest.raises(NotFoundError, match="review state is missing"):
+        store.prepare_branch_candidate()
+    assert preservation_inventory(tmp_path) == before
+    store.close()

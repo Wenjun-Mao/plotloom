@@ -23,7 +23,7 @@ export function ProjectDirectoryDialog({ projects, currentProjectId, showArchive
       <header><div><span>选择已有项目或创建新项目</span><h2 id="project-directory-title">项目目录</h2></div><button aria-label="关闭窗口" disabled={busy} onClick={onClose}>×</button></header>
       <div className="modal-body">
         <div className="directory-onboarding"><Button variant="primary" disabled={busy} onClick={onBlank}>新建空白项目</Button><Button disabled={busy} onClick={onSample}>打开示例项目</Button><label><input type="checkbox" disabled={busy} checked={showArchived} onChange={event => onArchived(event.target.checked)} /> 显示归档项目</label></div>
-        <p className="action-prerequisite">关闭项目不会删除内容；下次可重新打开。归档用于收起项目。永久删除会移除该项目及其媒体，无法撤销。</p>
+        <p className="action-prerequisite">编辑输入自动保留。冻结项目后可只读浏览；解除冻结恢复编辑。归档用于收起项目。永久删除会移除该项目及其媒体，无法撤销。</p>
         {loading && <p className="action-prerequisite" role="status">正在读取项目目录，请稍候。</p>}
         {commandMessage && !projects.some(item => item.id === commandProjectId) && <p className="action-prerequisite" role="status">{commandMessage}</p>}
         {deletionFeedback?.location === "directory" && !projects.some(item => item.id === deletionFeedback.id) && <article data-project-id={deletionFeedback.id}><strong>{deletionFeedback.title}</strong><p role={deletionFeedback.error ? "alert" : "status"}>{deletionFeedback.message}</p></article>}

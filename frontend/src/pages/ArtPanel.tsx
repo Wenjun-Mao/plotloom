@@ -80,10 +80,15 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
   const draftMatches = Boolean(draftBase && authorityKey(draftBase) === authorityKey(currentAuthority));
   const retained = Boolean(draftDirty.current && draftBase && (!draftMatches || state?.status === "stale" || (draftBase.kind === "accepted" && state?.status !== "reopened")));
   useReportReviewWorkflowRead(projectId, active, { stage: "art", status: checking ? "loading" : failed ? "failed" : "ready", state, busy, dirty: draftDirty.current, retainedDraft: retained, error, renderStyle });
-  const readOnly = ownerReadOnly || checking || failed;
+  const ownerDisabled = ownerReadOnly || checking || failed;
+  const workingSettings = useReviewEditorDraft(projectId, "art_settings", "render-style", text => {
+    if (!["", "live-action", "realistic", "ghibli"].includes(text)) throw new Error("图像风格草稿无效。");
+    setRenderStyle(text as ArtRenderStyle | "");
+  }, ownerReadOnly || busy);
   const reviewDraft = useReviewEditorDraft(projectId, "art", authorityKey(draftAuthority(state)), text => {
     setDraftBase(draftAuthority(state)); draftDirty.current = true; setDraft(text);
-  }, readOnly || busy, () => { draftDirty.current = false; const authority = draftAuthority(state); setDraftBase(authority); setDraft(authority?.value.art ? JSON.stringify(authority.value.art, null, 2) : ""); });
+  }, ownerDisabled || busy, () => { draftDirty.current = false; const authority = draftAuthority(state); setDraftBase(authority); setDraft(authority?.value.art ? JSON.stringify(authority.value.art, null, 2) : ""); });
+  const readOnly = ownerDisabled || reviewDraft.stale;
   useEffect(() => {
     // Refresh may invalidate draft authority, but only an explicit author
     // decision can discard dirty text or adopt another candidate/head.
@@ -123,7 +128,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     if (art) act(() => plotloomApi.saveReopenedArt(projectId, { expectedArtRevision: base.revision, binding: base.binding, art }), () => { draftDirty.current = false; void reviewDraft.clear(); });
   };
   return <article id="art" className="panel cast-panel art-panel" data-testid="art-review">
-    {reviewDraft.notice}
+    {workingSettings.notice}{reviewDraft.notice}
     <header><span>美术参考</span><strong>{heading}</strong></header>
     {failed && <Button variant="quiet" onClick={() => void recheck()}>重试加载美术参考</Button>}
     <p>先由文字创作助手整理地点和道具设定，供你审核。确认设定后，再为场景和道具制作参考图片。这一步不会生成图片。</p>
@@ -135,7 +140,7 @@ export function ArtPanel({ projectId, readOnly: ownerReadOnly, active = true, re
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && state.status !== "reopened" && <section aria-label="准备美术设定候选">
       {accepted && <><h3>{state.status === "stale" ? "重新准备并确认美术设定" : "准备新的美术候选（可选）"}</h3><p>{adoptionLabel("art", accepted.revision, accepted.contentHash)}的美术设定 r{accepted.revision} 仍保留在下方。新候选需要单独审核并确认，不会自动替换已有设定。</p></>}
-      <label>美术风格 *<select aria-label="美术风格" required value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择风格</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力动画</option></select></label><p>此选择用于新的美术任务，不会修改角色设定或图片。</p><Button variant="primary" disabled={readOnly || busy || !renderStyle} onClick={prepare}>准备美术设定任务</Button>
+      <label>美术风格 *<select aria-label="美术风格" required value={renderStyle} disabled={readOnly || workingSettings.stale || busy} onChange={event => { setRenderStyle(event.target.value as ArtRenderStyle | ""); workingSettings.changed(event.target.value); }}><option value="">请选择风格</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力动画</option></select></label><p>此选择用于新的美术任务，不会修改角色设定或图片。</p><Button variant="primary" disabled={readOnly || busy || !renderStyle} onClick={prepare}>准备美术设定任务</Button>
     </section>}
     {candidate?.status === "prepared" && state.status !== "stale" && <SpecialistTaskActions projectId={projectId} stage="art" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}
     {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} stale={state.status === "stale" || !draftMatches} draft={draft} setDraft={editDraft} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}

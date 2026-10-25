@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { ReviewDraftContext, useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import type { DirectionSelection } from "../types";
 import { Button, Field } from "../components";
 
@@ -15,11 +16,14 @@ export const visualGroups: Group[] = [
 
 function PresetGroup({ group, value, disabled, onChange }: { group: Group; value: DirectionSelection[]; disabled: boolean; onChange: (value: DirectionSelection[]) => void }) {
   const [custom, setCustom] = useState("");
+  const context = useContext(ReviewDraftContext);
+  const working = useReviewEditorDraft(context?.projectId || "", "brief_custom", "brief-custom:v1", setCustom, disabled, undefined, group.id, 0);
+  const submit = () => { if (custom.trim() && !has(custom.trim())) { onChange([...value, { group: group.id, value: custom.trim() }]); setCustom(""); working.changed(""); } };
   const has = (text: string) => value.some(item => item.group === group.id && item.value === text);
   const toggle = (text: string) => onChange(has(text) ? value.filter(item => item.group !== group.id || item.value !== text) : [...value, { group: group.id, value: text }]);
   return <fieldset><legend>{group.label}</legend><div className="preset-options">
     {group.values.map(text => <button type="button" className="button quiet" aria-pressed={has(text)} disabled={disabled} key={text} onClick={() => toggle(text)}>{text}</button>)}
-  </div><details className="preset-custom-disclosure"><summary>添加{group.label}自定义</summary><div className="preset-custom"><input aria-label={`${group.label}自定义`} maxLength={120} value={custom} disabled={disabled} placeholder="自定义内容" onChange={event => setCustom(event.target.value)} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); if (custom.trim() && !has(custom.trim())) { toggle(custom.trim()); setCustom(""); } } }} /><Button variant="quiet" disabled={disabled || !custom.trim() || has(custom.trim())} onClick={() => { toggle(custom.trim()); setCustom(""); }}>＋自定义</Button></div></details></fieldset>;
+  </div><details className="preset-custom-disclosure"><summary>添加{group.label}自定义</summary><div className="preset-custom"><input aria-label={`${group.label}自定义`} maxLength={120} value={custom} disabled={disabled || working.stale} placeholder="自定义内容" onChange={event => { setCustom(event.target.value); working.changed(event.target.value); }} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); submit(); } }} /><Button variant="quiet" disabled={disabled || working.stale || !custom.trim() || has(custom.trim())} onClick={submit}>＋自定义</Button></div>{working.notice}</details></fieldset>;
 }
 
 export function DirectionPresets({ label, groups, selections, detail, disabled, onSelections, onDetail }: { label: string; groups: Group[]; selections: DirectionSelection[]; detail: string; disabled: boolean; onSelections: (value: DirectionSelection[]) => void; onDetail: (value: string) => void }) {

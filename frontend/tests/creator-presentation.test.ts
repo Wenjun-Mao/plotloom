@@ -68,7 +68,7 @@ it("compares restored Brief structure against saved targets and Cancel never con
   const onSave = vi.fn();
   await act(async () => root.render(createElement(BriefPage, { value: recovered, savedValue: saved,
     hasSavedProject: true, saving: false, onSave })));
-  const save = [...host.querySelectorAll("button")].find(button => button.textContent === "保存修改")!;
+  const save = [...host.querySelectorAll("button")].find(button => button.textContent === "应用修改")!;
   await act(async () => save.click());
   const dialog = host.querySelector("dialog")!;
   expect(dialog.open).toBe(true);

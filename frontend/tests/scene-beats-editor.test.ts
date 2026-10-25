@@ -179,6 +179,19 @@ describe("scene-beats structural deletion confirmation", () => {
     await act(async () => root.unmount());
   });
 
+  it("retains raw blank durations for dialogue and scene budgets until explicit Apply", async () => {
+    const onDraftChange = vi.fn();
+    await act(async () => root.render(createElement(SceneBeatsPage, { value: plan(), stale: false, saving: false, onSave: async () => undefined, onDraftChange })));
+    for (const field of ["estimatedDurationUnits", "durationBudgetUnits"]) {
+      const input = document.querySelector<HTMLInputElement>(`input[data-focus-field="${field}"]`)!;
+      expect(input).not.toBeNull();
+      await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, ""); input.dispatchEvent(new Event("input", { bubbles: true })); });
+      expect(input.value).toBe("");
+    }
+    const changed = onDraftChange.mock.lastCall![0] as SceneBeatPlan;
+    expect(changed.dialogueCues[0].estimatedDurationUnits).toBe(""); expect(changed.scenes[0].durationBudgetUnits).toBe("");
+  });
+
   it("uses a top-level confirmation dialog and shows the exact scene cascade before changing the draft", async () => {
     const source = plan();
     const onDraftChange = vi.fn();

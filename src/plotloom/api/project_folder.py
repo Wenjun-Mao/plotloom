@@ -153,11 +153,22 @@ def create_project_folder_authoring_app(
             "orientation": profile.orientation,
         }
 
+    from contextvars import ContextVar
+    read_request: ContextVar[bool] = ContextVar("project_read_request", default=False)
+
+    @app.middleware("http")
+    async def project_read_admission(request, call_next):
+        token = read_request.set(request.method in {"GET", "HEAD"})
+        try:
+            return await call_next(request)
+        finally:
+            read_request.reset(token)
+
     @contextmanager
     def opened_project(project_id: str):
         from ..project_storage.proof_scope import proof_scope
         with proof_scope():
-            store = storage.projects.open(project_id)
+            store = storage.projects.read_open(project_id) if read_request.get() else storage.projects.open(project_id)
             try:
                 yield store
             finally:
@@ -178,6 +189,14 @@ def create_project_folder_authoring_app(
             yield store
         finally:
             store.close()
+
+    def working_project_view(store) -> Project:
+        project = store.project()
+        drafts = store.authoring.list_authoring_drafts(project.id)
+        brief_draft = next((draft for draft in drafts if draft.editor_scope == "brief" and draft.entity_id == "root"), None)
+        title = str(brief_draft.payload.get("title", "")) if brief_draft else project.brief.title if project.brief else ""
+        state, _revision = store.repository.operational_state()
+        return project.model_copy(update={"display_title": title.strip() or "未命名项目", "operational_state": state})
 
     def creation_response(project_id: str) -> ProjectCreation:
         with opened_project(project_id) as store:
@@ -399,7 +418,7 @@ def create_project_folder_authoring_app(
             return creation_response(project_id)
         fingerprint = stable_hash(
             {
-                "brief": brief.model_dump(mode="json", by_alias=False),
+                "brief": brief.model_dump(mode="json", by_alias=False) if brief else None,
                 "initialStages": [
                     stage.model_dump(mode="json", by_alias=False)
                     for stage in body.initial_stages
@@ -448,7 +467,7 @@ def create_project_folder_authoring_app(
         summaries: list[ProjectSummary] = []
         for home in storage.projects.discover():
             with inspected_project(home.manifest.project_id) as store:
-                project = store.project()
+                project = working_project_view(store)
                 if (
                     project_status != "all"
                     and project.lifecycle_status
@@ -463,7 +482,6 @@ def create_project_folder_authoring_app(
                             head.stage: head.status
                             for head in store.authoring.list_stage_heads(project.id)
                         },
-                        operational_state=operational_state,
                     )
                 )
             if len(summaries) == limit:
@@ -472,22 +490,26 @@ def create_project_folder_authoring_app(
 
     @app.get("/api/v2/projects/{project_id}", response_model=Project)
     def get_project(project_id: str) -> Project:
-        with opened_project(project_id) as store:
-            return store.project()
+        with inspected_open_project(project_id) as store:
+            return working_project_view(store)
 
     @app.post("/api/v2/projects/{project_id}/archive", response_model=Project)
     def archive_project(project_id: str, body: LifecycleRequest) -> Project:
-        return storage.lifecycle.archive(
+        storage.lifecycle.archive(
             project_id,
             expected_lifecycle_revision=body.expected_lifecycle_revision,
         )
+        with inspected_open_project(project_id) as store:
+            return working_project_view(store)
 
     @app.post("/api/v2/projects/{project_id}/restore", response_model=Project)
     def restore_project(project_id: str, body: LifecycleRequest) -> Project:
-        return storage.lifecycle.restore(
+        storage.lifecycle.restore(
             project_id,
             expected_lifecycle_revision=body.expected_lifecycle_revision,
         )
+        with inspected_open_project(project_id) as store:
+            return working_project_view(store)
 
     @app.post(
         "/api/v2/projects/{project_id}/duplicate",
@@ -521,7 +543,7 @@ def create_project_folder_authoring_app(
         )
 
     @app.post(
-        "/api/v2/projects/{project_id}/close",
+        "/api/v2/projects/{project_id}/freeze",
         response_model=ProjectOperationalState,
     )
     def close_project(project_id: str) -> ProjectOperationalState:
@@ -529,7 +551,7 @@ def create_project_folder_authoring_app(
         return ProjectOperationalState(project_id=project_id, state="closed", revision=revision)
 
     @app.post(
-        "/api/v2/projects/{project_id}/open",
+        "/api/v2/projects/{project_id}/unfreeze",
         response_model=ProjectOperationalState,
     )
     def open_project(project_id: str) -> ProjectOperationalState:

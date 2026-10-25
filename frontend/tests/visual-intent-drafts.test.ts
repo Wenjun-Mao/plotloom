@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { imageJobTargetId, useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
+import { clientJournalStorage } from "../src/features/authoring/clientJournalStorage";
 import { plotloomApi } from "../src/api";
 import { createProjectDraftQuiescence, type ProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 
@@ -76,7 +77,7 @@ it.each(["visual", "direction"])("another mounted %s editor cannot resurrect an 
   await mount("b"); await update("neighbor draft");
   const erase = q.beginClose("a"); await erase.suspendWrites(); await act(async () => erase.discardUnsent()); erase.finish();
   await update("new neighbor draft");
-  const cache = sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1");
+  const cache = clientJournalStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1");
   expect(cache).not.toContain("deleted draft"); expect(cache).toContain("new neighbor draft");
 });
 
@@ -100,7 +101,7 @@ it.each(["visual", "direction"])("a retained %s writer follows current project a
     await act(async () => vi.advanceTimersByTimeAsync(1_000));
     await expect(q.flush("project")).resolves.toBe(false);
     expect(save).not.toHaveBeenCalled(); expect(discard).not.toHaveBeenCalled();
-    expect(sessionStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1"))
+    expect(clientJournalStorage.getItem(kind === "visual" ? "plotloom:visual-intent-drafts:v1" : "plotloom:image-job-direction-drafts:v1"))
       .toContain("retained A text");
     q.setWriteAdmission("project", true);
     await expect(q.flush("project")).resolves.toBe(true);
@@ -108,7 +109,7 @@ it.each(["visual", "direction"])("a retained %s writer follows current project a
   } finally { vi.useRealTimers(); }
 });
 
-it("retains separate drafts across shots, candidates, projects, and remounts in session storage only", async () => {
+it("retains separate drafts across shots, candidates, projects, and remounts in a verified persistent journal", async () => {
   await render(); await edit("my draft");
   for (const props of [{ shot: "other" }, { asset: "other" }, { project: "other" }]) {
     await render(props); expect(editor.value.styleIntent).toBe("saved"); expect(editor.dirty).toBe(false);
@@ -116,8 +117,8 @@ it("retains separate drafts across shots, candidates, projects, and remounts in 
   await render(); expect(editor.value.styleIntent).toBe("my draft"); expect(editor.dirty).toBe(true);
   await act(async () => root.unmount()); root = createRoot(host); await render();
   expect(editor.value.styleIntent).toBe("my draft");
-  expect(localStorage.length).toBe(0);
-  expect(sessionStorage.getItem("plotloom:visual-intent-drafts:v1")).toContain("my draft");
+  expect(localStorage.length).toBeGreaterThan(0);
+  expect(clientJournalStorage.getItem("plotloom:visual-intent-drafts:v1")).toContain("my draft");
 });
 
 it("preserves the original null baseline when a saved intent arrives, until explicit discard", async () => {
@@ -182,7 +183,7 @@ it("discards only the current context and warns on unload while any drafts remai
   await render(); await edit("first"); await render({ shot: "second" }); await edit("second");
   await act(async () => editor.clear()); expect(editor.dirty).toBe(false);
   const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event);
-  expect(event.defaultPrevented).toBe(true);
+  expect(event.defaultPrevented).toBe(false);
   await render(); expect(editor.value.styleIntent).toBe("first");
   await act(async () => editor.clear());
   const clean = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(clean);
@@ -229,8 +230,8 @@ it("isolates manual image directions by project, shot, and original/refinement t
   expect(directionEditor.value).toBe("refinement direction");
   await renderDirection();
   expect(directionEditor.value).toBe("original direction");
-  expect(localStorage.length).toBe(0);
-  expect(sessionStorage.getItem("plotloom:image-job-direction-drafts:v1")).toContain("refinement direction");
+  expect(localStorage.length).toBeGreaterThan(0);
+  expect(clientJournalStorage.getItem("plotloom:image-job-direction-drafts:v1")).toContain("refinement direction");
 });
 
 it("requires explicit recovery when an image direction's approval context changes", async () => {
@@ -245,23 +246,18 @@ it("requires explicit recovery when an image direction's approval context change
   expect(directionEditor.value).toBe("");
 });
 
-it("does not report a cleared acknowledged image direction as drained until its CAS discard succeeds", async () => {
+it("preserves a blank working direction and discards only through an explicit exact action", async () => {
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
-  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
-  const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft").mockResolvedValue(1);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValueOnce({ draftRevision: 1 } as never).mockResolvedValueOnce({ draftRevision: 2 } as never);
+  const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft").mockResolvedValue(2);
   await renderDirection({ durable: true });
-  await act(async () => { await Promise.resolve(); });
   await act(async () => directionEditor.update("remove this durable direction"));
-  await expect(directionEditor.flush()).resolves.toBe(true);
-
+  await act(async () => { expect(await directionEditor.flush()).toBe(true); });
   await act(async () => directionEditor.update("   "));
-  expect(directionEditor.dirty).toBe(true);
-  await expect(directionEditor.flush()).resolves.toBe(true);
-  expect(discard).toHaveBeenCalledWith("project", {
-    editorScope: "image_direction",
-    entityId: "shot:original",
-    expectedDraftRevision: 1,
-  });
+  await act(async () => { expect(await directionEditor.flush()).toBe(true); });
+  expect(directionEditor.value).toBe("   "); expect(discard).not.toHaveBeenCalled();
+  await act(async () => { expect(await directionEditor.clear()).toBe(true); });
+  expect(discard).toHaveBeenCalledWith("project", { editorScope: "image_direction", entityId: "shot:original", expectedDraftRevision: 2 });
 });
 
 it("keeps an acknowledged image direction's own CAS receipt after its form switches shots", async () => {
@@ -293,27 +289,27 @@ it("retains a cleared image direction locally when its CAS discard conflicts", a
   await act(async () => directionEditor.update("do not lose this on conflict"));
   await expect(directionEditor.flush()).resolves.toBe(true);
 
-  await act(async () => directionEditor.update(""));
   let drained = true;
-  await act(async () => { drained = await directionEditor.flush(); });
+  await act(async () => { drained = await directionEditor.clear(); });
   expect(drained).toBe(false);
-  expect(directionEditor.value).toBe("");
+  expect(directionEditor.value).toBe("do not lose this on conflict");
   expect(directionEditor.dirty).toBe(true);
   expect(directionEditor.serverConflict).toBe(true);
 });
 
-it("removes empty directions without warning and preserves other exact targets", async () => {
+it("preserves raw blank directions without warning and explicitly erases only the selected target", async () => {
   await renderDirection();
   await act(async () => directionEditor.update("original direction"));
   await renderDirection({ target: "candidate-1" });
   await act(async () => directionEditor.update("refinement direction"));
   await act(async () => directionEditor.update("   "));
 
-  expect(directionEditor.value).toBe("");
+  expect(directionEditor.value).toBe("   ");
+  await act(async () => directionEditor.clear());
   expect(directionEditor.dirty).toBe(false);
   const whileOriginalRemains = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(whileOriginalRemains);
-  expect(whileOriginalRemains.defaultPrevented).toBe(true);
+  expect(whileOriginalRemains.defaultPrevented).toBe(false);
 
   await renderDirection();
   expect(directionEditor.value).toBe("original direction");
@@ -321,5 +317,23 @@ it("removes empty directions without warning and preserves other exact targets",
   const clean = new Event("beforeunload", { cancelable: true });
   window.dispatchEvent(clean);
   expect(clean.defaultPrevented).toBe(false);
-  expect(sessionStorage.getItem("plotloom:image-job-direction-drafts:v1")).toBe("{}");
+  expect(clientJournalStorage.getItem("plotloom:image-job-direction-drafts:v1")).toBe("{}");
+});
+
+it.each(["visual", "direction"])("first %s journal quota failure plus offline save refuses departure and warns on unload", async kind => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockRejectedValue(new TypeError("offline"));
+  const q = createProjectDraftQuiescence();
+  if (kind === "visual") await render({ durable: true, quiescence: q });
+  else await renderDirection({ durable: true, quiescence: q });
+  const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("quota", "QuotaExceededError"); });
+  try {
+    if (kind === "visual") await edit("visible unpreserved note");
+    else await act(async () => directionEditor.update("visible unpreserved direction"));
+    expect(kind === "visual" ? editor.storageFailed : directionEditor.storageFailed).toBe(true);
+    await act(async () => { expect(await q.preserve("project")).toBe(false); });
+    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    expect(kind === "visual" ? editor.value.styleIntent : directionEditor.value).toContain("visible unpreserved");
+  } finally { write.mockRestore(); }
 });

@@ -87,7 +87,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   );
   await page.getByRole("button", { name: "创建恢复快照" }).click();
   const snapshot = await (await snapshotResponse).json() as { location: string };
-  const close = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+  const close = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
   expect(close.ok(), await close.text()).toBeTruthy();
   const sourceHome = path.join(
     workbench.outputsRoot!,

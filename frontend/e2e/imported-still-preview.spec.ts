@@ -144,13 +144,13 @@ test.describe("P0 imported still preview journey", () => {
       response.request().method() === "PATCH" && new URL(response.url()).pathname ===
         `/api/v2/projects/${projectId}/stages/storyboard`,
     );
-    await page.getByRole("button", { name: "保存分镜" }).click();
+    await page.getByRole("button", { name: "应用分镜修改" }).click();
     const savedBoard = await savedBoardResponse;
     expect(savedBoard.ok(), await savedBoard.text()).toBeTruthy();
     expect(await savedBoard.json()).toMatchObject({ stage: "storyboard", revision: 2 });
     // Save completion includes canonical remount and refreshed Approval reads.
     // Open the new revision's disclosure, not the old instance still in flight.
-    await expect(page.getByRole("button", { name: "保存分镜", exact: true })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "应用分镜修改", exact: true })).toBeEnabled();
     await openMediaKeyframes(page);
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeDisabled();
     await expect(page.getByText("请先批准当前分镜；导入、比较和意图细化仍可继续。", { exact: true })).toBeVisible();

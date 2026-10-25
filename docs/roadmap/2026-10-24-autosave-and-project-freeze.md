@@ -287,3 +287,77 @@ Stop after the approved workflow is implemented, independently reviewed, locally
 qualified, preservation-checked and activated, with coherent source/docs and idle
 cleanup. No owner personal/creative acceptance or general release claim follows
 from agent-operated functional verification.
+
+## Execution checkpoint — D0 / first slice (2026-10-24)
+
+- Contract decision: ADR 0218. Existing SQL layout/rows unchanged; nullable JSON
+  Brief identifies unfinished projects. Old-reader compatibility ends at new
+  draft-only/new payload writes; qualification must prove a readable current
+  fallback, not claim catalog omissions mean compatibility.
+- Smallest owned fixture: existing production project-folder runtime, offline
+  provider seam, A/B draft-only projects, empty duration and synopsis. This worker
+  owns fixture restart/settlement; manager owns installed runtime/Safari.
+- First real proof passed before editor expansion: `focused --playwright
+  e2e/working-project-autosave.spec.ts`, 1 passed, journey 3.5s / runner 7.802s.
+  New A → unfinished title/empty duration → Home → New B → Home → A automatic
+  resume → backend restart → fresh context exact readback. Canonical Brief null,
+  runs empty, provider requests empty. Focused API restart/replay test also passed.
+- Two first failures were test locator errors before round-trip assertions;
+  retained logs `.local/autosave-first-slice-browser{,-2}.log` and screenshots/
+  traces under `.local/autosave-evidence/`. Accessibility snapshot supplied the
+  numeric role/name for the causal selector correction. Passing log:
+  `.local/autosave-first-slice-browser-3.log`. No full gate run.
+- Next: complete typed editor coverage and frozen pure reads, then stable review,
+  one final full qualification and manager-owned preservation/activation.
+
+## Execution inventory — source review checkpoint
+
+The following is the implemented candidate inventory, pending final unfiltered
+qualification and root-owned installed activation. All rows use existing typed
+project draft CAS; the graph keeps its single writer. A server receipt preserves
+working input, never semantic acceptance. Ordinary settings/credentials remain
+outside these journals.
+
+| Authored input | Owner/entity/basis | Explicit semantic action / exclusions | Evidence so far |
+| --- | --- | --- | --- |
+| Brief title, synopsis, selections, raw numeric targets | `brief/root`, project revision; `BriefWorkingInput` | Apply/Confirm converts exact raw receipt; optional title fallback only here | A/B browser restart/fresh context; backend raw adoption, bounds, nullable lifecycle |
+| Unsubmitted custom direction label | `review_buffer/brief_custom:group`, fixed basis, base0, <=120 | Enter/+ adds selection; unrelated Apply leaves scratch text | Independent scratch/backend Apply preservation |
+| Bible, Scene Beats, Storyboard fields including unfinished numbers/line lists | Existing stage/root, stage revision; named structural working models | Existing explicit stage Apply validates canonical model | Typed partial-stage validator; both raw Beats duration fields |
+| Creator/Professional graph including raw JSON | Shared `story_graph/root`, existing graph context and field buffers | Existing graph Confirm/Apply; no second writer | Graph provider/read/admission cases; real leave/restart single-root browser proof |
+| Source/adaptation input | `review_buffer/source`, source revision | Confirm Source; no source content accepted by autosave | Fresh browser/backend restart and local-only reconnect after unmount |
+| Cast / Art JSON and authored directions | `review_buffer/cast`, `art`; exact candidate/accepted revision/hash/status | Existing explicit candidate/reopened Save; consent excluded | Focused ownership/currentness; real leave/restart cast/art |
+| Cast/Art render choice | `cast_settings`, `art_settings`, render-style basis | Prepare remains explicit; provider/profile secrets excluded | Bounded known choice adapter and existing workflow tests |
+| Script section JSON | `script:sectionId`, accepted script revision/hash/status | Save only that section; other sections independent | Per-section CAS; browser adaptation selects matching section before auto-resume |
+| Production intent / presentation text, spans and reasons | `production_intent:proposal`, `production_presentation:proposal`, proposal revision/hash and source hash | Explicit Save/Confirm; exact applied-entry cleanup; no install/generation | Production basis suite and A/B receipt race tests |
+| Shot presentation physical text, literals/mode, reason | `shot_presentation:shot`, source hash/revision | Explicit reviewed confirmation excluded from journal | Typed remount/currentness suite; confirmation stays fresh |
+| Visual intent / source-ref raw text | `visual_intent:shot:asset`, storyboard/current media context | Explicit Save normalizes and validates; malformed duplicate/33-line refs can autosave | Invalid raw save/restart; Apply422 retains receipt; quota/offline guards |
+| Image-job direction | `image_direction:shot:target`, exact target/context | Explicit prepare/send; blank and whitespace preserved | Exact CAS, retained writers, first quota/offline/unload |
+| Keyframe compatibility note | `keyframe_compatibility:shot:asset`, candidate hashes/intent/approval/storyboard basis | Explicit keyframe review; approval excluded | A/B candidate note identities and receipt chains |
+| Character reference ideas/import label/origin | `character_reference:character`, cast revision | Prepare/import/send/select explicit; File not journaled | Pending File A→B blocked, explicit cancel→B, no stranded guard |
+| Art reference requirements | `art_reference:subject`, accepted art revision/hash | Prepare/select explicit | Known subject adapter; art preparation/ownership tests |
+| Reference and same-person observations | `managed_reference:character`, `same_person:binding`, storyboard/identity mapping basis | Reviewer identity, judgment and productionDecision excluded | Fresh reviewer with recovered observations; media currentness tests |
+| Managed import origin/additions | `managed_reference:import:shot`, storyboard basis | File selection/upload and rights authority stay explicit | Typed text adapter plus pending-file guard |
+| Manual H3 English and raw seed | `h3_directions:shot`, exact source identity and returned source hash | Fresh source read, checkbox, compiled approval and request identity required | Raw00042/English remount; stale source disables editing; rejected race blocks departure |
+| Batch English per shot/path | `video_directions:batch`, exact manifest hash and owned shot/path | Directions Apply/recompile and Start explicit | Known manifest/target adapter; final browser qualification pending |
+| Video pack observations, rejection reason, segment/reopen notes | `video_pack_notes:batch`, `take_rejection:job`, `video_segment_notes:job`; exact review/job/selection/source basis | Operator identity, review judgment, reopen/replace/dispatch authority excluded | Owning adapters/current review suites; final UI qualification pending |
+| Whole-material review text / manual retry directions | `material_review:bundle`, `text_retry:attempt`, exact bundle/run/rejection basis | Judgments, authorization, retry commands and confirmation excluded | Material text projection excludes authority; existing review tests |
+
+Read-only/frozen recovery disables editing and does not resume observers or
+reconcile dispatched work. Native report/status and batch current/review queries
+use read admission. Service fixtures compare complete logical rows/files and
+confirm POST refusal. Real ready UI playback advanced currentTime in both media
+panel and play route with zero non-GET project requests.
+
+Independent source review matched the frozen manifests and returned concrete
+quota-closure, candidate-identity, navigation, raw-number, reviewer-attribution and
+restored-read-lock defects. Focused fixes passed before residual delta review;
+residual direct-folder restore, reused local counter and stale-edit race fixes passed causal verification and independent closure. A later existing branch browser fixture exposed write transactions in query helpers and ordinary departure joining an already-owned branch POST. The bounded query/read-head and departure/drain separation fixes have their own focused evidence and delta review. First failures remain in `.local/autosave-*.log`.
+
+Actual rollback fixture: prior `4c6db5ff` directly refuses null-Brief homes with
+`ProjectStorageCorruptionError`. It can open/read an extended raw draft, but its
+old canonical draft validator refuses the empty numeric payload with
+`ValidationError`. Current source reopens both and preserves exact logical rows
+and files (`.local/autosave-rollback-proof-2.log`, 1 passed). This does not claim
+all raw read-open paths refuse extended payloads, nor that an old binary can
+safely continue editing them. Retained qualified source/static remains the
+post-boundary fallback; no live rollback/migration was executed.

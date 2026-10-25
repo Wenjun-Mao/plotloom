@@ -55,7 +55,7 @@ def assert_graph_draft_seed(session, access, project_id: str, draft: GraphAuthor
             raise InvalidTransitionError("图草稿必须保留原始可信规划种子。")
         return
     project = access.rows.project(session, project_id)
-    seeds = [planned_structure(project_id, ProjectBrief.model_validate(project.brief))]
+    seeds = [planned_structure(project_id, ProjectBrief.require_confirmed(project.brief))]
     head = session.get(SourceOutlineSectionMapHeadRow, project_id)
     if head and head.revision:
         row = session.scalar(select(SourceOutlineSectionMapRevisionRow).where(

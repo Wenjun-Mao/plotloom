@@ -184,7 +184,7 @@ function statusFor(input: RecommendedWorkflowInput, id: RecommendedWorkflowStepI
   if (input.readOnly) return "只读快照";
   if (!input.project.id && !input.projectPending) return id === "brief" ? "尚未保存" : "项目未保存";
   if (!input.workspaceAvailable) return "无法核实";
-  if (id === "brief") return input.project.id && input.project.revision > 0 ? "已有保存版本" : "尚未保存";
+  if (id === "brief") return input.project.hasConfirmedBrief === false ? "输入已保留 · 尚未确认" : input.project.id && input.project.revision > 0 ? "已有确认版本" : "尚未确认";
   if (id === "source") return outlineStatus(input);
   if (id === "branches") return branchStatus(input);
   if (id === "creator") return id === currentStep ? "正在查看" : "待检查路线";
@@ -246,19 +246,19 @@ function nextRecommendation(input: RecommendedWorkflowInput, currentStep: Recomm
   const archived = input.project.lifecycleStatus === "archived" || Boolean(input.project.archivedAt);
   if (archived || input.readOnly) return { text: "项目为只读快照，可查看保留内容；恢复项目后再核实当前状态并继续创作。" };
   if (input.projectPending) return { text: "正在读取当前项目版本；读取完成后再核实已有确认和后续步骤。" };
-  if (!input.project.id) return currentStep === "brief"
-    ? { text: "填写故事梗概并保存项目，再进入来源与大纲。保存不会自动生成或确认内容。" }
-    : { text: "当前项目尚未保存。先完成项目简报并保存，再继续来源、大纲与后续创作。" };
+  if (!input.project.id || input.project.hasConfirmedBrief === false) return currentStep === "brief"
+    ? { text: "编辑输入自动保留。填写完整后明确确认项目简报，再开始准备来源、大纲与制作。" }
+    : { text: "项目简报尚未确认。编辑输入已保留；先完成并确认简报，再开始制作。" };
   if (!input.workspaceAvailable) return { text: "当前项目版本未能读取。先刷新服务器版本；读取成功后再判断此前确认是否仍适用。" };
   if (input.actionDisabled) return { text: "项目正在读取或处理，请等待状态稳定后再继续；现有草稿和导航保护仍按当前工作台处理。" };
   if (currentStep === "brief") {
-    return { text: "检查并保存当前项目简报，再按需返回来源与大纲；简报修改不会自动重建后续内容。", action: { kind: "navigate", label: "打开来源与大纲", route: { stage: "source", hash: "source" } } };
+    return { text: "编辑输入自动保留；应用修改后才会更新制作依据。可以直接返回来源与大纲继续浏览。", action: { kind: "navigate", label: "打开来源与大纲", route: { stage: "source", hash: "source" } } };
   }
   const sourceNeeded = currentStep === "source" || currentStep === "branches" || currentStep === "creator"
     || (input.activePage === "source" && input.sourceDraftDirty);
   if (sourceNeeded && input.sourceReviewStatus === "loading") return { text: "正在读取来源、大纲和当前分支版本；读取完成前不沿用旧确认。" };
   if (sourceNeeded && input.sourceReviewStatus === "failed") return { text: "无法核实当前来源与大纲状态。先在本页刷新读取；保留版本不代表当前确认。" };
-  if (input.activePage === "source" && input.sourceDraftDirty) return { text: "故事内容有未保存修改。先在本页确认或放弃修改，再继续导航。" };
+  if (input.activePage === "source" && input.sourceDraftDirty) return { text: "故事输入已保留、尚未应用。确认修改后下游才会使用它；也可继续浏览已确认版本。" };
   if (currentStep === "source") {
     const review = input.sourceReview;
     if (!review?.source) return { text: "先确认故事来源，再准备大纲任务；确认来源不会自动生成大纲。" };

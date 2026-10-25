@@ -91,3 +91,27 @@ it("publishes pending only after its joinable flight exists", async () => {
   expect(joined).toBe(false);
   held.resolve(); await flight; expect(await drainage).toBe(true);
 });
+
+
+it("ordinary departure preserves a sent operation immediately while exclusive drain still joins it", async () => {
+  const quiescence = createProjectDraftQuiescence();
+  const owner = createBranchOperationOwner(quiescence);
+  const held = deferred();
+  const command = vi.fn(() => held.promise);
+  const flight = owner.run("A", command);
+  let preserved: boolean | undefined;
+  void quiescence.preserve("A").then(value => { preserved = value; });
+  await new Promise<void>(resolve => setTimeout(resolve, 0));
+  try {
+    expect(preserved).toBe(true);
+    expect(owner.snapshot("A").pending).toBe(true);
+    const attempt = quiescence.beginClose("A");
+    let drained = false;
+    const drain = attempt.drain().then(value => { drained = value; });
+    await Promise.resolve();
+    expect(drained).toBe(false);
+    held.resolve(); await flight; await drain;
+    expect(drained).toBe(true); attempt.finish();
+    expect(command).toHaveBeenCalledTimes(1);
+  } finally { held.resolve(); await flight; }
+});

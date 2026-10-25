@@ -22,7 +22,7 @@ function createOperations(quiescence?: ProjectDraftQuiescence) {
       const ticket = {};
       // This writer belongs to the admitted promise, not a component mount.
       const unregister = quiescence?.register(projectId, `production_bridge_pending:${crypto.randomUUID()}`, async () => {
-        throw new Error("投产提案审阅操作未完成；请等待该操作结束后关闭项目。");
+        throw new Error("投产提案审阅操作未完成；请等待该操作结束后冻结项目。");
       }) ?? (() => undefined);
       pending.set(projectId, { ticket, unregister }); notify();
       return ticket;

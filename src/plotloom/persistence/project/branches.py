@@ -18,7 +18,7 @@ class ProjectBranchPersistence:
         self._access, self._outline = access, outline
 
     def _state(self, session, project_id):
-        return self._outline._state_in_session(session, project_id, self._outline._head(session, project_id, create=True))
+        return self._outline._state_in_session(session, project_id, self._outline._head(session, project_id, create=False))
 
     def _basis(self, session, project_id):
         state = self._state(session, project_id)
@@ -34,7 +34,7 @@ class ProjectBranchPersistence:
     def _planned(self, session, project_id):
         from ...domain import ProjectBrief
         from ...source_structures import planned_structure
-        return planned_structure(project_id, ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief))
+        return planned_structure(project_id, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief))
 
     @staticmethod
     def _latest(session, project_id):
@@ -55,7 +55,7 @@ class ProjectBranchPersistence:
         project = self._access.rows.project(session, project_id)
         from ...domain import ProjectBrief
         request = CreativeHandoffRequest.model_validate(row.request)
-        if request.source != self._basis(session, project_id) or request.input_artifacts["outline-settings.json"] != outline_settings(ProjectBrief.model_validate(project.brief)):
+        if request.source != self._basis(session, project_id) or request.input_artifacts["outline-settings.json"] != outline_settings(ProjectBrief.require_confirmed(project.brief)):
             raise CreativeHandoffError("delivery_stale", "来源、大纲、简报或已保存分支已变化，请取消旧建议后重新准备。")
         return request
 
@@ -69,7 +69,7 @@ class ProjectBranchPersistence:
         }
 
     def state(self, project_id):
-        with self._access.leases.lifecycle_write() as session:
+        with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             row = self._latest(session, project_id)
             reasons = []
@@ -97,7 +97,7 @@ class ProjectBranchPersistence:
             request = CreativeHandoffRequest(
                 job_id=f"ch_{uuid4().hex}", project_id=project_id, section_id="branches", stage="branches",
                 expected_stage_revision=basis["mapRevision"], source=basis,
-                input_artifacts={"branch-schema.json": BranchSuggestion.model_json_schema(by_alias=True), "outline-settings.json": outline_settings(ProjectBrief.model_validate(project.brief))},
+                input_artifacts={"branch-schema.json": BranchSuggestion.model_json_schema(by_alias=True), "outline-settings.json": outline_settings(ProjectBrief.require_confirmed(project.brief))},
                 creative_brief="从冻结的已确认大纲和 topology 提出完整剧情分支建议：每个计划节点的标题和剧情、每个选择的问题与所有选项和后续剧情、每个汇合的叙事衔接。保留所有节点、选项与汇合的身份和顺序，不新增或删减结构。选项、完整播放路线和不同结局是不同概念。不要把分集猜测为路线节点；保留来源事实。缺失或歧义时提出明确建议并在 clarifications 披露依据。只有建议，绝不接受、保存或安装路线。按 branch-schema.json 输出；代码管理身份和链接。",
             )
             pin = exchange.current_execution_pin("branches")
@@ -130,7 +130,7 @@ class ProjectBranchPersistence:
                 mapping = bind_branches(proposal, request.source["topology"])
                 from ...source_outline_contracts import compile_section_map_graph, validate_section_map_graph
                 from ...domain import ProjectBrief
-                validate_section_map_graph(compile_section_map_graph(mapping), ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief))
+                validate_section_map_graph(compile_section_map_graph(mapping), ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief))
             except ValueError as error:
                 raise CreativeHandoffError("delivery_candidate_invalid", "分支建议不完整或链接无效，请检查助手交付。") from error
             row.status = "ready"; row.outline = proposal.model_dump(mode="json", by_alias=True)
@@ -140,7 +140,7 @@ class ProjectBranchPersistence:
             return SimpleNamespace(status=row.status)
 
     def draft(self, project_id, job_id):
-        with self._access.leases.lifecycle_write() as session:
+        with self._access.leases.read() as session:
             row = self._row(session, project_id, job_id)
             request = self._current(session, project_id, row)
             if row.status != "ready":

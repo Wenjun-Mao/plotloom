@@ -9,6 +9,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage
@@ -221,7 +222,7 @@ def test_cancelled_image_job_unblocks_snapshot_and_close(tmp_path: Path) -> None
         snapshot = client.post(f"/api/v2/projects/{project_id}/snapshots")
         assert snapshot.status_code == 201, snapshot.text
         assert snapshot.json()["status"] == "complete"
-        closed = client.post(f"/api/v2/projects/{project_id}/close")
+        closed = client.post(f"/api/v2/projects/{project_id}/freeze")
         assert closed.status_code == 200, closed.text
     finally:
         client.close()
@@ -445,3 +446,35 @@ def test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source
         assert workbench["selectionRevision"] == selected.json()["selectionRevision"]
     finally:
         client.close()
+
+
+def test_raw_invalid_visual_references_survive_restart_without_canonical_adoption(tmp_path: Path):
+    from io import BytesIO
+    from PIL import Image
+    from plotloom.domain import STAGE_ORDER
+    from tests.backend_core.conftest import all_stage_payloads
+    roots = dict(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    storage = ProjectFolderStorage(**roots)
+    raw_values = ["same\nsame\n", "\n".join(f"ref-{index}" for index in range(33))]
+    with TestClient(create_project_folder_authoring_app(storage)) as client:
+        created = client.post("/api/v2/projects", json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True), "initialStages": [{"stage": stage.value, "payload": payload.model_dump(mode="json", by_alias=True)} for stage, payload in zip(STAGE_ORDER, all_stage_payloads())]})
+        assert created.status_code == 201, created.text
+        pid = created.json()["id"]
+        storyboard = client.get(f"/api/v2/projects/{pid}/stages").json()["stages"][-1]
+        shot = storyboard["payload"]["shots"][0]["id"]
+        image = BytesIO(); Image.new("RGB", (24, 16)).save(image, format="PNG")
+        asset = client.post(f"/api/v2/projects/{pid}/managed-assets", files={"image": ("fixture.png", image.getvalue(), "image/png")}, data={"origin": "owned offline draft fixture", "rights": "unknown", "declared_additions_json": "[]"}).json()["id"]
+        for revision, raw in enumerate(raw_values):
+            refs = [item for item in raw.splitlines() if item]
+            saved = client.put(f"/api/v2/projects/{pid}/authoring-drafts", json={"editorScope": "visual_intent", "entityId": f"{shot}:{asset}", "baseCanonicalRevision": storyboard["head"]["revision"], "expectedDraftRevision": revision, "payload": {"assetId": asset, "shotId": shot, "role": "shot_keyframe", "compositionIntent": "unfinished", "sourceRefs": refs, "sourceRefsText": raw}})
+            assert saved.status_code == 200, saved.text
+            refused = client.post(f"/api/v2/projects/{pid}/managed-assets/{asset}/visual-intents", json={"shotId": shot, "role": "shot_keyframe", "compositionIntent": "unfinished", "sourceRefs": refs, "consumedDraft": {"editorScope": "visual_intent", "entityId": f"{shot}:{asset}", "draftRevision": revision + 1}})
+            assert refused.status_code == 422, refused.text
+            assert client.get(f"/api/v2/projects/{pid}/authoring-drafts").json()[0] == saved.json()
+        assert client.get(f"/api/v2/projects/{pid}/visual-workbench").json()["visualIntents"] == []
+        assert client.get(f"/api/v2/projects/{pid}/runs").json()["runs"] == []
+    with TestClient(create_project_folder_authoring_app(ProjectFolderStorage(**roots))) as client:
+        retained = client.get(f"/api/v2/projects/{pid}/authoring-drafts").json()[0]
+        assert retained["payload"]["sourceRefsText"] == raw_values[-1]
+        assert retained["draftRevision"] == 2
+        assert client.get(f"/api/v2/projects/{pid}/visual-workbench").json()["visualIntents"] == []

@@ -31,6 +31,7 @@ type StoryBiblePageProps = {
   value: StoryBible;
   stale: boolean;
   saving: boolean;
+  readOnly?: boolean;
   entityId?: string;
   referenceContext?: BibleReferenceContext;
   issues?: ValidationIssue[];
@@ -45,6 +46,7 @@ export function StoryBiblePage({
   value,
   stale,
   saving,
+  readOnly = false,
   entityId,
   referenceContext,
   issues = [],
@@ -77,6 +79,7 @@ export function StoryBiblePage({
   );
   const update = (next: StoryBible | ((current: StoryBible) => StoryBible)) =>
     setDraft((current) => {
+      if (readOnly) return current;
       const updated = typeof next === "function" ? next(current) : next;
       onDraftChange?.(updated);
       return updated;
@@ -170,16 +173,16 @@ export function StoryBiblePage({
             </span>
             <Button
               variant="primary"
-              disabled={saving}
+              disabled={saving || readOnly}
               onClick={() => void onSave(draft)}
             >
-              {saving ? "正在保存…" : "保存故事圣经"}
+              {saving ? "正在保存…" : "应用故事圣经修改"}
             </Button>
           </>
         }
       />
       <Panel className="form-card">
-        <div className="field-grid two">
+        <fieldset disabled={readOnly}><div className="field-grid two">
           <Field
             label="一句话概述（Logline）"
             hint="用一句话概括主角、核心冲突和故事吸引力；详细背景写在“故事前提”中。"
@@ -286,6 +289,7 @@ export function StoryBiblePage({
             field="sourceNotes"
           />
         </div>
+        </fieldset>
       </Panel>
       {issues.length > 0 && (
         <Panel className="form-card" data-testid="bible-issues">
@@ -311,6 +315,7 @@ export function StoryBiblePage({
             </div>
             <Button
               variant="quiet"
+              disabled={readOnly}
               data-testid={`add-${type}`}
               onClick={() => addEntity(type)}
             >
@@ -366,13 +371,14 @@ export function StoryBiblePage({
             </div>
             <Button
               variant="danger"
+              disabled={readOnly}
               data-testid="request-entity-delete"
               onClick={() => setPendingDeletion(selection)}
             >
               删除
             </Button>
           </div>
-          {selection.type === "character" ? (
+          <fieldset disabled={readOnly}>{selection.type === "character" ? (
             <CharacterInspector
               entity={selectedEntity as CharacterCard}
               onChange={updateEntity}
@@ -383,7 +389,7 @@ export function StoryBiblePage({
               entity={selectedEntity as LocationCard | PropCard}
               onChange={updateEntity}
             />
-          )}
+          )}</fieldset>
         </Panel>
       )}
       {pendingDeletion && (

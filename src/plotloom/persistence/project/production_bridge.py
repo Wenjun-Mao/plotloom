@@ -101,7 +101,7 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
 
         try:
             project = self._access.rows.project(session, project_id)
-            brief = ProjectBrief.model_validate(project.brief)
+            brief = ProjectBrief.require_confirmed(project.brief)
             bible = StoryBibleV2.model_validate(payload["bible"])
             self._source_graph.validate_graph_bible_in_session(session, project, bible)
             beats = SceneBeatPlanV2.model_validate(payload["sceneBeats"])

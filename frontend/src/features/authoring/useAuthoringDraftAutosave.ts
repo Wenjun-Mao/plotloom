@@ -1,3 +1,4 @@
+import { saveWorkingDraft } from "./saveWorkingDraft";
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { AuthoringDraft, WorkspaceProject } from "../../types";
@@ -24,6 +25,7 @@ function messageFrom(error: unknown): string {
 export function useAuthoringDraftAutosave({
   project,
   writesAllowed,
+  projectWritesAllowed = () => true,
   scopeWritesAllowed = () => true,
   durableDraftsEnabledRef,
   serverAuthoringDrafts,
@@ -36,6 +38,7 @@ export function useAuthoringDraftAutosave({
 }: {
   project: WorkspaceProject;
   writesAllowed: boolean;
+  projectWritesAllowed?: (projectId: string) => boolean;
   scopeWritesAllowed?: (scope: DraftScope, projectId: string) => boolean;
   durableDraftsEnabledRef: MutableRefObject<boolean>;
   serverAuthoringDrafts: MutableRefObject<Map<string, AuthoringDraft>>;
@@ -46,9 +49,10 @@ export function useAuthoringDraftAutosave({
   onConflict: (scope: DraftScope, record: DraftRecord, workspace: WorkspaceProject) => void;
   onMutationAcknowledged: (operation: WorkspaceOperation) => void;
 }) {
-  const writeAuthority = useRef({ projectId: project.id, allowed: writesAllowed });
+  const writeAuthority = useRef(new Map<string, boolean>());
+  const activeProject = useRef(project.id); activeProject.current = project.id;
   const scopeAuthority = useRef(scopeWritesAllowed); scopeAuthority.current = scopeWritesAllowed;
-  writeAuthority.current = { projectId: project.id, allowed: writesAllowed };
+  if (project.id) writeAuthority.current.set(project.id, writesAllowed);
   const draftAutosaveTimers = useRef(new Map<string, number>());
   const draftAutosaveFlights = useRef(new Map<string, Promise<boolean>>());
   const abandonedProjects = useRef(new Set<string>());
@@ -65,9 +69,11 @@ export function useAuthoringDraftAutosave({
     // Drain to a stable local revision.  Joining one flight is insufficient:
     // typing can create a newer session record while that request is in flight.
     while (true) {
+      const buffered = getDraft(project, scope);
+      if (!buffered && !draftAutosaveFlights.current.has(key)) return true;
       // Project ownership and conflicts still govern every drain. Read authority
       // governs new writes, not an empty queue or an already-admitted flight.
-      if (!writeAuthority.current.allowed || writeAuthority.current.projectId !== project.id) return false;
+      if (!writeAuthority.current.get(project.id) || !projectWritesAllowed(project.id)) return false;
       if (abandonedProjects.current.has(project.id) || suspendedProjects.current.has(project.id)) return false;
       const existingFlight = draftAutosaveFlights.current.get(key);
       if (existingFlight) {
@@ -76,13 +82,13 @@ export function useAuthoringDraftAutosave({
       }
       const local = getDraft(project, scope);
       if (!local) return true;
-      if (!scopeAuthority.current(scope, project.id)) return false;
+      if (activeProject.current === project.id && !scopeAuthority.current(scope, project.id)) return false;
       const operation = captureWorkspaceOperation();
-      if (operation.projectId !== project.id || !isWorkspaceOperationCurrent(operation)) return false;
+      const paintsCurrent = () => operation.projectId === project.id && isWorkspaceOperationCurrent(operation);
       const request = (async (): Promise<boolean> => {
-        if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saving");
+        if (paintsCurrent()) setDurableDraftStatus("saving");
         try {
-          const saved = await plotloomApi.saveAuthoringDraft(project.id!, {
+          const saved = await saveWorkingDraft(project.id!, {
             editorScope: scope, entityId: "root",
             baseCanonicalRevision: local.baseRevision,
             expectedDraftRevision: local.serverDraftRevision,
@@ -90,15 +96,15 @@ export function useAuthoringDraftAutosave({
           });
           serverAuthoringDrafts.current.set(key, saved);
           acknowledgeDraft(project, scope, local.localRevision, saved.draftRevision);
-          if (isWorkspaceOperationCurrent(operation)) {
+          if (paintsCurrent()) {
             setDurableDraftStatus("saved");
             if (saved.projectId === operation.projectId && saved.editorScope === scope && saved.entityId === "root") onMutationAcknowledged(operation);
           }
           return true;
         } catch (draftError) {
-          if (isWorkspaceOperationCurrent(operation)) {
+          if (paintsCurrent()) {
             if (draftError instanceof ApiError && draftError.status === 409) {
-              writeAuthority.current.allowed = false;
+              writeAuthority.current.set(project.id!, false);
               setDurableDraftStatus("conflict");
               onConflict(scope, getDraft(project, scope) ?? local, project);
             } else {
@@ -120,7 +126,7 @@ export function useAuthoringDraftAutosave({
 
   const scheduleAuthoringDraftAutosave = useCallback((scope: DraftScope) => {
     if (!durableDraftsEnabledRef.current || !project.id) return;
-    if (!writeAuthority.current.allowed || writeAuthority.current.projectId !== project.id) return;
+    if (!writeAuthority.current.get(project.id) || !projectWritesAllowed(project.id)) return;
     if (!scopeAuthority.current(scope, project.id)) return;
     if (abandonedProjects.current.has(project.id) || suspendedProjects.current.has(project.id)) return;
     const key = authoringDraftKey(project.id, scope);

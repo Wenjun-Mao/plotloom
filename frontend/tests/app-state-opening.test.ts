@@ -89,7 +89,7 @@ describe("App project/editor rehydration", () => {
       expect(list).toHaveBeenNthCalledWith(2, false, 50, "after-one");
     });
 
-  it("installs a recovered session draft into the editor after the user confirms restore", async () => {
+  it("keeps a foreign legacy journal visible as a conflict without overwriting the editor", async () => {
       const restoredTitle = "恢复到编辑器的草稿标题";
       window.history.replaceState(null, "", "/?project=recovery-project");
       window.sessionStorage.setItem("plotloom:workbench-drafts:v1", JSON.stringify({
@@ -104,11 +104,9 @@ describe("App project/editor rehydration", () => {
 
       await act(async () => root.render(createElement(App)));
       await flush();
-      expect(document.body.textContent).toContain("发现可恢复草稿");
-
-      await act(async () => button("恢复草稿").click());
-      await flush();
-      expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe(restoredTitle);
+      expect(document.body.textContent).toContain("草稿版本已过期");
+      expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("服务器标题");
+      expect(sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(restoredTitle);
     });
 
   it("shows a discard-only notice for a draft from an older server revision", async () => {
@@ -248,7 +246,7 @@ describe("App project/editor rehydration", () => {
       await flush();
       expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("尚未保存的用户修改");
 
-      await act(async () => button("保存修改").click());
+      await act(async () => button("应用修改").click());
       await flush();
       expect(patch).toHaveBeenCalledWith("real-project", 7, expect.objectContaining({ title: "尚未保存的用户修改" }));
     });

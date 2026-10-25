@@ -127,16 +127,16 @@ describe("M1-B1 App integration contracts", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => setInput(document.querySelector(".form-card input") as HTMLInputElement, localTitle));
-    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    expect(JSON.stringify(window.localStorage)).toContain(localTitle);
 
-    await act(async () => button("保存修改").click());
+    await act(async () => button("应用修改").click());
     await flush();
 
     expect(document.body.textContent).toContain("草稿版本已过期");
     expect(button("重新加载服务器版本")).toBeTruthy();
     expect(button("复制草稿为新项目")).toBeTruthy();
     expect(button("丢弃冲突草稿")).toBeTruthy();
-    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    expect(JSON.stringify(window.localStorage)).toContain(localTitle);
 
     let releaseRead!: (value: ProjectListItem) => void;
     vi.mocked(plotloomApi.getProject).mockReturnValueOnce(new Promise(resolve => { releaseRead = resolve; }));
@@ -145,25 +145,27 @@ describe("M1-B1 App integration contracts", () => {
     expect(button("正在重新加载…").disabled).toBe(true);
     expect(button("复制草稿为新项目").disabled).toBe(true);
     expect(document.body.textContent).not.toContain("已重新加载服务器");
-    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    expect(JSON.stringify(window.localStorage)).toContain(localTitle);
     await act(async () => releaseRead(resource(projectId, "服务器并发版本", 2)));
     await flush();
 
     expect(button("已加载服务器版本").disabled).toBe(true);
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("服务器并发版本");
-    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
+    expect(JSON.stringify(window.localStorage)).toContain(localTitle);
 
-    const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(creationResponse("conflict-copy", `${localTitle}（冲突副本）`));
+    const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(creationResponse("conflict-copy", ""));
+    const working = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementation(async (_id, request) => ({ projectId: "conflict-copy", ...request, draftRevision: 1, updatedAt: "now" }));
     await act(async () => button("复制草稿为新项目").click());
     await flush();
     await flush();
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ brief: expect.objectContaining({ title: `${localTitle}（冲突副本）` }) }),
-      expect.stringMatching(/^project-create-/),
+      expect.objectContaining({ brief: null, initialStages: [] }),
+      expect.stringMatching(/^project-conflict-copy-/),
     );
+    expect(working).toHaveBeenCalledWith("conflict-copy", expect.objectContaining({ editorScope: "brief", payload: expect.objectContaining({ title: localTitle }) }));
     expect(window.location.search).toContain("project=conflict-copy");
-    expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).not.toContain(localTitle);
+    expect(JSON.stringify(window.localStorage)).not.toContain(localTitle);
   });
 
   it("renders lightweight work-unit attempt, token, seal, and failure progress in the inspector", async () => {

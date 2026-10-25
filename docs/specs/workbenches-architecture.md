@@ -11,13 +11,14 @@ generated full-code dependency map or a claim of runtime acceptance.
 | Professional presentation | Technical canvas/details over the same graph owner; active-project-session visual context survives mode switches and resets on project change/reload/close-reopen | Independent canonical graph save, durable authored layout or a reset of shared selection/content |
 | Canonical reading | Accepted StoryGraph, shared topology/field projections, mode-specific shell | Fake authoring draft/source binding or revived legacy writer |
 | Story and production context | Existing exact Script/review/bridge and shot/media owners | Node-only generation, guessed scene mappings or duplicate media state |
-| Project durability | Current project-folder persistence, CAS, admission and lifecycle quiescence | Shared historical repository fallback or implicit migration |
+| Project durability | Existing typed project draft CAS and one graph owner; verified per-document journals, exact receipts, separate explicit Apply; nullable pre-Brief identity; optional Freeze with pure read leases and refused writes | Browser dumps, automatic canonical approval/generation, last-write-wins, hidden Unfreeze or historical repository fallback |
 | Provider execution | Existing specialist/bridge/gateway owners and frozen request/dispatch identity | UI navigation implicitly generating, approving or selecting media |
 | Batch revision | Existing native review, control and replacement owners; creator UI projects their exact persisted state and lineage | One fictitious transaction, automatic retry or a competing batch/job store |
 | Timing and status | Existing run/batch GET owners project immutable facts; browser derives labelled display age | New persistence clocks, progress inferred from polling or extra provider execution |
 | Delegated QA | Server-owned exact original-runtime grant and typed actor checks; browser has explicit project-local opt-in only | A global actor toggle, title/URL-based authority or unnamed-human fallback |
 
-Primary records: [0121](../adr/0121-current-source-graph-authoring.md),
+Primary records: [0218 working autosave / Freeze](../adr/0218-working-input-autosave-and-optional-freeze.md),
+[0121](../adr/0121-current-source-graph-authoring.md),
 [0122](../adr/0122-creator-workspace-presentation.md),
 [0123](../adr/0123-node-context-story-production-workflows.md),
 [0138](../adr/0138-one-current-story-explicit-rebuild.md),

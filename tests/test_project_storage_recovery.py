@@ -377,3 +377,65 @@ def test_private_recovery_roots_reject_symlink_and_escape_paths(tmp_path: Path) 
         recovery_module._private_directory(link, "snapshot", confinement_root=tmp_path)
     with pytest.raises(ProjectStorageConfinementError, match="escapes"):
         recovery_module._private_directory(outside, "restore", confinement_root=tmp_path / "inside")
+
+
+def test_restored_frozen_authority_read_retains_real_cross_process_exclusion(tmp_path: Path):
+    import sys
+    from tests.working_input_preservation import preservation_inventory
+    storage, project_id, _ = _portable_fixture(tmp_path)
+    storage.projects.close_project(project_id)
+    snapshot = storage.recovery.create_snapshot(project_id)
+    fresh = _storage(tmp_path, "restored-frozen-read")
+    home = fresh.recovery.restore(Path(snapshot.location))
+    assert (home / ".project-operation.lock").is_file()
+    before = preservation_inventory(home)
+    child = subprocess.Popen([sys.executable, "-c", '''
+from pathlib import Path
+import sys
+from plotloom.project_storage import ProjectFolderStorage
+storage = ProjectFolderStorage(outputs_root=Path(sys.argv[1]), application_data_root=Path(sys.argv[2]))
+store = storage.projects.read_open(sys.argv[3])
+assert store.repository.operational_state()[0] == "closed"
+print("HELD", flush=True)
+sys.stdin.readline()
+store.close()
+''', str(fresh.projects.outputs_root), str(tmp_path / "restored-frozen-read" / "application"), project_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        assert child.stdout.readline().strip() == "HELD"
+        with pytest.raises(ProjectBusyError):
+            fresh.projects.reopen_project(project_id)
+        with pytest.raises(ProjectBusyError):
+            fresh.projects._exclusive_store(project_id)
+        assert preservation_inventory(home) == before
+    finally:
+        child.communicate("release\n", timeout=20)
+        assert child.returncode == 0
+    assert fresh.projects.reopen_project(project_id) > 0
+    fresh.projects.close_project(project_id)
+    (home / ".project-operation.lock").unlink()
+    missing_before = preservation_inventory(home)
+    with pytest.raises(ProjectStorageCorruptionError, match="initialized operation lock"):
+        fresh.projects.read_open(project_id)
+    passive = fresh.projects.inspect(project_id, passive=True)
+    passive.close()
+    assert preservation_inventory(home) == missing_before
+
+
+def test_direct_frozen_folder_restore_initializes_authority_lock_without_source_mutation(tmp_path: Path):
+    from tests.working_input_preservation import preservation_inventory
+    storage, project_id, _ = _portable_fixture(tmp_path)
+    store = storage.projects.open(project_id)
+    home = store.home
+    store.close()
+    storage.projects.close_project(project_id)
+    before = preservation_inventory(home)
+    fresh = _storage(tmp_path, "direct-frozen-restored")
+    restored = fresh.recovery.restore(home)
+    assert (restored / ".project-operation.lock").is_file()
+    opened = fresh.projects.read_open(project_id)
+    try:
+        assert opened.repository.operational_state()[0] == "closed"
+        assert opened.project().id == project_id
+    finally:
+        opened.close()
+    assert preservation_inventory(home) == before

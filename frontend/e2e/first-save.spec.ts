@@ -1,244 +1,42 @@
-import type { APIRequestContext, Page, Request as PlaywrightRequest, Response as PlaywrightResponse, Route } from "@playwright/test";
 import { expect, test } from "./fixture";
 
-type InitialStage = { stage: string; payload: unknown };
-type ProjectCreateBody = { brief: unknown; initialStages: InitialStage[] };
-
-test.describe("first-save project bootstrap", () => {
-  test("creates the Story Bible prefix in one request, hydrates it, and restores it after reload", async ({ page, request, workbench }) => {
-    await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await openSampleProject(page);
-    await expectServiceStatus(page, "Plotloom 服务：未连接");
-    await navigateToSecondaryTool(page, "故事圣经");
-
-    // Help mentions the adjacent field but is a description, not another label.
-    await expect(page.getByLabel("故事前提")).toHaveCount(1);
-    await expect(page.getByLabel("一句话概述（Logline）")).toHaveAccessibleName("一句话概述（Logline）");
-    await expect(page.getByLabel("一句话概述（Logline）")).toHaveAccessibleDescription("用一句话概括主角、核心冲突和故事吸引力；详细背景写在“故事前提”中。");
-
-    const logline = "E2E：未保存工作台从故事圣经开始建立规范项目。";
-    const premise = "E2E：一份作者填写的故事前提必须随首次保存成为规范数据。";
-    await page.getByLabel("一句话概述（Logline）").fill(logline);
-    await page.getByLabel("故事前提").fill(premise);
-    const created = captureProjectCreate(page);
-    await page.getByRole("button", { name: "保存故事圣经" }).click();
-    const createRequest = await created;
-
-    await expect(page).toHaveURL(/[?&]project=/);
-    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
-    await expect(page.getByLabel("故事前提")).toHaveValue(premise);
-    const projectId = currentProjectId(page);
-    const requestBody = createRequest.postDataJSON() as ProjectCreateBody;
-    const submittedBible = requestBody.initialStages.find((stage) => stage.stage === "story_bible");
-    expect(submittedBible).toBeTruthy();
-    await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedBible!.payload);
-
-    await page.reload();
-    await expectServiceStatus(page, "Plotloom 服务：已连接");
-    await navigateToSecondaryTool(page, "故事圣经");
-    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
-    await expect(page.getByLabel("故事前提")).toHaveValue(premise);
-  });
-
-  test("persists the complete teaching prefix when saving its Brief, then persists a later Story Bible edit", async ({ page, request, workbench }) => {
-    await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await openSampleProject(page);
-    const title = "E2E Brief-first project";
-    for (const [role, label, hint] of [
-      ["textbox", "片名", "可选工作片名；留空时保存为“未命名故事”。"],
-      ["spinbutton", "目标游玩时长（秒）", "至少 3 秒；这是创作目标，不是最终播放时长的承诺。"],
-      ["combobox", "镜头数量规则", "这只控制每场镜头数量；镜头时长、资源与供应商能力限制仍须满足。"],
-      ["textbox", "类型细节（可选）", "原有自由文本保留在这里，与已选内容一起用于创作。"],
-      ["textbox", "视觉风格细节（可选）", "原有自由文本保留在这里，与已选内容一起用于创作。"],
-    ] as const) {
-      // Role queries use the computed accessible name, excluding the decorative *.
-      await expect(page.getByRole(role, { name: label, exact: true })).toHaveAccessibleName(label);
-      await expect(page.getByRole(role, { name: label, exact: true })).toHaveAccessibleDescription(hint);
-    }
-    await page.getByLabel("片名").fill(title);
-    await expect(page.locator(".page-header .button")).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
-    let autopilotStarts = 0;
-    page.on("request", request => {
-      if (request.method() === "POST" && new URL(request.url()).pathname.endsWith("/autopilot/start")) autopilotStarts += 1;
-    });
-    const created = captureProjectCreate(page);
-    await page.getByRole("button", { name: "保存项目简报" }).click();
-    const createRequest = await created;
-    await expect(page).toHaveURL(/[?&]project=/);
-    await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "自动准备素材" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "继续手动创作" })).toBeVisible();
-    expect(autopilotStarts).toBe(0);
-    const projectId = currentProjectId(page);
-    const creationBody = createRequest.postDataJSON() as ProjectCreateBody;
-    expect(creationBody.initialStages.map((stage) => stage.stage)).toEqual([
-      "story_bible", "story_graph", "scene_beats", "storyboard",
-    ]);
-    for (const stage of ["story_bible", "story_graph", "scene_beats", "storyboard"]) {
-      await expectCanonicalStage(
-        request,
-        workbench.apiOrigin,
-        projectId,
-        stage,
-        creationBody.initialStages.find((candidate) => candidate.stage === stage)!.payload,
-      );
-    }
-
-    await page.getByRole("button", { name: "继续手动创作" }).click();
-    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
-    expect(autopilotStarts).toBe(0);
-
-    await navigateToSecondaryTool(page, "故事圣经");
-    const logline = "E2E：先保存简报，再保存故事圣经。";
-    await page.getByLabel("一句话概述（Logline）").fill(logline);
-    await page.getByLabel("故事前提").fill("先建立项目，再为它写入第一条可追溯的故事规范。");
-    // The canonical read below is only valid after the PATCH response: waiting
-    // for the request alone races the backend transaction and can read the
-    // preceding stage revision.
-    const stagePatch = captureStagePatchResponse(page, projectId, "story_bible");
-    await page.getByRole("button", { name: "保存故事圣经" }).click();
-    const stageResponse = await stagePatch;
-    expect(stageResponse.ok()).toBeTruthy();
-    const stageRequest = stageResponse.request();
-    const submittedPayload = (stageRequest.postDataJSON() as { payload: unknown }).payload;
-    await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload, 2);
-
-    await page.reload();
-    await expectServiceStatus(page, "Plotloom 服务：已连接");
-    await navigateToSecondaryTool(page, "故事圣经");
-    await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
-  });
-
-  test("persists a complete storyboard prefix and renders it after a browser refresh", async ({ page, request, workbench }) => {
-    await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await openSampleProject(page);
-    await navigateToSecondaryTool(page, "分镜工作台");
-    await page.getByRole("button", { name: "编辑镜头细节" }).click();
-    const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
-    await page.getByRole("textbox", { name: "动作", exact: true }).fill(action);
-    const created = captureProjectCreate(page);
-    await page.getByRole("button", { name: "保存分镜" }).click();
-    const createRequest = await created;
-
-    await expect(page).toHaveURL(/[?&]project=/);
-    const projectId = currentProjectId(page);
-    const requestBody = createRequest.postDataJSON() as ProjectCreateBody;
-    expect(requestBody.initialStages.map((stage) => stage.stage)).toEqual([
-      "story_bible", "story_graph", "scene_beats", "storyboard",
-    ]);
-    const submittedStoryboard = requestBody.initialStages.find(
-      (stage) => stage.stage === "storyboard",
-    );
-    expect(submittedStoryboard).toBeTruthy();
-    await expectCanonicalStage(
-      request,
-      workbench.apiOrigin,
-      projectId,
-      "storyboard",
-      submittedStoryboard!.payload,
-    );
-    // Bootstrap persists the Gate receipt transactionally. The first project
-    // view must fetch it immediately, rather than misleading the creator
-    // until a manual reload.
-    await expect(page.getByText(/质量检查详情/)).toBeVisible();
-
-    await page.reload();
-    await expectServiceStatus(page, "Plotloom 服务：已连接");
-    await navigateToSecondaryTool(page, "分镜工作台");
-    await page.getByRole("button", { name: "编辑镜头细节" }).click();
-    await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
-  });
-
-  test("retains an unsaved Story Bible draft and reuses its idempotency key after a transient create failure", async ({ page, workbench }) => {
-    await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await openSampleProject(page);
-    await navigateToSecondaryTool(page, "故事圣经");
-    const logline = "E2E：失败后仍可安全重试同一份首次保存。";
-    await page.getByLabel("一句话概述（Logline）").fill(logline);
-
-    const idempotencyKeys: string[] = [];
-    let failedOnce = false;
-    const failFirstCreate = async (route: Route) => {
-      const incoming = route.request();
-      if (incoming.method() === "POST" && new URL(incoming.url()).pathname === "/api/v2/projects") {
-        const key = incoming.headers()["idempotency-key"];
-        if (key) idempotencyKeys.push(key);
-        if (!failedOnce) {
-          failedOnce = true;
-          await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "temporary E2E failure" }) });
-          return;
-        }
-      }
-      await route.continue();
-    };
-    await page.route("**/api/v2/projects", failFirstCreate);
-    try {
-      await page.getByRole("button", { name: "保存故事圣经" }).click();
-      await expect(page.getByRole("alert")).toContainText("temporary E2E failure");
-      expect(page.url()).not.toContain("project=");
-      await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
-
-      await page.getByRole("button", { name: "保存故事圣经" }).click();
-      await expect(page).toHaveURL(/[?&]project=/);
-      expect(idempotencyKeys).toHaveLength(2);
-      expect(idempotencyKeys[1]).toBe(idempotencyKeys[0]);
-    } finally {
-      await page.unroute("**/api/v2/projects", failFirstCreate);
-    }
-  });
+test("explicit teaching copy persists canon, later Bible input autosaves and Apply survives reload", async ({ page, request, workbench }) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "打开示例项目", exact: true }).click();
+  const create = page.waitForRequest(request => request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects");
+  await page.getByRole("button", { name: "创建编辑副本", exact: true }).click();
+  expect((await create).postDataJSON().initialStages).toHaveLength(4);
+  await expect(page).toHaveURL(/[?&]project=/);
+  const id = new URL(page.url()).searchParams.get("project")!;
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=bible`);
+  const logline = page.getByRole("textbox", { name: "一句话概述（Logline）", exact: true });
+  await expect(logline).toHaveAccessibleDescription("用一句话概括主角、核心冲突和故事吸引力；详细背景写在“故事前提”中。");
+  const original = await logline.inputValue();
+  const next = "Explicit copy author input, later applied by its exact receipt.";
+  await logline.fill(next);
+  await expect.poll(async () => (await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)).json()).find((draft: { editorScope: string }) => draft.editorScope === "story_bible")?.payload.logline).toBe(next);
+  const before = (await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/stages`)).json()).stages.find((stage: { head: { stage: string } }) => stage.head.stage === "story_bible");
+  expect(before.payload.logline).toBe(original);
+  await page.getByRole("button", { name: "应用故事圣经修改", exact: true }).click();
+  await expect.poll(async () => (await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/stages`)).json()).stages.find((stage: { head: { stage: string } }) => stage.head.stage === "story_bible").payload.logline).toBe(next);
+  await page.reload(); await expect(logline).toHaveValue(next);
 });
 
-function captureProjectCreate(page: Page): Promise<PlaywrightRequest> {
-  return page.waitForRequest((request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects");
-}
-
-async function openSampleProject(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "打开示例项目" }).click();
-}
-
-async function navigateToSecondaryTool(page: Page, label: string): Promise<void> {
-  const toolsNavigation = page.getByRole("navigation", { name: "编辑与工具" });
-  if (!(await toolsNavigation.isVisible())) {
-    await page.getByText("编辑与工具", { exact: true }).click();
-  }
-  await toolsNavigation.getByRole("button", { name: label, exact: true }).click();
-}
-
-async function expectServiceStatus(page: Page, label: string): Promise<void> {
-  const serviceStatus = page.locator("details.topbar-technical-status");
-  if ((await serviceStatus.getAttribute("open")) === null) {
-    await serviceStatus.locator("summary").click();
-  }
-  await expect(page.getByText(label, { exact: true })).toBeVisible();
-}
-
-function captureStagePatchResponse(page: Page, projectId: string, stage: string): Promise<PlaywrightResponse> {
-  const expectedPath = `/api/v2/projects/${projectId}/stages/${stage}`;
-  return page.waitForResponse((response) => {
-    const request = response.request();
-    return request.method() === "PATCH" && new URL(request.url()).pathname === expectedPath;
+test("lost New response and double-click intent replay create exactly one persistent draft", async ({ page, request, workbench }) => {
+  const keys: string[] = []; let lose = true;
+  await page.route("**/api/v2/projects", async route => {
+    if (route.request().method() !== "POST") { await route.continue(); return; }
+    keys.push(route.request().headers()["idempotency-key"]);
+    if (lose) { lose = false; await route.fetch(); await route.abort("failed"); }
+    else await route.continue();
   });
-}
-
-function currentProjectId(page: Page): string {
-  const projectId = new URL(page.url()).searchParams.get("project");
-  expect(projectId).toBeTruthy();
-  return projectId!;
-}
-
-async function expectCanonicalStage(
-  request: APIRequestContext,
-  apiOrigin: string,
-  projectId: string,
-  stageName: string,
-  expectedPayload: unknown,
-  expectedRevision = 1,
-): Promise<void> {
-  const response = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/stages`);
-  expect(response.ok()).toBeTruthy();
-  const body = await response.json() as { stages: Array<{ head: { stage: string; status: string; revision: number }; payload: unknown }> };
-  const stage = body.stages.find((candidate) => candidate.head.stage === stageName);
-  expect(stage?.head).toMatchObject({ stage: stageName, status: "ready", revision: expectedRevision });
-  expect(stage?.payload).toEqual(expectedPayload);
-}
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "创建空白项目", exact: true }).click();
+  await expect(page.getByText(/新项目尚未确认创建/)).toBeVisible();
+  await page.getByRole("button", { name: "创建空白项目", exact: true }).click();
+  await expect(page).toHaveURL(/[?&]project=/);
+  expect(keys).toHaveLength(2); expect(keys[1]).toBe(keys[0]);
+  const projects = (await (await request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects;
+  expect(projects).toHaveLength(1); expect(projects[0].brief).toBeNull();
+  expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projects[0].id}/runs`)).json()).runs).toEqual([]);
+});

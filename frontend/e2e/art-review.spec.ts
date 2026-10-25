@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "./fixture";
@@ -54,6 +55,8 @@ test.describe("F3A production art review", () => {
     await page.reload();
     await expect(scene).toContainText("设定已变更");
     await expect(scene).toContainText("此前的参考决定已过期");
+    await expect(scene.getByRole("button", { name: "准备图片生成任务", exact: true })).toBeDisabled();
+    await scene.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
     const newPrepared = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
     await scene.getByRole("button", { name: "准备图片生成任务" }).click();
@@ -63,11 +66,11 @@ test.describe("F3A production art review", () => {
     // completed its mandatory refresh. Wait for that mounted continuation
     // before exercising a competing lifecycle request.
     await expect(scene.getByRole("button", { name: "取消图片任务" })).toBeVisible();
-    const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
     expect(blocked.status()).toBe(409);
     await scene.getByRole("button", { name: "取消图片任务" }).click();
     await expect(scene).toContainText("已取消");
-    const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
     expect(released.ok(), await released.text()).toBeTruthy();
     expect(activeId).toBeTruthy();
   });
@@ -265,23 +268,29 @@ test.describe("F3A production art review", () => {
     await expect(panel.getByRole("button", { name: "取消此任务" })).toBeVisible();
     const snapshot = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/snapshots`);
     expect(snapshot.status()).toBe(409);
-    const close = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    const close = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
     expect(close.status()).toBe(409);
     const cancelled = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates/${prepared.jobId}/cancel`);
     await panel.getByRole("button", { name: "取消此任务" }).click();
     expect((await cancelled).ok()).toBeTruthy();
     await expect(panel.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
-    // Close through the requesting client so its pending status reads settle
+    // Freeze through the requesting client so its pending status reads settle
     // before exclusive admission (ADR 0124), rather than racing a second client.
     const released = page.waitForResponse(response => response.request().method() === "POST"
-      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/close`);
-    await page.getByRole("button", { name: "保存并关闭项目", exact: true }).click();
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/freeze`);
+    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+    const currentRow = page.locator(`.directory-item[data-project-id="${projectId}"]`);
+    await openProjectManagement(currentRow);
+    await currentRow.getByRole("button", { name: "冻结项目", exact: true }).click();
     const closed = await released;
     expect(closed.ok(), await closed.text()).toBeTruthy();
     const row = page.locator(`.directory-item[data-project-id="${projectId}"]`);
-    await expect(row).toContainText("已关闭 · 可安全复制");
-    await row.getByRole("button", { name: "重新打开", exact: true }).click();
+    await expect(row).toContainText("已冻结 · 只读");
+    await openProjectManagement(row);
+    await row.getByRole("button", { name: "解除冻结", exact: true }).click();
+    await expect(row).not.toContainText("已冻结");
+    await page.getByRole("dialog", { name: "项目目录", exact: true }).locator("footer").getByRole("button", { name: "关闭窗口", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "项目目录", exact: true })).toBeHidden();
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
     expect(prepared.jobId).toBeTruthy();

@@ -174,7 +174,7 @@ def test_source_outline_cancel_is_durable_and_unblocks_a_closed_project(tmp_path
         job_id = prepared.json()["jobId"]
         assert client.get(f"/api/v2/projects/{other_id}/source-outline/candidates/{job_id}/assignment").status_code == 404
 
-        assert client.post(f"/api/v2/projects/{project_id}/close").json()["code"] == "project_busy"
+        assert client.post(f"/api/v2/projects/{project_id}/freeze").json()["code"] == "project_busy"
         assert client.post(f"/api/v2/projects/{project_id}/snapshots").json()["code"] == "project_busy"
         assert client.post(f"/api/v2/projects/{other_id}/source-outline/candidates/{job_id}/cancel").status_code == 404
 
@@ -183,7 +183,7 @@ def test_source_outline_cancel_is_durable_and_unblocks_a_closed_project(tmp_path
         assert cancelled.json()["candidate"]["status"] == "cancelled"
         assert client.get(f"/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/assignment").status_code == 409
         assert client.post(f"/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/refresh").json()["code"] == "delivery_cancelled"
-        assert client.post(f"/api/v2/projects/{project_id}/close").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/freeze").status_code == 200
         closed_write = client.put(f"/api/v2/projects/{project_id}/source-outline/source", json={"expectedSourceRevision": 1, "material": material})
         assert closed_write.status_code == 409
         assert closed_write.json()["code"] == "project_closed"

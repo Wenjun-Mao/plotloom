@@ -92,7 +92,7 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await page.getByRole("button", { name: /^项目简报与创作设置/ }).click();
   await page.getByLabel("剧情节点数量上限", { exact: true }).fill("40");
   const preview = page.getByRole("dialog", { name: "确认结构目标调整" });
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   await expect(preview).toContainText("预览依据：当前已接受规范图");
   await expect(preview).toContainText("当前实际图：4 节点 · 2 结局 · 0 汇合 · 2 条完整路线");
   await page.screenshot({ path: info.outputPath("canonical-brief-preview.png") });
@@ -110,7 +110,7 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await expect(recover).toBeVisible(); await recover.click();
   await expect(page.getByRole("dialog", { name: "发现可恢复草稿" })).toHaveCount(0);
   await page.getByLabel("剧情节点数量上限", { exact: true }).fill("41");
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   await expect(preview).toContainText("预览依据：当前图尚未核实");
   await expect(preview.locator("tbody tr").first()).toHaveText(`节点上限${demoProject.brief.nodeBudget}41`);
   await expect(preview).not.toContainText("当前实际图：");
@@ -120,7 +120,7 @@ export async function canonicalBriefPreview({ page, request, workbench }: Journe
   await expect(recover).toBeVisible(); await recover.click();
   await expect(page.getByRole("dialog", { name: "发现可恢复草稿" })).toHaveCount(0);
   await page.getByLabel("剧情节点数量上限", { exact: true }).fill("42");
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   await expect(preview).toContainText("预览依据：当前已接受规范图");
   await preview.getByRole("button", { name: "取消调整", exact: true }).click();
   expect(await json(request.get(`${base}/stages`))).toEqual(stages);

@@ -477,3 +477,24 @@ it("does not let an old same-document rejection replace a settled new project", 
   expect(host.textContent).toContain("New project");
   expect(host.textContent).not.toContain("old request failed");
 });
+
+it("blocks subject departure with a pending File until explicit cancellation without leaving a stranded guard", async () => {
+  const { ReviewDraftContext } = await import("../src/features/authoring/ReviewDraftContext");
+  const { createReviewDraftStore } = await import("../src/features/authoring/reviewDraftStore");
+  const { createProjectDraftQuiescence } = await import("../src/features/authoring/projectDraftQuiescence");
+  const response = galleryResponse("project", "File fixture", { characters: [{ id: "keeper", name: "Mira" }, { id: "visitor", name: "Jo" }] });
+  installResolvedGallery(response);
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  const upload = vi.spyOn(plotloomApi, "importManagedAsset");
+  await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "project", revision: 1, enabled: true }, children: createElement(CharactersPage, { projectId: "project", readOnly: false }) })));
+  const input = host.querySelector('input[type="file"]') as HTMLInputElement;
+  Object.defineProperty(input, "files", { configurable: true, value: [new File(["fixture"], "pending.png", { type: "image/png" })] });
+  await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
+  await act(async () => (host.querySelectorAll<HTMLButtonElement>('.reference-subjects button')[1]).click());
+  expect(host.querySelector("#reference-subject-title")?.textContent).toBe("Mira"); expect(host.textContent).toContain("先导入或明确取消");
+  await expect(q.preserve("project")).resolves.toBe(false);
+  await act(async () => button("取消所选本地图片").click());
+  await act(async () => (host.querySelectorAll<HTMLButtonElement>('.reference-subjects button')[1]).click());
+  expect(host.querySelector("#reference-subject-title")?.textContent).toBe("Jo"); await expect(q.preserve("project")).resolves.toBe(true);
+  expect(upload).not.toHaveBeenCalled();
+});

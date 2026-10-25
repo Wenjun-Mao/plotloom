@@ -368,3 +368,24 @@ def test_unconfigured_runtime_never_calls_native_or_api(tmp_path):
         refused = client.post(base + "/native-intent-jobs", json={"expectedProposalRevision": revision, "expectedContentHash": digest})
         assert refused.status_code >= 400
         assert client.get(base).json()["intentJob"] is None
+
+
+def test_frozen_intent_state_and_report_are_pure_reads(native):
+    from tests.working_input_preservation import preservation_inventory
+    storage, project, revision, digest, service, job, calls = native
+    service.send(project, job)
+    deliver(native)
+    service.check(project, job)
+    storage.projects.close_project(project)
+    before = preservation_inventory(storage.projects.outputs_root)
+    with TestClient(create_project_folder_authoring_app(storage)) as client:
+        before_app = preservation_inventory(storage.application.root)
+        base = f"/api/v2/projects/{project}/production-bridge"
+        state = client.get(base)
+        assert state.status_code == 200, state.text
+        assert state.json()["intentJob"]["status"] == "ready"
+        assert client.get(f"{base}/native-intent-jobs/{job}/report").content == service.report(project, job)
+        assert client.post(f"{base}/native-intent-jobs/{job}/check").status_code == 409
+        assert preservation_inventory(storage.application.root) == before_app
+    assert preservation_inventory(storage.projects.outputs_root) == before
+    assert len(calls) == 1

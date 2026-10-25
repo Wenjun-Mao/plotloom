@@ -5,7 +5,7 @@ import { InstalledProductionSummary } from "./InstalledProductionSummary";
 import { NativeBridgeIntentControls } from "./NativeBridgeIntentControls";
 import { NativeBridgePresentationControls } from "./NativeBridgePresentationControls";
 import { ProductionIntentSaveBar } from "./ProductionIntentSaveBar";
-import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
+
 import { useProductionBridgeReview, type BridgeReviewBasis } from "./useProductionBridgeReview";
 import { useReportReviewWorkflowRead } from "../app/workspace/ReviewWorkflowReadContext";
 import { useAutomaticGuidance, useBridgeAdoptionLabel } from "../features/autopilot/guidance";
@@ -29,12 +29,10 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
   const readOnly = ownerReadOnly || reviewBasis.status !== "current" || !review.acknowledged;
   useReportReviewWorkflowRead(projectId, true, { stage: "production-bridge", status: loadFailed ? "failed" : review.acknowledged ? "ready" : "loading",
     state, busy, dirty: intentDirty || draftConflict || (presentationTouched && presentationDirty), error, blocked: readOnly, canonicalReady, canOpenShot: Boolean(onOpenShot) });
-  useExplicitReviewCloseGuard(projectId, "production_bridge", intentDirty || draftConflict || (presentationTouched && presentationDirty), false,
-    review.discard, "投产提案审阅");
   const job = state?.intentJob;
   if (!state) return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{loadFailed ? "加载失败" : "正在加载"}</strong></header>
-    {loadFailed ? <><ErrorNotice message={userFacingBridgeMessage(error)} /><Button onClick={retryLoad}>重试加载</Button></> : <Spinner />}
+    {loadFailed ? <>{review.workingIntentNotice}<ErrorNotice message={userFacingBridgeMessage(error)} /><Button onClick={retryLoad}>重试加载</Button></> : <Spinner />}
   </section>;
   const unsaved = intentDirty || draftConflict || presentationDirty;
   const label = proposal ? adoptionLabel(proposal.revision, proposal.contentHash) : "待采用";
@@ -98,8 +96,8 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
         <p><small>{proposal.intentPackage.suggestionOrigin !== "none" ? "模型建议仅供审阅，来源与目标由系统绑定。" : "来源摘录仅是证据，不是已完成的戏剧意图。"} 可逐项修改并保存整包；确认仅适用于当前提案。</small></p>
         {draftConflict && <div className="notice warning">服务器提案或审阅状态已变化；未保存的本地编辑仍在此保留。请复制所需文字后，明确载入当前提案。</div>}
         {draftConflict && <Button disabled={readOnly || busy} onClick={review.discard}>载入新提案并放弃本地编辑</Button>}
-        {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 结构条目 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || busy || state.status === "accepted" || state.status === "stale" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
-        {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)} />}
+        {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 结构条目 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || review.intentStale || busy || state.status === "accepted" || state.status === "stale" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
+        {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || review.intentStale || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={async () => { const applied = await run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true); if (applied) await review.clearAppliedIntent(); }} />}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
       <NativeBridgePresentationControls projectId={projectId} state={state} disabled={readOnly || busy} localEdits={localEdits} occupied={!!unresolvedJob} run={operation => run(operation)} />
@@ -111,6 +109,6 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现方式审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
     </>}
     {preparation.status === "unavailable" && <details><summary>提案准备诊断</summary><p>{preparation.reason}</p></details>}
-    {error && <ErrorNotice message={userFacingBridgeMessage(error)} />}
+    {review.workingIntentNotice}{error && <ErrorNotice message={userFacingBridgeMessage(error)} />}
   </section>;
 }

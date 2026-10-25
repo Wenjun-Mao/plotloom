@@ -226,7 +226,7 @@ it("protects presentation-only edits when another reader accepts the same propos
   expect(button("重新准备投产提案").disabled).toBe(true);
   await act(async () => button("重新准备投产提案").click()); expect(prepare).not.toHaveBeenCalled();
   const close = quiescence.beginClose("project");
-  await expect(close.drain()).rejects.toThrow("尚有未保存修改"); close.finish();
+  await expect(close.drain()).resolves.toBe(false); close.finish();
   await act(async () => button("载入新提案并放弃本地编辑").click()); await settle();
   expect(field('[aria-label="画面描述 source-1 1"]').value).toBe("rendering-1");
   expect(button("重新准备投产提案").disabled).toBe(false);

@@ -132,6 +132,22 @@ test("storyboard batch refreshes the existing player after whole-pack approval",
   await page.getByRole("button",{name:"已保存 · 查看故事播放",exact:true}).click();
   await page.locator("#shot-story-preview").getByRole("button",{name:"播放当前",exact:true}).click();
   await expect(page.locator("#shot-story-preview video").first()).toBeAttached();
+  const frozen = await page.request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
+  expect(frozen.ok(), await frozen.text()).toBeTruthy();
+  const writes: string[] = [];
+  page.on("request", request => { if (!["GET", "HEAD"].includes(request.method()) && request.url().includes(`/projects/${projectId}/`)) writes.push(request.url()); });
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard#shot-story-preview`);
+  await expect(page.getByText("冻结只读", { exact: true })).toBeVisible();
+  await page.locator("#shot-story-preview").getByRole("button", { name: "播放当前", exact: true }).click();
+  const frozenVideo = page.locator("#shot-story-preview video").first();
+  await expect.poll(async () => frozenVideo.evaluate(element => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0.15);
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&view=play`);
+  await expect(page.getByTestId("play-view")).toBeVisible();
+  await page.getByRole("button", { name: "播放当前", exact: true }).click();
+  await expect.poll(async () => page.locator("video").first().evaluate(element => (element as HTMLVideoElement).currentTime)).toBeGreaterThan(0.15);
+  expect(writes).toEqual([]);
+  expect((await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`)).json()).operationalState).toBe("closed");
+
 });
 
 

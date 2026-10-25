@@ -7,9 +7,8 @@ import { DraftNavigationDialog, type DraftNavigationIntent } from "../src/app/wo
 let host: HTMLDivElement, root: Root;
 const onSave = vi.fn(), onDiscard = vi.fn(), onCancel = vi.fn();
 const cases: Array<[DraftNavigationIntent, string, string, string, string]> = [
-  ["navigate", "保存当前草稿？", "保存并切换", "丢弃", "项目中已保存的草稿不会删除"],
+  ["navigate", "编辑输入尚未保留", "重试保留并离开", "丢弃本机未同步输入并离开", "已确认内容和服务器草稿保留"],
   ["archive", "归档前保存当前修改？", "保存并归档", "丢弃本页修改并归档", "已保存的草稿仍保留"],
-  ["close", "保存草稿并关闭项目？", "保存草稿并关闭", "丢弃当前草稿并关闭", "删除当前阶段对应的那一份草稿"],
 ];
 beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host); vi.clearAllMocks();

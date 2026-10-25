@@ -18,41 +18,38 @@ async function harness(project: ProjectListItem, current = false, disabled = fal
   return { host, button, onOpen, onAction, render, more: async () => act(async () => button("更多").click()),
     dispose: async () => { await act(async () => root.unmount()); host.remove(); } };
 }
-it.each([false, true])("projects get current-only save/exit and management close: current=%s", async current => {
+it.each([false, true])("ordinary rows expose optional Freeze in More and no Close workflow: current=%s", async current => {
   const h = await harness(item(), current);
   try {
-    expect(Boolean(h.button("保存并关闭项目"))).toBe(current); expect(Boolean(h.button("退出工作区"))).toBe(current);
-    expect(Boolean(h.button("打开"))).toBe(!current); expect(h.button("删除项目…")).toBeUndefined();
-    await h.more(); expect(Boolean(h.button("关闭项目"))).toBe(!current);
+    expect(h.button("保存并关闭项目")).toBeUndefined(); expect(h.button("退出工作区")).toBeUndefined();
+    expect(h.host.textContent).not.toContain("未关闭"); expect(h.host.textContent).not.toContain("关闭状态未确认");
+    expect(Boolean(h.button("打开"))).toBe(!current); expect(h.button("冻结项目")).toBeUndefined();
+    await h.more(); expect(h.button("冻结项目").disabled).toBe(false);
     expect(h.button("复制简报与规范内容").disabled).toBe(false); expect(h.button("删除项目…").disabled).toBe(false);
-    await act(async () => h.button("归档").click());
-    expect(h.onAction).toHaveBeenCalledWith(expect.objectContaining({ id: "a" }), "archive");
-    expect(h.button("更多").getAttribute("aria-expanded")).toBe("false");
+    await act(async () => h.button("冻结项目").click());
+    expect(h.onAction).toHaveBeenCalledWith(expect.objectContaining({ id: "a" }), "freeze");
   } finally { await h.dispose(); }
 });
-it.each(["queued", "running", "cancel_requested"] as RunStatus[])("positive %s summary blocks ordinary close/archive but preserves supported actions", async status => {
+it.each(["queued", "running", "cancel_requested"] as RunStatus[])("positive %s activity blocks Freeze/archive and preserves browsing", async status => {
   const h = await harness(item({ latestRun: { status } as ProjectListItem["latestRun"] }));
   try {
-    await h.more(); expect(h.button("关闭项目").disabled).toBe(true); expect(h.button("归档").disabled).toBe(true);
+    await h.more(); expect(h.button("冻结项目").disabled).toBe(true); expect(h.button("归档").disabled).toBe(true);
     expect(h.button("删除项目…").disabled).toBe(false); expect(h.button("复制简报与规范内容").disabled).toBe(false);
-    expect(h.button("打开").disabled).toBe(false); expect(h.host.textContent).toContain("任务结束前不能归档或安全关闭");
-    await h.render(item({ latestRun: { status } as ProjectListItem["latestRun"] }), true);
-    expect(h.button("保存并关闭项目").disabled).toBe(true); expect(h.button("退出工作区").disabled).toBe(false);
+    expect(h.button("打开").disabled).toBe(false); expect(h.host.textContent).toContain("任务结束前不能归档或冻结");
   } finally { await h.dispose(); }
 });
-it.each([null, "succeeded", "failed", "cancelled", "quarantined"])("absent or terminal latest run %s never claims idle", async status => {
+it.each([null, "succeeded", "failed", "cancelled", "quarantined"])("terminal summary %s exposes Freeze without claiming complete idle admission", async status => {
   const h = await harness(item({ operationalState: null, latestRun: status ? { status } as ProjectListItem["latestRun"] : null }));
-  try {
-    await h.more(); expect(h.button("关闭项目").disabled).toBe(false);
-    expect(h.host.textContent).toContain("关闭状态未确认"); expect(h.host.textContent).not.toContain("空闲");
-  } finally { await h.dispose(); }
+  try { await h.more(); expect(h.button("冻结项目").disabled).toBe(false); expect(h.host.textContent).not.toContain("空闲"); }
+  finally { await h.dispose(); }
 });
-it.each(["closed", "archived"])("%s primary action has no save/exit or ordinary close", async state => {
+it.each(["closed", "archived"])("%s remains browsable with a separate admission action", async state => {
   const h = await harness(item(state === "closed" ? { operationalState: "closed" } : { lifecycleStatus: "archived" }), true);
   try {
-    expect(h.button(state === "closed" ? "重新打开" : "恢复").disabled).toBe(false);
-    await h.more(); expect(h.button("关闭项目")).toBeUndefined(); expect(h.button("保存并关闭项目")).toBeUndefined();
-    expect(h.button("退出工作区")).toBeUndefined(); expect(h.button("归档")).toBeUndefined();
+    const title = h.host.querySelector<HTMLButtonElement>(".directory-open")!; expect(title.disabled).toBe(false);
+    await act(async () => title.click()); expect(h.onOpen).toHaveBeenCalledOnce();
+    await h.more(); expect(h.button(state === "closed" ? "解除冻结" : "冻结项目").disabled).toBe(false);
+    expect(h.button("保存并关闭项目")).toBeUndefined();
   } finally { await h.dispose(); }
 });
 it("disclosure closes on Escape/outside/identity/read withdrawal and returns keyboard focus", async () => {
@@ -70,49 +67,28 @@ it("disclosure closes on Escape/outside/identity/read withdrawal and returns key
   } finally { await h.dispose(); }
 });
 
-it("archived and closed restores lifecycle first, while no-close backends explain unavailable reopen", async () => {
+it("Restore preserves Frozen, while read-only browsing does not require Unfreeze capability", async () => {
   const h = await harness(item({ operationalState: "closed", lifecycleStatus: "archived" }));
   try {
-    expect(h.button("重新打开")).toBeUndefined();
-    await act(async () => h.button("恢复").click());
-    expect(h.onAction).toHaveBeenCalledWith(expect.anything(), "restore");
-    await h.render(item({ operationalState: "closed" })); expect(h.button("重新打开").disabled).toBe(false);
+    await act(async () => h.button("恢复").click()); expect(h.onAction).toHaveBeenCalledWith(expect.anything(), "restore");
+    await h.render(item({ operationalState: "closed" })); await h.more(); expect(h.button("解除冻结").disabled).toBe(false);
   } finally { await h.dispose(); }
   const legacy = await harness(item({ operationalState: "closed" }), false, false, false);
-  try {
-    expect(legacy.button("重新打开").disabled).toBe(true);
-    expect(legacy.host.querySelector<HTMLButtonElement>(".directory-open")!.disabled).toBe(true);
-    expect(legacy.host.textContent).toContain("当前后端未提供重新打开已关闭项目的能力");
-    await legacy.more(); expect(legacy.button("删除项目…").disabled).toBe(false);
-  } finally { await legacy.dispose(); }
-  const current = await harness(item(), true, false, false);
-  try { expect(current.button("保存并关闭项目")).toBeUndefined(); expect(current.button("退出工作区")).toBeUndefined(); }
-  finally { await current.dispose(); }
+  try { expect(legacy.host.querySelector<HTMLButtonElement>(".directory-open")!.disabled).toBe(false); await legacy.more(); expect(legacy.button("解除冻结")).toBeUndefined(); }
+  finally { await legacy.dispose(); }
 });
-
 it("command focus restoration cannot steal a confirmation input or follow a changed workspace identity", async () => {
   const h = await harness(item());
   const confirmationInput = document.createElement("input"); document.body.append(confirmationInput);
   try {
-    await h.more(); await act(async () => h.button("关闭项目").click());
+    await h.more(); await act(async () => h.button("冻结项目").click());
     await h.render(item(), false, true);
     confirmationInput.focus(); await h.render(item(), false, false);
     expect(document.activeElement).toBe(confirmationInput);
-    await h.more(); await act(async () => h.button("关闭项目").click());
+    await h.more(); await act(async () => h.button("冻结项目").click());
     await h.render(item(), false, true); document.body.tabIndex = -1; document.body.focus();
     await h.render(item(), true, false); expect(document.activeElement).toBe(document.body);
   } finally { confirmationInput.remove(); document.body.removeAttribute("tabindex"); await h.dispose(); }
-});
-
-it.each([false, true])("archived closed title requires Restore first with explicit-close=%s", async capability => {
-  const h = await harness(item({ operationalState: "closed", lifecycleStatus: "archived" }), false, false, capability);
-  try {
-    const title = h.host.querySelector<HTMLButtonElement>(".directory-open")!;
-    expect(title.disabled).toBe(true); expect(h.host.textContent).toContain("请先恢复");
-    await act(async () => title.click()); expect(h.onOpen).not.toHaveBeenCalled();
-    await act(async () => h.button("恢复").click()); expect(h.onAction).toHaveBeenCalledWith(expect.anything(), "restore");
-    await h.render(item({ operationalState: "closed" })); expect(h.button("重新打开").disabled).toBe(!capability);
-  } finally { await h.dispose(); }
 });
 
 it("outside keyboard focus dismisses A so Escape belongs only to the focused B disclosure", async () => {

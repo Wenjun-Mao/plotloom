@@ -1,22 +1,19 @@
 import { Button } from "../../components";
 
-export type DraftNavigationIntent = "navigate" | "archive" | "close";
+export type DraftNavigationIntent = "navigate" | "archive";
 
 const intentCopy: Record<DraftNavigationIntent, {
   title: string; action: string; help: string; save: string; discard: string;
 }> = {
   navigate: {
-    title: "保存当前草稿？", action: "即将离开当前页面", save: "保存并切换", discard: "丢弃",
-    help: "保存会按当前阶段的保存方式写入项目，不代表确认内容或批准。丢弃只移除本标签页尚未保存的修改；项目中已保存的草稿不会删除。",
+    title: "编辑输入尚未保留", action: "请先保留输入再离开", save: "重试保留并离开", discard: "丢弃本机未同步输入并离开",
+    help: "重试只保留编辑输入，不会应用或确认内容。也可取消并复制输入。明确丢弃只移除本机未同步输入；已确认内容和服务器草稿保留。",
   },
   archive: {
     title: "归档前保存当前修改？", action: "即将归档当前项目", save: "保存并归档", discard: "丢弃本页修改并归档",
     help: "保存会按当前阶段的保存方式写入项目，不代表确认内容或批准。丢弃只移除本标签页尚未保存的修改，已保存的草稿仍保留。归档后项目为只读，可在项目目录中恢复。",
   },
-  close: {
-    title: "保存草稿并关闭项目？", action: "即将关闭当前项目", save: "保存草稿并关闭", discard: "丢弃当前草稿并关闭",
-    help: "保存会将修改保留为可恢复草稿，不会确认正式内容或批准。丢弃会删除当前阶段对应的那一份草稿，已确认内容不变；草稿处理成功后才会关闭项目。",
-  },
+
 };
 
 export function DraftNavigationDialog({ intent, busyMessage, onSave, onDiscard, onCancel }: {

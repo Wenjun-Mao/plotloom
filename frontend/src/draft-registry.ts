@@ -1,3 +1,4 @@
+import { draftClientIdentity } from "./features/authoring/clientJournalStorage";
 import type { ServerStageName, WorkspaceProject } from "./types";
 
 export type DraftScope = "brief" | ServerStageName;
@@ -17,6 +18,10 @@ export interface DraftRecord {
 }
 
 const storageKey = "plotloom:workbench-drafts:v1";
+let memory: Record<string, DraftRecord> = {};
+const unpreserved = new Set<string>();
+export const hasUnpreservedDrafts = (projectId?: string) => [...unpreserved].some(key => !projectId || memory[key]?.projectId === projectId);
+export const draftsLocallyPreserved = (projectId: string) => !hasUnpreservedDrafts(projectId);
 
 function draftOwner(project: WorkspaceProject): string {
   // Never use a shared `new` namespace: a blank workspace and the sample are
@@ -29,21 +34,41 @@ function draftOwner(project: WorkspaceProject): string {
 export function draftKey(project: WorkspaceProject, scope: DraftScope): string {
   const projectId = draftOwner(project);
   const baseRevision = scope === "brief" ? project.revision : project.stageRevisions[scope];
-  return `${projectId}:${scope}:${baseRevision}`;
+  return `${projectId}:${scope}:${baseRevision}:${draftClientIdentity()}`;
 }
 
+const entryPrefix = `${storageKey}:entry:`;
 function readAll(): Record<string, DraftRecord> {
+  const records: Record<string, DraftRecord> = {};
   try {
-    const raw = window.sessionStorage.getItem(storageKey);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === "object" ? parsed as Record<string, DraftRecord> : {};
-  } catch {
-    return {};
-  }
+    // Legacy tab buffers remain inspectable until exact scoped consumption.
+    const legacy = JSON.parse(window.sessionStorage.getItem(storageKey) || "{}");
+    Object.assign(records, legacy);
+    for (let index = 0; index < window.localStorage.length; index++) {
+      const key = window.localStorage.key(index);
+      if (!key?.startsWith(entryPrefix)) continue;
+      const record = JSON.parse(window.localStorage.getItem(key) || "null") as DraftRecord | null;
+      if (record?.key && record.projectId && record.scope) records[record.key] = record;
+    }
+  } catch { /* Memory remains visible when browser storage cannot be read. */ }
+  return { ...records, ...memory };
 }
-
-function writeAll(records: Record<string, DraftRecord>): void {
-  window.sessionStorage.setItem(storageKey, JSON.stringify(records));
+function writeRecord(record: DraftRecord): void {
+  memory[record.key] = record;
+  try {
+    const key = entryPrefix + record.key;
+    const serialized = JSON.stringify(record);
+    window.localStorage.setItem(key, serialized);
+    if (window.localStorage.getItem(key) !== serialized) throw new Error("draft journal readback failed");
+    unpreserved.delete(record.key);
+    delete memory[record.key];
+  } catch { unpreserved.add(record.key); }
+}
+function removeRecord(key: string): void {
+  delete memory[key]; unpreserved.delete(key);
+  window.localStorage.removeItem(entryPrefix + key);
+  const legacy = JSON.parse(window.sessionStorage.getItem(storageKey) || "{}");
+  if (legacy[key]) { delete legacy[key]; window.sessionStorage.setItem(storageKey, JSON.stringify(legacy)); }
 }
 
 export function getDraft(project: WorkspaceProject, scope: DraftScope): DraftRecord | undefined {
@@ -65,7 +90,7 @@ export function putDraft(
     localRevision: (previous?.localRevision ?? 0) + 1,
     payload, updatedAt: new Date().toISOString(),
   };
-  writeAll({ ...readAll(), [key]: record });
+  writeRecord(record);
   return record;
 }
 
@@ -84,9 +109,7 @@ export function acknowledgeDraft(
   }
   // A newer local buffer exists. Keep it, but CAS its next save from the
   // newly acknowledged server revision instead of replaying the older one.
-  const all = readAll();
-  all[current.key] = { ...current, serverDraftRevision };
-  writeAll(all);
+  writeRecord({ ...current, serverDraftRevision });
 }
 
 export function setDraftServerRevision(
@@ -96,15 +119,11 @@ export function setDraftServerRevision(
 ): void {
   const current = getDraft(project, scope);
   if (!current) return;
-  const all = readAll();
-  all[current.key] = { ...current, serverDraftRevision };
-  writeAll(all);
+  writeRecord({ ...current, serverDraftRevision });
 }
 
 export function discardDraft(project: WorkspaceProject, scope: DraftScope): void {
-  const all = readAll();
-  delete all[draftKey(project, scope)];
-  writeAll(all);
+  removeRecord(draftKey(project, scope));
 }
 
 /**
@@ -120,17 +139,14 @@ export function findRevisionConflict(project: WorkspaceProject, scope: DraftScop
 }
 
 export function discardDraftRecord(record: DraftRecord): void {
-  const all = readAll();
-  delete all[record.key];
-  writeAll(all);
+  removeRecord(record.key);
 }
 
 /** Retain one already-authored buffer with its original binding for recovery. */
 export function retainDraftRecord(record: DraftRecord): DraftRecord {
   const all = readAll();
   const retained = all[record.key] ?? record;
-  all[record.key] = retained;
-  writeAll(all);
+  writeRecord(retained);
   return retained;
 }
 

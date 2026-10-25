@@ -54,7 +54,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   await page.getByLabel("一句话概述（Logline）").fill("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "保存故事圣经" }).click();
+  await page.getByRole("button", { name: "应用故事圣经修改" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
   const authoredBible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(authoredBible).toMatchObject({ head: { revision: 2 }, payload: { logline: "夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。" } });
@@ -78,7 +78,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect(savedBible).toEqual(authoredBible);
 
   await page.getByLabel("片名").fill("风暴回声");
-  await page.getByRole("button", { name: "保存修改" }).click();
+  await page.getByRole("button", { name: "应用修改" }).click();
   await expect(page.getByText("提案的上游内容已变更。请重新生成故事设定与分支图后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
@@ -126,7 +126,7 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
   await page.getByLabel("一句话概述（Logline）").fill(authoredLogline);
   const bibleSave = page.waitForResponse((response) => response.request().method() === "PATCH"
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
-  await page.getByRole("button", { name: "保存故事圣经" }).click();
+  await page.getByRole("button", { name: "应用故事圣经修改" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
   await openBriefTool(page);
   await page.reload();

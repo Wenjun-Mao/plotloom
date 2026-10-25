@@ -8,7 +8,7 @@ import { specialistsApi } from "../features/specialists/api";
 import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { ArtReferencePreparation } from "./ArtReferencePreparation";
 import { artSubjects, defaultImageRequirements, record, studyStatus, subjectKey } from "./artReferencePresentation";
-import { useExplicitReviewCloseGuard } from "../features/authoring/ReviewDraftContext";
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 
 type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
@@ -46,8 +46,6 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
     const latest = studies.find(study => `${study.subjectType}:${study.subjectId}` === key && study.current);
     return record(latest?.request.frozenSnapshot).renderDirection !== draft.value;
   });
-  useExplicitReviewCloseGuard(projectId, "art_reference_requirements", requirementsDirty, busySession === activeSession.current,
-    () => setDrafts({ session: sessionKey, values: {} }), "环境与道具的图片任务要求");
   const subjects = useMemo(() => artSubjects(art), [art]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subjectKey(subject) === selectedSubjectKey)) setSelectedSubjectKey(subjectKey(subjects[0]!));
@@ -90,14 +88,22 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   const direction = draft?.value ?? defaultImageRequirements(art.style, selected.subjectType);
   const revising = Boolean(study?.current && study.state === "delivered" && draft?.sourceStudyId === study.id);
   const setDraft = (value: RequirementDraft) => setDrafts((previous) => ({ session: sessionKey, values: { ...(previous.session === sessionKey ? previous.values : {}), [subjectKey(selected)]: value } }));
-  const setDirection = (value: string) => setDraft({ value, sourceStudyId: revising ? study?.id : undefined });
+  const working = useReviewEditorDraft(projectId, "art_reference", `art:${acceptedRevision}:${acceptedContentHash}`, text => {
+    const restored = JSON.parse(text) as RequirementDraft;
+    if (typeof restored.value !== "string") throw new Error("图片任务要求草稿无法读取。");
+    setDraft(restored);
+  }, readOnly || studyBusy, undefined, selected ? subjectKey(selected) : "");
+  const setDirection = (value: string) => {
+    const next = { value, sourceStudyId: revising ? study?.id : undefined };
+    setDraft(next); working.changed(JSON.stringify(next));
+  };
   const startRevision = () => {
     if (!study?.current || study.state !== "delivered") return;
     const frozenDirection = record(study.request.frozenSnapshot).renderDirection;
     setDraft({ value: typeof frozenDirection === "string" ? frozenDirection : defaultImageRequirements(art.style, selected.subjectType), sourceStudyId: study.id });
     setError("");
   };
-  const actionable = !readOnly && !studyBusy;
+  const actionable = !readOnly && !working.stale && !studyBusy;
   // Retained Art is readable, but only its current confirmed head can authorize
   // generation or selection. Task cancellation and late delivery checks differ.
   const generationActionable = actionable && acceptedArtCurrent;
@@ -125,7 +131,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       </div>
       {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="同一主体图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant="quiet" aria-pressed={compared} className="selection-toggle" disabled={!compared && comparisonAtCapacity} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidate.outputFilename}` : `加入 ${candidate.outputFilename}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="art-reference-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>仅比较 {selected.subjectType === "scene" ? "环境" : "道具"} {selected.name}；不会选择生产资产。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === viewed?.assetId ? "当前查看" : "对比图片"} · {candidate.outputFilename}</figcaption><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 比较图片`} unavailableLabel="对比图片不可用" imageUrl={assetUrl?.(candidate.assetId)} /></figure>)}</div>}
-      {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} generationActionable={generationActionable} direction={direction} onDirectionChange={setDirection}
+      {working.notice}{showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} generationActionable={generationActionable} direction={direction} onDirectionChange={setDirection}
         revising={revising} onRevise={startRevision} onCancelRevision={() => setDraft({ value: direction })}
         onPrepare={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}
         onSend={() => study && void act((isCurrent) => reconcileFailedSend(() => specialistsApi.sendArtImage(projectId, study.id), async () => { if (isCurrent()) await refresh(); }))}

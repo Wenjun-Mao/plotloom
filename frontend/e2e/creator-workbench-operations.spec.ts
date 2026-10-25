@@ -418,12 +418,12 @@ test("Brief target preview distinguishes actual structure and preserves the grap
   await expect(page.locator("[data-creator-node]")).toHaveCount(9);
   const before = await json(request.get(`${url}/graph-workbench`));
   await page.getByRole("button", { name: "项目简报与结构设置", exact: true }).click();
-  await page.getByLabel("剧情节点数量上限", { exact: true }).fill("40"); await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByLabel("剧情节点数量上限", { exact: true }).fill("40"); await page.getByRole("button", { name: "应用修改", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "确认结构目标调整" });
   await expect(dialog).toContainText("当前实际图：9 节点"); await expect(dialog).toContainText("不会自动改图");
   await dialog.getByRole("button", { name: "取消调整", exact: true }).click();
   expect((await json(request.get(url))).brief.nodeBudget).toBe(30);
-  await page.getByRole("button", { name: "保存修改", exact: true }).click(); await dialog.getByRole("button", { name: "确认并保存目标", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click(); await dialog.getByRole("button", { name: "确认并保存目标", exact: true }).click();
   await expect.poll(async () => (await json(request.get(url))).brief.nodeBudget).toBe(40);
   expect((await json(request.get(`${url}/graph-workbench`))).draft.payload.mapping).toEqual(before.draft.payload.mapping);
 });

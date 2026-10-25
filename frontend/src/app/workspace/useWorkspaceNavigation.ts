@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { discardDraft, findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
 import type { PipelineRun, ServerStageName, WorkspaceProject } from "../../types";
 import { routeFromLocation, stageForPage, type NavigationTarget, type PageId, type ProjectLoadResult } from "./contracts";
@@ -24,13 +24,20 @@ interface WorkspaceNavigationInput {
   loadProject: (projectId: string, epoch?: number) => Promise<ProjectLoadResult>;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
   isProjectClosing: (projectId: string) => boolean;
+  preserveProject?: (projectId: string) => Promise<boolean>;
+  discardProjectInput?: (projectId: string) => Promise<void>;
 }
 
 /**
  * Owns URL/history writes and draft-gated route changes. The session is the
  * only authority that increments epochs or mutates canonical route identity.
  */
-export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, isProjectClosing }: WorkspaceNavigationInput) {
+export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, isProjectClosing, preserveProject, discardProjectInput }: WorkspaceNavigationInput) {
+  const intentVersion = useRef(0);
+  const reserveNavigation = useCallback(() => {
+    const intent = ++intentVersion.current;
+    return () => intent === intentVersion.current;
+  }, []);
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
 
   const clearDraftRouteState = useCallback(() => {
@@ -41,6 +48,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
   }, [drafts, session]);
 
   const applyNavigation = useCallback((next: NavigationTarget) => {
+    intentVersion.current++;
     const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run, hash: next.hash };
     const historyMode = next.history === "push" ? "push" : "none";
     const previousRoute = session.routeRef.current;
@@ -50,6 +58,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       // intent must still reset them even though both routes have no server ID.
       if (next.home || next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
       else session.navigate(route, historyMode);
+      if (next.history === "pop") session.replaceCurrentRoute();
       return;
     }
     const traceSelectionRequested = next.stage === "trace" && (
@@ -58,6 +67,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       || (previousRoute.stage !== "trace" && !next.run)
     );
     const epoch = session.navigateToProject(route, historyMode);
+    if (next.history === "pop") session.replaceCurrentRoute();
     if (next.stage !== "trace") session.cancelRunSelection();
     else if (traceSelectionRequested) session.beginRunSelection(next.run);
     if (
@@ -92,6 +102,8 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     forceReload?: boolean;
     home?: boolean;
   }) => {
+    const intent = ++intentVersion.current;
+    const sourceRoute = session.routeRef.current;
     const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next, hash: next.hash ?? (next.stage === "storyboard" && !next.entity ? "video-batch-production" : "") };
     const currentRoute = session.routeRef.current;
     if (
@@ -110,7 +122,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     }
     if (session.project.id && isProjectClosing(session.project.id)) {
       // A history pop already changed the address; restore the admitted route
-      // rather than unmounting a writer during Close.
+      // rather than unmounting a writer during an exclusive operation.
       if (normalized.history === "pop") session.replaceCurrentRoute();
       return;
     }
@@ -124,9 +136,18 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       return;
     }
     if (unsafeDraft?.dismissed) { applyNavigation(normalized); return; }
+    if (session.project.id && preserveProject) {
+      if (normalized.history === "pop") session.replaceCurrentRoute();
+      void preserveProject(session.project.id).then(preserved => {
+        if (intent !== intentVersion.current || session.routeRef.current !== sourceRoute) return;
+        if (preserved) applyNavigation(normalized);
+        else setPendingNavigation(normalized);
+      }); return;
+    }
     if (scope && hasDraft(session.project, scope)) {
       if (drafts.durableEnabled.current && session.project.id) {
         void drafts.flush(scope).then((saved) => {
+          if (intent !== intentVersion.current || session.routeRef.current !== sourceRoute) return;
           if (saved) applyNavigation(normalized);
           else setPendingNavigation(normalized);
         });
@@ -136,26 +157,49 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       return;
     }
     applyNavigation(normalized);
-  }, [applyNavigation, drafts, isProjectClosing, session]);
+  }, [applyNavigation, drafts, isProjectClosing, session, preserveProject]);
 
-  const selectRouteEntity = useCallback((entity: string) => session.focusEntity(entity), [session]);
+  const selectRouteEntity = useCallback((entity: string) => {
+    const route = session.routeRef.current, intent = ++intentVersion.current;
+    if (session.project.id && preserveProject) {
+      void preserveProject(session.project.id).then(preserved => {
+        if (intent !== intentVersion.current || session.routeRef.current !== route) return;
+        if (preserved) session.focusEntity(entity);
+        else if (!preserved) setPendingNavigation({ ...route, entity, history: "push" });
+      });
+    } else session.focusEntity(entity);
+  }, [session, preserveProject]);
   const openRunTrace = useCallback((run: PipelineRun) => {
+    const sourceRoute = session.routeRef.current, intent = ++intentVersion.current;
     if (isProjectClosing(run.projectId)) return;
-    clearDraftRouteState();
-    session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id, hash: "" }, "push");
-    session.acceptRun(run);
-    session.clearTrace();
-    void pollRun(run.id, run.projectId);
-  }, [clearDraftRouteState, isProjectClosing, pollRun, session]);
+    const open = () => {
+      if (intent !== intentVersion.current || session.routeRef.current !== sourceRoute) return;
+      clearDraftRouteState();
+      session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id, hash: "" }, "push");
+      session.acceptRun(run); session.clearTrace();
+      void pollRun(run.id, run.projectId);
+    };
+    if (session.project.id && preserveProject) {
+      void preserveProject(session.project.id).then(preserved => {
+        if (preserved) open();
+        else if (intent === intentVersion.current && session.routeRef.current === sourceRoute) setPendingNavigation({ project: run.projectId, stage: "trace", entity: "", run: run.id, hash: "", history: "push" });
+      });
+    } else open();
+  }, [clearDraftRouteState, isProjectClosing, pollRun, session, preserveProject]);
 
   const resolvePendingNavigation = useCallback(async (action: "save" | "discard" | "cancel") => {
-    const pending = pendingNavigation;
+    const pending = pendingNavigation, intent = ++intentVersion.current, sourceRoute = session.routeRef.current;
+    const owns = () => intent === intentVersion.current && session.routeRef.current === sourceRoute;
     if (!pending || action === "cancel") {
       if (pending?.history === "pop") session.replaceCurrentRoute();
       setPendingNavigation(undefined);
       return;
     }
     const scope = stageForPage(session.activePage);
+    if (session.project.id && preserveProject && action === "save") {
+      if (!await preserveProject(session.project.id) || !owns()) return;
+      setPendingNavigation(undefined); applyNavigation(pending); return;
+    }
     if (scope && action === "save") {
       const draft = drafts.current.current;
       if (!draft || draft.scope !== scope) {
@@ -164,8 +208,10 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       }
       if (scope === "brief") await drafts.commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
       else await drafts.commitStage(scope, draft.payload);
-      if (drafts.current.current) return;
+      if (!owns() || drafts.current.current) return;
     }
+    if (session.project.id && action === "discard" && discardProjectInput) await discardProjectInput(session.project.id);
+    if (!owns()) return;
     if (scope) {
       discardDraft(session.project, scope);
       drafts.current.current = undefined;
@@ -183,10 +229,8 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     const onPopState = () => {
       const route = routeFromLocation();
       const current = session.routeRef.current;
-      if (route.project === current.project && route.stage === current.stage && route.run === current.run) {
-        session.focusEntity(route.entity);
-        session.updateRouteHash(route.hash);
-        return;
+      if (route.project === current.project && route.stage === current.stage && route.run === current.run && route.entity === current.entity) {
+        session.updateRouteHash(route.hash); return;
       }
       requestNavigation({ ...route, history: "pop" });
     };
@@ -204,5 +248,5 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [session]);
 
-  return { applyNavigation, requestNavigation, selectRouteEntity, openRunTrace, pendingNavigation, resolvePendingNavigation, continueAfterUnsafeDraft };
+  return { reserveNavigation, applyNavigation, requestNavigation, selectRouteEntity, openRunTrace, pendingNavigation, resolvePendingNavigation, continueAfterUnsafeDraft };
 }

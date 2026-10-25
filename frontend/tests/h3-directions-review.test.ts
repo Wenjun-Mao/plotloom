@@ -38,7 +38,7 @@ const buildRequest = (seed: number, idempotencyKey: string): VideoJobPrepareBody
 });
 const render = async (identity: string, onFreeze: (value: H3ReviewedDirections, seed: number, key: string) => Promise<void> = async () => {}) => {
   await act(async () => root.render(createElement(H3DirectionsReview, {
-    projectId: "project", sourceIdentity: identity, sourceReady: true, disabled: false, buildRequest, onFreeze,
+    projectId: "project", shotId: "shot", sourceIdentity: identity, sourceReady: true, disabled: false, buildRequest, onFreeze,
     keyframeHash: "a".repeat(64), quality: 8, requestedSeconds: 15, frameCount: 362,
   })));
 };
@@ -157,4 +157,49 @@ it("locks seed editing during in-flight work and ignores its late completion aft
   expect(seedInput().disabled).toBe(false);
   await act(async () => old.resolve(source("a")));
   expect(host.querySelector("textarea")).toBeNull();
+});
+
+it("autosaves raw seed and English through remount without restoring consent or compiled approval", async () => {
+  const { ReviewDraftContext } = await import("../src/features/authoring/ReviewDraftContext");
+  const { createReviewDraftStore } = await import("../src/features/authoring/reviewDraftStore");
+  const { createProjectDraftQuiescence } = await import("../src/features/authoring/projectDraftQuiescence");
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValue(source("a"));
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementation(async (_project, request) => ({ projectId: "project", ...request, draftRevision: request.expectedDraftRevision + 1, updatedAt: "now" }));
+  const freeze = vi.fn();
+  const mount = async () => { await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "project", revision: 1, enabled: true }, children: createElement(H3DirectionsReview, {
+    projectId: "project", shotId: "shot", sourceIdentity: "exact-source", sourceReady: true, disabled: false, buildRequest, onFreeze: freeze,
+    keyframeHash: "a".repeat(64), quality: 8, requestedSeconds: 15, frameCount: 362,
+  }) }))); };
+  await mount(); await setSeed("00042"); await act(async () => button("读取当前来源").click());
+  const field = host.querySelector("textarea")!;
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, "unfinished English {\n"); field.dispatchEvent(new Event("input", { bubbles: true })); });
+  expect((host.querySelector("textarea") as HTMLTextAreaElement).disabled).toBe(false);
+  await act(async () => { expect(await q.flush("project")).toBe(true); });
+  await act(async () => root.render(null)); await mount();
+  expect(seedInput().value).toBe("00042"); expect(host.querySelector('input[type="checkbox"]')).toBeNull();
+  await act(async () => button("读取当前来源").click());
+  expect((host.querySelector("textarea") as HTMLTextAreaElement).value).toBe("unfinished English {\n");
+  expect((host.querySelector('input[type="checkbox"]') as HTMLInputElement).checked).toBe(false);
+  expect(host.querySelector(".video-prompt-preview")).toBeNull(); expect(freeze).not.toHaveBeenCalled();
+});
+
+it("a changed H3 source disables known-stale editing; a rejected race blocks departure and exposes exact copy", async () => {
+  const { ReviewDraftContext } = await import("../src/features/authoring/ReviewDraftContext");
+  const { createReviewDraftStore } = await import("../src/features/authoring/reviewDraftStore");
+  const { createProjectDraftQuiescence } = await import("../src/features/authoring/projectDraftQuiescence");
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementation(async (_project, request) => ({ projectId: "project", ...request, draftRevision: request.expectedDraftRevision + 1, updatedAt: "now" }));
+  const mount = async (identity: string) => { await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "project", revision: 1, enabled: true }, children: createElement(H3DirectionsReview, {
+    projectId: "project", shotId: "shot", sourceIdentity: identity, sourceReady: true, disabled: false, buildRequest, onFreeze: async () => undefined,
+    keyframeHash: "a".repeat(64), quality: 8, requestedSeconds: 15, frameCount: 362,
+  }) }))); };
+  await mount("source A"); await setSeed("00042"); await act(async () => { expect(await q.flush("project")).toBe(true); });
+  const original = store.get("project", "h3_directions", "shot")!.payload;
+  await mount("source B"); expect(seedInput().disabled).toBe(true); expect(button("读取当前来源").disabled).toBe(true);
+  await act(async () => { expect(store.update("project", "h3_directions", 1, "source B", "visible race input B", "shot")).toBe(false); });
+  expect(store.get("project", "h3_directions", "shot")!.payload).toEqual(original);
+  expect(store.rejected("project", "h3_directions", "shot")?.text).toBe("visible race input B");
+  await act(async () => { expect(await q.preserve("project")).toBe(false); });
+  expect(host.textContent).toContain("visible race input B"); expect(button("复制当前未保留输入")).toBeDefined();
 });

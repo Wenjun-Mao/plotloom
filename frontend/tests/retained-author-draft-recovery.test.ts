@@ -33,14 +33,11 @@ it("retains authored content through temporary failure and explicitly retries an
   const inspection = document.querySelector<HTMLTextAreaElement>('[aria-label="保留的草稿"]')!;
   expect(inspection.readOnly).toBe(true); expect(inspection.value).toContain("Retained author title");
   await act(async () => button("重试核实项目").click()); await flush();
-  expect(button("恢复草稿")).toBeDefined();
-  expect(document.body.textContent).toContain("请手动保存到项目");
-  expect(document.body.textContent).not.toContain("恢复后会自动保存到项目中");
+  expect(button("恢复草稿")).toBeUndefined();
+  expect(document.body.textContent).toContain("草稿版本已过期");
   expect(retained()["retained:brief:4"]).toBeDefined(); expect(write).not.toHaveBeenCalled();
-  await act(async () => button("恢复草稿").click()); await flush();
-  expect(read).toHaveBeenCalledTimes(3); // Aggregate failure, retry, exact restore revalidation.
-  expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("Retained author title");
-  expect(write).not.toHaveBeenCalled();
+  expect(read).toHaveBeenCalledTimes(2);
+  expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("Server title");
 });
 
 it("keeps retained drafts while allowing Home navigation after explicit keep", async () => {
@@ -55,16 +52,14 @@ it("keeps retained drafts while allowing Home navigation after explicit keep", a
 
 it.each(["revision", "foreign", "archived", "deleted", "temporary"])("refuses restoration and exposes usable recovery if exact authority changes to %s", async defect => {
   const next = defect === "revision" ? authority({ revision: 5 }) : defect === "foreign" ? authority({ id: "foreign" }) : authority({ lifecycleStatus: "archived", archivedAt: "2026-10-04" });
-  const read = vi.spyOn(plotloomApi, "getProject").mockResolvedValueOnce(authority());
+  const read = vi.spyOn(plotloomApi, "getProject");
   if (defect === "deleted") read.mockRejectedValue(new ApiError("missing", 404));
   else if (defect === "temporary") read.mockRejectedValue(new TypeError("offline"));
   else read.mockResolvedValue(next);
   const write = vi.spyOn(plotloomApi, "patchProject");
   await act(async () => root.render(createElement(App))); await flush();
-  await act(async () => button("恢复草稿").click()); await flush();
-  expect(document.body.textContent).toContain("草稿未恢复");
+  expect(document.body.textContent).not.toContain("恢复草稿");
   expect(button("恢复草稿")).toBeUndefined();
-  expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("Server title");
   expect(retained()["retained:brief:4"]).toBeDefined(); expect(write).not.toHaveBeenCalled();
   if (defect === "revision") {
     expect(button("复制草稿为新项目")).toBeDefined();

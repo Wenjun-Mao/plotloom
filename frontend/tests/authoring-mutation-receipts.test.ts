@@ -62,15 +62,17 @@ it.each(["exact", "mismatch", "failure", "superseded"])("recovery discard publis
   let resolve!: (receipt: number | undefined) => void, reject!: (error: Error) => void;
   const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft").mockReturnValue(new Promise((done, fail) => { resolve = done; reject = fail; }));
   try {
-    expect(state.recovery.recovery?.source).toBe("server");
-    await act(async () => state.recovery.discard());
+    expect(state.recovery.recovery).toBeUndefined();
+    let pending!: Promise<boolean>;
+    await act(async () => { pending = state.authoring.discardCurrentAuthoringDraft("brief"); });
     expect(discard).toHaveBeenCalledExactlyOnceWith("a", { editorScope: "brief", entityId: "root", expectedDraftRevision: 2 });
     expect(state.observed).not.toHaveBeenCalled(); expect(state.authoring.admissionVersion).toBe(0);
     if (kind === "superseded") await state.replaceProject();
     await act(async () => { if (kind === "failure") reject(new Error("storage unavailable")); else resolve(kind === "mismatch" ? 3 : 2); });
+    await pending;
     expect(state.authoring.admissionVersion).toBe(kind === "exact" ? 1 : 0);
-    expect(state.observed).toHaveBeenCalledTimes(kind === "exact" ? 1 : 0);
-    expect(state.serverDrafts.current.has("a:brief:root")).toBe(kind !== "exact");
+    expect(state.observed).not.toHaveBeenCalled();
+    expect(state.serverDrafts.current.has("a:brief:root")).toBe(["mismatch", "failure"].includes(kind));
     expect(state.errors).toHaveBeenCalledTimes(["mismatch", "failure"].includes(kind) ? 1 : 0);
   } finally { await state.unmount(); }
 });

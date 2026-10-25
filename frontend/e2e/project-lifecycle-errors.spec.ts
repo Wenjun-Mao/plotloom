@@ -85,7 +85,8 @@ for (const action of ["archive", "restore"] as const) {
       await expect(row(page, current.id).getByRole("button", { name: /^更多 · / })).toBeDisabled();
       await captureDirectory(page, info, `${action}-retry-held`);
       release();
-      await expect(row(page, target.id)).toContainText(action === "archive" ? "已归档 · 只读" : "未关闭");
+      if (action === "archive") await expect(row(page, target.id)).toContainText("已归档 · 只读");
+      else await expect(row(page, target.id)).not.toContainText("已归档");
       await expect(previousError).toHaveCount(0);
       await expect(directory.getByRole("status").filter({ hasText: action === "archive" ? "正在归档" : "正在恢复" })).toHaveCount(0);
       await captureDirectory(page, info, `${action}-retry-ack`);
@@ -183,7 +184,7 @@ test("only a confirmed delete retry clears its previous error and erases its dis
 
 test("an unavailable folder-open command does not erase a previous failure", async ({ page, request, workbench }) => {
   const closed = await create(request, workbench.apiOrigin, "不可重新打开的目标");
-  expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${closed.id}/close`)).ok()).toBeTruthy();
+  expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${closed.id}/freeze`)).ok()).toBeTruthy();
   const target = await create(request, workbench.apiOrigin, "保留失败反馈");
   await page.route("**/api/v2/runtime-capabilities", async route => {
     const response = await route.fetch();
@@ -200,10 +201,10 @@ test("an unavailable folder-open command does not erase a previous failure", asy
   const previousError = page.getByRole("alert").filter({ hasText: busyMessage });
   await expect(previousError).toBeVisible();
   let opens = 0;
-  page.on("request", req => { if (req.url().endsWith(`/projects/${closed.id}/open`)) opens += 1; });
-  await expect(row(page, closed.id).getByRole("button", { name: "重新打开", exact: true })).toBeDisabled();
-  await expect(row(page, closed.id).locator(".directory-open")).toBeDisabled();
-  await expect(row(page, closed.id)).toContainText("当前后端未提供重新打开已关闭项目的能力");
+  page.on("request", req => { if (req.url().endsWith(`/projects/${closed.id}/unfreeze`)) opens += 1; });
+  await openProjectManagement(row(page, closed.id));
+  await expect(row(page, closed.id).getByRole("button", { name: "解除冻结", exact: true })).toHaveCount(0);
+  await expect(row(page, closed.id).locator(".directory-open")).toBeEnabled();
   await expect(previousError).toBeVisible();
   expect(opens).toBe(0);
   await expect(page).toHaveURL(new RegExp(`project=${target.id}`));

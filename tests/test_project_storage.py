@@ -736,19 +736,19 @@ def test_explicit_close_blocks_delayed_admission_then_reopens_without_replay(
     created.close()
     client = TestClient(create_project_folder_authoring_app(storage))
 
-    closed = client.post(f"/api/v2/projects/{project_id}/close")
+    closed = client.post(f"/api/v2/projects/{project_id}/freeze")
     assert closed.status_code == 200
     assert closed.json()["state"] == "closed"
     listed = client.get("/api/v2/projects")
     assert listed.status_code == 200
     assert listed.json()["projects"][0]["operationalState"] == "closed"
     # Close is idempotent and does not republish state or dispatch work.
-    assert client.post(f"/api/v2/projects/{project_id}/close").json()["revision"] == closed.json()["revision"]
+    assert client.post(f"/api/v2/projects/{project_id}/freeze").json()["revision"] == closed.json()["revision"]
     assert client.get(f"/api/v2/projects/{project_id}").status_code == 409
     with pytest.raises(ProjectClosedError):
         storage.projects.open(project_id)
 
-    reopened = client.post(f"/api/v2/projects/{project_id}/open")
+    reopened = client.post(f"/api/v2/projects/{project_id}/unfreeze")
     assert reopened.status_code == 200
     assert reopened.json()["state"] == "open"
     assert client.get(f"/api/v2/projects/{project_id}").status_code == 200

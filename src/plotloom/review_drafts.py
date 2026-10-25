@@ -10,7 +10,8 @@ from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
 class ReviewBufferPayload(CamelModel):
-    editor: Literal["source", "cast", "art", "script"]
+    editor: Literal["source", "cast", "art", "script", "production_intent", "production_presentation", "shot_presentation", "character_reference", "art_reference", "same_person", "cast_settings", "art_settings", "managed_reference", "keyframe_compatibility", "material_review", "text_retry", "video_directions", "take_rejection", "h3_directions", "video_pack_notes", "video_segment_notes", "brief_custom"]
+    target_id: str = Field(default="", max_length=160)
     basis: str = Field(min_length=1, max_length=4_000)
     text: str = Field(max_length=200_000)
 
@@ -18,6 +19,8 @@ class ReviewBufferPayload(CamelModel):
     def protect_embedded_credentials(self) -> "ReviewBufferPayload":
         # JSON editors may be incomplete. They are author text, not canonical
         # models, but valid embedded JSON still obeys the project secret guard.
+        if self.editor == "brief_custom" and (self.basis != "brief-custom:v1" or self.target_id not in {"subject", "narrative", "representation", "treatment", "lighting"} or len(self.text) > 120):
+            raise ValueError("unfinished Brief custom input must name one bounded direction group")
         try:
             authored = json.loads(self.text)
         except ValueError:

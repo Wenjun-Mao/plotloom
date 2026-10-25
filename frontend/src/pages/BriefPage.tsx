@@ -52,10 +52,14 @@ export function BriefPage({ apiTextPipeline = null, value, savedValue = value, h
     const updated = { ...current, [key]: next };
     onDraftChange?.(updated); return updated;
   });
-  const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
-  const canonicalDraft = (): ProjectBrief => ({ ...draft, title: draft.title.trim() || defaultWorkingTitle });
+  const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, raw as unknown as ProjectBrief[K]);
+  const canonicalDraft = (): ProjectBrief => {
+    const next = { ...draft, title: draft.title.trim() || defaultWorkingTitle };
+    for (const key of ["targetPlaythroughSeconds", "decisionPointsPerPath", "endingCount", "nodeBudget", "maxOutDegree", "desiredJoinCount", "shotsPerSceneMin", "shotsPerSceneMax"] as const) next[key] = Number(draft[key]);
+    return next;
+  };
   const savedVisualDirection = [...(savedValue.visualStyleSelections || []).map(item => item.value), ...(savedValue.visualStyle ? [savedValue.visualStyle] : [])].join("；") || null;
-  const validDuration = Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
+  const validDuration = String(draft.targetPlaythroughSeconds).trim() !== "" && Number.isInteger(Number(draft.targetPlaythroughSeconds)) && Number(draft.targetPlaythroughSeconds) >= 3;
   const canSave = !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
   const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后可选择自动准备素材，或继续手动创作；保存本身不会启动任务。";
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
@@ -68,8 +72,8 @@ export function BriefPage({ apiTextPipeline = null, value, savedValue = value, h
   return <div className="page">
     <PageHeader title="项目简报" description={hasSavedProject ? "修改项目的创作目标；保存后留在本页，已有来源不会被覆盖。" : "先写一个梗概，再进入来源与大纲。保存不会自动生成或确认故事内容。"} actions={<div className="page-action-group">
       {hasSavedProject
-        ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "保存修改"}</Button>
-        : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "保存项目简报"}</Button>}
+        ? <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "应用修改"}</Button>
+        : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={requestSave}>{saving ? "保存中…" : "确认项目简报"}</Button>}
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
       {hasSavedProject && onContinueToSource && <Button variant="quiet" disabled={saving} onClick={onContinueToSource}>返回来源与大纲</Button>}
     </div>} />

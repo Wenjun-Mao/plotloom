@@ -51,7 +51,7 @@ describe("PlotloomApiClient", () => {
     });
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
-    await expect(client.getProject("p1")).resolves.toEqual({ id: "p1" });
+    await expect(client.getProject("p1")).resolves.toMatchObject({ id: "p1" });
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
@@ -69,7 +69,7 @@ describe("PlotloomApiClient", () => {
   });
 
   it("uses lifecycle revisions and an explicit title confirmation for project lifecycle actions", async () => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "p1" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "p1", project: { id: "copy", brief: null } }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
     await client.archiveProject("p1", 4);

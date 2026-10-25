@@ -29,7 +29,7 @@ def image_execution_pin(code_revision, *, executor_backend="specialist_chat"):
 
 
 def freeze_launch_policy(store, registry, request):
-    brief = store.project().brief
+    brief = store.project().require_brief()
     planned_structure(store.manifest.project_id, brief)
     if request.style_authority == "brief":
         if request.render_style is not None or request.art_render_style is not None:
@@ -66,7 +66,7 @@ def freeze_launch_policy(store, registry, request):
 def assert_frozen_execution(store, registry, policy):
     if policy.version not in {"plotloom.pre-video.v2", PREVIOUS_POLICY_VERSION, POLICY_VERSION}:
         raise InvalidTransitionError("旧冻结策略只保留证据；请接管或创建新的自动素材运行。")
-    if policy.version == POLICY_VERSION and store.project().brief.model_dump(mode="json", by_alias=False) != policy.brief:
+    if policy.version == POLICY_VERSION and store.project().require_brief().model_dump(mode="json", by_alias=False) != policy.brief:
         raise InvalidTransitionError("已保存简报与本次冻结策略不同；请接管原素材运行。")
     from .geometry_preparation import geometry_policy
     if policy.geometry_preparation != geometry_policy():

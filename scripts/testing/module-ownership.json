@@ -150,7 +150,9 @@
           "frontend/tests/graph-safety-notice.test.ts",
           "frontend/tests/graph-workbench-provider.test.ts",
           "frontend/tests/graph-workflow-actions.test.ts",
-          "frontend/tests/workspace-workflow-guide.test.ts"
+          "frontend/tests/workspace-workflow-guide.test.ts",
+          "frontend/tests/graph-readonly-selection.test.ts",
+          "frontend/tests/workbench-alignment.test.ts"
         ],
         "playwright": [
           "frontend/e2e/branch-mutation-remount.spec.ts",
@@ -315,7 +317,8 @@
           "tests/test_video_batch_realistic_pack.py",
           "tests/test_delegated_qa.py",
           "tests/test_finished_example_qa_scopes.py",
-          "tests/test_provider_budgets.py"
+          "tests/test_provider_budgets.py",
+          "tests/test_minute_example_qa_scope.py"
         ],
         "vitest": [
           "frontend/tests/art-reference-preparation.test.ts",
@@ -434,7 +437,9 @@
           "tests/test_script_dialogue_compatibility.py",
           "tests/test_script_dialogue_composition.py",
           "tests/test_script_receiving.py",
-          "tests/test_storyboard_brief_style.py"
+          "tests/test_storyboard_brief_style.py",
+          "tests/test_working_project_autosave.py",
+          "tests/test_working_project_rollback.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
@@ -466,7 +471,9 @@
           "frontend/tests/workspace-project-availability.test.ts",
           "frontend/tests/workspace-project-loader.test.ts",
           "frontend/tests/workspace-refresh-navigation.test.ts",
-          "frontend/tests/workspace-state.test.ts"
+          "frontend/tests/workspace-state.test.ts",
+          "frontend/tests/working-input-journal.test.ts",
+          "frontend/tests/review-delta-contracts.test.ts"
         ],
         "playwright": [
           "frontend/e2e/creator-workbench-operations.spec.ts",
@@ -487,7 +494,8 @@
           "frontend/e2e/project-read-close.spec.ts",
           "frontend/e2e/project-save-force-close.spec.ts",
           "frontend/e2e/workspace-home.spec.ts",
-          "frontend/e2e/workspace-presentation.spec.ts"
+          "frontend/e2e/workspace-presentation.spec.ts",
+          "frontend/e2e/working-project-autosave.spec.ts"
         ]
       }
     },
@@ -1946,6 +1954,16 @@
       "path": "tests/services/minimax_h3_gateway/dashboard_browser_fixture.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/working_input_preservation.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "media-lifecycle",
+        "project-lifecycle",
         "shared-provider-dispatch"
       ]
     }

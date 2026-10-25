@@ -5,17 +5,17 @@ import { messageFrom } from "../src/app/workspace/contracts";
 
 afterEach(() => vi.useRealTimers());
 
-function heldBody() {
+function heldBody(payload = {}) {
   let body!: ReadableStreamDefaultController<Uint8Array>;
   const response = new Response(new ReadableStream({ start(controller) { body = controller; } }), { headers: { "Content-Type": "application/json" } });
-  return { response, finish: () => { body.enqueue(new TextEncoder().encode("{}")); body.close(); } };
+  return { response, finish: () => { body.enqueue(new TextEncoder().encode(JSON.stringify(payload))); body.close(); } };
 }
 
 it("settles project and collection bodies, queues new same-project reads, and allows other projects and draft writes", async () => {
-  const project = heldBody(), collection = heldBody();
+  const project = heldBody(), collection = heldBody({ projects: [] });
   const projectResponses = [project.response], collectionResponses = [collection.response];
   const fetcher = vi.fn(async (url: unknown) =>
-    (String(url).endsWith("/script") ? projectResponses.shift() : String(url).includes("/projects?") ? collectionResponses.shift() : undefined) ?? new Response("{}"));
+    (String(url).endsWith("/script") ? projectResponses.shift() : String(url).includes("/projects?") ? collectionResponses.shift() : undefined) ?? new Response(String(url).includes("/projects?") ? '{"projects":[]}' : "{}"));
   const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
   const script = client.getScript("p"), directory = client.listProjects();
   await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));

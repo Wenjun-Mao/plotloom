@@ -81,7 +81,7 @@ class ProjectDirectoryRegistry:
 
     def create(
         self,
-        brief: ProjectBrief,
+        brief: ProjectBrief | None,
         *,
         project_id: str | None = None,
         created_at: datetime | None = None,
@@ -122,7 +122,7 @@ class ProjectDirectoryRegistry:
 
     def resume_creation(
         self,
-        brief: ProjectBrief,
+        brief: ProjectBrief | None,
         *,
         project_id: str,
         created_at: datetime,
@@ -242,6 +242,8 @@ class ProjectDirectoryRegistry:
             home.path, mode="shared", create=False, passive=passive
         )
         try:
+            if admission == "authority" and lease.descriptor < 0:
+                raise ProjectStorageCorruptionError("authoritative project read requires an initialized operation lock; restore publication is incomplete")
             return ProjectStore.open(
                 home.path, read_only=True, admission=admission, access_lease=lease
             )
@@ -251,14 +253,11 @@ class ProjectDirectoryRegistry:
 
     def read_open(self, project_id: str) -> ProjectStore:
         """Inspect raw data while retaining open/deletion admission obligations."""
-        store = self.inspect(project_id)
+        store = self.inspect(project_id, admission="authority")
         try:
             # The shared lease is already held: deletion cannot acknowledge
             # between this predicate and the requested confined read.
             self.admission.require_admitted(project_id)
-            state, _revision = store.repository.operational_state()
-            if state != "open":
-                raise ProjectClosedError("project_closed: reopen it explicitly before reading workspace media")
             return store
         except BaseException:
             store.close()
@@ -363,7 +362,7 @@ class ProjectDirectoryRegistry:
                 )
             brief = source_project.brief.model_copy(
                 update={"title": title.strip()}
-            ) if title is not None else source_project.brief
+            ) if title is not None and source_project.brief is not None else source_project.brief
             try:
                 destination = self.open(target_project_id)
             except ProjectStorageError as error:

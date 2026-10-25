@@ -78,7 +78,7 @@ class ProjectArtPersistence:
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
         reasons = binding_diagnostics(current, binding, fields)
-        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+        direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
         if not art_style_current(binding.render_contract, direction):
             reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="art render contract is not current; prepare a new art task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
@@ -131,7 +131,7 @@ class ProjectArtPersistence:
             if has_publishable_candidates(session.connection().connection.driver_connection, project_id, ArtCandidateRow.__tablename__):
                 raise InvalidTransitionError("cancel the prepared art specialist publication before changing review state")
             binding, source, outline, mapping, cast = self._context(session, project_id)
-            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+            direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_art_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
             if render_style == "brief":

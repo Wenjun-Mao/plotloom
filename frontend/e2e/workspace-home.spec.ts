@@ -15,23 +15,15 @@ for (const start of ["创建空白项目", "打开示例项目"]) {
   });
 }
 
-test("Home protects an unsaved blank Brief with Cancel and explicit Save", async ({ page, request, workbench }) => {
-  await page.goto(`${workbench.frontendOrigin}/v2/`);
-  await page.getByRole("button", { name: "创建空白项目", exact: true }).click();
-  await page.getByLabel("片名").fill("回家前留住的故事");
-  await page.getByRole("textbox", { name: "故事梗概", exact: true }).fill("一个女孩发现一架带有陌生地址的纸飞机，决定找到它的主人。");
+test("Home preserves an unfinished persisted Brief without canonical Apply or a routine consent prompt", async ({ page, request, workbench }) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`); await page.getByRole("button", { name: "创建空白项目", exact: true }).click();
+  await expect(page).toHaveURL(/[?&]project=/); const id = new URL(page.url()).searchParams.get("project")!;
+  await page.getByLabel("片名").fill("回家前留住的故事"); await page.getByRole("spinbutton", { name: "目标游玩时长（秒）", exact: true }).fill("");
   await page.getByRole("button", { name: "返回首页", exact: true }).click();
-  const consent = page.getByRole("dialog", { name: "保存当前草稿？", exact: true });
-  await expect(consent).toBeVisible();
-  await consent.getByRole("button", { name: "取消", exact: true }).click();
-  await expect(page.getByLabel("片名")).toHaveValue("回家前留住的故事");
-  await page.getByRole("button", { name: "返回首页", exact: true }).click();
-  await consent.getByRole("button", { name: "保存并切换", exact: true }).click();
   await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
-  const { projects } = await (await request.get(`${workbench.apiOrigin}/api/v2/projects`)).json() as ProjectListResponse;
-  expect(projects).toHaveLength(1);
-  expect(projects[0].brief.title).toBe("回家前留住的故事");
-  expect(projects[0].operationalState).not.toBe("closed");
+  const project = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json();
+  expect(project.brief).toBeNull(); expect(project.displayTitle).toBe("回家前留住的故事");
+  expect(project.operationalState).toBe("open"); await expect(page.getByRole("dialog", { name: "保存当前草稿？" })).toHaveCount(0);
 });
 
 test("Home retains durable Brief drafts, lifecycle and saved-project history", async ({ page, request, workbench }) => {
@@ -41,7 +33,7 @@ test("Home retains durable Brief drafts, lifecycle and saved-project history", a
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=brief`);
-  await expect(page.getByRole("button", { name: "保存修改", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "应用修改", exact: true })).toBeVisible();
   const before = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json();
   const lifecycleWrites: string[] = [];
   page.on("request", item => {
@@ -51,12 +43,11 @@ test("Home retains durable Brief drafts, lifecycle and saved-project history", a
   await page.getByRole("button", { name: "返回首页", exact: true }).click();
   await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
   const after = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}`)).json();
-  expect(after).toEqual(before);
+  expect(after.brief).toEqual(before.brief); expect(after.lifecycleRevision).toBe(before.lifecycleRevision);
   const drafts = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`)).json();
   expect(drafts[0].payload.title).toBe("只留在草稿里的新片名");
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`project=${id}&stage=brief$`));
-  await page.getByRole("button", { name: "恢复草稿", exact: true }).click();
   await expect(page.getByLabel("片名")).toHaveValue("只留在草稿里的新片名");
   await page.goForward();
   await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
@@ -73,7 +64,6 @@ test("Home retains unconfirmed source input for explicit recovery", async ({ pag
   await page.getByRole("button", { name: "返回首页", exact: true }).click();
   await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
   await page.goBack();
-  await page.getByRole("button", { name: "恢复编辑草稿", exact: true }).click();
   await expect(page.getByLabel("故事内容")).toHaveValue("尚未确认的故事内容，先回首页，稍后继续。");
   const source = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`)).json();
   expect(source.source).toBeNull();

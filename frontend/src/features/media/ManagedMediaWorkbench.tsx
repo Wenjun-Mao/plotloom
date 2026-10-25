@@ -1,3 +1,4 @@
+import { useReviewEditorDraft } from "../authoring/ReviewDraftContext";
 import { useEffect, useState } from "react";
 import type {
   ApprovalDecision,
@@ -116,6 +117,16 @@ export function ManagedMediaWorkbench({
   const [samePersonComparisons, setSamePersonComparisons] = useState<
     SamePersonComparisonDraft[]
   >([]);
+  const referenceWorking = useReviewEditorDraft(projectId || "", "managed_reference", `storyboard:${storyboardRevision ?? 0}`, text => {
+    const input = JSON.parse(text) as { notes: string };
+    if (typeof input.notes !== "string") throw new Error("角色参考审阅文字无法读取。");
+    setReferenceNotes(input.notes);
+  }, mediaOwnerReadOnly, undefined, referenceCharacterId);
+  const importWorking = useReviewEditorDraft(projectId || "", "managed_reference", `storyboard:${storyboardRevision ?? 0}`, text => {
+    const input = JSON.parse(text) as { origin: string; declaredAdditions: string };
+    if (typeof input.origin !== "string" || typeof input.declaredAdditions !== "string") throw new Error("导入来源说明无法读取。");
+    setOrigin(input.origin); setDeclaredAdditions(input.declaredAdditions);
+  }, mediaOwnerReadOnly, undefined, `import-${selectedShot?.id || "root"}`);
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -179,9 +190,21 @@ export function ManagedMediaWorkbench({
     setKeptAssetId,
     setFrameIndex,
   });
-  const { compatibility, setCompatibility } = useKeyframeCompatibilityDraft({
+  const samePersonWorking = useReviewEditorDraft(projectId || "", "same_person", `binding:${storyboardRevision ?? 0}:${selectedBinding?.id ?? ""}:${JSON.stringify(selectedIdentityMapping)}`, text => {
+    const input = JSON.parse(text) as { notes: string; comparisons: Array<{ characterId: string; identityNotes: string; stateNotes: string; uncertaintyReason?: string }> };
+    if (typeof input.notes !== "string" || !Array.isArray(input.comparisons)) throw new Error("身份审阅文字无法读取。");
+    setSamePersonNotes(input.notes);
+    setSamePersonComparisons(current => current.map(item => {
+      const authored = input.comparisons.find(value => value.characterId === item.characterId);
+      return authored ? { ...item, identityNotes: authored.identityNotes, stateNotes: authored.stateNotes, uncertaintyReason: authored.uncertaintyReason } : item;
+    }));
+  }, mediaOwnerReadOnly, undefined, selectedBinding?.id || selectedShot?.id || "");
+  const rememberIdentityNotes = (comparisons: SamePersonComparisonDraft[], notes = samePersonNotes) => {
+    samePersonWorking.changed(JSON.stringify({ notes, comparisons: comparisons.map(({ characterId, identityNotes, stateNotes, uncertaintyReason }) => ({ characterId, identityNotes, stateNotes, uncertaintyReason })) }));
+  };
+  const { compatibility, setCompatibility, notice: compatibilityNotice, stale: compatibilityStale } = useKeyframeCompatibilityDraft({
     projectId, shot: selectedShot, assetId: keptAssetId, approval: currentApproval,
-    storyboardRevision, intent: activeIntent, asset: assetById.get(keptAssetId), mediaReadPhase,
+    storyboardRevision, intent: activeIntent, asset: assetById.get(keptAssetId), mediaReadPhase, readOnly: mediaOwnerReadOnly || busy,
   });
   const {
     chooseCandidate,
@@ -292,7 +315,7 @@ export function ManagedMediaWorkbench({
       id="shot-workbench"
       className="managed-media-workbench"
       data-testid="managed-media-workbench"
-    >
+    >{intentEditor.retainedNotice}{imageJobDirection.retainedNotice}{referenceWorking.notice}{samePersonWorking.notice}{importWorking.notice}{compatibilityNotice}
       <div className="section-title">
         <span>为当前镜头制作并审核图片和视频</span>
         <strong>镜头媒体工作台</strong>
@@ -360,9 +383,9 @@ export function ManagedMediaWorkbench({
           setPrimaryAssetId: setReferencePrimaryAssetId,
           setComplementaryAssetIds: setReferenceComplementaryAssetIds,
           setReviewer: setReferenceReviewer,
-          setNotes: setReferenceNotes,
+          setNotes: value => { setReferenceNotes(value); referenceWorking.changed(JSON.stringify({ notes: value })); },
         }}
-        readOnly={mediaOwnerReadOnly}
+        readOnly={mediaOwnerReadOnly || referenceWorking.stale}
         mediaReadPhase={mediaReadPhase}
         busy={busy}
         onSelectReference={() => void selectCharacterReference()}
@@ -399,10 +422,10 @@ export function ManagedMediaWorkbench({
         declaredAdditions={declaredAdditions}
         candidates={candidates}
         keptAssetId={keptAssetId}
-        readOnly={mediaOwnerReadOnly}
+        readOnly={mediaOwnerReadOnly || importWorking.stale}
         busy={busy}
-        onOrigin={setOrigin}
-        onDeclaredAdditions={setDeclaredAdditions}
+        onOrigin={value => { setOrigin(value); importWorking.changed(JSON.stringify({ origin: value, declaredAdditions })); }}
+        onDeclaredAdditions={value => { setDeclaredAdditions(value); importWorking.changed(JSON.stringify({ origin, declaredAdditions: value })); }}
         onImport={(file) => void importFile(file)}
         onChooseCandidate={chooseCandidate}
         onKeepCandidate={(assetId) => {
@@ -432,10 +455,10 @@ export function ManagedMediaWorkbench({
         reviewer={samePersonReviewer}
         notes={samePersonNotes}
         comparisons={samePersonComparisons}
-        setReviewer={setSamePersonReviewer}
-        setNotes={setSamePersonNotes}
-        setComparisons={setSamePersonComparisons}
-        readOnly={mediaOwnerReadOnly}
+        setReviewer={value => { const next = typeof value === "function" ? value(samePersonReviewer) : value; setSamePersonReviewer(next); }}
+        setNotes={value => { const next = typeof value === "function" ? value(samePersonNotes) : value; setSamePersonNotes(next); rememberIdentityNotes(samePersonComparisons, next); }}
+        setComparisons={update => setSamePersonComparisons(current => { const next = typeof update === "function" ? update(current) : update; rememberIdentityNotes(next); return next; })}
+        readOnly={mediaOwnerReadOnly || samePersonWorking.stale}
         busy={busy}
         onRecord={() => void recordSamePersonReview()}
       />
@@ -453,6 +476,7 @@ export function ManagedMediaWorkbench({
         intentEditor={intentEditor}
         activeIntent={activeIntent}
         compatibility={compatibility}
+        compatibilityStale={compatibilityStale}
         setCompatibility={setCompatibility}
         readOnly={mediaOwnerReadOnly}
         busy={busy}

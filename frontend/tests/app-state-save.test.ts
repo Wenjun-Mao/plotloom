@@ -1,291 +1,67 @@
 import { act, createElement } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "../src/App";
-import { fallbackProfiles } from "../src/app/workspace/useTextProviderProfiles";
-import { ApiError, plotloomApi } from "../src/api";
-import { demoProject, demoRun } from "../src/demo";
-import type { MediaTask, ProjectCreationResponse, ProjectListItem, ProjectResource, RunProgress, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
-import { button, creationResponse, deferred, flush, mediaTask, renderBlank, renderSample, resource, setInput, stageEnvelopes } from "./app-state-fixtures";
+import { createRoot } from "react-dom/client";
+import { afterEach, expect, it, vi } from "vitest";
+import { plotloomApi } from "../src/api";
+import { demoProject } from "../src/demo";
+import { useProjectInitialization } from "../src/app/workspace/useProjectInitialization";
+import { creationResponse, deferred } from "./app-state-fixtures";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-describe("App project/editor rehydration", () => {
-
-  async function continueManually(): Promise<void> {
-    await act(async () => button("继续手动创作").click());
-    await flush();
-  }
-
-  let root: Root;
-
-  beforeEach(() => {
-      vi.restoreAllMocks();
-      window.sessionStorage.clear();
-      window.history.replaceState(null, "", "/");
-      document.body.innerHTML = '<div id="test-root"></div>';
-      root = createRoot(document.getElementById("test-root")!);
-      vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [] });
-      vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [] });
-      vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue(fallbackProfiles());
-      vi.spyOn(plotloomApi, "getRuntimeCapabilities").mockResolvedValue({
-        durableProjectDrafts: false, durableMediaDrafts: false, explicitProjectClose: false,
-        portableSnapshots: false, apiTextPipeline: true,
-      });
-    });
-
-  afterEach(async () => {
-      await act(async () => root.unmount());
-    });
-
-  it("creates a complete canonical prefix when saving a teaching sample brief", async () => {
-      const incoming = creationResponse("sample-project", demoProject.brief.title, {
-        story_bible: demoProject.storyBible,
-        story_graph: demoProject.storyGraph,
-        scene_beats: demoProject.sceneBeats,
-        storyboard: demoProject.storyboard,
-      });
-      const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(incoming);
-      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
-      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: incoming.stages });
-
-      await renderSample(root);
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      await continueManually();
-      expect(window.location.search).toContain("stage=source");
-      await act(async () => button("故事圣经").click());
-
-      expect(create).toHaveBeenCalledWith({
-        brief: demoProject.brief,
-        initialStages: [
-          { stage: "story_bible", payload: demoProject.storyBible },
-          { stage: "story_graph", payload: demoProject.storyGraph },
-          { stage: "scene_beats", payload: demoProject.sceneBeats },
-          { stage: "storyboard", payload: demoProject.storyboard },
-        ],
-      }, expect.any(String));
-      const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
-      expect(logline.value).toBe(demoProject.storyBible.logline);
-      expect(document.querySelectorAll(".character-card")).not.toHaveLength(0);
-      expect(window.location.search).toContain("project=sample-project");
-    });
-
-  it("does not let delayed first-save Gate hydration retire a newer stage save", async () => {
-      const created = creationResponse("gate-race-project", demoProject.brief.title, {
-        story_bible: demoProject.storyBible,
-        story_graph: demoProject.storyGraph,
-        scene_beats: demoProject.sceneBeats,
-        storyboard: demoProject.storyboard,
-      });
-      const delayedReview = deferred<never>();
-      const delayedPatch = deferred<StageEnvelope["head"]>();
-      vi.spyOn(plotloomApi, "createProject").mockResolvedValue(created);
-      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(created);
-      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: created.stages });
-      vi.spyOn(plotloomApi, "getStoryboardReview")
-        .mockReturnValueOnce(delayedReview.promise)
-        .mockResolvedValue(null as never);
-      vi.spyOn(plotloomApi, "patchStage").mockReturnValue(delayedPatch.promise);
-
-      await renderSample(root);
-      await act(async () => button("分镜工作台").click());
-      await act(async () => button("保存分镜").click());
-      await flush();
-      window.history.pushState(null, "", "/?project=gate-race-project&stage=bible");
-      await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
-      await flush();
-      const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
-      await act(async () => setInput(logline, "新路由中的未完成保存"));
-      await act(async () => button("保存故事圣经").click());
-      expect(plotloomApi.patchStage).toHaveBeenCalledOnce();
-      await flush();
-      expect(button("正在保存…").disabled).toBe(true);
-
-      await act(async () => delayedReview.resolve({} as never));
-      await flush();
-
-      expect(window.location.search).toContain("project=gate-race-project");
-      expect(window.location.search).toContain("stage=bible");
-      expect((document.querySelector(".form-card textarea") as HTMLTextAreaElement).value).toBe("新路由中的未完成保存");
-      expect(button("正在保存…").disabled).toBe(true);
-      await act(async () => delayedPatch.resolve(created.stages[0]!.head));
-    });
-
-  it("creates a clean source-first project without initial stages and loads its canonical route", async () => {
-      const created = creationResponse("brief-project", "干净简报");
-      const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(created);
-      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(created);
-      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: created.stages });
-
-      await renderBlank(root);
-      const title = document.querySelector(".form-card input") as HTMLInputElement;
-      await act(async () => setInput(title, "干净简报"));
-      await act(async () => setInput(document.querySelector(".form-card textarea") as HTMLTextAreaElement, "干净项目的可编辑梗概。"));
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      await continueManually();
-
-      expect(create).toHaveBeenCalledWith({ brief: expect.objectContaining({ title: "干净简报" }) }, expect.any(String));
-      expect(window.location.search).toContain("project=brief-project");
-      expect(window.location.search).toBe("?project=brief-project&stage=source");
-      expect(window.location.hash).toBe("#source");
-      expect(document.body.textContent).toContain("brief-project");
-    });
-
-  it("creates the canonical prefix when a stage is saved before the brief", async () => {
-      const stagedBible = { ...demoProject.storyBible, logline: "本地编辑的圣经草稿" };
-      const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(creationResponse("stage-project", demoProject.brief.title, { story_bible: stagedBible }));
-      const loadProject = vi.spyOn(plotloomApi, "getProject");
-      const loadStages = vi.spyOn(plotloomApi, "getStages");
-
-      await renderSample(root);
-      await act(async () => button("故事圣经").click());
-      await flush();
-      const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
-      await act(async () => setInput(logline, stagedBible.logline));
-      await act(async () => button("保存故事圣经").click());
-      await flush();
-
-      expect(create).toHaveBeenCalledWith({
-        brief: demoProject.brief,
-        initialStages: [{ stage: "story_bible", payload: stagedBible }],
-      }, expect.any(String));
-      expect(loadProject).not.toHaveBeenCalled();
-      expect(loadStages).not.toHaveBeenCalled();
-    });
-
-  it("allows only one synchronous first-save flight and exposes saving state", async () => {
-      const pending = deferred<ProjectCreationResponse>();
-      const create = vi.spyOn(plotloomApi, "createProject").mockReturnValue(pending.promise);
-
-      await renderSample(root);
-      await act(async () => {
-        button("保存项目简报").click();
-        button("保存项目简报").click();
-      });
-
-      expect(create).toHaveBeenCalledOnce();
-      const savingButton = button("保存中…");
-      expect(savingButton.disabled).toBe(true);
-      await act(async () => pending.resolve(creationResponse("single-flight", demoProject.brief.title)));
-      await flush();
-    });
-
-  it("reuses an idempotency key for an identical failed first-save body and changes it with the draft", async () => {
-      const create = vi.spyOn(plotloomApi, "createProject")
-        .mockRejectedValueOnce(new TypeError("network unavailable"))
-        .mockRejectedValueOnce(new TypeError("network unavailable"))
-        .mockRejectedValueOnce(new TypeError("network unavailable"));
-
-      await renderBlank(root);
-      const title = document.querySelector(".form-card input") as HTMLInputElement;
-      await act(async () => setInput(title, "相同请求"));
-      await act(async () => setInput(document.querySelector(".form-card textarea") as HTMLTextAreaElement, "幂等请求梗概。"));
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      const firstKey = create.mock.calls[0][1];
-
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      expect(create.mock.calls[1][1]).toBe(firstKey);
-
-      await act(async () => setInput(title, "已修改的请求"));
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      expect(create.mock.calls[2][1]).not.toBe(firstKey);
-      expect(create.mock.calls[2][0]).toEqual({ brief: expect.objectContaining({ title: "已修改的请求" }) });
-    });
-
-  it("keeps a failed first-save draft, URL, and retry affordance intact", async () => {
-      const create = vi.spyOn(plotloomApi, "createProject")
-        .mockRejectedValueOnce(new TypeError("offline"))
-        .mockResolvedValueOnce(creationResponse("retry-project", "保留草稿"));
-
-      await renderSample(root);
-      const title = document.querySelector(".form-card input") as HTMLInputElement;
-      await act(async () => setInput(title, "保留草稿"));
-      await act(async () => button("保存项目简报").click());
-      await flush();
-
-      expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("保留草稿");
-      expect(window.location.search).toBe("?stage=brief");
-      expect(document.body.textContent).toContain("尚未保存的项目草稿");
-      expect(button("保存项目简报").disabled).toBe(false);
-
-      await act(async () => button("保存项目简报").click());
-      await flush();
-      expect(create).toHaveBeenCalledTimes(2);
-      await continueManually();
-      expect(window.location.search).toBe("?project=retry-project&stage=source");
-      expect(window.location.hash).toBe("#source");
-    });
-
-  it("retains the same creation key until the canonical response is installed", async () => {
-      const incomplete = {
-        ...resource("incomplete-response", demoProject.brief.title),
-        stages: undefined,
-      } as unknown as ProjectCreationResponse;
-      const create = vi.spyOn(plotloomApi, "createProject")
-        .mockResolvedValueOnce(incomplete)
-        .mockResolvedValueOnce(creationResponse("replayed-project", demoProject.brief.title));
-
-      await renderSample(root);
-      await act(async () => button("保存项目简报").click());
-      await flush();
-
-      expect(window.location.search).toBe("?stage=brief");
-      const firstKey = create.mock.calls[0][1];
-      await act(async () => button("保存项目简报").click());
-      await flush();
-
-      expect(create.mock.calls[1][1]).toBe(firstKey);
-      await continueManually();
-      expect(window.location.search).toBe("?project=replayed-project&stage=source");
-      expect(window.location.hash).toBe("#source");
-    });
-
-  it("keeps existing-project PATCH revisions and 409 conflict feedback unchanged", async () => {
-      window.history.replaceState(null, "", "/?project=existing-project");
-      const incoming = resource("existing-project", "现有项目", 7);
-      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
-      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
-      const patch = vi.spyOn(plotloomApi, "patchProject").mockRejectedValue(new ApiError("revision changed", 409, { code: "revision_conflict" }));
-      const create = vi.spyOn(plotloomApi, "createProject");
-
-      await act(async () => root.render(createElement(App)));
-      await flush();
-      const title = document.querySelector(".form-card input") as HTMLInputElement;
-      await act(async () => setInput(title, "本地冲突修改"));
-      await act(async () => button("保存修改").click());
-      await flush();
-
-      expect(create).not.toHaveBeenCalled();
-      expect(patch).toHaveBeenCalledWith("existing-project", 7, expect.objectContaining({ title: "本地冲突修改" }));
-      expect(document.body.textContent).toContain("项目版本冲突：revision changed");
-    });
-
-  it("keeps a canonical stage save live while entity focus only changes the URL", async () => {
-      window.history.replaceState(null, "", "/?project=entity-save-project&stage=beats");
-      const incoming = resource("entity-save-project", "实体焦点保存", 7);
-      const pending = deferred<StageEnvelope["head"]>();
-      vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
-      vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes({ scene_beats: demoProject.sceneBeats }) });
-      const patch = vi.spyOn(plotloomApi, "patchStage").mockReturnValue(pending.promise);
-
-      await act(async () => root.render(createElement(App)));
-      await flush();
-      await act(async () => setInput(document.querySelector(".beat-card textarea") as HTMLTextAreaElement, "实体焦点不应取消保存"));
-      await act(async () => button("保存节拍").click());
-      await act(async () => button("诊断双重故障").click());
-      expect(new URLSearchParams(window.location.search).get("entity")).toBe("scene:scene_diagnose");
-
-      await act(async () => pending.resolve({ ...stageEnvelopes({ scene_beats: demoProject.sceneBeats })[2].head, stage: "scene_beats", revision: 2, status: "ready" }));
-      await flush();
-
-      expect(patch).toHaveBeenCalledWith("entity-save-project", "scene_beats", 1, expect.objectContaining({ beats: expect.any(Array) }));
-      expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).not.toContain("entity-save-project:scene_beats:1");
-      expect(button("保存节拍").disabled).toBe(false);
-    });
-
+afterEach(() => vi.restoreAllMocks());
+async function harness() {
+  let epoch = 0;
+  const session = { activePage: "brief" as const, capture: () => ({ epoch, projectId: "", stage: "brief" as const }),
+    isCurrent: (operation: { epoch: number }) => operation.epoch === epoch,
+    startLocalWorkspace: vi.fn(), acceptCreatedProject: vi.fn() };
+  const clear = vi.fn(), reportError = vi.fn();
+  let owner!: ReturnType<typeof useProjectInitialization>;
+  const root = createRoot(document.createElement("div"));
+  function Probe() { owner = useProjectInitialization({ session, clearDraftWorkflow: clear, reportError }); return null; }
+  await act(async () => root.render(createElement(Probe)));
+  return { get owner() { return owner; }, session, clear, reportError, supersede: () => { epoch++; }, dispose: () => act(async () => root.unmount()) };
+}
+it("New persists an unnamed draft before a valid Brief and coalesces a double click", async () => {
+  const h = await harness(), pending = deferred<ReturnType<typeof creationResponse>>();
+  const create = vi.spyOn(plotloomApi, "createProject").mockReturnValue(pending.promise);
+  let first!: Promise<void>, second!: Promise<void>;
+  try {
+    await act(async () => { first = h.owner.startBlankProject(); second = h.owner.startBlankProject(); });
+    expect(create).toHaveBeenCalledOnce(); expect(create.mock.calls[0][0]).toEqual({ brief: null });
+    expect(h.owner.creating).toBe(true);
+    await act(async () => { pending.resolve(creationResponse("new", "")); await first; await second; });
+    expect(h.session.acceptCreatedProject).toHaveBeenCalledOnce(); expect(h.owner.creating).toBe(false);
+  } finally { await h.dispose(); }
+});
+it("lost creation response retries the immutable intent under the same key after remount", async () => {
+  const h = await harness();
+  const create = vi.spyOn(plotloomApi, "createProject").mockRejectedValueOnce(new Error("response lost")).mockResolvedValue(creationResponse("reserved", ""));
+  await act(async () => h.owner.startBlankProject()); const first = create.mock.calls[0];
+  expect(h.reportError).toHaveBeenCalledWith(expect.stringContaining("同一身份"));
+  await h.dispose();
+  const next = await harness();
+  try {
+    await act(async () => next.owner.startBlankProject());
+    expect(create.mock.calls[1]).toEqual(first); expect(next.session.acceptCreatedProject).toHaveBeenCalledOnce();
+    expect(Object.keys(localStorage).some(key => key.startsWith("plotloom:create-intent:"))).toBe(false);
+  } finally { await next.dispose(); }
+});
+it("a delayed creation acknowledgement cannot attach to a newer route", async () => {
+  const h = await harness(), pending = deferred<ReturnType<typeof creationResponse>>();
+  vi.spyOn(plotloomApi, "createProject").mockReturnValue(pending.promise); let flight!: Promise<void>;
+  try {
+    await act(async () => { flight = h.owner.startBlankProject(); }); h.supersede();
+    await act(async () => { pending.resolve(creationResponse("old-intent", "")); await flight; });
+    expect(h.session.acceptCreatedProject).not.toHaveBeenCalled(); expect(h.session.startLocalWorkspace).not.toHaveBeenCalled();
+  } finally { await h.dispose(); }
+});
+it("teaching preview creates nothing; explicit editable copy copies supported canon without execution history", async () => {
+  const h = await harness(), create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(creationResponse("copy", demoProject.brief.title));
+  try {
+    await act(async () => h.owner.openSampleProject()); expect(create).not.toHaveBeenCalled();
+    expect(h.session.startLocalWorkspace.mock.calls[0][1].project.teachingPreview).toBe(true);
+    await act(async () => h.owner.createTeachingCopy());
+    expect(create).toHaveBeenCalledExactlyOnceWith({ brief: demoProject.brief, initialStages: expect.arrayContaining([expect.objectContaining({ stage: "storyboard" })]) }, expect.any(String));
+    expect(h.session.acceptCreatedProject).toHaveBeenCalledOnce();
+    expect(create.mock.calls[0][0]).not.toHaveProperty("run"); expect(create.mock.calls[0][0]).not.toHaveProperty("trace");
+  } finally { await h.dispose(); }
 });

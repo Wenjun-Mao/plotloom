@@ -45,6 +45,8 @@ class ProjectDraftPersistence:
 
     @staticmethod
     def _brief_dependent_stages(before: ProjectBrief, after: ProjectBrief) -> tuple[StageName, ...]:
+        if before is None:
+            return tuple(STAGE_ORDER)
         changed = {
             name for name in ProjectBrief.model_fields
             if getattr(before, name) != getattr(after, name)
@@ -70,7 +72,7 @@ class ProjectDraftPersistence:
         after: ProjectBrief, now: datetime,
     ) -> None:
         structural_fields = {"decision_points_per_path", "ending_count", "node_budget", "max_out_degree", "desired_join_count"}
-        if any(getattr(before, name) != getattr(after, name) for name in structural_fields):
+        if before is not None and any(getattr(before, name) != getattr(after, name) for name in structural_fields):
             from ..schema import SourceOutlineSectionMapHeadRow, SourceOutlineGraphAdmissionRow
             mapping = session.get(SourceOutlineSectionMapHeadRow, project_id)
             if mapping and mapping.revision:
@@ -95,7 +97,7 @@ class ProjectDraftPersistence:
             self._access.guards.active(row)
             if row.revision != expected_revision:
                 raise RevisionConflictError("project", expected_revision, row.revision)
-            previous = ProjectBrief.model_validate(row.brief)
+            previous = ProjectBrief.model_validate(row.brief) if row.brief is not None else None
             if previous == brief:
                 return self._access.codecs.project(row)
             brief_data = brief.model_dump(mode="json", by_alias=False)
@@ -143,7 +145,21 @@ class ProjectDraftPersistence:
                 canonical_base_revision,
                 row.base_canonical_revision,
             )
-        if row.payload != canonical_payload:
+        # The exact revision and basis select the authored bytes. Validate and
+        # convert that precise buffer here, never a downstream tolerant copy.
+        if editor_scope == "brief":
+            from ...working_inputs import BriefWorkingInput
+            adopted = BriefWorkingInput.model_validate(row.payload).confirmed().model_dump(mode="json", by_alias=True)
+        elif editor_scope in {"visual_intent", "image_direction"}:
+            adopted = dict(row.payload)
+            raw_refs = adopted.pop("sourceRefsText", None)
+            if raw_refs is not None:
+                adopted["sourceRefs"] = [item.strip() for item in raw_refs.splitlines() if item.strip()]
+            if editor_scope == "image_direction":
+                adopted["presentationChange"] = adopted["presentationChange"].strip()
+        else:
+            adopted = stage_payload_model(StageName(editor_scope), schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(row.payload).model_dump(mode="json", by_alias=True)
+        if adopted != canonical_payload:
             raise RevisionConflictError(
                 f"authoring draft payload {editor_scope}/{entity_id}",
                 expected_draft_revision,
@@ -178,7 +194,7 @@ class ProjectDraftPersistence:
                 canonical_base_revision=row.revision,
                 canonical_payload=canonical_payload,
             )
-            previous = ProjectBrief.model_validate(row.brief)
+            previous = ProjectBrief.model_validate(row.brief) if row.brief is not None else None
             if previous != brief:
                 brief_data = brief.model_dump(mode="json", by_alias=False)
                 row.brief = brief_data
@@ -217,7 +233,8 @@ class ProjectDraftPersistence:
         if contains_secret_setting(payload) or contains_secret_value(payload):
             raise ValueError("authoring drafts must not contain credentials or secret-shaped values")
         if editor_scope == "brief":
-            return ProjectBrief.model_validate(payload).model_dump(mode="json", by_alias=True)
+            from ...working_inputs import BriefWorkingInput
+            return BriefWorkingInput.model_validate(payload).model_dump(mode="json", by_alias=True)
         if editor_scope == "visual_intent":
             return VisualIntentDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         if editor_scope == "image_direction":
@@ -228,9 +245,8 @@ class ProjectDraftPersistence:
             from ...graph_authoring_drafts import GraphAuthoringDraft
             return GraphAuthoringDraft.model_validate(payload).model_dump(mode="json", by_alias=True)
         stage = StageName(editor_scope)
-        return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
-            payload
-        ).model_dump(mode="json", by_alias=True)
+        from ...stage_working_inputs import validate_stage_working_input
+        return validate_stage_working_input(stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION), payload)
 
     def _authoring_draft_base_revision(
         self,
@@ -268,8 +284,11 @@ class ProjectDraftPersistence:
 
         self._validate_authoring_draft_identity(editor_scope, entity_id)
         validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
-        if editor_scope == "review_buffer" and entity_id != validated_payload["editor"]:
-            raise ValueError("review draft identity does not match its editor")
+        if editor_scope == "review_buffer":
+            target = validated_payload["targetId"]
+            expected_entity = f"{validated_payload['editor']}:{target}" if target else validated_payload["editor"]
+            if entity_id != expected_entity:
+                raise ValueError("review draft identity does not match its editor/entity")
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
@@ -294,7 +313,9 @@ class ProjectDraftPersistence:
                     expected_entity_id = f"{draft_shot_id}:{validated_payload['targetId']}"
                 if entity_id != expected_entity_id:
                     raise ValueError("media authoring draft identity does not match its bounded payload")
-            current_base = self._authoring_draft_base_revision(session, project, editor_scope)
+            # Unsubmitted custom label text does not depend on canonical Brief
+            # values. Enter/+ is the separate selection/adoption operation.
+            current_base = 0 if editor_scope == "review_buffer" and validated_payload["editor"] == "brief_custom" else self._authoring_draft_base_revision(session, project, editor_scope)
             if base_canonical_revision != current_base:
                 raise RevisionConflictError(
                     f"authoring draft canonical base {editor_scope}",
@@ -327,7 +348,7 @@ class ProjectDraftPersistence:
                 from ...graph_edit_safety import assert_edit_safe
                 from ...graph_draft_creation import create_graph_draft
                 baseline = prior or create_graph_draft(binding_hash=draft.binding_hash, seed=draft.mapping.seed_topology)
-                assert_edit_safe(baseline, draft, ProjectBrief.model_validate(project.brief))
+                assert_edit_safe(baseline, draft, ProjectBrief.require_confirmed(project.brief))
             now = utc_now()
             if row is None:
                 row = AuthoringDraftRow(

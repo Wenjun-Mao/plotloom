@@ -54,12 +54,14 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   await expect(page).toHaveURL(/stage=graph/);
   await page.getByRole("button", { name: "创作工作台", exact: true }).click();
   await page.getByText("场景、动作与对白", { exact: true }).click();
+  await panel.getByRole("combobox").selectOption({ label: "opening · episode 1" });
   await expect(editor).toHaveValue(text);
   await page.reload();
   await page.getByText("场景、动作与对白", { exact: true }).click();
-  await panel.getByRole("button", { name: "恢复编辑草稿", exact: true }).click();
+  await panel.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await expect(panel.getByRole("button", { name: "恢复编辑草稿", exact: true })).toHaveCount(0);
   await expect(editor).toHaveValue(text);
-  await expect(panel).toContainText("正在保留 opening 的未保存章节");
+  expect((await json(request.get(url))).acceptedScript).toEqual(retained);
   await panel.getByRole("button", { name: "保存此章节，不覆盖其他章节", exact: true }).click();
   await expect(panel).toContainText("已确认 r2");
   const accepted = (await json(request.get(url))).acceptedScript;

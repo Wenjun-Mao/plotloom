@@ -197,13 +197,36 @@ or repair code. See the dated audit for observations and limits.
 
 ## Project directory actions (C58, approved 2026-10-24)
 
-Only the current workspace project offers 保存并关闭项目 / 退出工作区. Other rows
-have explicit 打开 / 重新打开 / 恢复 according to their existing folder/lifecycle
-state; archived open titles remain readable. Archived closed titles explain and
-require Restore before capability-gated Reopen. 更多 holds management copying, archive,
-noncurrent 关闭项目 and exact confirmed deletion. Keyboard and short-screen
-reachability are required. Positive latest-run activity explains ordinary Close/
-archive restrictions; incomplete/absent summary facts cannot claim idle or disable
-supported deletion preview/current Exit. [ADR 0113](../adr/0113-project-save-close-and-force-exit.md#state-aware-directory-actions--2026-10-24)
-owns the contract; the [dated plan](../roadmap/2026-10-24-project-directory-actions.md)
-separates implementation, verification, activation and owner acceptance.
+New immediately reserves a persisted unnamed draft, before a valid Brief exists.
+The built-in teaching preview is read-only; 创建编辑副本 creates an ordinary editable
+project. Existing saved projects named 示例 retain their ordinary project identity.
+Working input autosaves and matching saved edits resume automatically. Empty raw
+numbers, incomplete JSON and unfinished authored notes remain working input;
+Apply/Confirm alone updates confirmed production inputs. Generation and approval
+retain their explicit prerequisites.
+
+Leaving a page/project/Home preserves every admitted working-input owner. The
+status distinguishes server acknowledgement, verified local-only preservation,
+conflict and failed preservation. Reconnect retries admitted retained writers,
+including unmounted editors, without applying content or starting work. Competing
+browser journals are individually inspectable, copyable and explicitly disposable;
+only exact matching receipts resume automatically. Pending File selections need
+explicit import or cancellation before departure.
+
+Ordinary directory rows carry no 未关闭 state or Close/save-close/force-exit actions.
+更多 offers optional 冻结项目 / 解除冻结, copying, archive and exact confirmed deletion.
+Frozen projects remain readable and eligible ready media remains playable; writes,
+resume/reconcile and dispatch are refused. Unfreeze restores write admission only.
+Restore and Unfreeze are separate operations; restoring an archived frozen project
+retains its frozen state. Idle does not automatically freeze a project.
+Ordinary departure leaves admitted background work running. Freeze refuses busy
+or UNKNOWN ownership; it neither cancels/clears it nor schedules a later freeze. Positive latest-run activity restricts Freeze/archive;
+incomplete summaries cannot claim idle. Supported Snapshot/Copy keep their existing
+operation-owned admission and quiescence checks without a routine manual Freeze
+prerequisite. Keyboard and short-screen reachability remain required.
+
+[ADR 0218](../adr/0218-working-input-autosave-and-optional-freeze.md) supersedes the
+Close and manual matching-restoration clauses; prior receipts and decisions remain
+historical. The [retained plan](../roadmap/2026-10-24-autosave-and-project-freeze.md)
+separates source implementation, qualification, installed activation and owner
+creative acceptance.

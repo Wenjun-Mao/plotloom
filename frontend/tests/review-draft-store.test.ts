@@ -5,9 +5,9 @@ import { createReviewDraftStore } from "../src/features/authoring/reviewDraftSto
 import type { AuthoringDraft } from "../src/types";
 
 const receipt = (text: string, draftRevision = 1): AuthoringDraft => ({ projectId: "a", editorScope: "review_buffer", entityId: "source",
-  baseCanonicalRevision: 1, draftRevision, payload: { editor: "source", basis: "source:0", text }, updatedAt: new Date().toISOString() });
-beforeEach(() => sessionStorage.clear());
-afterEach(() => vi.restoreAllMocks());
+  baseCanonicalRevision: 1, draftRevision, payload: { editor: "source", targetId: "", basis: "source:0", text }, updatedAt: new Date().toISOString() });
+beforeEach(() => { sessionStorage.clear(); localStorage.clear(); vi.useFakeTimers(); });
+afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it("drains partial author text without canonical Save or acceptance", async () => {
   const q = createProjectDraftQuiescence();
@@ -21,7 +21,7 @@ it("drains partial author text without canonical Save or acceptance", async () =
   close.finish();
   const restored = createReviewDraftStore(createProjectDraftQuiescence(), sessionStorage);
   restored.hydrate("a", [receipt("unfinished")]);
-  expect(restored.get("a", "source")?.editing).toBe(false);
+  expect(restored.get("a", "source")?.editing).toBe(true);
   expect(restored.get("a", "source")?.payload.text).toBe("unfinished");
 });
 
@@ -33,8 +33,9 @@ it("preserves the original basis and CAS across refresh and newer typing", async
   store.update("a", "source", 2, "source:1", "still local");
   const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockRejectedValue(new Error("CAS conflict"));
   await expect(store.flush("a", "source")).resolves.toBe(false);
-  expect(save).toHaveBeenCalledWith("a", expect.objectContaining({ expectedDraftRevision: 1, baseCanonicalRevision: 1,
-    payload: expect.objectContaining({ basis: "source:0" }) }));
+  expect(save).not.toHaveBeenCalled();
+  expect(store.get("a", "source")?.conflict).toBe(true);
+  expect(store.get("a", "source")?.baseRevision).toBe(1);
   await expect(store.clear("a", "source")).rejects.toThrow("another client");
   expect(store.get("a", "source")?.payload.text).toBe("still local");
 });
@@ -79,12 +80,12 @@ it("force stops the flush loop before an existing receipt settles", async () => 
   close.finish();
 });
 
-it("leaving a project requires explicit recovery on reopen", () => {
+it("leaving a project automatically resumes matching working input", () => {
   const store = createReviewDraftStore(createProjectDraftQuiescence(), sessionStorage);
   store.update("a", "source", 1, "source:0", "unfinished");
   expect(store.get("a", "source")?.editing).toBe(true);
   store.leave("a"); store.hydrate("a", [receipt("unfinished")]);
-  expect(store.get("a", "source")?.editing).toBe(false);
+  expect(store.get("a", "source")?.editing).toBe(true);
   store.restore("a", "source"); expect(store.get("a", "source")?.editing).toBe(true);
 });
 

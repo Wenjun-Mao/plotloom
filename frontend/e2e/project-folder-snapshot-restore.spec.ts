@@ -1,3 +1,4 @@
+import { openProjectManagement } from "./project-directory-controls";
 import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes, openServiceStatus } from "./workbench-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
@@ -187,9 +188,6 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   // networkidle state does not prove those later requests have settled.
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   await expect(page.getByRole("heading", { name: "项目简报", exact: true })).toBeVisible();
-  const recovery = page.getByRole("dialog", { name: "发现可恢复草稿" });
-  await expect(recovery).toBeVisible();
-  await recovery.getByRole("button", { name: "恢复草稿", exact: true }).click();
   await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
 
   const snapshotResponse = page.waitForResponse((response) =>
@@ -213,9 +211,10 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   const closeResponse = page.waitForResponse((response) =>
     response.request().method() === "POST"
-    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/close`,
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/freeze`,
   );
-  await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "保存并关闭项目", exact: true }).click();
+  await openProjectManagement(page.locator(`.directory-item[data-project-id="${projectId}"]`));
+  await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "冻结项目", exact: true }).click();
   expect((await closeResponse).ok()).toBeTruthy();
   const sourceHome = path.join(workbench.outputsRoot!, (await readdir(workbench.outputsRoot!)).find((item) => item.endsWith(`__${projectId}`))!);
   // The closed folder is deliberately lost before restore. macOS can report an
@@ -234,8 +233,6 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
 
   await page.evaluate(() => sessionStorage.clear());
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
-  await expect(page.getByText("发现可恢复草稿", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "恢复草稿" }).click();
   await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
 
   const restoredWorkbench = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);

@@ -55,7 +55,7 @@ def prepare_deletion(registry, project_id, native):
                 "SELECT 1 FROM v2_autopilot_exec_attempts WHERE project_id=? LIMIT 1", (project_id,)).first() is not None
         blockers = close_blockers(store) + registry.native_blockers(store)
         base = {"projectId": project_id, "expectedProjectRevision": project.revision,
-            "expectedLifecycleRevision": project.lifecycle_revision, "confirmationTitle": project.brief.title,
+            "expectedLifecycleRevision": project.lifecycle_revision, "confirmationTitle": store.display_title(),
             "scopeHash": scope, "run": active, "unknownAttemptIds": [], "blockers": [], "mode": "ordinary"}
         if not active and not blockers and not retained_attempts:
             return base
@@ -69,7 +69,7 @@ def prepare_deletion(registry, project_id, native):
             return base | {"mode": "blocked", "blockers": [explain_blocker(item) for item in blockers]}
         if active:
             if project.lifecycle_status.value != "active" or store.repository.operational_state()[0] != "open":
-                return base | {"mode": "blocked", "blockers": ["自动运行尚未停止，但项目已归档或关闭；请先恢复项目，再明确停止自动运行。"]}
+                return base | {"mode": "blocked", "blockers": ["自动运行尚未停止，但项目已归档或冻结；请先恢复归档或解除冻结，再明确停止自动运行。"]}
             return base | {"mode": "stop", "stopWarnings": [explain_blocker(item) for item in context["hostBlockers"]]}
         if context["attemptIds"]:
             return base | {"mode": "abandon"}
@@ -80,6 +80,6 @@ def assert_deletion_scope(store, request):
     project = store.project()
     if (project.revision != request.expected_project_revision
             or project.lifecycle_revision != request.expected_lifecycle_revision
-            or project.brief.title != request.confirmation_title
+            or store.display_title() != request.confirmation_title
             or deletion_scope(store) != request.scope_hash):
         raise InvalidTransitionError("项目内容或任务范围已改变；未继续删除，请重新核对。")

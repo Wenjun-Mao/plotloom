@@ -42,12 +42,14 @@ from ..provider_profiles import (
 
 
 class ProjectCreateRequest(CamelModel):
-    brief: ProjectBrief
+    brief: ProjectBrief | None = None
     initial_stages: list[InitialStage] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_initial_stages(self) -> ProjectCreateRequest:
         validate_initial_stage_prefix(self.initial_stages)
+        if self.brief is None and self.initial_stages:
+            raise ValueError("draft-only projects cannot install canonical stages")
         return self
 
 

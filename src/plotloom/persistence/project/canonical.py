@@ -111,7 +111,7 @@ class ProjectCanonicalPersistence:
 
             bible_head = self._access.rows.stage(session, project_row.id, StageName.STORY_BIBLE)
             bible = self._load_stage_payload(session, project_row.id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
-            validate_section_map_graph(payload, ProjectBrief.model_validate(project_row.brief), bible)
+            validate_section_map_graph(payload, ProjectBrief.require_confirmed(project_row.brief), bible)
             if any(edge.entity_state_effects for edge in payload.edges):
                 input_revisions[StageName.STORY_BIBLE] = bible_head.revision
         else:
@@ -125,7 +125,7 @@ class ProjectCanonicalPersistence:
         if source_map_graph_admission:
             gate_evaluation = None
         else:
-            brief = ProjectBrief.model_validate(project_row.brief)
+            brief = ProjectBrief.require_confirmed(project_row.brief)
             gate_evaluation = validate_stage_payload(
                 stage,
                 payload,

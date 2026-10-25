@@ -406,9 +406,14 @@ class Project(CamelModel):
     lifecycle_revision: Annotated[int, Field(ge=1)] = 1
     lifecycle_status: ProjectLifecycleStatus = ProjectLifecycleStatus.ACTIVE
     archived_at: datetime | None = None
-    brief: ProjectBrief
+    brief: ProjectBrief | None = None
+    display_title: str = "未命名项目"
+    operational_state: Literal["open", "closed"] | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+    def require_brief(self) -> ProjectBrief:
+        return ProjectBrief.require_confirmed(self.brief)
 
     @model_validator(mode="after")
     def validate_lifecycle_shape(self) -> Project:

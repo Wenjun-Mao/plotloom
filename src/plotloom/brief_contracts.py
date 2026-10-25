@@ -50,6 +50,13 @@ class ProjectBrief(CamelModel):
             raise ValueError("ending_count must not exceed node_budget")
         return self
 
+    @classmethod
+    def require_confirmed(cls, value: Any) -> "ProjectBrief":
+        if value is None:
+            from .exceptions import InvalidTransitionError
+            raise InvalidTransitionError("confirmed_brief_required: 请先明确确认项目简报；自动保存的编辑输入不是制作依据。")
+        return value if isinstance(value, cls) else cls.model_validate(value)
+
     @property
     def shot_count_is_strict(self) -> bool:
         return self.shot_count_policy == "strict"

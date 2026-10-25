@@ -1,3 +1,4 @@
+import { blankWorkspace } from "./app/workspace/contracts";
 import type {
   ArtRenderStyle,
   MediaKind,
@@ -129,16 +130,21 @@ export class PlotloomApiClient {
   admitReportRead(url: string, signal: AbortSignal): Promise<ProjectReadTicket> { return this.transport.admitDocument(url, signal); }
   reportAvailable(url: string, signal: AbortSignal): Promise<boolean> { return this.transport.reportAvailable(url, signal); }
 
+  private projectView<T extends ProjectResource>(project: T): T {
+    return { ...project, hasConfirmedBrief: project.brief != null,
+      brief: project.brief ?? blankWorkspace().brief };
+  }
+
   createProject(request: ProjectCreationRequest, idempotencyKey: string): Promise<ProjectCreationResponse> {
-    return this.request("/projects", {
+    return this.request<ProjectCreationResponse>("/projects", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: projectCreationBody(request),
-    });
+    }).then(project => this.projectView(project));
   }
 
   getProject(projectId: string, signal?: AbortSignal): Promise<ProjectResource> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}`, { signal });
+    return this.request<ProjectResource>(`/projects/${encodeURIComponent(projectId)}`, { signal }).then(project => this.projectView(project));
   }
 
   listProjects(includeArchived = false, limit = 50, cursor?: string): Promise<ProjectListResponse> {
@@ -147,27 +153,27 @@ export class PlotloomApiClient {
       limit: String(limit),
     });
     if (cursor) query.set("cursor", cursor);
-    return this.request(`/projects?${query.toString()}`);
+    return this.request<ProjectListResponse>(`/projects?${query.toString()}`).then(result => ({ ...result, projects: result.projects.map(project => ({ ...this.projectView(project), brief: { ...(project.brief ?? blankWorkspace().brief), title: project.displayTitle ?? project.brief?.title ?? "未命名项目" } })) }));
   }
 
   archiveProject(projectId: string, expectedLifecycleRevision: number): Promise<ProjectResource> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/archive`, {
+    return this.request<ProjectResource>(`/projects/${encodeURIComponent(projectId)}/archive`, {
       method: "POST", body: JSON.stringify({ expectedLifecycleRevision }),
-    });
+    }).then(project => this.projectView(project));
   }
 
   restoreProject(projectId: string, expectedLifecycleRevision: number): Promise<ProjectResource> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/restore`, {
+    return this.request<ProjectResource>(`/projects/${encodeURIComponent(projectId)}/restore`, {
       method: "POST", body: JSON.stringify({ expectedLifecycleRevision }),
-    });
+    }).then(project => this.projectView(project));
   }
 
-  closeProject(projectId: string): Promise<{ projectId: string; state: "closed"; revision: number }> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/close`, { method: "POST" });
+  freezeProject(projectId: string): Promise<{ projectId: string; state: "closed"; revision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/freeze`, { method: "POST" });
   }
 
-  openProjectFolder(projectId: string): Promise<{ projectId: string; state: "open"; revision: number }> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/open`, { method: "POST" });
+  unfreezeProject(projectId: string): Promise<{ projectId: string; state: "open"; revision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/unfreeze`, { method: "POST" });
   }
 
   createProjectSnapshot(projectId: string): Promise<ProjectSnapshotReceipt> {
@@ -179,10 +185,10 @@ export class PlotloomApiClient {
   }
 
   duplicateProject(projectId: string, expectedLifecycleRevision: number, title?: string, idempotencyKey?: string): Promise<ProjectDuplicateResponse> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/duplicate`, {
+    return this.request<ProjectDuplicateResponse>(`/projects/${encodeURIComponent(projectId)}/duplicate`, {
       method: "POST", headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       body: JSON.stringify({ expectedLifecycleRevision, ...(title ? { title } : {}) }),
-    });
+    }).then(result => ({ ...result, project: this.projectView(result.project) }));
   }
 
   permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, expectedProjectRevision: number, confirmationTitle: string, scopeHash?: string): Promise<void> {
@@ -224,10 +230,10 @@ export class PlotloomApiClient {
   }
 
   patchProject(projectId: string, expectedRevision: number, brief: ProjectBrief): Promise<ProjectResource> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}`, {
+    return this.request<ProjectResource>(`/projects/${encodeURIComponent(projectId)}`, {
       method: "PATCH",
       body: JSON.stringify({ expectedRevision, brief }),
-    });
+    }).then(project => this.projectView(project));
   }
 
   async patchProjectWithDraft(
@@ -241,7 +247,7 @@ export class PlotloomApiClient {
       body: JSON.stringify({ expectedRevision, brief, consumedDraft }),
     });
     const receipt = result.response.headers.get("X-Plotloom-Draft-Consumed-Revision");
-    return { project: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
+    return { project: this.projectView(result.body), consumedDraftRevision: receipt ? Number(receipt) : undefined };
   }
 
   getStages(projectId: string, signal?: AbortSignal): Promise<StageEnvelopesResponse> {

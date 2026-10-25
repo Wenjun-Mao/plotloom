@@ -32,7 +32,7 @@ test("reads clean errors and cancels a stale branch task without replacing sourc
   await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   await page.getByLabel("类型细节（可选）", { exact: false }).fill("分支建议准备后，改为悬疑故事。");
   const saved = page.waitForResponse(response => response.request().method() === "PATCH" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}`);
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   expect((await saved).ok()).toBe(true);
   await page.getByRole("button", { name: "返回来源与大纲", exact: true }).click();
   await expect(panel.locator(".notice.warning")).toContainText("简报");

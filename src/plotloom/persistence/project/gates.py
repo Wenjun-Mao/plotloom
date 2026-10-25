@@ -163,7 +163,7 @@ class ProjectGatePersistence:
             StageName.STORYBOARD,
             storyboard,
             schema_version=CURRENT_STAGE_SCHEMA_VERSION,
-            brief=ProjectBrief.model_validate(project.brief),
+            brief=ProjectBrief.require_confirmed(project.brief),
             bible=bible,
             graph=None,
             scene_beats=scene_beats,

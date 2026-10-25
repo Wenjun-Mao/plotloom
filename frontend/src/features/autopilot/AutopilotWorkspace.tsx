@@ -218,18 +218,18 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
   if (!owner || !saved || owner.run) return null;
   if (!owner.ready) return <Panel className="autopilot-launch"><strong>自动准备入口</strong>
     <p role="status">正在核对是否已有自动运行；核对完成前不会重复启动。</p>
-    {onContinueManually && <Button variant="quiet" disabled={disabled || dirty || owner.busy} onClick={onContinueManually}>继续手动创作</Button>}
+    {onContinueManually && <Button variant="quiet" disabled={disabled || owner.busy} onClick={onContinueManually}>继续手动创作</Button>}
   </Panel>;
   const eligible = admission?.key === admissionKey && admission.eligible;
   const retryAdmission = () => { setAdmission(null); setAdmissionRetry(epoch => epoch + 1); };
-  return <Panel className="autopilot-launch"><div className="autopilot-launch-choice"><div><strong>简报已保存</strong><p>现在可以自动准备视频素材，也可以继续手动创作。</p></div>
+  return <Panel className="autopilot-launch"><div className="autopilot-launch-choice"><div><strong>简报已确认</strong><p>现在可以自动准备视频素材，也可以继续手动创作。</p></div>
     <div className="button-row"><Button variant="primary" disabled={disabled || dirty || owner.busy || !eligible} onClick={() => setOpen(value => !value)}>自动准备素材</Button>
-      {onContinueManually && <Button variant="quiet" disabled={disabled || dirty || owner.busy} onClick={onContinueManually}>继续手动创作</Button>}</div></div>
+      {onContinueManually && <Button variant="quiet" disabled={disabled || owner.busy} onClick={onContinueManually}>继续手动创作</Button>}</div></div>
     {admission?.key !== admissionKey && <p role="status">正在核对项目是否可开始自动准备…</p>}
     {admission?.key === admissionKey && !admission.eligible && (admission.failed
       ? <div className="autopilot-admission-error"><p role="status">暂时无法核对自动准备条件；可重试核对或继续手动创作。</p><Button variant="quiet" disabled={disabled || dirty || owner.busy} onClick={retryAdmission}>重试核对</Button></div>
       : <p role="status">此项目当前不符合自动准备条件；可继续手动创作。</p>)}
-    {dirty && <p>先保存当前简报，再开始准备。</p>}
+    {dirty && <p>当前编辑尚未应用；先明确应用简报修改，再开始准备。</p>}
     {open && eligible && <div className="stack"><p>使用已保存简报，AI 自动采用故事初稿并暂选角色、场景与每个镜头的首帧。全部路线准备完成后，由你一次审阅。</p>
       <p>角色与美术设定就绪后，可先准备最多四项参考图，计入本次任务与图片上限。总预算默认不限；设置有限上限后，完整素材发现若超出上限，将停止新增任务，保留候选供你手动接管。</p>
       <section className="autopilot-brief-style" aria-label="本次冻结的简报视觉方向"><strong>角色、美术与图片将遵循已保存简报的视觉风格</strong>

@@ -43,7 +43,7 @@ def permanently_delete_home(
         ):
             if expected != actual:
                 raise RevisionConflictError(owner, expected, actual)
-        if not confirmation_title.strip() or confirmation_title != project.brief.title:
+        if not confirmation_title.strip() or confirmation_title != store.display_title():
             raise InvalidTransitionError("confirmation title does not match the project title")
         blockers = close_blockers(store) + native_blockers(store)
         with store.repository._read() as session:

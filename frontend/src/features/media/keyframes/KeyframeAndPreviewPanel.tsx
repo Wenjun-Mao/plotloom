@@ -49,6 +49,7 @@ export function KeyframeAndPreviewPanel({
   activeIntent,
   compatibility,
   setCompatibility,
+  compatibilityStale = false,
   readOnly,
   busy,
   mediaDraftsEnabled,
@@ -83,6 +84,7 @@ export function KeyframeAndPreviewPanel({
   activeIntent: VisualIntent | undefined;
   compatibility: string;
   setCompatibility: Dispatch<SetStateAction<string>>;
+  compatibilityStale?: boolean;
   readOnly: boolean;
   busy: boolean;
   mediaDraftsEnabled: boolean;
@@ -300,7 +302,7 @@ export function KeyframeAndPreviewPanel({
           aria-required="true"
           rows={2}
           placeholder="说明此参考与当前已批准镜头为何兼容"
-          disabled={readOnly || busy}
+          disabled={readOnly || busy || compatibilityStale}
           value={compatibility}
           onChange={(event) => setCompatibility(event.target.value)}
         />
@@ -317,7 +319,7 @@ export function KeyframeAndPreviewPanel({
             !selectedShot ||
             !currentApproval ||
             !activeIntent ||
-            !compatibility.trim()
+            compatibilityStale || !compatibility.trim()
           }
           onClick={() => void onSelectKeyframe()}
         >

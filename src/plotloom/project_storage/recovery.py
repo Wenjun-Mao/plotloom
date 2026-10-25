@@ -337,6 +337,13 @@ class ProjectRecoveryService:
                         omitted_creative_manifests=prior_omissions or {}))
                 assert_database_contract(destination_database, manifest)
                 _assert_snapshot_tree(temporary, payload_paths(temporary, destination_database))
+            # Operational debris is excluded from the portable payload, but the
+            # published home must already support shared authority-read leases.
+            publication_lease = ProjectAccessLease.acquire(temporary, mode="shared")
+            try:
+                os.fsync(publication_lease.descriptor)
+            finally:
+                publication_lease.close()
             _sync_directory(temporary)
             self.registry.admission.require_admitted(manifest.project_id)
             os.replace(temporary, final)

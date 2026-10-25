@@ -59,7 +59,7 @@ class SourceGraphAdmission:
             section_map_head = self._source._section_map_head(session, project_id, create=True)
             from ...domain import ProjectBrief
             graph = compile_section_map_graph(request.mapping)
-            brief = ProjectBrief.model_validate(project.brief)
+            brief = ProjectBrief.require_confirmed(project.brief)
             bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
             validate_section_map_graph(graph, brief, bible)
@@ -148,7 +148,7 @@ class SourceGraphAdmission:
             from ...domain import ProjectBrief
             bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
-            validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief), bible)
+            validate_section_map_graph(graph, ProjectBrief.require_confirmed(project.brief), bible)
             now = utc_now()
             installed = self._canonical.install_source_map_graph_in_session(
                 session, project, graph, expected_revision=request.expected_graph_revision, now=now
@@ -192,7 +192,7 @@ class SourceGraphAdmission:
         from ..codec import stable_hash
         if stable_hash(graph.model_dump(mode="json", by_alias=False)) != head.content_hash:
             raise InvalidTransitionError("compiled source mapping differs from canonical graph")
-        validate_section_map_graph(graph, ProjectBrief.model_validate(project.brief), bible)
+        validate_section_map_graph(graph, ProjectBrief.require_confirmed(project.brief), bible)
         return graph, admission, identity
 
     def rebind_graph_bible_in_session(self, session, project, bible, *, now):

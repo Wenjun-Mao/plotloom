@@ -117,7 +117,7 @@ def test_closed_project_run_commands_and_startup_leave_db_and_evidence_unchanged
         assert relative_path in {
             item["relativePath"] for item in snapshot.json()["manifest"]["files"]
         }
-        assert client.post(f"/api/v2/projects/{project_id}/close").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/freeze").status_code == 200
 
         # Snapshot databases are DELETE-mode by contract. Inspection and
         # rejected commands must preserve that mode and the exact bytes.

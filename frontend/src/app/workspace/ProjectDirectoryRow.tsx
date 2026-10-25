@@ -22,7 +22,7 @@ export function ProjectDirectoryRow({ item, current, disabled, explicitProjectCl
   const panelId = useId();
   const activityId = useId();
   const capabilityId = useId();
-  const titleBlocked = closed && (archived || !explicitProjectClose);
+  const titleBlocked = false;
   const restoreFocus = useRef(false);
   const focusOwner = useRef({ id: item.id, current });
   useEffect(() => {
@@ -62,38 +62,29 @@ export function ProjectDirectoryRow({ item, current, disabled, explicitProjectCl
     restoreFocus.current = true;
     void onAction(item, action);
   };
-  const state = archived ? "已归档 · 只读" : closed ? "已关闭 · 可安全复制" : current
-    ? "当前项目" : item.operationalState === "open" ? "未关闭" : "关闭状态未确认";
+  const state = [current ? "当前项目" : "", archived ? "已归档 · 只读" : "", closed ? "已冻结 · 只读" : ""].filter(Boolean).join(" · ");
   return <article className="directory-item" data-project-id={item.id}>
     <div className="directory-row-heading">
       <button className="directory-open" disabled={disabled || titleBlocked} aria-describedby={titleBlocked ? capabilityId : undefined} onClick={() => { setExpanded(false); onOpen(item); }}>
         <strong>{item.brief.title || "未命名项目"}</strong>
-        <small>{state} · r{item.revision} · <time dateTime={item.updatedAt}>{formatUiTimestamp(item.updatedAt)}</time></small>
+        <small>{state ? `${state} · ` : ""}r{item.revision} · <time dateTime={item.updatedAt}>{formatUiTimestamp(item.updatedAt)}</time></small>
       </button>
       <div className="directory-actions">
-        {archived ? <Button variant="primary" disabled={disabled} onClick={() => act("restore")}>恢复</Button>
-          : closed ? <Button variant="primary" disabled={disabled || !explicitProjectClose} aria-describedby={!explicitProjectClose ? capabilityId : undefined} onClick={() => act("open")}>重新打开</Button>
-          : current ? explicitProjectClose && <>
-            <Button variant="primary" disabled={disabled || Boolean(activity)} aria-describedby={activity ? activityId : undefined} onClick={() => act("close")}>保存并关闭项目</Button>
-            <Button variant="quiet" disabled={disabled} onClick={() => act("force_close")}>退出工作区</Button>
-          </> : <Button variant="primary" disabled={disabled} onClick={() => { setExpanded(false); onOpen(item); }}>打开</Button>}
+        {archived && <Button variant="primary" disabled={disabled} onClick={() => act("restore")}>恢复</Button>}
+        {!current && <Button variant="primary" disabled={disabled} onClick={() => { setExpanded(false); onOpen(item); }}>打开</Button>}
         <div className="directory-disclosure" ref={disclosure}>
           <button className="button quiet" ref={trigger} disabled={disabled} aria-expanded={expanded} aria-controls={panelId}
             aria-label={`更多 · ${item.brief.title || "未命名项目"}`} onClick={() => setExpanded(value => !value)}>更多</button>
           {expanded && <div id={panelId} className="directory-management" role="group" aria-label="项目管理">
             <Button variant="quiet" disabled={disabled} onClick={() => act("duplicate")}>复制简报与规范内容</Button>
-            {!archived && !closed && <>
-              <Button variant="quiet" disabled={disabled || Boolean(activity)} aria-describedby={activity ? activityId : undefined} onClick={() => act("archive")}>归档</Button>
-              {!current && explicitProjectClose && <Button variant="quiet" disabled={disabled || Boolean(activity)} aria-describedby={activity ? activityId : undefined} onClick={() => act("close")}>关闭项目</Button>}
-            </>}
+            {explicitProjectClose && <Button variant="quiet" disabled={disabled || (!closed && Boolean(activity))} onClick={() => act(closed ? "unfreeze" : "freeze")}>{closed ? "解除冻结" : "冻结项目"}</Button>}
+            {!archived && <Button variant="quiet" disabled={disabled || Boolean(activity)} onClick={() => act("archive")}>归档</Button>}
             <Button variant="danger" disabled={disabled} onClick={() => act("delete")}>删除项目…</Button>
           </div>}
         </div>
       </div>
     </div>
-    {titleBlocked && <p id={capabilityId} className="action-prerequisite directory-activity">{archived
-      ? `此项目已归档且已关闭；请先恢复${explicitProjectClose ? "，再重新打开。" : "。当前后端未提供重新打开已关闭项目的能力。"}` : "当前后端未提供重新打开已关闭项目的能力。"}</p>}
-    {activity && <p id={activityId} className="action-prerequisite directory-activity">{activity}；任务结束前不能归档或安全关闭。可打开项目查看进展。</p>}
+    {activity && <p id={activityId} className="action-prerequisite directory-activity">{activity}；任务结束前不能归档或冻结。可打开项目查看进展。</p>}
     {children}
   </article>;
 }

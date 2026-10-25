@@ -231,6 +231,13 @@ class ProjectStore(ProjectCreativeStages):
         finally:
             self.close()
 
+    def display_title(self) -> str:
+        project = self.project()
+        drafts = self.authoring.list_authoring_drafts(project.id)
+        brief = next((draft for draft in drafts if draft.editor_scope == "brief" and draft.entity_id == "root"), None)
+        title = str(brief.payload.get("title", "")) if brief else project.brief.title if project.brief else ""
+        return title.strip() or "未命名项目"
+
     def project(self) -> Project:
         try:
             return self.authoring.get_project(self.manifest.project_id)

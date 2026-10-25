@@ -266,7 +266,7 @@ class ProjectSourceOutlinePersistence:
             ))
             if outline_row is not None:
                 outline = self._outline(outline_row)
-        section_map_head = self._section_map_head(session, project_id, create=True)
+        section_map_head = self._section_map_head(session, project_id, create=False)
         section_map = self._section_map_for_head(session, project_id, section_map_head)
         return SourceOutlineReviewState(
             source=source,

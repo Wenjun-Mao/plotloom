@@ -46,6 +46,8 @@ class ProjectGraphWorkbenchPersistence:
         ))
 
     def _read_only_reason(self, session, project_id):
+        if self._access.rows.project(session, project_id).brief is None:
+            return "请先确认项目简报；未完成的编辑输入不能建立制作路线。"
         graph = self._access.rows.stage(session, project_id, StageName.STORY_GRAPH)
         admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
         if graph.revision and (admission is None or admission.graph_revision != graph.revision):
@@ -69,7 +71,7 @@ class ProjectGraphWorkbenchPersistence:
                     ))
                     if accepted:
                         mapping = SectionMap.model_validate(accepted.mapping)
-                seed = mapping.seed_topology if mapping else planned_structure(project_id, ProjectBrief.model_validate(project.brief))
+                seed = mapping.seed_topology if mapping else planned_structure(project_id, ProjectBrief.require_confirmed(project.brief))
                 initial = create_graph_draft(binding_hash=binding, seed=seed,
                     mapping=mapping.model_dump(mode="json", by_alias=True) if mapping else None)
             return GraphWorkbenchState(binding_hash=binding,
@@ -88,7 +90,7 @@ class ProjectGraphWorkbenchPersistence:
             raise RevisionConflictError("graph command draft", request.expected_draft_revision, row.draft_revision if row else 0)
         draft = GraphAuthoringDraft.model_validate(row.payload)
         assert_graph_draft_context(session, self._access, project_id, draft)
-        result, impact = execute_graph_command(draft, request.command, ProjectBrief.model_validate(project.brief))
+        result, impact = execute_graph_command(draft, request.command, ProjectBrief.require_confirmed(project.brief))
         data = {"draftRevision": row.draft_revision, "bindingHash": draft.binding_hash,
                 "command": request.command.model_dump(mode="json", by_alias=True),
                 "result": result.model_dump(mode="json", by_alias=True), "impact": impact.model_dump(mode="json", by_alias=True)}
@@ -146,7 +148,7 @@ class ProjectGraphWorkbenchPersistence:
                 if request.payload.mapping.seed_topology != draft.mapping.seed_topology:
                     raise InvalidTransitionError("恢复内容必须保留此图草稿已认证的原始种子。")
                 from ...graph_edit_safety import assert_edit_safe
-                assert_edit_safe(draft, request.payload, ProjectBrief.model_validate(project.brief))
+                assert_edit_safe(draft, request.payload, ProjectBrief.require_confirmed(project.brief))
                 draft = request.payload.model_copy(deep=True)
             # An explicit recovery retains authenticated original seed/content,
             # but receives no old acceptance authority on the changed base.

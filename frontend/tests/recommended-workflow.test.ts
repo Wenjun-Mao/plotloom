@@ -323,7 +323,7 @@ describe("recommended creative workflow", () => {
     expect(model.steps.find(step => step.id === "brief")?.status).toBe("尚未保存");
     expect(model.steps.find(step => step.id === "source")?.status).toBe("项目未保存");
     expect(model.steps.find(step => step.id === "branches")?.status).toBe("项目未保存");
-    expect(model.nextText).toContain("项目尚未保存");
+    expect(model.nextText).toContain("简报尚未确认");
     expect(model.nextText).not.toContain("正在读取");
   });
 
@@ -338,7 +338,7 @@ describe("recommended creative workflow", () => {
       sourceDraftDirty: true,
     })!;
     expect(model.steps.find(step => step.id === "branches")?.status).toBe("已应用到路线 r8");
-    expect(model.nextText).toContain("未保存修改");
+    expect(model.nextText).toContain("尚未应用");
     expect(model.action).toBeUndefined();
   });
 

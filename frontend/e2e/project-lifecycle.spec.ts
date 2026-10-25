@@ -26,6 +26,7 @@ test.describe("M1-B0 real project journeys", () => {
 
     await openDirectory(page);
     await page.getByRole("button", { name: "新建空白项目" }).click();
+    await expect.poll(() => projectIdFromPage(page)).not.toBe(firstProjectId);
     const secondTitle = uniqueTitle("E2E project two");
     await page.getByLabel("片名").fill(secondTitle);
     await page.getByLabel("故事梗概").fill(`A canonical synopsis for ${secondTitle}.`);
@@ -99,17 +100,14 @@ test.describe("M1-B0 real project journeys", () => {
     await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
   });
 
-  test("offers session draft recovery after a refresh", async ({ page, workbench }) => {
+  test("automatically resumes an acknowledged working draft after refresh", async ({ page, request, workbench }) => {
     const initialTitle = uniqueTitle("E2E recovery initial");
-    await createProject(page, workbench.frontendOrigin, initialTitle);
+    const projectId = await createProject(page, workbench.frontendOrigin, initialTitle);
     const recoveredTitle = uniqueTitle("E2E recovery draft");
     await page.getByLabel("片名").fill(recoveredTitle);
 
-    page.once("dialog", (dialog) => dialog.accept());
+    await expect.poll(async () => (await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`)).json())[0]?.payload.title).toBe(recoveredTitle);
     await page.reload();
-    const recovery = page.getByRole("dialog", { name: "发现可恢复草稿" });
-    await expect(recovery).toBeVisible();
-    await recovery.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(recoveredTitle);
   });
 
@@ -148,9 +146,9 @@ test.describe("M1-B0 real project journeys", () => {
     await openProject(page, title);
     await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
     for (const [view, save] of [
-      ["故事圣经", "保存故事圣经"],
+      ["故事圣经", "应用故事圣经修改"],
       ["场景节拍", "保存节拍计划"],
-      ["分镜工作台", "保存分镜"],
+      ["分镜工作台", "应用分镜修改"],
     ]) {
       await navigateToSecondaryTool(page, view);
       await expect(page.getByRole("button", { name: save, exact: true })).toBeDisabled();
@@ -237,14 +235,14 @@ test.describe("M1-B0 real project journeys", () => {
       await openDirectory(page);
       await openProjectManagement(projectItem(page, title));
       await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
-      await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
+      await expect(page.getByRole("alertdialog")).toContainText("媒体、批准、任务与编辑草稿不复制");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await expect(page.getByRole("alert")).toContainText("E2E lost duplicate response");
       await expect(projectItem(page, title)).toBeVisible();
 
       await openProjectManagement(projectItem(page, title));
       await projectItem(page, title).getByRole("button", { name: "复制简报与规范内容" }).click();
-      await expect(page.getByRole("alertdialog")).toContainText("不复制来源与大纲");
+      await expect(page.getByRole("alertdialog")).toContainText("媒体、批准、任务与编辑草稿不复制");
       await page.getByRole("button", { name: "确认复制简报与规范内容", exact: true }).click();
       await retryStarted;
       const consent = page.getByRole("alertdialog");
@@ -255,8 +253,8 @@ test.describe("M1-B0 real project journeys", () => {
       release();
       await expect.poll(() => projectIdFromPage(page)).not.toBe(sourceId);
       await expectCreatorProject(page, title);
-      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("仅项目简报");
-      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("原项目保持不变");
+      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("复制了项目简报");
+      await expect(page.getByRole("status").filter({ hasText: "已创建" })).toContainText("媒体、批准、任务与编辑草稿未复制");
       const copyNotice = page.getByRole("status").filter({ hasText: "已创建" });
       const acknowledge = copyNotice.getByRole("button", { name: "知道了", exact: true });
       const noticeBounds = await acknowledge.boundingBox();
@@ -285,6 +283,7 @@ test.describe("M1-B0 real project journeys", () => {
     const firstProjectId = await createProject(page, workbench.frontendOrigin, firstTitle);
     await openDirectory(page);
     await page.getByRole("button", { name: "新建空白项目" }).click();
+    await expect.poll(() => projectIdFromPage(page)).not.toBe(firstProjectId);
     const secondTitle = uniqueTitle("E2E delayed second");
     await page.getByLabel("片名").fill(secondTitle);
     await page.getByLabel("故事梗概").fill(`A canonical synopsis for ${secondTitle}.`);
@@ -337,7 +336,7 @@ async function createProject(page: Page, frontendOrigin: string, title: string):
 async function saveBrief(page: Page): Promise<string> {
   const creation = page.waitForResponse((response) => {
     const request = response.request();
-    return request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects";
+    return request.method() === "PATCH" && new URL(request.url()).pathname === `/api/v2/projects/${projectIdFromPage(page)}`;
   });
   await saveBriefAndContinue(page);
   expect((await creation).ok()).toBeTruthy();
@@ -348,7 +347,7 @@ async function saveBrief(page: Page): Promise<string> {
 
 async function returnToBrief(page: Page, frontendOrigin: string, projectId: string): Promise<void> {
   await page.goto(`${frontendOrigin}/v2/?project=${projectId}&stage=brief`);
-  await expect(page.getByRole("button", { name: "保存修改" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "应用修改" })).toBeVisible();
 }
 
 async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
@@ -357,7 +356,7 @@ async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
     return request.method() === "PATCH"
       && new URL(request.url()).pathname === `/api/v2/projects/${projectId}`;
   });
-  await page.getByRole("button", { name: "保存修改" }).click();
+  await page.getByRole("button", { name: "应用修改" }).click();
   expect((await saved).ok()).toBeTruthy();
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
 }

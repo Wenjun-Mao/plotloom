@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ReviewDraftContext, useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
+import { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import type { AcceptedReviewState } from "../accepted-review-state";
 import type { ProductionBridgeIntentEntry, ProductionBridgeProposal, ProductionBridgeState } from "../types";
@@ -15,6 +16,7 @@ type Read = { owner: Owner; epoch: number; value?: ProductionBridgeState; phase:
 
 /** Server acknowledgement owns actions; the editor base owns unsaved text. */
 export function useProductionBridgeReview(projectId: string, basis: BridgeReviewBasis, readOnly: boolean, onInstalled: (id: string) => Promise<void>, refreshToken?: unknown) {
+  const workingContext = useContext(ReviewDraftContext);
   const basisKey = JSON.stringify([basis.revision, basis.contentHash, basis.status]);
   const active = useRef<Owner>({ projectId, basis: basisKey, alive: true, read: 0 });
   if (active.current.projectId !== projectId || active.current.basis !== basisKey) {
@@ -52,6 +54,13 @@ export function useProductionBridgeReview(projectId: string, basis: BridgeReview
   const acknowledged = read?.owner === owner && read.phase === "ready" && read.epoch === epoch;
   const state = read?.owner.projectId === projectId ? read.value : undefined;
   const proposal = editor?.projectId === projectId ? editor.proposal : undefined;
+  const workingIntent = useReviewEditorDraft(projectId, "production_intent", proposal ? `proposal:${proposal.revision}:${proposal.contentHash}` : "", text => {
+    const restored = JSON.parse(text) as ProductionBridgeIntentEntry[];
+    if (!Array.isArray(restored) || !proposal || restored.length !== proposal.intentPackage.entries.length
+      || restored.some((item, index) => item.id !== proposal.intentPackage.entries[index]?.id || typeof item.text !== "string")) throw new Error("投产意图草稿无法匹配当前提案。");
+    entries.current = restored; setEntries(restored);
+  }, readOnly, undefined, proposal ? `proposal-${proposal.revision}` : "");
+
   const admitted = () => owns() && liveRead.current === read && read?.owner === owner
     && read.phase === "ready" && read.epoch === mutations.epoch(projectId) && !access.current && mutations.available(projectId);
 
@@ -160,14 +169,23 @@ export function useProductionBridgeReview(projectId: string, basis: BridgeReview
   const editorOwnerKey = proposalKey(proposal), editorOwner = editorIdentity.current;
   const ownsEditor = () => owns() && editorIdentity.current === editorOwner && editorKey.current === editorOwnerKey;
   return {
-    state, proposal, intentEntries, draftConflict, presentationDirty, presentationTouched, presentationEditorNonce,
+    intentStale: workingIntent.stale, clearAppliedIntent: workingIntent.clear, workingIntentNotice: workingIntent.notice, state, proposal, intentEntries, draftConflict, presentationDirty, presentationTouched, presentationEditorNonce,
     acknowledged, busy, canonicalReady, error, loadFailed: read?.owner === owner && read.phase === "error",
     intentDirty: editor?.projectId === projectId && intentIsDirty(), run, canAct: admitted,
     retryLoad: () => { if (owns() && !mutations.busy(projectId)) load(); },
-    discard: () => { if (admitted() && state) adopt(state, true); },
+    discard: async () => {
+      if (!admitted() || !state) return;
+      const target = proposal ? `proposal-${proposal.revision}` : "";
+      const selected = workingContext?.store.get(projectId, "production_presentation", target) ?? null;
+      try {
+        await workingIntent.clear();
+        await workingContext?.store.clear(projectId, "production_presentation", target, selected);
+        if (admitted()) adopt(state, true);
+      } catch (failure) { if (owns()) setError(failure instanceof Error ? failure.message : "保留输入尚未丢弃。"); }
+    },
     setIntentEntries(update: (current: ProductionBridgeIntentEntry[]) => ProductionBridgeIntentEntry[]) {
-      if (!ownsEditor() || !admitted()) return;
-      entries.current = update(entries.current); setEntries(entries.current);
+      if (!ownsEditor() || !admitted() || workingIntent.stale) return;
+      entries.current = update(entries.current); setEntries(entries.current); workingIntent.changed(JSON.stringify(entries.current));
     },
     setPresentationDirty(value: boolean) { if (ownsEditor()) { presentation.current.dirty = value; setDirty(value); } },
     presentationEdited() { if (ownsEditor()) { presentation.current.touched = true; setTouched(true); } },

@@ -1,3 +1,4 @@
+import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, ErrorNotice } from "../components";
 import { useAutomaticGuidance, useKnownAutomaticRun } from "../features/autopilot/guidance";
@@ -33,9 +34,11 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
   const [appliedJob, setAppliedJob] = useState<string>();
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [selection, setSelection] = useState<{ id: string; start: number; end: number }>();
-  const ownership = useRef(0), edited = useRef(false);
+  const ownership = useRef(0), edited = useRef(false), editVersion = useRef(0);
   useLayoutEffect(() => { ownership.current += 1; edited.current = false; return () => { ownership.current += 1; }; }, [projectId, pkg.sourceHash]);
   const baseline = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: source.spans })));
+  const authored = (next: Record<string, PresentationSpan[]>) => { working.changed(JSON.stringify(next)); return next; };
+
   const apply = () => {
     setEntries(currentCandidate ? Object.fromEntries(currentCandidate.entries.map(entry => [entry.id, entry.spans]))
       : Object.fromEntries(pkg.sources.map(source => [source.id, initial(source)])));
@@ -48,16 +51,24 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
   };
   useEffect(() => { edited.current = false; restoreOrPrefill(); setBusy(false); onDirty(false); }, [projectId, pkg.sourceHash]);
   useEffect(() => { if (!edited.current) restoreOrPrefill(); }, [baseline, currentCandidate?.jobId]);
+  const working = useReviewEditorDraft(projectId, "production_presentation", `presentation:${proposal.revision}:${proposal.contentHash}:${pkg.sourceHash}`, text => {
+    const restored = JSON.parse(text) as Record<string, PresentationSpan[]>;
+    if (!restored || typeof restored !== "object" || Object.keys(restored).some(id => !pkg.sources.some(source => source.id === id))
+      || Object.values(restored).some(spans => !Array.isArray(spans) || spans.some(span => typeof span.rendering !== "string" || typeof span.reason !== "string"))) throw new Error("呈现草稿无法匹配当前来源。");
+    edited.current = true; editVersion.current++; onEdited?.(); setEntries(restored); setAppliedJob(undefined);
+  }, disabled || accepted, undefined, `proposal-${proposal.revision}`);
   const dirty = JSON.stringify(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] ?? [] }))) !== baseline;
   useEffect(() => { onDirty(dirty); }, [dirty]);
   const change = (id: string, index: number, update: Partial<PresentationSpan>) => {
-    edited.current = true; onEdited?.();
-    setEntries(current => ({ ...current, [id]: current[id].map((span, position) => position === index ? { ...span, ...update } : span) }));
+    if (working.stale) return;
+    edited.current = true; editVersion.current++; onEdited?.();
+    setEntries(current => authored({ ...current, [id]: current[id].map((span, position) => position === index ? { ...span, ...update } : span) }));
   };
   const split = (source: PresentationSource) => {
     if (!selection || selection.id !== source.id || selection.end <= selection.start) return;
-    edited.current = true; onEdited?.();
-    setEntries(current => ({ ...current, [source.id]: splitPresentationSpans(current[source.id], selection.start, selection.end) })); setSelection(undefined);
+    if (working.stale) return;
+    edited.current = true; editVersion.current++; onEdited?.();
+    setEntries(current => authored({ ...current, [source.id]: splitPresentationSpans(current[source.id], selection.start, selection.end) })); setSelection(undefined);
   };
   const sourceComplete = (source: PresentationSource) => !!entries[source.id]?.length && entries[source.id].every(span =>
     span.role !== "unassigned" && (span.role !== "physical" || span.rendering.trim())
@@ -70,16 +81,16 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
     groups.get(key)!.sources.push(source);
   });
   return <details open className="presentation-review" data-testid="production-presentation-review"><summary>逐项审阅内容的呈现方式</summary>
-    <p>{knownAutomatic ? `${adoption}的呈现方案仍待整包人工审阅；手动保存修改将接管自动运行。` : automatic || "按场次查看，修改呈现方式后确认保存。原始剧本与分镜保持不变。"}</p>
+    {working.notice}<p>{knownAutomatic ? `${adoption}的呈现方案仍待整包人工审阅；手动保存修改将接管自动运行。` : automatic || "按场次查看，修改呈现方式后确认保存。原始剧本与分镜保持不变。"}</p>
     <details><summary>呈现方式说明</summary><p>实体动作与限制须完整保留；画面文字保留原文且不发声。选择问题与按钮由播放器呈现。混合描述可展开原文并拆分；实际媒体仍需单独审核。</p></details>
     {currentCandidate && <div className="notice" role="status">{appliedJob === currentCandidate.jobId ? "助手建议 · 已填入下方，可逐项修改；尚未确认保存。" : "助手建议已返回；你的本地编辑保留，未被覆盖。"}
-      {appliedJob !== currentCandidate.jobId && <Button disabled={disabled || busy} onClick={() => { edited.current = true; onEdited?.(); apply(); }}>使用助手建议替换本地呈现编辑</Button>}
+      {appliedJob !== currentCandidate.jobId && <Button disabled={disabled || working.stale || busy} onClick={() => { edited.current = true; onEdited?.(); apply(); }}>使用助手建议替换本地呈现编辑</Button>}
     </div>}
     <details><summary>播放器选择 · {pkg.runtimeChoice.choices.length} 项</summary>{pkg.runtimeChoice.choices.map(choice =>
       <p key={choice.choiceId}>{choice.prompt} · {choice.outcomes.map(outcome => outcome.label).join(" / ")}</p>)}</details>
     {[...groups].map(([key, group], groupIndex) => <details key={key} className="presentation-scene" open={groupIndex === 0}>
       <summary>{group.title}<small>{group.sources.length} 项 · {group.sources.filter(source => !sourceComplete(source)).length ? `${group.sources.filter(source => !sourceComplete(source)).length} 项待完善` : "呈现方式已填齐"}</small></summary>
-      {group.sources.map((source, sourceIndex) => <fieldset key={source.id} className="presentation-source" data-source-id={source.id} disabled={disabled || busy || accepted}>
+      {group.sources.map((source, sourceIndex) => <fieldset key={source.id} className="presentation-source" data-source-id={source.id} disabled={disabled || working.stale || busy || accepted}>
         <legend>{source.kind === "composition" ? `镜头 ${group.sources.slice(0, sourceIndex + 1).filter(item => item.kind === "composition").length} · 构图` : `${source.kind === "dialogue" ? "对白" : "动作"} ${source.coordinates.flowIndex ?? sourceIndex + 1}`}
           {appliedJob && currentCandidate && <small>助手建议{edited.current ? " · 可修改" : ""}</small>}</legend>
         <details className="presentation-raw"><summary>查看原文并拆分</summary>
@@ -104,10 +115,10 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
     {!accepted && <div className="presentation-save" role="group" aria-label="呈现方式 · 确认保存">
       <div className="bridge-intent-save-copy"><div><strong>呈现方式 · 共 {pkg.sources.length} 项</strong><span role="status">{unresolved ? `还有 ${unresolved} 项待完善` : pkg.reviewed && !dirty ? "呈现方式已保存" : "呈现方式已填齐，待确认保存"}</span></div>
         <p>保存表示采用当前呈现方式；不会确认投产或生成图片、视频。</p></div>
-      <Button variant="primary" disabled={disabled || busy || unresolved > 0} onClick={() => {
-        const epoch = ownership.current; setBusy(true); setError("");
+      <Button variant="primary" disabled={disabled || working.stale || busy || unresolved > 0} onClick={() => {
+        const epoch = ownership.current, version = editVersion.current; setBusy(true); setError("");
         void onSave(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] })))
-          .then(saved => { if (saved && ownership.current === epoch) onDirty(false); })
+          .then(async saved => { if (saved) await working.clear(); if (saved && ownership.current === epoch && editVersion.current === version) onDirty(false); })
           .catch(reason => { if (ownership.current === epoch) setError(reason instanceof Error ? reason.message : "无法保存呈现审阅"); })
           .finally(() => { if (ownership.current === epoch) setBusy(false); });
       }}>确认并保存呈现方式</Button>

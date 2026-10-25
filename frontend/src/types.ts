@@ -664,6 +664,10 @@ export interface WorkspaceProject {
    * never crosses the API boundary or survives canonical hydration.
    */
   initialStageOnFirstSave?: ServerStageName;
+  hasConfirmedBrief?: boolean;
+  displayTitle?: string;
+  operationalState?: "open" | "closed" | null;
+  teachingPreview?: boolean;
   revision: number;
   updatedAt?: string;
   archivedAt?: string | null;
@@ -680,6 +684,9 @@ export interface WorkspaceProject {
 }
 
 export interface ProjectResource {
+  hasConfirmedBrief?: boolean;
+  displayTitle?: string;
+  operationalState?: "open" | "closed" | null;
   id: string;
   revision: number;
   brief: ProjectBrief;
@@ -772,7 +779,7 @@ export interface InitialProjectStage {
  * contiguous canonical stage prefix beginning with story_bible.
  */
 export interface ProjectCreationRequest {
-  brief: ProjectBrief;
+  brief?: ProjectBrief | null;
   initialStages?: InitialProjectStage[];
 }
 

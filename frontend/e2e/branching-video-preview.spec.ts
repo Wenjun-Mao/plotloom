@@ -273,9 +273,9 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   // Native clock/ended assertions remain authority. The trace additionally
   // observes initial videos mounted inside wrappers and later replacements.
   expect(beforeReopenTrace.filter((event) => event.type === "ended").length).toBeGreaterThanOrEqual(5);
-  const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+  const closed = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/freeze`);
   expect(closed.ok(), await closed.text()).toBeTruthy();
-  const reopened = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/open`);
+  const reopened = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/unfreeze`);
   expect(reopened.ok(), await reopened.text()).toBeTruthy();
   await page.reload();
   await expect(page.getByTestId("play-view")).toBeVisible();

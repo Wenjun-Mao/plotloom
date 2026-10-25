@@ -60,6 +60,9 @@ export function createBranchOperationOwner(quiescence: ProjectDraftQuiescence): 
       if (!entry.registered) {
         quiescence.register(projectId, "branch_operations", async () => { await joinOrRefuse(entry); return true; }, {
           retainOnUnmount: true,
+          // The workspace owns this sent request, not editable input. Ordinary
+          // navigation neither cancels nor resends it; exclusive operations join.
+          preserveForDeparture: () => true,
           discardUnsent: async () => { await joinOrRefuse(entry); entry.registered = false; },
           suspendWrites: async () => { await joinOrRefuse(entry); return () => undefined; },
         });

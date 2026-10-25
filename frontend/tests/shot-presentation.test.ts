@@ -3,6 +3,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import type { ApprovalDecision, ImageJob, Shot } from "../src/types";
+import { ReviewDraftContext } from "../src/features/authoring/ReviewDraftContext";
+import { createReviewDraftStore } from "../src/features/authoring/reviewDraftStore";
 import { ShotPresentationReview } from "../src/features/media/keyframes/ShotPresentationReview";
 import { generatedCandidateState, type ShotPresentationState } from "../src/features/media/keyframes/shot-presentation";
 import { createProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
@@ -16,11 +18,12 @@ const state: ShotPresentationState = {
   source: { shot, predecessor: null, resolvedContext: {}, sourceHash: "a".repeat(64),
     literalOptions: [{ shotId: "draft", index: 0, text: "今晚不去了，明天见。", sourceCoordinates: { flowIndex: 3 }, sourceContentHash: "b".repeat(64) }] },
 };
-const quiescence = createProjectDraftQuiescence();
+let quiescence = createProjectDraftQuiescence();
+let store = createReviewDraftStore(quiescence, localStorage);
 const onLoaded = vi.fn();
 function panel() {
-  return createElement(ShotPresentationReview, { projectId: "project", shotId: "draft", approval: { id: "approved" } as ApprovalDecision,
-    storyboardRevision: 3, readOnly: false, onLoaded, onSaved: async () => undefined, quiescence });
+  return createElement(ReviewDraftContext.Provider, { value: { store, quiescence, projectId: "project", revision: 1, enabled: true }, children: createElement(ShotPresentationReview, { projectId: "project", shotId: "draft", approval: { id: "approved" } as ApprovalDecision,
+    storyboardRevision: 3, readOnly: false, onLoaded, onSaved: async () => undefined, quiescence }) });
 }
 async function textarea(label: string, value: string) {
   const target = host.querySelector<HTMLTextAreaElement>(`textarea[aria-label="${label}"]`)!;
@@ -30,7 +33,9 @@ async function textarea(label: string, value: string) {
   });
 }
 beforeEach(() => {
-  sessionStorage.clear(); onLoaded.mockClear();
+  sessionStorage.clear(); onLoaded.mockClear(); quiescence = createProjectDraftQuiescence(); store = createReviewDraftStore(quiescence, localStorage);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementation(async (_id, request) => ({ projectId: "project", ...request, draftRevision: request.expectedDraftRevision + 1, updatedAt: "now" }));
+  vi.spyOn(plotloomApi, "discardAuthoringDraft").mockImplementation(async (_id, request) => request.expectedDraftRevision);
   vi.spyOn(plotloomApi, "getShotPresentation").mockResolvedValue(structuredClone(state));
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
@@ -65,12 +70,12 @@ it("reviews exact source pointers and explicit complete-draft treatment before s
   expect(await quiescence.flush("project")).toBe(true);
 });
 
-it("retains the local review draft on remount and keeps Close blocked until review or discard", async () => {
+it("retains the local review draft on remount and keeps unconfirmed text separate from explicit review", async () => {
   await act(async () => root.render(panel()));
   await textarea("呈现调整理由", "Unfinished author decision.");
-  expect(await quiescence.flush("project")).toBe(false);
+  expect(await quiescence.flush("project")).toBe(true);
   await act(async () => root.render(null));
-  expect(await quiescence.flush("project")).toBe(false);
+  expect(await quiescence.flush("project")).toBe(true);
   await act(async () => root.render(panel()));
   expect(host.querySelector<HTMLTextAreaElement>("textarea[aria-label='呈现调整理由']")?.value).toBe("Unfinished author decision.");
   const discard = Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find(button => button.textContent?.includes("放弃草稿"))!;
@@ -84,7 +89,7 @@ it("does not permit a recovered draft to borrow a changed source hash", async ()
   await act(async () => root.render(null));
   vi.mocked(plotloomApi.getShotPresentation).mockResolvedValue({ ...state, source: { ...state.source, sourceHash: "c".repeat(64) } });
   await act(async () => root.render(panel()));
-  expect(host.textContent).toContain("保留的草稿基于较早来源");
+  expect(host.textContent).toContain("保留草稿的版本已变化");
   const checkbox = host.querySelectorAll<HTMLInputElement>("input[type='checkbox']")[1];
   expect(checkbox.disabled).toBe(true);
 });

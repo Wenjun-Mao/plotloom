@@ -68,8 +68,8 @@ class ProjectAccessLease:
             descriptor = os.open(lock_path, flags, 0o600)
         except FileNotFoundError:
             if not create and mode == "shared":
-                # Restored CLOSED folders intentionally omit operational
-                # debris. A read-only inspection must not recreate it.
+                # Passive metadata inspection never creates operational files.
+                # Authority reads reject absence; restore initializes it before publication.
                 return cls(descriptor=-1, mode=mode)
             raise
         metadata = os.fstat(descriptor)

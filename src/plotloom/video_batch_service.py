@@ -147,7 +147,7 @@ class VideoBatchService:
 
     @scoped_proofs
     def current(self, project_id):
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.read_open(project_id)) as store:
             view = store.repository.video_batches.current(project_id)
             if not view:
                 return None
@@ -161,7 +161,7 @@ class VideoBatchService:
 
     @scoped_proofs
     def review(self, project_id):
-        with closing(self.storage.projects.open(project_id)) as store:
+        with closing(self.storage.projects.read_open(project_id)) as store:
             view = store.repository.video_batches.current(project_id)
             if not view:
                 raise InvalidTransitionError("batch not found")

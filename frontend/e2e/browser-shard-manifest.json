@@ -103,6 +103,7 @@
     "autopilot-review.spec.ts",
     "autopilot-guidance.spec.ts",
     "text-retry.spec.ts",
-    "video-batch.spec.ts"
+    "video-batch.spec.ts",
+    "working-project-autosave.spec.ts"
   ]
 }

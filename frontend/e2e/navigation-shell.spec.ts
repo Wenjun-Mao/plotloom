@@ -117,7 +117,7 @@ async function persistSampleProject(page: import("@playwright/test").Page, front
   await navigateToSecondaryTool(page, "分镜工作台");
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
-  await page.getByRole("button", { name: "保存分镜" }).click();
+  await page.getByRole("button", { name: "应用分镜修改" }).click();
   await expect((await created).ok()).toBeTruthy();
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");

@@ -29,7 +29,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await navigateToStage(page, "05 分镜工作台");
     const created = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === "/api/v2/projects");
-    await page.getByRole("button", { name: "保存分镜" }).click();
+    await page.getByRole("button", { name: "应用分镜修改" }).click();
     expect((await created).ok()).toBeTruthy();
     await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
@@ -127,7 +127,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(shotDeletion).toContainText("cue_b1");
     await expect(shotDeletion).toContainText("b1");
     await shotDeletion.getByRole("button", { name: "取消" }).click();
-    await savePatchedStage(page, projectId, "storyboard", "保存分镜");
+    await savePatchedStage(page, projectId, "storyboard", "应用分镜修改");
     await page.reload();
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
     await expect(page.getByRole("textbox", { name: "动作", exact: true })).toHaveValue(action);
@@ -187,7 +187,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await page.getByTestId("select-character-char_ruanxing").click();
     await page.getByTestId("character-visual-anchors").fill(visualAnchors);
     await page.getByTestId("character-allowed-states").fill(allowedStates);
-    await savePatchedStage(page, projectId, "story_bible", "保存故事圣经");
+    await savePatchedStage(page, projectId, "story_bible", "应用故事圣经修改");
     await page.reload();
     await expect(page.getByLabel("一句话概述（Logline）")).toHaveValue(logline);
     await expect(page.getByTestId("character-visual-anchors")).toHaveValue(visualAnchors);

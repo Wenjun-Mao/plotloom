@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useReviewEditorDraft } from "../authoring/ReviewDraftContext";
 import { Button } from "../../components";
 import { ApiError } from "../../api-transport";
 import { autopilotApi } from "./api";
@@ -40,6 +41,9 @@ export function TextFailureCard({ projectId, run, disabled, execute, stage, read
     }).catch(() => { if (!abort.signal.aborted && live.current === identity) setError(true); });
     return () => { abort.abort(); if (scope.current === token) scope.current = null; };
   }, [identity, readEpoch]);
+  const working = useReviewEditorDraft(projectId, "text_retry", failure ? `${failure.runId}:${failure.runRevision}:${failure.failedAttemptId}:${failure.rejectionHash}` : "unverified", text => {
+    setDirections(text); setEditing(true);
+  }, disabled || pending || !failure?.canRetry, undefined, stage || run.phase);
   if (error) return <div><p role="status">暂时无法读取文字问题详情；补充要求与已提交请求保持保留。</p>
     <Button disabled={readingDisabled} onClick={() => setReadEpoch(epoch => epoch + 1)}>重新读取问题</Button></div>;
   if (!failure) return null;
@@ -79,7 +83,7 @@ export function TextFailureCard({ projectId, run, disabled, execute, stage, read
     });
   };
   const retry = () => {
-    if (disabled || submitted.current || !failure.canRetry || !failure.failedAttemptId || !failure.rejectionHash || live.current !== identity) return;
+    if (disabled || working.stale || submitted.current || !failure.canRetry || !failure.failedAttemptId || !failure.rejectionHash || live.current !== identity) return;
     const body = { commandId: crypto.randomUUID(), expectedRunId: failure.runId, expectedRevision: failure.runRevision,
       failedAttemptId: failure.failedAttemptId, rejectionHash: failure.rejectionHash, directions: editing ? directions : "" };
     submitted.current = body; refused.current = false; send(body);
@@ -88,14 +92,15 @@ export function TextFailureCard({ projectId, run, disabled, execute, stage, read
     <strong>{failure.stageLabel} · {failure.resolved ? "已修正并采用" : failure.terminalContentFailure ? "内容验证未通过" : "原任务需要核对"}</strong>
     <p>{failure.automaticLimit === 0 ? "自动修正已关闭。" : `自动修正已用 ${failure.automaticUsed}/${failure.automaticLimit} 次。`}{failure.reason}</p>
     <div className="button-row"><Button onClick={() => setDetails(value => !value)}>{details ? "收起问题" : "查看问题"}</Button>
-      {failure.canRetry && <><Button disabled={disabled || pending} onClick={retry}>再修正一次</Button>
-        <Button disabled={disabled || pending} onClick={() => { setDetails(true); setEditing(true); }}>修改要求后重试</Button></>}
+      {failure.canRetry && <><Button disabled={disabled || working.stale || pending} onClick={retry}>再修正一次</Button>
+        <Button disabled={disabled || working.stale || pending} onClick={() => { setDetails(true); setEditing(true); }}>修改要求后重试</Button></>}
     </div>
+    {working.notice}
     {message && <p role="status">{message}</p>}
     {pending && <div className="button-row"><Button disabled={readingDisabled} onClick={reconcile}>核对本次修正</Button>
       {resend && <Button disabled={disabled} onClick={() => { if (submitted.current) send(submitted.current); }}>重发同一本次请求</Button>}</div>}
-    {editing && <label className="field">补充修正要求（可选）<textarea value={directions} maxLength={4000} disabled={disabled || pending}
-      onChange={event => setDirections(event.target.value)} placeholder="在原简报与已采用内容范围内补充要求，然后点击「再修正一次」。" /></label>}
+    {editing && <label className="field">补充修正要求（可选）<textarea value={directions} maxLength={4000} disabled={disabled || working.stale || pending}
+      onChange={event => { setDirections(event.target.value); working.changed(event.target.value); }} placeholder="在原简报与已采用内容范围内补充要求，然后点击「再修正一次」。" /></label>}
     {details && <div className="stack">
       {failure.issues.map((issue, index) => <div key={index}><p>{issue.field === "$" ? <strong>整份候选（来源未提供精确字段）</strong> : <><strong>{issue.item}</strong> · <code>{issue.field}</code></>}</p>
         <p>{issue.rule}</p>{issue.excerpt !== null && <pre>{issue.excerpt}</pre>}</div>)}

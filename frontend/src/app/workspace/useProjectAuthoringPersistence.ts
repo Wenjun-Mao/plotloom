@@ -1,13 +1,14 @@
+import { createConflictCopy } from "../../features/authoring/createConflictCopy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { ApiError, plotloomApi } from "../../api";
-import { discardDraft, discardDraftRecord, findProjectDrafts, getDraft, putDraft, type DraftRecord, type DraftScope } from "../../draft-registry";
+import { discardDraft, discardDraftRecord, findProjectDrafts, getDraft, putDraft, draftsLocallyPreserved, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { useAuthoringDraftAutosave } from "../../features/authoring/useAuthoringDraftAutosave";
 import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 import { markDownstreamStale, mergeProjectResponse, serverStages, stageLabels } from "../../model";
-import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "../../project-creation";
+import { workspaceWithStageDraft } from "../../project-creation";
 import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../types";
-import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, sameDraftPayload, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
+import { authoringDraftKey, canonicalDraftConsumption, messageFrom, sameDraftPayload, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import { readGraphDraft } from "../../features/graph/contracts";
 import { useDraftConflictReload } from "./useDraftConflictReload";
@@ -48,7 +49,12 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   const activeGeneration = useRef<number | undefined>(undefined);
   const [projectSaving, setProjectSaving] = useState(false);
   const [admissionObservation, setAdmissionObservation] = useState({ projectId: "", version: 0 });
-  const [durableDraftStatus, setDurableDraftStatus] = useState<DurableDraftStatus>("idle");
+  const [draftStatus, setDraftStatus] = useState<{ projectId?: string; value: DurableDraftStatus }>({ value: "idle" });
+  const statusProjectId = input.session.project.id;
+  const setDurableDraftStatus = useCallback<Dispatch<SetStateAction<DurableDraftStatus>>>(update => {
+    setDraftStatus(previous => ({ projectId: statusProjectId, value: typeof update === "function" ? update(previous.projectId === statusProjectId ? previous.value : "idle") : update }));
+  }, [statusProjectId]);
+  const durableDraftStatus = draftStatus.projectId === statusProjectId ? draftStatus.value : "idle";
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: "server" | "session" | "reconcile" } | undefined>();
 
@@ -62,8 +68,9 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
 
   const { flushAuthoringDraft, scheduleAuthoringDraftAutosave, discardUnsentProjectDrafts, suspendProjectDraftWrites } = useAuthoringDraftAutosave({
     project: input.session.project,
-    writesAllowed: input.session.connection === "connected" && !draftConflict,
+    writesAllowed: input.session.connection === "connected" && input.session.project.operationalState !== "closed" && !input.session.project.teachingPreview && !draftConflict,
     scopeWritesAllowed: input.scopeWritesAllowed,
+    projectWritesAllowed: input.draftQuiescence.canWrite,
     durableDraftsEnabledRef: input.durableDraftsEnabled,
     serverAuthoringDrafts: input.session.serverDrafts,
     captureWorkspaceOperation: input.session.capture,
@@ -80,9 +87,13 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     return true;
   }, [flushAuthoringDraft]);
   useEffect(() => {
-    const projectId = input.session.project.id;
+    const ownerProject = input.session.project;
+    const projectId = ownerProject.id;
     if (!projectId) return;
     return input.draftQuiescence.register(projectId, "authoring", flushProjectAuthoringDrafts, {
+      retainOnUnmount: true,
+      locallyPreserved: () => draftsLocallyPreserved(projectId),
+      pending: () => ["brief", "story_bible", "story_graph", "scene_beats", "storyboard"].some(scope => Boolean(getDraft(ownerProject, scope as DraftScope))),
       suspendWrites: suspendProjectDraftWrites,
       discardUnsent: async () => { await discardUnsentProjectDrafts(); currentDraft.current = undefined; },
     });
@@ -106,7 +117,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
       return undefined;
     }
     if (session.project.id && draftQuiescence.isClosing(session.project.id)) {
-      feedback.setError("项目正在关闭；请等待关闭完成或失败后再编辑。");
+      feedback.setError("项目正在执行独占操作；请等待操作完成或失败后再编辑。");
       return undefined;
     }
     if (saveInFlight.current) return undefined;
@@ -140,46 +151,34 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     void session.reloadCanonicalProject(projectId, epoch);
   }, []);
 
-  const createProjectFrom = useCallback(async (nextLocal: WorkspaceProject, operation: WorkspaceOperation, initialStage?: ServerStageName): Promise<string | undefined> => {
-    const source = current.current;
-    const request = projectCreationRequest(nextLocal.brief, initialStage ? initialStagesThrough(nextLocal, initialStage) : []);
-    const body = projectCreationBody(request);
-    let idempotencyKey = createKeys.current.get(body);
-    if (!idempotencyKey) {
-      idempotencyKey = `project-create-${crypto.randomUUID()}`;
-      createKeys.current.set(body, idempotencyKey);
+  const retireAppliedInput = (workspace: WorkspaceProject, scope: DraftScope, payload: unknown, selected?: DraftRecord) => {
+    const local = getDraft(workspace, scope);
+    const sameSelection = Boolean(selected && local && local.key === selected.key && local.localRevision === selected.localRevision
+      && local.baseRevision === selected.baseRevision && local.serverDraftRevision === selected.serverDraftRevision
+      && local.updatedAt === selected.updatedAt && sameDraftPayload(local.payload, selected.payload));
+    if (selected && sameSelection) discardDraftRecord(selected);
+    if (current.current.session.project.id !== workspace.id || currentDraft.current?.scope !== scope) return;
+    if (sameDraftPayload(currentDraft.current.payload, payload) && (!local || sameSelection)) {
+      currentDraft.current = undefined;
+      setRestoredDraft(previous => previous?.scope === scope && sameDraftPayload(previous.payload, payload) ? undefined : previous);
     }
-    const created = await plotloomApi.createProject(request, idempotencyKey);
-    if (!source.session.isCurrent(operation)) return undefined;
-    const storyboardReady = created.stages.some((stage) => stage.head.stage === "storyboard" && stage.head.status === "ready");
-    const review = storyboardReady ? await plotloomApi.getStoryboardReview(created.id).catch(() => null) : null;
-    if (!source.session.isCurrent(operation)) return undefined;
-    source.session.acceptCreatedProject(nextLocal, created, review);
-    createKeys.current.delete(body);
-    cancelSave();
-    return created.id;
-  }, [cancelSave]);
-
+  };
   const commitProject = useCallback(async (patch: Partial<WorkspaceProject>): Promise<string | undefined> => {
     const generation = beginSave();
     if (!generation) return undefined;
     const source = current.current;
     const operation = source.session.capture();
     const nextLocal = mergeProjectResponse(source.session.project, patch);
+    const selectedInput = getDraft(source.session.project, "brief");
+    const workingPayload = selectedInput?.payload ?? (currentDraft.current?.scope === "brief" ? currentDraft.current.payload : nextLocal.brief);
     try {
       if (!source.session.project.id) {
-        const unsavedProject = source.session.project;
-        const createdId = await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave);
-        if (!createdId) return undefined;
-        // The canonical create consumed this Brief; its local draft must not
-        // trigger a second save prompt when the creator continues to Source.
-        discardDraft(unsavedProject, "brief");
-        currentDraft.current = undefined;
-        setRestoredDraft(undefined);
-        return createdId;
+        throw new Error("请先新建项目或创建示例的编辑副本。");
       } else {
         if (source.durableDraftsEnabled.current && getDraft(source.session.project, "brief") && !await flushAuthoringDraft("brief")) return;
         const serverDraft = source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, "brief"));
+        const consumed = canonicalDraftConsumption(serverDraft, "brief", source.session.project.revision, nextLocal.brief, workingPayload);
+        if (serverDraft && !consumed) throw new Error("简报工作草稿与本次应用输入不一致；请先核对保留内容。");
         // A canonical Brief write invalidates every generated stage. Do not
         // manufacture that invalidation merely to acknowledge an unchanged
         // editor buffer: discard its exact draft receipt instead.
@@ -194,14 +193,12 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
             setDurableDraftStatus("idle");
             observeAuthoringMutation(operation);
           } else if (!source.durableDraftsEnabled.current) {
-            discardDraft(source.session.project, "brief");
+            retireAppliedInput(source.session.project, "brief", workingPayload, selectedInput);
           }
           if (!source.session.isCurrent(operation)) return undefined;
-          currentDraft.current = undefined;
-          setRestoredDraft(undefined);
+          retireAppliedInput(source.session.project, "brief", workingPayload, selectedInput);
           return source.session.project.id;
         }
-        const consumed = canonicalDraftConsumption(serverDraft, "brief", source.session.project.revision, nextLocal.brief);
         const saved: { project: ProjectResource; consumedDraftRevision?: number } = consumed
           ? await plotloomApi.patchProjectWithDraft(source.session.project.id, source.session.project.revision, nextLocal.brief, consumed)
           : { project: await plotloomApi.patchProject(source.session.project.id, source.session.project.revision, nextLocal.brief) };
@@ -209,8 +206,9 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
           source.session.serverDrafts.current.delete(authoringDraftKey(source.session.project.id, "brief"));
           setDurableDraftStatus("idle");
         } else if (!source.durableDraftsEnabled.current) {
-          discardDraft(source.session.project, "brief");
+          retireAppliedInput(source.session.project, "brief", workingPayload, selectedInput);
         }
+        retireAppliedInput(source.session.project, "brief", workingPayload, selectedInput);
         if (!source.session.isCurrent(operation)) {
           refreshStaleAcceptedProject(source.session.project.id);
           return;
@@ -224,8 +222,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
           ...mergeProjectResponse(nextLocal, saved.project),
           staleStages: [...serverStages],
         });
-        currentDraft.current = undefined;
-        setRestoredDraft(undefined);
+        retireAppliedInput(source.session.project, "brief", workingPayload, selectedInput);
         return saved.project.id;
       }
     } catch (error) {
@@ -239,7 +236,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
+  }, [beginSave, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
 
   const commitStage = useCallback(async <T,>(stage: ServerStageName, content: T) => {
     if (stage === "story_graph") {
@@ -253,18 +250,13 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     const operation = source.session.capture();
     const key = stage === "story_bible" ? "storyBible" : stage === "scene_beats" ? "sceneBeats" : "storyboard";
     const nextLocal = markDownstreamStale(workspaceWithStageDraft(source.session.project, stage, content), stage);
+    const selectedInput = getDraft(source.session.project, stage);
     try {
-      if (!source.session.project.id) {
-        if (!await createProjectFrom(nextLocal, operation, stage)) return;
-        source.session.clearValidationIssues();
-        discardDraft(source.session.project, stage);
-        currentDraft.current = undefined;
-        setRestoredDraft(undefined);
-        return;
-      }
+      if (!source.session.project.id) throw new Error("请先新建项目或创建示例的编辑副本。");
       if (source.durableDraftsEnabled.current && getDraft(source.session.project, stage) && !await flushAuthoringDraft(stage)) return;
       const serverDraft = source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, stage));
       const consumed = canonicalDraftConsumption(serverDraft, stage, source.session.project.stageRevisions[stage], content);
+      if (serverDraft && !consumed) throw new Error("阶段工作草稿与本次应用输入不一致；请先核对保留内容。");
       const saved = consumed
         ? await plotloomApi.patchStageWithDraft(source.session.project.id, stage, source.session.project.stageRevisions[stage], content, consumed)
         : { stage: await plotloomApi.patchStage(source.session.project.id, stage, source.session.project.stageRevisions[stage], content) };
@@ -272,8 +264,9 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
         source.session.serverDrafts.current.delete(authoringDraftKey(source.session.project.id, stage));
         setDurableDraftStatus("idle");
       } else if (!source.durableDraftsEnabled.current) {
-        discardDraft(source.session.project, stage);
+        retireAppliedInput(source.session.project, stage, content, selectedInput);
       }
+      retireAppliedInput(source.session.project, stage, content, selectedInput);
       if (!source.session.isCurrent(operation)) {
         refreshStaleAcceptedProject(source.session.project.id);
         return;
@@ -289,8 +282,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
         const review = await plotloomApi.getStoryboardReview(source.session.project.id).catch(() => null);
         if (source.session.isCurrent(operation)) source.session.acceptStoryboardReview(review);
       }
-      currentDraft.current = undefined;
-      setRestoredDraft(undefined);
+      retireAppliedInput(source.session.project, stage, content, selectedInput);
     } catch (error) {
       if (!source.session.isCurrent(operation)) return;
       const issues = validationIssuesFrom(error);
@@ -308,11 +300,11 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, createProjectFrom, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
+  }, [beginSave, finishSave, flushAuthoringDraft, observeAuthoringMutation, refreshStaleAcceptedProject]);
 
   const rememberDraft = useCallback((scope: DraftScope, payload: unknown) => {
     const source = current.current;
-    if (source.session.project.archivedAt || (source.session.project.id && source.draftQuiescence.isClosing(source.session.project.id))) return;
+    if (source.session.project.archivedAt || source.session.project.operationalState === "closed" || source.session.project.teachingPreview || (source.session.project.id && source.draftQuiescence.isClosing(source.session.project.id))) return;
     currentDraft.current = { scope, payload };
     const local = getDraft(source.session.project, scope);
     // An acknowledged draft remains server-owned until a canonical save
@@ -323,6 +315,8 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
       ? source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, scope))
       : undefined;
     putDraft(source.session.project, scope, payload, local?.serverDraftRevision ?? serverDraft?.draftRevision ?? 0);
+    setDurableDraftStatus("saving");
+    source.draftQuiescence.changed();
     scheduleAuthoringDraftAutosave(scope);
     if (restoredDraft?.scope === scope) setRestoredDraft({ ...restoredDraft, payload });
   }, [restoredDraft, scheduleAuthoringDraftAutosave]);
@@ -362,22 +356,15 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     if (!generation) return false;
     const source = current.current;
     const operation = source.session.capture();
-    const staged = conflict.scope === "brief"
-      ? { ...conflict.workspace, brief: conflict.record.payload as WorkspaceProject["brief"] }
-      : workspaceWithStageDraft(conflict.workspace, conflict.scope, conflict.record.payload);
-    const copy: WorkspaceProject = {
-      ...staged,
-      id: undefined,
-      clientDraftOwner: newClientDraftOwner(),
-      revision: 0,
-      lifecycleRevision: 0,
-      lifecycleStatus: "active",
-      archivedAt: null,
-      brief: { ...staged.brief, title: `${staged.brief.title || "未命名项目"}（冲突副本）` },
-    };
+    const identity = `${conflict.record.key}:${conflict.record.localRevision}`;
+    let key = createKeys.current.get(identity);
+    if (!key) { key = `project-conflict-copy-${crypto.randomUUID()}`; createKeys.current.set(identity, key); }
     try {
-      const created = await createProjectFrom(copy, operation, conflict.scope === "brief" ? undefined : conflict.scope);
-      if (!created) return false;
+      const { project: created, draft: savedDraft } = await createConflictCopy(conflict.record, conflict.workspace, key);
+      if (!source.session.isCurrent(operation)) return false;
+      source.session.acceptCreatedProject(conflict.workspace, created, null);
+      source.session.serverDrafts.current.set(authoringDraftKey(created.id, conflict.scope), savedDraft);
+      createKeys.current.delete(identity);
       discardDraftRecord(conflict.record);
       currentDraft.current = undefined;
       setRestoredDraft(undefined);
@@ -393,7 +380,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     } finally {
       finishSave(operation, generation);
     }
-  }, [beginSave, conflictReload, createProjectFrom, draftConflict, finishSave, observeAuthoringMutation]);
+  }, [beginSave, conflictReload, draftConflict, finishSave, observeAuthoringMutation]);
 
   const discardDraftConflict = useCallback(() => {
     if (!draftConflict || conflictReload.isPending()) return false;
@@ -470,7 +457,6 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     cancelSave,
     beginSave,
     finishSave,
-    createProjectFrom,
     reloadDraftConflict: conflictReload.reload,
     conflictReloading: conflictReload.reloading,
     copyDraftConflict,

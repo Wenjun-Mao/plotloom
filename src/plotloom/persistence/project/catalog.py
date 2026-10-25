@@ -299,7 +299,7 @@ class ProjectCatalogPersistence:
 
             source = self._access.rows.project(session, project_id)
             self._access.guards.lifecycle_revision(source, expected_lifecycle_revision)
-            source_brief = ProjectBrief.model_validate(source.brief)
+            source_brief = ProjectBrief.require_confirmed(source.brief)
             brief_data = source_brief.model_dump(mode="python")
             if normalized_title is not None:
                 brief_data["title"] = normalized_title

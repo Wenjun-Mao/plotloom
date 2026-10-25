@@ -48,12 +48,16 @@ export const textRetryTest = createWorkbenchTest("vite", "frontend/e2e/text_retr
 
 /** Save a new Brief, then explicitly choose the established manual route. */
 export async function saveBriefAndContinue(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "保存项目简报", exact: true }).click();
-  const confirmTargets = page.getByRole("button", { name: "确认并保存目标", exact: true });
-  if (await confirmTargets.isVisible().catch(() => false)) await confirmTargets.click();
+  const copy = page.getByRole("button", { name: "创建编辑副本", exact: true });
+  if (await copy.isVisible().catch(() => false)) {
+    await copy.click(); await expect(page).toHaveURL(/[?&]project=/);
+  } else {
+    await page.getByRole("button", { name: "确认项目简报", exact: true }).click();
+    const targets = page.getByRole("button", { name: "确认并保存目标", exact: true });
+    if (await targets.isVisible().catch(() => false)) await targets.click();
+  }
   const continueManually = page.getByRole("button", { name: "继续手动创作", exact: true });
-  await expect(continueManually).toBeVisible();
-  await continueManually.click();
+  await expect(continueManually).toBeVisible(); await continueManually.click();
 }
 
 function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "frontend/e2e/fake_video_runtime.py") {

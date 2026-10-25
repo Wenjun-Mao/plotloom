@@ -20,9 +20,9 @@ def outline_request(store, *, job_id=None):
         content_validation_contract="plotloom.typed-content-result.v1",
         expected_stage_revision=state.accepted_outline.revision if state.accepted_outline else 0,
         source=state.source.material.model_dump(mode="json", by_alias=True),
-        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief),
+        input_artifacts={OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().require_brief()),
             OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema(),
-            "story-topology.json": planned_structure(store.manifest.project_id, store.project().brief).model_dump(mode="json", by_alias=True)},
+            "story-topology.json": planned_structure(store.manifest.project_id, store.project().require_brief()).model_dump(mode="json", by_alias=True)},
         creative_brief=(
             "Read inputs/outline-report-metadata-schema.json: it constrains report metadata only and permits all upstream creative fields. Top-level lang selects report UI, independently of saved content language: omit it or use null for default Chinese, or exactly zh/en. Do not copy a content locale such as zh-CN into lang. No params.language field is required by this metadata contract. "
             "Read inputs/story-topology.json: trusted code planned the feasible Brief structure. Author prose around every viewer choice, distinct ending and reconvergence without altering topology or treating episodes as route nodes. "

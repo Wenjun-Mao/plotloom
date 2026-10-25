@@ -28,7 +28,7 @@ class ProductionBridgeProjection:
 
     def _build(self, session: Any, project_id: str, *, inputs: dict[str, Any], storyboard: dict[str, Any], script: dict[str, Any], cast_and_art: dict[str, Any]) -> tuple[dict[str, Any], ProductionBridgeIntentPackage, list[ProductionBridgeConflict], list[ProductionBridgeConflict], list[dict[str, Any]], list[dict[str, Any]]]:
         project = self._access.rows.project(session, project_id)
-        brief = ProjectBrief.model_validate(project.brief)
+        brief = ProjectBrief.require_confirmed(project.brief)
         graph = self._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
         entry_contract = compile_edge_entry_state_contract(graph)
         graph_nodes = {node.id: node for node in getattr(graph, "nodes", [])}

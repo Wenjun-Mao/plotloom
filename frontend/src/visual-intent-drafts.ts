@@ -1,10 +1,13 @@
+import { useRetainedMediaJournal } from "./features/authoring/useRetainedMediaJournal";
+import { saveWorkingDraft } from "./features/authoring/saveWorkingDraft";
+import { clientJournalStorage } from "./features/authoring/clientJournalStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { plotloomApi } from "./api";
+import { ApiError, plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
 import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
 export type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string; sourceBindingId?: string; retainedVisualIntentId?: string };
-type Entry = { baseId: string | null; value: IntentDraft };
+type Entry = { baseId: string | null; value: IntentDraft; expectedDraftRevision?: number; ownershipConflict?: boolean };
 type Drafts = Record<string, Entry>;
 type DurableWriterState = {
   serverRevision: number;
@@ -37,7 +40,7 @@ function readSessionDrafts<EntryValue>(
   isEntry: (value: unknown) => value is EntryValue,
 ): Record<string, EntryValue> {
   try {
-    const value: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? "{}");
+    const value: unknown = JSON.parse(clientJournalStorage.getItem(key) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     const entries = Object.entries(value);
     return Object.fromEntries(
@@ -84,12 +87,20 @@ export function useVisualIntentDraft(
   const writerState = durableWriterStateFor(writerStates.current, writerKey);
   const entry = drafts[key];
   const value = entry?.value ?? saved;
-  const stale = Boolean(entry && entry.baseId !== (baseId ?? null));
+  const inputPayload = (buffer: Entry) => ({ assetId, shotId, role: "shot_keyframe", identityIntent: buffer.value.identityIntent || null,
+    compositionIntent: buffer.value.compositionIntent || null, styleIntent: buffer.value.styleIntent || null,
+    sourceRefs: buffer.value.sourceRefs.split("\n").map(item => item.trim()).filter(Boolean), sourceRefsText: buffer.value.sourceRefs,
+    ...(buffer.value.sourceBindingId ? { sourceBindingId: buffer.value.sourceBindingId } : {}),
+    ...(buffer.value.retainedVisualIntentId ? { retainedVisualIntentId: buffer.value.retainedVisualIntentId } : {}) });
+
+  const retained = useRetainedMediaJournal({ namespace: storageKey, key, projectId, entries: drafts, setEntries: setDrafts,
+    serverRevision, serverReady, quiescence, validate: isIntentDraftEntry, basisMatches: candidate => candidate.baseId === (baseId ?? null) });
+  const stale = Boolean(entry && entry.baseId !== (baseId ?? null) || !entry && retained.retained);
   const dirty = Boolean(entry && (stale || fields.some((field) => entry.value[field] !== saved[field])));
 
   useEffect(() => {
     try {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(drafts));
+      clientJournalStorage.setItem(storageKey, JSON.stringify(drafts));
       setStorageFailed(false);
     } catch { setStorageFailed(true); }
   }, [drafts]);
@@ -121,7 +132,7 @@ export function useVisualIntentDraft(
       if (cancelled || writerState.requestEpoch !== epoch) return;
       const remote = items.find((item) => item.editorScope === "visual_intent" && item.entityId === entityId);
       if (remote) {
-        const payload = remote.payload as Partial<{ assetId: string; shotId: string; identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string[]; sourceBindingId: string; retainedVisualIntentId: string }>;
+        const payload = remote.payload as Partial<{ assetId: string; shotId: string; identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string[]; sourceRefsText?: string; sourceBindingId: string; retainedVisualIntentId: string }>;
         if (payload.assetId === assetId && payload.shotId === shotId && Array.isArray(payload.sourceRefs)) {
           const sourceRefs = payload.sourceRefs;
           setDrafts((current) => current[key] ? current : {
@@ -132,7 +143,7 @@ export function useVisualIntentDraft(
                 identityIntent: payload.identityIntent ?? "",
                 compositionIntent: payload.compositionIntent ?? "",
                 styleIntent: payload.styleIntent ?? "",
-                sourceRefs: sourceRefs.join("\n"),
+                sourceRefs: payload.sourceRefsText ?? sourceRefs.join("\n"),
                 sourceBindingId: payload.sourceBindingId,
                 retainedVisualIntentId: payload.retainedVisualIntentId,
               },
@@ -147,10 +158,22 @@ export function useVisualIntentDraft(
             compositionIntent: payload.compositionIntent ?? null,
             styleIntent: payload.styleIntent ?? null,
             sourceRefs,
+            sourceRefsText: payload.sourceRefsText ?? sourceRefs.join("\n"),
             ...(payload.sourceBindingId ? { sourceBindingId: payload.sourceBindingId } : {}),
             ...(payload.retainedVisualIntentId ? { retainedVisualIntentId: payload.retainedVisualIntentId } : {}),
           });
+          if (remote.baseCanonicalRevision === baseCanonicalRevision) retained.acknowledge(remote.draftRevision, candidate => JSON.stringify(inputPayload(candidate)) === writerState.acknowledgedPayload);
           if (activeWriterKey.current === writerKey) setServerRevision(remote.draftRevision);
+        }
+      }
+      const localEntry = drafts[key];
+      if (localEntry) {
+        const samePayload = JSON.stringify(inputPayload(localEntry)) === writerState.acknowledgedPayload;
+        const exactReceipt = remote && samePayload && (localEntry.expectedDraftRevision === undefined || localEntry.expectedDraftRevision + 1 === remote.draftRevision);
+        if (exactReceipt) setDrafts(current => current[key] === localEntry ? { ...current, [key]: { ...localEntry, expectedDraftRevision: remote.draftRevision } } : current);
+        else if (localEntry.ownershipConflict || (localEntry.expectedDraftRevision ?? 0) !== (remote?.draftRevision ?? 0)) {
+          writerState.serverConflict = true;
+          if (activeWriterKey.current === writerKey) setServerConflict(true);
         }
       }
       writerState.serverReady = true;
@@ -167,7 +190,7 @@ export function useVisualIntentDraft(
   }, [activeWriterKey, assetId, baseCanonicalRevision, baseId, entityId, key, projectId, serverDraftsEnabled, shotId, writerKey, writerState]);
   const flush = useCallback(async (): Promise<boolean> => {
     if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
-    if (writerState.abandoning || writerState.suspended) return false;
+    if (writerState.abandoning || writerState.suspended || entry?.ownershipConflict) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -177,32 +200,20 @@ export function useVisualIntentDraft(
     const existing = writerState.persistence;
     if (existing) await existing;
     if (quiescence && !quiescence.canWrite(projectId)) return false;
-    if (writerState.abandoning || writerState.suspended) return false;
+    if (writerState.abandoning || writerState.suspended || entry?.ownershipConflict) return false;
     if (writerState.serverConflict) return false;
-    const payload = {
-      assetId,
-      shotId,
-      role: "shot_keyframe" as const,
-      identityIntent: entry.value.identityIntent || null,
-      compositionIntent: entry.value.compositionIntent || null,
-      styleIntent: entry.value.styleIntent || null,
-      sourceRefs: entry.value.sourceRefs.split("\n").map((item) => item.trim()).filter(Boolean),
-      ...(entry.value.sourceBindingId ? { sourceBindingId: entry.value.sourceBindingId } : {}),
-      ...(entry.value.retainedVisualIntentId ? { retainedVisualIntentId: entry.value.retainedVisualIntentId } : {}),
-    };
+    const payload = inputPayload(entry);
     const fingerprint = JSON.stringify(payload);
-    // A visual intent without provenance cannot obtain a valid durable
-    // receipt. It must block Close while dirty rather than reporting a false
-    // drain and leaving the session-only edit behind a closed project.
-    if (!payload.sourceRefs.length) return !dirty;
+
     if (writerState.acknowledgedPayload === fingerprint) return true;
     const epoch = writerState.requestEpoch;
-    const persistence = plotloomApi.saveAuthoringDraft(projectId, {
+    const persistence = saveWorkingDraft(projectId, {
       editorScope: "visual_intent", entityId, baseCanonicalRevision,
       expectedDraftRevision: writerState.serverRevision, payload,
     }).then((receipt) => {
       if (writerState.requestEpoch !== epoch) return false;
       writerState.serverRevision = receipt.draftRevision;
+      setDrafts(current => current[key] ? { ...current, [key]: { ...current[key], expectedDraftRevision: receipt.draftRevision } } : current);
       writerState.acknowledgedPayload = fingerprint;
       writerState.serverConflict = false;
       if (activeWriterKey.current === writerKey) {
@@ -210,10 +221,10 @@ export function useVisualIntentDraft(
         setServerConflict(false);
       }
       return true;
-    }).catch(() => {
+    }).catch(error => {
       if (writerState.requestEpoch === epoch) {
-        writerState.serverConflict = true;
-        if (activeWriterKey.current === writerKey) setServerConflict(true);
+        writerState.serverConflict = error instanceof ApiError && error.status === 409;
+        if (activeWriterKey.current === writerKey) setServerConflict(writerState.serverConflict);
       }
       return false;
     });
@@ -239,7 +250,9 @@ export function useVisualIntentDraft(
     // A dirty draft remains an admitted project writer when its particular
     // form unmounts. Switching shots must not hide it from a later Close.
     return quiescence.register(projectId, `visual_intent:${entityId}`, flush, {
-      retainOnUnmount: dirty,
+      pending: () => Boolean(entry && (writerState.serverConflict || !writerState.serverReady || writerState.acknowledgedPayload !== JSON.stringify(inputPayload(entry)))),
+      locallyPreserved: () => !storageFailed,
+      retainOnUnmount: Boolean(entry),
       suspendWrites: async () => {
         writerState.suspended = true;
         if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
@@ -259,13 +272,13 @@ export function useVisualIntentDraft(
         discardMediaDraftEntry(storageKey, key);
       },
     });
-  }, [assetId, dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
+  }, [assetId, dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId, storageFailed]);
   useEffect(() => {
-    if (!Object.keys(drafts).length) return;
+    if (!storageFailed || !Object.keys(drafts).length) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [drafts]);
+  }, [drafts, storageFailed]);
 
   const clearWithDisposition = async (consumed: boolean): Promise<boolean> => {
     const buffered = entry;
@@ -274,12 +287,14 @@ export function useVisualIntentDraft(
     if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
+      clientJournalStorage.discardCurrentEntry(storageKey, key, buffered);
       const next = { ...current };
       delete next[key];
       return next;
     });
+    const matchesReceipt = writerState.acknowledgedPayload === JSON.stringify(inputPayload(buffered));
     if (!serverDraftsEnabled || !projectId || consumed || !writerState.serverRevision) {
-      if (consumed) {
+      if (consumed && matchesReceipt) {
         writerState.serverRevision = 0;
         writerState.acknowledgedPayload = undefined;
         setServerRevision(0);
@@ -287,6 +302,7 @@ export function useVisualIntentDraft(
       removeBuffered();
       return true;
     }
+    if (!matchesReceipt) return false;
     const expectedDraftRevision = writerState.serverRevision;
     try {
       const receipt = await plotloomApi.discardAuthoringDraft(projectId, {
@@ -310,10 +326,11 @@ export function useVisualIntentDraft(
     if (!projectId || !shotId || !assetId || quiescence?.isClosing(projectId) || (quiescence && !quiescence.canWrite(projectId))) return;
     setDrafts((current) => ({ ...current, [key]: {
       baseId: current[key] ? current[key].baseId : baseId ?? null,
+      expectedDraftRevision: current[key]?.expectedDraftRevision ?? writerState.serverRevision,
       value: change(current[key]?.value ?? saved),
     } }));
   };
-  return { value, update, clear, clearConsumed, flush, dirty, stale, storageFailed, serverConflict, serverReady, serverRevision };
+  return { value, update, clear, clearConsumed, flush, dirty, stale, storageFailed, serverConflict, serverReady, serverRevision, retainedNotice: retained.notice };
 }
 export {
   imageJobTargetId,

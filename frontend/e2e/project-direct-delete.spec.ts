@@ -198,7 +198,7 @@ async function confirm(page: Page, id: string, title: string) {
 for (const state of ["active", "archived", "closed"] as const) test(`deletes a ${state} project directly without archive or reopen`, async ({ page, request, workbench }) => {
   const target = await create(request, workbench.apiOrigin, `直接删除-${state}`);
   if (state === "archived") expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${target.id}/archive`, { data: { expectedLifecycleRevision: 1 } })).ok()).toBeTruthy();
-  if (state === "closed") expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${target.id}/close`)).ok()).toBeTruthy();
+  if (state === "closed") expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${target.id}/freeze`)).ok()).toBeTruthy();
   const current = await create(request, workbench.apiOrigin, "另一个当前项目");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${current.id}&stage=brief`);
   await expect(page.getByLabel("片名")).toHaveValue("另一个当前项目");

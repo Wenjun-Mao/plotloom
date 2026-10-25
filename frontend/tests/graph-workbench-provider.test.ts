@@ -279,7 +279,7 @@ it("surfaces a previous-base session buffer after canonical reload", async () =>
   await show();
   expect(revisionConflict).toHaveBeenCalled();
   expect(revisionConflict.mock.calls[0][0].payload.mapping.sections[0].summary).toBe("Previous-base unsent prose");
-  expect(sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain("Previous-base unsent prose");
+  expect(JSON.stringify(localStorage)).toContain("Previous-base unsent prose");
 });
 
 it("rejects a delayed refresh that predates a newer autosave acknowledgement", async () => {

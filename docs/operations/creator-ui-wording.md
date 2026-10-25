@@ -155,14 +155,19 @@ exist. Pending events use an in-progress label and accent tone, not success gree
 For an unknown result, explain that a full rebuild can submit fresh requests and
 duplicate work; checking the original result is not merely an exact-repair concern.
 
-Draft consent names its actual intent: 保存并切换, 保存并归档 or 保存草稿并关闭.
-Navigation/archive discard affects only unacknowledged local edits; an already
-saved project draft remains. Directory close-discard removes the exact current
-stage's draft, while confirmed content remains. The topbar's explicit save-and-close
-has no disposition question: it saves recoverable drafts before closing. Do not
-promise identical persistence behavior merely because the dialogs look alike.
-Say 发现可恢复草稿 for saved-server recovery, and explain project-saved, session-only
-and comparison/reconciliation states separately. Saving a draft is not confirmation.
+Working-input status distinguishes 正在自动保存, 已自动保存, 已在本机保留、尚未同步,
+输入冲突 and 未能保留. Only exact acknowledged input can claim server persistence.
+Matching working edits resume automatically; competing/stale journals explain their
+ownership and offer inspect/copy/scoped discard. Apply/Confirm names the semantic
+update; autosave must never sound like approval or generation. A preservation
+failure names retry, copy, explicit local-input discard and cancel; pending Files
+name explicit import/cancel. There is no routine Save-before-leave question.
+
+Ordinary rows do not say 未关闭. Optional 更多 → 冻结项目 makes writes read-only while
+retaining browse and eligible playback. 解除冻结 restores admission only. Use 已冻结 ·
+只读 and separate 归档/恢复 wording; retain internal closed codes only in diagnostics.
+Close/save-close/force-exit and manual matching-restoration copy is superseded by
+[ADR 0218](../adr/0218-working-input-autosave-and-optional-freeze.md).
 
 Use 此任务缺少可用密钥 and 此任务的模型配置 in primary frozen-run guidance;
 keep the exact profile identifier secondary. A missing configuration and a failed

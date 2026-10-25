@@ -222,3 +222,19 @@ it.each(["visual_intent", "image_direction"])("preserves an unsaved %s buffer wi
   expect(save).toHaveBeenCalledWith("project-1", expect.objectContaining({ editorScope: scope, expectedDraftRevision: 0 }));
   expect(discard).not.toHaveBeenCalled();
 });
+
+it("resumes reference observations while leaving reviewer attribution fresh", async () => {
+  const { ReviewDraftContext } = await import("../src/features/authoring/ReviewDraftContext");
+  const { createReviewDraftStore } = await import("../src/features/authoring/reviewDraftStore");
+  const { createProjectDraftQuiescence } = await import("../src/features/authoring/projectDraftQuiescence");
+  const q = createProjectDraftQuiescence(), store = createReviewDraftStore(q, localStorage);
+  const character = demoProject.storyBible.characters[0].id;
+  store.update("project-1", "managed_reference", 1, "storyboard:1", JSON.stringify({ reviewer: "earlier operator", notes: "retained observations" }), character);
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(emptyWorkbench);
+  await act(async () => root.render(createElement(ReviewDraftContext.Provider, { value: { store, quiescence: q, projectId: "project-1", revision: 1, enabled: true }, children: createElement(ManagedMediaWorkbench, {
+    projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible, graph: demoProject.storyGraph,
+    sceneBeats: demoProject.sceneBeats, selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+  }) })));
+  expect(host.querySelector<HTMLInputElement>('[data-testid="reference-reviewer"]')!.value).not.toBe("earlier operator");
+  expect(host.querySelector<HTMLTextAreaElement>('[data-testid="reference-notes"]')!.value).toBe("retained observations");
+});

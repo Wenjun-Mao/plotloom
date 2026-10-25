@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { VideoJob, VideoSegment } from "./types";
+import { useReviewEditorDraft } from "./features/authoring/ReviewDraftContext";
 import { ApiError, plotloomApi } from "./api";
 import { Button, Field } from "./components";
 import { useConfirmation } from "./confirmation";
@@ -60,6 +61,12 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     const frame = requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
     return () => cancelAnimationFrame(frame);
   }, [job.id, chosen?.id]);
+  const working = useReviewEditorDraft(projectId, "video_segment_notes", `${job.id}:${job.selectionRevision}:${job.outputHash}:${chosen?.id ?? ""}`, text => {
+    const input = JSON.parse(text) as { note: string; reopenReason: string };
+    if (typeof input.note !== "string" || typeof input.reopenReason !== "string") throw new Error("原片审阅文字草稿无法读取。");
+    setNote(input.note); setReopenReason(input.reopenReason);
+  }, readOnly || busy, undefined, job.id);
+  const remember = (patch: Partial<{ note: string; reopenReason: string }>) => working.changed(JSON.stringify({ note, reopenReason, ...patch }));
   const timingReady = job.state === "ingested" && sourceUnits != null
     && sourceUnits > 0 && Number.isInteger(requiredFrames)
     && availableFrames >= requiredFrames;
@@ -98,10 +105,10 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     }
   };
   const { requestConfirmation, confirmation } = useConfirmation(
-    JSON.stringify([projectId, job.id, job.selectionRevision, job.outputHash, job.state, job.current, rejected]), readOnly || busy,
+    JSON.stringify([projectId, job.id, job.selectionRevision, job.outputHash, job.state, job.current, rejected]), readOnly || working.stale || busy,
   );
   const reject = async () => {
-    if (readOnly || busy || rejected || !job.current) return;
+    if (readOnly || working.stale || busy || rejected || !job.current) return;
     const request = ++requestRef.current;
     setBusy(true); setError("");
     try {
@@ -115,7 +122,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     }
   };
   const reopen = async () => {
-    if (readOnly || busy || !rejected || !job.current || job.state !== "ingested"
+    if (readOnly || working.stale || busy || !rejected || !job.current || job.state !== "ingested"
       || !reopenReviewer.trim() || !reopenReason.trim()) return;
     const request = ++requestRef.current;
     setBusy(true); setError("");
@@ -133,7 +140,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     }
   };
   return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
-    <strong>{job.current ? "调整片段 · 预览 · 用于故事" : "保留片段 · 预览与记录"}</strong>
+    {working.notice}<strong>{job.current ? "调整片段 · 预览 · 用于故事" : "保留片段 · 预览与记录"}</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
     <small>{job.current ? <>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后，请完整播放并检查画面和声音，再明确选择。此操作不自动确认创作质量。</> : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格、改变选择或确认创作质量。"}</small>
     {job.lifecycleStatus === "archived" && <small className="notice">项目已归档。核验通过的保留片段可预览；恢复项目并重新核对后，才能准备、审阅或选用。</small>}
@@ -157,14 +164,14 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       <small>{chosen.selected && chosen.current ? "已选择片段 · 正用于故事" : chosen.current ? "待审片段 · 尚未用于故事" : "保留片段证据 · 不用于当前故事播放"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>
     </div>}
     <details className="review-annotations"><summary>审核记录（可选）</summary>
-      <label>审核人（可选）<input value={reviewer} disabled={readOnly || busy || rejected} onChange={(event) => setReviewer(event.target.value)} /></label>
-      <label>说明（可选）<textarea value={note} disabled={readOnly || busy || rejected} onChange={(event) => setNote(event.target.value)} /></label>
+      <label>审核人（可选）<input value={reviewer} disabled={readOnly || working.stale || busy || rejected} onChange={(event) => setReviewer(event.target.value)} /></label>
+      <label>说明（可选）<textarea value={note} disabled={readOnly || working.stale || busy || rejected} onChange={(event) => { setNote(event.target.value); remember({ note: event.target.value }); }} /></label>
     </details>
     {chosen && <div className="segment-confirm-step" id={`video-segment-confirm-${job.id}`}>
       <small>确认只影响当前镜头的已核验片段；不会改动原片。</small>
-      <Button disabled={readOnly || busy || rejected || !chosen.current} onClick={() => void select()}>确认用于故事</Button>
+      <Button disabled={readOnly || working.stale || busy || rejected || !chosen.current} onClick={() => void select()}>确认用于故事</Button>
     </div>}
-    <Button variant="danger" disabled={readOnly || busy || rejected || !job.current} onClick={() => requestConfirmation({
+    <Button variant="danger" disabled={readOnly || working.stale || busy || rejected || !job.current} onClick={() => requestConfirmation({
       title: "拒绝原片", message: "拒绝此原片并撤销当前选择？原片与片段证据会保留。",
       details: `原片：${job.id}\n审核人：${reviewer.trim() || "未填写"}\n说明：${note.trim() || "未填写"}`, action: reject,
     })}>拒绝此原片并撤销选择</Button>
@@ -173,15 +180,15 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       <small>必填审核人和理由。此操作只解除拒绝锁定并保留历史；不会准备片段、选择原片或生成新视频。</small>
       <label>重新开放审核人（必填）
         <input value={reopenReviewer} required maxLength={160}
-          disabled={readOnly || busy || !job.current || job.state !== "ingested"}
+          disabled={readOnly || working.stale || busy || !job.current || job.state !== "ingested"}
           onChange={(event) => setReopenReviewer(event.target.value)} />
       </label>
       <label>重新开放理由（必填）
         <textarea value={reopenReason} required maxLength={2_000}
-          disabled={readOnly || busy || !job.current || job.state !== "ingested"}
-          onChange={(event) => setReopenReason(event.target.value)} />
+          disabled={readOnly || working.stale || busy || !job.current || job.state !== "ingested"}
+          onChange={(event) => { setReopenReason(event.target.value); remember({ reopenReason: event.target.value }); }} />
       </label>
-      <Button disabled={readOnly || busy || !job.current || job.state !== "ingested"
+      <Button disabled={readOnly || working.stale || busy || !job.current || job.state !== "ingested"
         || !reopenReviewer.trim() || !reopenReason.trim()}
         onClick={() => void reopen()}>重新开放审阅</Button>
     </div>}

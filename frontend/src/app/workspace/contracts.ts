@@ -26,10 +26,14 @@ export const navigation: { id: PageId; index: string; label: string; description
 
 export const editableStages: ServerStageName[] = ["story_bible", "story_graph", "scene_beats", "storyboard"];
 export const authoringDraftKey = (projectId: string, scope: DraftScope) => `${projectId}:${scope}:root`;
-export const sameDraftPayload = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
-export function canonicalDraftConsumption(draft: AuthoringDraft | undefined, scope: DraftScope, canonicalRevision: number, payload: unknown): CanonicalDraftConsumption | undefined {
+function ordered(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(ordered);
+  return value && typeof value === "object" ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, ordered(item)])) : value;
+}
+export const sameDraftPayload = (left: unknown, right: unknown) => JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
+export function canonicalDraftConsumption(draft: AuthoringDraft | undefined, scope: DraftScope, canonicalRevision: number, payload: unknown, workingPayload: unknown = payload): CanonicalDraftConsumption | undefined {
   if (scope === "story_graph") return undefined;
-  if (!draft || draft.baseCanonicalRevision !== canonicalRevision || !sameDraftPayload(draft.payload, payload)) return undefined;
+  if (!draft || draft.baseCanonicalRevision !== canonicalRevision || !sameDraftPayload(draft.payload, workingPayload)) return undefined;
   return { editorScope: scope, entityId: "root", draftRevision: draft.draftRevision };
 }
 export const headsByStage = (stages: StageEnvelope[]) => Object.fromEntries(stages.map((envelope) => [envelope.head.stage, envelope.head])) as Partial<Record<ServerStageName, StageHead>>;
@@ -53,4 +57,4 @@ export function stageForPage(page: PageId): DraftScope | undefined { return page
 export function routeFromLocation() { const query = new URLSearchParams(window.location.search); return { project: query.get("project") || "", stage: pageFromStage(query.get("stage")), entity: query.get("entity") || "", run: query.get("run") || "", hash: decodeHash(location.hash) }; }
 function decodeHash(value: string) { try { return decodeURIComponent(value.replace(/^#/, "")); } catch { return ""; } }
 export const newClientDraftOwner = () => `workspace-${crypto.randomUUID()}`;
-export function blankWorkspace(clientDraftOwner = newClientDraftOwner()): WorkspaceProject { return { clientDraftOwner, revision: 0, brief: { title: "", synopsis: "", genre: null, visualStyle: null, language: "zh-CN", aspectRatio: "16:9", targetPlaythroughSeconds: 180, decisionPointsPerPath: 2, endingCount: 2, nodeBudget: 8, maxOutDegree: 3, desiredJoinCount: 1, shotsPerSceneMin: 1, shotsPerSceneMax: 4, shotCountPolicy: "advisory" }, ...emptyStageContent, quarantines: [], staleStages: [], stageRevisions: { story_bible: 0, story_graph: 0, scene_beats: 0, storyboard: 0 } }; }
+export function blankWorkspace(clientDraftOwner = newClientDraftOwner()): WorkspaceProject { return { clientDraftOwner, revision: 0, brief: { title: "", synopsis: "", genre: null, visualStyle: null, genreSelections: [], visualStyleSelections: [], language: "zh-CN", aspectRatio: "16:9", targetPlaythroughSeconds: 180, decisionPointsPerPath: 2, endingCount: 2, nodeBudget: 8, maxOutDegree: 3, desiredJoinCount: 1, shotsPerSceneMin: 1, shotsPerSceneMax: 4, shotCountPolicy: "advisory" }, ...emptyStageContent, quarantines: [], staleStages: [], stageRevisions: { story_bible: 0, story_graph: 0, scene_beats: 0, storyboard: 0 } }; }

@@ -133,7 +133,7 @@ class ProjectCastPersistence:
         """Compare this operation's inputs; never resolve or retain context."""
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
         reasons = binding_diagnostics(current, binding, fields)
-        direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+        direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
         if not cast_style_current(binding.render_contract, direction):
             reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="cast render contract is not current; prepare a new cast task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
@@ -259,7 +259,7 @@ class ProjectCastPersistence:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
             binding, source, outline, section_map = self._context(session, project_id)
-            direction = ProjectBrief.model_validate(self._access.rows.project(session, project_id).brief).visual_direction
+            direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
             contract = freeze_cast_style(render_style, direction)
             binding = binding.model_copy(update={"render_contract": contract})
             from .autopilot_text_correction import has_publishable_candidates

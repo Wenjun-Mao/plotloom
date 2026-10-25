@@ -1,5 +1,8 @@
+import { useRetainedMediaJournal } from "./features/authoring/useRetainedMediaJournal";
+import { saveWorkingDraft } from "./features/authoring/saveWorkingDraft";
+import { clientJournalStorage } from "./features/authoring/clientJournalStorage";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { plotloomApi } from "./api";
+import { ApiError, plotloomApi } from "./api";
 import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
 import { discardMediaDraftEntry, useMediaDraftErasure } from "./features/authoring/projectDraftCache";
 
@@ -8,7 +11,7 @@ export type ImageJobDraftTarget =
   | { kind: "refinement"; parentCandidateAssetId: string }
   | { kind: "keyframe_adaptation"; profileId: string; profileLabel: string };
 
-type ImageJobDraftEntry = { contextId: string; value: string };
+type ImageJobDraftEntry = { contextId: string; value: string; expectedDraftRevision?: number; ownershipConflict?: boolean };
 type ImageJobDrafts = Record<string, ImageJobDraftEntry>;
 type DurableWriterState = {
   serverRevision: number;
@@ -37,7 +40,7 @@ function durableWriterStateFor(
 
 function readImageJobDrafts(): ImageJobDrafts {
   try {
-    const value: unknown = JSON.parse(window.sessionStorage.getItem(imageJobStorageKey) ?? "{}");
+    const value: unknown = JSON.parse(clientJournalStorage.getItem(imageJobStorageKey) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, ImageJobDraftEntry] => {
       const candidate = entry[1] as Partial<ImageJobDraftEntry> | undefined;
@@ -78,13 +81,17 @@ export function useImageJobDirectionDraft(
   activeWriterKey.current = writerKey;
   const writerState = durableWriterStateFor(writerStates.current, writerKey);
   const entry = drafts[key];
-  const stale = Boolean(entry && entry.contextId !== contextId);
+  const retained = useRetainedMediaJournal({ namespace: imageJobStorageKey, key, projectId, entries: drafts, setEntries: setDrafts,
+    serverRevision, serverReady, quiescence,
+    validate: (value: unknown): value is ImageJobDraftEntry => Boolean(value && typeof value === "object" && typeof (value as ImageJobDraftEntry).value === "string" && typeof (value as ImageJobDraftEntry).contextId === "string"),
+    basisMatches: candidate => candidate.contextId === contextId });
+  const stale = Boolean(entry && entry.contextId !== contextId || !entry && retained.retained);
   const value = entry?.value ?? "";
   const dirty = Boolean(entry && (entry.value.trim() || (serverDraftsEnabled && (serverRevision > 0 || !serverReady))));
 
   useEffect(() => {
     try {
-      window.sessionStorage.setItem(imageJobStorageKey, JSON.stringify(drafts));
+      clientJournalStorage.setItem(imageJobStorageKey, JSON.stringify(drafts));
       setStorageFailed(false);
     } catch { setStorageFailed(true); }
   }, [drafts]);
@@ -119,7 +126,18 @@ export function useImageJobDirectionDraft(
           setDrafts((current) => current[key] ? current : { ...current, [key]: { contextId: payload.contextId ?? contextId, value: presentationChange } });
           writerState.serverRevision = remote.draftRevision;
           writerState.acknowledgedPayload = JSON.stringify({ shotId, targetId, contextId: payload.contextId ?? contextId, presentationChange });
+          if (remote.baseCanonicalRevision === baseCanonicalRevision) retained.acknowledge(remote.draftRevision, candidate => JSON.stringify({ shotId, targetId, contextId: candidate.contextId, presentationChange: candidate.value }) === writerState.acknowledgedPayload);
           if (activeWriterKey.current === writerKey) setServerRevision(remote.draftRevision);
+        }
+      }
+      const localEntry = drafts[key];
+      if (localEntry) {
+        const samePayload = JSON.stringify({ shotId, targetId, contextId: localEntry.contextId, presentationChange: localEntry.value }) === writerState.acknowledgedPayload;
+        const exactReceipt = remote && samePayload && (localEntry.expectedDraftRevision === undefined || localEntry.expectedDraftRevision + 1 === remote.draftRevision);
+        if (exactReceipt) setDrafts(current => current[key] === localEntry ? { ...current, [key]: { ...localEntry, expectedDraftRevision: remote.draftRevision } } : current);
+        else if (localEntry.ownershipConflict || (localEntry.expectedDraftRevision ?? 0) !== (remote?.draftRevision ?? 0)) {
+          writerState.serverConflict = true;
+          if (activeWriterKey.current === writerKey) setServerConflict(true);
         }
       }
       writerState.serverReady = true;
@@ -135,7 +153,7 @@ export function useImageJobDirectionDraft(
 
   const flush = useCallback(async (): Promise<boolean> => {
     if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
-    if (writerState.abandoning || writerState.suspended) return false;
+    if (writerState.abandoning || writerState.suspended || entry?.ownershipConflict) return false;
     if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry) return true;
     if (writerState.timer !== undefined) {
       window.clearTimeout(writerState.timer);
@@ -145,57 +163,19 @@ export function useImageJobDirectionDraft(
     const existing = writerState.persistence;
     if (existing) await existing;
     if (quiescence && !quiescence.canWrite(projectId)) return false;
-    if (writerState.abandoning || writerState.suspended) return false;
+    if (writerState.abandoning || writerState.suspended || entry?.ownershipConflict) return false;
     if (writerState.serverConflict) return false;
-    if (!entry.value.trim()) {
-      const expectedDraftRevision = writerState.serverRevision;
-      if (!expectedDraftRevision) {
-        setDrafts((current) => {
-          if (current[key] !== entry) return current;
-          const next = { ...current };
-          delete next[key];
-          return next;
-        });
-        return true;
-      }
-      const epoch = writerState.requestEpoch;
-      const deletion = plotloomApi.discardAuthoringDraft(projectId, {
-        editorScope: "image_direction", entityId, expectedDraftRevision,
-      }).then((receipt) => {
-        if (writerState.requestEpoch !== epoch || receipt !== expectedDraftRevision) return false;
-        writerState.serverRevision = 0;
-        writerState.acknowledgedPayload = undefined;
-        if (activeWriterKey.current === writerKey) setServerRevision(0);
-        setDrafts((current) => {
-          if (current[key] !== entry) return current;
-          const next = { ...current };
-          delete next[key];
-          return next;
-        });
-        return true;
-      }).catch(() => {
-        if (writerState.requestEpoch === epoch) {
-          writerState.serverConflict = true;
-          if (activeWriterKey.current === writerKey) setServerConflict(true);
-        }
-        return false;
-      });
-      const pendingDeletion = deletion.then(() => undefined);
-      writerState.persistence = pendingDeletion;
-      const discarded = await deletion;
-      if (writerState.persistence === pendingDeletion) writerState.persistence = undefined;
-      return discarded;
-    }
     const payload = { shotId, targetId, contextId: entry.contextId, presentationChange: entry.value };
     const fingerprint = JSON.stringify(payload);
     if (writerState.acknowledgedPayload === fingerprint) return true;
     const epoch = writerState.requestEpoch;
-    const persistence = plotloomApi.saveAuthoringDraft(projectId, {
+    const persistence = saveWorkingDraft(projectId, {
       editorScope: "image_direction", entityId, baseCanonicalRevision,
       expectedDraftRevision: writerState.serverRevision, payload,
     }).then((receipt) => {
       if (writerState.requestEpoch !== epoch) return false;
       writerState.serverRevision = receipt.draftRevision;
+      setDrafts(current => current[key] ? { ...current, [key]: { ...current[key], expectedDraftRevision: receipt.draftRevision } } : current);
       writerState.acknowledgedPayload = fingerprint;
       writerState.serverConflict = false;
       if (activeWriterKey.current === writerKey) {
@@ -203,10 +183,10 @@ export function useImageJobDirectionDraft(
         setServerConflict(false);
       }
       return true;
-    }).catch(() => {
+    }).catch(error => {
       if (writerState.requestEpoch === epoch) {
-        writerState.serverConflict = true;
-        if (activeWriterKey.current === writerKey) setServerConflict(true);
+        writerState.serverConflict = error instanceof ApiError && error.status === 409;
+        if (activeWriterKey.current === writerKey) setServerConflict(writerState.serverConflict);
       }
       return false;
     });
@@ -231,7 +211,9 @@ export function useImageJobDirectionDraft(
   useEffect(() => {
     if (!quiescence || !serverDraftsEnabled || !projectId || !shotId) return;
     return quiescence.register(projectId, `image_direction:${entityId}`, flush, {
-      retainOnUnmount: dirty,
+      pending: () => Boolean(entry && (writerState.serverConflict || !writerState.serverReady || writerState.acknowledgedPayload !== JSON.stringify({ shotId, targetId, contextId: entry.contextId, presentationChange: entry.value }))),
+      locallyPreserved: () => !storageFailed,
+      retainOnUnmount: Boolean(entry),
       suspendWrites: async () => {
         writerState.suspended = true;
         if (writerState.timer !== undefined) window.clearTimeout(writerState.timer);
@@ -251,28 +233,18 @@ export function useImageJobDirectionDraft(
         discardMediaDraftEntry(imageJobStorageKey, key);
       },
     });
-  }, [dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
+  }, [dirty, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId, storageFailed]);
   useEffect(() => {
-    if (!Object.keys(drafts).length) return;
+    if (!storageFailed || !Object.keys(drafts).length) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [drafts]);
+  }, [drafts, storageFailed]);
 
   const update = (next: string) => {
     if (!projectId || !shotId || quiescence?.isClosing(projectId) || (quiescence && !quiescence.canWrite(projectId))) return;
     setDrafts((current) => {
-      if (!next.trim()) {
-        // Before a durable draft exists, empty text is clean. Once the server
-        // knows the direction, retain an empty marker for an exact CAS discard.
-        if (!serverDraftsEnabled || (serverReady && !writerState.serverRevision)) {
-          const cleaned = { ...current };
-          delete cleaned[key];
-          return cleaned;
-        }
-        return { ...current, [key]: { contextId: current[key]?.contextId ?? contextId, value: "" } };
-      }
-      return { ...current, [key]: { contextId: current[key]?.contextId ?? contextId, value: next } };
+      return { ...current, [key]: { contextId: current[key]?.contextId ?? contextId, expectedDraftRevision: current[key]?.expectedDraftRevision ?? writerState.serverRevision, value: next } };
     });
   };
   const clearWithDisposition = async (consumed: boolean): Promise<boolean> => {
@@ -282,12 +254,14 @@ export function useImageJobDirectionDraft(
     if (projectId && quiescence && !quiescence.canWrite(projectId)) return false;
     const removeBuffered = () => setDrafts((current) => {
       if (current[key] !== buffered) return current;
+      clientJournalStorage.discardCurrentEntry(imageJobStorageKey, key, buffered);
       const next = { ...current };
       delete next[key];
       return next;
     });
+    const matchesReceipt = writerState.acknowledgedPayload === JSON.stringify({ shotId, targetId, contextId: buffered.contextId, presentationChange: buffered.value });
     if (!serverDraftsEnabled || !projectId || consumed || !writerState.serverRevision) {
-      if (consumed) {
+      if (consumed && matchesReceipt) {
         writerState.serverRevision = 0;
         writerState.acknowledgedPayload = undefined;
         setServerRevision(0);
@@ -295,6 +269,7 @@ export function useImageJobDirectionDraft(
       removeBuffered();
       return true;
     }
+    if (!matchesReceipt) return false;
     const expectedDraftRevision = writerState.serverRevision;
     try {
       const receipt = await plotloomApi.discardAuthoringDraft(projectId, {
@@ -320,5 +295,5 @@ export function useImageJobDirectionDraft(
     return { ...current, [key]: { ...currentEntry, contextId } };
   });
 
-  return { value, update, clear, clearConsumed, flush, recoverForCurrentContext, dirty, stale, storageFailed, targetId, serverConflict, serverReady, serverRevision };
+  return { value, update, clear, clearConsumed, flush, recoverForCurrentContext, dirty, stale, storageFailed, targetId, serverConflict, serverReady, serverRevision, retainedNotice: retained.notice };
 }

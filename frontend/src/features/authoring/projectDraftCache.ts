@@ -1,3 +1,4 @@
+import { clientJournalStorage } from "./clientJournalStorage";
 /** Tab-local erasure by project identity, independent of mounted writers. */
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 
@@ -11,12 +12,13 @@ function mediaProject(entryKey: string): string | undefined {
 }
 
 function removeEntries(storageKey: string, matches: (entryKey: string) => boolean) {
-  const raw = window.sessionStorage.getItem(storageKey);
-  if (!raw) return;
-  const entries: unknown = JSON.parse(raw);
-  if (!entries || typeof entries !== "object" || Array.isArray(entries)) throw new Error("项目草稿缓存格式无法确认");
-  const retained = Object.fromEntries(Object.entries(entries).filter(([key]) => !matches(key)));
-  window.sessionStorage.setItem(storageKey, JSON.stringify(retained));
+  for (const [storage, key] of [[window.sessionStorage, storageKey], [window.localStorage, clientJournalStorage.namespace(storageKey)]] as const) {
+    const raw = storage.getItem(key);
+    if (!raw) continue;
+    const entries: unknown = JSON.parse(raw);
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) throw new Error("项目草稿缓存格式无法确认");
+    storage.setItem(key, JSON.stringify(Object.fromEntries(Object.entries(entries).filter(([entryKey]) => !matches(entryKey)))));
+  }
 }
 
 /** A retained writer must also invalidate other editors' whole-cache snapshots. */
@@ -47,6 +49,17 @@ export function discardProjectDraftCaches(projectId: string) {
   const presentationKeys = Array.from({ length: window.sessionStorage.length }, (_, index) => window.sessionStorage.key(index))
     .filter((key): key is string => Boolean(key?.startsWith(`plotloom:shot-presentation:${projectId}:`)));
   for (const key of presentationKeys) erase(() => window.sessionStorage.removeItem(key));
+  const localKeys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+    .filter((key): key is string => Boolean(key?.startsWith(`plotloom:workbench-drafts:v1:entry:${projectId}:`)));
+  for (const key of localKeys) erase(() => window.localStorage.removeItem(key));
+  const namespaces = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+    .filter((key): key is string => Boolean(key?.includes(":client:") && ["plotloom:review-editor-drafts:v1", ...mediaKeys].some(prefix => key.startsWith(prefix))));
+  for (const namespace of namespaces) erase(() => {
+    const entries = JSON.parse(window.localStorage.getItem(namespace) || "{}");
+    const media = mediaKeys.some(key => namespace.startsWith(key));
+    const retained = Object.fromEntries(Object.entries(entries).filter(([key]) => media ? mediaProject(key) !== projectId : !key.startsWith(`${projectId}:`)));
+    window.localStorage.setItem(namespace, JSON.stringify(retained));
+  });
   for (const consumer of consumers) consumer({ projectId });
   if (failures.length) throw new Error("项目已删除，但部分本地草稿缓存未能清除");
 }

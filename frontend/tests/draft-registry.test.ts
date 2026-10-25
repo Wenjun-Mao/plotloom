@@ -11,10 +11,10 @@ describe("draft registry", () => {
     const brief = putDraft(project, "brief", { title: "brief draft" });
     const bible = putDraft(project, "story_bible", { logline: "bible draft" });
 
-    expect(brief.key).toBe("project-a:brief:4");
-    expect(bible.key).toBe("project-a:story_bible:9");
+    expect(brief.key).toEqual(expect.stringMatching(/^project-a:brief:4:/));
+    expect(bible.key).toEqual(expect.stringMatching(/^project-a:story_bible:9:/));
     expect(getDraft(project, "brief")?.payload).toEqual({ title: "brief draft" });
-    expect(draftKey({ ...project, revision: 5 }, "brief")).toBe("project-a:brief:5");
+    expect(draftKey({ ...project, revision: 5 }, "brief")).toEqual(expect.stringMatching(/^project-a:brief:5:/));
     discardDraft(project, "brief");
     expect(getDraft(project, "brief")).toBeUndefined();
     expect(getDraft(project, "story_bible")?.payload).toEqual({ logline: "bible draft" });
@@ -23,8 +23,8 @@ describe("draft registry", () => {
   it("uses an explicit owner for each unsaved workspace", () => {
     const blank = { ...demoProject, id: undefined, clientDraftOwner: "blank", revision: 0 };
     const sample = { ...demoProject, id: undefined, clientDraftOwner: "sample", revision: 0 };
-    expect(draftKey(blank, "brief")).toBe("local:blank:brief:0");
-    expect(draftKey(sample, "brief")).toBe("local:sample:brief:0");
+    expect(draftKey(blank, "brief")).toEqual(expect.stringMatching(/^local:blank:brief:0:/));
+    expect(draftKey(sample, "brief")).toEqual(expect.stringMatching(/^local:sample:brief:0:/));
     putDraft(blank, "brief", { title: "blank only" });
     expect(getDraft(sample, "brief")).toBeUndefined();
   });
@@ -60,6 +60,6 @@ describe("draft registry", () => {
     const newer = { ...project, revision: 5 };
 
     expect(getDraft(newer, "brief")).toBeUndefined();
-    expect(findRevisionConflict(newer, "brief")).toMatchObject({ key: "project-a:brief:4", payload: { title: "old draft" } });
+    expect(findRevisionConflict(newer, "brief")).toMatchObject({ key: expect.stringMatching(/^project-a:brief:4:/), payload: { title: "old draft" } });
   });
 });

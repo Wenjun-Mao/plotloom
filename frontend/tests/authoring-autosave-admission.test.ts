@@ -10,7 +10,7 @@ import type { AuthoringDraft } from "../src/types";
 import type { WorkspaceOperation } from "../src/app/workspace/contracts";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); sessionStorage.clear(); });
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); sessionStorage.clear(); localStorage.clear(); });
 
 async function harness(initiallyAllowed = true) {
   let project = { ...demoProject, id: "a" }, allowed = initiallyAllowed, graphAllowed = true;
@@ -201,12 +201,16 @@ it("409 stops same-event blur retries until the owning workflow explicitly resol
   } finally { await state.unmount(); }
 });
 
-it("a stale project callback cannot write after another project owns the session", async () => {
-  const state = await harness(), write = vi.spyOn(plotloomApi, "saveAuthoringDraft");
-  const staleFlush = state.autosave.flushAuthoringDraft;
+it("a retained project callback writes only its original owner after navigation", async () => {
+  const state = await harness(); const original = state.project;
+  const write = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ projectId: "a", editorScope: "brief", entityId: "root", baseCanonicalRevision: original.revision,
+    draftRevision: 1, payload: { title: "old project input" }, updatedAt: "2026-10-24" });
+  const retainedFlush = state.autosave.flushAuthoringDraft;
   try {
-    putDraft(state.project, "brief", { title: "old project input" }); await state.replaceProject();
-    await expect(staleFlush("brief")).resolves.toBe(false); expect(write).not.toHaveBeenCalled();
+    putDraft(original, "brief", { title: "old project input" }); await state.replaceProject();
+    await expect(retainedFlush("brief")).resolves.toBe(true);
+    expect(write).toHaveBeenCalledExactlyOnceWith("a", expect.objectContaining({ payload: { title: "old project input" } }));
+    expect(getDraft(state.project, "brief")).toBeUndefined(); expect(state.onMutationAcknowledged).not.toHaveBeenCalled();
   } finally { await state.unmount(); }
 });
 

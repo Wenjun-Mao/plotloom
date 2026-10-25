@@ -64,9 +64,7 @@ interface Props {
 const newId = () => crypto.randomUUID();
 const lines = (value: string) =>
   value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
+    .split("\n");
 const choices = (context: SceneBeatsReferenceContext, type: EntityType) =>
   type === "character"
     ? context.characters || []
@@ -542,10 +540,7 @@ function CueCard({
               value={cue.estimatedDurationUnits}
               onChange={(event) =>
                 onPatch({
-                  estimatedDurationUnits: Math.max(
-                    1,
-                    Number(event.target.value) || 1,
-                  ),
+                  estimatedDurationUnits: event.target.value as unknown as number,
                 })
               }
             />
@@ -1144,10 +1139,7 @@ export function SceneBeatsPage({
                       onChange={(event) =>
                         update(
                           patchScene(plan, selected.id, {
-                            durationBudgetUnits: Math.max(
-                              1,
-                              Number(event.target.value) || 1,
-                            ),
+                            durationBudgetUnits: event.target.value as unknown as number,
                           }),
                         )
                       }

@@ -124,7 +124,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   await page.getByLabel("画幅", { exact: true }).selectOption("16:9");
   const saveResponse = page.waitForResponse(response => response.request().method() === "PATCH"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}`);
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   expect((await saveResponse).ok()).toBe(true);
   await expect(page.getByLabel("画幅", { exact: true })).toHaveValue("16:9");
 

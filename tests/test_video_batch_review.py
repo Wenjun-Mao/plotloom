@@ -150,3 +150,27 @@ def test_progress_reads_execution_facts_without_revalidating_the_gallery(tmp_pat
     current = service.current(project_id)
     assert current["state"] == "awaiting_review"
     assert current["progress"] == {"total": 6, "ready": 6, "failed": 0, "blocked": 0}
+
+
+def test_frozen_confirmed_batch_review_and_ready_playback_are_pure_reads(tmp_path, native_batch_take):
+    from tests.working_input_preservation import preservation_inventory
+    storage, client, service, project_id, current = complete_batch(tmp_path, native_batch_take)
+    review = service.review(project_id)
+    service.confirm(project_id, confirmation(current, review))
+    expected = service.current(project_id)
+    expected_review = service.review(project_id)
+    with closing(storage.projects.open(project_id)) as store:
+        job = service.video.jobs(store)[0]
+    storage.projects.close_project(project_id)
+    before = preservation_inventory(storage.projects.outputs_root)
+    before_app = preservation_inventory(storage.application.root)
+    observed = service.current(project_id)
+    observed["timing"]["observedAt"] = expected["timing"]["observedAt"]
+    assert observed == expected
+    assert service.review(project_id) == expected_review
+    assert client.get(f"/api/v2/projects/{project_id}/video-batch").status_code == 200
+    assert client.get(f"/api/v2/projects/{project_id}/video-batch/review").status_code == 200
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/playback").status_code == 200
+    assert client.post(f"/api/v2/projects/{project_id}/video-batch/setup", json={"profileId": "minimax_h3_quality8_portrait_576x1024_v2"}).status_code == 409
+    assert preservation_inventory(storage.projects.outputs_root) == before
+    assert preservation_inventory(storage.application.root) == before_app

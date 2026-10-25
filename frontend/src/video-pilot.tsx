@@ -435,7 +435,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
     {h3 && <MiniMaxH3ReviewNotice />}
     {h3 && projectId && shot
-      ? <H3DirectionsReview projectId={projectId}
+      ? <H3DirectionsReview projectId={projectId} shotId={shot.id}
           sourceIdentity={JSON.stringify([shot.id, approvalId, storyboardRevision, mediaIdentity, h3ProfileId, h3DurationSeconds, h3InputFrameMode, currentEndFrame?.revision, currentEndFrame?.originalHash, endFrameDraftDirty, loadedJobs.filter(job => job.projectId === projectId && frozenShot(job).id === shot.id).length])}
           sourceReady={mediaReady && Boolean(endFrameReady)}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}

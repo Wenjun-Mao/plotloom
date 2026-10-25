@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, retainDraftRecord, type DraftRecord, type DraftScope } from "../../draft-registry";
+import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, retainDraftRecord, acknowledgeDraft, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { ApiError, plotloomApi } from "../../api";
 import type { WorkspaceProject } from "../../types";
 import { authoringDraftKey, messageFrom, sameDraftPayload, stageForPage, type DraftRecoverySource, type WorkspaceOperation } from "./contracts";
@@ -69,14 +69,31 @@ export function useAuthoringDraftRecovery({
     const saved = getDraft(project, scope);
     const serverDraft = project.id && durableEnabled ? serverDrafts.current.get(authoringDraftKey(project.id, scope)) : undefined;
     if (serverDraft) {
+      const retainedRecords = !saved ? findProjectDrafts(project.id!).filter(record => record.scope === scope) : [];
+      const competing = retainedRecords.find(record => !(record.baseRevision === serverDraft.baseCanonicalRevision
+        && (record.serverDraftRevision === serverDraft.draftRevision || record.serverDraftRevision + 1 === serverDraft.draftRevision) && sameDraftPayload(record.payload, serverDraft.payload)));
+      if (competing) { setDraftConflict({ scope, record: competing, workspace: project, serverReloaded: false }); return; }
+      for (const retained of retainedRecords) discardDraftRecord(retained);
       const record = saved ?? {
         key: `${project.id}:${scope}:${serverDraft.baseCanonicalRevision}`, projectId: project.id!, scope,
         baseRevision: serverDraft.baseCanonicalRevision, serverDraftRevision: serverDraft.draftRevision,
         localRevision: 0, payload: serverDraft.payload, updatedAt: serverDraft.updatedAt,
       };
-      setRecovery({ scope, payload: record.payload, source: saved ? "reconcile" : "server", projectId: project.id, baseRevision: record.baseRevision, record, workspace: project });
+      const expected = scope === "brief" ? project.revision : project.stageRevisions[scope];
+      const exactLostReceipt = saved && saved.serverDraftRevision + 1 === serverDraft.draftRevision && sameDraftPayload(saved.payload, serverDraft.payload);
+      if (record.baseRevision !== expected || serverDraft.baseCanonicalRevision !== expected
+        || (saved && saved.serverDraftRevision !== serverDraft.draftRevision && !exactLostReceipt)) {
+        setDraftConflict({ scope, record: retainDraftRecord(record), workspace: project, serverReloaded: false }); return;
+      }
+      if (exactLostReceipt) acknowledgeDraft(project, scope, saved!.localRevision, serverDraft.draftRevision);
+      const resumed = { scope, payload: record.payload, source: saved ? "reconcile" as const : "server" as const };
+      currentDraft.current = { scope, payload: record.payload }; setRestoredDraft(resumed); setEditorNonce(value => value + 1);
+      if (saved && !exactLostReceipt) scheduleAutosave(scope);
     }
-    else if (saved) setRecovery({ scope, payload: saved.payload, source: "session", projectId: project.id, baseRevision: saved.baseRevision, record: saved, workspace: project });
+    else if (saved) {
+      const resumed = { scope, payload: saved.payload, source: "session" as const };
+      currentDraft.current = { scope, payload: saved.payload }; setRestoredDraft(resumed); setEditorNonce(value => value + 1); scheduleAutosave(scope);
+    }
     else {
       const conflict = findRevisionConflict(project, scope);
       if (conflict) setDraftConflict({ scope, record: conflict, workspace: project, serverReloaded: false });

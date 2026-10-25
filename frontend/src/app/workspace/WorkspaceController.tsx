@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
+import { hasUnpreservedDrafts } from "../../draft-registry";
+import { useProjectUnloadProtection } from "../../features/authoring/useProjectUnloadProtection";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type SyntheticEvent } from "react";
 import type { BranchTaskState, SceneBeatPlan, StoryBible, StoryGraph, Storyboard } from "../../types";
 import { providerSessionKeys } from "../../session-key";
 import { findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
@@ -27,6 +29,7 @@ import { useProjectDirectory } from "./useProjectDirectory";
 import { useProjectInitialization } from "./useProjectInitialization";
 import { useProjectLifecycle } from "./useProjectLifecycle";
 import { createProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
+import { clientJournalStorage } from "../../features/authoring/clientJournalStorage";
 import { createReviewDraftStore } from "../../features/authoring/reviewDraftStore";
 import { ReviewDraftContext } from "../../features/authoring/ReviewDraftContext";
 import { createBranchOperationOwner } from "../../features/branches/branchOperationOwner";
@@ -83,13 +86,20 @@ export default function WorkspaceController() {
   const portableSnapshotsEnabled = runtimeCapabilities.data?.portableSnapshots === true;
   const durableDraftsEnabledRef = useRef(false);
   const mediaDraftQuiescence = useRef(createProjectDraftQuiescence()).current;
+  useSyncExternalStore(mediaDraftQuiescence.subscribe, mediaDraftQuiescence.snapshot);
+  useEffect(() => {
+    const reconnect = () => { if (document.visibilityState !== "hidden") void mediaDraftQuiescence.reconnect(); };
+    window.addEventListener("online", reconnect); window.addEventListener("focus", reconnect);
+    document.addEventListener("visibilitychange", reconnect);
+    return () => { window.removeEventListener("online", reconnect); window.removeEventListener("focus", reconnect); document.removeEventListener("visibilitychange", reconnect); };
+  }, [mediaDraftQuiescence]);
   const branchOperations = useMemo(() => createBranchOperationOwner(mediaDraftQuiescence), [mediaDraftQuiescence]);
   useEffect(() => {
     const project = session.project;
     if (project.id) mediaDraftQuiescence.setWriteAdmission(project.id,
-      project.lifecycleStatus !== "archived" && !project.archivedAt);
-  }, [mediaDraftQuiescence, session.project.id, session.project.lifecycleStatus, session.project.archivedAt]);
-  const reviewDraftStore = useMemo(() => createReviewDraftStore(mediaDraftQuiescence, window.sessionStorage), [mediaDraftQuiescence]);
+      project.lifecycleStatus !== "archived" && !project.archivedAt && project.operationalState !== "closed");
+  }, [mediaDraftQuiescence, session.project.id, session.project.lifecycleStatus, session.project.archivedAt, session.project.operationalState]);
+  const reviewDraftStore = useMemo(() => createReviewDraftStore(mediaDraftQuiescence, clientJournalStorage), [mediaDraftQuiescence]);
   const loadedDrafts = session.serverDrafts.current;
   useEffect(() => {
     const projectId = session.project.id;
@@ -149,8 +159,10 @@ export default function WorkspaceController() {
     loadProject,
     pollRun,
     isProjectClosing: mediaDraftQuiescence.isClosing,
+    preserveProject: mediaDraftQuiescence.preserve,
+    discardProjectInput: async projectId => { const attempt = mediaDraftQuiescence.beginClose(projectId); try { await attempt.discardUnsent(); } finally { attempt.finish(); } },
   });
-  const initialization = useProjectInitialization({ session, clearDraftWorkflow: authoring.clearDraftWorkflow });
+  const initialization = useProjectInitialization({ session, clearDraftWorkflow: authoring.clearDraftWorkflow, reportError: setError });
   const lifecycle = useProjectLifecycle({
     reviewDraftStore,
     session,
@@ -161,7 +173,7 @@ export default function WorkspaceController() {
     mediaDraftQuiescence,
     directory: { open: directory.openDirectory, close: directory.closeDirectory, refresh: directory.refresh, setError: directory.setError },
     openProject: (projectId) => workspaceNavigation.requestNavigation({ project: projectId, stage: "creator" }),
-    startBlank: initialization.startBlankProject,
+    startBlank: () => workspaceNavigation.applyNavigation({ project: "", stage: "brief", entity: "", run: "", hash: "", history: "push", home: true }),
     explicitProjectClose: explicitProjectCloseEnabled,
     portableSnapshots: portableSnapshotsEnabled,
     reportError: setError,
@@ -209,22 +221,22 @@ export default function WorkspaceController() {
     if (session.activePage !== "trace" || !session.run?.id) return;
     void loadTraceEvidence(session.run.id, session.run.projectId);
   }, [loadTraceEvidence, session.activePage, session.run?.id, session.run?.projectId]);
-  useEffect(() => {
-    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!authoring.currentDraft.current) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [authoring.currentDraft]);
+  useProjectUnloadProtection(session.project.id, mediaDraftQuiescence);
 
-  const startBlank = () => {
+  const startBlank = async () => {
+    const ownsNavigation = workspaceNavigation.reserveNavigation();
+    const sourceRoute = session.routeRef.current;
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
-    initialization.startBlankProject(); directory.closeDirectory();
+    if (session.project.id && !await mediaDraftQuiescence.preserve(session.project.id)) { setError("编辑输入尚未保留；请先重试、复制或明确丢弃。"); return; }
+    if (!ownsNavigation() || session.routeRef.current !== sourceRoute) return;
+    await initialization.startBlankProject(); directory.closeDirectory();
   };
-  const openSample = () => {
+  const openSample = async () => {
+    const ownsNavigation = workspaceNavigation.reserveNavigation();
+    const sourceRoute = session.routeRef.current;
     if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
+    if (session.project.id && !await mediaDraftQuiescence.preserve(session.project.id)) { setError("编辑输入尚未保留；请先重试、复制或明确丢弃。"); return; }
+    if (!ownsNavigation() || session.routeRef.current !== sourceRoute) return;
     initialization.openSampleProject(); directory.closeDirectory();
   };
   const requestProjectRefresh = () => {
@@ -250,6 +262,11 @@ export default function WorkspaceController() {
   };
 
   const { project, activePage, routeEntity, run, progress: runProgress, review: storyboardReview, issues: validationIssues, trace, executionTrace, mediaTasks, stageHeads, connection } = session;
+  const workingTitle = authoring.currentDraft.current?.scope === "brief" ? (authoring.currentDraft.current.payload as { title?: string }).title : undefined;
+  const displayTitle = workingTitle !== undefined ? workingTitle.trim() || "未命名项目" : project.displayTitle || project.brief.title || "未命名项目";
+  const allInputPending = project.id ? mediaDraftQuiescence.pending(project.id) : false;
+  const localInputPreserved = project.id ? mediaDraftQuiescence.locallyPreserved(project.id) : !hasUnpreservedDrafts();
+  const saveLabel = authoring.draftConflict ? "输入冲突 · 本机已保留" : allInputPending ? localInputPreserved ? "已在本机保留，待同步" : "输入尚未保留" : authoring.durableDraftStatus === "saving" ? "正在同步" : "已自动保存";
   const staleCount = project.staleStages.length;
   const currentNav = navigation.find((item) => item.id === activePage)!;
   const currentNavLabel = activePage === "source" ? sourceWorkflowLabel(session.route.hash) || currentNav.label : currentNav.label;
@@ -270,11 +287,11 @@ export default function WorkspaceController() {
     && Boolean(navigationProjectId)
     && (project.id !== navigationProjectId || (activePage === "trace" && session.runSelectionPending));
   const unavailableLabel = projectUnavailableCopy[session.loadFailure?.projectId === navigationProjectId ? session.loadFailure.kind : "unavailable"].title;
-  const recoveredValue = <T,>(scope: DraftScope, canonical: T): T => authoring.restoredDraft?.scope === scope ? authoring.restoredDraft.payload as T : canonical;
+  const recoveredValue = <T,>(scope: DraftScope, canonical: T): T => authoring.currentDraft.current?.scope === scope ? authoring.currentDraft.current.payload as T : authoring.restoredDraft?.scope === scope ? authoring.restoredDraft.payload as T : canonical;
   const projectClosing = Boolean(project.id && lifecycle.closingProjectId === project.id);
-  const projectTransitionLabel = lifecycle.deletingProjectId ? "正在删除项目" : "正在关闭项目";
+  const projectTransitionLabel = lifecycle.deletingProjectId ? "正在删除项目" : "正在更新项目限制";
   const projectSnapshotting = Boolean(project.id && lifecycle.snapshottingProjectId === project.id);
-  const projectReadOnly = projectClosing || projectSnapshotting || project.lifecycleStatus === "archived" || Boolean(project.archivedAt);
+  const projectReadOnly = Boolean(project.teachingPreview) || project.operationalState === "closed" || projectClosing || projectSnapshotting || project.lifecycleStatus === "archived" || Boolean(project.archivedAt);
   const toolbarHint = initialProjectUnavailable ? "项目内容尚未读入；请重新读取或打开项目目录。" : !project.id ? "保存项目后可刷新服务器版本或创建恢复快照。" : projectClosing ? `${projectTransitionLabel}，请稍候。` : projectSnapshotting ? "正在创建恢复快照，请稍候。" : connection === "loading" ? "正在读取服务器版本。" : projectReadOnly ? "归档项目只读，无法创建恢复快照。" : "";
   const branchBasis = branchSuggestionBasis(sourceReview.value?.acceptedOutline ?? null, sourceReview.value?.acceptedSectionMap ?? null,
     sourceReview.value?.outlineStatus === "accepted", JSON.stringify(project.brief));
@@ -294,7 +311,7 @@ export default function WorkspaceController() {
     workspaceAvailable: Boolean(project.id) && !initialProjectUnavailable && connection === "connected",
     projectPending: Boolean(navigationProjectId && !project.id),
     sourceDraftDirty,
-    readOnly: project.lifecycleStatus === "archived" || Boolean(project.archivedAt),
+    readOnly: projectReadOnly,
     actionDisabled: workspaceHydrating || projectClosing || projectSnapshotting,
     playHref: playUrl,
   };
@@ -320,8 +337,8 @@ export default function WorkspaceController() {
       case "characters": return project.id
         ? <CharactersPage projectId={project.id} readOnly={projectReadOnly} refreshToken={project} onContinue={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source", hash: "art" })} />
         : <section className="page"><p>请先保存项目，再审核角色文字和外观参考。</p></section>;
-      case "brief": return <BriefPage apiTextPipeline={apiTextPipeline} key={`${editorRevisionKey(project, "brief")}:${recovery.editorNonce}`} value={recoveredValue("brief", project.brief)} savedValue={project.brief} hasSavedProject={Boolean(project.id)} bible={project.storyBible} graph={project.storyGraph} saving={authoring.projectSaving} readOnly={projectReadOnly} proposalRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "story_bible" || stage === "story_graph"))} proposalReady={Boolean(stageHeads.story_bible?.status === "ready" && stageHeads.story_graph?.status === "ready" && !project.staleStages.includes("story_bible") && !project.staleStages.includes("story_graph"))} storyboardRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "scene_beats" || stage === "storyboard"))} onSave={(brief) => authoring.commitProject({ brief })} onGenerateProposal={apiTextPipelineEnabled ? async (brief) => { await commands.saveAndStartProposal(() => authoring.commitProject({ brief })); } : undefined} onGenerateStoryboard={apiTextPipelineEnabled ? async () => { if (project.id) await commands.startStoryboard(project.id); } : undefined} onContinueToSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source", hash: "source" })} onDraftChange={(value) => authoring.rememberDraft("brief", value)} onReviewStage={(stage) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage })} onContinueToPlanning={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "beats" })} />;
-      case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${recovery.editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={authoring.projectSaving} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryBible) => authoring.commitStage("story_bible", value)} onDraftChange={(value) => authoring.rememberDraft("story_bible", value)} />;
+      case "brief": return <BriefPage apiTextPipeline={apiTextPipeline} key={`${editorRevisionKey(project, "brief")}:${recovery.editorNonce}`} value={recoveredValue("brief", project.brief)} savedValue={project.brief} hasSavedProject={Boolean(project.id) && project.hasConfirmedBrief !== false} bible={project.storyBible} graph={project.storyGraph} saving={authoring.projectSaving} readOnly={projectReadOnly} proposalRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "story_bible" || stage === "story_graph"))} proposalReady={Boolean(stageHeads.story_bible?.status === "ready" && stageHeads.story_graph?.status === "ready" && !project.staleStages.includes("story_bible") && !project.staleStages.includes("story_graph"))} storyboardRunning={Boolean(running && run?.requestedStages.some((stage) => stage === "scene_beats" || stage === "storyboard"))} onSave={(brief) => authoring.commitProject({ brief })} onGenerateProposal={apiTextPipelineEnabled ? async (brief) => { await commands.saveAndStartProposal(() => authoring.commitProject({ brief })); } : undefined} onGenerateStoryboard={apiTextPipelineEnabled ? async () => { if (project.id) await commands.startStoryboard(project.id); } : undefined} onContinueToSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source", hash: "source" })} onDraftChange={(value) => authoring.rememberDraft("brief", value)} onReviewStage={(stage) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage })} onContinueToPlanning={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "beats" })} />;
+      case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${recovery.editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} readOnly={projectReadOnly} stale={project.staleStages.includes("story_bible")} saving={authoring.projectSaving} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryBible) => authoring.commitStage("story_bible", value)} onDraftChange={(value) => authoring.rememberDraft("story_bible", value)} />;
       case "graph": return <ProfessionalGraphWorkbench key={project.id} projectId={project.id || ""} canonical={project.storyGraph} brief={project.brief} readOnly={projectReadOnly} sourceReview={sourceReview} onOpenSource={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "source" })} />;
       case "creator": return <CreatorWorkbench project={project} readOnly={projectReadOnly} sourceReview={sourceReview} onNavigate={(stage, hash) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} onOpenShot={(shotId) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard", entity: encodeStoryboardEntity({ kind: "shot", shotId }) })} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${recovery.editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={authoring.projectSaving} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: SceneBeatPlan) => authoring.commitStage("scene_beats", value)} onDraftChange={(value) => authoring.rememberDraft("scene_beats", value)} />;
@@ -334,9 +351,9 @@ export default function WorkspaceController() {
   }, [apiTextPipeline, apiTextPipelineEnabled, commands, activePage, authoring, busy, executionTrace, mediaTasks, project, projectReadOnly, recovery, reportBranchTaskRead, reportSourceDraftDirty, routeEntity, run, runProgress, running, sourceReview, storyboardReview, validationIssues, workspaceNavigation]);
 
   if (session.onboarding) return <>
-    <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
+    {error && <ErrorNotice message={error} />}<WelcomeOnboarding creating={initialization.creating} onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
     {lifecycle.duplicateNotice && <div className="notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} commandMessage={lifecycle.commandMessage} commandProjectId={lifecycle.commandProjectId} deletionFeedback={lifecycle.deletionFeedback} busy={Boolean(lifecycle.commandMessage || lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} onRetryDeletion={lifecycle.retryDeletion} onAbandonPrior={lifecycle.abandonPrior} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} commandMessage={lifecycle.commandMessage} commandProjectId={lifecycle.commandProjectId} deletionFeedback={lifecycle.deletionFeedback} busy={Boolean(lifecycle.commandMessage || lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} onRetryDeletion={lifecycle.retryDeletion} onAbandonPrior={lifecycle.abandonPrior} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {lifecycle.confirmation}
   </>;
 
@@ -351,8 +368,8 @@ export default function WorkspaceController() {
     <WorkspaceProductionProvider project={project} active={workflowGuide.workspaceAvailable && (activePage === "creator" || activePage === "graph")}><ReviewWorkflowReadProvider projectId={project.id || ""} revision={project.revision} entity={routeEntity} stage={workflowGuide.workspaceAvailable ? activePage === "storyboard" ? "shot-media" : activePage === "characters" ? "characters" : activePage === "source" ? reviewGuideStage(session.route.hash) : undefined : undefined}><BranchOperationContext.Provider value={branchOperations}><ReviewDraftContext.Provider value={{ store: reviewDraftStore, quiescence: mediaDraftQuiescence, projectId: project.id || "", revision: project.revision, enabled: durableDraftsEnabled }}><div className="app-shell">
     <a className="skip-link" href="#workspace-main">跳到工作区</a>
     <aside className="sidebar">
-      <button type="button" className="brand brand-home" aria-label="返回首页" title="返回首页，不会关闭项目" disabled={projectClosing || projectSnapshotting || workspaceHydrating || authoring.projectSaving} onClick={() => workspaceNavigation.requestNavigation({ project: "", stage: "brief", home: true })}><span className="brand-mark" aria-hidden="true">PL</span><span className="brand-home-copy"><strong>Plotloom<span className="brand-home-label" aria-hidden="true">首页</span></strong><small>叙织 · PIPELINE WORKBENCH</small></span></button>
-      <button className="project-switcher" disabled={projectClosing || projectSnapshotting} onClick={directory.openDirectory}><span>当前项目 · 切换</span><strong>{initialProjectUnavailable ? unavailableLabel : project.brief.title || "未命名项目"}</strong><small>{initialProjectUnavailable ? "当前链接的项目尚未读入" : project.id ? "项目版本与标识可在技术详情中查看" : "尚未保存的项目草稿"}</small></button>
+      <button type="button" className="brand brand-home" aria-label="返回首页" title="返回首页；编辑输入会自动保留" disabled={projectClosing || projectSnapshotting || workspaceHydrating || authoring.projectSaving} onClick={() => workspaceNavigation.requestNavigation({ project: "", stage: "brief", home: true })}><span className="brand-mark" aria-hidden="true">PL</span><span className="brand-home-copy"><strong>Plotloom<span className="brand-home-label" aria-hidden="true">首页</span></strong><small>叙织 · PIPELINE WORKBENCH</small></span></button>
+      <button className="project-switcher" disabled={projectClosing || projectSnapshotting} onClick={directory.openDirectory}><span>当前项目 · 切换</span><strong>{initialProjectUnavailable ? unavailableLabel : displayTitle}</strong><small>{initialProjectUnavailable ? "当前链接的项目尚未读入" : project.id ? "项目版本与标识可在技术详情中查看" : "尚未保存的项目草稿"}</small></button>
       <WorkbenchViewSwitch activePage={activePage} disabled={workspaceHydrating || projectClosing || projectSnapshotting} onNavigate={stage => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage })} />
       <button className={`project-brief-navigation${activePage === "brief" ? " active" : ""}`} aria-current={activePage === "brief" ? "page" : undefined} disabled={projectClosing || projectSnapshotting || workspaceHydrating} onClick={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "brief" })}><strong>项目简报与创作设置</strong><small>当前项目的剧情结构、风格与分镜偏好</small></button>
       <CreatorWorkflowNavigation projectId={navigationProjectId} activePage={activePage} activeHash={session.route.hash} disabled={projectClosing || projectSnapshotting || workspaceHydrating} onNavigate={({ stage, hash }) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} />
@@ -361,7 +378,7 @@ export default function WorkspaceController() {
     </aside>
     <div className="workspace-shell">
     <AutopilotWorkspace projectId={workspaceHydrating || initialProjectUnavailable ? "" : project.id || ""} revision={project.revision} admissionVersion={authoring.admissionVersion} completionContext={`${activePage}:${routeEntity}:${session.route.hash}`} completionBlocked={findProjectDrafts(navigationProjectId).length > 0} readOnly={projectReadOnly || projectClosing || projectSnapshotting} onChanged={async () => { if (project.id) await loadProject(project.id, session.refreshCurrentRoute()); }} onVideo={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard" })}>
-<header className="topbar"><div className="topbar-actions">{projectClosing ? <Badge tone="accent">{projectTransitionLabel}</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">归档只读</Badge>}{apiTextPipelineEnabled && running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{explicitProjectCloseEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection !== "connected" || busy} onClick={() => void lifecycle.saveAndCloseCurrent()}>保存并关闭项目</Button>}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{apiTextPipelineEnabled && staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <details className="topbar-snapshot-receipt" onToggle={revealOpenedStatus}><summary><span role="status">恢复快照已完成</span> · 查看位置</summary><p>本地快照位置（可选中复制）：<code>{lifecycle.latestSnapshot.location}</code></p></details>}<details className="topbar-technical-status" onToggle={revealOpenedStatus}><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><RuntimeTextStatus capability={runtimeCapabilities} catalog={profiles.profiles} loaded={profiles.loaded.current} /></div></details></div></header>
+<header className="topbar"><div className="topbar-actions">{project.id && <span role="status" className="draft-save-status">{saveLabel}</span>}{project.teachingPreview && <Button variant="primary" onClick={() => void initialization.createTeachingCopy()}>创建编辑副本</Button>}{projectClosing ? <Badge tone="accent">{projectTransitionLabel}</Badge> : projectSnapshotting ? <Badge tone="accent">正在创建恢复快照</Badge> : projectReadOnly && <Badge tone="warning">{project.operationalState === "closed" ? "冻结只读" : project.teachingPreview ? "示例预览 · 只读" : "归档只读"}</Badge>}{apiTextPipelineEnabled && running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}{playUrl && <a className="button quiet" href={playUrl}>播放故事</a>}<Button variant="quiet" disabled={!project.id || connection === "loading" || projectClosing || projectSnapshotting} onClick={requestProjectRefresh}>刷新服务器版本</Button>{portableSnapshotsEnabled && <Button variant="quiet" disabled={!project.id || projectReadOnly || connection === "loading"} onClick={() => void lifecycle.createSnapshot()}>{projectSnapshotting ? "正在创建恢复快照…" : "创建恢复快照"}</Button>}{apiTextPipelineEnabled && staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}{toolbarHint && <span className="toolbar-prerequisite" role="note">{toolbarHint}</span>}{lifecycle.latestSnapshot && lifecycle.latestSnapshot.projectId === project.id && <details className="topbar-snapshot-receipt" onToggle={revealOpenedStatus}><summary><span role="status">恢复快照已完成</span> · 查看位置</summary><p>本地快照位置（可选中复制）：<code>{lifecycle.latestSnapshot.location}</code></p></details>}<details className="topbar-technical-status" onToggle={revealOpenedStatus}><summary>服务状态</summary><div>{durableDraftsEnabled && <Badge tone={authoring.durableDraftStatus === "saved" ? "ok" : authoring.durableDraftStatus === "failed" || authoring.durableDraftStatus === "conflict" ? "danger" : authoring.durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{authoring.durableDraftStatus === "saving" ? "正在保存" : authoring.durableDraftStatus === "saved" ? "已保存" : authoring.durableDraftStatus === "failed" ? "保存失败" : authoring.durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><RuntimeTextStatus capability={runtimeCapabilities} catalog={profiles.profiles} loaded={profiles.loaded.current} /></div></details></div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       {lifecycle.duplicateNotice && <div className="notice workspace-copy-notice" role="status"><span>{lifecycle.duplicateNotice}</span><Button onClick={lifecycle.dismissDuplicateNotice}>知道了</Button></div>}
       {recovery.discardNotice?.projectId === navigationProjectId && <div ref={discardNoticeTarget} className="notice workspace-copy-notice" role="status"><span>已丢弃本标签页选中的保留草稿。项目中已保存的草稿和已确认内容未删除。</span><Button onClick={recovery.dismissDiscardNotice}>知道了</Button></div>}
@@ -376,7 +393,7 @@ export default function WorkspaceController() {
               <WorkspaceInspector apiTextPipeline={apiTextPipeline} currentLabel={currentNavLabel} project={project} routeEntity={routeEntity} stageOverview={stageOverview} run={run} progress={runProgress} review={storyboardReview} readOnly={projectReadOnly} frozenProfileId={frozenProfileId} frozenProfileNeedsKey={frozenProfileNeedsKey} onAuthorizeProfile={() => void profiles.openFrozen(frozenProfileId)} onOpenTrace={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "trace", run: run?.id || "" })} onResume={commands.resumeRun} onCancel={commands.cancelRun} onRepair={commands.repair} onRebuild={(stage) => { setRebuildOpen(false); void commands.rebuild(stage); }} />
             </div>
           </details>}
-          {workspaceHydrating ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div> : initialProjectUnavailable ? <ProjectUnavailable projectId={navigationProjectId} failure={session.loadFailure} onDirectory={directory.openDirectory} onRetry={() => { void loadProject(navigationProjectId, undefined, "read-only"); }} /> : <fieldset className="editor-host" disabled={Boolean(session.loadFailure) || connection === "loading" || connection === "error" || (projectReadOnly && activePage !== "storyboard")} onBlurCapture={() => { const scope = stageForPage(activePage); if (scope) void authoring.flushAuthoringDraft(scope); }}>{page}</fieldset>}
+          {workspaceHydrating ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div> : initialProjectUnavailable ? <ProjectUnavailable projectId={navigationProjectId} failure={session.loadFailure} onDirectory={directory.openDirectory} onRetry={() => { void loadProject(navigationProjectId, undefined, "read-only"); }} /> : <fieldset className="editor-host" disabled={Boolean(session.loadFailure) || connection === "loading" || connection === "error" || (projectReadOnly && ["brief", "beats"].includes(activePage))} onBlurCapture={() => { const scope = stageForPage(activePage); if (scope) void authoring.flushAuthoringDraft(scope); }}>{page}</fieldset>}
         </main>
       </div>
     </AutopilotWorkspace>
@@ -384,9 +401,8 @@ export default function WorkspaceController() {
     {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} editingDisabled={busy && profiles.settingsOperation !== "availability"} feedback={profiles.settingsFeedback || (error ? { kind: "error", message: error } : null)} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={profiles.closeSettings} onSave={profiles.submitSettings} />}
     {specialistsOpen && <SpecialistSettingsDialog onClose={() => setSpecialistsOpen(false)} />}
     {apiTextPipelineEnabled && rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} commandMessage={lifecycle.commandMessage} commandProjectId={lifecycle.commandProjectId} deletionFeedback={lifecycle.deletionFeedback} busy={Boolean(lifecycle.commandMessage || lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} onRetryDeletion={lifecycle.retryDeletion} onAbandonPrior={lifecycle.abandonPrior} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} currentProjectId={project.id} notice={lifecycle.closeNotice} commandMessage={lifecycle.commandMessage} commandProjectId={lifecycle.commandProjectId} deletionFeedback={lifecycle.deletionFeedback} busy={Boolean(lifecycle.commandMessage || lifecycle.closingProjectId || lifecycle.snapshottingProjectId)} showArchived={directory.showArchived} error={directory.error} readError={directory.readError} onRetry={() => void directory.retry()} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "creator" }); }} onAction={lifecycle.mutate} onRetryDeletion={lifecycle.retryDeletion} onAbandonPrior={lifecycle.abandonPrior} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog intent="navigate" onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
-    {lifecycle.pendingArchive && <DraftNavigationDialog intent={lifecycle.pendingArchive.action} busyMessage={lifecycle.commandMessage} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
     {recovery.recovery && !session.unsafeDraft && <DraftRecoveryDialog source={recovery.recovery.source} autoSaveAvailable={durableDraftsEnabled && Boolean(project.id)} busy={recovery.restoring} onRestore={() => void recovery.restore()} onDiscard={recovery.discard} />}
     {authoring.draftConflict && !session.unsafeDraft && <DraftConflictDialog graphRecovery={authoring.draftConflict.scope === "story_graph"} serverReloaded={authoring.draftConflict.serverReloaded} reloading={authoring.conflictReloading} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
     {session.unsafeDraft && !session.unsafeDraft.dismissed && <UnsafeDraftDialog reason={session.unsafeDraft.reason} records={findProjectDrafts(session.unsafeDraft.record.projectId)} busy={connection === "loading"} onDiscard={discardUnsafeDraft}

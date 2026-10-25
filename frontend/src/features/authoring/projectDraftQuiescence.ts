@@ -16,6 +16,10 @@ export interface ProjectCloseAttempt {
 
 export interface ProjectDraftWriterOptions {
   retainOnUnmount?: boolean;
+  /** Sent non-editor operations may outlive departure; exclusive drains still join. */
+  preserveForDeparture?: () => boolean | Promise<boolean>;
+  locallyPreserved?: () => boolean;
+  pending?: () => boolean;
   discardUnsent?: () => Promise<void>;
   suspendWrites?: () => Promise<() => void>;
 }
@@ -28,6 +32,13 @@ export interface ProjectDraftQuiescence {
     options?: ProjectDraftWriterOptions,
   ): () => void;
   flush(projectId: string): Promise<boolean>;
+  preserve(projectId: string): Promise<boolean>;
+  reconnect(): Promise<void>;
+  locallyPreserved(projectId: string): boolean;
+  pending(projectId: string): boolean;
+  subscribe(listener: () => void): () => void;
+  snapshot(): number;
+  changed(): void;
   beginClose(projectId: string): ProjectCloseAttempt;
   isClosing(projectId: string): boolean;
   setWriteAdmission(projectId: string, admitted: boolean): void;
@@ -39,11 +50,32 @@ export function createProjectDraftQuiescence(): ProjectDraftQuiescence {
   const revisions = new Map<string, number>();
   const closing = new Set<string>();
   const writeAdmission = new Map<string, boolean>();
+  const listeners = new Set<() => void>();
+  let version = 0;
+  const changed = () => { version++; listeners.forEach(listener => listener()); };
   const canWrite = (projectId: string) => writeAdmission.get(projectId) !== false;
-  const revise = (projectId: string) =>
-    revisions.set(projectId, (revisions.get(projectId) ?? 0) + 1);
+  const revise = (projectId: string) => { revisions.set(projectId, (revisions.get(projectId) ?? 0) + 1); changed(); };
 
   return {
+    changed,
+    async reconnect() {
+      await Promise.all([...writers].filter(([id]) => canWrite(id) && !closing.has(id)).map(async ([, owners]) => { await Promise.allSettled([...owners.values()].map(owner => owner.flush())); }));
+      changed();
+    },
+    subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    snapshot: () => version,
+    pending: projectId => [...writers.get(projectId)?.values() ?? []].some(writer => writer.pending?.() ?? false),
+    locallyPreserved: projectId => [...writers.get(projectId)?.values() ?? []].every(writer => !writer.pending?.() || writer.locallyPreserved?.() === true),
+    async preserve(projectId) {
+      const admitted = [...writers.get(projectId)?.values() ?? []];
+      const revision = revisions.get(projectId) ?? 0;
+      const results = await Promise.all(admitted.map(async writer => {
+        if (writer.preserveForDeparture) return writer.preserveForDeparture();
+        try { if (await writer.flush()) return true; } catch { /* local preservation still governs departure */ }
+        return writer.locallyPreserved?.() === true;
+      }));
+      return results.every(Boolean) && (revisions.get(projectId) ?? 0) === revision;
+    },
     register(projectId, writerId, flush, options) {
       // A Close owns admission from its first drain through the server reply.
       // Editors must not register a new local buffer behind that transition.

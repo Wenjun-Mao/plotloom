@@ -26,7 +26,7 @@ it("explicit review guards stay stable during Close, block dirty input and disca
     await act(async () => render());
     await expect(close.drain()).resolves.toBe(true); expect(close.canCommit()).toBe(true); close.finish();
     await act(async () => toggle(true));
-    const dirty = q.beginClose("project"); await expect(dirty.drain()).rejects.toThrow("投产审阅尚有未保存");
+    const dirty = q.beginClose("project"); await expect(dirty.drain()).rejects.toThrow("投产审阅尚有未导入文件");
     expect(discard).not.toHaveBeenCalled(); await dirty.discardUnsent(); expect(discard).toHaveBeenCalledTimes(1); dirty.finish();
   } finally { await act(async () => root.unmount()); }
 });
@@ -45,7 +45,7 @@ it("retained guards never use callbacks from a newer project in the same compone
   try {
     await act(async () => render("a")); await act(async () => render("b"));
     const closeA = q.beginClose("a");
-    await expect(closeA.drain()).rejects.toThrow("review-a尚有未保存");
+    await expect(closeA.drain()).rejects.toThrow("review-a尚有未导入文件");
     await closeA.discardUnsent(); closeA.finish();
     expect(discardA).not.toHaveBeenCalled(); expect(discardB).not.toHaveBeenCalled();
     const closeB = q.beginClose("b"); await closeB.discardUnsent(); closeB.finish();
@@ -60,7 +60,7 @@ it("a late draft-discard receipt never resets a newer project's editor", async (
   const discardA = vi.fn(); const discardB = vi.fn(); let release!: (revision: number) => void;
   vi.spyOn(plotloomApi, "discardAuthoringDraft").mockImplementation(() => new Promise(resolve => { release = resolve; }));
   store.hydrate("a", [{ projectId: "a", editorScope: "review_buffer", entityId: "source", baseCanonicalRevision: 1,
-    draftRevision: 1, updatedAt: "2026-10-04", payload: { editor: "source", basis: "source:0", text: "{}" } }]);
+    draftRevision: 1, updatedAt: "2026-10-04", payload: { editor: "source", basis: "older-source", text: "{}" } }]);
   function Editor({ projectId }: { projectId: string }) {
     return useReviewEditorDraft(projectId, "source", "source:0", () => undefined, false, projectId === "a" ? discardA : discardB).notice;
   }

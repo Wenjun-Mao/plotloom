@@ -37,7 +37,7 @@ for (const height of [900, 600]) {
     expect(draft).toMatchObject({ draftRevision: 2, baseCanonicalRevision: canonical.revision, payload: canonical.brief });
     const removed = page.waitForResponse(r => r.request().method() === "DELETE" && r.url().endsWith(`/${id}/authoring-drafts`));
     const admitted = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
-    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    await page.getByRole("button", { name: "应用修改", exact: true }).click();
     const receipt = await removed;
     expect(receipt.status()).toBe(204);
     expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root", expectedDraftRevision: 2 });
@@ -96,10 +96,6 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   await page.reload();
   expect((await (await reloadAdmission).json()).eligible).toBe(false);
   const recovery = page.getByRole("dialog", { name: "发现可恢复草稿", exact: true });
-  await expect(recovery).toBeVisible();
-  const restoredAdmission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
-  await recovery.getByRole("button", { name: "恢复草稿", exact: true }).click();
-  expect((await (await restoredAdmission).json()).eligible).toBe(false);
   await expect(recovery).toHaveCount(0);
   await expect(page.getByLabel("片名", { exact: true })).toHaveValue(canonical.brief.title);
   await expect(page.getByRole("button", { name: "自动准备素材", exact: true })).toBeDisabled();
@@ -107,7 +103,7 @@ test("unchanged restored Brief save refreshes launch admission in place after ex
   const editor = await page.getByLabel("片名", { exact: true }).elementHandle();
   const removed = page.waitForResponse(r => r.request().method() === "DELETE" && r.url().includes(`/${id}/authoring-drafts`));
   const admission = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${id}/autopilot/launch-context`));
-  await page.getByRole("button", { name: "保存修改", exact: true }).click();
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
   const receipt = await removed;
   expect(receipt.status()).toBe(204);
   expect(receipt.request().postDataJSON()).toEqual({ editorScope: "brief", entityId: "root", expectedDraftRevision: draft.draftRevision });
@@ -150,7 +146,7 @@ test("Brief save continues to an editable Source draft without starting the lega
   await page.getByLabel("片名").fill("雨停以后");
   await page.getByLabel("故事梗概").fill("雨刚停，林遥在车站檐下决定去海堤还是旧街。");
   await expect(page.locator(".page-header .button")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "应用修改" })).toHaveCount(0);
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeVisible();
   await saveBriefAndContinue(page);
@@ -234,15 +230,15 @@ test("saved Brief saves in place and offers an explicit return to Source", async
   if (!projectId) throw new Error("project was not saved");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存修改", exact: true })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "应用修改", exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "返回来源与大纲", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "保存项目简报" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "确认项目简报" })).toHaveCount(0);
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByText("通常请从左侧“来源与大纲”开始，逐步审阅并确认。", { exact: false })).toBeVisible();
   await page.getByLabel("片名").fill("已保存项目的新片名");
   const patch = page.waitForResponse((response) => response.request().method() === "PATCH"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}`);
-  await page.getByRole("button", { name: "保存修改" }).click();
+  await page.getByRole("button", { name: "应用修改" }).click();
   expect((await patch).ok()).toBeTruthy();
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`project=${projectId}.*stage=brief`));
@@ -268,10 +264,10 @@ test("Brief actions reject a target below the script workflow minimum", async ({
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("故事梗概").fill("一位旅人面临两个结局。");
   await page.getByLabel("目标游玩时长（秒）").fill("2");
-  await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "保存项目简报" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "应用修改" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "确认项目简报" })).toBeDisabled();
   await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
   await expect(page.getByRole("button", { name: "生成故事提案" })).toBeDisabled();
   await page.getByLabel("目标游玩时长（秒）").fill("3");
-  await expect(page.getByRole("button", { name: "保存项目简报" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "确认项目简报" })).toBeEnabled();
 });

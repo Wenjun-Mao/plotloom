@@ -12,7 +12,7 @@ export function projectLoadFailure(error: unknown, projectId: string, authoritat
 }
 
 export const projectUnavailableCopy = {
-  closed: { title: "项目已关闭", description: "故事内容和媒体仍保留。请打开项目目录，明确重新打开这个项目后再继续。" },
+  closed: { title: "项目已冻结", description: "故事内容和媒体仍保留。可从项目目录只读浏览；需要编辑时，请在更多操作中明确解除冻结。" },
   missing: { title: "找不到这个项目", description: "服务器确认当前项目目录中没有这个项目。请核对链接，或在项目目录中选择已有项目。" },
   unavailable: { title: "暂时无法读取项目", description: "本次未能核实项目内容。请重新读取，或打开项目目录查看；这不代表项目已被删除。" },
   "continuation-failed": { title: "后台运行未能继续", description: "项目已读入，当前内容仍保留。请查看运行轨迹并重新核实状态；不要重复发送新的生成任务。" },

@@ -105,3 +105,17 @@ it("long saved source stays exact; intentional edits retain ordinary authored bo
   delete draft.intent.sourceEndorsement; expect(galleryFrameReady(draft)).toBe(false);
   draft.intent.compositionIntent = "Actual authored edit"; expect(galleryFrameReady(draft)).toBe(true);
 });
+
+it("retains raw material text with exact frame ownership and never restores judgments or authorization", async () => {
+  const { materialWorkingInput, resumeMaterialWorkingInput } = await import("../src/features/autopilot/materialWorkingInput");
+  const original = fixtureMaterial.bundle.frames.map(galleryDraft), authored = structuredClone(original);
+  authored[0].intent.compositionIntent = "unfinished {\n"; authored[0].intent.sourceRefs = ["first", ""];
+  authored[0].compatibility = "hold";
+  authored[0].comparisons[0] = { ...authored[0].comparisons[0], judgment: "unassessable", productionDecision: "authorize", uncertaintyReason: "author uncertainty" };
+  const text = materialWorkingInput(fixtureMaterial, authored, "author notes");
+  expect(text).not.toContain('"judgment"'); expect(text).not.toContain('"productionDecision"');
+  const resumed = resumeMaterialWorkingInput(text, fixtureMaterial, original);
+  expect(resumed.notes).toBe("author notes"); expect(resumed.drafts[0].intent.compositionIntent).toBe("unfinished {\n"); expect(resumed.drafts[0].intent.sourceRefs).toEqual(["first", ""]);
+  expect(resumed.drafts[0].comparisons[0].judgment).toBe("pass"); expect(resumed.drafts[0].comparisons[0].productionDecision).toBeUndefined(); expect(resumed.drafts[0].comparisons[0].uncertaintyReason).toBe("author uncertainty");
+  expect(() => resumeMaterialWorkingInput(text.replace(fixtureMaterial.bundle.frames[0].shotId, "foreign-shot"), fixtureMaterial, original)).toThrow("当前素材");
+});

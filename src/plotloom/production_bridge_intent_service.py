@@ -177,6 +177,9 @@ class ProductionBridgeIntentService:
     def inspect(self, project_id: str) -> None:
         """Reconcile a prior-process dispatch, but never disturb this process's worker."""
 
+        with closing(self.storage.projects.read_open(project_id)) as observed:
+            if observed.repository.operational_state()[0] == "closed":
+                return
         with closing(self.storage.projects.open(project_id)) as store:
             latest = store.production_bridge_state().intent_job
             if latest is not None and latest.transport == "text_api" and latest.status == "dispatched":

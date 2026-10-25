@@ -234,3 +234,24 @@ def test_mixed_roles_preserve_literal_text_choices_and_unicode_without_approval(
     assert advice.entries[0].spans[0].end == len("停🙂步。抬眼。")
     assert not package.reviewed and all(not source.spans for source in package.sources)
     assert package.runtime_choice["choices"][0]["prompt"] == "怎么办？"
+
+
+def test_frozen_presentation_state_and_report_are_pure_reads(presentation):
+    from tests.working_input_preservation import preservation_inventory
+    storage, project, before, service, job, calls = presentation
+    service.send(project, job)
+    deliver(presentation)
+    service.check(project, job)
+    storage.projects.close_project(project)
+    before_rows = preservation_inventory(storage.projects.outputs_root)
+    with TestClient(create_project_folder_authoring_app(storage)) as client:
+        before_app = preservation_inventory(storage.application.root)
+        base = f"/api/v2/projects/{project}/production-bridge"
+        state = client.get(base)
+        assert state.status_code == 200, state.text
+        assert state.json()["presentationJob"]["status"] == "ready"
+        assert client.get(f"{base}/native-presentation-jobs/{job}/report").content == service.report(project, job)
+        assert client.post(f"{base}/native-presentation-jobs/{job}/check").status_code == 409
+        assert preservation_inventory(storage.application.root) == before_app
+    assert preservation_inventory(storage.projects.outputs_root) == before_rows
+    assert len(calls) == 1

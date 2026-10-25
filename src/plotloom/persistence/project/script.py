@@ -80,7 +80,7 @@ class ProjectScriptPersistence:
         if context is None or self._art._stale_against(session, project_id, context[0], inherited):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_art_not_current", owner="art", technical_message="a current accepted art revision is required before preparing script"))
         project = self._access.rows.project(session, project_id)
-        target_seconds = int(project.brief.get("target_playthrough_seconds", 0))
+        target_seconds = int((project.brief or {}).get("target_playthrough_seconds", 0))
         if target_seconds < 3:
             raise ReviewContextError(ReviewContextDiagnostic(code="playthrough_target_missing", owner="brief", technical_message="project playthrough target is required for script preparation"))
         art_binding, source, outline, mapping, cast = context

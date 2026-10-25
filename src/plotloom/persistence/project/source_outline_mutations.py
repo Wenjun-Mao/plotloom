@@ -110,7 +110,7 @@ class SourceOutlineMutations:
             ))
             if source is None or request.source != source.material:
                 raise CreativeHandoffError("request_identity_mismatch", "outline request does not match the accepted source revision")
-            assert_outline_settings_current(request, ProjectBrief.model_validate(project.brief))
+            assert_outline_settings_current(request, ProjectBrief.require_confirmed(project.brief))
             existing = session.get(SourceOutlineCandidateRow, request.job_id)
             if existing is not None:
                 if existing.project_id != project_id or existing.request != request.model_dump(mode="json", by_alias=True):
@@ -156,7 +156,7 @@ class SourceOutlineMutations:
                 raise CreativeHandoffError("delivery_stale", "candidate source or accepted outline revision is stale")
             if candidate.status == "cancelled":
                 raise CreativeHandoffError("delivery_cancelled", "outline candidate was cancelled and cannot receive delivery")
-            assert_outline_settings_current(request, ProjectBrief.model_validate(project.brief))
+            assert_outline_settings_current(request, ProjectBrief.require_confirmed(project.brief))
             if candidate.status == "ready":
                 if candidate.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "a different delivery already occupies this candidate")
@@ -199,7 +199,7 @@ class SourceOutlineMutations:
             if candidate.source_revision != head.source_revision or candidate.expected_outline_revision != head.outline_revision:
                 raise CreativeHandoffError("delivery_stale", "candidate is stale at acceptance")
             assert_outline_settings_current(
-                CreativeHandoffRequest.model_validate(candidate.request), ProjectBrief.model_validate(project.brief),
+                CreativeHandoffRequest.model_validate(candidate.request), ProjectBrief.require_confirmed(project.brief),
             )
             assert_outline_report_schema_current(candidate.request["inputArtifacts"])
             assert_outline_report_metadata(candidate.outline)

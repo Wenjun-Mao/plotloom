@@ -35,7 +35,7 @@ async function harness() {
   const archive = vi.spyOn(plotloomApi, "archiveProject").mockResolvedValue(target as ProjectResource);
   const restore = vi.spyOn(plotloomApi, "restoreProject").mockResolvedValue(target as ProjectResource);
   const snapshot = vi.spyOn(plotloomApi, "createProjectSnapshot").mockResolvedValue({ projectId: project.id } as Awaited<ReturnType<typeof plotloomApi.createProjectSnapshot>>);
-  const close = vi.spyOn(plotloomApi, "closeProject").mockResolvedValue({ projectId: project.id, state: "closed", revision: 1 });
+  const close = vi.spyOn(plotloomApi, "freezeProject").mockResolvedValue({ projectId: project.id, state: "closed", revision: 1 });
   let owner!: ReturnType<typeof useProjectLifecycle>;
   function Probe() { owner = useProjectLifecycle(params); return owner.confirmation; }
   const host = document.createElement("div"); document.body.append(host);
@@ -53,7 +53,7 @@ it("holds one same-tick command through its request and directory refresh", asyn
   try {
     await act(async () => {
       command = h.owner.mutate(h.target, "archive");
-      await h.owner.mutate(h.target, "restore"); await h.owner.createSnapshot(); await h.owner.saveAndCloseCurrent();
+      await h.owner.mutate(h.target, "restore"); await h.owner.createSnapshot(); await h.owner.mutate(h.target, "freeze");
     });
     expect(h.owner.commandMessage).toContain(`正在归档「${h.project.brief.title}」`);
     expect(h.archive).toHaveBeenCalledOnce(); expect(h.restore).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled(); expect(h.close).not.toHaveBeenCalled();
@@ -80,122 +80,40 @@ it("snapshot owns the same synchronous admission and releases it after setup ref
   } finally { held.resolve(); await h.dispose(); }
 });
 
-it.each([false, true])("save-before-archive is owned once and preserves buffers when epoch changes: %s", async changed => {
-  const h = await harness(), held = deferred(); let command!: Promise<void>;
-  const authored = { ...h.project.brief, title: "Unsent original title" };
-  h.params.currentDraft.current = { scope: "brief", payload: authored }; putDraft(h.project, "brief", authored);
-  vi.mocked(h.params.commitProject).mockImplementationOnce(async () => { await held.promise; if (!changed) h.params.currentDraft.current = undefined; });
+
+it("Freeze drains drafts without Apply, settles reads and retains the current workspace", async () => {
+  const h = await harness();
+  const flush = vi.fn(async () => true);
+  h.quiescence.register(h.project.id, "unfinished", flush);
   try {
-    await act(async () => h.owner.mutate(h.target, "archive")); expect(h.owner.pendingArchive).toBeDefined();
-    await act(async () => { command = h.owner.resolvePendingArchive("save"); await h.owner.resolvePendingArchive("save"); await h.owner.resolvePendingArchive("discard"); await h.owner.createSnapshot(); });
-    expect(h.params.commitProject).toHaveBeenCalledOnce(); expect(h.archive).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled();
-    const newer = { scope: "brief" as const, payload: { ...authored, title: "New session input" } };
-    if (changed) { h.changeEpoch(); h.params.currentDraft.current = newer; }
-    await act(async () => { held.resolve(); await command; });
-    expect(h.owner.commandMessage).toBe("");
-    if (changed) {
-      h.params.session.project = { ...h.project, id: "new-workspace-project" };
-      await h.rerender();
-      await act(async () => h.owner.resolvePendingArchive("discard"));
-      expect(h.archive).not.toHaveBeenCalled(); expect(h.params.currentDraft.current).toBe(newer);
-      expect(h.owner.pendingArchive).toBeUndefined();
-      expect(h.params.directory.setError).toHaveBeenCalledTimes(1);
-    }
-    else { expect(h.archive).toHaveBeenCalledOnce(); expect(h.owner.pendingArchive).toBeUndefined(); }
-  } finally { held.resolve(); await h.dispose(); }
+    await act(async () => h.owner.mutate(h.target, "freeze"));
+    expect(flush).toHaveBeenCalledOnce(); expect(h.close).toHaveBeenCalledOnce();
+    expect(h.params.commitProject).not.toHaveBeenCalled(); expect(h.params.commitStage).not.toHaveBeenCalled();
+    expect(h.params.startBlank).not.toHaveBeenCalled();
+    expect(h.params.session.acceptCanonicalProject).toHaveBeenCalledWith(expect.objectContaining({ operationalState: "closed" }));
+    expect(h.quiescence.canWrite(h.project.id)).toBe(false);
+  } finally { await h.dispose(); }
 });
 
-it("failed save keeps the decision and buffer; cancelled/capability no-ops do not take ownership", async () => {
+it("Freeze refusal retains journals and releases client admission without force exit", async () => {
   const h = await harness();
-  const authored = { ...h.project.brief, title: "Retained after failed save" };
-  h.params.currentDraft.current = { scope: "brief", payload: authored }; putDraft(h.project, "brief", authored);
-  vi.mocked(h.params.commitProject).mockImplementationOnce(async () => {});
+  h.quiescence.register(h.project.id, "unsynced", async () => false, { locallyPreserved: () => true, pending: () => true });
+  try {
+    await act(async () => h.owner.mutate(h.target, "freeze"));
+    expect(h.close).not.toHaveBeenCalled(); expect(h.params.startBlank).not.toHaveBeenCalled();
+    expect(h.params.directory.setError).toHaveBeenCalledWith(expect.stringContaining("尚未同步"));
+    expect(h.quiescence.isClosing(h.project.id)).toBe(false);
+    expect(await h.quiescence.preserve(h.project.id)).toBe(true);
+  } finally { await h.dispose(); }
+});
+
+it("Archive preserves working input without canonically applying it", async () => {
+  const h = await harness(), flush = vi.fn(async () => true);
+  h.quiescence.register(h.project.id, "author", flush);
   try {
     await act(async () => h.owner.mutate(h.target, "archive"));
-    await act(async () => h.owner.resolvePendingArchive("save"));
-    expect(h.owner.pendingArchive).toBeDefined(); expect(h.params.currentDraft.current?.payload).toEqual(authored); expect(h.archive).not.toHaveBeenCalled();
-    await act(async () => h.owner.resolvePendingArchive("cancel")); expect(h.owner.commandMessage).toBe("");
-    h.params.explicitProjectClose = false;
-    await h.rerender();
-    await act(async () => h.owner.mutate(h.target, "open"));
-    expect(h.params.directory.setError).toHaveBeenCalledTimes(1); expect(h.close).not.toHaveBeenCalled();
-  } finally { await h.dispose(); }
-});
-
-it("late archive settlement releases ownership without publishing stale UI", async () => {
-  const h = await harness(), held = deferred(); let command!: Promise<void>;
-  h.archive.mockImplementationOnce(async () => { await held.promise; return h.target as ProjectResource; });
-  try {
-    await act(async () => { command = h.owner.mutate(h.target, "archive"); });
-    h.changeEpoch();
-    await act(async () => { held.resolve(); await command; });
-    expect(h.params.session.acceptCanonicalProject).not.toHaveBeenCalled(); expect(h.params.directory.refresh).not.toHaveBeenCalled(); expect(h.owner.commandMessage).toBe("");
-    await act(async () => h.owner.mutate(h.target, "restore")); expect(h.restore).toHaveBeenCalledOnce();
-  } finally { held.resolve(); await h.dispose(); }
-});
-
-it.each([false, true])("deletion preparation serializes commands and ignores a superseded response: %s", async changed => {
-  const h = await harness(), held = deferred(); let command!: Promise<void>;
-  const preview = vi.spyOn(plotloomApi, "deletionPreview").mockImplementation(async () => {
-    await held.promise;
-    return { projectId: h.project.id!, confirmationTitle: h.project.brief.title, expectedProjectRevision: 1,
-      expectedLifecycleRevision: 1, scopeHash: "a".repeat(64), mode: "blocked", run: null,
-      blockers: ["手动图片任务 exact-manual-job 仍可发布，请先取消或交付。"], unknownAttemptIds: [] };
-  });
-  const stop = vi.spyOn(plotloomApi, "stopForDeletion");
-  const erase = vi.spyOn(plotloomApi, "permanentlyDeleteProject");
-  try {
-    await act(async () => {
-      command = h.owner.mutate(h.target, "delete");
-      await h.owner.mutate(h.target, "archive"); await h.owner.createSnapshot();
-    });
-    expect(h.owner.commandMessage).toContain("正在核对删除条件");
-    expect(h.archive).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled();
-    if (changed) h.changeEpoch();
-    await act(async () => { held.resolve(); await command; });
-    expect(preview).toHaveBeenCalledOnce(); expect(stop).not.toHaveBeenCalled(); expect(erase).not.toHaveBeenCalled();
-    expect(h.owner.commandMessage).toBe("");
-    if (changed) expect(h.owner.deletionFeedback).toBeUndefined();
-    else expect(h.owner.deletionFeedback).toMatchObject({ id: h.project.id, error: true, message: expect.stringContaining("exact-manual-job") });
-  } finally { held.resolve(); await h.dispose(); }
-});
-
-it("rejects force exit for a noncurrent project without prompting or discarding its drafts", async () => {
-  const h = await harness();
-  const discard = vi.spyOn(h.quiescence, "beginClose");
-  try {
-    await act(async () => h.owner.mutate({ ...h.target, id: "other-project" }, "force_close"));
-    expect(h.owner.confirmation).toBeNull();
-    expect(discard).not.toHaveBeenCalled(); expect(h.close).not.toHaveBeenCalled();
-    expect(h.params.startBlank).not.toHaveBeenCalled();
-    await act(async () => h.owner.mutate({ ...h.target, id: "other-project" }, "close"));
-    expect(h.close).toHaveBeenCalledWith("other-project");
-    expect(h.params.startBlank).not.toHaveBeenCalled();
-  } finally { await h.dispose(); }
-});
-
-it.each(["before-confirmation", "pending-confirmation", "valid-current"] as const)("force exit binds disposition to route identity: %s", async scenario => {
-  const h = await harness();
-  const discard = vi.fn(async () => {}), suspend = vi.spyOn(plotloomApi, "suspendProjectReads");
-  h.quiescence.register(h.target.id, "unsent-A", async () => true, { discardUnsent: discard });
-  try {
-    if (scenario === "before-confirmation") h.changeRoute("loading-B");
-    await act(async () => h.owner.mutate(h.target, "force_close"));
-    if (scenario === "before-confirmation") expect(h.owner.confirmation).toBeNull();
-    else {
-      expect(h.owner.confirmation).not.toBeNull();
-      // B's route owns the workspace even while its load keeps A's snapshot painted.
-      if (scenario === "pending-confirmation") h.changeRoute("loading-B");
-      const confirm = [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "确认退出工作区")!;
-      await act(async () => confirm.click());
-    }
-    if (scenario === "valid-current") {
-      expect(discard).toHaveBeenCalledOnce(); expect(h.close).toHaveBeenCalledWith(h.target.id);
-      expect(h.params.startBlank).toHaveBeenCalledOnce();
-    } else {
-      expect(discard).not.toHaveBeenCalled(); expect(suspend).not.toHaveBeenCalled();
-      expect(h.close).not.toHaveBeenCalled(); expect(h.params.startBlank).not.toHaveBeenCalled();
-      expect(h.params.session.project.id).toBe(h.target.id);
-    }
+    expect(flush).toHaveBeenCalledOnce(); expect(h.archive).toHaveBeenCalledOnce();
+    expect(h.params.commitProject).not.toHaveBeenCalled(); expect(h.params.commitStage).not.toHaveBeenCalled();
+    expect("pendingArchive" in h.owner).toBe(false);
   } finally { await h.dispose(); }
 });

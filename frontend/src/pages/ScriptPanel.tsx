@@ -57,13 +57,14 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
   }, [projectId, load]);
   const { checking, failed, recheck } = useReviewActivation({ projectId, active, refreshToken, load });
   useReportReviewWorkflowRead(projectId, active, { stage: "script", status: checking ? "loading" : failed ? "failed" : "ready", state, busy, dirty: draftDirty.current, error });
-  const readOnly = ownerReadOnly || checking || failed;
+  const ownerDisabled = ownerReadOnly || checking || failed;
   const acceptedHead = state?.acceptedScript;
   const reviewDraft = useReviewEditorDraft(projectId, "script", acceptedHead ? `script:${acceptedHead.revision}:${acceptedHead.contentHash}:${state?.status}` : "", text => {
     const recovered = JSON.parse(text) as { sectionId: string; text: string };
     if (typeof recovered.sectionId !== "string" || typeof recovered.text !== "string" || !acceptedHead?.binding.sectionBindings.some(item => item.sectionId === recovered.sectionId)) throw new Error("章节草稿无法匹配，请复制内容后重新填写。");
     setSectionId(recovered.sectionId); setDraft(recovered.text); setDraftBase(acceptedHead); draftDirty.current = true;
-  }, readOnly || busy, () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); });
+  }, ownerDisabled || busy, () => { draftDirty.current = false; setSectionId(""); setDraft(""); setDraftBase(null); }, sectionId || contextSectionId || "");
+  const readOnly = ownerDisabled || reviewDraft.stale;
   useEffect(() => {
     // Dirty text keeps the revision/binding under which the author started.
     // A refreshed head can invalidate saving, but cannot discard that work.

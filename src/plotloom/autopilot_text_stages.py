@@ -20,9 +20,9 @@ TEXT_STAGES = ("outline", "branches", "characters", "art", "script", "storyboard
 def adopt_brief_source(store):
     project = store.project()
     state = store.save_source_material(expected_source_revision=0,
-        material=SourceMaterial(kind="synopsis", title=project.brief.title, text=project.brief.synopsis,
+        material=SourceMaterial(kind="synopsis", title=project.require_brief().title, text=project.require_brief().synopsis,
             brief_origin={"revision": project.revision,
-                "contentHash": stable_hash(project.brief.model_dump(mode="json", by_alias=False))}))
+                "contentHash": stable_hash(project.require_brief().model_dump(mode="json", by_alias=False))}))
     checkpoint = store.repository.autopilot.checkpoint("source", state="adopted",
         evidence=CheckpointEvidence(owner="source", subject_id="source", result={"revision": state.source.revision}))
     store.repository.autopilot.decide(checkpoint, subject={"revision": state.source.revision, "contentHash": state.source.content_hash}, rationale="原始已保存简报的精确来源投影；没有补写权利或作者意图。")

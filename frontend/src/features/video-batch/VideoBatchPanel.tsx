@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useReviewEditorDraft } from "../authoring/ReviewDraftContext";
 import { humanReviewLabel } from "../../human-review-attribution";
 import { Button, Field, Panel } from "../../components";
 import { plotloomApi } from "../../api";
@@ -56,26 +57,36 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
     void plotloomApi.getVideoBackend(abort.signal).then(value => { if (!abort.signal.aborted) { setBackend(value); setProfile(current => value.profiles?.some(profile => profile.id === current) ? current : value.defaultProfileId || value.profiles?.[0]?.id || ""); } }).catch(() => {});
     return () => { abort.abort(); clearTimeout(timer); };
   }, [projectId, epoch]);
+  const working = useReviewEditorDraft(projectId || "", "video_directions", batch ? `${batch.id}:${batch.manifestHash}` : "unverified", text => {
+    const retained = JSON.parse(text) as Record<string, Direction[]>;
+    if (!batch || !retained || typeof retained !== "object" || Array.isArray(retained)) throw new Error("英文方向草稿无法读取。");
+    for (const [shotId, fields] of Object.entries(retained)) {
+      const target = batch.manifest.targets.find(item => item.shotId === shotId && item.mode === "generate");
+      if (!target || !Array.isArray(fields) || fields.some(field => typeof field.english !== "string" || !target.sources.some(source => source.path === field.path))) throw new Error("英文方向草稿无法匹配当前清单。");
+    }
+    setEdits(retained);
+  }, disabled || !!busy || !ready || !batch, undefined, batch?.id || "");
   async function execute(label: string, name: string, body: unknown, foreground = false) {
     if (!projectId || command.current) return;
+    const clearApplied = working.clear;
     command.current = true; setBusy(label); setError("");
     if (foreground) completion.arm(); else completion.clear();
     try {
       const value = await batchApi.command(projectId, name, body);
       if (identity.current !== projectId) return;
       setBatch(value); setReady(true);
-      if (name === "directions") setEdits({});
+      if (name === "directions") { await clearApplied(); setEdits({}); }
       if (name === "setup") setSetupMode(false);
     } catch (failure) {
       if (identity.current === projectId) { setReady(false); setError(`操作结果待核实，正在读取原批次；不会重放请求。${String(failure)}`); setEpoch(value => value + 1); }
     } finally { command.current = false; if (identity.current === projectId) setBusy(""); }
   }
   const controlLocked = disabled || !!busy || !ready;
-  const locked = controlLocked || dirty;
+  const locked = controlLocked || dirty || working.stale;
   const edited = Object.keys(edits).length > 0;
   return <Panel className="video-batch-panel form-card" id="video-batch-production"><h2>批量制作视频</h2>
     <p>覆盖全部路线的唯一制作镜头。保留已有可用视频，只为真正缺失项制作；全部生成后由你一次审阅视频与原生音频。</p>
-    <ProjectQaContext qa={qa} />
+    <ProjectQaContext qa={qa} />{working.notice}
     {error && <p role="alert">{error}<Button variant="quiet" onClick={() => setEpoch(value => value + 1)}>重新读取原批次</Button></p>}
     {busy && <p role="status" aria-live="polite">{busy}；请勿重复提交。</p>}
     {dirty && <p role="status">先保存当前修改，再准备或开始批次。</p>}
@@ -107,7 +118,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
             <textarea value={(edits[target.shotId] || target.directions?.fields || []).find(field => field.path === source.path)?.english || ""}
               disabled={locked || !["setup", "ready"].includes(batch.state) || target.mode !== "generate"}
               onChange={event => { const fields = edits[target.shotId] || target.directions?.fields || target.sources.map(item => ({ path: item.path, english: "" }));
-                setEdits(value => ({ ...value, [target.shotId]: fields.map(field => field.path === source.path ? { ...field, english: event.target.value } : field) })); }} /></Field>)}
+                const next = { ...edits, [target.shotId]: fields.map(field => field.path === source.path ? { ...field, english: event.target.value } : field) }; setEdits(next); working.changed(JSON.stringify(next)); }} /></Field>)}
           <pre>{target.compiledPrompt || "英文方向尚未准备；不会生成视频。"}</pre></article>)}
       </details>
       {edited && <Button disabled={locked} onClick={() => void execute("正在保存英文方向并重新编译完整清单", "directions", { expectedRevision: batch.revision,

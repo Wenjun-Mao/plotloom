@@ -211,7 +211,7 @@ def test_production_runtime_uses_application_profiles_and_exact_project_routes(
         snapshot = client.post(f"/api/v2/projects/{first_id}/snapshots")
         assert snapshot.status_code == 201
         assert snapshot.json()["status"] == "complete"
-        assert client.post(f"/api/v2/projects/{first_id}/close").status_code == 200
+        assert client.post(f"/api/v2/projects/{first_id}/freeze").status_code == 200
 
     restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
     with TestClient(restarted) as client:
@@ -220,7 +220,7 @@ def test_production_runtime_uses_application_profiles_and_exact_project_routes(
         assert client.get(f"/api/v2/runs/{second_run.json()['id']}").json()["projectId"] == second_id
         # Reconciliation returns a plan but never starts a fresh provider call.
         assert client.get(f"/api/v2/projects/{first_id}").status_code == 409
-        assert client.post(f"/api/v2/projects/{first_id}/open").status_code == 200
+        assert client.post(f"/api/v2/projects/{first_id}/unfreeze").status_code == 200
         assert client.get(f"/api/v2/projects/{first_id}").status_code == 200
 
 
