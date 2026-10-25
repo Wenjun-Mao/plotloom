@@ -273,7 +273,7 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 
 | Record (full slug) | Opening status cue — inspect source for exact scope |
 | --- | --- |
-| [0219-validated-installation-only-reader](../adr/0219-validated-installation-only-reader.md) | Status: accepted for implementation, 2026-10-25, under the owner-approved |
+| [0219-validated-installation-only-reader](../adr/0219-validated-installation-only-reader.md) | Status: implemented and locally qualified, 2026-10-25; installed activation is |
 
 ## Specification organization
 

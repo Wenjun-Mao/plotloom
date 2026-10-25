@@ -2,14 +2,14 @@
 
 Status: owner-approved implementation plan, 2026-10-25. The owner approved scoped
 implementation, qualification, quiet activation/rollback and old proposal retirement
-through Relay Direct. Source implementation passed independent review; final local qualification is
-pending. Activation remains
+through Relay Direct. Source implementation passed independent review and completed local software
+qualification by evidence reuse plus scoped repair. Activation remains
 with the manager after independent review and local qualification.
 
 ## Outcome and reason
 
-Material inventory needs validated installed-production authority. It currently
-calls store.production_bridge_state().installation, which also constructs
+Material inventory needs validated installed-production authority. Before this
+change it called store.production_bridge_state().installation, which also constructs
 proposal/presentation models, preparation availability and job views. Expose a
 small installation-only reader using the existing validation owner, and route
 only initial_inventory() through it.
@@ -342,3 +342,61 @@ inputs remain unchanged from b0ce2e66; only these test locators and documentatio
 change. Preserve the Python/frontend/unchanged-browser evidence above. Wheel
 build/smoke were not reached in the original full run and will be run narrowly
 with ordinary existing commands after affected-spec verification.
+
+Composite local qualification is complete; the original `verify.py full` invocation
+remains **failed**, rather than being relabeled as a passing command. The correction
+checkpoint is `72701254979687e07b729a32a3c3bed459c7bb10`. Manager independently
+reviewed all five actual selector insertions, including the Frozen case. Exact
+focused rerun:
+
+```sh
+uv run --locked --no-sync python scripts/verify.py focused \
+  --playwright e2e/project-directory-actions.spec.ts \
+  --playwright e2e/project-lifecycle.spec.ts \
+  --playwright e2e/source-entry-settings.spec.ts \
+  --playwright e2e/video-batch.spec.ts
+```
+
+Result: **29 passed**, 2.3m Playwright / 140.159s runner, including e2e typecheck
+and all six originally failing cases. The other 329 browser cases outside these
+four complete specs retain their passing unfiltered evidence. No broad suite was
+repeated, and no product repair was necessary.
+
+The skipped packaging suffix was completed with ordinary existing commands:
+
+```sh
+uv build --wheel --out-dir /tmp/plotloom-installation-reader-wheel.CKbGWb
+uv run --locked --no-sync python scripts/smoke_installed_wheel.py /tmp/plotloom-installation-reader-wheel.CKbGWb
+```
+
+Both passed. Exact passing wheel, retained only for the manager's existing single
+functional recovery-package update after activation:
+`/tmp/plotloom-installation-reader-wheel.CKbGWb/plotloom-0.1.0-py3-none-any.whl`,
+SHA-256 `6c27fdae73d3c7c799e5752959a987ca84c8e0d892f442a9f3091a266f72b2a2`.
+Manager consumes this task-owned temporary artifact and removes its directory;
+there is no second permanent archive. The smoke's isolated environment was removed
+by its existing lifecycle. Build emitted a non-fatal uv-version-range warning and completed. Installed smoke resolved its
+normal package environment (including Pydantic 2.14.1), separately from source's
+locked Pydantic 2.13.5 environment; this is the existing smoke contract.
+
+Inputs are pinned to b0ce2e66 and unchanged at 72701254:
+
+- `src/plotloom` Git tree `b947570d86a89cc2dc95d95638448a17a745850f`;
+  static subtree `f67c856ea56e326f5fc1506ccfc689ff40cd24a0`.
+- `frontend/src` Git tree `df8d89e953455c06502875443edb71290ced5e3f`.
+- `uv.lock` SHA-256 `e8b1fe5099e46b69e89c3b466923aef174ddb0849b8258ed1cc3f30460186658`;
+  `frontend/package-lock.json` SHA-256
+  `d065837c7a216183cc18399fe32b24424bed1b75a6fff7fa5b1930ab2135f9fb`.
+
+`git diff b0ce2e66 --exit-code -- src/plotloom frontend/src frontend/build.mjs frontend/package.json frontend/package-lock.json uv.lock pyproject.toml scripts`
+passed after the selector correction. Subsequent handoff edits are documentation
+only and reuse the same executable/package evidence. The catalogue links every
+numbered ADR exactly once. `git diff --check` passed. Ordinary browser output was
+removed after independent inspection and successful scoped verification; full
+Python and installed-smoke temporary roots were removed by their runners.
+No current product defect remains known. Source qualification is complete;
+activation/preservation, recovery refresh and old-ref retirement remain manager
+steps. No installed P, live data, provider/grant, deployment, ref deletion, push
+or hosted CI action was performed by this worker. Known full execution time was
+2098.419s plus 140.159s focused repair verification; other phase times/cost deltas
+were not separately measured.
