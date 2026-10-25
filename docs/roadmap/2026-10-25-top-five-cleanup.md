@@ -91,25 +91,16 @@ preparation and job views along the way. Main's context reuse does not eliminate
 that unrelated projection work.
 
 The committed installation-only reader proposal `11b7ad65` on existing
-`refs/heads/codex/python85-release` (`76d6a916`) offers a concrete separation of
-responsibilities. Recommend adapting it through the existing read lease,
-project/head checks and `installation_in_session()`, adding the small store
-facade and changing only the inventory caller. No speed benefit is established.
+`refs/heads/codex/python85-release` (`76d6a916`) is now covered by the single
+[proposed implementation plan](2026-10-25-installation-only-reader.md). It adapts
+the existing validator/read lease, store facade and inventory caller, with local
+qualification and proposed quiet installed activation. No speedup is established.
 
-Keep only that existing ref temporarily for an explicit accept/reject decision;
-create no new source archive or checkout. The resolution action is to adapt and
-validate the narrow change, or reject it. End the hold when its code is on main
-or the proposal is rejected. This hold does not preserve the large old checkout
-and does not block storage cleanup.
-
-If implementing, port the installation-read guards, adapt readiness stubs and
-test ownership, and document the decision in the current ADR/spec indexes. Prove
-missing/current/outdated installation, canonical/upstream drift, corrupt evidence,
-missing project/head and fresh successive reads without review projection. Use a
-disposable installed-story fixture first, then affected Bridge/rebuild/readiness
-owners, independent review and one stable final local full gate before merging
-product code. No live project/provider work or GitHub CI is needed. Implementation
-is separately optional; approval of storage cleanup alone does not authorize it.
+That plan owns the implementation and operational approval boundary; storage
+cleanup alone does not authorize either. Keep the existing ref only until the
+narrow change is incorporated and qualified on main or explicitly rejected,
+then retire it. No new archive or checkout is needed, and the hold does not block
+completed storage cleanup.
 
 ## Reviewed parked source dispositions
 

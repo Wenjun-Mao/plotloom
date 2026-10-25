@@ -1,5 +1,15 @@
 # Plotloom roadmap entrypoint
 
+## Proposed validated installation-only reader
+
+The [bounded plan](2026-10-25-installation-only-reader.md) adapts the remaining
+useful historical proposal to current read leases and installation validation,
+changes only the inventory consumer, and specifies early disposable API/persistence
+proof, focused regressions, independent review and one stable full local gate.
+Approval is requested for implementation through quiet preservation-checked
+backend activation and retirement of the temporary proposal ref; planning alone
+authorizes none of those actions. No speedup, generation, push or CI is claimed.
+
 ## Completed top-five historical storage cleanup
 
 The owner-approved [cleanup](2026-10-25-top-five-cleanup.md#execution-result--2026-10-25)
@@ -16,8 +26,11 @@ two stale worktree registrations pruned, 29,348 regular files and three symlinks
 4,414,808 allocated KiB (approximately 4.2103 GiB, including caches and all 13
 obsolete receipt/helper roots). Final snapshots exactly matched the current
 project/settings/runtime/validator/guard/recovery baseline; both temporary helper
-code copies were removed. Unresolved review-first groups remain in the existing
-inventory. Neither batch claims filesystem free-space gain.
+code copies were removed. The [final necessity review](2026-10-25-top-five-cleanup.md#final-necessity-review--completed-2026-10-25)
+also removed all 17 remaining review roots: 4,561 files and 1,217,520 allocated KiB
+(about 1.16 GiB), with current projects/settings/runtime/recovery preserved.
+The fully adjudicated ignored inventory was retired. No batch claims filesystem
+free-space gain.
 
 ## Approved autosave and project Freeze implementation
 
