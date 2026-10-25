@@ -11,6 +11,10 @@ qualified by composite evidence and activated with preservation checks in the [d
 The census and line references below remain the audit baseline; unselected
 G2–G5 and all other extraction batches remain pending.
 
+The subsequent [reviewed G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
+defines its binder/validation/repair boundaries and verification; G2
+implementation approval is pending. No other batch is activated by planning.
+
 Baseline: clean retained `main` at `cfc55173df4418bc0d929ed93f2992daf99f03fb`, in `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Three read-only reviews covered generation, backend/services and frontend; the manager independently reconciled the census, inspected material evidence and reviewed scripts, other tests and documentation code. This report and its roadmap pointer are the only intended changes.
 
 **120 files exceed 400 lines; 42 reach the 500-line review threshold.** Recommendations: **52 EXTRACT, 65 RETAIN, 3 RETIRE**. An EXTRACT recommendation can move only a shared helper or a subset of responsibilities; it does not imply dividing every test case or meeting an exact resulting line count. RETIRE can remove one obsolete execution branch while retaining live neutral contracts.
