@@ -41,7 +41,7 @@ export function createBranchOperationOwner(quiescence: ProjectDraftQuiescence): 
     return !entry.state.unconfirmed;
   };
   const joinOrRefuse = async (entry: Entry) => {
-    if (!await settled(entry)) throw new Error("分支建议操作结果尚未确认；请先重新读取建议任务，再关闭、删除或创建快照。");
+    if (!await settled(entry)) throw new Error("分支建议操作结果尚未确认；请先重新读取建议任务，再冻结、删除或创建快照。");
   };
   return {
     snapshot: projectId => entryFor(projectId).state,
