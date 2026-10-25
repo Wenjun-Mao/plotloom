@@ -3,7 +3,7 @@ import { beforeEach, vi } from "vitest";
 // jsdom has no layout or native scroll implementation. Unit checks observe the
 // requested scroll; the real-browser suite owns its visual/viewport outcome.
 beforeEach(() => {
-  window.sessionStorage.clear(); window.localStorage.clear();
+  if (typeof window !== "undefined") { window.sessionStorage.clear(); window.localStorage.clear(); }
   if (typeof Element !== "undefined") Object.defineProperty(Element.prototype, "scrollIntoView", {
     configurable: true, writable: true, value: vi.fn(),
   });

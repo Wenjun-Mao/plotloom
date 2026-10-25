@@ -30,14 +30,16 @@ it("preserves the original basis and CAS across refresh and newer typing", async
   store.hydrate("a", [receipt("saved")]);
   store.update("a", "source", 1, "source:0", "local");
   store.hydrate("a", [receipt("other client", 2)]);
-  store.update("a", "source", 2, "source:1", "still local");
+  expect(store.update("a", "source", 2, "source:1", "still local")).toBe(false);
   const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockRejectedValue(new Error("CAS conflict"));
   await expect(store.flush("a", "source")).resolves.toBe(false);
   expect(save).not.toHaveBeenCalled();
   expect(store.get("a", "source")?.conflict).toBe(true);
   expect(store.get("a", "source")?.baseRevision).toBe(1);
-  await expect(store.clear("a", "source")).rejects.toThrow("another client");
-  expect(store.get("a", "source")?.payload.text).toBe("still local");
+  await expect(store.clear("a", "source")).rejects.toThrow("当前来源变化后的输入尚未保留");
+  expect(store.get("a", "source")?.payload.text).toBe("local");
+  expect(store.rejected("a", "source")?.text).toBe("still local");
+  await expect(q.preserve("a")).resolves.toBe(false);
 });
 
 it("force drops unsent buffers but never deletes acknowledged server drafts", async () => {
