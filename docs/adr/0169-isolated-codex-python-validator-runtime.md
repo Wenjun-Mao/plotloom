@@ -4,9 +4,9 @@
 
 The native Branches validator could not canonicalize the existing `.venv`
 interpreter through the uv-managed Python alias under its exact sandbox reads.
-The retained `20261014-07` diagnostic proved a copies-based environment and
-offline checked-lock sync remained alias-free, with original-alias, sibling
-runtime and credential sentinels denied. Its import control then failed on
+The `20261014-07` diagnostic confirmed a copies-based environment and offline
+checked-lock sync remained alias-free, with original-alias, sibling-runtime and
+credential sentinels denied. Its import control then failed on
 `src`: `PYTHONPATH=source/src` needs that directory, while the profile granted
 only `src/plotloom`. Branches validation did not run. These failures belong to
 the source-owned runtime/resource contract, before process admission.

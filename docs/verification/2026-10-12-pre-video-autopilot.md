@@ -2612,10 +2612,9 @@ activation ran for this checkpoint.
 
 One manager-authorized, provider-free diagnostic tested whether an alias-free
 disposable Python environment could run the frozen Branches validator under the
-production Codex sandbox. The evidence is preserved in
-`.local/exec-validator-sandbox-probes/20261014-07/`, including the prelaunch
-plan, exact sanitized argv/config, setup records, sandbox control results, and
-the final result. Source was `4442331b5b4d1634f51151e78e59e1095cffb00f`;
+production Codex sandbox. Its local scratch outputs have since been retired;
+this entry preserves the diagnostic's reported result. Source was
+`4442331b5b4d1634f51151e78e59e1095cffb00f`;
 profile SHA-256 was
 `1d1e3ce93d6574ccab521e5e0b45c1e4cd406f0162f9150530790b575c471976`, and
 validator SHA-256 was

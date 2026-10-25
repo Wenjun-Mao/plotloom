@@ -614,17 +614,15 @@ below; provider generation and old-run replay remain held.
 The first all-route sandbox probe passed the Outline Node validate/render pair
 but the Branches Python/uv validator stopped before validation:
 `uv` could not canonicalize `.venv/bin/python`. No provider was called and no
-candidate was accepted. The retained probe and denial logs are in
-`.local/exec-validator-sandbox-probes/20261014-02/` in the worker checkout.
-Under the exact profile, Python `lstat`/`readlink` of `.venv/bin/python` pass,
-while following it with `stat`/`realpath` is denied. `codex sandbox
---log-denials` records `file-read-metadata` denied on the intermediate uv
-runtime alias `~/.local/share/uv/python/cpython-3.12-macos-aarch64-none`, even
-though the profile lists that exact alias path. Operation and uv logs are in
-`.local/exec-validator-sandbox-probes/20261014-03/`.
+candidate was accepted. Under the exact profile, Python
+`lstat`/`readlink` of `.venv/bin/python` pass, while following it with
+`stat`/`realpath` is denied. `codex sandbox --log-denials` reported
+`file-read-metadata` denied on the intermediate uv runtime alias
+`~/.local/share/uv/python/cpython-3.12-macos-aarch64-none`, even though the
+profile lists that exact alias path.
 
-Private-venv diagnostics in `20261014-04/`, `20261014-05/` and `20261014-06/`
-did not test an alias-free runtime: each venv's raw `bin/python` link points to
+Three private-venv diagnostics did not test an alias-free runtime: each venv's
+raw `bin/python` link points to
 `~/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12`, and
 that intermediate directory is itself a symlink to
 `cpython-3.12.13-macos-aarch64-none`. Each `pyvenv.cfg` sets `home` to the
@@ -634,21 +632,22 @@ mutable `cpython-3.12-macos-aarch64-none/bin` alias, `implementation = CPython`,
 alias metadata denial. Their recorded argv hashes are respectively
 `b7e70a5a`, `159ea621` and `6777e562`; filesystem-config hashes are
 `94d61cce`, `6af00b1a` and `578f31b7`. The scratch script was edited between
-runs rather than snapshotted with each result, so these hashes distinguish the
+runs rather than snapshotted with each result, so these hashes distinguish
 captured commands/maps but do not substitute for contemporaneous script
-snapshots. Future probe roots must save the exact script and argv before launch.
+snapshots.
 
-The single alias-free diagnostic in `20261014-07/` used the exact versioned
-interpreter through supported `venv --copies`, followed by locked offline sync.
-The copied executable and `pyvenv.cfg` remained alias-free. Original aliases
-and synthetic sibling-runtime/credential sentinels were denied. The subsequent
+The single alias-free diagnostic used the exact versioned interpreter through
+supported `venv --copies`, followed by locked offline sync. The copied
+executable and `pyvenv.cfg` remained alias-free. Original aliases and synthetic
+sibling-runtime/credential sentinels were denied. The subsequent
 `uv run --project … --locked --no-sync` import control failed because the
 sandbox denied reading `src` while granting `src/plotloom`; the Branches
-validator did not run. Its exact script, argv/config and results are retained.
-This diagnostic did not approve a production provisioning or permission change.
-All owned diagnostic processes exited. No retry, provider call, full gate,
-activation, merge or push was performed. Decide the CLI runtime/import contract
-from this checkpoint before allocating further native proof.
+validator did not run. The diagnostic scratch outputs have since been retired;
+this roadmap preserves the result summary. This diagnostic did not approve a
+production provisioning or permission change. All owned diagnostic processes
+exited. No retry, provider call, full gate, activation, merge or push was
+performed. Decide the CLI runtime/import contract from this checkpoint before
+allocating further native proof.
 
 #### Approved isolated runtime repair · 2026-10-14
 
