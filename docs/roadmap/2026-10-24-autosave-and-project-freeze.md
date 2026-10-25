@@ -312,8 +312,9 @@ from agent-operated functional verification.
 
 ## Execution inventory — source review checkpoint
 
-The following is the implemented candidate inventory, pending final unfiltered
-qualification and root-owned installed activation. All rows use existing typed
+The following is the locally qualified source inventory. Composite execution
+and retained failed runs are detailed in the verification receipt; root-owned
+installed preservation/activation remains separate. All rows use existing typed
 project draft CAS; the graph keeps its single writer. A server receipt preserves
 working input, never semantic acceptance. Ordinary settings/credentials remain
 outside these journals.
@@ -338,8 +339,8 @@ outside these journals.
 | Reference and same-person observations | `managed_reference:character`, `same_person:binding`, storyboard/identity mapping basis | Reviewer identity, judgment and productionDecision excluded | Fresh reviewer with recovered observations; media currentness tests |
 | Managed import origin/additions | `managed_reference:import:shot`, storyboard basis | File selection/upload and rights authority stay explicit | Typed text adapter plus pending-file guard |
 | Manual H3 English and raw seed | `h3_directions:shot`, exact source identity and returned source hash | Fresh source read, checkbox, compiled approval and request identity required | Raw00042/English remount; stale source disables editing; rejected race blocks departure |
-| Batch English per shot/path | `video_directions:batch`, exact manifest hash and owned shot/path | Directions Apply/recompile and Start explicit | Known manifest/target adapter; final browser qualification pending |
-| Video pack observations, rejection reason, segment/reopen notes | `video_pack_notes:batch`, `take_rejection:job`, `video_segment_notes:job`; exact review/job/selection/source basis | Operator identity, review judgment, reopen/replace/dispatch authority excluded | Owning adapters/current review suites; final UI qualification pending |
+| Batch English per shot/path | `video_directions:batch`, exact manifest hash and owned shot/path | Directions Apply/recompile and Start explicit | Known manifest/target adapter; complete browser allocation/composite closure in receipt |
+| Video pack observations, rejection reason, segment/reopen notes | `video_pack_notes:batch`, `take_rejection:job`, `video_segment_notes:job`; exact review/job/selection/source basis | Operator identity, review judgment, reopen/replace/dispatch authority excluded | Owning adapters/current review suites; final UI allocation/composite closure in receipt |
 | Whole-material review text / manual retry directions | `material_review:bundle`, `text_retry:attempt`, exact bundle/run/rejection basis | Judgments, authorization, retry commands and confirmation excluded | Material text projection excludes authority; existing review tests |
 
 Read-only/frozen recovery disables editing and does not resume observers or
@@ -364,16 +365,25 @@ post-boundary fallback; no live rollback/migration was executed.
 
 ## Qualification execution boundary
 
-Implementation is committed on local main at `008898d7`, followed by the final Freeze wording/receipt checkpoint `4f072cca`. Independent original/residual and bounded branch query/departure delta reviews are closed. The single unfiltered full invocation is retained as failed at 1506 frontend passes / 14 failures; test-only fixture repair `33b3813c` passed its21 causal cases and the rerun entire failed frontend step (1520 cases). Exact unchanged upstream evidence is reused while existing full downstream commands continue. The [durable verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md) owns the final executed outcome, complete asset manifests and rollback limits; qualification and installed activation remain separate.
+Implementation is committed on local `main`: `008898d7`, `4f072cca`, test-only
+`33b3813c`, reviewed post-full backend `7f8c554a`, and final executable/static
+candidate `efd665b870f74d2eecb416e0e2e8de8e1800b8cf`. All independent source and
+browser-expectation reviews are closed. Durable owner decisions and reasons live
+in ADR0218 and owning product/engineering clauses; the decision index and manual
+link there. No chat transcript or parallel plan is needed.
 
-
-The original complete downstream browser step finished328/29; its result and all
-29 classifications remain in the receipt. Shared ordinary-preservation proof and
-exact cast-session File lifetime were corrected and independently closed; fresh
-frontend1529 passed. Browser adaptation then revealed an image-direction action
-boundary: retained-only warning recovery must await a loaded current entry and
-recheck live ownership/admission/readiness even inside its deferred state updater.
-The final focused2 real UI journeys and entire1532 frontend suite passed on the
-four-file recovery correction. No backend/Python inputs changed. Final complete
-357-case browser and existing package/smoke steps follow stable source/test review
-and fresh deterministic two-tree parity; the receipt owns exact final execution.
+The single unfiltered full invocation and its continuations remain failed where
+they failed: first frontend1506/14, native3971/9, initial browser328/29, final
+stable browser356/1. Diagnosed failed/affected checks and the remaining exact full
+command objects close composite qualification under AGENTS.md; no failed run is
+renamed green. Fresh frontend1532 passed; both types passed; full affected
+lifecycle6 passed after the Restore acknowledgement fixture correction; the351
+unaffected final browser cases are reused. Complete deterministic7-file trees
+match, final3viewport pixels are retained/inspected, wheel build and installed
+smoke passed. No second complete Python run or second `full` invocation occurred.
+The [durable verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md)
+owns exact selections/results, complete manifests, failure classifications,
+evidence reuse and rollback-reader versus old-validator limits. The qualified
+source/static/wheel recovery package is retained. Root owns installed data
+preservation, activation and Safari review after the worker's actual idle handoff.
+No push, hosted CI, live project/UNKNOWN mutation or installed operation is claimed.

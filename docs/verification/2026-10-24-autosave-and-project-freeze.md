@@ -1,7 +1,9 @@
 # Working input autosave and optional Freeze · 2026-10-24
 
-Status: implemented candidate; final local qualification pending. Installed
-activation and preservation belong to the manager and are not claimed here.
+Status: locally qualified source candidate through composite evidence under
+AGENTS.md. Original failed full/browser runs remain failed; this is not a single
+clean full-suite pass. Installed activation and preservation belong to the manager
+and are not claimed here.
 
 The [approved plan](../roadmap/2026-10-24-autosave-and-project-freeze.md) retains the
 owner's five explicit choices and the complete editor/entity/basis inventory.
@@ -11,7 +13,10 @@ records execution, not personal creative acceptance.
 
 ## Candidate and boundary
 
-Local `main` implementation commit: `008898d7`. Only retained checkout
+Local `main` implementation began at `008898d7`; the final executable/static
+candidate is `efd665b870f74d2eecb416e0e2e8de8e1800b8cf`. A subsequent test-only
+Restore acknowledgement correction and this receipt do not change those runtime
+inputs. Only retained checkout
 `/Users/wjmao/.codex/worktrees/b30f/plotloom` was written. The installed checkout,
 backend, bridge, Safari, valued projects/settings/accounting/credentials and
 UNKNOWN holds were not operated by this worker. All runtime mutations below used
@@ -172,6 +177,68 @@ Older image fixture failures remain failed in original logs and copied artifacts
 final complete browser, second-build parity and installed-wheel gates remain
 pending below.
 
+## Final composite result and retained package
+
+The final stable downstream run used clean `main` candidate
+`efd665b870f74d2eecb416e0e2e8de8e1800b8cf`. All2776 tracked files were pinned
+in `.local/autosave-final-candidate-files.json` (SHA-256
+`08f6f5ee050c947c25751b1d134e215892e768246bdd948c36f318fcda7334cb`);
+`.local/autosave-final-downstream-inputs.json` records all10 filters unset,
+Python3.12.13 and macOS27.0.1 arm64. The complete manifest matched after the run:
+no source, test, fixture, dependency or configuration input changed during it.
+
+`autosave-final-stable-downstream.log` records the existing unmodified full-step
+command objects: second deterministic build passed1.122s, checked-static parity
+passed0.017s, complete browser allocation passed1.776s, and unfiltered browser357
+completed356 passed /1 failed (646.276s). The overall run remains failed. Its only
+failure was a fixture synchronization error: the archived project was already
+current, so the current-project label preceded Restore's exclusive completion.
+The test's immediate visual-workbench GET therefore returned409 `project_busy`
+inside Restore, followed by normal200 once the operation ended. No API retry or
+product tolerance was added. The fixture now awaits the actual Restore POST and
+its nonarchived row state. The entire affected lifecycle file passed6 cases in
+25.6s (`autosave-final-lifecycle-ack-causal.log`), including exact media retention,
+scoped deletion, duplicate lost-response replay and delayed-selection ownership.
+The351 unaffected final browser cases outside that file are reused. This is
+composite coverage of the357-case allocation, not a relabeled green357 run.
+The failed trace is retained in
+`.local/autosave-evidence/final-stable-browser-first/`.
+
+Runtime source remains exactly the750-file manifest `5a217689…`; the final
+lifecycle change is five fixture lines only. The unchanged Python3971 initial
+positive cases are reused except where the reviewed five-file backend correction
+already rechecked affected contracts. All9 original native failures are closed
+by the retained11-file87 positives, final inspection6, title30 retained positives
+and corrected raw-title/actual rollback2 proofs. The correction separates
+inspection validation from unchanged lease/quarantine authority and makes raw
+current title projection agree with already-valid store display; valid store
+inputs have identical projection. No second complete Python invocation occurred,
+and no single clean3980/3986 native pass is claimed. The final ownership census
+passed with3986 Python cases,1532 Vitest cases and357 browser cases; a census is
+selection evidence, not an execution result.
+
+Both complete7-file static trees match exactly, manifest SHA-256
+`376652c643974485e7fd5fd4dd658c06cdf3c7e63458054fdd0e0efee74fc888`;
+`workbench.js` is `461d922158fce4a279ecf70803f22444440e5c86dff7ba1dc7ac345809a3d03d`.
+All three final checked-static PNGs were copied before Playwright reset its output,
+then visually inspected by worker and manager: readable rows, clear More focus,
+reachable actions/footer and no material overlap at1280×768,1280×460,1700×900.
+`.local/autosave-final-checked-static-pixels.json` binds full pixel hashes, exact
+original paths and candidate/JS identity; files are under
+`.local/autosave-evidence/final-checked-static-directory/`.
+
+The existing remaining wheel and installed-wheel smoke steps passed in
+`autosave-final-package.log` (4.535s total). The smoke installs into a disposable
+environment and probes outside the checkout. Retained exact wheel:
+`.local/autosave-qualified-wheels/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+`77ca35762d4dda2754ad8454d45925f8ccdb204ba59147719e4f01abf552ca63`.
+The current source/static recovery archive and complete package/hash manifest are
+retained under `.local/autosave-qualified-recovery/`; this is code recovery,
+not a live project backup or rollback. `.local/autosave-evidence/README.md` is the
+local evidence entrypoint. No worker-owned source/package gate remains for this
+bounded local handoff; manager-owned preservation/activation and installed
+Safari review remain separate. Hosted CI was not requested or run.
+
 ## Recovery and limits
 
 Prior `4c6db5ff` directly refuses a null-Brief home with
@@ -180,8 +247,8 @@ old canonical draft validator rejects the empty numeric payload with
 `ValidationError`. Thus old workflow compatibility is unqualified after new
 writes; blanket old-reader refusal is not claimed. Current source reopens both
 same fixture homes with original logical rows and files exact. No live rollback,
-SQL migration, deletion or canonical-history rewrite was performed. A qualified
-current source/static recovery package is required at final handoff.
+SQL migration, deletion or canonical-history rewrite was performed. The qualified
+current source/static recovery package is retained at final handoff.
 
 Browser evidence uses Chromium and owned synthetic ready media, not installed
 Safari or a valued story. Functional local QA does not establish the owner's

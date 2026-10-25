@@ -160,7 +160,12 @@ test.describe("M1-B0 real project journeys", () => {
     expect(await assetEvidence()).toEqual(retained);
     await expect(page.getByRole("button", { name: "创建恢复快照", exact: true })).toBeDisabled();
     await openDirectory(page);
+    const restored = page.waitForResponse(response => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/restore`);
     await projectItem(page, title).getByRole("button", { name: "恢复" }).click();
+    expect((await restored).ok()).toBeTruthy();
+    // This project was already current while archived; that label is not a restore receipt.
+    await expect(projectItem(page, title)).not.toContainText("已归档");
     await expect(projectItem(page, title)).toContainText("当前项目");
     expect(await assetEvidence()).toEqual(retained);
 
