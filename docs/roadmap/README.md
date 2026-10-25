@@ -1,5 +1,14 @@
 # Plotloom roadmap entrypoint
 
+## Proposed top-five historical storage cleanup
+
+The owner requested source-level adjudication of the five largest review groups
+before proposing their cleanup. The [review and plan](2026-10-25-top-five-cleanup.md)
+identifies one selective installation-reader proposal, incorporated parked work,
+small unique private source, original media/source exports and isolated historical
+UNKNOWN envelopes. Investigation and planning do not authorize implementation or
+deletion; the optional reader improvement does not block storage cleanup.
+
 ## Approved autosave and project Freeze implementation
 
 The [autosave/no-Close plan](2026-10-24-autosave-and-project-freeze.md) records the
