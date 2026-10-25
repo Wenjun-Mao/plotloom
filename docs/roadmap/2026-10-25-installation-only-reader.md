@@ -301,3 +301,44 @@ amendment cue. No source correction was required. The stable full local gate is
 next under the same sole qualification owner. No full/hosted gate, installation,
 recovery refresh, live-state edit or proposal-ref deletion has yet been performed. Manager owns activation/recovery/ref
 retirement. Known phase timings beyond the runner measurements are unavailable.
+
+## Stable full qualification and scoped repair, 2026-10-25
+
+Independent review and manager product/test diff inspection found no source issue.
+The missing exhaustive ADR catalogue entry/datestamp was added before committing
+candidate `b0ce2e66bd132700ce99759800618c1e847779fb` on retained main, clean at start.
+The sole qualification owner ran exactly
+`uv run --locked --no-sync python scripts/verify.py full` once.
+
+Original full result: **failed**, 2098.419s, at the unfiltered browser gate:
+**352 passed, 6 failed** (650.451s browser step; 10.8m Playwright). No automatic
+retries were configured. Earlier passing gates retain their results:
+
+- Locked dependencies; FFmpeg/FFprobe 9.0.2; API F401; archived prompt reader.
+- Frontend: 172 files / **1538 tests passed** (6.358s step); frontend typecheck passed.
+- Python: **4019 passed**, exact native inventory SHA-256
+  `4fa34465cdd80bfb36cfc92a44105e4b1339e1d79031da008c8aa41d935e8c48`.
+  Worker 1: 2113 passed / 1 warning, 1406.72s pytest, 1420.414s runner;
+  worker 2: 1906 passed / 9 warnings, 806.56s pytest, 819.560s runner.
+  Both complete-case fingerprints validated; Python full step 1433.595s.
+- Deterministic frontend build passed (1.320s); checked static parity passed.
+- Browser fixture typecheck passed; allocation verified 99 specs / 358 cases,
+  shard sizes 101/69/80/108 with no overlap or omissions.
+
+All six failures were strict locator ambiguity, rather than failed product state:
+exact global text `归档只读` or `冻结只读` matched the toolbar badge plus six
+workflow labels. Retained snapshots showed the correct banner/read-only controls.
+Affected cases: directory archived-open access; lifecycle archive/restore/delete;
+Source archived read-only at 1700x900, 1280x768 and 1280x460; storyboard batch
+playback while Frozen. Five assertion sites in those four specs now scope the
+same exact text to `page.getByRole("banner")`. All other assertions remain.
+The manager independently reviewed the archived-status contexts and approved
+this fixture correction. The Frozen case has the identical diagnosed cause.
+
+Failure contexts were inspected in the existing `frontend/test-results` output;
+no separate failure archive was created. The original failure remains recorded
+here even after temporary outputs are removed. Product, static and dependency
+inputs remain unchanged from b0ce2e66; only these test locators and documentation
+change. Preserve the Python/frontend/unchanged-browser evidence above. Wheel
+build/smoke were not reached in the original full run and will be run narrowly
+with ordinary existing commands after affected-spec verification.

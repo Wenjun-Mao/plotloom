@@ -218,7 +218,7 @@ for (const viewport of sourceAuditViewports) {
     await json(request.post(`${archivedRoot}/archive`, { data: { expectedLifecycleRevision: archived.lifecycleRevision } }));
     const archivedBefore = await json(request.get(`${archivedRoot}/source-outline`));
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${archived.id}&stage=source#source`);
-    await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByText("归档只读", { exact: true })).toBeVisible();
     await expect(story).toHaveValue(material.text); await expect(story).toBeDisabled();
     await expect(page.getByText("项目当前只读，可查看已有内容；不能修改来源或准备、发送新任务。", { exact: true })).toBeVisible();
     await expect(page.getByText("故事来源已确认。下一步准备大纲任务，再发送给文字创作助手。", { exact: true })).toHaveCount(0);

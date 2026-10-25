@@ -102,7 +102,7 @@ test("current archived open project keeps read-only title access and Restore wit
   expect(created.status()).toBe(201); const project = await created.json();
   expect((await request.post(`${workbench.apiOrigin}/api/v2/projects/${project.id}/archive`, { data: { expectedLifecycleRevision: project.lifecycleRevision } })).ok()).toBeTruthy();
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=brief`);
-  await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByText("归档只读", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "当前项目 · 切换" }).click();
   const directory = page.getByRole("dialog", { name: "项目目录" }); await directory.getByLabel("显示归档项目").check();
   const row = directory.locator(`[data-project-id="${project.id}"]`);
@@ -110,7 +110,7 @@ test("current archived open project keeps read-only title access and Restore wit
   await expect(row.getByRole("button", { name: "退出工作区", exact: true })).toHaveCount(0);
   await expect(row.locator(".directory-open")).toBeEnabled();
   await row.locator(".directory-open").click(); await expect(directory).toBeHidden();
-  await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByText("归档只读", { exact: true })).toBeVisible();
 });
 
 test("two-row keyboard focus keeps internal Tab navigation and gives Escape to the focused disclosure", async ({ page, request, workbench }) => {

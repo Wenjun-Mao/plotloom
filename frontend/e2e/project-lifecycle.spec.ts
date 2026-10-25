@@ -144,7 +144,7 @@ test.describe("M1-B0 real project journeys", () => {
     await page.getByLabel("显示归档项目").check();
     await expect(projectItem(page, title)).toContainText("已归档 · 只读");
     await openProject(page, title);
-    await expect(page.getByText("归档只读", { exact: true })).toBeVisible();
+    await expect(page.getByRole("banner").getByText("归档只读", { exact: true })).toBeVisible();
     for (const [view, save] of [
       ["故事圣经", "应用故事圣经修改"],
       ["场景节拍", "保存节拍计划"],
