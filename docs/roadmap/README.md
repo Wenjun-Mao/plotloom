@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Reviewed G1 and retired-execution plan; implementation pending
+
+The owner accepted the audit's direction to extract generation response/repair
+contracts first and retire the three obsolete execution paths. The
+[reviewed implementation plan](2026-10-25-generation-contracts-and-retirements.md)
+covers G1, scope-less stage repair (R1), raw media (R2) and Atlas fallback (R3),
+with exact supported-contract preservation, early provider-free runtime proof,
+one final local qualification owner and proposed quiet activation/rollback.
+Independent execution-limits review passed with two clarity refinements applied.
+Implementation approval remains pending; no code or installed state changed.
+
 ## Completed modularity audit; implementation pending
 
 The [source audit](../verification/2026-10-25-modularity-audit.md) reviews all 120
