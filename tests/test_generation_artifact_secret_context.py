@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -23,10 +24,9 @@ from tests.project_storage_generation_support import (
 )
 
 
-@pytest.fixture(scope="module")
-def continuity_validation(tmp_path_factory):
-    """A real persisted rejected validation artifact, not a fabricated fact."""
-    store = _store(tmp_path_factory.mktemp("continuity-secret-context"))
+def _new_continuity_validation(root: Path):
+    """Create actual persisted rejected evidence using the current native owners."""
+    store = _store(root)
     corrected = None
 
     def reject_once(request, response):
@@ -62,6 +62,14 @@ def continuity_validation(tmp_path_factory):
         artifact
         for artifact in store.run_trace(run.id).artifacts
         if artifact.kind == ArtifactKind.VALIDATION and artifact.content["repairFacts"]
+    )
+    return store, validation
+
+
+@pytest.fixture(scope="module")
+def continuity_validation(tmp_path_factory):
+    store, validation = _new_continuity_validation(
+        tmp_path_factory.mktemp("continuity-secret-context")
     )
     yield store, validation
     store.close()
@@ -216,3 +224,73 @@ def test_generic_redaction_remains_accepted_without_rewriting_evidence(
     )
     stored = store.generation.add_artifact(candidate)
     assert stored.content == content == store.generation.get_artifact(stored.id).content
+
+
+def test_persisted_continuity_null_authority_survives_snapshot_and_restore(
+    tmp_path: Path,
+) -> None:
+    import json
+
+    from plotloom.generation.continuity_repair import (
+        assert_continuity_repair_fact_matches_source,
+    )
+    from plotloom.generation.contracts import ValidationIssue
+    from plotloom.generation.repair_facts import serialize_semantic_repair_fact
+    from plotloom.generation.semantic_repair import (
+        assert_semantic_repair_fact_matches_issue,
+    )
+    from plotloom.project_storage import ProjectFolderStorage
+
+    source, validation = _new_continuity_validation(tmp_path / "source")
+    original_content = deepcopy(validation.content)
+    assert original_content["repairFacts"][0]["boundaries"][0]["assignments"][0] == {
+        "kind": "fact",
+        "key": "weather",
+        "expectedValue": None,
+    }
+    owner = ProjectFolderStorage(
+        outputs_root=source.home.parent,
+        application_data_root=source.home.parent.parent / "application",
+    )
+    project_id = source.project().id
+    source.close()
+    receipt = owner.recovery.create_snapshot(project_id)
+    assert receipt.status == "complete"
+    fresh = ProjectFolderStorage(
+        outputs_root=tmp_path / "restored" / "outputs",
+        application_data_root=tmp_path / "restored" / "application",
+    )
+    fresh.recovery.restore(Path(receipt.location))
+    restored = fresh.projects.open(project_id)
+    try:
+        artifact = restored.generation.get_artifact(validation.id)
+        assert artifact.content == original_content
+        assert (
+            artifact.content_hash
+            == validation.content_hash
+            == stable_hash(artifact.content)
+        )
+        trace = restored.run_trace(validation.run_id)
+        response = next(
+            item
+            for item in trace.artifacts
+            if item.attempt_id == validation.attempt_id
+            and item.kind == ArtifactKind.RESPONSE
+        )
+        rejected = json.loads(
+            response.content["rawResponse"]["choices"][0]["message"]["content"]
+        )
+        bible = restored.authoring.get_stage_payload(project_id, StageName.STORY_BIBLE)
+        issues = tuple(
+            ValidationIssue.model_validate(item) for item in artifact.content["issues"]
+        )
+        wire = json.loads(artifact.model_dump_json())["content"]["repairFacts"]
+        for raw in wire:
+            fact = parse_semantic_repair_fact(raw)
+            assert serialize_semantic_repair_fact(fact) == raw
+            assert_semantic_repair_fact_matches_issue(fact, issues)
+            assert_continuity_repair_fact_matches_source(
+                fact, rejected, stage=StageName.SCENE_BEATS, bible=bible
+            )
+    finally:
+        restored.close()
