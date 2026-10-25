@@ -4,9 +4,10 @@
 
 The owner requested source-level adjudication of the five largest review groups
 before proposing their cleanup. The [review and plan](2026-10-25-top-five-cleanup.md)
-identifies one selective installation-reader proposal, incorporated parked work,
-small unique private source, original media/source exports and isolated historical
-UNKNOWN envelopes. Investigation and planning do not authorize implementation or
+identifies one selective installation-reader proposal and incorporated parked
+work. Under the owner's necessity-only rule, unused QA media, private prototypes
+and speculative exports are disposal candidates; current dependencies and valued
+work stay excluded. Investigation and planning authorize no implementation or
 deletion; the optional reader improvement does not block storage cleanup.
 
 ## Approved autosave and project Freeze implementation
