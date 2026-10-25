@@ -28,9 +28,9 @@ pytest failure report. Complete failed logs remain at
 or required coverage was changed. Subsequent hosted dispatches are recorded
 separately below; this failed run is not relabelled green.
 
-The reproduction uses a separate tracked-source/Git snapshot under
-`.local/batch-video/linux-ci/source`, Ubuntu 24.04 arm64, Python 3.12.3, Node 22,
-procps 4.0.4 and the lockfile's Chromium 151.0.7922.34. Hosted Ubuntu x64 used
+The historical reproduction used a separate tracked-source/Git snapshot with
+Ubuntu 24.04 arm64, Python 3.12.3, Node 22, procps 4.0.4 and the lockfile's
+Chromium 151.0.7922.34. Hosted Ubuntu x64 used
 Python 3.12.15: these are material environment differences, not a hosted pass.
 No live data/configuration volume is attached. Later process checks use the
 owned `--init` container `plotloom-ci-qualification-20261018` for orphan reaping.

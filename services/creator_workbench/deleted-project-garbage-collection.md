@@ -77,8 +77,12 @@ shared-runtime safety tests remain; production startup still uses
 Old local CI evidence and superseded package deletion is a separate operator
 step: the manager removed the approved old run/CI and superseded recovery/wheel
 artifacts. A single current source/wheel recovery bundle is kept in
-`.local/current-qualified-recovery/`; the copied source checkout containing
-uncommitted work was preserved.
+`.local/current-qualified-recovery/`. The obsolete copied CI checkout was then
+reviewed against retained main: all 26 changed/untracked paths were already
+integrated or superseded, with no unique missing changes. It was removed without
+archive: 9,349 regular files, 18 inert links and 390,940 allocated KiB (about
+382 MiB). Git independence and absence of open handles/container mounts were
+checked before removal.
 
 Separately, the October 25 compatibility review classified all 28 database
 copies and 19 project IDs in five legacy QA workspaces as unsupported.
