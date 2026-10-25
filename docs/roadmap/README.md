@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Completed modularity audit; implementation pending
+
+The [source audit](../verification/2026-10-25-modularity-audit.md) reviews all 120
+handwritten source-like files above 400 lines (42 at or above 500), plus selected
+smaller ownership clusters. Each has an explicit extract, retain or retire
+recommendation with reasoning; proposed changes map to named finite batches,
+not an implicit promise to extract on the next edit. Start with generation leaf
+contracts (G1); the three retired-execution decisions (R1–R3) are separately
+flagged for owner review. Audit authority does not authorize implementation,
+retirement, activation, provider work, push or CI. No application code changed.
+
 ## Completed validated installation-only reader
 
 The [completed plan](2026-10-25-installation-only-reader.md) adapted the useful
