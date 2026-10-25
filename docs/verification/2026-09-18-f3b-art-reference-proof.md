@@ -1,5 +1,9 @@
 # F3B art-reference proof receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. Implementation candidate: `7c581d8f12358697579b012d5e14974396981a86` plus the final F3A-to-F3B folder-schema transition and verification commit.
 
 ## Scope and ownership

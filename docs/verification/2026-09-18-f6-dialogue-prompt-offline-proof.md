@@ -1,5 +1,9 @@
 # F6 dialogue prompt — offline corrective fixture proof
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. This is technical/test-only pre-submit evidence, not
 audiovisual qualification, human creative approval, selection, gateway upload,
 provider call, reservation, submit, poll, or authorization for a new live
@@ -8,7 +12,7 @@ dispatch.
 ## Root cause and ownership
 
 The retained first live attempt at `19c477a` remains unchanged. Its
-[`submission-summary.json`](../../.local/relay/e7f90144-3860-491b-9926-87f055df4e58/submission-summary.json)
+`submission-summary.json` (retired local artifact)
 froze generic shot values (`交代选择`, `角色握紧信件。`, `稳定推进`),
 `dialogueCues: []`, and `audioPlan.events: []`. The required line and audio
 directions were never authored, so no gateway override, TTS, retry, or

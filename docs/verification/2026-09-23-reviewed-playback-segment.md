@@ -1,5 +1,9 @@
 # Reviewed playback segment — bounded technical receipt (2026-09-23)
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Outcome and boundary
 
 The approved first [ADR 0082](../adr/0082-proposed-production-playback-timing.md)

@@ -1,5 +1,9 @@
 # Step 3 storage-transition preflight
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Captured 2026-09-15 at `889d19f`. This is the approved Step 3 **read-only
 preflight**, not the storage transition. It neither started a runtime nor
 changed data, configuration, permissions, services, SQLite state, credentials,

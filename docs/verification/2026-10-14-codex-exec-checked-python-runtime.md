@@ -1,5 +1,9 @@
 # Checked Python validator runtime · 2026-10-14
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and revisions
 
 The owner-approved isolated runtime repair implements ADR 0169. The source
@@ -54,16 +58,17 @@ root below before/after launch as appropriate.
 | Plan SHA-256 | `620bc3742bf62e7a98233a316d8865ee12fbdd97f073ad354808519eac974acf` |
 | Result SHA-256 | `de764b13391cb0efb631eeabf635f0c586d0289119084e1824740bedbb0c4ce8` |
 
-Retained local evidence:
-`.local/native-proof/checked-python-runtime-v7-20261014/` contains `plan.json`,
+Historical local evidence (subsequently retired):
+`.local/native-proof/checked-python-runtime-v7-20261014/` contained `plan.json`,
 `result.json`, the exact script/helper snapshots, per-command results/logs,
-frozen packages and report trees. The script entrypoint is the original
-`.local/checked_python_native_preflight.py`; its bytes match the saved snapshot.
+frozen packages and report trees. The original script entrypoint was a local
+preflight helper, now retired; it matched the snapshot at that checkpoint.
 An initial invocation of the relocated snapshot failed to import the service
 before entering the harness or launching any sandbox child. The corrected
 entrypoint consumed the one-shot launch marker exactly once; no native command
-was replayed. Earlier provisioning failures and root07 evidence are retained
-unchanged, including root07's failed import and unexecuted Branches pair.
+was replayed. Earlier provisioning failures and root07 evidence were unchanged
+at that checkpoint, including root07's failed import and unexecuted Branches
+pair. Their later local retirement does not change those failure outcomes.
 
 The manager independently reviewed the complete script, all expanded argv and
 139 retained artifacts, and accepted this bounded native gate at `e24cb80e`.

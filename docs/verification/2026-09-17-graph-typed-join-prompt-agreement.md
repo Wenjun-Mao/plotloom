@@ -1,5 +1,9 @@
 # Graph typed-join prompt agreement receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Captured 2026-09-17 from the retained baseline
 `6c68bf6b37393cc34e71988b084ce541106483f1`. This is a prospective, bounded
 prompt-contract correction. It is not a historical rewrite, creative approval,

@@ -1,5 +1,9 @@
 # F5 storyboard production-seam receipt — bounded timing evidence, failed correction, and content-preserving grouping split
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. Baseline: `1364daa49e455836a784c0febf0e434928115b7c`.
 
 ## Scope and outcome
@@ -31,10 +35,10 @@ candidate/review owner, so it cannot admit a canonical storyboard.
 
 The raw frozen inputs and derived outputs are local, ignored proof artifacts:
 
-- [candidate JSON](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f5-storyboard-proof/storyboard.json) — SHA-256 `d0badc8c4768fcb70a407fef6b069ed01aa2764b65069bc90124dc4f26942f65`
-- [pinned Markdown render](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f5-storyboard-proof/storyboard.md) — SHA-256 `748733a8d76e6ab564bf18f6d3acb8abc2aa83dd82ed6b21e3386b00832c08d2`
-- [pinned HTML render](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f5-storyboard-proof/report.html) — SHA-256 `60b8efcc2b5a94faf568ad7c40fcaacd92115d730dd3a4925584a4c98ffb817a`
-- [completion receipt](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f4-current-proof/outputs/20260918T063228536312Z__d3ad5da3-905e-4eb2-90c8-7d52d1cb4fd0/outputs/creative-handoff/jobs/ch_f5storyboardproof20260918/delivery/completion.json) — SHA-256 `7e2819632e44a42beee3ca1b7d361ef3bc65dc602c2cf0e32174c9ecd3febc7e`
+- candidate JSON (retired local artifact) — SHA-256 `d0badc8c4768fcb70a407fef6b069ed01aa2764b65069bc90124dc4f26942f65`
+- pinned Markdown render (retired local artifact) — SHA-256 `748733a8d76e6ab564bf18f6d3acb8abc2aa83dd82ed6b21e3386b00832c08d2`
+- pinned HTML render (retired local artifact) — SHA-256 `60b8efcc2b5a94faf568ad7c40fcaacd92115d730dd3a4925584a4c98ffb817a`
+- completion receipt (retired local artifact) — SHA-256 `7e2819632e44a42beee3ca1b7d361ef3bc65dc602c2cf0e32174c9ecd3febc7e`
 
 The historical candidate's three sections are respectively 7/19/84s,
 7/21/91s, and 7/21/91s (segments/cuts/seconds). Its opening is within the
@@ -92,10 +96,10 @@ so the pinned validator rejected coverage and derived durations. The sole
 targeted correction normalized those claims and regenerated the raw candidate,
 Markdown, and HTML reports. Its raw artifacts are:
 
-- [corrected candidate JSON](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/storyboard.json) — SHA-256 `88b2babc94f2edadc0b1582197c243e46cfd40fe388117686081ed39c1c07dc8`
-- [corrected Markdown render](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/storyboard.md) — SHA-256 `d27a627744273248e63776dac19f4a0c92171abd19023ec21fb639d8ba042f8b`
-- [corrected HTML render](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/report.html) — SHA-256 `dd95eb6742ac64f92c66888f2623983453cc345f3530127dc16cc10f30e2a48e`
-- [pinned validation log](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/validate-correction.log), [checkup log](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/checkup-correction.log), and [explicit cap check](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/explicit-caps.json)
+- corrected candidate JSON (retired local artifact) — SHA-256 `88b2babc94f2edadc0b1582197c243e46cfd40fe388117686081ed39c1c07dc8`
+- corrected Markdown render (retired local artifact) — SHA-256 `d27a627744273248e63776dac19f4a0c92171abd19023ec21fb639d8ba042f8b`
+- corrected HTML render (retired local artifact) — SHA-256 `dd95eb6742ac64f92c66888f2623983453cc345f3530127dc16cc10f30e2a48e`
+- pinned validation log (retired local artifact), checkup log (retired local artifact), and explicit cap check (retired local artifact)
 
 The correction proves the relevant upstream timing fact: its explicit
 `params.maxCutSeconds: 8` passes the cut-length and dialogue-fit gates; its
@@ -142,10 +146,9 @@ script, dialogue-feasibility, cut-duration, or production-H3 issue.
 One new derived candidate was made in ignored local scratch, without touching
 either frozen earlier attempt, an F0 package, a database, or production source:
 
-- [baseline correction](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard.json) — SHA-256 `88b2babc94f2edadc0b1582197c243e46cfd40fe388117686081ed39c1c07dc8`
-- [derived split candidate](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard-split.json) — SHA-256 `50165863d45e678c28bcf794c6f9f5444b6aa45eef2caa446595dd638313578a`
-- [content-preservation proof](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/content-preservation.json), [explicit cap proof](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/explicit-caps.json), and [raw hashes](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/hashes.log)
-- [pinned validation](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/validate.log), [full-input checkup](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/checkup-full-inputs.log), [Markdown render](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard-split.md), and [HTML render](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/report-split.html)
+The baseline correction, derived split candidate, content/cap checks and renders
+were local QA artifacts, subsequently retired. The contract-relevant comparison
+and validation outcomes follow.
 
 Only the former `E02-06` was split at its existing third-cut boundary. The
 first retained `E02-06` is 10.0 seconds (`[5, 2.5, 2.5]`) and the new

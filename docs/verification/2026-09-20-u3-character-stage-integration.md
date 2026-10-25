@@ -1,5 +1,9 @@
 # U3 Characters-stage integration — technical verification receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-20. Scope: accepted cast text review and F2B image-reference
 review only. This is technical evidence, not creative approval or the pending
 attended creator-usability acceptance.

@@ -1,5 +1,9 @@
 # Advisory shot policy: isolated U4 installation receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and provenance
 
 This is implementation verification, not creative/media acceptance. The retained `暴风灯塔` U4 original and the prior live-intent source trial were not edited. A third isolated installation, `.local/relay/shot-policy-u4-trial/`, was restored from the original public snapshot `b267032e-1290-4819-859e-bb8e94dfc0ab` with the U4-era supported restore tool, then opened by current code. The original project retained Brief r1, accepted source-map graph r1, cast r1, art r1, script r2, and source storyboard review r2. The current runtime served the isolated copy at `127.0.0.1:8822`; no provider or media dispatch was made.

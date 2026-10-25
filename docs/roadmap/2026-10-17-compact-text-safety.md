@@ -1,5 +1,9 @@
 # Compact installed-text safety prefix — October 17, 2026
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Approved source step: clean `3fc0ed951e8c52b6fde174240ed8fbadace18eb8`, b30f,
 sole writer. [ADR0185 extension](../adr/0185-installed-text-test-prefix.md#compact-two-cut-text-only-safety-prefix--october-17-2026)
 owns the finite compact30s/two-cut text-only contract and changed host observation.
@@ -55,7 +59,7 @@ full saved raw log/result and genuine exit0 terminal remain immutable, with an
 explicitly labelled additive readout reconstruction. No runtime failure or retest
 occurred. A static freezer's docstring-offset AST comparison was corrected
 additively; the original failure/freezer remain preserved, without a test replay.
-[Candidate packet](../../.local/remaining-cost/compact-text-safety-3fc0ed95-20261017/)
+Candidate packet (retired local artifact)
 records source/QA/CLI/O pins, full case IDs and the limited capture recovery.
 
 Root and independent review accepted the source/correctness checkpoint: 106
@@ -73,7 +77,7 @@ Root accepted one separately released matched eleven-case screen, control first:
 | Native result | 11 passed, 1 warning | 11 passed, 1 warning |
 
 Observed whole-command difference: 37.207657500053756s / 62.27418472726257%
-shorter for candidate. [Original pair receipt](../../.local/remaining-cost/compact-text-safety-screen-3fc-prep-20261017/pair-receipt.json)
+shorter for candidate. Original pair receipt (retired local artifact)
 SHA `f0b4187cac6a3264f78d4937100af45b22d9d59a232d8108b01b6ac8248d0957`.
 Both original arms naturally exited zero without signals; recorded owned groups
 were absent, protected pins/endpoints matched and evidence parents remain.

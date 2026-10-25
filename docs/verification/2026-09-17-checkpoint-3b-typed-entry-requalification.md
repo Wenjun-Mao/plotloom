@@ -1,5 +1,9 @@
 # Checkpoint 3B typed-entry continuity requalification receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Captured 2026-09-17 at local `main` revision `0083e62b2c593508262372446c8075e0dcb3e828`. This is one isolated current-contract runtime requalification after the engineering correction accepted at that revision. It is not developer-free UI creation evidence, Storyboard Approval, human creative acceptance, or checkpoint-3B acceptance.
 
 ## Isolation and retained input

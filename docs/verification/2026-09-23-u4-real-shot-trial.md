@@ -1,5 +1,9 @@
 # U4 lighthouse opening: one real shot trial
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Boundary and source
 
 This bounded development trial uses a separate retained copy at

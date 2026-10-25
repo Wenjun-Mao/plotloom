@@ -1,5 +1,9 @@
 # Step 4 selected-path and terminal-publication receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and outcome
 
 This source-only slice projects selected current ingested clips onto one explicit

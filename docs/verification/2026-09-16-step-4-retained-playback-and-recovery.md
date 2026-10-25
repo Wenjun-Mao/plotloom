@@ -1,5 +1,9 @@
 # Step 4 retained playback and recovery proof
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Captured 2026-09-16 UTC against the accepted source candidate `ab7fc46` and
 retained project `fef96fc8-86f8-4132-91bd-32d58f5bb504`. This is operational
 proof for the retained two-clip fragment only. It is not a claim that Codex

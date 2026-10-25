@@ -1,5 +1,9 @@
 # Checkpoint 3B causal-conflict diagnostic receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This is a smallest, disposable feasibility experiment for the unresolved
 author-owned causal inconsistency recorded in the typed-entry requalification
 receipt. It is not a production gate, an implementation change, a detector

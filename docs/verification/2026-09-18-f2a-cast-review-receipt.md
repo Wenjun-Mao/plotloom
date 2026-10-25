@@ -1,5 +1,9 @@
 # F2A source-bound cast review receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. Scope: candidate-only character proposal review and explicit
 accepted cast persistence. This is technical workflow evidence, not human
 creative acceptance, media production, or voice-consistency proof.

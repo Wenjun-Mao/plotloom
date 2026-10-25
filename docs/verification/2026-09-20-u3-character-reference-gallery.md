@@ -1,5 +1,9 @@
 # U3 character-reference gallery verification — 2026-09-20
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and contract
 
 This is the first approved, bounded U3 surface only: the read-only

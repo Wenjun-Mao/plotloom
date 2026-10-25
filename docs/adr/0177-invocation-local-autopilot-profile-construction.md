@@ -1,5 +1,9 @@
 # 0177 — Invocation-local autopilot profile construction
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: owner-authorized October 14, 2026; implementation committed at
 `db0216999210616fa6020ef156b811abb735d55f`, parent
 `8ab58839df652e21ec5eef51a63c925d33a1af58`. Independent stable code review,

@@ -1,5 +1,9 @@
 # U4 longer continuous opening H3 trial · 2026-09-25
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and source authority
 
 This is one isolated production-shaped experiment, not a change to the original

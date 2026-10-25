@@ -1,5 +1,9 @@
 # U4 canonical-shot handoff and preparation visibility — 2026-09-23
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and outcome
 
 This is a bounded technical implementation, not product, creative, storyboard,

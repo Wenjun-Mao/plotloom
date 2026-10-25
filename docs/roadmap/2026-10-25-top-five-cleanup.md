@@ -1,10 +1,13 @@
-# Top-five historical storage review and cleanup proposal — 2026-10-25
+# Top-five historical storage cleanup — 2026-10-25
 
-Status: proposed for owner review. This document authorizes no product merge,
-historical-data deletion, provider call or service change. The earlier cross-shot
-cleanup is complete and separate.
+Status: owner-approved cleanup completed on 2026-10-25. All seven worktrees,
+four historical roots and obsolete loose helpers in the approved batch are
+removed. Product implementation, provider calls and service changes were outside
+this storage-only scope.
+The earlier cross-shot cleanup is complete and separate.
 
-Source reviewed: main `016552e63c0304b79a64fd76b351d1648579fc18`.
+Source review began at main `016552e63c0304b79a64fd76b351d1648579fc18`;
+execution source preflight used main `206a6c70`.
 The owner subsequently rejected preservation based on uniqueness or hypothetical
 future reuse. This revision replaces the earlier media/source-library proposal.
 
@@ -14,8 +17,8 @@ Aliases:
 - `P`: `/Users/wjmao/projects/HU/plotloom` (installed checkout).
 - `W`: `/Users/wjmao/projects/HU/plotloom-worktrees`.
 
-The [complete storage inventory](../../.local/cleanup-inventory-20261025.json)
-remains the exact-path census. This plan resolves its first five review groups;
+The existing [storage inventory](../../.local/cleanup-inventory-20261025.json)
+records pre-cleanup allocations, not current availability. This plan resolves its first five review groups;
 it does not replace the earlier approximately 4.2 GiB disposable-batch proposal.
 
 ## Owner's preservation rule
@@ -34,7 +37,7 @@ condition. It is not permission for indefinite retention. An unexpected current
 dependency found during execution is investigated narrowly; it does not hold the
 whole batch or justify keeping an entire historical directory.
 
-## Revised dispositions
+## Approved dispositions (executed)
 
 | Group | Allocated KiB | Main-source conclusion | Recommended disposition |
 | --- | ---: | --- | --- |
@@ -47,8 +50,8 @@ whole batch or justify keeping an entire historical directory.
 Total allocation is approximately **6.19 GiB**, without double-counting the two
 linked worktrees inside `remaining-cost`. Nearly all is a retirement candidate;
 there is no longer a proposed 243 MiB media collection or 0.6 MB prototype archive.
-Measure actual allocation after an approved operation rather than promising
-filesystem free-space gains.
+The execution result below reports actual removed allocation; it makes no
+filesystem free-space claim.
 
 ## Rejected preservation proposals and why
 
@@ -141,11 +144,11 @@ QA envelopes were retired with remote outcomes unknown. If execution discovers
 an actual live consumer, defer only that concrete dependency and resolve it
 through the supported lifecycle; do not fabricate settlement or clear a live hold.
 
-## Proposed batch order and acceptance
+## Approved batch order and acceptance
 
-1. Obtain approval for the explicit cleanup scope, including discard of unused
-   development media and the defective private census implementation. This plan
-   remains a proposal; no deletion happened during investigation or revision.
+1. Owner approval received for the explicit revised scope, including discard of
+   unused development media and the defective private census implementation.
+   Investigation and proposal revision themselves performed no deletion.
 2. Take a fresh current-project/settings/host/runtime baseline and recheck exact
    target identity, source status, consumers, quiescence and no-follow boundaries.
    Existing current dependencies stay excluded. Do not create new preservation
@@ -178,3 +181,46 @@ Independent necessity review (requested GPT-6.1 Sol / Medium; effective settings
 unverified) confirmed that the former media/source/export proposals had no
 established preservation case and that a plain-text no-retry note was not an
 enforced safety mechanism. The revised plan removes those prerequisites.
+
+## Execution result — 2026-10-25
+
+The manager removed all five parked checkouts and both nested linked worktrees
+through Git's worktree lifecycle. All four approved historical roots are absent:
+`R/.local/native-proof`, `R/.local/remaining-cost`, `P/.local/relay` and
+`R/.local/specialist-integration-20261022-preserved`. The 24 obsolete loose helper
+paths and one associated `exec_validator_sandbox_probe.pyc` cache were removed.
+The target/helper/cache census covered 137,501 regular files, 911 symlinks,
+6,232,827,567 logical bytes and **6,491,076 allocated KiB (approximately 6.19 GiB)**.
+This is removed-file allocation, not a promise of filesystem free-space gain.
+The earlier approximately 4.2 GiB disposable batch is separate and unexecuted.
+
+The smallest ordinary disposable-fixture removal passed preservation checks
+before the full batch. Fresh checks after full removal matched the baseline
+exactly: eight current projects, 672 project tables, 263 persistent files, all
+application/host tables, 15 protected fingerprints, both checked validator
+environment identities, runtime/bridge identities and functional recovery files.
+Host accounting remains **85 attempts: 82 completed, three settled, zero UNKNOWN**;
+queues, slots and validators are zero. All five functional revocation tombstones
+remain unchanged. No healthy service was restarted and no newer user data was
+overwritten.
+
+The three isolated historical UNKNOWN envelopes were retired locally with their
+remote outcomes still unknown. They were not installed host attempts, and no
+settlement, current reservation release, replay or provider outcome is inferred.
+No QA images/provenance, private census prototype, Lighthouse exports, new UNKNOWN
+record, archive, library, preservation commit or new ref was created. The sole
+temporary source exception is the existing `codex/python85-release` ref at
+`76d6a916`, with reader proposal `11b7ad65` still an ancestor, for the bounded
+accept/reject action above. It does not retain a checkout or establish a speedup.
+
+Documentation retirement removes artifact links and obsolete operational holds,
+while retaining current ADR/API contracts, useful performance requirements and
+truthful historical pass/failure limits. Repeated raw log/hash inventories and
+one unconsumed process snapshot were removed. Remaining old path identities are
+explicitly historical, not available artifact links or current launch procedures.
+Independent read-only review found no current-contract, failure-limit or design
+loss; its present-tense evidence/hold wording findings were corrected. Changed
+local links and the diff were checked. No product, test, build, provider, hosted
+CI or push operation occurred; storage-only cleanup required no product test run.
+The manager owns the subsequent functional-recovery refresh and installed-doc
+synchronization, separately from this tracked documentation checkpoint.

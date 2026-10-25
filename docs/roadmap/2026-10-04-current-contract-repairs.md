@@ -1,5 +1,9 @@
 # Six current-contract repairs
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: Owner approved; implementation complete, independently reviewed and fully
 locally qualified. Runtime candidate `0aff7dd49325f7424341d6007f083739bf96aadc`
 is published from retained `main` baseline `fa8e80c9122fc20189a1f30dd1f12ea040db5070`.

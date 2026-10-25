@@ -1,5 +1,9 @@
 # Production-bridge live intent trial on the retained U4 lighthouse
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Boundary and retained copies
 
 This was one bounded text-generation trial against an isolated copy of the

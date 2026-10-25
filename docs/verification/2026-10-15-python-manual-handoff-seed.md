@@ -1,5 +1,9 @@
 # Manual-handoff seed reuse and scoped Python measurement
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This receipt records accepted local implementation and scoped evidence. Root
 accepted the documentation in review `61225c` for a docs-only local checkpoint.
 It does not publish source or establish broader qualification or product acceptance. Current
@@ -32,9 +36,9 @@ the unchanged tested bytes.
 | Candidate executable input | `79973a3759870ef2c89487709c3b0c8d4c06cfdfa32498fcbbcb5e0a7a9793b8` |
 | Reviewed/committed diff | `442e78271ab1b7101025640ffa9cda85165d497fc173f9684509da101afbeb2b` |
 
-The [functional result](../../.local/remaining-cost/manual-import-handoff-seed-20261015/format-corrected/result.json)
+The functional result (retired local artifact)
 has SHA `53200a7d58b0d4fcfe3ca79bf08484768644832f4befd2fb744c4282841bf989`.
-The [commit receipt](../../.local/remaining-cost/manual-import-handoff-seed-review-20261015/commit-receipt.json)
+The commit receipt (retired local artifact)
 has SHA `ff24e38b8d8f5be62a0fb203633be4f41054a94076574b1698103d1fc4b075e7`.
 Its source/environment/cleanup limitations remain unchanged; that functional
 run had no separate loaded-module probe. The later pair supplies its own proof.
@@ -47,7 +51,7 @@ Allocation `manual-handoff-original12-bec6107c-pair-20261015-root-1` is
 baseline AST preflight, after exact revision/submodule/source-input/owner-byte
 checks passed. No collection or measured pytest child ran; no measured wall,
 test failure or speed result exists. The
-[failed receipt](../../.local/remaining-cost/manual-handoff-original12-pair-bec6107c-prep-20261015/run-p4i4dhqq/result.json)
+failed receipt (retired local artifact)
 has SHA `8ee635f4fbab6162960c689fc5841ad5aa99efbea68e52803a990760e05a40c5`.
 Root independently confirmed its four groups absent and exact registered root
 removed (`b5ad33`). All nine failed-preparation/launch files remain immutable.
@@ -101,7 +105,7 @@ tools, cache, protected evidence and local/public review ref `260a22d0` matched
 before/after. Prior189 plus the actual22 v2 files total211 preserved artifacts;
 historical CLI per-case cleanup receipt loss remains **UNAVAILABLE**, not repaired.
 
-The [accepted result](../../.local/remaining-cost/manual-handoff-original12-pair-bec6107c-v2-prep-20261015/run-_p4tb466/result.json)
+The accepted result (retired local artifact)
 has SHA `ffe2835e2b146ce177ce9bf68f3c7ecc86ec3e38c612ba80d76a302684b2a53a`;
 its hash map verifies all 16 raw artifacts. Before/after measured logs have SHAs
 `be3f22b32332188bfb8850376f2a50e663e1f7d901d2fdbb1f33743439866889` /

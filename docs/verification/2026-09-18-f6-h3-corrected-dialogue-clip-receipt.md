@@ -1,5 +1,9 @@
 # F6 corrected H3 dialogue clip — bounded live receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Subsequent attributed human review
 
 The user reviewed the hash-bound corrected clip and rejected its audiovisual

@@ -1,5 +1,9 @@
 # Checkpoint 2 synopsis-to-proposal receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Captured 2026-09-17 against the local checkpoint-2 candidate. This records
 implementation and automated verification; director product acceptance and any
 push remain separate.

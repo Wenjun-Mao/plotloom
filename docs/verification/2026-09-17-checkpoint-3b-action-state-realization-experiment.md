@@ -1,5 +1,9 @@
 # Checkpoint 3B action/state realization experiment receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This is one bounded, disposable Scene Beats authoring experiment. It is not a
 production gate, implementation change, schema or validator decision,
 Storyboard Approval, human creative approval, or checkpoint 3B acceptance.

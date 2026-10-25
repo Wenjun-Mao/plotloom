@@ -1,14 +1,17 @@
 # Plotloom roadmap entrypoint
 
-## Proposed top-five historical storage cleanup
+## Completed top-five historical storage cleanup
 
-The owner requested source-level adjudication of the five largest review groups
-before proposing their cleanup. The [review and plan](2026-10-25-top-five-cleanup.md)
-identifies one selective installation-reader proposal and incorporated parked
-work. Under the owner's necessity-only rule, unused QA media, private prototypes
-and speculative exports are disposal candidates; current dependencies and valued
-work stay excluded. Investigation and planning authorize no implementation or
-deletion; the optional reader improvement does not block storage cleanup.
+The owner-approved [cleanup](2026-10-25-top-five-cleanup.md#execution-result--2026-10-25)
+removed seven worktrees, four historical artifact roots and 24 obsolete helpers
+plus one bytecode cache: 6,491,076 allocated KiB (approximately 6.19 GiB), without
+a filesystem free-space guarantee. Fresh checks exactly preserved eight current
+projects, settings, runtime/bridge and validator identities, functional recovery,
+85 host attempts (82 completed, three settled, zero UNKNOWN) and five revocation
+guards. No archive, export, new UNKNOWN record or source-preservation ref was made.
+The existing installation-reader proposal ref remains temporarily for a separate
+accept/reject decision; product implementation and the performance target remain
+separate. The earlier approximately 4.2 GiB disposable batch remains unexecuted.
 
 ## Approved autosave and project Freeze implementation
 
@@ -564,8 +567,11 @@ Python optimization and the speculative multi-image Codex batch-worker design
 are parked. The latest Python-only observation at `52b61d0c` passed 3,004 cases
 over 259 files in 794.7808812090079 seconds; the 151.73295-second target remains
 open. The private stack-census successor is unaccepted and mechanism-unqualified;
-it is not part of this merge. The older unaccepted row-byte candidate, held
-runtime roots and private evidence remain preserved separately.
+it was not part of that merge. The prototype's `Census.invalidate` fault-sink
+control flow is defective. The owner subsequently approved discarding that
+implementation and the obsolete private runtime/evidence roots in the
+[top-five cleanup](2026-10-25-top-five-cleanup.md); no prototype resume or new
+benchmark is implied. The performance requirement remains open.
 
 The dated entries below are historical checkpoint records, not current releases
 or instructions to resume optimization, generation, cleanup or live adoption.

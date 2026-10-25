@@ -1,5 +1,9 @@
 # F6 first live H3 clip — non-qualifying preserved result
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. This receipt records one isolated live H3 submission. It is
 not F6 audiovisual qualification, creative approval, a selected candidate, or
 authorization for another clip.

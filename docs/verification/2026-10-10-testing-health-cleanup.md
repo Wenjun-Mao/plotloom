@@ -1,5 +1,9 @@
 # Testing health cleanup
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status of the original cleanup: implemented, independently reviewed, locally/
 hosted qualified and published on the isolated branch. This receipt retains
 baseline and failed attempts separately from the corrected combined gate. Normal
@@ -1755,10 +1759,7 @@ overhead; nested cumulative values overlap, and work in other threads is not
 fully attributed. These are owning-cost diagnostics, not matched speed gains.
 The existing Starlette/httpx warning was non-failing. Retained attribution:
 
-| File under `.local/remaining-cost/` | SHA-256 |
-| --- | --- |
-| `image-safety-baqqddor/attribution.json` | `d5135e2473bc3b987094b695639a248a4869b18df17694b3dad0f3dc08532428` |
-| `terminal-outline-mxdx8ty6/attribution.json` | `f938d7f5eefdd7edc8e62a2279a0826810165a481bc2d4d89a521060014da64d` |
+Raw local artifact/hash inventory retired by the approved cleanup.
 
 Independent read-only prerequisite review rejected autopilot snapshot reuse:
 freshness and recovered-run command authority deliberately forbid it. No raw
@@ -1782,11 +1783,7 @@ ambient selection controls and verified the exact native five-case collection.
 `.local/remaining-cost/safety-baseline.json` retains source/input/host/toolchain
 fingerprints, exact commands, rounded phase durations and all three raw logs:
 
-| Log under `.local/remaining-cost/` | SHA-256 |
-| --- | --- |
-| `safety-baseline-1-duf3kxoy/pytest.log` | `fe40f7b9e955a8e7cb16f6cee4fde535e326a21586f1903bd4176b16ed5a8a84` |
-| `safety-baseline-2-83b692me/pytest.log` | `9d133f6d2cc2756d72ab037569de77d1b90e677ed05188f87f331d69aa0ff295` |
-| `safety-baseline-3-xcr7m2dn/pytest.log` | `46b87e4616af3b9817d44330c3ed97b789d0f6b5e205a0e4302a399c774292c1` |
+Raw local artifact/hash inventory retired by the approved cleanup.
 
 After those samples, only `tests/test_autopilot_image_safety.py` was changed:
 a local wrapper opts into the existing six-frame fixture and asserts eight
@@ -1837,13 +1834,7 @@ unchanged unknown-image restart and geometry controls were 5.68→5.38s and
 The host, Python, uv, selector order, command prefix and fresh-root policy
 match. All six raw log hashes were verified. Retained evidence:
 
-| File under `.local/remaining-cost/` | SHA-256 |
-| --- | --- |
-| `safety-baseline.json` | `33bc7e76fd4a1b990aaba224f6e642113b15e436676c33e5a29312ffeab6f61b` |
-| `safety-candidate.json` | `095123a91f2760108f3b7dcf67937045c63fcd81998d66c4c3994f3d5f8b5ad7` |
-| `safety-candidate-1-dqhus7gr/pytest.log` | `e2189fec4458bccc37f6b459d156a7c4046dec7bdcb14f427da543ea4a8db3d8` |
-| `safety-candidate-2-c38tj9r9/pytest.log` | `0e23fb1ef04c531ba65fa9f3308741c0cceee0c0748606b5ab5d8ebd122d0f33` |
-| `safety-candidate-3-ipgj3egx/pytest.log` | `a20b59be2e0a24936a448c6ee95e3942e8f13be2545c4e68f3ae47c54d660a00` |
+Raw local artifact/hash inventory retired by the approved cleanup.
 
 The ranges overlap and there are only three samples per checkpoint. This is
 a small observed selected-case improvement, not a statistically established

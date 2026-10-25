@@ -1,5 +1,9 @@
 # Codex Exec serial proof and F5 timing boundary
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-10-14. Scope: local functional execution and the existing canonical
 receiving requirement. Parallel performance, full local release qualification,
 creative acceptance and publication remain outstanding.

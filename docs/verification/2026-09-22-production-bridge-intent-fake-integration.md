@@ -1,5 +1,9 @@
 # Production-bridge dramatic intent — fake integration check
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This check covers the approved bounded follow-on in ADR 0079. It is an
 implementation verification, not creative or product acceptance. No real text
 provider, paid fallback, image, video, or H3 call was made.

@@ -1,5 +1,9 @@
 # F0 Shuohao foundation and handoff receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-17. Scope: F0 only. This records implementation and technical
 evidence; it is not creative approval, canonical installation, or M2 product
 acceptance.

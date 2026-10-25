@@ -1,5 +1,9 @@
 # F1A live source-to-outline proof receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-17. Scope: one disposable F1A production-UI proof; this is not
 F1/F1B completion, human creative approval, source clearance, or media work.
 

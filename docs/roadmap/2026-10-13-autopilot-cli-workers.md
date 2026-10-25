@@ -1,5 +1,9 @@
 # Parallel CLI workers for pre-video autopilot
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Accepted native CLI checkpoint · 2026-10-17
 
 Root and both independent reviewers accepted **scoped native parallel
@@ -566,18 +570,19 @@ successful validation, yet the host published success and the owner adopted it.
 The owner's branch schema/topology checks passed; they do not prove the required
 validator/render workflow ran. Independent review confirmed both owning defects.
 
-Run `f6c62865-85ca-46d1-b75c-f2b672a6c3b8` is paused at art, revision 26, with
-four text attempts and no images. Art was admitted during stopping; its exact
-attempt `0d5b68d5-0002-43eb-ac48-726d843173da` remains host `outcome_unknown` and
-project `running`, without retry, reconciliation or reservation release. All
-known processes are absent. Retain `.local/native-proof/serial-production-canaries-4442331b-20261014/halt_record.json`
-(SHA-256 `b25bd3db9e638c61d6e081730c745b20150214c6425de06f4349755cab7d770d`)
-and every prior failed/unknown root unchanged; this canary is not qualified.
+At that checkpoint run `f6c62865-85ca-46d1-b75c-f2b672a6c3b8` was paused at
+art, revision 26, with four text attempts and no images. Art was admitted during
+stopping; attempt `0d5b68d5-0002-43eb-ac48-726d843173da` had an unknown remote
+outcome. The canary was not qualified. The isolated old execution envelope and
+its halt record are retired by the approved cleanup; no current host reservation,
+replay instruction or new no-retry ledger follows from this historical record.
+The unknown remote outcome remains unknown.
 
-Release the same sole worker for a bounded source repair, not another canary:
-record an explicit ADR/package/profile ownership change, then make a frozen,
-source-owned validator/render plan the trusted supervisor's primary completion
-gate. Typed proof must bind required successful steps to exact source, runtime,
+Historical repair allocation after that checkpoint (completed by later source
+work; no present dispatch instruction): the same sole worker was released for
+a bounded source repair, with an explicit ADR/package/profile ownership change
+and a frozen source-owned validator/render plan as the trusted supervisor's
+primary completion gate. Typed proof must bind required successful steps to exact source, runtime,
 request, candidate and report bytes before publication/adoption. Keep independent
 domain checks. Pin the exact Python alias chain and target with minimal read
 access; preserve unrelated-root denial. Do not parse arbitrary model shell/JS
@@ -598,9 +603,10 @@ boundary defect: `packagePath` is the package directory, while the new trusted
 plan reader treated it as a file. That defect, the shared package/request
 projection and candidate-only prompt ownership are repaired. Focused checks
 passed and independent read-only review found no concrete blockers. The
-complete 11-plan native sandbox gate remains unqualified. The paused run and its
-unknown art attempt above remain untouched; no provider work or replay is part
-of this allocation.
+complete 11-plan native sandbox gate was then unqualified. At that checkpoint,
+the paused run and its unknown art attempt were untouched; no provider work or
+replay occurred in that allocation. Their obsolete private envelope was
+subsequently approved for retirement, with the remote outcome still unknown.
 
 The owner approved both operation-local Script/Storyboard context reuse and a
 bounded four-worker Python experiment on October 14 (eight only after measured

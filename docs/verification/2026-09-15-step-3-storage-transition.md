@@ -1,5 +1,9 @@
 # Step 3 storage transition
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Executed 2026-09-15 from the accepted `d54360a` preflight on local `main`.
 This receipt records a preservation-first local transition, not a legacy
 project import or a release/creative acceptance claim.

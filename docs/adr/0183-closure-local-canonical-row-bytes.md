@@ -1,5 +1,9 @@
 # ADR 0183: Closure-local canonical row bytes
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: bounded trial statically accepted by Root, October 17, 2026. Current-source
 integration passed the initial 41-case focused check and one separately released
 96-case affected-owner union. Performance, broader qualification and product
@@ -63,7 +67,7 @@ Starlette/httpx deprecation warning, original session 37431, natural exit0 withi
 the 1,200-second deadline. Both launched groups were absent at immediate terminal;
 selected source hashes stayed unchanged. The first 41 cases were reused.
 
-The [affected result](../../.local/remaining-cost/canonical-row-bytes-current-20261017/affected-union-result.json)
+The affected result (retired local artifact)
 has SHA `8c77a281361ad53d730a514305b3ca26842c4d50fdf682714783afb961d11bc2`;
 its sibling original native receipt and log retain exact commands and pins.
 Fixed QA metadata, explicit environment/PYTHONPATH and source hashes bind this
@@ -92,12 +96,13 @@ savings. Cache history, roots and generated IDs remain limits; no same-pytest-ch
 or global silence guarantee is added. Root retains the mechanism as an incremental
 optimization; no more one-case repetitions are selected. The fixed target stays open.
 
-The [first pair](../../.local/remaining-cost/canonical-row-bytes-screen-20261017/pair-result.json)
+The first pair (retired local artifact)
 has SHA `4b254e56cc49123bb053094e6bb53f52c0fdb4c85e0c5214fa696465aae198c2`;
-the [reversed pair](../../.local/remaining-cost/canonical-row-bytes-reversed-screen-20261017/pair-result.json)
+the reversed pair (retired local artifact)
 has SHA `b4b7285a6222b36152db76c6eb3cbc5f11b783fcca533af4162c1cad67b39527`.
-Their original receipts, logs, commands, pins and earlier manifests remain sealed
-at their actual sources. A local checkpoint commit does not upgrade that evidence.
+Their original receipts, logs, commands, pins and earlier manifests were sealed
+at their actual sources at that checkpoint and subsequently retired by the
+approved cleanup. A local checkpoint commit does not upgrade those outcomes.
 
 ## Fresh Result row adapter — October 17, 2026
 
@@ -132,7 +137,7 @@ passed (47 prior focused cases), followed by the exact retained six-file affecte
 transactions, geometry, image safety, late receipts and verification ownership.
 That union passed 96 cases, for 143 distinct focused cases across nine files.
 Scoped F/I, syntax, static ownership and diff checks passed. The
-[union receipt](../../.local/remaining-cost/material-result-closeout-4a61133f-20261017/correctness-union-receipt.json)
+union receipt (retired local artifact)
 retains exact full IDs, original native terminal and unchanged source/QA pins.
 
 One separately released natural complete-pack pair passed the unchanged case
@@ -142,7 +147,7 @@ shorter candidate is a modest screen, with fixed control-first order, shared
 OS/dependency caches and host-load limits. Both used fresh roots/UV caches and
 disabled pytest cacheprovider. Separate import probes do not establish loaded
 module origin in the pytest child. The
-[pair receipt](../../.local/remaining-cost/material-result-screen-4a61133f-prep-20261017/pair-receipt.json)
+pair receipt (retired local artifact)
 does not establish causal/statistical or whole-suite savings, an 85-percent goal,
 full release qualification or product acceptance. No repeat/reversed pair ran.
 

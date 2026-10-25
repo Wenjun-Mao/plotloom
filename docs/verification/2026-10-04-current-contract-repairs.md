@@ -1,5 +1,9 @@
 # Six current-contract repairs
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: implemented, independently reviewed, fully locally qualified, published
 and activated on normal 8841 after owner approval. Full remote CI is in progress;
 creator usability and creative acceptance remain separate.

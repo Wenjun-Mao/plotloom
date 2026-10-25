@@ -1,7 +1,16 @@
 # Python context reuse and bounded worker experiment
 
-The current approved source slice is the fresh Result row adapter below, on clean
-`4a61133f`. Earlier entries preserve their original scope and evidence.
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
+Historical implementation and observation log. The integrated source contracts
+remain on main; this file allocates no current source work, benchmark or launch.
+The latest Python-only observation at `52b61d0c` passed 3,004 cases in
+794.7808812090079 seconds, above the unchanged 151.73295-second target.
+The private census successor was unaccepted and had a `Census.invalidate`
+fault-sink defect; the owner approved discarding it, without a preservation ref,
+archive or resume plan. Earlier observations below retain their original limits.
 
 ## Fresh Result row adapter — October 17, 2026
 
@@ -22,7 +31,7 @@ cases (47 prior focused cases). The separately released exact six-file affected 
 (authority, claim transactions, geometry, image safety, late receipts and
 verification ownership): 143 distinct focused cases across nine files. Scoped
 Ruff F/I, syntax, ownership and diff checks passed; exact IDs and original native
-terminal are in the [union receipt](../../.local/remaining-cost/material-result-closeout-4a61133f-20261017/correctness-union-receipt.json).
+terminal are in the union receipt (retired local artifact).
 
 The accepted current absolute observation at `4a61133f` passed 2,985 cases / 257
 files in 814.730342s; its unchanged target of 151.73295s remains OPEN. It precedes this candidate
@@ -663,16 +672,8 @@ version file and retained timing-manifest hashes matched across the pair. The
 timing manifest was never rewritten. Metadata retains the exact environment
 whitelist and full dependency hashes without credentials.
 
-Evidence root: `.local/remaining-cost/geometry-quiet-6gvu0pg8/`.
-Each `before/` and `after/` contains `focused.log`, `collection.log`, `cases.txt`
-and `metadata.json`; `result.json` binds the command, revisions, environment,
-inputs, times, exit codes, reduction and restored main. SHA-256 values:
-
-- before `focused.log`: `8c1c2d18a75a46e09d97b060ad071e1f36256f67f648cff7629f84aa1cbd9499`;
-- after `focused.log`: `76e6d6757c080f5c7ec50a1469f95d8ad70d25a8d884df602ad0711edb00d44b`;
-- byte-identical ordered `cases.txt`: `d69c7a611d6574ce09d7c0e32385ba396fe2c69ff65130f8b93e9cade19121a6`;
-- `result.json`: `8bcfc999055fa62fd13dd103339b033543ed70b30074ae17993bcb6694b43aa2`;
-- observer `.local/remaining-cost/geometry_quiet_pair.py`: `b89c2795af125f13db374934501df479117facf98cc6983f334b2e57b7e9edf9`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 This demonstrates a measured saving for repeated real geometry setup while
 preserving all eleven selected cases, including unchanged generation/restart
@@ -825,15 +826,8 @@ and timing-manifest hashes matched between runs. The timing manifest was never
 rewritten. Ordered eight-case lists are byte-identical and retain sorted-ID
 fingerprint `25b6162b971cf349bb919944219bf3f8144401ef15d2b90d4ade0a9d0a9f254f`.
 
-Retained root: `.local/remaining-cost/handoff-quiet-1l6f0mdj/`, with per-run
-`focused.log`, `collection.log`, `cases.txt`, `metadata.json` and pair
-`result.json`. SHA-256:
-
-- before `focused.log`: `0ad337a3330b926a10e96435ec71a9c4fa6e7b489ec8a6e7c0c472bdfd13f84c`;
-- after `focused.log`: `8edee4fe89a9ad528f6c58401ba3425196559e65a840ea802e52028684a5ec08`;
-- byte-identical ordered `cases.txt`: `1452d54ba461ffafedc9dbb760d69b8e4d6fc0788ba834680374e3ad528550a4`;
-- `result.json`: `f02e8cd51af7f3089e3a5782213794a445c07d2a967a1b3764ff7777653a6e2e`;
-- observer `.local/remaining-cost/handoff_quiet_pair.py`: `c36fbd0600771a801b505d9ba9a9f82f135c762cca03090dbe610f5e33a9ee1c`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 This is a measured saving for the exact eight cases, including three unchanged
 fresh end-to-end controls. It is not a repeated median, whole-suite saving,
@@ -959,18 +953,8 @@ stable before/after each pinned run; host/interpreter/dependency/manifest values
 matched across the pair. The input fingerprint itself intentionally differs
 between executable revisions. No manifest was rewritten or relabelled.
 
-Evidence root `.local/remaining-cost/reconciliation-quiet-ajfc16x2/` retains
-`before/` and `after/` collection logs, native cases, focused logs and metadata,
-plus `result.json`. SHA-256:
-
-- before `focused.log`:
-  `5914081bfab4e6f3e81f043a860d4d987a73bd333df29b80bceb5a29067fbae9`;
-- after `focused.log`:
-  `eb67c3e4a121229acd6c13f7da8ea0dd1b83a1777c1740c3f12f694a5831aaf2`;
-- `result.json`:
-  `f3ef0e7a92ee10115b252e32b21eb8a7142c36606aa6fcbfd53a88d62ee97404`;
-- observer `.local/remaining-cost/reconciliation_quiet_pair.py`:
-  `1aaf70371576bd38726eea88c498fa64f68192748b51878f8796bd409cafa130`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 Native session 22282 completed once, with no retries. Its `finally` restored the
 exact clean starting `main` at `9161caea84a02bcb2fd4c766b10bd8dd5136b0ee`.
@@ -1084,18 +1068,8 @@ environment policy were used. Within-pin input fingerprints stayed stable;
 host/interpreter/dependency/manifest values matched across the pair. Separate
 native collection proved inventory equality. Manifest bytes remained unchanged.
 
-Evidence `.local/remaining-cost/native-bridge-quiet-1h38zjcz/` retains per-run
-`collection.log`, `cases.txt`, `focused.log`, `metadata.json` and `result.json`.
-SHA-256:
-
-- before `focused.log`:
-  `e4f3ce73c085788500bf8d63952f53e768ba1e6a773b744fc22e5b7af7ebe03d`;
-- after `focused.log`:
-  `7024c823572eeabebc21027b1f336531d3930ee615220908a3a11c6c3c3c47a6`;
-- `result.json`:
-  `4cf5a3e7b75458c4cca4c4319161c6692a2fa8d86204bbb2d5649c726ea6adec`;
-- observer `.local/remaining-cost/native_bridge_quiet_pair.py`:
-  `edf07a85ec1e9d849a9a93cdee35a5fc971568e24fac5730fff2d8b8cf15c06e`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 Native session 6478 completed once without retry and restored exact clean
 starting `main` `9161caea84a02bcb2fd4c766b10bd8dd5136b0ee` in `finally`.
@@ -1373,18 +1347,8 @@ manifest records matched across the pair. No manifest was rewritten. Native
 session 78826 completed once, and the observer's `finally` restored exact clean
 starting `main` `7a2d677b2590d8440fb1c18ac39c436b02c1e5a8`.
 
-Evidence `.local/remaining-cost/art-script-context-quiet-qoax2cd5/` retains
-per-leg collection logs, native IDs, focused logs and metadata plus `result.json`.
-SHA-256:
-
-- before `focused.log`:
-  `6af106b328024a80167e442680cd9b801e804ecfa0e2b99da696e58600b2e984`;
-- after `focused.log`:
-  `b55ec0fb8d9261986f3519babf602a7ab1f2582df2109793436ef6874de8a4f1`;
-- `result.json`:
-  `c74464853c1e588f953a7e221730e2d86b2368d0a66939b1979446fcf5b56e43`;
-- observer `.local/remaining-cost/art_script_context_quiet_pair.py`:
-  `3f2125ad69ab17815733df7be61298e0ef1c3d02730ad482819e02776c70dc7e`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 The manager independently verified logs/hashes, all 37 passes, matched IDs,
 source/host/dependency probes, arithmetic and clean restoration, accepting the
@@ -1475,15 +1439,8 @@ ADR 0170 authorizes no broad material bypass. If these guarantees require a new
 contract, obtain the owner's decision before implementation. No gate pruning,
 cross-owner snapshot sharing, global/result cache or source change is selected.
 
-Evidence root `.local/remaining-cost/complete-pack-current-930944ps/`, SHA-256:
-
-- `main.prof`: `7ffca76f0b6c9cf024c5aa0ed2b552d98726eaa6fc37ce1071acc62062de411d`;
-- `attribution.json`: `eb1b33754e6085e5899863ffcbe59b1fc9b10dd2762b3d1a30c02762458fc58f`;
-- `cardinalities.json`: `60547e4b485ec4c2fd7b454b793c470ba732d6f2808d76e464eee5ba58d93ffc`;
-- `profile.log`: `7007093a85bf95704c99f8f038241f26a0cea82e0dc8a8b887db4e53f24bc845`;
-- `result.json`: `811c1eb116ad688f6ced30cd28bc2dd45200b62a740ca507edeabd3aeae3a9f7`;
-- observer `.local/remaining-cost/complete_pack_current_profile.py`:
-  `7b636035859c72e185c5cd700752589b6fcc4b7efddedc76f481cfdfd405f251`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 The manager independently accepted result/hash/probe/native-case/cleanup facts
 and explicitly released the quiet allocation. All cost synthesis above was
@@ -1641,16 +1598,8 @@ sent promptly to the manager for CLI-window release. This subsequent docs-only
 receipt does not retarget the now-completed observer or invalidate its runtime
 inputs. All three completed observers retain their original bytes and pins.
 
-Evidence root `.local/remaining-cost/receipt-material-quiet-0jasxfgm/`, SHA-256:
-
-- `before/focused.log`:
-  `92f46742f24be3cdb52b5292ba8092004f1314fce53ac9ee9e6d999b983a75ef`;
-- `after/focused.log`:
-  `204fcb62a7f58e540d2b5eefcfc56a2acd38732aedddff7af26a6722d63914a8`;
-- `result.json`:
-  `9144012689ee4dc3f6243c7abcebbb73b9c67f095564d9401ae0050b21866dea`;
-- observer `.local/remaining-cost/receipt_material_quiet_pair.py`:
-  `a1becc448d09ca4c7b00b9ad6bd5a2cf81ea1f70fd9fc4f5ddb8b5bfdd5ff878`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 ### Current complete-Python capture failure and bounded repair
 
@@ -1855,14 +1804,8 @@ nor its 1110.509s phase total establishes a matched gain against this capture.
   or explicitly fund a broader cost-reduction program / revise the target.
   Current evidence cannot promise that safe remaining gains approach 151.733s.
 
-Evidence root `.local/remaining-cost/python-current-external-two-p3by4x5u/`:
-
-- `result.json`: `9043dfaddf48023e207d6f0dde87714ff533aaad92a0e5fa43b7324b76ba2b5c`;
-- `python-suite.log`: `bc7941773b2abb820d9050bc7848fbba41b13dac6be85909242917f4fb0c4369`;
-- `native-reports-and-phase-rows.json`: `28f32e9c6791fd3082b85390289bff2d67f510068c1ee7f102a65a5b45af4933`;
-- `native-cases.txt`: `e97b27cbf6417a7334ac6fa09cd1e732a229a001718ad3cf0bca33be96bbb003`;
-- observer `.local/remaining-cost/current_python_external_capture.py`:
-  `7ad3e54f17b18fb667db74c92a27e9a9202ee959bfa932be4eaaef54562e4658`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 Executable input is
 `18155d64c943e12b03766f50cb9b80be7b3e4e25ab93200ff2c66d0dce7dc6f0`;
@@ -2011,13 +1954,8 @@ device/inode ownership checks. Exact clean main `8fef5a2f` was restored;
 cleanup / restoration and released CLI before this documentation-only receipt.
 No retry, extra pair, profile, broader/full capture, hosted CI or push occurred.
 
-Evidence root `.local/remaining-cost/creator-confirmation-seed-quiet-0j8wvh0b/`:
-
-- `result.json`: `21e50c843668203040fc345193e1dcf5119143dce584e74bfe1116c70ac88843`;
-- `before/focused.log`: `efcf89a59b591ed7ebababecd1af5137b41c08fd6cb98c09fdf75a87bbfa3331`;
-- `after/focused.log`: `49ed6f732cc60e6b185148653cab6bbcaa46d84f2563f20d60ea3168004f98d1`;
-- observer `.local/remaining-cost/creator_confirmation_seed_quiet_pair.py`:
-  `a5605b992d1e165868ffe76664aee3b572bb3107dbe35cd29ea1925ac17f7dc2`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 All retained pair artifact hashes still match. This receipt changes only the
 plan, does not retarget the now-completed observer and establishes no new
@@ -2107,7 +2045,7 @@ the profiling checkout, SHA-256
 `3be56242301e7077c8232ec8b513d8c08af300ac2a2765f9aa349f4bb511cb71`;
 `call.prof` SHA-256
 `0568761cd60476b78b42aa863676e969a53dc17ba9dd7a529a230df1e84fbee3`.
-Command: `uv run --locked --no-sync python .local/remaining-cost/profile_case.py complete-pack`;
+The obsolete local complete-pack profiling command is retired;
 observer SHA-256
 `4fd3cb2fc79e81536e5746a68febc467de4a308e9984b6a782db6e7ef012885c`.
 Source remained clean and input/host fingerprints matched after completion.
@@ -2280,14 +2218,8 @@ open. The human owner's CLI verification-authority choice is still pending;
 provider, hosted CI, live
 activation, publication and product acceptance remain held or unestablished.
 
-Evidence root `.local/remaining-cost/ordinary-open-profile-isolated-jf3tfr7m/`:
-
-- `result.json`: `7d20525429c5e829e52b04fc0bc1bebadecd624333d76f44b2adf7dcfda9b2fd`;
-- `before/focused.log`: `aa55a4dd8c1fa4212347ce1c21be8c8b579096f53648c7494e109728a006d5b2`;
-- `after/focused.log`: `2f1a4056e25483fcf0669a870400b3cfa83717b6953255e06785a1e7de5ce763`;
-- observer `.local/remaining-cost/ordinary_open_profile_isolated_pair_20261015.py`:
-  `8941b90e71be7e515890432b5460e0cd6a559e481991a475ab0806284257c9b4`;
-- sealed plan: `9bf8ad66b531486cc3a9efce48681f9eaac7ce00f0701f0233de2dbd75753aca`.
+The raw local logs, profiles, observer copies and hash inventories for this
+checkpoint are retired; its recorded observations and limits remain above.
 
 Actual terminal, native proofs, source/environment/artifact preservation and
 owned-group/exact-root cleanup passed root's independent audit. Setup-01 remains
@@ -2533,9 +2465,9 @@ External whole-command wall was **591.4420814999903s**, native coordinator wall
 **584.771s**. Phase **work** totals were setup **174.38635409012204s**, call
 **963.4108807064476s**, teardown **0.9395840348443016s**, aggregate
 **1138.736818831414s**; these are not parallel wall or production-only time.
-See the retained [result](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/result.json),
-[raw log](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/python-suite.log)
-and [phase ledger](../../.local/remaining-cost/current-python-b0ed49f3-tidx1h3k/native-reports-and-phase-rows.json).
+See the retained result (retired local artifact),
+raw log (retired local artifact)
+and phase ledger (retired local artifact).
 Their SHA-256 pins are respectively
 `90c1ea3823fe912613a82ea5c6cea494ba4da3644022c7ece2a224075e79908b`,
 `93c946cfb40152f464232fadfa6e930cb4c1de0c6dfeb3f83419e370ca5395db`,
@@ -2563,7 +2495,7 @@ this receipt authorizes no implementation, profile or further execution.
 
 Root accepted the one-case instrumentation diagnostic at clean `ff822895`
 (executable input `c1dce293a0e3d514c52ba850be0f843a5a61bae1b708dc5dccb9c80890c9da01`).
-Its [raw profile and attribution](../../.local/remaining-cost/complete-pack-ff822895-profile-wedls046/result.json)
+Its raw profile and attribution (retired local artifact)
 remain immutable diagnostic evidence, separate from the whole-Python observation
 at `b0ed49f3`. Nested elapsed costs are not additive savings or a speed comparison.
 
@@ -2584,7 +2516,7 @@ orders found by scoped Ruff, the final union passed again: native session `55520
 exit 0, true exact-completion fingerprint
 `f2d10a99911b98ccc4d9ab7fa2ea32a049e4bb20fda039fb3fc991e86c3e6d95`,
 no skips/xfails. Scoped Ruff F/I and candidate AST checks passed.
-The [final result](../../.local/remaining-cost/local-derivations-20261015/final/result.json)
+The final result (retired local artifact)
 (`1bed2e3f79df0e27895d3cc6754c94c1fbadd149c357f9d80ee6e69479745e54`)
 records exact commands, file/diff pins and tested executable input
 `4bd3555a6c79ab04304627b539ed0ee739bedcbe814e2193fe01763b7162ceec`.
@@ -2614,7 +2546,7 @@ The first five isolation guards failed because the new test applied the strict
 closed-file inventory to an open sibling database. Its sidecar refusal correctly
 fired. The guard now compares whole-file inventories only after handles close;
 no filtering/tolerance or shared-helper change was added. The failed
-[result](../../.local/remaining-cost/f5-script-seed-20261015/result.json) remains
+result (retired local artifact) remains
 failed/immutable, and its owned group/root were cleaned.
 
 After that lifecycle correction, native `verify.py focused` passed **5 new
@@ -2626,7 +2558,7 @@ the true execution fingerprint is
 with no skips/xfails. All **78** retained F5 IDs match the pinned native inventory;
 the **72** prepared subset retains fingerprint
 `6302bc0e47d4e93e8d7dc65b5ff85745880034043d1cece21d3e2ad5ebb76f51`.
-The [functional result](../../.local/remaining-cost/f5-script-seed-20261015/corrected/result.json)
+The functional result (retired local artifact)
 (`ae65796d44886ca4acaf9d88db05da93c447ea90571acfb8718c408663ecd04e`)
 records commands, source pins and tested input
 `1defe3bd1be032df6414bfe43d6ee45f2122149cd741e4d6fb8ebcb306cc255f`.
@@ -2649,7 +2581,7 @@ observed reduction **30.691799125022953s / 67.84460583073019%** for this owner o
 Native setup work was **38.216601003921824s → 7.897962494957028s**; call work
 **5.3209375778678805s → 5.4965840411314275s**; teardown
 **0.2397347498626914s → 0.0804937499051448s**. Phase work is elapsed, not CPU.
-The [actual result](../../.local/remaining-cost/f5-original78-pair-ac73d635-prep-20261015/run-y_2odn0e/result.json),
+The actual result (retired local artifact),
 SHA `e6c9bdb7f5625b868a63e3db0bb8da141ea78f43181f2da0336226f1d6117f06`,
 records exact argv, timing boundaries and runtime/source bindings. Native handle
 `24515` / execution `10da31ae` exited 0; all 12 owned groups and registered root
@@ -2669,7 +2601,7 @@ All other test/helper ASTs and the 12 original handoff IDs remain unchanged.
 Focused correctness passed the changed case (**1**), then both full handoff and
 handoff-seed files (**14 / 2 files**, no skips/xfails), native `14867` exit 0,
 fingerprint `08be854b5eadae720307a9987e2d2229fbdb41885cb6535ccae6d6e0a5976f3f`.
-The [functional result](../../.local/remaining-cost/handoff-rollback-seed-20261015/result.json),
+The functional result (retired local artifact),
 SHA `7979b2f4296d2cbd5de8ecb52a1870f928d227c11bada64560d6e5ab08566553`,
 binds input `63831e592a96008bbf9fcf28c651ca06c77fb29b368da2a347ba9b851513779f`.
 Source/index/environment/host/tools/cache and 101 protected artifacts were
@@ -2690,7 +2622,7 @@ External whole-command wall was **577.8609485409979s**. Runtime binding and the
 standalone collection were outside its timer; native collection, both workers
 and immediate owned-group settlement were inside; extraction/root removal outside.
 Aggregate native phase work **1086.9134571815666s** is elapsed work, not CPU or
-a non-contention floor. The [actual result](../../.local/remaining-cost/current-python-f5e729d7-prep-20261015/run-fi4oe26i/result.json),
+a non-contention floor. The actual result (retired local artifact),
 SHA `08c665a1b10e1885e0c1c1162a2155c857dc755370073557ee6a56aaab12dee2`,
 binds actual argv, runtime/source/input, worker reports and all finite phase rows.
 Native handle `40794` exited 0; all 14 recorded groups and the inode-bound parent
@@ -2750,7 +2682,7 @@ receipt-projection files. The existing 90 native IDs match the accepted whole
 inventory; no skips/xfails. Fingerprint
 `e5bbc827daf7feddd35656868593e5bd1fc8341429c3cff23cfed1a4e644d708`;
 tested input `eeb0037ca05eec3ae60a5c7d6beb67b69d552811630ab938c30a37798dd68590`.
-Native session `72948` genuinely exited 0. The [functional result](../../.local/remaining-cost/run-view-checkpoint-evidence-20261015/affected-owner-union/result.json),
+Native session `72948` genuinely exited 0. The functional result (retired local artifact),
 SHA `d602a66a3d11f28465726380be9827110ff3f29bed83379608786dd97f982617`,
 contains exact commands, native IDs/markers, source pins and environment checks.
 Scoped Ruff F/I passed on the same executable input. One Starlette/httpx test-client
@@ -2785,7 +2717,7 @@ Observed whole-command wall was **557.6845981249935s**; runtime binding and
 standalone collection were outside the timer, native whole/default-two-worker
 execution and immediate owned-group settlement inside, extraction/root removal
 outside. All 228 finite phase rows total **1050.6278429156519s elapsed work**,
-not CPU or a non-contention/avoided-work floor. The [bound result](../../.local/remaining-cost/current-python-f1a3333a-prep-20261015/run-b4cdp1sx/result.json),
+not CPU or a non-contention/avoided-work floor. The bound result (retired local artifact),
 SHA `a15eb821b6eff95f4f77abd73debe54c75003712953952eda464a48f5f395888`,
 preserves commands, source/runtime bindings, native IDs, raw reports and phase rows.
 All 16 known owned groups, parent root inode `151988797` and nested runner root

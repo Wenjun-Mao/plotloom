@@ -1,5 +1,9 @@
 # Testing health cleanup — full creator E2E completion track
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: the original cleanup is implemented, independently reviewed and
 locally/hosted qualified. The owner approved the **performance follow-up P0–P4**
 below on October10 with an explicit Relay Direct “go.” P0 baseline and safety

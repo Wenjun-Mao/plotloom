@@ -1,5 +1,9 @@
 # CLI capsule handoff checkpoint
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Current status (2026-10-16): reviewed local commits `41792fcc` / `af8d529d` and
 Root's accepted full local software result at tested `af8d529d` are recorded in
 the [accepted checkpoint](#accepted-local-software-checkpoint-2026-10-16).
@@ -296,16 +300,16 @@ its copied owner tree was already clean. The reviewed fixture correction uses an
 intentional `--allow-empty` snapshot commit to preserve paid/generic HEAD
 inequality. Four actual-Git guards and both complete affected files (48 cases)
 passed before local commit `af8d529d`; existing isolation/receipt-byte assertions
-remain intact. See the retained [failed full packet](../../.local/native-proof/cli-full-local-source-20261016-01/README.md)
-and [fixture correction](../../.local/native-proof/fixture-snapshot-allow-empty-20261016-01/README.md).
+remain intact. See the retained failed full packet (retired local artifact)
+and fixture correction (retired local artifact).
 Their original outcomes and prior proposed follow-up remain unchanged.
 
-Root accepted the [corrected full local software packet](../../.local/native-proof/cli-full-fixture-corrected-20261016-01/README.md)
+Root accepted the corrected full local software packet (retired local artifact)
 at exact tested HEAD `af8d529df549e4031e0f6e22074af8fecb0c6d1a`, tree
 `070d3476d11e85a3574b113718f1423440e4be3d`: original session 90211 naturally exited
 zero, all 14 ordinary full steps passed, with 2,639 Python cases across 238 disjoint
 worker-owned files, 1,381 frontend units and 319 browser cases, plus bundle/parity
-and wheel/installed-smoke gates. The [66-artifact manifest](../../.local/native-proof/cli-full-fixture-corrected-20261016-01/artifact-manifest.json)
+and wheel/installed-smoke gates. The 66-artifact manifest (retired local artifact)
 is pinned by SHA-256 `667063756c65b11f6d4f424d08c14d64d2e5b3ccac21c3af67e664ce94589b3d`.
 Its closed `rootReviewPending` field records the packet's earlier handoff state;
 Root acceptance is additive and does not rewrite that receipt. This reconciliation

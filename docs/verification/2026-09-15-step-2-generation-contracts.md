@@ -1,5 +1,9 @@
 # Step 2 generation-contract receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and result
 
 This receipt records the generation group of the approved Step 2 verification

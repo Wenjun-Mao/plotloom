@@ -1,5 +1,9 @@
 # Installed-text fixture slice — October 17, 2026
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Approved step: one test-owned C slice on clean `6f2af250` in `b30f`, branch
 `codex/python-speed-current-20261017`, after Root accepted the profile-construction
 checkpoint. [ADR 0185](../adr/0185-installed-text-test-prefix.md) defines eligibility,

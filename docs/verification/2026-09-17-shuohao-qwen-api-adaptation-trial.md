@@ -1,5 +1,9 @@
 # Shuohao/Qwen screenplay API-adaptation trial
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This is one bounded, disposable comparison trial. It is not native execution
 of the upstream skill, a Plotloom integration, a production-code/schema/template
 change, a canonical-data mutation, Approval, creative acceptance, reliability

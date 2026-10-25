@@ -1,5 +1,9 @@
 # Specialist source consolidation into main — 2026-10-22
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: source consolidation and local cleanup completed. The director reviewed
 the qualified candidate, fast-forwarded main to `8603b665`, verified retained
 evidence, and removed the specialist worktree and local branch.
@@ -105,7 +109,7 @@ Final committed tracked blobs increased from 80,363,729 bytes at pinned main to
 89,043,711 bytes at the reviewed candidate: 8,679,982 bytes (8.28 MiB), covered by
 the owner's integration exception.
 
-Before supported worktree removal, the director preserves wanted ignored files
+At the October 22 worktree removal, the director temporarily preserved ignored files
 privately with hashes: `.local`, `.playwright-cli`, `frontend/test-results`, root
 `dist` and Lab `dist`. No additional root `.env`, untracked nonignored files or
 runtime symlink coupling was found. Local venvs, node_modules, test/lint caches
@@ -120,29 +124,27 @@ Main fast-forwarded to `8603b665e0b8e3e3fb7b2956c43834444568b2ae`; merge commit
 `752732fb1286ae46daf5f67bfb0867c507831004` retains both the original specialist
 history and pinned main. The only subsequent main edit is this closeout record.
 
-All 230 wanted artifact files were copied into the private local directory
-`.local/specialist-integration-20261022-preserved/worktree-evidence/`. Every file
-passed SHA-256 verification, and a checksum-based rsync comparison found no
-differences. The [source manifest](../../.local/specialist-integration-20261022-preserved/source-files.sha256)
-hash is `89de01ba9adf46e856d958f9861aad6864814a5dafaf0703a410b9d136391ffb`.
-It includes the [focused check log](../../.local/specialist-integration-20261022-preserved/worktree-evidence/.local/specialist-integration-focused.log),
-browser captures and build outputs. No extra credentials or symlinked artifacts
-were found. The specialist froze all files and stopped its owned test sessions;
-the director confirmed no process used the checkout before removal.
+At that boundary, 230 local artifact files were copied and hash/rsync checked
+before the specialist checkout was removed. Those QA captures, build outputs and
+logs had no continuing functional consumer; the owner subsequently approved
+retiring that temporary collection in the [top-five cleanup](../roadmap/2026-10-25-top-five-cleanup.md).
+No replacement archive or evidence library is required. The specialist's source
+remains in main; the qualification outcomes above retain their original limits.
 
 Supported `git worktree remove --force` removed the exact specialist checkout at
 `/Users/wjmao/projects/HU/plotloom-h3-ref2va-gateway`. The fully merged local branch
 `codex/h3-ref2va-gateway` was then deleted; its history remains reachable through
 main. Both worktree registration and local branch absence were verified. Remote
 refs were unchanged. Rebuildable environments/caches were discarded; retained
-source and copied evidence remain recoverable. The removed checkout occupied
+source history remains reachable on main; the temporary evidence collection was
+subsequently approved for retirement. The removed checkout occupied
 762,972 KiB and the preserved evidence directory occupied 213,656 KiB at that
 boundary, a 536 MiB allocation reduction before accounting for main's source
 growth. This is allocated-file accounting, not a filesystem free-space guarantee.
 
 Installed P remains clean at `b21505a0`, with the same healthy container
 `181d239fb9e2` and bridge PID 66847. All three health routes returned ok.
-The [post-cleanup state comparison](../../.local/specialist-integration-20261022-preserved/after-cleanup-state.json)
+The October 22 post-cleanup comparison
 against the post-activation baseline found exact preservation of all four
 projects, settings, host/accounting and UNKNOWN records, with no controller-claim
 changes. No service restart, provider call, CI or push occurred during source

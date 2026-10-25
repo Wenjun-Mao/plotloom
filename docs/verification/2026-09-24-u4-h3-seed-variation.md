@@ -1,5 +1,9 @@
 # U4 opening-shot H3 seed variation · 2026-09-24
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Bounded request
 
 This is one variation of the [reviewed-English C trial](2026-09-24-u4-h3-reviewed-english-trial.md), made in a fresh isolated copy through the supported snapshot and restore path. Source snapshot `2f052d1c-e38c-4b14-b0ee-ded63fd395f0` was restored into `.local/relay/h3-sequence-variation/{outputs,application}`; the 8832, 8833 and 8835 trial services and their retained originals were not used for dispatch. The canonical shot is `opening-s1-c1`, Storyboard revision 1, Approval `8fb47a10-b443-4c73-8e89-46b955541e63`. No source, reference, or keyframe edit occurred.

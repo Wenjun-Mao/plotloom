@@ -1,5 +1,9 @@
 # Pre-video autopilot · single evidence receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Original October 12 baseline: **Implemented, locally qualified, walked through
 and activated on the existing installation (Toronto), executable b6f0525d.**
 The exact927 full plus b6 scoped frontend qualification, real native97 proof,
@@ -600,9 +604,9 @@ UID-501 zombie-only group after SIGTERM, before `Popen` had reaped its leader.
 The narrow driver fix reaps the exact owned child after a denied SIG0 probe and
 reprobes only when exit is known. Only ESRCH proves absence; live/unknown or
 persistent denial still raises. The corrected run observed EPERM→reap→ESRCH for
-both PIDs 98671/98672, return codes -15, with no surviving members. Original and
-corrected metadata are preserved in
-[owned-worker diagnostic](2026-10-12-pre-video-autopilot/owned-worker-cleanup-diagnostic.json).
+both owned children, return codes -15, with no surviving members. The raw
+process snapshot had no source/test/contract consumer and was retired in the
+2026-10-25 cleanup; this concise failure/correction outcome remains.
 ADR 0160 records the cause, unchanged descendant cleanup and denial contract.
 
 Focused handoff/controller/recovery/runner selection: **52 passed**, 79.799s;
@@ -2702,7 +2706,7 @@ settlement/source binding. Acceptance applies to allocation
 `15478076-b745-4687-bc70-c10cbac5c7c0`, source
 `b313ac839460d161cdf5b19b67ea4ce8ebc210f3`, tree
 `4a814dda85fe4fccd5d3c2bdc22989b229330973`. The local retained
-[Root acceptance receipt](../../.local/native-proof/paid-pair-15478076-root-technical-acceptance-20261017-01.json)
+Root acceptance receipt (retired local artifact)
 has SHA-256 `0a62b7178f3e3f13fc14ecbc853cfabc1e55259920a841be79aca524f4921c40`.
 These ignored local artifacts are evidence pointers, not public publication.
 
@@ -2758,9 +2762,9 @@ forever. The first capture `8543d4` remains INCOMPLETE, seal
 The corrected later capture `d89511` exited 0 and is COMPLETE, with 169 members
 plus seal (170 files), 43,978,750 bytes, 150 raw mappings and no required omissions.
 Only the two optional arm error.json files are absent. Its
-[manifest](../../.local/native-proof/paid-pair-15478076-closed-capture-20261017-03/manifest.json)
+manifest (retired local artifact)
 SHA-256 is `2ff9fd56e18f9e3e99d3ef321f19744cc0cd3135a156623a4c967d4c834902b9`;
-the [saved-only readback receipt](../../.local/native-proof/paid-pair-15478076-closed-capture-20261017-03-readback.json)
+the saved-only readback receipt (retired local artifact)
 SHA-256 is `64ff25ca3bf4fc17fcca355d3d03b223e8fb96144c5083734e7e741f66540a66`.
 Root's actual terminal/release receipts are bound externally; historical
 preparation-time terminal fields were preserved.

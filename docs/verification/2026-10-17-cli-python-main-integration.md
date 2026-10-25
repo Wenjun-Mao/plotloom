@@ -52,13 +52,18 @@ independent Outline schema validation as duplicate artifact encoding. Correction
 were confined to those test assumptions; production validation remained strict.
 Independent static review found no remaining actionable integration blocker.
 
-## Preserved and held boundaries
+## Historical integration boundaries and subsequent retirement
 
-The older six-path unaccepted candidate, its index, held runtime roots and private
-evidence stay separate; they are not adopted by this merge. Private stack-census
-work remains unaccepted and mechanism-unqualified. Original FAILED/UNKNOWN
-outcomes and reservations remain unchanged. CLI and Python checkpoint refs are
-retained, and unrelated repositories and branches are outside this integration.
+The older unaccepted candidate and private stack-census work were excluded from
+this merge. The census implementation remained mechanism-unqualified, with a
+`Census.invalidate` fault-sink defect. The owner subsequently approved discarding
+that prototype and the obsolete private execution roots under the
+[top-five cleanup](../roadmap/2026-10-25-top-five-cleanup.md). Earlier preservation
+and hold language is superseded for those retired roots; original failed/unknown
+remote outcomes are not converted to successes or settlements by local deletion.
+Current functional revocation guards remain outside that cleanup. The existing
+installation-reader proposal ref is retained temporarily for its separate
+accept/reject decision, without preserving the old checkout.
 
 The subsequent closeout changes documentation only; executable bytes remain those
 of the tested merge. Hosted CI was not dispatched. No live app restart, provider

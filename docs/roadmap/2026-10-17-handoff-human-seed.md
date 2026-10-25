@@ -1,5 +1,9 @@
 # Human handoff seed consumers — October 17, 2026
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Approved step: `root-handoff-seed-human-0d-20261017-01`, sole writer in `b30f`,
 branch `codex/python-speed-current-20261017`, source parent
 `0d630b022a463b7cfa5645a4aa8d4e60a7ea5eed`. Root remains read-only.

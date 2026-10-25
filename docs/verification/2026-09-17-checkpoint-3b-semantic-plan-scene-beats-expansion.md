@@ -1,5 +1,9 @@
 # Checkpoint 3B semantic-plan-to-Scene-Beats expansion receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This is a bounded, disposable continuation of the compact semantic experiment.
 It is not a production integration, prompt/schema/validator decision, canonical
 installation, Approval, human creative acceptance, reliability claim, or

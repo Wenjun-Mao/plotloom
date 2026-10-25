@@ -1,5 +1,9 @@
 # U4 H3 vocal-control comparison: one retained treatment
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Authority and boundary
 
 After the director [reported additional unclear speech](2026-09-23-u4-real-shot-trial.md)

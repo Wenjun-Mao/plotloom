@@ -1,5 +1,9 @@
 # Checkpoint 3B compact semantic-to-Scene-Beats mapping receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 This records a bounded offline feasibility observation. It is not production
 integration, a prompt/schema/validator decision, Storyboard Approval, human
 creative approval, a reliability claim, or checkpoint 3B acceptance.

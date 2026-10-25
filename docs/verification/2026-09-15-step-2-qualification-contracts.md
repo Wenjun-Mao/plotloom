@@ -1,5 +1,9 @@
 # Step 2 qualification-tools contract receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and result
 
 This receipt closes the Alpha, conformance, and public external-review coverage

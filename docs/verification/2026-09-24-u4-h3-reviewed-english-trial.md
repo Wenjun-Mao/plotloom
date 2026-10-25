@@ -1,5 +1,9 @@
 # U4 opening H3 reviewed-English trial · 2026-09-24
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Scope and source
 
 One authorized H3 trial tested the [reviewed-English direction package](2026-09-24-h3-reviewed-directions-offline.md) for the accepted six-second `opening-s1-c1` cut. The new trial is an isolated supported copy at `.local/relay/real-shot-reviewed-en/{outputs,application}` under project `fbb913c8-534b-4439-ba68-211e70ec743d`. It retained comparison jobs A and B, their original and derivative bytes, and their unselected status. The 8832 first-trial and 8833 comparison services and project roots were not changed. No new ImageGen asset, alternative provider, automatic fallback, source edit, or second H3 submission was made.

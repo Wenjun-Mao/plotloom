@@ -1,5 +1,9 @@
 # F4 novel-script receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. Current-contract baseline:
 `1c7867f001be33155a7d52a631d1bda1123eff35`.
 

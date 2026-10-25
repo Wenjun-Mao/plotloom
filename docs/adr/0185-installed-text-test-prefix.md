@@ -1,5 +1,9 @@
 # ADR 0185: Closed installed-text prefix for explicit image tests
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: Accepted for bounded local retention, October 17, 2026, after Root and
 independent source/correctness review and one separately released matched screen.
 Source parent: `6f2af2506f5c0970235cb1f1e1bcc354fca23c80`.
@@ -123,7 +127,7 @@ the compact extension is only for the eleven safety cases.
 Root separately accepted one control-first eleven-case screen: whole command plus
 immediate owned settlement was 59.74812462500995s control versus
 22.540467124956194s candidate, observed 37.207657500053756s / 62.27418472726257%
-shorter. The [pair receipt](../../.local/remaining-cost/compact-text-safety-screen-3fc-prep-20261017/pair-receipt.json)
+shorter. The pair receipt (retired local artifact)
 retains exact ordered IDs, original native outputs and endpoint/preservation checks.
 Control rebuilt natural text per case; candidate built one cold module prefix
 inside the clock, including all copies, retained validation, fresh claim/current

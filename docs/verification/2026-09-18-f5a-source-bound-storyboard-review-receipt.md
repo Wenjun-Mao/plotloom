@@ -1,5 +1,9 @@
 # F5A source-bound storyboard-review lifecycle receipt
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Date: 2026-09-18. This receipt records implementation and focused automated
 verification of the F5A lifecycle. It is not a new specialist delivery, human
 creative review, production admission, or media proof.

@@ -1,5 +1,9 @@
 # Bridge read and controller-claim optimization
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Status: owner-approved and independently design-reviewed; implementation and
 focused guards are complete after the CLI runtime worker's explicit October 14
 source/check handoff. Stable code review and matched focused measurement passed;

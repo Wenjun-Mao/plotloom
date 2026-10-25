@@ -1,5 +1,9 @@
 # Material model import boundary — 2026-10-15
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 ## Failure and owning repair
 
 The first ignored campaign wiring attempt on clean

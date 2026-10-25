@@ -1,5 +1,9 @@
 # Current profile construction slice — October 17, 2026
 
+> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
+> retires their storage, replay/launch/cutback instructions and preservation holds.
+> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+
 Approved step: Root released one source implementation on clean `19793455` in
 `b30f`, branch `codex/python-speed-current-20261017`. One source owner.
 [ADR 0184](../adr/0184-validation-local-profile-construction.md) defines the contract.
