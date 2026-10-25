@@ -1,7 +1,7 @@
 # ADR 0220: Generation contract leaves and retired execution
 
-Status: implemented; focused qualification passed, independent review and final
-local qualification pending, 2026-10-25, under the owner-approved
+Status: implemented and independently reviewed; required corrections implemented,
+manager verification and final local qualification pending, 2026-10-25, under the owner-approved
 [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 
 Response DTOs, repair authority and frozen prompt records lived beside compiler,
@@ -21,8 +21,8 @@ text, schema hashes, ordering, null authority and field ownership are unchanged.
 Three callable execution contracts are intentionally retired:
 
 - Scope-less stage repair and its standalone orchestrator/observer/result DTOs
-  are removed. Generic run admission rejects `RunKind.REPAIR` before profile,
-  snapshot, lease or row allocation. Exact children are created only through
+  are removed. Dispatcher entry and repository admission reject `RunKind.REPAIR` before
+  project opening, route/profile reservation, snapshot, lease or row allocation. Exact children are created only through
   immutable-scope repair admission; absent/corrupt scope refuses execution
   before provider resolution. This supersedes only ADR [0015](0015-exact-work-unit-repair.md)'s
   retained callable legacy stage-repair promise.

@@ -10,7 +10,7 @@ from threading import RLock
 from typing import Any
 
 from ..domain import GenerationRun, RunKind, StageName, StartupRecoveryPlan, new_id
-from ..exceptions import NotFoundError
+from ..exceptions import InvalidTransitionError, NotFoundError
 from ..jobs import LifecycleJobRunner
 from ..pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
 from ..providers import ProviderPorts
@@ -109,6 +109,10 @@ class ProjectRunDispatcher:
         provider_snapshot: Mapping[str, Any],
         instructions: str | None = None,
     ) -> GenerationRun:
+        if kind == RunKind.REPAIR:
+            raise InvalidTransitionError(
+                "scope-less stage repair is retired; use exact work-unit repair admission"
+            )
         store = self.storage.projects.open(project_id)
         route = self._route_for_snapshot(
             run_id=new_id(), project_id=project_id, provider_snapshot=provider_snapshot

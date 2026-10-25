@@ -11,7 +11,8 @@ one final local qualification owner and scoped quiet activation/rollback.
 Independent execution-limits review passed with two clarity refinements applied.
 The owner approved implementation with Go on 2026-10-25. G1/R1–R3 source is
 implemented with early provider-free runtime proof and focused checks; stable
-independent review, final local qualification and manager-owned activation are
+independent review identified two concrete corrections, now implemented.
+Manager verification, final local qualification and manager-owned activation are
 pending. Installed state remains unchanged. G2–G5 and other audit batches remain
 unselected.
 

@@ -12,10 +12,11 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import RunKind, StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.pipeline import PipelineEngine, RunSecretBroker
+from plotloom.project_storage.text_dispatch import ProjectRunDispatcher
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext
 from tests.project_storage_exact_repair_support import storage
-from tests.project_storage_fixtures import fixture_profile
+from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 
 
 def test_generic_repair_admission_refuses_before_profile_snapshot_lease_or_plan(
@@ -41,6 +42,55 @@ def test_generic_repair_admission_refuses_before_profile_snapshot_lease_or_plan(
                 "missing-project", RunKind.REPAIR, [StageName.STORY_BIBLE]
             )
     assert store.generation_runs() == []
+
+
+@pytest.mark.parametrize("project_state", ["missing", "unconfirmed"])
+def test_dispatcher_repair_refuses_before_open_route_or_profile_allocation(
+    tmp_path, monkeypatch, project_state
+) -> None:
+    project_storage = storage(tmp_path)
+    store = (
+        project_storage.projects.create(None)
+        if project_state == "unconfirmed"
+        else None
+    )
+    project_id = store.project().id if store else "missing-project"
+    provider_snapshot = {"profileId": "incomplete-profile"} if store else {}
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail(
+            "retired repair reached project opening or route/profile allocation"
+        )
+
+    monkeypatch.setattr(project_storage.projects, "open", forbidden)
+    monkeypatch.setattr(project_storage.application, "reserve_run_route", forbidden)
+    monkeypatch.setattr(ProjectRunDispatcher, "_route_for_snapshot", forbidden)
+    monkeypatch.setattr("plotloom.project_storage.text_dispatch.new_id", forbidden)
+    broker = RunSecretBroker()
+    dispatcher = ProjectRunDispatcher(
+        project_storage,
+        provider_resolver=FixtureResolver(),
+        secrets=broker,
+        max_workers=1,
+    )
+    try:
+        with pytest.raises(
+            InvalidTransitionError, match="scope-less stage repair is retired"
+        ):
+            dispatcher.create_run(
+                project_id,
+                kind=RunKind.REPAIR,
+                requested_stages=[],
+                provider_snapshot=provider_snapshot,
+            )
+        if store:
+            assert store.project().brief is None
+            assert store.generation_runs() == []
+    finally:
+        dispatcher.close()
+        broker.close()
+        if store:
+            store.close()
 
 
 @pytest.mark.parametrize("scope", ["absent", "missing", "wrong_parent", "wrong_child"])

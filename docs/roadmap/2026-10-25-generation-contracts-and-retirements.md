@@ -461,11 +461,11 @@ Executed development evidence (scoped, not full release qualification):
 Retired-test accounting: five standalone orchestrator cases, twelve raw-media
 cases and 33 Atlas transport cases are retired with their contracts (50 total).
 All four diagnostic allowlist cases move unchanged to
-`tests/backend_core/test_video_dispatch_diagnostics.py`. Fourteen new cases
+`tests/backend_core/test_video_dispatch_diagnostics.py`. Sixteen new cases
 cover the supported boundaries and smallest integration. The surviving prompt
 suite retains all canonical assertions; only the obsolete raw-media rendering
 tail and three retired inventory entries are removed. Module ownership records
-the new/deleted/moved files. Native Python delta is -36 (4,019 → 3,983).
+the new/deleted/moved files. Native Python delta after review corrections is -34 (4,019 → 3,985).
 
 Development corrections were fixture/import issues: the minimal topology uses
 choice edges rather than a choice node kind; a single fact is ungrouped; frozen
@@ -481,8 +481,24 @@ runtime fixtures use pytest temporary roots outside installed/live roots and
 have closed runners. No application/frontend source schema, database migration,
 provider/media generation, P activation, service reload, recovery replacement,
 GitHub CI or push was performed. Source/profile identity changes prospectively;
-old pins are unchanged. Independent stable review, one final full-local gate,
-exact wheel/isolated installed smoke and manager-owned activation/preservation/
+old pins are unchanged. Independent stable review identified the two concrete corrections below.
+Manager verification of those corrections, one final full-local gate, exact
+wheel/isolated installed smoke and manager-owned activation/preservation/
 recovery remain pending. Runtime timings are available in the concise temporary
 summary; detailed product/infrastructure/coordination time allocation is
 unavailable. These are coordination checkpoints, not new owner-approval gates.
+
+
+Stable-review corrections: `ProjectRunDispatcher.create_run()` now rejects
+scope-less `RunKind.REPAIR` at entry, before project opening, ID/route creation,
+profile-reference reservation or repository work. The repository guard remains.
+Two forbidden-open/allocation cases cover a missing project with no profile and
+an unconfirmed project with incomplete profile input; the retired-kind error
+wins even with an empty requested-stage list. Existing normal route reservation,
+profile deletion protection and exact-child HTTP replay assertions still pass.
+The two deleted-source audit inventory paths are plain historical text linked
+to ADR 0220, with no archive. Exact affected focus passed 10 cases; fresh native
+ownership passed with 3,985 Python cases (same 324 files), unchanged 1,538 Vitest
+and 358 browser cases. All 156 local links in the audit/plan/ADR resolve;
+changed-import and whitespace checks pass. No full gate or installed/live
+operation was run for this correction checkpoint.
