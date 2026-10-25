@@ -1,5 +1,10 @@
 # Draft, credential and lifecycle reading states — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **SCOPED QUALIFIED CHECKPOINT**. Included in the current full
 E2E run and [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md).
 This is not full lifecycle, native generation, all-route playback or artistic

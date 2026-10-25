@@ -1,5 +1,10 @@
 # Material continuation and explicit project abandonment
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Implementation: `dd3033d674166534460503e7f22acf3154c1af4a`, isolated
 `b30f/plotloom`, baseline `d37a3f02`. ADR 0190 is locally qualified using the
 `c14c0460` full gate plus bounded geometry requalification below; the final

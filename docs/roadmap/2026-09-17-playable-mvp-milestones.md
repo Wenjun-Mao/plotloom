@@ -1,5 +1,10 @@
 # Playable MVP milestones — Shuohao-first delivery
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Revision 4 — **Approved direction and checkpoint roadmap**, 2026-09-17.
 The user approved the architecture and requested this full roadmap. This is the
 single current tracker; bounded implementation assignments remain director-owned.

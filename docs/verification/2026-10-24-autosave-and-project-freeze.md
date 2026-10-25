@@ -1,5 +1,10 @@
 # Working input autosave and optional Freeze · 2026-10-24
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implemented and activated locally, with manager preservation and installed
 Safari review completed below. Qualification uses documented composite evidence
 under AGENTS.md. Original failed full/browser runs remain failed; this is not a
@@ -98,7 +103,7 @@ observed. Final gate renders were also inspected as recorded below.
 
 The first unfiltered browser step on `7f8c554a` completed357 cases:328 passed /
 29 failed (`.local/autosave-final-full-downstream.log`). It remains a failed run.
-All29 original failure identities are retained in
+All29 original failure identities were captured in
 `.local/autosave-full-browser-triage.json`. The following groups account for all29;
 later checks close only the causal assertions stated here.
 
@@ -355,7 +360,7 @@ retained. The temporary tab was closed and the original selected tab restored,
 with all 18 original tabs intact. This establishes agent-operated visual/playback
 QA, not perceptual audio listening, physical-trackpad feel or owner creative acceptance.
 
-Exact identities, phase captures, hashes and scoped Safari evidence are under
+Historical identities, phase captures, hashes and scoped Safari evidence were recorded under
 .local/autosave-freeze-20261024-root/, especially manager-activation-final.json,
 activation-verification.json and guidance-activation-verification.json. Workers
 used for this assignment were reviewed, confirmed idle, archived and unregistered individually.

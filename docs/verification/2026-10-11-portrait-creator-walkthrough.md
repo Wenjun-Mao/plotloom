@@ -1,5 +1,10 @@
 # Portrait creator walkthrough ledger
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Authority and boundaries: [run profile](../roadmap/2026-10-11-portrait-creator-walkthrough.md).
 Status: COMPLETE for the bounded product walkthrough. Nine portrait keyframes
 and nine 2.5-second cuts are explicitly selected; both interactive endings,

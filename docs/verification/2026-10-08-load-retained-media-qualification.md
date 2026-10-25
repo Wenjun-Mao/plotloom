@@ -1,5 +1,10 @@
 # Project availability and retained media — repair qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status at 20:36 UTC: candidate203 qualified locally and in isolated native replay,
 published as executable `628411858734a8496314cb9644d2384b61b82453` and activated
 healthy on normal8841. Full Create → Revise → Recover remains PARTIAL.
@@ -64,7 +69,7 @@ test were removed, rather than adding compatibility behavior.
 ## Native acceptance on the disposable media-bearing project
 
 Exact target: `b3a933f7-b6fc-40e3-826f-5162f95a119a`, isolated8861/8862.
-Evidence names below are in `output/playwright/full-lifecycle-2026-10-07/`.
+Evidence names below were captured in `output/playwright/full-lifecycle-2026-10-07/`.
 No generation, canonical edits or media selection changes occurred.
 
 | Check | Current observed evidence |

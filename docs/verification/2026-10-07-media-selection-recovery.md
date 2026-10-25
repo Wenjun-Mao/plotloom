@@ -1,5 +1,10 @@
 # Media selection authority and save completion verification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 The media workbench now preserves acknowledged selection authority across rapid
 shot changes. Independent review, 601 frontend tests and focused browser repeats
 pass. The final unfiltered browser gate passed all206 tests6.2m without local

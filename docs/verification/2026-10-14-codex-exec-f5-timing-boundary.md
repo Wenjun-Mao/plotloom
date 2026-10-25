@@ -1,8 +1,9 @@
 # Codex Exec serial proof and F5 timing boundary
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 Date: 2026-10-14. Scope: local functional execution and the existing canonical
 receiving requirement. Parallel performance, full local release qualification,
@@ -80,7 +81,7 @@ its independent estimator, canonical rates and retained timings are unchanged.
   **no blockers**. Requested reviewer settings: GPT-6.1 Sol / High; effective
   settings unverified. Reviews were read-only and did not execute checks.
 
-Logs are retained under `.local/coordinator-resume-20261014/` with `timing-*`
+Logs were captured under `.local/coordinator-resume-20261014/` with `timing-*`
 names. Earlier failed checks are retained alongside successful follow-ups.
 
 ## Changed F5 native qualification

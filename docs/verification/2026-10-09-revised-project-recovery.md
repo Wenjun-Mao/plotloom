@@ -1,5 +1,10 @@
 # Revised native project recovery — October9
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Scope: E19/E21/E22 in the [current run](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 This is revised-project evidence, not inherited first-install acceptance.
 Project `90c0f895-48de-4b57-8725-4b6f72797633`, QA 原生重建·渡口信号,
@@ -150,7 +155,7 @@ Initial4 focused browser checks, full874 frontend tests, both typechecks and
 deterministic build pass. Independent review cleared source/recovery captures,
 then caught one expanded1700 screenshot taken before the toggle scroll settled:
 CSS visibility did not prove viewport placement. The test now waits for actual
-path bounds inside the viewport before capture; earlier evidence is retained in
+path bounds inside the viewport before capture; earlier evidence was captured in
 `frontend/test-results/snapshot-visible-final/`, not counted as full pixel proof.
 Final viewport-qualified run passes all4 focused checks in17.6s; both typechecks
 and diff checks pass again. The source/build/full874-unit qualification above
@@ -318,7 +323,7 @@ explicit real retry in the **disposable fixture only**, successful name persiste
 and close/reopen retention. Its two PUT attempts are exactly failed+retry, all
 other settings fields remain identical and no generation/check/send is performed.
 
-Final15 captures are retained under canonical
+Final15 captures were captured under canonical
 `output/playwright/native-intent-2026-10-08/settings-pending-final/`.
 Root inspected all9 save-pending/failed/succeeded images at all supported sizes;
 independent review inspected all15/source/test/bundle and found the scoped
@@ -334,7 +339,7 @@ It finished244PASS/4FAIL in7.9m with unchanged inputs. All four failures were st
 `等待助手交付` locators in direct-delete/folder-close/force-close tests after the
 intentional unsent-task wording repair. Actual pages showed `任务尚未交付` and
 `任务已准备，尚未发送`; the tests stopped before their lifecycle assertions. The
-failed run remains under `frontend/test-results/retained-outline-settings-full/`.
+failed run was recorded under `frontend/test-results/retained-outline-settings-full/`.
 The four locators now use the current header; no lifecycle safeguards were removed.
 Native active task-check execution and provider-profile failed-save remain open.
 Normal8841 and both owner projects/protected settings are unchanged.

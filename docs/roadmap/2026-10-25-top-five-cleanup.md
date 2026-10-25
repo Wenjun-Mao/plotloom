@@ -19,8 +19,8 @@ Aliases:
 
 The existing [storage inventory](../../.local/cleanup-inventory-20261025.json)
 lists the remaining candidates; completed targets have been removed from it.
-This plan closes its first five review groups and does not replace the separate
-approximately 4.2 GiB disposable-batch proposal.
+This plan closes its first five review groups and now includes the owner-approved
+remaining disposable batch below. Remaining review-first groups stay in the inventory.
 
 ## Owner's preservation rule
 
@@ -193,7 +193,8 @@ paths and one associated `exec_validator_sandbox_probe.pyc` cache were removed.
 The target/helper/cache census covered 137,501 regular files, 911 symlinks,
 6,232,827,567 logical bytes and **6,491,076 allocated KiB (approximately 6.19 GiB)**.
 This is removed-file allocation, not a promise of filesystem free-space gain.
-The earlier approximately 4.2 GiB disposable batch is separate and unexecuted.
+The remaining disposable batch was subsequently approved; its execution is
+recorded separately below.
 
 The smallest ordinary disposable-fixture removal passed preservation checks
 before the full batch. Fresh checks after full removal matched the baseline
@@ -225,3 +226,59 @@ local links and the diff were checked. No product, test, build, provider, hosted
 CI or push operation occurred; storage-only cleanup required no product test run.
 The manager owns the subsequent functional-recovery refresh and installed-doc
 synchronization, separately from this tracked documentation checkpoint.
+
+## Remaining disposable batch — completed 2026-10-25
+
+The owner approved the inventory classifications `batch-candidate`,
+`optional-rebuildable`, `after-helper-preservation` and `after-batch-closeout` as
+one batch: 372 entries, 370 present at fresh preflight, **4,414,808 allocated KiB**
+(approximately 4.21 GiB). This comprises the earlier approximately 4.2 GiB QA
+proposal and approximately 46 MiB of rebuildable caches and obsolete cleanup
+receipts; these are components of the total, not additional removal claims.
+
+Targets include both checkouts' ignored browser output/results, 12 completed
+source QA roots, 13 completed installed QA roots, two unused installed validator
+environment children, 218 source loose QA files, 42 installed loose files,
+rebuildable caches/build products and 13 obsolete receipt/helper roots. Generic
+test/source commands that produce new fixtures remain valid. Current source,
+actual dependencies/validators, current projects/media/settings, five functional
+tombstones, owner-valued work and the single functional recovery package are
+excluded. Mixed or paused review-first groups are not covered by this approval.
+
+Two temporary helper code copies supported immediate before/after verification
+and were removed after the final full comparison. Baselines stayed in memory.
+No unused images, media, provenance, logs, snapshots, archive or private completion
+bundle are retained merely for audit, uniqueness or past cost. Old cleanup
+receipts and their launch/recovery instructions are retired with their roots.
+The existing inventory remains while unresolved review groups need it.
+
+Tracked documentation removes dead artifact links and identifies historical
+paths/commands as unavailable rather than launch or recovery directions. Current
+ADR/design/API contracts and historical failures, UNKNOWN limits and acceptance
+boundaries remain unchanged. Tracked visual support assets and their indexes are
+outside this ignored-artifact batch; no functional test fixture is removed.
+
+All **370 filesystem targets** are absent; the two exact stale worktree
+registrations were pruned through Git after an exact dry run. Removed allocation
+was **4,414,808 KiB (approximately 4.2103 GiB)** across **29,348 regular files,
+three symlinks and 4,445,122,098 logical bytes**. This total includes caches and
+all 13 obsolete receipt/helper roots; it is not a filesystem free-space guarantee.
+The primary 357 targets accounted for 29,236 files and 4,407,272 KiB; the final
+13 receipt/helper roots accounted for 112 files and 7,536 KiB.
+
+After the complete removal, fresh snapshots exactly matched baseline: eight
+projects, 672 project tables, 263 persistent files, all application/host tables,
+15 protected settings fingerprints, both validator identities, runtime/bridge
+identities and existing functional recovery files. Host accounting remained
+85 attempts (82 completed, three settled, zero UNKNOWN), with zero queues,
+slots and validators; all five functional revocation guards were unchanged.
+The original helper roots and both temporary code copies are gone. No raw-data
+archive, new library or extra export was created.
+
+Independent read-only review found no current-contract loss or false pass claim;
+its artifact-notice scope finding was corrected. Mixed review-first roots and
+valid links to them remain outside this batch. The diff and added local links
+were checked; only Markdown changed from source baseline `f5edde15`. No product
+tests, provider calls, service restart, hosted CI or push occurred. The manager
+will update the existing inventory in place, refresh the single functional
+recovery package and synchronize installed documentation after this checkpoint.

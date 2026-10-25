@@ -1,5 +1,10 @@
 # Original source entry and separate V1 reference
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: scoped implementation complete, reviewed, published and activated;
 all local and full remote gates passed. Not creator
 usability or creative acceptance. Scope: the owner's request to remove repeated

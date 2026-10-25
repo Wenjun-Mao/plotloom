@@ -1,5 +1,10 @@
 # State-based production hints
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Qualified candidate: the main commit containing this receipt, against trusted
 `4566ec767df871e8799084a03806ffe429130870`. Contract: ADR 0155.
 
@@ -47,7 +52,7 @@ not claimed freshly rerun.
 - Desktop screenshots at 1280x460, 1280x768 and 1700x900 were generated. Inspected
   missing-script Creator short and Professional large, installed Professional
   short and pending-package Creator short: readable guide, concrete next control,
-  no clipping/overflow. Evidence remains under `frontend/test-results/`.
+  no clipping/overflow. Evidence was recorded under `frontend/test-results/`.
 - Two deterministic seven-file builds matched sorted path/hash manifest SHA-256
   `c9c858c2a1a179fac11684cb1b54b04bff9b31a322bec8a12f4231f23e09cada`;
   JS `26381482995a0662dafcd92ff3785c3660ba895f1cc4dbdc2a6d46e93d2feafe`.

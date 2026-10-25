@@ -1,5 +1,10 @@
 # Native Character delivery and desktop gallery verification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: the first native Character candidate, ingestion, explicit reference
 selection and desktop detail repair are qualified. Full Create → Revise → Recover
 acceptance remains PARTIAL; this is not creative quality or every-route media

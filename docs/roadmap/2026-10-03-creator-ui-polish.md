@@ -1,5 +1,10 @@
 # Creator UI polish and self-guided workflow
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **scoped implementation and Chinese manual complete**, with qualified
 runtime candidate `e0a4f66`. Human usability acceptance remains pending.
 Prepared October 3, 2026, Toronto time, using Relay Brainstorm and Plan.

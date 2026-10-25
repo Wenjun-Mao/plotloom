@@ -1,5 +1,10 @@
 # Native playback after reboot — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **FINITE ORIGINAL / SEGMENT / SELECTION PASS; FULL E2E PARTIAL**.
 The owner reported a computer crash and reboot. These are fresh post-reboot
 observations, not a diagnosis or repair of that crash, the earlier VideoToolbox
@@ -91,7 +96,7 @@ viewport has an ordinary lower card fold, not hidden links. An unavailable Node
 `require` in the first capture script failed after read-only captures;
 browser-native hashing completed the diagnostic without a product patch.
 
-All193/194 artifacts remain under `output/playwright/full-lifecycle-2026-10-07/`.
+All193/194 artifacts were recorded under `output/playwright/full-lifecycle-2026-10-07/`.
 Screenshots alone are not handler or media-quality qualification.
 
 ## Independent review and limits

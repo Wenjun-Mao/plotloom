@@ -1,8 +1,9 @@
 # U4 H3 vocal-control comparison: one retained treatment
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 ## Authority and boundary
 
@@ -62,7 +63,7 @@ their hashes; the baseline derivative remains ID
 The headed workbench was checked at 1440×900 and 1920×1080. It shows two
 current original candidates and both proposed segments. The treatment's
 unmuted native six-second player reached `ended` at exactly 6 seconds;
-screenshots are in `output/playwright/real-shot-comparison/`. The agent could
+screenshots were captured in `output/playwright/real-shot-comparison/`. The agent could
 not hear or transcribe the output, so there is no claim that the extra speech
 disappeared or that the intended line remains clear. The director should
 listen to both full eight-second originals and both six-second derivatives,

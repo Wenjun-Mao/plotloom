@@ -1,5 +1,10 @@
 # Native reference revision and compact-preview repair
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Continuation of the [current Create → Revise → Recover run](../roadmap/2026-10-07-full-creator-e2e-repeat.md)
 and [structural revision checkpoint](2026-10-09-native-structural-revision.md).
 This is same-project functional QA, not creative/media-quality acceptance or full

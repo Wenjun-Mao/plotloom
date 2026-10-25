@@ -1,5 +1,10 @@
 # H3 console manual walkthrough — 2026-10-21
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Result: **core workflow passed; two reproducible UI defects remain open.**
 Follow-up: both findings were subsequently corrected and deployed at `ef8417ba`;
 see the [fix verification](2026-10-21-h3-console-ui-state-fixes.md). The original

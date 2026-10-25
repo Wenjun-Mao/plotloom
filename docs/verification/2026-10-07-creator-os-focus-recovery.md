@@ -1,5 +1,10 @@
 # Creator editor recovery after real OS focus loss
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Real OS focus loss passed for automatic380px and persisted350px editor widths
 on disposable QA965671f3 at1700×900. The canceled resize did not resume;
 the same textarea, text, selection and internal scroll survived. Both checks
@@ -68,7 +73,7 @@ Root directly inspected viewport screenshot
 the editor remains beside the graph, its350px width and selected text are visible,
 and the row controls remain centered. Screenshot SHA256 is
 `716d721822a15dd6dc823e7810fd2bc1ed3c43136c99bba0bf4b45529def7c2a`.
-Raw trusted events, requests, scalar assertions and cleanup are retained in
+Raw trusted events, requests, scalar assertions and cleanup were captured in
 `output/playwright/full-lifecycle-2026-10-07/os-blur-evidence.json`, SHA256
 `88ca4264dee0e275da6d9d8f49ad902670e365b2dcbf1b9ca27b37817235bf8e`.
 These ignored local artifacts are retained evidence, not checked-in source.

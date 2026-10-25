@@ -1,5 +1,10 @@
 # Cast and Art report reading audit — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **PUBLISHED / LOCAL QUALIFIED / EXACT-HEAD CI RUNNING**. This extends E22 in the
 [whole-product audit](2026-10-08-whole-product-ui-audit.md), not completion of
 Create → Revise → Recover or native-media acceptance. Current implementation is

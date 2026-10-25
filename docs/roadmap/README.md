@@ -11,7 +11,13 @@ projects, settings, runtime/bridge and validator identities, functional recovery
 guards. No archive, export, new UNKNOWN record or source-preservation ref was made.
 The existing installation-reader proposal ref remains temporarily for a separate
 accept/reject decision; product implementation and the performance target remain
-separate. The earlier approximately 4.2 GiB disposable batch remains unexecuted.
+separate. The [remaining disposable batch](2026-10-25-top-five-cleanup.md#remaining-disposable-batch--completed-2026-10-25) is also complete: 370 filesystem targets removed,
+two stale worktree registrations pruned, 29,348 regular files and three symlinks,
+4,414,808 allocated KiB (approximately 4.2103 GiB, including caches and all 13
+obsolete receipt/helper roots). Final snapshots exactly matched the current
+project/settings/runtime/validator/guard/recovery baseline; both temporary helper
+code copies were removed. Unresolved review-first groups remain in the existing
+inventory. Neither batch claims filesystem free-space gain.
 
 ## Approved autosave and project Freeze implementation
 

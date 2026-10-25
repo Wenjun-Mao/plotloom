@@ -1,5 +1,10 @@
 # Board3 recovery and final candidate qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Current continuation of the single [Create → Revise → Recover playbook](../creative-workflow/graph-workbench-acceptance.md)
 and [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md). Overall status:
 **PARTIAL**, not whole-product or creative/media acceptance. This receipt closes

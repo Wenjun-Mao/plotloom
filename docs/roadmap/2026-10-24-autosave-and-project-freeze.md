@@ -1,5 +1,10 @@
 # Autosave, automatic resume and project Freeze
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implementation, local qualification and bounded activation approved by
 the owner on 2026-10-24 through Relay Direct, carrying standing approvals forward.
 Planning baseline: retained R `main` at `01337c1b9892116a1cd0fc7f70d565ea8e32505a`.

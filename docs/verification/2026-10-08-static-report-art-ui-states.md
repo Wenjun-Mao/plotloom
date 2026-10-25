@@ -1,5 +1,10 @@
 # Original reports and stale Art reading — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **SCOPED QUALIFIED BY LATER154 GATE**. This is part of
 the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md), not
 full Create → Revise → Recover or media-quality acceptance.
@@ -21,7 +26,7 @@ The Story reader's existing540px iframe geometry remains unchanged.
 
 ## Actual desktop evidence
 
-All captures are in `output/playwright/full-lifecycle-2026-10-07/`; the three
+All captures were captured in `output/playwright/full-lifecycle-2026-10-07/`; the three
 supported viewports are1700×900,1280×768,1280×460. An independent GPT-6 Luna/Max
 reviewer directly inspected all72 captures; root additionally inspected
 representative native/fixture viewports and the corrected short-desktop footer:

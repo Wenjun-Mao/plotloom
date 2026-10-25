@@ -1,5 +1,10 @@
 # Current story rebuild qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: isolated implementation and full software qualification complete.
 Native Create → Revise → Recover remains partial. This candidate
 has not replaced normal 8841 or changed its projects, media or protected settings.
@@ -81,7 +86,7 @@ The wheel installed and passed its smoke check outside the checkout. Wheel SHA25
 The final unfiltered 240-test browser run passes. Its 862 source/test/config
 and static inputs were unchanged before and after the run, fingerprint
 `791c377130f1c49b32c38d7348abfa6c3195347657b325f7bf251cce6c186f67`;
-the complete result directory is retained under `final-browser-gate/`.
+the complete result directory was captured under `final-browser-gate/`.
 Publication and deployment remain separate from these local results.
 
 ## Failed attempts and corrected method

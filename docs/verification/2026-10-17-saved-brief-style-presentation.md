@@ -1,5 +1,10 @@
 # Saved-Brief style presentation — October 17, 2026
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 ## Failure and correction boundary
 
 Trusted base: `1c59ce753618234978152e0c459a6ec828bd1898`.

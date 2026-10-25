@@ -4,6 +4,10 @@ Plotloom 是一个本地优先、以显式数据合同驱动的“故事输入 �
 
 这是一个全新的独立仓库。运行时只包含 Plotloom 自己的 Python 包、React 前端、提示词模板、数据库迁移和测试；不依赖 Narrative Forge V1，也不读取其项目数据。
 
+历史存储清理及后续已完成批次见[现有清理计划](docs/roadmap/2026-10-25-top-five-cleanup.md)。
+旧 QA 路径和回执只描述历史执行；当前项目、运行环境和功能恢复包另有实际用途，
+不在这批删除范围内。
+
 ## 本地启动
 
 需要 Python 3.10+、[uv](https://docs.astral.sh/uv/) 和 Node.js 22+。

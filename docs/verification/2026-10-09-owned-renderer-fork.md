@@ -1,5 +1,10 @@
 # Owned renderer fork — scoped qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Current evaluated-gate pin is4f9b2128, with exact scope and immutable native-report
 boundary in the [evaluated-gate receipt](2026-10-09-evaluated-report-gates.md).
 Later native Art3 and Board3 qualification are recorded in the
@@ -51,7 +56,7 @@ still fail their original gate; limits were not weakened.
 
 Desktop exercise:18 combinations (Art/Outline/Storyboard × Chinese/English ×
 1700×900,1280×768,1280×460), zero document overflow and zero clipped target KPI
-values.30 captures are retained under
+values.30 captures were captured under
 `output/playwright/2026-10-09-owned-renderer-fork/` in the retained parent checkout.
 The manager directly inspected10 critical top/gate/footer captures, not all30.
 Duration/context/planning copy was readable in those frames. Reports were served

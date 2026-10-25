@@ -2,6 +2,11 @@ Historical snapshot, retained 2026-10-07 17:36 UTC. Present-tense statements bel
 are dated earlier checkpoints, not current deployment. See the
 [current ledger](2026-10-07-full-creator-e2e-repeat.md) for active qualification.
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 # Fresh full creator E2E run ledger
 
 Scope: [approved repeat](../roadmap/2026-10-07-full-creator-e2e-repeat.md).

@@ -1,5 +1,10 @@
 # Direct project deletion
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: independently reviewed, locally qualified, published and activated on
 normal 8841. Full remote CI is running. Creator usability acceptance is separate.
 
@@ -61,7 +66,7 @@ Historical baseline evidence was not rewritten.
 
 ## Executed verification
 
-Evidence is under `.local/project-delete-2026-10-04/`.
+Historical evidence was recorded under `.local/project-delete-2026-10-04/`.
 
 | Check | Result |
 | --- | --- |

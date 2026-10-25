@@ -1,5 +1,10 @@
 # Manual creator walkthrough — running findings
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: fixes deployed for a fresh manual walkthrough; director acceptance pending.
 
 ## Authorized fresh-start reset

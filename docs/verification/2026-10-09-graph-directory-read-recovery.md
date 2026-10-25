@@ -1,5 +1,10 @@
 # Graph and project-directory read recovery
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Bounded candidate on retained checkout `/private/tmp/plotloom-one-story-rebuild.gfnqlc`,
 branch `codex/one-current-story-rebuild`, base `772c78b`. Uncommitted software
 qualification; initial independent review closed before the full gate exposed

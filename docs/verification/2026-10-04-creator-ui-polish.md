@@ -1,5 +1,10 @@
 # Journey-first creator UI polish: verification and finding dispositions
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: scoped implementation and Chinese manual complete. All local release
 gates and full remote CI passed for published runtime candidate `e0a4f66`.
 Not human usability or creative acceptance.

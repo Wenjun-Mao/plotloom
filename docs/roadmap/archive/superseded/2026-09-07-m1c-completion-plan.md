@@ -1,5 +1,10 @@
 # M1-C completion plan
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../../2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 > **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
 
 

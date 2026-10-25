@@ -1,5 +1,10 @@
 # Source and structural-help UI audit — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **PUBLISHED / REMOTE CI PASSED**. This E22 checkpoint extends
 the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md).
 It is not completion of Create → Revise → Recover or native-media acceptance.
@@ -299,7 +304,7 @@ defects. A held/503 PUT leaves the error only in the workspace behind the modal;
 Cancel, header Close, backdrop and model input remain enabled while the operation
 can still replace the draft. Before-patch browser checks fail both cases; root
 inspected the failed-save viewport, which contains no visible failure explanation.
-Evidence is in `frontend/test-results/provider-settings-before/`.
+Historical evidence was recorded in `frontend/test-results/provider-settings-before/`.
 
 The owning profile hook now owns dialog operation admission, pending lifetime and
 local typed feedback. Save/select/copy/activate/delete/probe remain locked through

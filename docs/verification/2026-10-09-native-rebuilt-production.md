@@ -1,5 +1,10 @@
 # Native intent and same-project production rebuild
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Continuation of the [run profile](../roadmap/2026-10-07-full-creator-e2e-repeat.md)
 and [reference-revision checkpoint](2026-10-09-native-reference-revision.md).
 This is functional QA, not creative/media-quality acceptance or full E2E completion.

@@ -11,7 +11,10 @@ status: qualified and owner-authorized activation completed October 21; see
 The ignored raw QA output bundle was permanently removed on October 25, 2026,
 with no archive or recovery copy. The reported outcomes and failure descriptions
 below remain historical claims; raw logs, traces, manifests and screenshots from
-that bundle are no longer retained.
+that bundle are no longer retained. Remaining ignored browser results and obsolete
+receipts listed in the [cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+were retired in the same cleanup; their paths/commands are historical,
+not current launch/recovery instructions.
 
 ## Root causes and resulting behavior
 

@@ -1,5 +1,10 @@
 # Creator canonical read-only sidebar · 2026-10-22
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: qualified locally and activated at `21c6d6be`. Refresh the existing page
 to load the changed frontend assets. Live Safari readback remains unavailable;
 the browser evidence below comes from independent isolated fixtures. No provider
@@ -104,11 +109,8 @@ uv run --locked --no-sync python scripts/verify.py focused \
   --playwright e2e/graph-read-recovery.spec.ts
 ```
 
-[Logs/manifests/preservation receipts](../../.local/creator-sidebar-20261022/)
-and [browser artifacts](../../output/playwright/creator-sidebar-20261022/)
-remain local, including the
-[decision viewport](../../output/playwright/creator-sidebar-20261022/manual-decision-1280x768.png)
-and [short ending viewport](../../output/playwright/creator-sidebar-20261022/manual-ending-1280x460.png).
+Raw logs, manifests, preservation receipts and browser captures were retired,
+including the inspected decision and short ending viewports.
 
 ## Retained findings, not hidden retries
 

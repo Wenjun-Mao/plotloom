@@ -1,5 +1,10 @@
 # Native structural revision and graph label layout
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 This is the Revise round of the approved full creator E2E run, on the same
 completed native project `90c0f895-48de-4b57-8725-4b6f72797633` at isolated8865.
 Revised production and playback remain pending. No native job was dispatched

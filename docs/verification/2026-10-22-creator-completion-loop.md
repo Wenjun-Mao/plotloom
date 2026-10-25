@@ -1,5 +1,10 @@
 # Creator completion loop: implementation and acceptance evidence
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: bounded native UI journey completed on `b78bc6c9`; composite-qualified
 corrective build `b21505a0` activated with exact preservation and ending playback.
 Reviewed product bytes match `6a44b8eb`. Original full/browser failures remain

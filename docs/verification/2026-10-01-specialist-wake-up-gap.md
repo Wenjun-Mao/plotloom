@@ -1,5 +1,10 @@
 # Persistent specialist wake-up investigation
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Date: October 1, 2026 Toronto (native probes October 2, 03:27–03:34 UTC).
 Baseline: clean retained local `main`, `f1cd4617fd73b55d922e1c5b5146ec51e970267a`.
 Outcome: blocked execution-boundary investigation; no implementation or deployment.

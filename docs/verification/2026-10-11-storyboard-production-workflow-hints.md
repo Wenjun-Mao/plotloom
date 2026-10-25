@@ -1,5 +1,10 @@
 # Storyboard and production guide qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Trusted integrated baseline: `038b46850e5a4f2b31d7a251d56eff5fe6af0cf5`.
 
 ## Root cause and correction

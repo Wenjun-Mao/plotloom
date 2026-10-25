@@ -1,5 +1,10 @@
 # Script-page state-based workflow hints
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Qualified candidate: the main commit containing this receipt, against trusted
 `62f031337d2711e6d5e76017a676487420d002b4`. Contract: ADR 0155.
 
@@ -50,7 +55,7 @@ behavior and no newly claimed backend qualification.
   retains page re-entry, project A/B/A isolation and no duplicate Script read.
 - Desktop screenshots generated at 1280x460, 1280x768 and 1700x900; short and wide
   views inspected: concrete prepare control, readable sticky guide, no clipping
-  or horizontal overflow. Evidence is under `frontend/test-results/`.
+  or horizontal overflow. Historical evidence was recorded under `frontend/test-results/`.
 - Unfiltered browser shard manifest check: **86 specs, 287 cases**, shard
   assignment 124/163, no overlap or missing cases.
 - Two final deterministic seven-file builds matched sorted path/hash tree

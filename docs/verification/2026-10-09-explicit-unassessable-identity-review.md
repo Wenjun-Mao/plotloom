@@ -1,5 +1,10 @@
 # Explicit unassessable identity review — scoped software receipt
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Retained checkout `/private/tmp/plotloom-one-story-rebuild.gfnqlc`, branch
 `codex/one-current-story-rebuild`, clean base
 `ff7bcb6a38a389fbf4bd2132c5fd509c3df20d29`. This is the scoped software

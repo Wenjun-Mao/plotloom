@@ -1,5 +1,10 @@
 # State-aware project directory actions · 2026-10-24
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implemented, independently reviewed, locally frontend-qualified and
 activated with preservation-checked live Safari inspection. Qualified executable
 and clean installed revision: `4c6db5ffe94ee0e37008945c5d9b2170f2763c98`.
@@ -302,7 +307,7 @@ entries, validators or slots. Native runtime identities are unchanged. This is
 agent-operated UI verification, with destructive/live lifecycle paths established
 only on disposable fixtures. No provider dispatch, push or hosted CI occurred.
 
-Private manager evidence: `.local/project-directory-actions-20261024-root/`:
+Historical private manager evidence (retired): `.local/project-directory-actions-20261024-root/`:
 `preservation-before-activation-v2.json`, `preservation-immediate-before.json`,
 `preservation-after-activation.json`, `preservation-after-safari.json`,
 `static-activation.json`, `native-safari.json`, and

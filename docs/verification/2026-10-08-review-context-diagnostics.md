@@ -1,5 +1,10 @@
 # Typed Cast/Art currentness guidance — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **PUBLISHED / ACTIVATED / EXACT-HEAD CI PASSED**. This is a bounded E22
 contract and wording repair within the current full lifecycle run. It does not
 complete Create → Revise → Recover, native-media coverage or creative acceptance.

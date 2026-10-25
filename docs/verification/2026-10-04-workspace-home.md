@@ -1,5 +1,10 @@
 # Workspace Home delivery
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implemented, independently reviewed, locally qualified, published and
 verified on normal 8841. Creator usability acceptance remains separate; full
 remote CI is running.
@@ -50,7 +55,7 @@ the typed current `ProjectListResponse` and `brief.title`. First, second and
 third failure traces were preserved before reruns. The final scoped browser
 command passed unfiltered within its four selected files.
 
-Evidence is under `.local/workspace-home-2026-10-04/`, including `unit-full.log`,
+Historical evidence was recorded under `.local/workspace-home-2026-10-04/`, including `unit-full.log`,
 `build.log`, `browser-final.log`, the three retained failure folders, captures
 and live screenshots. Checked and served bundle SHA-256:
 `cd61a0eeb80b4e0cff8254c9329d0eb5c8d3e2396e552c574043a3807d5bd5e6`.

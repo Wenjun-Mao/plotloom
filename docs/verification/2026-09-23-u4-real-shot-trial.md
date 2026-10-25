@@ -1,8 +1,9 @@
 # U4 lighthouse opening: one real shot trial
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 ## Boundary and source
 
@@ -79,7 +80,7 @@ the intended undecided circuit state remains a director judgment.
 The headed workbench at 1440×900 and 1920×1080 presents the original,
 `[0,144)` pending segment, and explicit confirmation separately. Its unmuted
 native preview reached `ended` at 6 seconds with media range responses.
-Screenshots are retained in `output/playwright/real-shot-trial/`. This agent
+Screenshots were captured in `output/playwright/real-shot-trial/`. This agent
 could verify the AAC stream and browser playback, but could not hear the
 Mandarin output: the available audio-content tool explicitly omitted audio
 input. Therefore the required listened-with-sound audiovisual review is

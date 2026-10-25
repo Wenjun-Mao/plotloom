@@ -1,5 +1,10 @@
 # Whole-product visual and text audit — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 ## Current continuation — October9
 
 The [Board3 recovery/final-candidate receipt](2026-10-09-board3-recovery-and-final-qualification.md)
@@ -132,7 +137,7 @@ normal8841 remains unchanged. The existing independent reviewer checked the
 inventory delta and AST-extracted hash, finding no weakening or unrelated edit.
 Root directly inspected all three `identity-refusal-{width}x{height}.png` frames
 at1700×900,1280×768,1280×460: the complete refusal is readable without horizontal
-overflow. Evidence is under ignored
+overflow. Historical evidence was recorded under ignored
 `output/playwright/native-intent-2026-10-08/identity-refusal-reviewed-guidance/`;
 the earlier `identity-refusal-verified/` captures pre-review wording; sibling
 `identity-refusal-disabled-control-failure/` and

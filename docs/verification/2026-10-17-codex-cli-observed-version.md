@@ -1,5 +1,10 @@
 # Observed Codex CLI version — October 17, 2026
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 ## Decision and source
 
 The manual walkthrough reached the configured Mac execution bridge but profile
@@ -67,10 +72,10 @@ Original native handles: full `79037` closed `997a28` to `a8733d`, exit 1;
 affected focused `48577` closed at `2815a6`, exit 0; initial focused `77866`
 closed at `bbc0ef`, exit 0; service `62019` closed at `fc26a8`, exit 0. Focused
 counts come from those native execution results, not collection-only ownership
-discovery. Raw full/downstream logs and diagnostic code/controls remain private
+discovery. Raw full/downstream logs and diagnostic code/controls were recorded
 under `.local/cli-version-observation-20261017/`.
 
-Retained log SHA-256 values:
+Historical log SHA-256 values (raw logs retired):
 
 - `full.log`: `9c0f6d68c17bea6ee16af0db694921e35e4fa1c26600bdbbe9385c7f9c241600`.
 - `downstream.log`: `b82687962f81819a3c17b21a1947cd9ffae92769f0c9d9395d4fbb29e53431bd`.

@@ -1,5 +1,10 @@
 # Canonical graph choice labels · 2026-10-22
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: frontend presentation repair qualified locally and activated at
 `7fd015ba999a480c507e02feed4293652bf1de48`. Live Safari verification remains
 unavailable; the screenshots below are isolated local fixtures, not the owner's
@@ -86,10 +91,8 @@ uv run --locked --no-sync python scripts/verify.py focused \
   --playwright e2e/creator-workbench-layout.spec.ts
 ```
 
-[Logs, manifests and preservation receipts](../../.local/canonical-graph-labels-20261022/)
-and [retained browser artifacts](../../output/playwright/canonical-graph-labels-20261022/)
-remain local. [Short desktop choice screenshot](../../output/playwright/canonical-graph-labels-20261022/choice-visible-1280x460.png)
-shows the fixture, not a live Safari readback.
+Raw logs, manifests, preservation receipts and browser captures were retired.
+The inspected short desktop screenshot showed an isolated fixture, not live Safari.
 
 ## Retained failures and corrections
 
@@ -136,8 +139,7 @@ The before/after preservation JSON files are byte-identical: all seven project
 identities, every database-table fingerprint, media/selection files, protected
 configuration, application/host accounting, queue state and historical UNKNOWN
 identities are unchanged, with no controller-claim differences. The attended
-CLI fixture server/browser were closed; disposable evidence roots are retained
-for inspection. No live project was edited or copied into a test fixture.
+CLI fixture server/browser were closed; disposable evidence roots were later retired. No live project was edited or copied into a test fixture.
 
 Limits: no live Safari page readback, full local release qualification, hosted CI,
 new generation/media acceptance or owner creative acceptance is claimed. Refresh

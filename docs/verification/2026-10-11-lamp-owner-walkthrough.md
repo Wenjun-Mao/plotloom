@@ -1,5 +1,10 @@
 # 留一盏灯 owner-authorized E2E walkthrough
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Project: `a46790f2-981d-4454-a9f4-8679d70e65e5`, normal8841 workspace.
 Starting software: `df333a16c32eb697696997bbc91c2ab39b283f18`.
 

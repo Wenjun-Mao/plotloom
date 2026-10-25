@@ -1,5 +1,10 @@
 # Native preview error presentation — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **SCOPED UI VERIFIED; LOCAL GATES PASS**. This extends the
 [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md), not
 native playback or artistic acceptance. The full lifecycle remains PARTIAL.
@@ -23,7 +28,7 @@ ultimate cause. Browser GPU crash count2 was observed; causation is unproven.
 A separate unchanged headless software control initially failed a15s ended wait
 at clock0; a later read found trusted ended at5.167s and no decoder error. Keep
 both observations: the late event is not a clean bounded interactive PASS.
-Exact CDP/events are retained in `output/playwright/full-lifecycle-2026-10-07/`
+Exact CDP/events were captured in `output/playwright/full-lifecycle-2026-10-07/`
 as117-chrome-native-diagnostic.json and117-software-control-diagnostic.json.
 Original screenshots117 retain the pre-repair reading state.
 

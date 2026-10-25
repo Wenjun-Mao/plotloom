@@ -1,5 +1,10 @@
 # Independent media-service packaging — 2026-10-22
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **IMPLEMENTED, VERIFIED AND DEPLOYED.** Implementation source `37828fd3`.
 Baseline `5fd5128b`, retained `codex/h3-ref2va-gateway` specialist checkout.
 The [approved plan](../roadmap/2026-10-22-media-service-boundaries.md) and

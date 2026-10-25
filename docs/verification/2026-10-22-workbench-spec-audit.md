@@ -1,5 +1,10 @@
 # Creator / Professional specification audit · 2026-10-22
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: findings for owner review; **no application fixes implemented**.
 
 Historical audit status above describes its original checkpoint. The subsequent
@@ -45,7 +50,7 @@ Evidence: on test project `ad2d5a10-4d76-44dc-ae51-f19b68797df2`, entered a vali
 the draft. Independent GET confirms length 300 and unchanged topology. Its label
 measured 182px wide × 360.796875px high with `overflowY=visible`/no max height;
 the label rectangle intersected `branch-1` through the card's full 112px height.
-Root directly inspected the [1280×460 viewport](../../output/playwright/workbench-spec-audit-20261022/creator-long-choice-overlap-1280x460.png):
+Root directly inspected the 1280×460 viewport (retired QA artifact):
 the lower label text runs behind the target card instead of remaining readable.
 The numeric measurement was taken before the short-window resize, at 1700×900.
 
@@ -104,7 +109,7 @@ are a supported read-only state and intentionally have no authoring draft.
 Evidence: test project `59cc76bb-394c-443a-9fb2-c65167794ece` has the valid
 four-node split. Its GET reports the explicit source-binding read-only reason
 and `draft=null`. Changed node budget 4→5, opened Save's confirmation, and
-directly inspected the [preview](../../output/playwright/workbench-spec-audit-20261022/canonical-target-preview-missing-counts.png).
+directly inspected the preview (retired QA artifact).
 It shows target deltas but says the graph draft does not exist and omits actual
 counts. Cancelled rather than confirmed; full graph-workbench before/after JSON
 is byte-identical. This is missing disclosure, not loss of the canonical graph.
@@ -130,7 +135,7 @@ product baseline's shared-state section. The advisory guide is not the owning
 status for whole-graph Save / Confirm / Apply controls.
 
 Evidence: `.graph-workflow-status` is absent in Pro; Root inspected the
-[1700×900 controls viewport](../../output/playwright/workbench-spec-audit-20261022/pro-global-controls-no-currentness.png).
+1700×900 controls viewport (retired QA artifact).
 [ProfessionalGraphWorkbench](../../frontend/src/features/graph/ProfessionalGraphWorkbench.tsx)
 lines 41–45 passes no status to `GraphWorkflowActions`, whose line 23 renders it
 only when supplied. Creator supplies the admission reason. In the fixture with
@@ -216,9 +221,8 @@ the separate successful observation above. No forced click, app-state injection,
 assertion weakening or product patch was used. Pro native drag feedback and Undo
 remain unverified; the two then-open intent ambiguities were not counted as product failures.
 
-[Logs, JSON observations and fixtures](../../.local/workbench-spec-audit-20261022/)
-and [browser snapshots/captures](../../output/playwright/workbench-spec-audit-20261022/)
-remain local. The documentation convention deliberately links existing owners;
+Raw logs, observations, fixtures and browser captures were retired.
+The documentation convention deliberately links existing owners;
 it does not rewrite historical ADRs, old evidence or the original sketch.
 
 Closeout checks: all 215 current numbered ADR slugs occur exactly once in the
@@ -227,7 +231,7 @@ resolve (a path check, not a general external-link/anchor crawler).
 `git diff --check` passes and the diff outside `docs/` is empty. All seven static
 files still match the preceding qualified build. Source/catalogue reviewers found
 no remaining concrete report blocker. The owned CLI browser and both test servers
-were closed; disposable evidence remains. The installation was not switched or
+were closed; disposable evidence was later retired. The installation was not switched or
 restarted and no live project was accessed.
 A staged whitespace check caught extra trailing blank lines in the generated
 catalogue; they were removed before the final baseline-to-HEAD diff check.

@@ -1,5 +1,10 @@
 # Conflict and retained-draft recovery audit — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **PUBLISHED / SCOPED QUALIFICATION COMPLETE**. This bounded E22 checkpoint is part
 of the [whole-product visual/text audit](2026-10-08-whole-product-ui-audit.md),
 not completion of Create → Revise → Recover, all visual states or native media.
@@ -46,7 +51,7 @@ The reusable E22 checklist now requires these recovery/admission/lineage checks.
 
 ## Executed evidence and exclusions
 
-Artifacts are retained under `output/playwright/full-lifecycle-2026-10-07/`.
+Artifacts were captured under `output/playwright/full-lifecycle-2026-10-07/`.
 
 - 155: normal8841 real disposable conflict and GET-only failed reload; retained
   snapshot/YAML and root-inspected failed PNG establish the premature ACK/overlap.

@@ -1,8 +1,9 @@
 # Production-bridge live intent trial on the retained U4 lighthouse
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 ## Boundary and retained copies
 
@@ -95,7 +96,7 @@ reported all 57 source-bound entries, 15 saved differences from immutable
 model suggestions, the same r3 hash and job/response provenance, and no
 installation. At both 1440×900 and 1920×1080 the supervised workbench showed
 the source excerpt, original model suggestion, edited text, and disabled
-confirmation. Local screenshots are in `output/playwright/bridge-intent-live-*`
+confirmation. Local screenshots were captured in `output/playwright/bridge-intent-live-*`
 and remain untracked. Console messages were limited to the expected sandbox
 refusal to execute scripts inside optional upstream report iframes; the review
 page remained available.

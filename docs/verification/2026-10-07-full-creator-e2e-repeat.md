@@ -1,5 +1,10 @@
 # Fresh full creator E2E run ledger
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Scope: [approved repeat](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 The permanent C01–C55/P01–P06/E01–E22 checklist owns acceptance. Current status
 is PARTIAL. The [native Character/gallery checkpoint](2026-10-08-native-character-gallery.md),

@@ -1,5 +1,10 @@
 # Frozen configuration reading and diagnostics — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **SCOPED QUALIFIED AND PUBLISHED**. This extends
 the [whole-product UI audit](2026-10-08-whole-product-ui-audit.md) within the
 current full E2E run. It does not close Create → Revise → Recover, all visual

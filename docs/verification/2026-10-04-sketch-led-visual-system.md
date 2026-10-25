@@ -1,5 +1,10 @@
 # Sketch-led visual system delivery
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: independently reviewed, locally qualified, published and activated.
 Owner walkthrough acceptance remains pending; remote CI is in progress.
 Authority: [approved visual assignment](../roadmap/2026-10-04-sketch-led-visual-system.md).

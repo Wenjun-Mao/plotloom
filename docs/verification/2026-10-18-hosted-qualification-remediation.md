@@ -1,5 +1,10 @@
 # Hosted qualification remediation, 2026-10-18
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: `2b3c8d66` was published after composed local release qualification and
 manager review. Its unfiltered hosted run failed in browser shard 3 and Python;
 wheel/smoke were skipped. The bounded test-only decomposition and explicit-QA
@@ -103,7 +108,7 @@ structured-review change was introduced. See [ADR 0126](../adr/0126-static-scrip
 After measurements were client/scroll 1195/1195 with no overflowing descendants
 (`linux-ci/browser-first-fix.log`). The existing archive/security/no-write case
 also checks uncut KPI scroll areas. Summary screenshots at 1700x900, 1280x768
-and 1280x460 are retained under the snapshot's `frontend/test-results/`.
+and 1280x460 were captured under the snapshot's `frontend/test-results/`.
 All three desktop captures were inspected: all five descriptions remain visible.
 
 ## Executed verification and remaining qualification

@@ -1,5 +1,10 @@
 # Project draft ownership and navigation verification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Disposable A and B retained distinct node prose and incomplete JSON through
 project switching, history, node/mode navigation and explicit close/reopen.
 Final UI cleanup restored both entire draft payloads to their baselines. No

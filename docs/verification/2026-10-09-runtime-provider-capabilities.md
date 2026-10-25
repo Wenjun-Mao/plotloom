@@ -1,5 +1,10 @@
 # Runtime-owned provider controls — October9
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Scope: E22.1/.2/.3/.5 in the [current lifecycle run](../roadmap/2026-10-07-full-creator-e2e-repeat.md).
 Source candidate follows `4ac80c5`; this receipt does not close Create → Revise → Recover.
 
@@ -43,7 +48,7 @@ mode, status comes from the loaded active profile rather than an unsaved form.
   delta and all six earlier same-candidate final PNGs, finding no blocker. Its model
   and effort are inherited, not independently verified; no second source writer.
 
-Evidence is retained under
+Evidence was captured under
 `output/playwright/native-intent-2026-10-08/runtime-capabilities/`.
 The final17-test run additionally retains artifacts in
 `frontend/test-results/runtime-capabilities-adjacent/` of the isolated checkout.

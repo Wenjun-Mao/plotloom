@@ -1,5 +1,10 @@
 # Native bridge request budget correction — October 17, 2026
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 ## Root cause and owning contract
 
 The real walkthrough reached Bridge Intent with seven scenes, 35 cuts and 42

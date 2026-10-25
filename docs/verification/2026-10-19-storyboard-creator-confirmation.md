@@ -1,5 +1,10 @@
 # Explicit storyboard confirmation without naming paperwork
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 The owner directly requested removing the storyboard approval box's mandatory
 reviewer label. This source checkpoint is based on `3f56d297`; the implementation
 commit containing this record defines the exact candidate. No live creator

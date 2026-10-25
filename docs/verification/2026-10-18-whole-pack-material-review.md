@@ -1,5 +1,10 @@
 # Whole-pack material review qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: local qualification complete; pushed and activated at `7b90bbc7` on
 2026-10-18. Live read-only UI verification passed. This record does not claim
 creative acceptance or hosted CI success.

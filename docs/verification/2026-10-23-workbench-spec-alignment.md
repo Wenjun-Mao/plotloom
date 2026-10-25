@@ -1,5 +1,10 @@
 # Workbench specification alignment · 2026-10-23
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implemented, independently reviewed and locally frontend-qualified at
 clean executable revision `dd71f0794938fab607c189283d2b3cbe25e384c9`.
 The qualified frontend is activated in installed P at `adda829a`; owner acceptance
@@ -233,7 +238,7 @@ Installed P was clean at detached `21c6d6be`; its checkout hook path had no
   `06e80972-9dde-41ff-be71-b477c1477465` and
   `3405616d-55a3-4f81-9dee-01e79550f25b`.
 
-Private root evidence is `.local/workbench-alignment-20261023-root/`, including
+Historical private root evidence was `.local/workbench-alignment-20261023-root/`, including
 `preservation-{initial,before,after}.json`, comparison results and
 `runtime-{initial,final}.json`. No project was deleted/reset and no provider call,
 push, CI/workflow preparation, service restart or alternate live-browser access

@@ -1,5 +1,10 @@
 # Native Codex intent qualification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: implementation and full local software qualification complete;
 real native acceptance remains in progress. Normal 8841 has not been changed.
 This checkpoint extends the existing Create → Revise → Recover run, not its scope.
@@ -48,7 +53,7 @@ an initial directory-as-file test error was corrected before the passing rerun.
   review found no lost coverage. All 38 Art, storyboard-review and native-intent
   tests pass after this correction (100.98 seconds). The final full backend
   rerun passed all 1,368 tests in 634.06 seconds, with one existing Starlette
-  deprecation warning. Its complete output is retained in
+  deprecation warning. Its complete output was captured in
   `output/playwright/native-intent-2026-10-08/final-backend-gate.log`.
 
 ## Browser lifecycle test correction
@@ -553,7 +558,7 @@ Focused10 and full825 frontend tests, types, deterministic build and diff checks
 passed. Independent read-only review found no issues. Root viewed the live report
 at1700×900 and1280×460: iframe widths1304 and884 respectively, matching their
 containers; the short desktop document remained1280px wide. A1280×768 capture
-and visible Script guidance were also collected. Evidence is under
+and visible Script guidance were also collected. Historical evidence was recorded under
 `output/playwright/native-intent-2026-10-08/` in the main checkout. The changes are
 isolated; no service restart or normal8841 deployment occurred.
 

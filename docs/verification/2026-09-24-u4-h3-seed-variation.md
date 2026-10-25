@@ -1,8 +1,9 @@
 # U4 opening-shot H3 seed variation · 2026-09-24
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 ## Bounded request
 
@@ -18,7 +19,7 @@ The one submit at 21:58:41 UTC returned known prediction `h3_0f103234dbe14d7ab7e
 
 [Inspect the exact eight-second original](http://127.0.0.1:8836/api/v2/projects/fbb913c8-534b-4439-ba68-211e70ec743d/video-jobs/vj_43bf9021184f4fcbbb7238c7d5fb93c9/media) or [open its shot workbench](http://127.0.0.1:8836/v2/?project=fbb913c8-534b-4439-ba68-211e70ec743d&stage=storyboard&entity=shot%3Aopening-s1-c1#video-segment-review-vj_43bf9021184f4fcbbb7238c7d5fb93c9). A credential-free LaunchAgent `com.plotloom.h3-sequence-variation` retains the isolated review service on 8836. After restart, its video backend reports disabled and the exact original media route serves byte ranges (206); the manager also checked browser duration 8, `readyState` 4 and no media error.
 
-Two sampled silent frames at 1 and 5 seconds are retained in the ignored isolated root. At 1 second the keeper holds the fuse near the board; at 5 seconds it appears inserted into the upper socket. The manager independently inspected the final eight-second browser frame (`output/playwright/h3-seed-variation-manager.png`) and saw the fuse protruding from the upper socket with the keeper out of frame. This is an apparent source-fidelity defect: the authored action places the fuse between sockets without choosing a side. Frame samples alone do not establish the complete visual or sound performance. No agent listened to or transcribed the Mandarin track. The director must review the complete original with sound against C for dialogue, extra speech, continuity, placement, and an editorial window before any acceptance or selection.
+Two sampled silent frames at 1 and 5 seconds were captured in the ignored isolated root. At 1 second the keeper holds the fuse near the board; at 5 seconds it appears inserted into the upper socket. The manager independently inspected the final eight-second browser frame (`output/playwright/h3-seed-variation-manager.png`) and saw the fuse protruding from the upper socket with the keeper out of frame. This is an apparent source-fidelity defect: the authored action places the fuse between sockets without choosing a side. Frame samples alone do not establish the complete visual or sound performance. No agent listened to or transcribed the Mandarin track. The director must review the complete original with sound against C for dialogue, extra speech, continuity, placement, and an editorial window before any acceptance or selection.
 
 ## Adjacent-shot preflight and stop
 

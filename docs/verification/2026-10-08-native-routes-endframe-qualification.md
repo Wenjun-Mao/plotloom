@@ -1,5 +1,10 @@
 # Native routes and end-frame qualification — 2026-10-08
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Status: **FINITE NATIVE ROUTES PASS / REPAIR PUBLISHED AND ACTIVATED**.
 The full Create → Revise → Recover goal remains PARTIAL. This continues the
 [approved run](../roadmap/2026-10-07-full-creator-e2e-repeat.md), the single
@@ -78,7 +83,7 @@ The route-only view now says **此节点只控制故事路线，无需播放画�
 all three fresh supported-desktop captures. At1280×460 the lower page uses
 ordinary scrolling; the choice controls remain readable and usable.
 
-Artifacts live under `output/playwright/full-lifecycle-2026-10-07/`:
+Artifacts were recorded under `output/playwright/full-lifecycle-2026-10-07/`:
 `195-native-story-start-diagnostic.txt`, `195-native-story-routes-diagnostic.txt`,
 East/West original/segment diagnostics and terminal/selected captures,
 `195-native-route-{east,west}-terminal.png`, and

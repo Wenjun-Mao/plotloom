@@ -1,5 +1,10 @@
 # Node filming control clarification
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 Owner-approved on October 10, 2026. Baseline: `51cb408` on retained `main`.
 
 ## Outcome and root cause

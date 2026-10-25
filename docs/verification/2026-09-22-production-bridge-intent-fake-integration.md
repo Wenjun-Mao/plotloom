@@ -1,8 +1,9 @@
 # Production-bridge dramatic intent — fake integration check
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 This check covers the approved bounded follow-on in ADR 0079. It is an
 implementation verification, not creative or product acceptance. No real text
@@ -38,7 +39,7 @@ target set. The author can review, edit, save, and explicitly accept it.
 
 Browser checks at 1440 and 1920 pixels covered failed-call/retry, disabled
 acceptance for unsaved edits, review revision after save, and explicit final
-acceptance. Console errors/warnings: zero. Screenshots are retained under
+acceptance. Console errors/warnings: zero. Screenshots were captured under
 `output/playwright/bridge-fake-*`; the fixture data and screenshots are local
 verification artifacts, not canonical project edits. The selected local text
 profile's metadata was inspected read-only; live dispatch readiness and

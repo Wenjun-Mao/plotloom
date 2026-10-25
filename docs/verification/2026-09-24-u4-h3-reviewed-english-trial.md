@@ -1,8 +1,9 @@
 # U4 opening H3 reviewed-English trial · 2026-09-24
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](../roadmap/2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 ## Scope and source
 
@@ -27,7 +28,7 @@ The credential-free loopback review service is `com.plotloom.real-shot-reviewed-
 - [Full eight-second original](http://127.0.0.1:8835/api/v2/projects/fbb913c8-534b-4439-ba68-211e70ec743d/video-jobs/vj_6dbfa8a977cd4fc2b44e926b29c0f01b/media)
 - [Proposed six-second segment](http://127.0.0.1:8835/api/v2/projects/fbb913c8-534b-4439-ba68-211e70ec743d/video-segments/b27a0c6a-4570-461c-a783-1118196e5e4b/preview)
 
-The headed workbench was inspected at 1440×900 and 1920×1080 without browser console errors; screenshots are in `output/playwright/h3-c-manager-{1440,1920}.png`. Both exact C media elements loaded unmuted with controls, expected browser durations (8 and 6 seconds), and `readyState` 4. Sampled frames at 0.5, 4, and 5.5 seconds showed a continuous keeper/switchboard shot and no obvious subtitle in those frames. This is visual sampling, not a whole-video or dialogue-quality verdict.
+The headed workbench was inspected at 1440×900 and 1920×1080 without browser console errors; screenshots were captured in `output/playwright/h3-c-manager-{1440,1920}.png`. Both exact C media elements loaded unmuted with controls, expected browser durations (8 and 6 seconds), and `readyState` 4. Sampled frames at 0.5, 4, and 5.5 seconds showed a continuous keeper/switchboard shot and no obvious subtitle in those frames. This is visual sampling, not a whole-video or dialogue-quality verdict.
 
 No agent or manager listened to and transcribed the Mandarin track. The director still needs to audition the full original and proposed segment, including the six-second boundary, for the prior extra action sentence, intended-line clarity, other vocalizations, and visual story fidelity. Ingestion and playable media do not establish that the speech defect is fixed. All three candidates and all three proposals remain unselected; the other 26 route cuts still have no current selected playback.
 

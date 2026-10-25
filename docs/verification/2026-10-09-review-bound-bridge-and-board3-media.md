@@ -1,5 +1,10 @@
 # Review-bound bridge and current Board3 native continuation
 
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](../roadmap/2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
+
 The reusable Create → Revise → Recover run and E22 visual/text audit remain
 **PARTIAL**. This receipt supersedes the current-state summaries of the earlier
 Board2/r8 media run; their artifacts and limitations remain historical evidence.
@@ -223,7 +228,7 @@ multishot advancement and full revised-route playback, not just standalone previ
 Root directly inspected choice/terminal/bottom controls at1700×900 and1280×768;
 no document-width overflow. Short-desktop/final-candidate and restored-route pixels
 are subsequently qualified in the linked recovery receipt.
-Evidence is in`output/playwright/board3-r12-2026-10-09/`, including
+Historical evidence was recorded in`output/playwright/board3-r12-2026-10-09/`, including
 `revised-shared-opening-choice-*.png`,`revised-east-route-ended-*.png` and
 `revised-west-route-ended-*.png` plus each original/segment terminal capture.
 

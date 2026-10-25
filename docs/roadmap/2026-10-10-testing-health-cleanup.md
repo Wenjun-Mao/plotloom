@@ -1,8 +1,9 @@
 # Testing health cleanup — full creator E2E completion track
 
-> Local QA artifact references below are historical; the [2026-10-25 cleanup](2026-10-25-top-five-cleanup.md)
-> retires their storage, replay/launch/cutback instructions and preservation holds.
-> Recorded outcomes and limits remain; current ADR/API contracts still apply.
+> Only QA artifacts listed in the [2026-10-25 cleanup scope](2026-10-25-top-five-cleanup.md)
+> were retired. References to those artifacts describe historical
+> runs, not available files or current launch/recovery instructions.
+> Recorded outcomes and limits stand.
 
 Status: the original cleanup is implemented, independently reviewed and
 locally/hosted qualified. The owner approved the **performance follow-up P0–P4**
