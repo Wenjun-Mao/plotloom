@@ -12,6 +12,8 @@ test.describe("scene-beats structural deletion", () => {
     });
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
+    await page.getByRole("button", { name: "创建编辑副本", exact: true }).click();
+    await expect(page).toHaveURL(/[?&]project=/);
     await navigateToSecondaryTool(page, "场景节拍");
 
     // The first scene owns these descendants in the demo.  Cancelling proves

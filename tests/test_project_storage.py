@@ -744,7 +744,8 @@ def test_explicit_close_blocks_delayed_admission_then_reopens_without_replay(
     assert listed.json()["projects"][0]["operationalState"] == "closed"
     # Close is idempotent and does not republish state or dispatch work.
     assert client.post(f"/api/v2/projects/{project_id}/freeze").json()["revision"] == closed.json()["revision"]
-    assert client.get(f"/api/v2/projects/{project_id}").status_code == 409
+    frozen = client.get(f"/api/v2/projects/{project_id}")
+    assert frozen.status_code == 200 and frozen.json()["operationalState"] == "closed"
     with pytest.raises(ProjectClosedError):
         storage.projects.open(project_id)
 

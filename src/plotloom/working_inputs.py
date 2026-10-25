@@ -31,3 +31,9 @@ class BriefWorkingInput(CamelModel):
         payload = self.model_dump(mode="json", by_alias=True)
         payload["title"] = self.title.strip() or "未命名故事"
         return ProjectBrief.model_validate(payload)
+
+
+def working_project_title(confirmed_title: str | None, working_title: str | None = None) -> str:
+    """None means no working row; an empty working title overrides canon."""
+    title = confirmed_title if working_title is None else working_title
+    return (title or "").strip() or "未命名项目"

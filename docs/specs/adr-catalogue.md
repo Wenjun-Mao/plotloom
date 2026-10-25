@@ -1,6 +1,7 @@
 # Complete ADR discovery catalogue
 
 Snapshot: 2026-10-22, source baseline `8d3b259a` plus documentation-only ADR 0217.
+Amended 2026-10-24 to include ADR 0218's owner-approved autosave/optional Freeze decision. Earlier opening status cues remain historical excerpts, not new qualification claims.
 Each numbered Markdown file is linked once below; `docs/adr/README.md` remains
 a selected decision-chain guide, not this exhaustive inventory. The feature map
 is [README](README.md); this catalogue preserves full slugs and historical IDs.
@@ -149,6 +150,7 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 | [0117-creator-directions-and-branch-suggestions](../adr/0117-creator-directions-and-branch-suggestions.md) | Accepted 2026-10-04 for the approved creator UI batch. The topology portion is superseded before release by ADR 0118 after the owner approved Brief-driven br… |
 | [0118-brief-owned-source-topology](../adr/0118-brief-owned-source-topology.md) | Accepted October 4, 2026 after the owner expanded the creator UI batch. |
 | [0119-current-workbench-visual-roles](../adr/0119-current-workbench-visual-roles.md) | Accepted October 4, 2026 under the approved sketch-led visual assignment. |
+| [0218-working-input-autosave-and-optional-freeze](../adr/0218-working-input-autosave-and-optional-freeze.md) | Status: accepted for implementation, 2026-10-24. Implements the owner-approved |
 
 ## Graph authoring, node workflows and read authority
 

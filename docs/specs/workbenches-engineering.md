@@ -52,3 +52,5 @@ Hosted CI is optional and off without a new direct owner request under
 [0199](../adr/0199-local-release-qualification.md) and AGENTS.
 
 Ordinary departure and exclusive drainage use separate owner contracts (ADR 0218). A branch mutation already sent and owned by the workspace can continue after navigation, without cancel/replay; this exception carries no editable buffer. Freeze/snapshot/delete still join it and refuse uncertain results. Branch state/draft basis queries use read leases and never initialize absent review heads; creation owns initialization.
+
+Current project-management titles, including deletion consent, share the working-title projection with the raw current-layout abandonment snapshot. Exact scope and current title/digest must agree before ledger/revocation; no Brief Apply is required to manage a draft. The supported prior reader/digest stays explicit and unchanged. Read-open validation depth is independently selectable for inspection consumers, while both inspection and default authority require a real initialized shared lease before DB validation and the deletion-quarantine predicate before exposing the handle (ADR 0192/0218).

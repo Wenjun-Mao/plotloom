@@ -361,3 +361,7 @@ and files (`.local/autosave-rollback-proof-2.log`, 1 passed). This does not clai
 all raw read-open paths refuse extended payloads, nor that an old binary can
 safely continue editing them. Retained qualified source/static remains the
 post-boundary fallback; no live rollback/migration was executed.
+
+## Qualification execution boundary
+
+Implementation is committed on local main at `008898d7`, followed by the final Freeze wording/receipt checkpoint `4f072cca`. Independent original/residual and bounded branch query/departure delta reviews are closed. The single unfiltered full invocation is retained as failed at 1506 frontend passes / 14 failures; test-only fixture repair `33b3813c` passed its21 causal cases and the rerun entire failed frontend step (1520 cases). Exact unchanged upstream evidence is reused while existing full downstream commands continue. The [durable verification receipt](../verification/2026-10-24-autosave-and-project-freeze.md) owns the final executed outcome, complete asset manifests and rollback limits; qualification and installed activation remain separate.

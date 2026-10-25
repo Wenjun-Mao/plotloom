@@ -19,13 +19,17 @@ test("serves and persists the checked production bundle through FastAPI", async 
   await expect(page.locator('link[rel="stylesheet"][href^="/v2/"]').first()).toHaveAttribute("href", /\.css$/);
   await page.getByRole("button", { name: "打开示例项目" }).click();
 
+  await saveBriefAndContinue(page);
+  await expect(page).toHaveURL(/[?&]project=/);
+  const id = new URL(page.url()).searchParams.get("project")!;
+  await page.getByRole("button", { name: "项目简报与创作设置", exact: false }).click();
   const title = "E2E checked static bundle persistence";
   await page.getByLabel("片名").fill(title);
-  const created = page.waitForResponse((response) => response.request().method() === "POST"
-    && new URL(response.url()).pathname === "/api/v2/projects");
-  await saveBriefAndContinue(page);
-  expect((await created).ok()).toBeTruthy();
-  await expect(page).toHaveURL(/[?&]project=/);
+  const applied = page.waitForResponse((response) => response.request().method() === "PATCH"
+    && new URL(response.url()).pathname === `/api/v2/projects/${id}`);
+  await page.getByRole("button", { name: "应用修改", exact: true }).click();
+  expect((await applied).ok()).toBeTruthy();
+  await page.getByRole("button", { name: "返回来源与大纲", exact: true }).click();
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   await expect(page.getByLabel("标题")).toHaveValue(title);
 

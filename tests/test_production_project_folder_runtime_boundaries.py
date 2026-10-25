@@ -130,8 +130,10 @@ def test_closed_project_run_commands_and_startup_leave_db_and_evidence_unchanged
             connection.close()
         database_before = database.read_bytes()
         lock_path = project_home / ".project-operation.lock"
-        lock_path.unlink()
-        assert not lock_path.exists()
+        # Restore/publication now initializes the real authority lock; Frozen
+        # reads retain it rather than treating a missing lock as valid authority.
+        assert lock_path.is_file()
+        lock_before = lock_path.read_bytes()
 
     restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
     with TestClient(restarted) as client:
@@ -140,7 +142,7 @@ def test_closed_project_run_commands_and_startup_leave_db_and_evidence_unchanged
         assert restarted.state.startup_recovery[project_id] == StartupRecoveryPlan()
         assert client.get(f"/api/v2/runs/{run_id}/trace").json() == trace_before
         assert database.read_bytes() == database_before
-        assert not lock_path.exists()
+        assert lock_path.read_bytes() == lock_before
 
         assert client.post(f"/api/v2/runs/{run_id}/cancel").status_code == 409
         exact = client.post(

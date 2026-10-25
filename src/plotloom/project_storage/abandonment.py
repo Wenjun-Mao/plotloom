@@ -35,6 +35,26 @@ def _context(registry, project_id, native, *, preparing_stop=False):
         else:
             raise InvalidTransitionError("放弃删除只支持当前或直接前一版项目合同。")
         revision, lifecycle, brief = connection.execute("SELECT revision,lifecycle_revision,brief FROM v2_projects WHERE id=?", (project_id,)).fetchone()
+        confirmed_brief = json.loads(brief)
+        if layout == "current":
+            from ..working_inputs import working_project_title
+            # This raw reader owns only title shape, not whole-Brief validation.
+            # Whole JSON null is legitimate; malformed falsey fields are not.
+            if confirmed_brief is not None and (not isinstance(confirmed_brief, dict)
+                    or not isinstance(confirmed_brief.get("title"), str)
+                    or not 1 <= len(confirmed_brief["title"]) <= 200):
+                raise InvalidTransitionError("当前项目标题格式不受支持；未核对放弃删除。")
+            draft = connection.execute("SELECT payload FROM v2_authoring_drafts WHERE project_id=? AND editor_scope='brief' AND entity_id='root'", (project_id,)).fetchone()
+            working_brief = json.loads(draft[0]) if draft else None
+            if draft and (not isinstance(working_brief, dict)
+                    or not isinstance(working_brief.get("title"), str)
+                    or len(working_brief["title"]) > 200):
+                raise InvalidTransitionError("当前工作标题格式不受支持；未核对放弃删除。")
+            confirmation_title = working_project_title(confirmed_brief["title"] if confirmed_brief is not None else None,
+                working_brief["title"] if draft else None)
+        else:
+            # The one supported prior layout retains its canonical-only consent.
+            confirmation_title = confirmed_brief["title"]
         snapshots = connection.execute("SELECT snapshot FROM v2_autopilot_exec_attempts WHERE project_id=? ORDER BY id", (project_id,)).fetchall()
         attempts = [CodexExecAttempt.model_validate_json(row[0]) for row in snapshots]
         jobs = {attempt.job_id for attempt in attempts}
@@ -84,10 +104,13 @@ def _context(registry, project_id, native, *, preparing_stop=False):
         if not host.eligible and not host_blockers:
             host_blockers.append("主机尚未确认本地任务全部结束；请核对原任务后重新删除。")
         blockers.extend(host_blockers)
-        digest = stable_hash({"projectId": project_id, "revision": revision, "lifecycleRevision": lifecycle,
-            "brief": json.loads(brief), "hostPreview": host.preview_hash})
+        digest_input = {"projectId": project_id, "revision": revision, "lifecycleRevision": lifecycle,
+            "brief": confirmed_brief, "hostPreview": host.preview_hash}
+        if layout == "current":
+            digest_input["confirmationTitle"] = confirmation_title
+        digest = stable_hash(digest_input)
         return home, packet, {"projectId": project_id, "expectedProjectRevision": revision,
-            "expectedLifecycleRevision": lifecycle, "confirmationTitle": json.loads(brief)["title"],
+            "expectedLifecycleRevision": lifecycle, "confirmationTitle": confirmation_title,
             "previewHash": digest, "hostPreviewHash": host.preview_hash, "eligible": not blockers,
             "blockers": blockers, "unknownAttemptIds": host.unknown_attempt_ids,
             "stopBlockers": stop_blockers, "hostBlockers": host_blockers,

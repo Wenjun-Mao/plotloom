@@ -79,7 +79,8 @@ def test_direct_delete_erases_only_owned_home_in_every_directory_state(tmp_path,
                 json={"expectedLifecycleRevision": target["lifecycleRevision"]}).json()
         elif state == "closed":
             assert client.post(f"/api/v2/projects/{target['id']}/freeze").status_code == 200
-            assert client.get(f"/api/v2/projects/{target['id']}").json()["code"] == "project_closed"
+            frozen = client.get(f"/api/v2/projects/{target['id']}")
+            assert frozen.status_code == 200 and frozen.json()["operationalState"] == "closed"
         response = delete(client, target)
         assert response.status_code == 204, response.text
         assert not home.exists()

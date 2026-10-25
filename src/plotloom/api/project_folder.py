@@ -184,7 +184,7 @@ def create_project_folder_authoring_app(
 
     @contextmanager
     def inspected_open_project(project_id: str):
-        store = storage.projects.read_open(project_id)
+        store = storage.projects.read_open(project_id, admission="inspection")
         try:
             yield store
         finally:

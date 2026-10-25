@@ -90,13 +90,16 @@ def test_actual_erase_failure_quarantines_writes_reopen_and_dispatch(tmp_path, m
         patch = client.patch(path, json={"expectedRevision": project.revision,
             "brief": project.brief.model_dump(mode="json", by_alias=True) | {"title": "must not be admitted"}})
         assert patch.status_code == (404 if withdrawn else 409), patch.text
-        for action, payload in (("open", {}), ("archive", {"expectedLifecycleRevision": 1}),
+        for action, payload in (("unfreeze", {}), ("archive", {"expectedLifecycleRevision": 1}),
                 ("restore", {"expectedLifecycleRevision": 1}), ("duplicate", {"expectedLifecycleRevision": 1}), ("snapshots", {})):
             response = client.post(path + "/" + action, json=payload)
             assert response.status_code == (404 if withdrawn else 409), response.text
         assert len(client.get("/api/v2/project-deletions").json()) == 1
         assert client.get("/api/v2/projects").status_code == 200
         if not withdrawn:
+            for admission in ("authority", "inspection"):
+                with pytest.raises(ProjectDeletionPendingError):
+                    storage.projects.read_open(view.project_id, admission=admission)
             with closing(storage.projects.inspect(view.project_id)) as inspection:
                 assert inspection.project() == project
                 with inspection.repository.engine.connect() as connection:

@@ -234,7 +234,8 @@ class ProjectDirectoryRegistry:
             raise
 
     def inspect(self, project_id: str, *, passive: bool = False,
-                admission: Literal["inspection", "authority"] = "inspection") -> ProjectStore:
+                admission: Literal["inspection", "authority"] = "inspection",
+                require_operation_lock: bool = False) -> ProjectStore:
         """Read with explicit admission, without reopening closed projects."""
 
         home = self._project_home(project_id)
@@ -242,7 +243,7 @@ class ProjectDirectoryRegistry:
             home.path, mode="shared", create=False, passive=passive
         )
         try:
-            if admission == "authority" and lease.descriptor < 0:
+            if (admission == "authority" or require_operation_lock) and lease.descriptor < 0:
                 raise ProjectStorageCorruptionError("authoritative project read requires an initialized operation lock; restore publication is incomplete")
             return ProjectStore.open(
                 home.path, read_only=True, admission=admission, access_lease=lease
@@ -251,9 +252,11 @@ class ProjectDirectoryRegistry:
             lease.close()
             raise
 
-    def read_open(self, project_id: str) -> ProjectStore:
-        """Inspect raw data while retaining open/deletion admission obligations."""
-        store = self.inspect(project_id, admission="authority")
+    def read_open(self, project_id: str, *, admission: Literal["inspection", "authority"] = "authority") -> ProjectStore:
+        """Read under a real shared lease and deletion admission, with scoped validation."""
+        # Operational admission is independent of JSON validation depth. Both
+        # modes reject a missing lock before opening/validating the database.
+        store = self.inspect(project_id, admission=admission, require_operation_lock=True)
         try:
             # The shared lease is already held: deletion cannot acknowledge
             # between this predicate and the requested confined read.

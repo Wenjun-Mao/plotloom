@@ -103,3 +103,13 @@ def test_unsubmitted_custom_direction_is_independent_bounded_text(tmp_path: Path
         assert client.get(base + "/authoring-drafts").json()[0] == saved.json()
         next_input = client.put(base + "/authoring-drafts", json={**request, "expectedDraftRevision": 1, "payload": {**request["payload"], "text": "still unfinished"}})
         assert next_input.status_code == 200, next_input.text
+
+
+def test_working_display_title_is_independent_of_confirmed_brief():
+    from plotloom.working_inputs import working_project_title
+    assert working_project_title(None) == "未命名项目"
+    assert working_project_title("Confirmed") == "Confirmed"
+    assert working_project_title("Confirmed", "") == "未命名项目"
+    assert working_project_title("Confirmed", "  ") == "未命名项目"
+    assert working_project_title(None, " Draft ") == "Draft"
+    assert working_project_title("Confirmed", "Draft") == "Draft"

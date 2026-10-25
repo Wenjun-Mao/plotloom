@@ -235,8 +235,9 @@ class ProjectStore(ProjectCreativeStages):
         project = self.project()
         drafts = self.authoring.list_authoring_drafts(project.id)
         brief = next((draft for draft in drafts if draft.editor_scope == "brief" and draft.entity_id == "root"), None)
-        title = str(brief.payload.get("title", "")) if brief else project.brief.title if project.brief else ""
-        return title.strip() or "未命名项目"
+        from ..working_inputs import working_project_title
+        return working_project_title(project.brief.title if project.brief else None,
+            brief.payload["title"] if brief else None)
 
     def project(self) -> Project:
         try:

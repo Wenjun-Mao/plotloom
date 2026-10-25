@@ -114,12 +114,12 @@ test.describe("M1-B0 query navigation shell", () => {
 async function persistSampleProject(page: import("@playwright/test").Page, frontendOrigin: string): Promise<string> {
   await page.goto(`${frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await navigateToSecondaryTool(page, "分镜工作台");
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
-  await page.getByRole("button", { name: "应用分镜修改" }).click();
+  await page.getByRole("button", { name: "创建编辑副本", exact: true }).click();
   await expect((await created).ok()).toBeTruthy();
   await expect(page).toHaveURL(/[?&]project=/);
+  await navigateToSecondaryTool(page, "分镜工作台");
   const projectId = new URL(page.url()).searchParams.get("project");
   expect(projectId).toBeTruthy();
   return projectId!;

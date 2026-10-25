@@ -219,7 +219,8 @@ def test_production_runtime_uses_application_profiles_and_exact_project_routes(
         assert client.get(f"/api/v2/runs/{first_run.json()['id']}").json()["projectId"] == first_id
         assert client.get(f"/api/v2/runs/{second_run.json()['id']}").json()["projectId"] == second_id
         # Reconciliation returns a plan but never starts a fresh provider call.
-        assert client.get(f"/api/v2/projects/{first_id}").status_code == 409
+        frozen = client.get(f"/api/v2/projects/{first_id}")
+        assert frozen.status_code == 200 and frozen.json()["operationalState"] == "closed"
         assert client.post(f"/api/v2/projects/{first_id}/unfreeze").status_code == 200
         assert client.get(f"/api/v2/projects/{first_id}").status_code == 200
 

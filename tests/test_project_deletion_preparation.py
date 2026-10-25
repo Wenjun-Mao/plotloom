@@ -232,14 +232,94 @@ def test_recorded_unknown_work_stops_then_abandons_only_confirmed_scope(tmp_path
         assert not any(revoke for _, revoke in calls)
         # A later draft changes material without creating a new canonical Brief.
         assert save_unsent_draft(client, path).status_code == 200
+        from tests.working_input_preservation import preservation_inventory
+        before_refusal = preservation_inventory(tmp_path)
         refused = client.post(path + "/abandon-and-delete", json=consent | {
             "previewHash": fresh["previewHash"], "acknowledgeUnknownRemote": True})
         assert refused.status_code == 409 and "任务范围已改变" in refused.text
+        assert preservation_inventory(tmp_path) == before_refusal
         assert not any(revoke for _, revoke in calls)
         latest = client.get(path + "/deletion-preview").json()
         final = {key: latest[key] for key in ("expectedProjectRevision", "expectedLifecycleRevision", "confirmationTitle", "scopeHash", "previewHash")}
-        assert client.post(path + "/abandon-and-delete", json=final | {"acknowledgeUnknownRemote": True}).status_code == 204
+        assert final["confirmationTitle"] == "后来保存的草稿"
+        before_refusal = preservation_inventory(tmp_path)
+        wrong_title = client.post(path + "/abandon-and-delete", json=final | {"confirmationTitle": FIXED_CHINESE_BRIEF.title, "acknowledgeUnknownRemote": True})
+        assert wrong_title.status_code == 409, wrong_title.text
+        assert preservation_inventory(tmp_path) == before_refusal
+        assert not any(revoke for _, revoke in calls)
+        # Returning to the same visible title does not restore an old scope.
+        for revision, title in ((1, "不同的工作标题"), (2, "后来保存的草稿")):
+            changed = client.put(path + "/authoring-drafts", json={"editorScope": "brief", "entityId": "root", "expectedDraftRevision": revision,
+                "baseCanonicalRevision": 1, "payload": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True) | {"title": title}})
+            assert changed.status_code == 200, changed.text
+        before_refusal = preservation_inventory(tmp_path)
+        stale_scope = client.post(path + "/abandon-and-delete", json=final | {"acknowledgeUnknownRemote": True})
+        assert stale_scope.status_code == 409, stale_scope.text
+        assert preservation_inventory(tmp_path) == before_refusal
+        assert not any(revoke for _, revoke in calls)
+        latest = client.get(path + "/deletion-preview").json()
+        final = {key: latest[key] for key in ("expectedProjectRevision", "expectedLifecycleRevision", "confirmationTitle", "scopeHash", "previewHash")}
+        erased = client.post(path + "/abandon-and-delete", json=final | {"acknowledgeUnknownRemote": True})
+        assert erased.status_code == 204, erased.text
         assert calls[-1][1] is True and calls[-1][0]["attempts"]
         assert all(call[0]["projectId"] == view.project_id for call in calls)
     finally:
         service.close()
+
+
+def test_raw_current_title_projection_accepts_json_null_but_not_falsey_malformed_brief(tmp_path):
+    import json
+    import sqlite3
+    from plotloom.project_storage.abandonment import _context
+    from tests.working_input_preservation import preservation_inventory
+
+    storage = storage_at(tmp_path)
+    with closing(storage.projects.create(None)) as store:
+        project_id, database = store.manifest.project_id, store.database_path
+    native = SimpleNamespace(codex_exec_abandonment=Mock(side_effect=AssertionError("no host call for this empty project")))
+    before = preservation_inventory(tmp_path)
+    context = _context(storage.projects, project_id, native, preparing_stop=True)[2]
+    assert context["confirmationTitle"] == "未命名项目"
+    assert preservation_inventory(tmp_path) == before
+    from plotloom.exceptions import InvalidTransitionError
+    malformed_briefs = [{}, [], False, 0, *({"title": value} for value in (0, False, [], {}, None, "", "x" * 201))]
+    for malformed in malformed_briefs:
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE v2_projects SET brief=? WHERE id=?", (json.dumps(malformed), project_id))
+        before = preservation_inventory(tmp_path)
+        # SQLite JSON affinity returns raw numeric zero as an integer, so its
+        # existing JSON parser refusal precedes the title-only shape guard.
+        expected_error = TypeError if type(malformed) is int else InvalidTransitionError
+        with pytest.raises(expected_error):
+            _context(storage.projects, project_id, native, preparing_stop=True)
+        native.codex_exec_abandonment.assert_not_called()
+        assert preservation_inventory(tmp_path) == before
+
+    # The raw reader does not newly require unrelated canonical story fields.
+    for canonical_title in ("Canonical", "  "):
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE v2_projects SET brief=? WHERE id=?", (json.dumps({"title": canonical_title}), project_id))
+        before = preservation_inventory(tmp_path)
+        projected = _context(storage.projects, project_id, native, preparing_stop=True)[2]
+        assert projected["confirmationTitle"] == (canonical_title.strip() or "未命名项目")
+        assert preservation_inventory(tmp_path) == before
+    payload = FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)
+    with sqlite3.connect(database) as connection:
+        connection.execute("INSERT INTO v2_authoring_drafts (id,project_id,editor_scope,entity_id,base_canonical_revision,draft_revision,payload,updated_at) VALUES (?,?,'brief','root',1,1,?,?)",
+            (str(uuid4()), project_id, json.dumps(payload), "2026-10-24T00:00:00+00:00"))
+    for raw_payload in (None, [], False, {}, *({"title": value} for value in (0, False, [], {}, None, "x" * 201))):
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE v2_authoring_drafts SET payload=? WHERE project_id=?", (json.dumps(raw_payload), project_id))
+        before = preservation_inventory(tmp_path)
+        with pytest.raises(InvalidTransitionError, match="工作标题格式不受支持"):
+            _context(storage.projects, project_id, native, preparing_stop=True)
+        native.codex_exec_abandonment.assert_not_called()
+        assert preservation_inventory(tmp_path) == before
+    for working_title in ("", "  ", " Draft "):
+        with sqlite3.connect(database) as connection:
+            connection.execute("UPDATE v2_authoring_drafts SET payload=? WHERE project_id=?", (json.dumps(payload | {"title": working_title}), project_id))
+        before = preservation_inventory(tmp_path)
+        projected = _context(storage.projects, project_id, native, preparing_stop=True)[2]
+        assert projected["confirmationTitle"] == (working_title.strip() or "未命名项目")
+        native.codex_exec_abandonment.assert_not_called()
+        assert preservation_inventory(tmp_path) == before
