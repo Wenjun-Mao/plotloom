@@ -61,6 +61,21 @@ receipts/manifests, permanent revocation or disabled queue. It does not drain a
 queue, publish an output or raise the 4-total/2-image default limits. Reduced
 persisted installations keep their own exact limits.
 
+## Closed historical incidents
+
+The two historical examples below were retired on October 22. A fresh read-only
+review on October 24 returned both original receipts and confirmed zero held
+slots, zero enabled queues and zero active execution states. Their operational
+incidents are closed; the UNKNOWN outcome rows and one project image-budget
+reservation each remain historical audit facts. Describe them as historical
+UNKNOWN records with local capacity retired, rather than unfinished work.
+
+The [closeout receipt](../../docs/verification/2026-10-24-historical-unknown-closeout.md)
+records exact identities, evidence limits and readback. Do not repeat retirement
+or generation for these cases. Routine preservation can verify their unchanged
+records without reopening them; stronger outcome or accounting disposition needs
+new authoritative evidence or a separately scoped decision.
+
 ## Supported operator commands
 
 Activate the reviewed build only at a quiet checkpoint. Use the existing running
