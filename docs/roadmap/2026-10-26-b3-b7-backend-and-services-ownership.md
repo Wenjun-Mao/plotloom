@@ -1,14 +1,15 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
 Status: **B4–B7 and target-independent B3 source implemented and independently
-reviewed; Gateway activated. Owner selected current native Codex for B3; settled
-native handoff reviewed; implementation/campaign, combined qualification,
-core/bridge activation and recovery remain open**. Date: 2026-10-26.
+reviewed; Gateway activated. Native B3 implemented/reviewed at `258f5a42`;
+the real canary exposed a current-CLI telemetry incompatibility. Bounded repair,
+campaign, combined qualification, core/bridge activation and recovery remain open**.
+Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
 Starting baseline: both inspected clean at
 `0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Current source checkpoint is
-`98e186a1f19bfde8f51013b87d2aaaece5bb716d`; P remains at the starting baseline.
+`258f5a42e4aa385b585350f920422645344351b0`; P remains at the starting baseline.
 
 ## Outcome and authority
 
@@ -650,3 +651,60 @@ production command. Model/provider/auth/sandbox/settings policies are unchanged.
 A fresh clean source/profile/preflight and predeclared canary may follow these
 causal repairs; the original failed matrix remains failed. Broad scaling, final
 root full and core activation still await the fix/evidence review checkpoint.
+
+### Current CLI telemetry compatibility reassessment
+
+Independent bounded review closed all three findings at clean `258f5a42`, including
+the confined non-Git invocation. Exact candidate preflight passed 22 validator/
+render commands and seven controls; noneditable wheel smoke passed with wheel
+SHA-256 `1a8889f09fe41bc5ce998770c06af50775cf8097c6c1331ec4a03a260f5367a6`.
+The new matrix at `/private/tmp/plotloom-alpha-258f5a42-20261026` froze nine identities,
+profile `6f425f8eb6dcef2797fbb649db92bd7447ed23270259644a5b9487a0884ada0f`
+and contract `7af93c3d53ab68cba34d581471fc6f3036364e4ae28c714ae6221d4d677fb8cc`.
+
+The real canary adopted Outline and Branches on their first attempts. Characters
+encountered one top-level `error` reporting reconnect 2/5 after HTTP 429, then
+recovered in that same CLI session: 12 started items, 16 completed items and exactly
+one `turn.completed`. The host reader classifies every top-level `error` as terminal
+and rejected the subsequent data before content validation. The run paused UNKNOWN,
+retaining its unqualified `cast.json`; this is no installation or model-quality
+success. All worker/CLI identities and groups 86955/86999, 92081/92144, 95862/95888
+and runner 86615 were absent before any repair. Original matrices, attempts, slots
+and statuses remain unchanged. Diagnosis and immutable inventory are under
+`.local/b37/b3-native/canary-258f5a42-diagnosis.json` and
+`telemetry-compat-258f5a42/inventory.json`.
+
+After two unsuccessful small verticals, reassess the method before another
+admission. The [official JSONL documentation](https://learn.chatgpt.com/docs/non-interactive-mode#make-output-machine-readable)
+lists separate thread/turn/item/error events but does not establish that every
+error is fatal or recoverable. The current binary's retained stream establishes
+the observed reconnect case. Independent read-only semantic assessment recommends
+the following bounded repair within the existing authority:
+
+- Recognize only the qualified reconnect shape/message grammar inside an already
+  started turn. Preserve generic fatal errors, `item.error`, exact session and
+  terminal identity, after-terminal refusal, file identity and all existing bounds.
+- Retain reconnect diagnostics separately as bounded immutable hashes/sizes and
+  retain the complete transcript hash. No raw diagnostic message enters a public
+  receipt. Normal text exit/session/package/domain/content validation still owns
+  prospective success; transport recovery grants no content acceptance.
+- Images retain UNKNOWN on transport diagnostics **before** failure/completion
+  handling; do not release a previously held image budget. Explicitly reject the
+  diagnostics in `prove_no_remote_dispatch` and its postmortem consumers.
+- Replay exact retained Characters and clean Outline/Branches evidence without
+  rewriting bytes, adopting content, changing state or starting a model call.
+  Probe malformed/extra fields, unsupported diagnostics, phase placement, limits,
+  missing/duplicate terminals, generic errors and item errors. Add supervisor text
+  success/content rejection/nonzero-exit cases and image/recovery hold regressions.
+- Amend ADR 0222 before code changes, then use the same sole writer and bounded
+  independent diff review. Freeze a new clean source/profile, refresh exact proof
+  and prepare a new predeclared matrix before another genuine canary. Never promote
+  either ended campaign through the new parser or relabel its evidence.
+
+The read-only inventory already confirms the CLI binary is unchanged, package
+hashes still match, and the separate exact Characters session reader accepts the
+session with zero image calls/events/reference views. Original stdout/session
+hashes remain unchanged. Prototype replay and production repair are still distinct
+from a new native outcome. Model, prompt, driver retry, correction, sandbox and
+UNKNOWN-settlement policy changes are outside this repair. No broad scaling,
+root full or core activation has occurred.

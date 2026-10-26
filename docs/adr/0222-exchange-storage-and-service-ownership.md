@@ -172,3 +172,28 @@ unique complete preselected repeat-one identities with matching story prefixes;
 qualification binds every content hash to the corresponding installed receipt
 and retained canonical export. These checks introduce no retry or compatibility
 path for the original failed matrix.
+
+Two small real verticals exposed current CLI envelope incompatibilities. The
+second completed its Characters CLI turn after a reconnect diagnostic, but the
+strict reader treated that diagnostic as terminal and the host stopped UNKNOWN
+before content validation. The trusted code owns event classification; model
+content remains untrusted and subject to the existing validators. The author
+owns the frozen Brief and no source-adoption or Approval rule changes.
+
+Prospectively recognize only the qualified current reconnect diagnostic within
+an already-started turn, retaining bounded hashes/sizes separately from fatal item
+diagnostics and preserving the full raw transcript hash. Official documentation
+lists distinct JSONL events without defining universal error fatality; the exact
+retained stream supports this narrow exception, not blanket error acceptance.
+Text success still requires exit zero, an exact complete bound session/turn and
+all normal package/domain/content checks. Generic errors, item errors, malformed
+or continued streams and existing bounds retain their refusals.
+
+Image transport uncertainty must remain UNKNOWN before any failure/completion
+path can release capacity or budget. No-remote-dispatch recovery explicitly
+refuses transport diagnostics. This preserves the existing image/recovery policy
+while repairing the observed text path. It authorizes no retry, old-attempt
+promotion or model/prompt/sandbox change. Independent assessment requires immutable
+real-stream replay plus strict negatives and consumer/hold regressions before a
+new frozen source/profile/proof/matrix and another genuine canary. Both original
+failed campaigns retain their actual identities, statuses, slots and evidence.
