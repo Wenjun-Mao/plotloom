@@ -78,9 +78,9 @@ def test_playable_example_registry_freezes_exact_new_projects_and_preserves_old_
     assert all(scope.profile_id == "minimax_h3_quality8_portrait_576x1024_v2"
         and (scope.max_submissions, scope.max_requested_seconds) == (None, None) for scope in PLAYABLE_SCOPES)
     prior = {scope.id: stable_hash(asdict(scope)) for scope in SCOPES
-        if not scope.id.startswith("playable-example-") and scope.id != "minute-playable-example-20261023"}
+        if not scope.id.startswith("playable-example-") and scope.id not in {"minute-playable-example-20261023", "h5-sutang-preview-20261026"}}
     assert prior == PREEXISTING_SCOPE_HASHES
-    assert len(SCOPES) == 9
+    assert len(SCOPES) == 10
 
 
 @pytest.mark.parametrize("scope", EXAMPLE_SCOPES, ids=lambda scope: scope.id)

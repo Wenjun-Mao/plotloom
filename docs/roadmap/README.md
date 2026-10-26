@@ -29,6 +29,14 @@ independently reviewed extension under that authority. Original b5 evidence rema
 failed; new version/source/pins/profile and model qualification are required. Standing implementation authority
 and routine internal review remain distinct from that material scope decision.
 
+## Su Tang six-clip game preview
+
+The owner approved [six short Su Tang game previews](2026-10-26-h5-sutang-preview.md)
+through Plotloom. The new original canonical project and six actual imported
+keyframes are prepared against the installed baseline; the exact appended QA
+scope awaits independent manager review/activation. The earlier B3–B7 goal stays
+paused. Human creative/canon acceptance and game embedding remain pending.
+
 ## Completed B1–B2 backend and HTTP ownership delivery
 
 The owner requested a [combined B1–B2 plan](2026-10-25-b1-b2-backend-http-ownership.md):

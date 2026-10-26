@@ -30,8 +30,8 @@ def snapshot(material):
 
 
 def test_minute_example_registry_freezes_exact_current_material_and_preserves_all_eight():
-    assert len(SCOPES) == 9
-    assert {scope.id: stable_hash(asdict(scope)) for scope in SCOPES if scope.id != SCOPE.id} == OLD_SCOPE_HASHES
+    assert len(SCOPES) == 10
+    assert {scope.id: stable_hash(asdict(scope)) for scope in SCOPES if scope.id not in {SCOPE.id, "h5-sutang-preview-20261026"}} == OLD_SCOPE_HASHES
     assert stable_hash(asdict(SCOPE)) == "ad5aa30c0876699789c9fa5285b2c627e9dc4741791e612cc6a79fcc29276fc3"
     assert SCOPE.project_id == "df6bcbc9-c2a9-4274-a8e3-5db3735bf95f"
     assert SCOPE.storyboard_hash == "d3acc99f43e3a3c28fbb794637c0a40341fd24ca50b37af4a5668ebcf02b8531"

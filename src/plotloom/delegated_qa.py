@@ -149,6 +149,17 @@ SCOPES = (DelegatedQaScope(
         QaMaterial("SH08", "ef2ff3b4-af4c-47dc-9c72-b3d9501a62df", "c224dcd6724862eeac6a611e112675d943395878558b511dff3a2e5ad26cb17a"),
         QaMaterial("SH09", "94ec8298-aa28-4001-ad4d-641d17409f39", "2dd31bdfa85732362f954cb5001b20f091cf2d604179c33b46ab0b8152b3efa6"),
     ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
+), DelegatedQaScope(
+    id='h5-sutang-preview-20261026', project_id='b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6',
+    storyboard_hash='1b0b29a1df15481c68f304224717df8ac483e11ea9a4fc3d28ef239551122737',
+    materials=(
+        QaMaterial('SH01', '3a79d916-0e54-4ec7-8aa7-4dc9aea81ae9', '359635d4bf7a0a3b082b4f96f9dfc271ce7ad31bedbba01c4c72c7b9174ddfba'),
+        QaMaterial('SH02', '53ead0a1-3f30-4693-ae8e-39811ba192cb', '671bc95e6e6a23a49dda3c4d3d6d01d4b960fb8f7003814a80c0215853c283f5'),
+        QaMaterial('SH03', 'ff2a096a-0447-41b6-b13c-160f9f6fe515', '35eb8e623d5583d4e25368ea6e8f0fc6729d672a5a7c8685635ceeeccab60f5d'),
+        QaMaterial('SH04', '0054debb-45ba-460d-8a76-f877185bb6cb', '1ec930273c53b1fd6f21abd295047890a6427ce055145e156f6a6b61166c5494'),
+        QaMaterial('SH05', '21c30d93-0348-436f-ba90-154455541682', '689ca669fab0295882baaa1a6fe6321050eda403d81e6f3794bc5b78fb2fa448'),
+        QaMaterial('SH06', 'c2a157c1-66a9-40b2-addb-86daaae11599', 'f0908ebe85ee97209757260a943bccffbd56658f7f41464434e6334f45035eeb'),
+    ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
 ),)
 
 

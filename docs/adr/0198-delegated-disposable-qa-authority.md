@@ -6,6 +6,29 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+## Su Tang six-clip preview scope addition · 2026-10-26
+
+The owner explicitly requested Plotloom-generated game-character videos for
+review and more than three short clips where feasible. Append only
+`h5-sutang-preview-20261026`, exact new original project
+`b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6`, revision-one storyboard
+`1b0b29a1df15481c68f304224717df8ac483e11ea9a4fc3d28ef239551122737`.
+Its six actual imported shot/asset/original triples are frozen in `SCOPES`;
+the complete grant hash is
+`c40db7ef737a3fc3cbfc2565ccfc87b8576b0c00e94060a4f977963b8f46344c`.
+All nine preceding scope dataclasses and stable hashes remain unchanged.
+No guard, enrollment, fallback actor, receipt or original-runtime rule changes.
+
+This finite preview uses six ten-second requests with the existing H3 quality-8
+portrait profile, native audio, explicit center crop and null prospective
+aggregate caps. One first real clip must be inspected before scaling. Authority
+covers truthful agent-operated material/video QA and selection for this project;
+it does not claim owner creative/canon approval or authorize game embedding.
+The [plan](../roadmap/2026-10-26-h5-sutang-preview.md) records the covered wardrobe
+variation, retained safety refusal, exact evidence and manager-owned review,
+quiet serving activation and original-runtime binding. Source registration is
+separate from binding, provider dispatch and actual media inspection.
+
 ## Minute-long playable example scope addition · 2026-10-23
 
 The owner explicitly authorizes one new interactive story end to end, including
