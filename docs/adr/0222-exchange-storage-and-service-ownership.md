@@ -127,3 +127,30 @@ its separate workload, disclosure and gates. This supersedes ADR 0024's four-sta
 Alpha arithmetic only for current native qualification; each supported backend
 still qualifies independently. The combined plan owns actual implementation,
 preflight, genuine canary/campaign, review and activation evidence.
+
+The selected native implementation now replaces the former 1,111-line Alpha
+owner with cohesive workload/provenance, frozen-campaign, eight-operation receipt,
+blind-publication, closed review-contract/gate and CLI owners. Direct consumers
+use those owners; there is no compatibility export barrel or legacy executable.
+The packaged CLI has no eager dependency on unpackaged service files. Its native
+run command requires the actual clean owning checkout and delegates composition
+to `services/creator_workbench/alpha_native_runtime.py`, which directly uses
+`isolated.RuntimeConfig/compose`. `AutopilotTextPrefix` takes the existing process
+lease before ordinary app startup and calls the existing text controller with
+its original repository claim/command authority. It durably pauses on current
+installation before releasing ownership. Early and late image owners are never
+called; persisted launch readiness, image pin/capacity and correction checks stay
+in force.
+
+Campaign preparation freezes all nine identities/Briefs before project admission,
+actual source/tree/submodule/pins/profile/CLI/checked runtime and the observed
+4/2/2/4 pool limits in its own disposable installation. It cannot reuse a frozen
+comparison namespace. Public operation receipts count actual native reservations
+and receipt-backed adoption, with the exact 60/72 gate and no invented token
+measurements. Private bindings retain every job, attempt and installation proof.
+Blind publication atomically exposes only the three preselected canonical exports
+and public drafts at a neutral path; its owner-only unblinding map stays in
+separate private state. Existing rubric thresholds, draft/secret rejection,
+confinement and no-overwrite semantics remain. Current commands are documented in
+`docs/alpha-acceptance.md`. Focused fixtures prove software contracts only; actual
+native qualification and activation remain separate pending evidence.

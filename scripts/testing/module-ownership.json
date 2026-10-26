@@ -74,7 +74,8 @@
           "tests/test_autopilot_activity.py",
           "tests/test_autopilot_early_references.py",
           "tests/test_autopilot_early_reference_limits.py",
-          "tests/test_autopilot_view_checkpoints.py"
+          "tests/test_autopilot_view_checkpoints.py",
+          "tests/test_autopilot_text_prefix.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -209,7 +210,8 @@
           "tests/test_storyboard_operation_context.py",
           "tests/test_art_script_operation_context.py",
           "tests/test_storyboard_review_timing.py",
-          "tests/test_f5_dialogue_timing_seed.py"
+          "tests/test_f5_dialogue_timing_seed.py",
+          "tests/test_alpha_campaign.py"
         ],
         "vitest": [
           "frontend/tests/accepted-review-presentation.test.ts",

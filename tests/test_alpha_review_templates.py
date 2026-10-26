@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from plotloom import alpha_acceptance
+from plotloom import alpha_reviews, alpha_review_contracts
 from plotloom.alpha_review_templates import (
     CodexExternalReviewTemplate,
     build_codex_external_review_template,
@@ -14,16 +14,16 @@ from plotloom.alpha_review_templates import (
 )
 
 
-def _review_pack() -> alpha_acceptance.ReviewPackManifest:
-    return alpha_acceptance.ReviewPackManifest(
+def _review_pack() -> alpha_review_contracts.ReviewPackManifest:
+    return alpha_review_contracts.ReviewPackManifest(
         commit="a" * 40,
         contract_hash="b" * 64,
         samples=tuple(
-            alpha_acceptance.ReviewSampleManifest(
+            alpha_review_contracts.ReviewSampleManifest(
                 review_id=f"review-{ordinal:032x}",
                 content_hash=f"{ordinal:064x}",
             )
-            for ordinal in range(1, 7)
+            for ordinal in range(1, 4)
         ),
     )
 
@@ -72,7 +72,7 @@ def test_external_review_receipt_strictly_rejects_an_unfilled_public_draft() -> 
     )
 
     with pytest.raises(ValueError, match="unfilled Codex external review template"):
-        alpha_acceptance.codex_external_review_receipt((draft,), review_pack=pack)
+        alpha_reviews.codex_external_review_receipt((draft,), review_pack=pack)
 
     partially_filled = {
         **draft,
@@ -80,4 +80,4 @@ def test_external_review_receipt_strictly_rejects_an_unfilled_public_draft() -> 
         "scores": {**draft["scores"], "narrativeClarity": 4},
     }
     with pytest.raises(ValueError, match="unfilled Codex external review template"):
-        alpha_acceptance.codex_external_review_receipt((partially_filled,), review_pack=pack)
+        alpha_reviews.codex_external_review_receipt((partially_filled,), review_pack=pack)

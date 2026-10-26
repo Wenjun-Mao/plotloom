@@ -1,241 +1,23 @@
-from __future__ import annotations
-
+"""Current native blind review: schema, exact hashes and unchanged quality policy."""
 import json
-import stat
 from pathlib import Path
-
 import pytest
-
-from plotloom import alpha_acceptance
-from plotloom.project_storage.application_profile_snapshot import load_saved_text_profiles
-
-from tests.alpha_acceptance_support import (
-    _application_data_dir, _external_review, _fixture_provenance, _review_pack,
-)
-from tests.project_storage_fixtures import FixtureResolver
-
-
-class DeterministicReviewRandom:
-    """Test-only permutation/ID source; production uses ``SystemRandom``."""
-
-    def __init__(self) -> None:
-        self._next_id = 1
-
-    def sample(self, population: list[int], k: int) -> list[int]:
-        assert k == len(population)
-        return list(reversed(population))
-
-    def getrandbits(self, k: int) -> int:
-        assert k == 128
-        value = self._next_id
-        self._next_id += 1
-        return value
-
-
-def test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    application_data_dir, _profiles = _application_data_dir(tmp_path)
-    provenance_checks: list[str | None] = []
-    _fixture_provenance(monkeypatch, tmp_path, provenance_checks)
-    review_directory = tmp_path / "untracked-review"
-    roots: list[Path] = []
-    temporary_directory = alpha_acceptance.tempfile.TemporaryDirectory
-
-    class TrackedTemporaryDirectory(temporary_directory):
-        def __enter__(self):
-            path = super().__enter__()
-            roots.append(Path(path))
-            return path
-
-    monkeypatch.setattr(
-        alpha_acceptance.tempfile, "TemporaryDirectory", TrackedTemporaryDirectory
-    )
-    result = alpha_acceptance.run_alpha_acceptance(
-        application_data_dir=application_data_dir,
-        profile_ids=["real_looking_a", "real_looking_b"],
-        review_directory=review_directory,
-        provider_resolver=FixtureResolver(),
-        commit_sha="a" * 40,
-        review_random_source=DeterministicReviewRandom(),
-    )
-
-    assert len(result.receipts) == 18
-    assert provenance_checks == ["a" * 40, "a" * 40]
-    assert result.qualification_issues == ()
-    assert alpha_acceptance.alpha_qualification_issue_codes(result.receipts) == []
-    assert {receipt["profileId"] for receipt in result.receipts} == {
-        "profile-01",
-        "profile-02",
-    }
-    assert {receipt["storyId"] for receipt in result.receipts} == {
-        "story-01",
-        "story-02",
-        "story-03",
-    }
-    assert {receipt["sampleId"] for receipt in result.receipts} == {
-        f"{story_id}-repeat-{repeat_ordinal:02d}"
-        for story_id in ("story-01", "story-02", "story-03")
-        for repeat_ordinal in range(1, 4)
-    }
-    assert all(
-        set(receipt)
-        == {
-            "commit",
-            "contractHash",
-            "profileId",
-            "storyId",
-            "sampleId",
-            "status",
-            "issueCodes",
-            "durationMilliseconds",
-            "tokens",
-            "scores",
-        }
-        for receipt in result.receipts
-    )
-    assert all(receipt["commit"] == "a" * 40 for receipt in result.receipts)
-    assert all(receipt["status"] == "succeeded" for receipt in result.receipts)
-    assert all(
-        receipt["scores"]
-        == {
-            "firstPass": {
-                "total": 4,
-                "accepted": 4,
-                "rejected": 0,
-                "outcomeUnknown": 0,
-                "cancelled": 0,
-                "notRun": 0,
-            },
-            "maxAttemptsPerWorkUnit": 1,
-        }
-        for receipt in result.receipts
-    )
-    receipt_text = json.dumps(result.receipts)
-    for forbidden in ("real_looking", "fixture-provider", "fixture-model", "127.0.0.1"):
-        assert forbidden not in receipt_text
-    assert roots and all(not root.exists() for root in roots)
-
-    assert [path.name for path in result.review_paths] == [
-        f"review-{ordinal:032x}.json" for ordinal in range(1, 7)
-    ]
-    assert result.review_mapping_path is not None
-    assert result.review_mapping_path == review_directory / "review-mapping.private.json"
-    assert stat.S_IMODE(result.review_mapping_path.stat().st_mode) == 0o600
-    assert sorted(path.name for path in review_directory.iterdir()) == sorted(
-        [path.name for path in result.review_paths]
-        + [f"{path.stem}.score-sheet.json" for path in result.review_paths]
-        + ["review-mapping.private.json"]
-    )
-    manifest = alpha_acceptance.load_private_review_manifest(result.review_mapping_path)
-    assert manifest.commit == "a" * 40
-    assert manifest.contract_hash == alpha_acceptance.alpha_contract_hash()
-    assert len(manifest.samples) == 6
-    mapping = json.loads(result.review_mapping_path.read_text(encoding="utf-8"))
-    assert mapping["reviewCount"] == 6
-    assert mapping["entries"][0]["profileId"] == "profile-02"
-    assert mapping["entries"][0]["storyId"] == "story-03"
-    for review_path in result.review_paths:
-        payload = json.loads(review_path.read_text(encoding="utf-8"))
-        assert set(payload) == {"storyBible", "storyGraph", "sceneBeats", "storyboard"}
-        review_text = review_path.read_text(encoding="utf-8")
-        for forbidden in ("profile", "provider", "fixture", "prompt", "response", "runId"):
-            assert forbidden not in review_text
-        score_sheet = review_path.with_name(f"{review_path.stem}.score-sheet.json")
-        sheet = json.loads(score_sheet.read_text(encoding="utf-8"))
-        assert sheet["reviewId"] == review_path.stem
-        assert sheet["fatalContradiction"] == "PENDING"
-        for forbidden in ("profile", "story", "sample", "provider", "run", "prompt", "response"):
-            assert forbidden not in score_sheet.read_text(encoding="utf-8")
-
-
-def test_alpha_profile_snapshot_is_read_only_and_refuses_disabled_profiles(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    application_data_dir, profiles = _application_data_dir(tmp_path)
-    database_path = application_data_dir / "application.sqlite3"
-    before = database_path.read_bytes()
-    loaded = load_saved_text_profiles(application_data_dir, ["real_looking_a"])
-    assert [profile.profile_id for profile in loaded] == ["real_looking_a"]
-    assert database_path.read_bytes() == before
-
-    current = profiles.get_text_provider_profile("real_looking_a")
-    profiles.set_text_provider_profile_enabled(
-        current.profile_id, current.availability_revision, enabled=False
-    )
-    _fixture_provenance(monkeypatch, tmp_path)
-    with pytest.raises(ValueError, match="disabled text provider profile"):
-        alpha_acceptance.run_alpha_acceptance(
-            application_data_dir=application_data_dir,
-            profile_ids=["real_looking_a", "real_looking_b"],
-            review_directory=tmp_path / "review",
-            provider_resolver=FixtureResolver(),
-        )
-
-
-def test_alpha_preserves_review_directory_and_hides_setup_failures(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    application_data_dir, _profiles = _application_data_dir(tmp_path)
-    provenance = _fixture_provenance(monkeypatch, tmp_path)
-    review_directory = tmp_path / "review"
-    review_directory.mkdir()
-    (review_directory / "keep.txt").write_text("do not replace", encoding="utf-8")
-    with pytest.raises(ValueError, match="must be empty"):
-        alpha_acceptance.run_alpha_acceptance(
-            application_data_dir=application_data_dir,
-            profile_ids=["real_looking_a", "real_looking_b"],
-            review_directory=review_directory,
-            provider_resolver=FixtureResolver(),
-        )
-    with pytest.raises(ValueError, match="absolute path"):
-        alpha_acceptance.run_alpha_acceptance(
-            application_data_dir=application_data_dir,
-            profile_ids=["real_looking_a", "real_looking_b"],
-            review_directory=Path("relative-review"),
-            provider_resolver=FixtureResolver(),
-        )
-    with pytest.raises(ValueError, match="outside the source checkout"):
-        alpha_acceptance.run_alpha_acceptance(
-            application_data_dir=application_data_dir,
-            profile_ids=["real_looking_a", "real_looking_b"],
-            review_directory=provenance.checkout_root / "review",
-            provider_resolver=FixtureResolver(),
-        )
-
-    monkeypatch.setattr(
-        alpha_acceptance,
-        "run_alpha_acceptance",
-        lambda **_kwargs: (_ for _ in ()).throw(ValueError("private source details")),
-    )
-    assert alpha_acceptance.main(
-        [
-            "--profile",
-            "one",
-            "--profile",
-            "two",
-            "--review-directory",
-            str(tmp_path / "other-review"),
-        ]
-    ) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "private source details" not in captured.err
-
+from plotloom import alpha_reviews, alpha_publication, alpha_review_contracts
+from tests.alpha_acceptance_support import _review_pack, _external_review
 
 def test_external_review_gate_requires_the_full_secret_free_frozen_pack(
     tmp_path: Path,
 ) -> None:
     pack = _review_pack()
     approved = [_external_review(manifest) for manifest in pack.samples]
-    assert alpha_acceptance.codex_external_review_gate(
+    assert alpha_reviews.codex_external_review_gate(
         approved, review_pack=pack
     ).passed
 
     rejected = [dict(review) for review in approved]
     rejected[0]["fatalContradiction"] = True
     rejected[1]["scores"] = {**rejected[1]["scores"], "continuity": 2}
-    gate = alpha_acceptance.codex_external_review_gate(rejected, review_pack=pack)
+    gate = alpha_reviews.codex_external_review_gate(rejected, review_pack=pack)
     assert not gate.passed
     assert gate.issue_codes == (
         "codex_external_review.fatal_contradiction",
@@ -246,14 +28,13 @@ def test_external_review_gate_requires_the_full_secret_free_frozen_pack(
     mapping_path.write_text(
         json.dumps(
             {
-                "version": "alpha_review_mapping.v2",
+                "version": "alpha_native_review_mapping.v1",
                 "commit": pack.commit,
                 "contractHash": pack.contract_hash,
-                "reviewCount": 6,
+                "reviewCount": 3,
                 "entries": [
                     {
                         "reviewId": sample.review_id,
-                        "profileId": "profile-01",
                         "storyId": "story-01",
                         "sampleId": "story-01-repeat-01",
                         "contentHash": sample.content_hash,
@@ -264,8 +45,8 @@ def test_external_review_gate_requires_the_full_secret_free_frozen_pack(
         ),
         encoding="utf-8",
     )
-    assert alpha_acceptance.load_private_review_manifest(mapping_path) == pack
-
+    mapping_path.chmod(0o600)
+    assert alpha_publication.load_private_review_manifest(mapping_path) == pack
 
 def test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_mismatches() -> None:
     pack = _review_pack()
@@ -277,7 +58,7 @@ def test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_misma
         **malformed[1]["scores"],
         "continuity": 4.0,
     }
-    malformed_gate = alpha_acceptance.codex_external_review_gate(
+    malformed_gate = alpha_reviews.codex_external_review_gate(
         malformed, review_pack=pack
     )
     assert {
@@ -290,8 +71,8 @@ def test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_misma
     mismatched[0]["commit"] = "c" * 40
     mismatched[1]["contractHash"] = "d" * 64
     mismatched[2]["contentHash"] = "e" * 64
-    mismatched[3]["reviewId"] = approved[4]["reviewId"]
-    mismatch_gate = alpha_acceptance.codex_external_review_gate(
+    mismatched[2]["reviewId"] = approved[1]["reviewId"]
+    mismatch_gate = alpha_reviews.codex_external_review_gate(
         mismatched, review_pack=pack
     )
     assert {
@@ -301,11 +82,10 @@ def test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_misma
         "codex_external_review.identity",
     } <= set(mismatch_gate.issue_codes)
 
-
 def test_external_review_gate_enforces_quality_thresholds_and_full_manifest() -> None:
     pack = _review_pack()
     low_quality = [_external_review(manifest, score=3) for manifest in pack.samples]
-    quality_gate = alpha_acceptance.codex_external_review_gate(
+    quality_gate = alpha_reviews.codex_external_review_gate(
         low_quality, review_pack=pack
     )
     assert {
@@ -314,27 +94,26 @@ def test_external_review_gate_enforces_quality_thresholds_and_full_manifest() ->
     } <= set(quality_gate.issue_codes)
 
     all_samples = pack.samples + (
-        alpha_acceptance.ReviewSampleManifest(
+        alpha_review_contracts.ReviewSampleManifest(
             review_id=f"review-{7:032x}", content_hash=f"{7:064x}"
         ),
     )
-    for count in (0, 1, 5, 7):
-        incomplete_pack = alpha_acceptance.ReviewPackManifest(
+    for count in (0, 1, 2, 4):
+        incomplete_pack = alpha_review_contracts.ReviewPackManifest(
             commit=pack.commit,
             contract_hash=pack.contract_hash,
             samples=all_samples[:count],
         )
-        manifest_gate = alpha_acceptance.codex_external_review_gate(
+        manifest_gate = alpha_reviews.codex_external_review_gate(
             [_external_review(manifest) for manifest in incomplete_pack.samples],
             review_pack=incomplete_pack,
         )
         assert manifest_gate.passed is False
-        assert manifest_gate.expected_review_count == 6
+        assert manifest_gate.expected_review_count == 3
         assert {
             "codex_external_review.expected_manifest_count",
             "codex_external_review.count",
         } <= set(manifest_gate.issue_codes)
-
 
 def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack(
     tmp_path: Path,
@@ -343,9 +122,9 @@ def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_reje
     reviews = [_external_review(manifest) for manifest in pack.samples]
     reviews[0]["reviewerComment"] = "Untrusted prose must not be persisted."
 
-    receipt = alpha_acceptance.codex_external_review_receipt(reviews, review_pack=pack)
+    receipt = alpha_reviews.codex_external_review_receipt(reviews, review_pack=pack)
     serialized = receipt.model_dump_json(by_alias=True)
-    assert len(receipt.reviews) == 5
+    assert len(receipt.reviews) == 2
     assert "Untrusted prose" not in serialized
     assert "reviewerComment" not in serialized
     assert "codex_external_review.schema" in receipt.gate.issue_codes
@@ -354,14 +133,13 @@ def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_reje
     mapping_path.write_text(
         json.dumps(
             {
-                "version": "alpha_review_mapping.v2",
+                "version": "alpha_native_review_mapping.v1",
                 "commit": pack.commit,
                 "contractHash": pack.contract_hash,
-                "reviewCount": 6,
+                "reviewCount": 3,
                 "entries": [
                     {
                         "reviewId": sample.review_id,
-                        "profileId": "profile-01",
                         "storyId": "story-01",
                         "sampleId": "story-01-repeat-01",
                         "contentHash": sample.content_hash,
@@ -372,5 +150,6 @@ def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_reje
         ),
         encoding="utf-8",
     )
-    with pytest.raises(ValueError, match="all six Alpha samples"):
-        alpha_acceptance.load_private_review_manifest(mapping_path)
+    mapping_path.chmod(0o600)
+    with pytest.raises(ValueError, match="all three native Alpha samples"):
+        alpha_publication.load_private_review_manifest(mapping_path)

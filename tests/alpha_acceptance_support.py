@@ -1,90 +1,23 @@
-"""Non-collected Alpha profile, provenance and blinded-review test builders."""
-from __future__ import annotations
-from pathlib import Path
-import pytest
-from plotloom import alpha_acceptance
-from plotloom.provider_contracts import ProviderSettings
-from plotloom.project_storage.application_profiles import ApplicationProfileRepository
-from plotloom.project_storage.application_store import ApplicationStore
-from plotloom.provider_profiles import PresetId, StageMaxOutputTokens, TextProviderProfileSnapshot
+"""Non-collected blinded-review builders; no provider execution fixtures."""
+from plotloom import alpha_review_contracts
 
-
-def _profile(profile_id: str) -> TextProviderProfileSnapshot:
-    return TextProviderProfileSnapshot.model_validate(
-        {
-            "profileId": profile_id,
-            "profileVersion": 1,
-            "textProvider": "fixture-provider",
-            "textBaseUrl": "http://127.0.0.1:9/v1",
-            "textModel": "fixture-model",
-            "textAuthMode": "none",
-            "textCapabilities": {"jsonSchema": True},
-            "textContextWindowTokens": 32768,
-            "textMaxOutputTokens": 8192,
-            "textAttemptTimeoutSeconds": 300,
-            "stageMaxOutputTokens": StageMaxOutputTokens(
-                story_bible=8192,
-                story_graph=8192,
-                scene_beats=4096,
-                storyboard=4096,
-            ),
-            "presetId": PresetId.COMPATIBLE_V1,
-        }
-    )
-
-
-def _application_data_dir(tmp_path: Path) -> tuple[Path, ApplicationProfileRepository]:
-    application_data_dir = tmp_path / "application"
-    application_data_dir.mkdir()
-    profiles = ApplicationProfileRepository(
-        ApplicationStore(application_data_dir), ProviderSettings()
-    )
-    for profile_id in ("real_looking_a", "real_looking_b"):
-        profiles.create_text_provider_profile(
-            profile_id, profile_id, configuration=_profile(profile_id)
-        )
-    return application_data_dir, profiles
-
-
-def _fixture_provenance(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-    checks: list[str | None] | None = None,
-) -> alpha_acceptance._AlphaSourceProvenance:
-    checkout_root = tmp_path / "fixture-source-checkout"
-    checkout_root.mkdir()
-    provenance = alpha_acceptance._AlphaSourceProvenance(
-        checkout_root=checkout_root, commit_sha="a" * 40
-    )
-    monkeypatch.setattr(
-        alpha_acceptance,
-        "_resolve_alpha_source_provenance",
-        lambda commit: (
-            checks.append(commit) if checks is not None else None
-        ) or provenance,
-    )
-    return provenance
-
-
-def _review_manifests() -> tuple[alpha_acceptance.ReviewSampleManifest, ...]:
+def _review_manifests() -> tuple[alpha_review_contracts.ReviewSampleManifest, ...]:
     return tuple(
-        alpha_acceptance.ReviewSampleManifest(
+        alpha_review_contracts.ReviewSampleManifest(
             review_id=f"review-{ordinal:032x}", content_hash=f"{ordinal:064x}"
         )
-        for ordinal in range(1, 7)
+        for ordinal in range(1, 4)
     )
 
-
-def _review_pack() -> alpha_acceptance.ReviewPackManifest:
-    return alpha_acceptance.ReviewPackManifest(
+def _review_pack() -> alpha_review_contracts.ReviewPackManifest:
+    return alpha_review_contracts.ReviewPackManifest(
         commit="a" * 40,
         contract_hash="b" * 64,
         samples=_review_manifests(),
     )
 
-
 def _external_review(
-    manifest: alpha_acceptance.ReviewSampleManifest, *, fatal: bool = False, score: int = 4
+    manifest: alpha_review_contracts.ReviewSampleManifest, *, fatal: bool = False, score: int = 4
 ) -> dict[str, object]:
     return {
         "commit": "a" * 40,
@@ -103,3 +36,25 @@ def _external_review(
         },
         "fatalContradiction": fatal,
     }
+
+
+from plotloom.alpha_workloads import SAMPLE_KEYS, NATIVE_OPERATIONS
+
+def native_receipts(first_pass=72):
+    rows = []
+    for index, sample_id in enumerate(SAMPLE_KEYS):
+        operations = []
+        for stage_index, stage in enumerate(NATIVE_OPERATIONS):
+            # Corrections only on the production allowlist; select the earliest
+            # eligible slots to place the exact requested failures.
+            eligible = stage in {"outline", "characters", "art"}
+            corrected = eligible and first_pass < 72
+            if corrected:
+                first_pass += 1
+            operations.append({"stage": stage, "attemptCount": 2 if corrected else 1,
+                "accepted": True, "firstPass": not corrected, "bindingHash": "e" * 64})
+        rows.append({"version": "alpha_native_codex_three_story.v1", "commit": "a" * 40,
+            "contractHash": "b" * 64, "profileHash": "c" * 64, "sampleId": sample_id,
+            "status": "installed", "operations": operations, "installationHash": "d" * 64,
+            "durationMilliseconds": 0, "issueCodes": []})
+    return rows

@@ -95,6 +95,7 @@ def main() -> None:
             import importlib.abc
             import os
             import sqlite3
+            import subprocess
             import sys
             from pathlib import Path
 
@@ -124,6 +125,23 @@ def main() -> None:
             from plotloom.project_storage import ProjectFolderStorage
             from plotloom.runtime import build_runtime_app
             from plotloom.schema import SchemaMigrator
+            from plotloom.alpha_acceptance import main as alpha_main
+            from plotloom.alpha_provenance import source_checkout_root
+
+            # Packaged Alpha imports without unpackaged creator-workbench files.
+            # Native execution requires its real owning checkout and cannot
+            # infer a repository from an unrelated launch directory.
+            try:
+                source_checkout_root()
+            except (ValueError, OSError, subprocess.SubprocessError):
+                pass
+            else:
+                raise AssertionError("installed Alpha invented a source checkout")
+            try:
+                alpha_main(["--help"])
+            except SystemExit as result:
+                assert result.code == 0
+            assert "isolated" not in sys.modules
 
             database = Path(sys.argv[1]).resolve()
             package_root = Path(plotloom.__file__).resolve().parent

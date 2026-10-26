@@ -587,3 +587,37 @@ Valued Plotloom projects/settings/grants/UNKNOWN holds were not changed. No root
 full, actual B3 model campaign, push or GitHub CI has run. The remaining required
 target choice was surfaced again after the independent work was exhausted; silence
 does not select a target or authorize dependent work.
+
+### Selected B3 implementation checkpoint (2026-10-26)
+
+The native CLI now owns a frozen nine-sample campaign, cohesive provenance,
+receipt/accounting and blind publication/review owners; obsolete saved-profile
+Alpha execution/tests/invocation documentation are retired. The packaged CLI
+imports without service files and delegates only actual native execution to the
+source-owned creator-workbench command over existing `RuntimeConfig/compose`.
+The production-lease-held text prefix excludes the ordinary background scheduler
+and pauses durably at current Bridge installation. No material/human/AV authority
+is added. Every new handwritten owner remains below 400 lines; no new mixin,
+context bag or forwarding barrel is introduced.
+
+Preparatory actual CLI preflight at `10055740` used current
+`codex-cli 0.164.0-alpha.11.1` (SHA-256
+`a04752e4d46a4d89e53e6f61c59c5349a638c8ce172ffbf391fd482b4d902a4e`),
+file-store login and the checked physical Python 3.12.13 environment
+`02149676aaa4d2a28ec98b66bd6160f4890be1e9487a3122aa30007ab7e4b2d7`.
+All eleven validator/render pairs and the import/six denial controls passed.
+Initial parser, diagnostic Node alias and candidate-fixture failures remain under
+`.local/b37/b3-native/`; no validator was weakened and no model ran. Because the
+profile hashes the core Python tree, this preparatory proof does not qualify the
+new implementation profile. Refresh the exact current-profile proof after its
+clean checkpoint and before native admission.
+
+Focused source checks passed 18 review/prefix contracts and 47 campaign/lease/
+dispatch-fence/cancellation cases. The installed-text prefix proof uses explicit
+fake native transport, verifies current readback/reopen and absence of image
+admission, and does not claim model E2E. The next observable product checkpoint
+remains predeclared `story-01-repeat-01`: all eight actual CLI deliveries and
+current installation/readback/reopen, then independent engineering review before
+root full and broad nine-run scaling. Native campaign, blind content scores and
+activation have not yet been claimed. Existing Gateway/Lab/service proofs retain
+their original input revisions and scope.
