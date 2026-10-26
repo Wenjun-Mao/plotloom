@@ -1,6 +1,6 @@
 # B1–B2: Backend contracts and HTTP ownership
 
-Status: **planning only; awaiting owner review and implementation authorization**.
+Status: **approved; implementation in progress, not yet qualified or activated**.
 Date: 2026-10-25. Inspected source and installed baseline:
 `e3f0403e0247a4e5fc47fc8c20b8d9565fde4f64`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -14,12 +14,13 @@ completed G1–G5 deliveries. Establish actual backend contract and HTTP owners,
 remove the observed domain/profile import cycle and duplicate protocol ownership,
 and update consumers directly while preserving supported behavior.
 
-This request authorizes planning, including attended independent read-only reviews.
-Standing approval covers separate native Codex tasks and model/effort selection;
-it does not authorize B1/B2 implementation. No source changes, tests, builds or
-activation are part of this planning checkpoint.
+Planning and attended independent read-only reviews completed at `16d31ee9`.
+The owner then approved the combined delivery with “go ahead with Relay direct”.
+That current request authorizes B1/B2 implementation, verification and scoped
+activation below. Standing approval separately covers native Codex tasks and
+model/effort selection; it is not being used to expand product scope.
 
-Recommended implementation scope, if approved: B1 → B2 serial internal checkpoints,
+Approved implementation scope: B1 → B2 serial internal checkpoints,
 one integrated independent review and final local qualification, then quiet
 activation of the affected installed backend/owned bridge with exact preservation,
 readback, rollback readiness and a single current recovery refresh. Covered
@@ -220,7 +221,7 @@ cursors, provider projection/default construction, approval response projections
 `api/contracts.py` remains a real request-contract owner where cohesive.
 `api/models.py` may disappear or retain a genuine responsibility; no forwarding facade.
 
-## Ordered implementation and evidence, if approved
+## Ordered implementation and evidence
 
 1. **Preflight/baseline.** Confirm current clean R/P, sole source writer, actual
    interpreters/platforms/dependencies, route fixtures and native ownership union.
@@ -299,7 +300,7 @@ The native profile's Python-tree identity also changes: derive P's profile with
 its actual launchd PATH and checked environment, never copy an R identity blindly.
 No new grant/provider or optional external native qualification pair is required.
 
-Before future activation, recheck actual supported owner/queue/writer state; leave
+Before activation, recheck actual supported owner/queue/writer state; leave
 healthy live work alone until a safe quiet window. Capture current user projects,
 selected media/ranges, settings/credentials, operational state and dispatch/UNKNOWN
 guards from their supported owners. Compare before/stopped/after as appropriate;
@@ -315,8 +316,8 @@ atomically replacing that one recovery package. Do not create another archive.
 Final documentation-only synchronization needs source/pin/profile identity proof,
 not an unnecessary restart when executable inputs are unchanged.
 
-Record durable dependency/authority decisions in a concise proposed ADR 0221 during
-approved implementation, linked here; do not overload generation-specific ADR 0220
+Record durable dependency/authority decisions in concise ADR 0221 during
+implementation, linked here; do not overload generation-specific ADR 0220
 or duplicate the plan. Completion evidence must distinguish implementation, small
 real journeys, final qualification, activation and agent-operated QA limitations.
 
@@ -334,5 +335,6 @@ arbitrary caps, excess serialization or restrictions on engineering judgment. It
 one handoff finding is incorporated above: the qualification owner explicitly owns
 disposable-fixture cleanup and supported reservation settlement without weakening
 UNKNOWN/native-worker safety. Both read-only reviewers released access; their
-attended native tasks are archived. No implementation has started. This reviewed
-plan is ready for owner review, not evidence of implementation authorization.
+attended native tasks are archived. Planning made no source changes. The owner's
+subsequent implementation authorization is recorded above; qualification and
+activation remain to be demonstrated by actual delivery evidence.

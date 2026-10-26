@@ -15,9 +15,10 @@ remain pending.
 The owner subsequently requested a [combined B1–B2 plan](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).
 It proposes backend contract leaves/ordered validation before HTTP request,
 error/lifecycle/draft/image ownership, with explicit behavior/hash/authority parity
-and early API/persistence/browser proof. This is **planning only**, with independent
-technical and execution-limits reviews complete and useful findings incorporated;
-B1/B2 implementation and activation await owner review and authorization.
+and early API/persistence/browser proof. Independent technical and execution-limits
+reviews are complete with useful findings incorporated. The owner subsequently
+approved implementation through scoped activation with “go ahead with Relay direct”.
+B1/B2 are in progress; qualification and activation remain unproven.
 
 The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
 with “Go ahead with Relay direct”. Its completed delivery owns canonical binding,

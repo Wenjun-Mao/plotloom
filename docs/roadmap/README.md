@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## B1–B2 backend and HTTP ownership planning
+## Approved B1–B2 backend and HTTP ownership delivery
 
 The owner requested a [combined B1–B2 plan](2026-10-25-b1-b2-backend-http-ownership.md):
 backend contract leaves and ordered storyboard validation first, then request
@@ -9,9 +9,10 @@ protocol owners. Preserve snapshot/hash versions, HTTP responses, draft receipts
 request lifetime and before-send authority. The proposed delivery has early real
 API/SQLite and browser/restart proof, one integrated final qualification and quiet
 preservation-checked activation/recovery. Source-grounded technical and independent
-execution-limits reviews are complete, with useful findings incorporated. **Planning only: B1/B2
-implementation and activation have not started and await owner review/authorization.**
-Standing native-task/model approval does not authorize product changes.
+execution-limits reviews are complete, with useful findings incorporated. The owner
+approved implementation through scoped activation with “go ahead with Relay direct”.
+**Implementation is in progress; qualification and activation are not yet complete.**
+Standing native-task/model approval remains separate from product scope.
 
 ## Completed combined G3–G5 ownership delivery
 
