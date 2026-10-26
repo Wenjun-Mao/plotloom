@@ -1,0 +1,338 @@
+# B1–B2: Backend contracts and HTTP ownership
+
+Status: **planning only; awaiting owner review and implementation authorization**.
+Date: 2026-10-25. Inspected source and installed baseline:
+`e3f0403e0247a4e5fc47fc8c20b8d9565fde4f64`.
+Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
+Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
+
+## Outcome, authority and scope
+
+The owner requested a combined plan for B1 and B2 from the
+[modularity audit](../verification/2026-10-25-modularity-audit.md), following the
+completed G1–G5 deliveries. Establish actual backend contract and HTTP owners,
+remove the observed domain/profile import cycle and duplicate protocol ownership,
+and update consumers directly while preserving supported behavior.
+
+This request authorizes planning, including attended independent read-only reviews.
+Standing approval covers separate native Codex tasks and model/effort selection;
+it does not authorize B1/B2 implementation. No source changes, tests, builds or
+activation are part of this planning checkpoint.
+
+Recommended implementation scope, if approved: B1 → B2 serial internal checkpoints,
+one integrated independent review and final local qualification, then quiet
+activation of the affected installed backend/owned bridge with exact preservation,
+readback, rollback readiness and a single current recovery refresh. Covered
+engineering checkpoints would not require repeated owner approval. Completion
+means the running installed product and coherent local main have the reviewed
+boundaries and evidence, rather than stopping at extracted files or test totals.
+
+Excluded: B3–B7, frontend decomposition, new product behavior, provider/model/settings
+changes, migrations/resets, snapshot-version retirement, new generation or grants,
+UNKNOWN clearing, live-project deletion, push and GitHub CI. Existing autosave,
+explicit production adoption, optional Freeze/read-only access and creative authority
+remain unchanged. No external-provider call is needed for this refactor.
+
+## Design and alternatives
+
+Use contract families with explicit dependency direction for B1, followed by the
+existing `register_*(app, opened_project, explicit_dependencies)` route pattern for
+B2. This makes the HTTP layer consume settled leaves and keeps each failure
+attributable before one combined release. Concurrent B1/B2 writers would repeatedly
+collide on imports and signatures; serial source ownership fits this dependency.
+Independent read-only reviews can overlap useful work on stable boundaries.
+
+A mechanical file split with a `domain.py`/`api/models.py` forwarding facade would
+reduce line counts but preserve hidden ownership and the cycle. A new router,
+dependency-injection or shared execution-context framework would widen the change
+without solving an absent capability. Neither is recommended. File names and
+small cohesive combinations remain implementer decisions, not a prescribed module
+count. Target ~400 lines; architecturally review every changed owner at or above
+500 and explain a retained cohesive responsibility instead of fragmenting state.
+
+### Inspected owners
+
+| Current file | Lines | B1/B2 responsibility |
+|---|---:|---|
+| `domain.py` | 1,228 | Stage/project/run/evidence/media/provider contracts, public-value validation and forwarding imports. |
+| `provider_profiles.py` | 407 | Cohesive named profile versions/hashes; consumes the domain-owned URL validator. |
+| `validation_storyboard.py` | 540 | Ordered gate assembly mixed with dialogue and continuity checks. |
+| `api/project_folder.py` | 830 | Composition, request admission, live error mappings, project lifecycle, canonical/draft and remaining authoring routes. |
+| `api/project_folder_image_jobs.py` | 463 | Shared projections, character-reference and ordinary image routes, frozen send authority. |
+| `api/project_folder_media.py` | 307 | Existing media registrar, duplicate error registration and shared draft helper. |
+| `api/models.py` / `api/contracts.py` | 342 / 392 | Forwarded DTOs, real HTTP helpers and duplicate protocols versus actual request contracts. |
+| `api/errors.py` / `api/protocols.py` | 278 / 37 | Unwired alternate error policy with two test consumers; duplicated text/run interfaces. |
+
+The named-profile module is not itself a required extraction: breaking its cycle
+does not justify splitting its cohesive version/hash contract to meet a target.
+The smaller API files are included for demonstrated ownership overlap, not size.
+
+## B1: Contract leaves and ordered storyboard validation
+
+### Dependency boundaries
+
+1. **Public-value validation leaf.** Own secret-name/value rejection and public
+   HTTP(S) URL validation below provider/domain/runtime/HTTP orchestration. Preserve
+   name versus value checks, allowed local/loopback endpoints, URL normalization,
+   invalid-port handling and rejection behavior. Here “public” means secret-free;
+   this is not a new public-IP/SSRF policy. Keep typed continuity-key exemptions
+   and persistence redaction at their existing authorities.
+2. **Existing true owners.** Import canonical story models from `canonical_schema`,
+   Brief contracts from `brief_contracts`, model-base behavior from `domain_base`,
+   timing from `timeline`, and media authoring drafts from their current owner.
+   Do not recreate those definitions in new leaves.
+3. **Stage/canonical contracts.** Own stage names/order/status, payload selection,
+   initial-stage prefix validation, revisions/heads/envelopes, drafts and canonical
+   snapshots. Keep stage-specific canonical classes at their current owners.
+4. **Project contracts.** Own lifecycle/operational state, nullable Brief, creation,
+   duplication and directory projections. Keep `require_brief` and all state
+   distinctions. A projection may consume a lower run-summary contract; core run
+   contracts must not import upper project/directory projections.
+5. **Run and exact-repair contracts.** Separate core statuses/runs/attempts from
+   repair/reuse and progress/trace projections where they are cohesive. Keep
+   `RepairSource` below the run that uses it; a repair-run creation view may consume
+   `GenerationRun`, not require a reverse dependency. Preserve terminal membership,
+   failure dispositions, reuse scope and durable evidence shapes.
+6. **Evidence and media contracts.** Give gate/evidence, artifacts and media
+   task/context families actual owners according to their consumers. Avoid making
+   one replacement “common models” bucket or passing orchestration into a leaf.
+7. **Provider contracts.** Legacy public configuration/settings/snapshot and the
+   current named profile families retain their exact respective schemas. Put
+   version dispatch above both families, using the validation leaf below both;
+   remove the local import workaround and all reverse profile/domain dependency.
+
+`domain.py` can retain one genuine responsibility or disappear. It must not remain
+an import barrel or compatibility API. Redirect all production, script and test
+consumers to actual owners; define each class once. Preserve class names, aliases,
+defaults/default factories, validators, JSON schema identity and wire behavior.
+Cold import tests should demonstrate the new direction without order-dependent
+initialization. No import-time repository, runtime or HTTP side effects belong in
+these leaves.
+
+### Provider snapshot and hash invariants
+
+- No schema version means the exact currently supported V1 snapshot; explicit
+  camel/snake version 2/3 selection and precedence remain unchanged. Preserve each
+  version's alias dump, defaults, omission/null behavior, refusal and hash input.
+  Do not materialize named-profile defaults into a V1 snapshot.
+- Preserve `PUBLIC_PROVIDER_SETTING_FIELDS`, supplied nonblank settings hashes,
+  blank-hash derivation, canonical JSON sorting/separators/Unicode and current
+  validator order. Preserve legacy default-only profile identity versus settings'
+  active named-profile projection. Current snapshot/restore consumers justify
+  these supported readers; this is not audit-only historical retention.
+- Legacy text URL/model defaults are unrelated to the retired Atlas/Wan video
+  execution fallback. Do not remove them or alter configured providers here.
+
+### Storyboard gate extraction
+
+Extract pure dialogue and continuity checks from `validation_storyboard.py` while
+one assembler owns the exact version, complete input hash and ordered gate list.
+Reuse `validation_state` algorithms. Helpers take explicit immutable inputs and
+return ordered observations/results; no callback bag or shared mutable evaluator.
+
+Preserve current order: identity/presence and scene order; per-scene shot bounds,
+order/duration; unknown scenes; per-shot entity/state/audio and continuity
+availability; beat dialogue; shot cues; cue coverage/fit/timing; coverage links;
+scene/shot continuity uniqueness and sequence; beat continuity availability.
+Continuity helpers must be called at the existing positions rather than grouping
+all continuity gates together. Preserve IDs, severity, required/advisory status,
+SKIPPED/not-applicable semantics, reasons/evidence text, stringification, order and
+hash inputs including absent context. A gate remains technical evidence, never
+creative approval or permission to mutate production.
+
+## B2: HTTP owners and request lifetime
+
+### Composition, access and errors
+
+Keep the application factory as explicit composition and registration. Extract a
+cohesive per-app request-access owner with `opened_project`, `inspected_project`
+and `inspected_open_project` behavior intact. Its ContextVar is per app; GET/HEAD
+read admission, mutation admission, proof scope, reset and store cleanup retain
+their current exception boundaries. Directory inspection and inspection-admitted
+pixel/project access remain distinct. Keep stores alive for their actual response
+lifetime, including held/lazy JSON, HTML, pixel and streaming responses; do not
+cache handles/proofs or close shared app storage per request. Legitimate app-level
+text readiness and ephemeral credential state remain app-scoped.
+
+Use one live HTTP-error registrar, preferably replacing `api/errors.py`'s alternate
+policy with the factory's actual winning mappings. Capture the final handler table
+after every existing registration first: registration precedence is behavior.
+Preserve exact status/body/headers for bootstrap 503/Retry-After, busy/frozen and
+revision/image conflicts, missing objects, domain/draft/storage errors and native
+FastAPI validation. In particular preserve the actual minimal revision-conflict
+body, delivery-cancelled 409 and current image-dispatch conflict mappings. Do not
+add a broad exception catch or a new sanitization policy.
+
+The generic registrar has two test-only consumers: identity-review refusal and
+graph-safety diagnostics. Retarget their standalone fixtures to the canonical live
+registrar and retain their actual refusal/body/nonmutation assertions. Removing
+the unused alternate policy does not justify deleting current safety coverage.
+
+### Route families and transaction ownership
+
+- **Directory/lifecycle:** create/list/get, archive/restore, duplicate, permanent
+  deletion, Freeze/unfreeze and snapshot operations. Retain creation fingerprint,
+  reserved ID/time, lease contention, retry/resume/idempotency and raw-draft title
+  projection. Lifecycle and operational state remain different contracts.
+- **Canonical/drafts:** Brief/stage updates, reads and draft put/delete, with exact
+  scope/entity constraints. Repository transactions still own CAS, payload equality
+  and exact draft consumption. Emit `X-Plotloom-Draft-Consumed-Revision` only under
+  its current successful-consumption rules; preserve absent versus empty header
+  behavior, including discard responses. Keep the shared media/image draft helper
+  with its genuine scope-validation responsibility, not a generic CRUD layer.
+- **Other authoring reads/approvals:** cohesive run/media-task views and canonical
+  storyboard review/approval registrations. Preserve `qa_command` attribution.
+  Source-review routes remain a different authority and cannot install canonical
+  shots, media or approvals.
+
+Keep the method/path set, registration order, names/operation IDs, OpenAPI models,
+response shapes and dependencies unchanged. No frontend API migration is needed.
+
+### Character-reference and ordinary image owners
+
+Separate character-reference selection/revocation/import-membership/prepare/send/
+cancel/refresh from ordinary image list/copy/refresh/cancel/same-person review.
+Retain existing `image_prepare.py`/`image_send.py`; move target-ID construction next
+to preparation. Reuse stateless byte/hash-checked package/output/task projections
+through explicit inputs. Do not merge their different acceptance/publication
+rules into a generic media exchange or expand trusted H3 lookup into B5.
+
+For **both** send paths preserve this complete sequence:
+current frozen sources → configured task binding → exact package write → expected
+task-ID/lane reservation → synchronous `before_send` revalidation of current and
+prepared persistence authority → queue. Keep the store alive through the callback;
+retain the configured send-task identity rather than substituting copy's current
+task. Add route-level stale-authority refusal for each path: zero queue calls and
+only the unsent reservation released. Cancellation/invalid delivery must not release
+a native worker lease; accepted/inapplicable terminal evidence remains its owner.
+
+### Actual protocol and helper ownership
+
+Use G5's existing `text_provider_resolution.TextProviderResolver` as the single
+resolver interface; do not make runtime import HTTP. `api/protocols.py` owns the
+distinct HTTP run-scheduler and profile-secret capabilities. The runtime run-secret
+leaser is different from a profile-secret source and must stay distinct. Remove
+duplicate declarations/reexports from `api/models.py` and redirect text admission
+and other real consumers. Do not revive R2's removed raw-media protocols.
+
+Move real HTTP helpers to their actual owners: idempotency/header parsing, directory
+cursors, provider projection/default construction, approval response projections.
+`api/contracts.py` remains a real request-contract owner where cohesive.
+`api/models.py` may disappear or retain a genuine responsibility; no forwarding facade.
+
+## Ordered implementation and evidence, if approved
+
+1. **Preflight/baseline.** Confirm current clean R/P, sole source writer, actual
+   interpreters/platforms/dependencies, route fixtures and native ownership union.
+   Last qualified totals were 4,026 Python/1,538 frontend/358 browser; recollect the
+   actual native union and account for additions/moves, not log/footer counts.
+   Capture compact representative before outputs: DTO schemas/defaults/aliases,
+   V1/V2/V3 snapshots/hashes/refusals, URL/secret guards, complete ordered gates,
+   final live handler table, routes/OpenAPI and draft/idempotency receipts.
+2. **B1 checkpoint.** Establish public validation/provider dependency direction,
+   then model families/direct consumers and pure gate helpers. Compare representative
+   accepted/refused/missing-context outputs exactly; run focused contracts and cold
+   imports. Stage legitimate new modules before tracked-source clone fixtures;
+   do not weaken those fixtures to hide untracked-source failures.
+3. **Early real API/persistence proof.** Before broad B2 extraction, use the actual
+   app factory and disposable SQLite project storage: create a draft-only project,
+   autosave incomplete Brief, read working title with canonical Brief still null,
+   restart the same storage, resume the exact draft, adopt valid Brief with exact
+   consumed-revision receipt, then read canonical state and empty consumed draft.
+   Existing `test_working_project_autosave.py` supplies this current fixture.
+4. **B2 core checkpoint.** Extract access/live errors then lifecycle/canonical/draft
+   routes and real protocols/helpers. Attempt the existing real browser/API/SQLite
+   autosave/restart journey immediately after this useful cut, before broad image
+   work or unrelated qualification. Check Freeze reads/late-write refusal/unfreeze
+   without adoption and held-response close lifetime with their existing fixtures.
+5. **B2 image checkpoint.** Extract complete image families, then exercise both real
+   routes through current offline package/raster-delivery fixtures, checking byte/
+   hash identity, binding, refresh/publication and the two before-send races. Native
+   image pin proof needs a coherent committed clean candidate: staged source alone
+   is insufficient. Reuse the existing accepted-result browser fixture; no external
+   provider generation or owner creative-acceptance claim is part of this evidence.
+6. **Stable integrated review/qualification.** Independent read-only review checks
+   actual consumer direction, preserved source/HTTP/lifetime/safety behavior and
+   evidence. One qualification owner runs focused/module selections during work,
+   then `uv run --locked --no-sync python scripts/verify.py full` on the stable
+   combined candidate. Keep first failures failed; diagnose, run failed/affected
+   and every unrun downstream gate, and reuse unchanged evidence. Repeat full only
+   when changed inputs justify it. Reassess after two unsuccessful attempts at one
+   criterion as repository policy requires; this is not an overall attempt budget.
+   Retain the exact smoke-passing wheel using existing build/smoke tooling.
+7. **Activation/closeout.** Coherent local main, quiet affected P backend/owned-bridge
+   reload after live writer/queue checks, fresh preservation comparisons and actual
+   readback; update the single functional recovery, concise decisions and this
+   plan's results; consume temporary artifacts and archive idle attended workers.
+   Stop after B1/B2. New material behavior/scope/authority requires owner agreement,
+   not each covered internal milestone.
+
+Use existing module owners/selectors expanded by `--show`, not a parallel runner.
+Relevant regression anchors include provider-profile/secret contracts, storyboard
+continuity/dialogue and diagnostics; project storage route/authoring/inspection,
+request-proof/retained-proof tests; identity-review/graph refusal; native dispatch,
+specialist settings, image delivery and image-pin tests. Browser anchors are
+`project-folder-authoring-drafts`, `project-folder-close`, `project-read-close` and
+`cast-reference-delivery-observation`. Keep their assertions and native case union;
+update ownership entries for genuinely moved/new tests without shrinking coverage.
+
+For parity use explicit IDs/times or compare the same retained disposable record.
+Only actual typed observational fields may be excluded, with exact paths recorded.
+Never recursively strip arbitrary `created_at`, `id` or `rendered_at` keys: authored
+same-name values, authority fields, ordering and hashes must remain compared.
+Scratch belongs under supported ignored `.local/b12`; keep compact outcomes in
+this plan, not a new permanent receipt hierarchy or old-source archive.
+The qualification owner owns disposable-fixture cleanup and settlement, checking
+exact test-owned targets and dispatch state before supported lifecycle operations.
+Preserve actionable failed evidence; never clear UNKNOWN or release native worker
+leases to manufacture cleanup. Fixtures remain separate from current user projects.
+
+## Pins, installation and preservation
+
+API source is recursively included in the existing image-specialist pin inventory;
+new API owners stay inside that coverage. If a previously pinned responsibility
+moves outside a pinned root, update the inventory to its real new owner. Do not
+retain an obsolete filename as attestation, add blanket source coverage or weaken
+dirty/untracked/symlink/cache guards. Code changes produce a prospective new pin
+without changing wire versions; old frozen requests/receipts remain immutable.
+The native profile's Python-tree identity also changes: derive P's profile with
+its actual launchd PATH and checked environment, never copy an R identity blindly.
+No new grant/provider or optional external native qualification pair is required.
+
+Before future activation, recheck actual supported owner/queue/writer state; leave
+healthy live work alone until a safe quiet window. Capture current user projects,
+selected media/ranges, settings/credentials, operational state and dispatch/UNKNOWN
+guards from their supported owners. Compare before/stopped/after as appropriate;
+historical eight-project/26-range totals are context, not a hardcoded inventory.
+Validate exact source/import/wheel/profile identities, readiness, private HTTPS,
+directory/read APIs and selected playback readback. Report Mac/Linux/Python
+differences honestly; local qualification is not an unrun Linux/full claim.
+
+If activation fails, use the single existing qualified recovery for code/services,
+retaining current user state; no data migration/reset or automatic data rollback.
+Once readback passes, validate exact wheel, source and submodule membership before
+atomically replacing that one recovery package. Do not create another archive.
+Final documentation-only synchronization needs source/pin/profile identity proof,
+not an unnecessary restart when executable inputs are unchanged.
+
+Record durable dependency/authority decisions in a concise proposed ADR 0221 during
+approved implementation, linked here; do not overload generation-specific ADR 0220
+or duplicate the plan. Completion evidence must distinguish implementation, small
+real journeys, final qualification, activation and agent-operated QA limitations.
+
+## Planning review
+
+Source-grounded independent HTTP review is complete (requested GPT-6.1 Sol / High;
+effective host settings unverified). Its findings about actual live error precedence,
+test-only generic consumers, request lifetime and image before-send proof are
+incorporated. The manager independently checked B1 ownership/version/hash contracts,
+the shared resolver and existing image pin/fixture constraints.
+
+Independent execution-limits review is complete (requested GPT-6.1 Sol / Medium;
+effective host settings unverified). It found no unnecessary approval gates,
+arbitrary caps, excess serialization or restrictions on engineering judgment. Its
+one handoff finding is incorporated above: the qualification owner explicitly owns
+disposable-fixture cleanup and supported reservation settlement without weakening
+UNKNOWN/native-worker safety. Both read-only reviewers released access; their
+attended native tasks are archived. No implementation has started. This reviewed
+plan is ready for owner review, not evidence of implementation authorization.

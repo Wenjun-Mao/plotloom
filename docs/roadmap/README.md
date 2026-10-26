@@ -1,5 +1,18 @@
 # Plotloom roadmap entrypoint
 
+## B1–B2 backend and HTTP ownership planning
+
+The owner requested a [combined B1–B2 plan](2026-10-25-b1-b2-backend-http-ownership.md):
+backend contract leaves and ordered storyboard validation first, then request
+access/live errors, lifecycle/canonical/draft routes, image families and actual
+protocol owners. Preserve snapshot/hash versions, HTTP responses, draft receipts,
+request lifetime and before-send authority. The proposed delivery has early real
+API/SQLite and browser/restart proof, one integrated final qualification and quiet
+preservation-checked activation/recovery. Source-grounded technical and independent
+execution-limits reviews are complete, with useful findings incorporated. **Planning only: B1/B2
+implementation and activation have not started and await owner review/authorization.**
+Standing native-task/model approval does not authorize product changes.
+
 ## Completed combined G3–G5 ownership delivery
 
 The owner requested planning and then implementing all three together. The
@@ -18,8 +31,9 @@ Full-local qualification passed all 4,026 Python, 1,538 frontend and 358 browser
 cases plus exact retained-wheel smoke. Quiet backend/bridge activation, exact
 preservation/readback and the single recovery refresh are complete. All eight
 projects and 26 selected playback ranges remain available; consumed task artifacts
-are removed and attended workers are archived/unregistered. Other audit batches
-remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
+are removed and attended workers are archived/unregistered. B1/B2 planning is
+recorded above; other audit batches remain unselected. No GitHub CI, push or
+provider/settings expansion is authorized.
 
 ## Completed G2 work-unit ownership delivery
 
