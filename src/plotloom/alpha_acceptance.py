@@ -72,10 +72,10 @@ def _qualify(root, review_receipt_path):
     from .alpha_review_contracts import CodexExternalReviewReceipt
     from .alpha_reviews import codex_external_review_gate
     campaign = load_campaign(root)
-    receipts = [json.loads((root / "evidence" / sample.sample_id / "receipt.json").read_bytes())
+    receipts = [json.loads((root / "evidence" / sample.sample_id / "outcome/receipt.json").read_bytes())
         for sample in campaign.samples]
     issues = set(native_qualification_issue_codes(receipts))
-    pack = load_private_review_manifest(root / "private/review-mapping.private.json")
+    pack = load_private_review_manifest(root / "private/review-mapping.private.json", campaign_root=root)
     review = CodexExternalReviewReceipt.model_validate_json(review_receipt_path.read_bytes())
     gate = codex_external_review_gate((sheet.model_dump(mode="json", by_alias=True) for sheet in review.reviews), review_pack=pack)
     if (not gate.passed or gate != review.gate or pack.commit != campaign.source["commit"]

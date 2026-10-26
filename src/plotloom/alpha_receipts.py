@@ -39,6 +39,7 @@ class NativeSampleReceipt(CamelModel):
     sample_id: str
     status: Literal["installed", "blocked", "incomplete", "outcome_unknown"]
     operations: tuple[NativeOperationReceipt, ...]
+    content_hash: str | None = Field(default=None, pattern=HASH)
     installation_hash: str | None = Field(default=None, pattern=HASH)
     duration_milliseconds: int = Field(strict=True, ge=0)
     issue_codes: tuple[str, ...]
@@ -49,7 +50,7 @@ class NativeSampleReceipt(CamelModel):
             raise ValueError("native sample must identify one exact matrix cell and all eight operations")
         if any(not SAFE_ISSUE_CODE.fullmatch(code) for code in self.issue_codes):
             raise ValueError("receipt issue codes must be source-safe identifiers")
-        if self.status == "installed" and (self.installation_hash is None or self.issue_codes
+        if self.status == "installed" and (self.installation_hash is None or self.content_hash is None or self.issue_codes
                 or not all(row.accepted for row in self.operations)):
             raise ValueError("installed receipt requires eight accepted native operations and current readback")
         return self
@@ -129,8 +130,13 @@ def collect_native_evidence(store, view, *, snapshot, contract_hash, sample_id, 
         else "blocked" if view.state == "blocked" else "incomplete")
     code = (view.blocker or {}).get("code")
     issues = () if installed else ((code if code and SAFE_ISSUE_CODE.fullmatch(code) else "alpha.incomplete"),)
+    from .alpha_publication import content_only_review_payload
+    content_hash = None
+    # Content files include one canonical trailing newline; bind those exact bytes.
+    if installed:
+        content_hash = sha256((canonical_json(content_only_review_payload(store)) + "\n").encode()).hexdigest()
     receipt = NativeSampleReceipt(commit=snapshot["commit"], contract_hash=contract_hash,
         profile_hash=snapshot["profileHash"], sample_id=sample_id, status=status, operations=tuple(operations),
         installation_hash=_hash(private["readback"]) if installed else None,
-        duration_milliseconds=duration_ms, issue_codes=issues)
+        content_hash=content_hash, duration_milliseconds=duration_ms, issue_codes=issues)
     return receipt, private

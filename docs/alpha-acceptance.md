@@ -21,6 +21,8 @@ Run the production sandbox validator/render plans and permission negative contro
 before admission. Pass their retained JSON proof with the exact CLI SHA-256,
 profile hash, checked Python environment hash, eleven validate/render pairs in
 `validatorCommands`, and the import plus six denial results in `negativeControls`.
+Each command names its exact supported case, stage, route, retained `packagePath`,
+source-generated `planHash` and step. Omitted/replaced routes or plans are refused.
 Fixture executables or metadata receipts cannot establish native success.
 
 ```sh
@@ -48,7 +50,11 @@ existing text controller. It never calls the early or late image scheduler.
 Success pauses durably at current Bridge installation, verifies all four heads,
 and reads them through a fresh store and actual HTTP API before shutdown. All
 native jobs, attempts, package/receipt hashes, installation bindings and failures
-remain in private campaign evidence. UNKNOWN remains unresolved evidence; no
+remain in private campaign evidence. A terminal sample set is staged and
+atomically published under its `outcome/`; interruption before publication can
+reopen the installed paused project without another native dispatch. Published
+bytes are verified on reuse and divergent bytes are refused. Cancellation evidence
+is separate from the original outcome. UNKNOWN remains unresolved evidence; no
 replacement dispatch or clearing follows from qualification. `cancel` uses the
 production control operation for exactly the selected disposable sample. Normal
 project deletion/abandonment guards remain authoritative; no campaign cleanup
@@ -71,7 +77,10 @@ campaign's `private/`. Give reviewers only the neutral pack, score sheets and
 [existing six-dimension rubric](creative-workflow/text-review-rubric.md); no campaign/backend label
 or mapping. Fill drafts with fresh independent scores, then use `review-gate`
 with `--private-mapping`, `--scores` and a new `--receipt` path. PENDING drafts and
-extra prose/secret-bearing fields are rejected. The existing thresholds remain:
+extra prose/secret-bearing fields are rejected. The private map must cover each
+preselected repeat-one identity exactly once and match its story prefix; final
+qualification also binds each mapped hash to that exact retained installed
+receipt and canonical content file. The existing thresholds remain:
 no fatal contradiction, every score ≥3, each sample mean ≥3.5, and each dimension
 median ≥4.
 

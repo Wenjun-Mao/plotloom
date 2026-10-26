@@ -621,3 +621,32 @@ current installation/readback/reopen, then independent engineering review before
 root full and broad nine-run scaling. Native campaign, blind content scores and
 activation have not yet been claimed. Existing Gateway/Lab/service proofs retain
 their original input revisions and scope.
+
+### First native outcome and causal repair
+
+The actual `f20c6ddc` campaign was frozen with nine UUIDs and current profile
+`a5945e6381e97c478adf1da2bcaefbc6d7690c248a6106678c85b0b55b60a48e`.
+Its first sample, `story-01-repeat-01`, reached exact source adoption and one
+Outline attempt, then stopped UNKNOWN. The current CLI wrote only
+`Not inside a trusted directory and --skip-git-repo-check was not specified.`;
+stdout was empty and no session ID was observed. This is an invocation-envelope
+failure, not a completed model/content outcome. Native CLI PID/group 67399 and
+worker PID/group 67371 were both absent, including all group members, before
+source repair. Original project `25dbf225-09a3-4533-aacb-11e39cbce14a`, attempt
+`b97ce7b1-7bd6-4422-ac9c-15a56c84e777`, UNKNOWN/slot/matrix and files remain
+unchanged under `/private/tmp/plotloom-alpha-f20c6ddc-20261026`; no old sample is
+rerun or relabelled. Detailed diagnosis and real command evidence remain under
+`.local/b37/b3-native/`.
+
+Independent source review found three P2 gaps: partial terminal file publication,
+arbitrary preflight case labels, and unvalidated private story/sample mapping.
+Repairs atomically publish sample outcome sets, require the exact supported
+case/route and recomputed production-plan union, and require unique exact
+repeat-one mappings bound to retained installed receipt/content hashes. Faults
+after each of the three terminal writes reopen the real installed SQLite project
+with exactly eight fake admissions and zero image admissions; divergent published
+bytes refuse. The non-Git CLI option is now explicit in the existing confined
+production command. Model/provider/auth/sandbox/settings policies are unchanged.
+A fresh clean source/profile/preflight and predeclared canary may follow these
+causal repairs; the original failed matrix remains failed. Broad scaling, final
+root full and core activation still await the fix/evidence review checkpoint.

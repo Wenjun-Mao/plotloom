@@ -79,6 +79,7 @@ time.sleep(0.2)
     assert command[0] == "exec"
     assert "--sandbox" not in command
     assert "--ignore-user-config" in command and command[-1] == "-"
+    assert command.count("--skip-git-repo-check") == 1
     config_values = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
     assert 'cli_auth_credentials_store="file"' in config_values
     assert 'default_permissions="plotloom_autopilot_delivery_v5"' in config_values

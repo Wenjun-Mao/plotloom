@@ -64,7 +64,8 @@ def test_cli_invocation_uses_only_frozen_instructions(supervisor, tmp_path, doma
     configurations = [command[index + 1] for index, item in enumerate(command[:-1]) if item == "--config"]
     assert configurations.count("project_doc_max_bytes=0") == 1
     assert command[:5] == [str(supervisor.executable), "exec", "--json", "--cd", str(job / "delivery")]
-    assert command[-2:] == ["--ignore-user-config", "-"]
+    assert command[-3:] == ["--skip-git-repo-check", "--ignore-user-config", "-"]
+    assert command.count("--skip-git-repo-check") == 1
     assert 'cli_auth_credentials_store="file"' in configurations
     assert 'web_search="disabled"' in configurations
     assert f'permissions.{profile.permission_profile}.network.enabled=false' in configurations

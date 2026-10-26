@@ -10,7 +10,7 @@ from urllib.request import ProxyHandler, build_opener
 import uvicorn
 from isolated import RuntimeConfig, compose
 
-from plotloom.alpha_campaign import campaign_lease, load_campaign, write_private_json
+from plotloom.alpha_campaign import campaign_lease, load_campaign, write_private_json, publish_sample_outcome
 from plotloom.alpha_publication import content_only_review_payload
 from plotloom.alpha_receipts import collect_native_evidence, installed_text_readback
 from plotloom.autopilot_contracts import LaunchRequest, RunControlRequest
@@ -49,7 +49,7 @@ def run_sample(work_root, sample_id, *, cancel=False):
             raise ValueError("sample is outside the frozen native matrix")
         evidence = root / "evidence" / sample_id
         evidence.mkdir(exist_ok=True, mode=0o700)
-        receipt_file = evidence / "receipt.json"
+        receipt_file = evidence / "outcome/receipt.json"
         if receipt_file.exists() and not cancel:
             raise ValueError("sample already has an outcome; inspect it instead of repeating native work")
         config = RuntimeConfig(Path(campaign.data_root), Path(campaign.source["sourceRoot"]) / "src/plotloom/static",
@@ -73,7 +73,14 @@ def run_sample(work_root, sample_id, *, cancel=False):
                 "namespaceBinding": supervisor._namespace_sha256,
                 "capacity": capacity.model_dump(mode="json", by_alias=True),
                 "profileHash": supervisor.profile().profile_hash}
-            write_private_json(evidence / "runtime.json", identity, replace=True)
+            runtime_file = evidence / "runtime.json"
+            if runtime_file.exists():
+                original = json.loads(runtime_file.read_bytes())
+                if any(original[key] != identity[key] for key in (
+                        "dataRoot", "privateRoot", "database", "databaseDevice", "databaseInode", "namespaceBinding", "profileHash")):
+                    raise ValueError("native runtime namespace or database identity changed")
+            else:
+                write_private_json(runtime_file, identity)
             # Independent service instance takes the production lease before the
             # ordinary app lifespan starts its background controller.
             with AutopilotTextPrefix(storage, registry) as prefix, serving(runtime):
@@ -131,9 +138,8 @@ def run_sample(work_root, sample_id, *, cancel=False):
                     if response["installation"]["status"] != "current":
                         raise ValueError("native installation is not current through the workbench API")
                     private["apiInstallation"] = response["installation"]
-                    write_private_json(evidence / "content.json", content)
-                write_private_json(evidence / "bindings.private.json", private, replace=cancel)
-                write_private_json(receipt_file, receipt.model_dump(mode="json", by_alias=True), replace=cancel)
+                publish_sample_outcome(evidence, receipt=receipt.model_dump(mode="json", by_alias=True),
+                    bindings=private, content=content, cancellation=cancel)
                 print(json.dumps({"sampleId": sample_id, "status": receipt.status,
                     "firstPass": sum(op.first_pass for op in receipt.operations)}), flush=True)
                 return 0 if receipt.status == "installed" else 1

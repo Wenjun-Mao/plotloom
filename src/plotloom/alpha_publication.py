@@ -164,7 +164,7 @@ def _write_private_review_mapping(
     os.chmod(path, 0o600)
     return path
 
-def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
+def load_private_review_manifest(mapping_path: Path, *, campaign_root: Path | None = None) -> ReviewPackManifest:
     """Read only the safe review ID/hash bindings from the private map.
 
     The mapping file itself remains an operator-only unblinding artifact. This
@@ -200,9 +200,14 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
     if not isinstance(contract_hash, str) or not CONTENT_HASH_PATTERN.fullmatch(contract_hash):
         raise ValueError("private review mapping has invalid contract hash")
     manifests: list[ReviewSampleManifest] = []
+    associations = []
     for entry in payload["entries"]:
         if not isinstance(entry, Mapping) or set(entry) != {"reviewId", "storyId", "sampleId", "contentHash"}:
             raise ValueError("private review mapping has invalid entry")
+        sample_id = entry.get("sampleId")
+        if sample_id not in REVIEW_SAMPLE_KEYS or entry.get("storyId") != sample_id.rsplit("-repeat-", 1)[0]:
+            raise ValueError("private review mapping has invalid preselected sample association")
+        associations.append(sample_id)
         review_id = entry.get("reviewId")
         content_hash = entry.get("contentHash")
         if not isinstance(review_id, str) or not OPAQUE_REVIEW_ID_PATTERN.fullmatch(review_id):
@@ -214,6 +219,15 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
         raise ValueError("private review mapping has duplicate review IDs")
     if len(manifests) != ALPHA_EXPECTED_REVIEW_COUNT:
         raise ValueError("private review mapping must contain all three native Alpha samples")
+    if len(set(associations)) != len(associations) or set(associations) != set(REVIEW_SAMPLE_KEYS):
+        raise ValueError("private review mapping must cover each preselected sample exactly once")
+    if campaign_root is not None:
+        from .alpha_campaign import load_campaign
+        campaign = load_campaign(campaign_root)
+        if commit != campaign.source["commit"] or contract_hash != campaign.contract_hash:
+            raise ValueError("private review mapping differs from its frozen campaign")
+        for entry in payload["entries"]:
+            _selected_content(campaign_root, campaign, entry["sampleId"], expected_hash=entry["contentHash"])
     return ReviewPackManifest(
         commit=commit,
         contract_hash=contract_hash,
@@ -224,7 +238,6 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
 def publish_native_review_pack(work_root, review_directory):
     """Publish only the three preselected repeat-one canonical text exports."""
     from .alpha_campaign import campaign_lease, load_campaign
-    from .alpha_receipts import NativeSampleReceipt
     root = Path(work_root)
     with campaign_lease(root):
         campaign = load_campaign(root)
@@ -234,16 +247,9 @@ def publish_native_review_pack(work_root, review_directory):
             raise ValueError("blind review pack must stay separate from private campaign state")
         candidates = []
         for sample_id in REVIEW_SAMPLE_KEYS:
-            evidence = root / "evidence" / sample_id
-            receipt = NativeSampleReceipt.model_validate_json((evidence / "receipt.json").read_bytes())
-            if (receipt.status != "installed" or receipt.commit != campaign.source["commit"]
-                    or receipt.contract_hash != campaign.contract_hash or receipt.profile_hash != campaign.source["profileHash"]):
-                raise ValueError("selected native review sample is not qualified installed text")
-            payload = json.loads((evidence / "content.json").read_bytes())
-            if set(payload) != {"storyBible", "storyGraph", "sceneBeats", "storyboard"}:
-                raise ValueError("native review sample must contain only canonical content")
+            payload, content_hash = _selected_content(root, campaign, sample_id)
             candidates.append(_ReviewCandidate(story_id=sample_id.rsplit("-repeat-", 1)[0], sample_id=sample_id,
-                payload=payload, content_hash=sha256_text(canonical_json(payload) + "\n")))
+                payload=payload, content_hash=content_hash))
         assignments = _randomized_review_candidates(candidates)
         destination.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix=".alpha-review-", dir=destination.parent) as temporary:
@@ -260,3 +266,27 @@ def publish_native_review_pack(work_root, review_directory):
             except BaseException:
                 mapping.unlink()
                 raise
+
+
+def _selected_content(root, campaign, sample_id, *, expected_hash=None):
+    """Bind one preselected export to its exact retained sample receipt."""
+    from .alpha_receipts import NativeSampleReceipt
+    from hashlib import sha256
+    outcome = Path(root) / "evidence" / sample_id / "outcome"
+    if outcome.is_symlink() or outcome.resolve(strict=True) != outcome:
+        raise ValueError("selected native outcome must be a physical directory")
+    for name in ("receipt.json", "content.json"):
+        if (outcome / name).is_symlink() or not (outcome / name).is_file():
+            raise ValueError("selected native content must use regular retained files")
+    receipt = NativeSampleReceipt.model_validate_json((outcome / "receipt.json").read_bytes())
+    raw = (outcome / "content.json").read_bytes()
+    payload = json.loads(raw)
+    content_hash = sha256(raw).hexdigest()
+    if (receipt.status != "installed" or receipt.sample_id != sample_id
+            or receipt.commit != campaign.source["commit"] or receipt.contract_hash != campaign.contract_hash
+            or receipt.profile_hash != campaign.source["profileHash"] or content_hash != receipt.content_hash
+            or (expected_hash is not None and expected_hash != content_hash)
+            or not isinstance(payload, Mapping) or set(payload) != {"storyBible", "storyGraph", "sceneBeats", "storyboard"}
+            or raw != (canonical_json(payload) + "\n").encode()):
+        raise ValueError("selected native review content/receipt identity differs")
+    return payload, content_hash

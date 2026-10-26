@@ -1,6 +1,7 @@
 """Freeze-before-admission, exact workload and blind publication failure contracts."""
 import json
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
@@ -47,20 +48,31 @@ def test_freezes_exact_nine_workload_bytes_before_any_project_or_model_admission
         NativeCampaign.model_validate(raw)
 
 
-def test_actual_preflight_requires_matching_runtime_and_all_pairs_and_denials(tmp_path):
+def test_actual_preflight_requires_matching_runtime_and_all_pairs_and_denials(tmp_path, monkeypatch):
     snapshot = {key: ch * 64 for key, ch in [("profileHash", "a"), ("cliSha256", "b"), ("pythonEnvironmentHash", "c")]}
-    proof = snapshot | {"validatorCommands": [{"case": f"case-{i}", "step": step, "exitCode": 0}
-        for i in range(11) for step in ("validate", "render")],
+    snapshot["commit"] = "a" * 40
+    identities = {f"/preflight/{case}": (*pair, "d" * 64, snapshot["commit"])
+        for case, pair in alpha_provenance.PREFLIGHT_CASES.items()}
+    monkeypatch.setattr(alpha_provenance, "preflight_plan_identity", lambda path: identities[path])
+    proof = snapshot | {"validatorCommands": [{"case": case, "stage": pair[0], "route": pair[1],
+        "planHash": "d" * 64, "packagePath": f"/preflight/{case}", "step": step, "exitCode": 0}
+        for case, pair in alpha_provenance.PREFLIGHT_CASES.items() for step in ("validate", "render")],
         "negativeControls": [{"name": name, "exitCode": 0 if name == "imports" else 1}
         for name in ["imports", "python-sibling", "node-sibling", "python-auth", "node-auth", "original-venv-metadata", "uv-alias"]]}
+    proof.pop("commit")
     path = tmp_path / "proof.json"
     path.write_text(json.dumps(proof))
     assert len(alpha_provenance.require_preflight(path, snapshot)) == 64
-    for mutation in ("identity", "missing-pair", "unexpected-success"):
+    for mutation in ("identity", "missing-pair", "unexpected-success", "replacement", "wrong-route", "wrong-plan", "wrong-stage"):
         raw = json.loads(json.dumps(proof))
         if mutation == "identity": raw["cliSha256"] = "e" * 64
         if mutation == "missing-pair": raw["validatorCommands"].pop()
         if mutation == "unexpected-success": raw["negativeControls"][-1]["exitCode"] = 0
+        if mutation == "replacement":
+            raw["validatorCommands"][0]["case"] = raw["validatorCommands"][1]["case"] = "unsupported-case"
+        if mutation == "wrong-route": raw["validatorCommands"][0]["route"] = "saved_brief"
+        if mutation == "wrong-plan": raw["validatorCommands"][0]["planHash"] = "f" * 64
+        if mutation == "wrong-stage": raw["validatorCommands"][0]["stage"] = "art"
         path.write_text(json.dumps(raw))
         with pytest.raises(ValueError):
             alpha_provenance.require_preflight(path, snapshot)
@@ -69,11 +81,13 @@ def test_actual_preflight_requires_matching_runtime_and_all_pairs_and_denials(tm
 def prepare_publication(root, campaign):
     rows = {r["sampleId"]: r for r in native_receipts()}
     for sample_id in REVIEW_SAMPLE_KEYS:
-        evidence = root / "evidence" / sample_id
-        evidence.mkdir()
+        evidence = root / "evidence" / sample_id / "outcome"
+        evidence.mkdir(parents=True)
         row = rows[sample_id] | {"contractHash": campaign.contract_hash}
+        content = {name: {"text": sample_id} for name in ["storyBible", "storyGraph", "sceneBeats", "storyboard"]}
+        write_private_json(evidence / "content.json", content)
+        row["contentHash"] = sha256((evidence / "content.json").read_bytes()).hexdigest()
         write_private_json(evidence / "receipt.json", row)
-        write_private_json(evidence / "content.json", {name: {"text": "内容"} for name in ["storyBible", "storyGraph", "sceneBeats", "storyboard"]})
 
 
 def test_blind_publication_is_atomic_opaque_content_only_and_mapping_stays_private(tmp_path, monkeypatch):
@@ -83,7 +97,7 @@ def test_blind_publication_is_atomic_opaque_content_only_and_mapping_stays_priva
     paths, mapping = alpha_publication.publish_native_review_pack(root, public)
     assert len(paths) == 3 and len(list(public.iterdir())) == 6
     assert mapping.parent == root / "private" and mapping.stat().st_mode & 0o777 == 0o600
-    manifest = alpha_publication.load_private_review_manifest(mapping)
+    manifest = alpha_publication.load_private_review_manifest(mapping, campaign_root=root)
     assert {item.review_id for item in manifest.samples} == {path.stem for path in paths}
     for item in manifest.samples:
         path = public / (item.review_id + ".json")
@@ -126,3 +140,49 @@ def test_source_checkout_resolution_uses_module_owner_and_rejects_foreign_root(t
     monkeypatch.setattr(alpha_provenance, "_git", lambda *_: str(tmp_path))
     with pytest.raises(ValueError, match="owning source"):
         alpha_provenance.source_checkout_root()
+
+
+@pytest.mark.parametrize("mutation", ["duplicate", "missing", "story-rebound", "content-rebound", "receipt-rebound", "content-bytes"])
+def test_private_mapping_binds_exact_repeat_one_coverage_and_retained_content(tmp_path, monkeypatch, mutation):
+    root, campaign = frozen_campaign(tmp_path, monkeypatch)
+    prepare_publication(root, campaign)
+    _paths, mapping = alpha_publication.publish_native_review_pack(root, tmp_path / "reading-set")
+    raw = json.loads(mapping.read_bytes())
+    if mutation == "duplicate":
+        raw["entries"][1].update(storyId=raw["entries"][0]["storyId"], sampleId=raw["entries"][0]["sampleId"])
+    if mutation == "missing": raw["entries"].pop()
+    if mutation == "story-rebound": raw["entries"][0]["storyId"] = "story-99"
+    if mutation == "content-rebound": raw["entries"][0]["contentHash"] = "f" * 64
+    if mutation == "content-bytes":
+        path = root / "evidence" / raw["entries"][0]["sampleId"] / "outcome/content.json"
+        content = json.loads(path.read_bytes())
+        content["storyBible"] = {"text": "changed"}
+        write_private_json(path, content, replace=True)
+    if mutation == "receipt-rebound":
+        path = root / "evidence" / raw["entries"][0]["sampleId"] / "outcome/receipt.json"
+        receipt = json.loads(path.read_bytes())
+        receipt["sampleId"] = "story-03-repeat-02"
+        write_private_json(path, receipt, replace=True)
+    write_private_json(mapping, raw, replace=True)
+    with pytest.raises(ValueError):
+        alpha_publication.load_private_review_manifest(mapping, campaign_root=root)
+
+
+def test_preflight_identity_recomputes_retained_production_plan_and_rejects_tampering(tmp_path):
+    from plotloom.creative_handoff_contracts import CreativeHandoffRequest
+    from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+    request = CreativeHandoffRequest(job_id="ch_" + "a" * 32, project_id="provider-free-plan",
+        section_id="test", stage="branches", expected_stage_revision=0,
+        source={"kind": "test-owned"}, input_artifacts={}, creative_brief="provider-free plan identity test")
+    pin = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
+    paths = CreativeHandoffExchange(tmp_path / "exchange").write_package(request, pin,
+        executor_backend="codex_exec", plotloom_code_revision="d" * 40)
+    package = paths["packagePath"]
+    identity = alpha_provenance.preflight_plan_identity(package)
+    assert identity[:2] == ("branches", "plotloom_native") and identity[3] == "d" * 40
+    path = Path(package) / "request.json"
+    payload = json.loads(path.read_bytes())
+    payload["validationPlanHash"] = "f" * 64
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="does not match"):
+        alpha_provenance.preflight_plan_identity(package)

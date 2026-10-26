@@ -35,11 +35,11 @@ def test_external_review_gate_requires_the_full_secret_free_frozen_pack(
                 "entries": [
                     {
                         "reviewId": sample.review_id,
-                        "storyId": "story-01",
-                        "sampleId": "story-01-repeat-01",
+                        "storyId": f"story-{ordinal:02}",
+                        "sampleId": f"story-{ordinal:02}-repeat-01",
                         "contentHash": sample.content_hash,
                     }
-                    for sample in pack.samples
+                    for ordinal, sample in enumerate(pack.samples, 1)
                 ],
             }
         ),
@@ -140,11 +140,11 @@ def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_reje
                 "entries": [
                     {
                         "reviewId": sample.review_id,
-                        "storyId": "story-01",
-                        "sampleId": "story-01-repeat-01",
+                        "storyId": f"story-{ordinal:02}",
+                        "sampleId": f"story-{ordinal:02}-repeat-01",
                         "contentHash": sample.content_hash,
                     }
-                    for sample in pack.samples[:-1]
+                    for ordinal, sample in enumerate(pack.samples[:-1], 1)
                 ],
             }
         ),

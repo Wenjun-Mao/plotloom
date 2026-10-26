@@ -48,3 +48,43 @@ def test_prefix_refuses_existing_controller_lease_and_unowned_step(tmp_path, mon
         with prefix:
             pytest.fail("competing lease admitted")
     original.close()
+
+
+@pytest.mark.parametrize("fail_after", [1, 2, 3])
+def test_terminal_publication_fault_reopens_installed_project_without_dispatch(tmp_path, monkeypatch, fail_after):
+    from plotloom import alpha_campaign
+    storage, registry, original, run, _calls = environment(tmp_path, monkeypatch, early_references=True)
+    with AutopilotTextPrefix(storage, registry) as prefix:
+        for _ in range(60):
+            view = prefix.step(run.project_id)
+            if view.state == "paused": break
+        assert any(c["operationKey"] == "installation" for c in view.checkpoints)
+        admissions = registry._codex_exec_test_host.admissions
+        with closing(storage.projects.open(run.project_id)) as store:
+            readback = installed_text_readback(store)
+        evidence = tmp_path / "sample-evidence"
+        evidence.mkdir()
+        values = {"receipt": {"status": "installed"}, "bindings": readback,
+            "content": {"canonical": "retained"}}
+        write = alpha_campaign.write_private_json
+        count = 0
+        def interrupt_after_write(*args, **kwargs):
+            nonlocal count
+            write(*args, **kwargs)
+            count += 1
+            if count == fail_after: raise OSError("interrupted terminal publication")
+        with monkeypatch.context() as fault:
+            fault.setattr(alpha_campaign, "write_private_json", interrupt_after_write)
+            with pytest.raises(OSError, match="interrupted"):
+                alpha_campaign.publish_sample_outcome(evidence, **values)
+        assert not (evidence / "outcome").exists()
+        assert prefix.step(run.project_id).state == "paused"
+        with closing(storage.projects.open(run.project_id)) as reopened:
+            assert installed_text_readback(reopened) == readback
+        alpha_campaign.publish_sample_outcome(evidence, **values)
+        alpha_campaign.publish_sample_outcome(evidence, **values)
+        with pytest.raises(ValueError, match="bytes differ"):
+            alpha_campaign.publish_sample_outcome(evidence, **(values | {"content": {"canonical": "changed"}}))
+        assert registry._codex_exec_test_host.admissions == admissions == 8
+        assert not registry._codex_exec_test_host.image_calls
+    original.close()

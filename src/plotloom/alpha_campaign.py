@@ -126,3 +126,35 @@ def campaign_lease(root):
         yield
     finally:
         os.close(descriptor)
+
+
+def publish_sample_outcome(evidence, *, receipt, bindings, content=None, cancellation=False):
+    """Atomically publish a complete terminal set; interruption cannot wedge reuse.
+
+    Staging has no outcome authority. A retry over an installed paused project
+    may recapture it without new native work. Published bytes never change.
+    """
+    from tempfile import TemporaryDirectory
+    evidence = Path(evidence)
+    if evidence.is_symlink() or evidence.resolve(strict=True) != evidence:
+        raise ValueError("sample evidence must be a physical directory")
+    target = evidence / ("cancellation" if cancellation else "outcome")
+    values = {"bindings.private.json": bindings, "receipt.json": receipt}
+    if content is not None:
+        values = {"content.json": content} | values
+    if target.exists():
+        if target.is_symlink() or not target.is_dir() or {p.name for p in target.iterdir()} != set(values):
+            raise ValueError("published sample outcome inventory differs")
+        for name, value in values.items():
+            path = target / name
+            expected = (canonical_json(value) + "\n").encode()
+            if path.is_symlink() or not path.is_file() or path.read_bytes() != expected:
+                raise ValueError("published sample outcome bytes differ")
+        return target
+    with TemporaryDirectory(prefix=".outcome-staging-", dir=evidence) as temporary:
+        staging = Path(temporary) / "complete"
+        staging.mkdir(mode=0o700)
+        for name, value in values.items():
+            write_private_json(staging / name, value)
+        staging.rename(target)
+    return target

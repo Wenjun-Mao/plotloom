@@ -55,6 +55,6 @@ def native_receipts(first_pass=72):
                 "accepted": True, "firstPass": not corrected, "bindingHash": "e" * 64})
         rows.append({"version": "alpha_native_codex_three_story.v1", "commit": "a" * 40,
             "contractHash": "b" * 64, "profileHash": "c" * 64, "sampleId": sample_id,
-            "status": "installed", "operations": operations, "installationHash": "d" * 64,
+            "status": "installed", "operations": operations, "installationHash": "d" * 64, "contentHash": "f" * 64,
             "durationMilliseconds": 0, "issueCodes": []})
     return rows

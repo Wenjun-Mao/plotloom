@@ -49,7 +49,10 @@ class CodexExecSupervisorEnvironmentMixin:
         # Frozen packages own instructions; ancestor/global AGENTS discovery is
         # neither authorized input nor compatible with the deny-root boundary.
         command.extend(("--config", "project_doc_max_bytes=0"))
-        command.extend(("--ignore-user-config", "-"))
+        # Delivery is a host-verified private directory, deliberately outside
+        # Git. Source authority is checked separately; this option does not
+        # alter the explicit deny-root filesystem or any tool permission.
+        command.extend(("--skip-git-repo-check", "--ignore-user-config", "-"))
         return command
 
     @staticmethod

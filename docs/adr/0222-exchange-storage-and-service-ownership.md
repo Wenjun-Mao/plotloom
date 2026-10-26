@@ -154,3 +154,21 @@ separate private state. Existing rubric thresholds, draft/secret rejection,
 confinement and no-overwrite semantics remain. Current commands are documented in
 `docs/alpha-acceptance.md`. Focused fixtures prove software contracts only; actual
 native qualification and activation remain separate pending evidence.
+
+The first real native admission exposed a CLI-directory prerequisite: the current
+CLI refused the deliberately non-Git delivery directory before producing any
+session event. The confined production command now supplies the supported
+`--skip-git-repo-check` option. Independently validated source, private delivery
+cwd, deny-root sandbox, frozen model/tools, file-store auth and ignored user config
+remain authoritative; no Git repository or trusted-directory setting is fabricated.
+The original attempt remains UNKNOWN with its original slot and evidence.
+
+Review repairs make private terminal publication one atomic directory rename,
+with exact-byte reuse and separate cancellation outcomes. An interrupted staging
+write cannot wedge an installed paused project or acquire new dispatch. Preflight
+requires the exact eleven supported case/stage/route union and recomputes every
+plan from its retained production package/source revision. Blind mapping requires
+unique complete preselected repeat-one identities with matching story prefixes;
+qualification binds every content hash to the corresponding installed receipt
+and retained canonical export. These checks introduce no retry or compatibility
+path for the original failed matrix.

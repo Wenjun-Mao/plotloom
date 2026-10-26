@@ -75,24 +75,70 @@ def native_contract_hash(snapshot):
     }))
 
 
+# The required current native envelope, including both supported style routes.
+PREFLIGHT_CASES = {
+    "outline": ("outline", "upstream"),
+    "branches": ("branches", "plotloom_native"),
+    "cast-preset": ("characters", "preset_style"),
+    "art-preset": ("art", "preset_style"),
+    "script": ("script", "plotloom_native"),
+    "storyboard-upstream": ("storyboard", "upstream"),
+    "characters-saved": ("characters", "saved_brief"),
+    "art-saved": ("art", "saved_brief"),
+    "storyboard-saved": ("storyboard", "saved_brief"),
+    "intent": ("bridge-intent", "plotloom_native"),
+    "presentation": ("bridge-presentation", "plotloom_native"),
+}
+
+
+def preflight_plan_identity(package_path):
+    """Rebuild the exact source-owned plan from its retained frozen package."""
+    from .codex_exec_files import read_confined_regular_file
+    from .codex_exec_validation import validation_plan_from_package
+    package = Path(package_path)
+    if not package.is_absolute() or package.is_symlink() or package.resolve(strict=True) != package:
+        raise ValueError("preflight package must be a physical absolute directory")
+    payload = json.loads(read_confined_regular_file(package, "request.json", max_bytes=1_000_000))
+    plan = validation_plan_from_package(payload)
+    return plan.stage, plan.route, plan.plan_hash, plan.source_revision
+
+
 def require_preflight(proof_path, snapshot):
-    """Consume retained actual provider-free results, bound to current resources."""
-    proof = json.loads(Path(proof_path).read_text())
+    """Require the exact current case/route/plan union and all denial controls."""
+    try:
+        proof = json.loads(Path(proof_path).read_text())
+        _assert_preflight(proof, snapshot)
+    except (KeyError, TypeError, OSError, ValueError) as error:
+        raise ValueError("native preflight proof is incomplete, invalid or differently bound") from error
+    return sha256_text(canonical_json(proof))
+
+
+def _assert_preflight(proof, snapshot):
     required = {"cliSha256", "profileHash", "pythonEnvironmentHash", "validatorCommands", "negativeControls"}
     if set(proof) != required or any(proof[key] != snapshot[key]
             for key in ("cliSha256", "profileHash", "pythonEnvironmentHash")):
         raise ValueError("native preflight executable/profile/runtime identity differs")
     commands = proof["validatorCommands"]
-    if (not isinstance(commands, list) or len(commands) != 22
-            or len({(row["case"], row["step"]) for row in commands}) != 22
-            or len({row["case"] for row in commands}) != 11
-            or any(row["exitCode"] != 0 or row["step"] not in {"validate", "render"} for row in commands)
-            or any({row["step"] for row in commands if row["case"] == case} != {"validate", "render"}
-                for case in {row["case"] for row in commands})):
-        raise ValueError("native preflight requires eleven actual validator/render pairs")
+    expected = {(case, step) for case in PREFLIGHT_CASES for step in ("validate", "render")}
+    if (not isinstance(commands, list) or len(commands) != len(expected)
+            or {(row["case"], row["step"]) for row in commands} != expected
+            or any(type(row["exitCode"]) is not int or row["exitCode"] != 0 for row in commands)):
+        raise ValueError("native preflight requires the exact eleven validator/render pairs")
+    packages = {}
+    for row in commands:
+        stage, route = PREFLIGHT_CASES[row["case"]]
+        identity = preflight_plan_identity(row["packagePath"])
+        if (row["stage"], row["route"], row["planHash"], snapshot["commit"]) != identity:
+            raise ValueError("preflight evidence differs from its exact frozen plan")
+        if identity[:2] != (stage, route):
+            raise ValueError("preflight plan substitutes a different stage or route")
+        if row["case"] in packages and packages[row["case"]] != row["packagePath"]:
+            raise ValueError("validator and renderer must bind the same frozen package")
+        packages[row["case"]] = row["packagePath"]
+    if len(set(packages.values())) != len(PREFLIGHT_CASES):
+        raise ValueError("preflight cases must retain distinct source-owned packages")
     controls = proof["negativeControls"]
-    expected = {"imports", "python-sibling", "node-sibling", "python-auth", "node-auth", "original-venv-metadata", "uv-alias"}
-    if (not isinstance(controls, list) or len(controls) != 7 or {row["name"] for row in controls} != expected
-            or any((row["exitCode"] == 0) != (row["name"] == "imports") for row in controls)):
+    expected_controls = {"imports", "python-sibling", "node-sibling", "python-auth", "node-auth", "original-venv-metadata", "uv-alias"}
+    if (not isinstance(controls, list) or len(controls) != 7 or {row["name"] for row in controls} != expected_controls
+            or any(type(row["exitCode"]) is not int or (row["exitCode"] == 0) != (row["name"] == "imports") for row in controls)):
         raise ValueError("native preflight requires checked imports and all six denial controls")
-    return sha256_text(canonical_json(proof))
