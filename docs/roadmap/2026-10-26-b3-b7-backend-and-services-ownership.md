@@ -1,7 +1,8 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
 Status: **B4–B7 and target-independent B3 source implemented and independently
-reviewed; Gateway activated. B3 target-dependent work and combined qualification,
+reviewed; Gateway activated. Owner selected current native Codex for B3; settled
+native handoff review, implementation/campaign, combined qualification,
 core/bridge activation and recovery remain open**. Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
@@ -25,9 +26,10 @@ path and retirement of the mandatory two-profile runner. Existing receipts must
 retain their original meaning. An important subsequent source finding requires
 clarification: the old Alpha runner targets saved OpenAI-compatible profiles and
 the four-stage pipeline, while the installed workbench uses native Codex and has
-zero saved profiles. The manager has asked whether the new target is the current
-native workbench (recommended) or the saved-profile pipeline. Do not infer this
-answer from elapsed time or begin dependent implementation before it arrives.
+zero saved profiles. The owner subsequently explicitly selected **current native
+Codex workbench** in the target question. That resolves the target blocker; the
+settled native contract below is the implementation handoff after bounded review.
+The optional saved-profile protocol-conformance workload remains separate.
 
 Completion requires actual cohesive owners/direct consumers, paired tests and
 early runtime proofs, stable independent review, complete root plus applicable
@@ -50,11 +52,11 @@ and the smallest vertical proof early; settle storage/catalogue leaves and B4
 package/client owners before their affected consumers. B4 host-client ownership
 precedes B6 terminal collaborators. B5 client catalogue and B7 server coordinator
 have no required source ordering: preserve their versioned HTTP boundary.
-The independent B5 → B4 → B6/B7 source cuts can proceed under the already-reviewed
-sections while the required B3 target answer is pending. This does not select a
-target or reduce the full B3–B7 stopping condition. Dependent B3 implementation
-and campaign wait for the answer and settled versioned criteria; no final combined
-qualification/activation claim is made from completing only the independent cuts.
+The independent B5 → B4 → B6/B7 source cuts and shared B3 leaves were completed
+while the target answer was pending. The native target is now settled. A bounded
+execution-limits review checks the clarified handoff before the existing writer
+resumes dependent B3 implementation/campaign; this adds no renewed owner approval.
+No final combined qualification/activation claim follows from the independent cuts.
 Run the complete qualification campaign on stable final relevant source, rather
 than qualifying one source and silently applying that result to changed execution.
 
@@ -105,14 +107,18 @@ set are required. Retain a legacy reader only where a current consumer actually
 needs it; historical interpretation is not authority to execute or qualify a new
 backend. Do not build a general version-compatibility or archival framework.
 
-### Target clarification and proposed native contract
+### Selected native target and versioned acceptance contract
 
-This subsection is a **proposal pending the target answer**, not an assertion
-that native acceptance arithmetic was already approved. If the saved-profile
-target is selected, apply ADR 0024's explicitly versioned 9-run/30-of-36-stage/
-three-review definition through the existing production pipeline instead.
+The owner selected the current native Codex workbench. Use a distinct current
+acceptance version, `alpha_native_codex_three_story.v1`; retire the old mandatory
+two-profile Alpha execution path and its obsolete invocation tests/documentation.
+The old 18-run/six-review and four-stage 30/36 results retain their original
+meaning and cannot pass the new gate. No legacy executable or compatibility
+framework is required. The existing optional protocol-conformance path retains
+its own contracts. This version supersedes ADR 0024's four-stage arithmetic only
+for current native Alpha qualification, not its independent-backend principle.
 
-For the recommended current native target, reuse the production text owners:
+Reuse the current production text owners:
 exact saved-source adoption, eight jobs (outline, branches, characters, art,
 script, storyboard, bridge-intent, bridge-presentation), machine adoption and
 current Bridge installation. Branch adoption intentionally installs the graph
@@ -120,11 +126,13 @@ before Bridge atomically installs Bible/Beats/Storyboard and rebinds the graph.
 Require no partial Bridge bundle/admission and all four recorded heads current
 on success; do not label intentional pre-install graph state as false atomicity.
 
-Proposed acceptance: three fixed stories, three repeats each, exact nine identities
+Acceptance: three fixed stories, three repeats each, exact nine identities
 frozen before admission; 9/9 current text installations and at least 60/72 native
 operations accepted on their first attempt. This preserves the earlier 5/6
 first-pass fraction while naming the actual eight-operation denominator. Record
-all underlying outcomes; never reinterpret old 30/36 statistics. Keep the current
+all underlying outcomes; never reinterpret old 30/36 statistics. Native operation
+accounting uses actual eight-job attempt evidence; the shared four-stage metric
+helper is not authority to relabel native operations as pipeline stages. Keep the current
 one-correction default and Outline/Characters/Art allowlist; the other five
 rejections remain terminal. Do not extend retries or lower validators to pass.
 
@@ -177,6 +185,17 @@ settlement and supported deletion/abandonment/revocation when native attempts
 exist. Preserve uncertain evidence and holds until actually resolved. Current eight
 valued projects remain untouched. Retain only the current useful result and exact
 functional evidence needed for its claim, not new raw-history/provenance archives.
+
+Start the actual CLI/login/interpreter/validator/readiness preflight before broad
+implementation. Keep one execution owner for the genuine campaign. Attempt the
+smallest real eight-job story after focused safety checks, before broad final
+qualification, then scale the frozen matrix using supported pool capacity. A known
+validator/model rejection is an actual result; a transport or permission failure is
+not a model-quality result. Diagnose concrete in-scope defects, retain first
+failures and uncertain state, and reassess after two unsuccessful attempts at the
+same criterion. Do not change prompts/models/correction policy, add retries or
+start another campaign merely to turn the qualification green; material fixes
+outside this ownership/qualification scope require a separate decision.
 
 ## B4: Exchange, package and installation-local host client
 
@@ -363,10 +382,10 @@ Independent source-grounded B4/B6, B5/B7 and native-target feasibility reviews a
 complete and incorporated; their read-only native tasks are archived. Independent
 GPT-6.1 Sol / Medium execution-limits review of `9d1077db` found no plan-created
 stall, unnecessary gate, arbitrary cap or restricted engineering judgment. It
-confirmed the separate service gates and the genuine target decision. That native
-review task is archived after its actual final/access release. The required B3
-target answer and versioned native arithmetic remain conditional, not approved by
-the earlier single-backend choice alone. The owner's implementation instruction
+confirmed the separate service gates and the then-genuine target decision. That native
+review task was archived after its actual final/access release. The owner has now
+answered the B3 target question with current native Codex; the versioned native
+contract above makes the eight-operation arithmetic explicit. The owner's implementation instruction
 already covers the independent reviewed source cuts; manager/worker must not edit
 concurrently. Final B3 settlement receives a bounded review follow-up before its
 dependent handoff, without another routine human milestone approval.

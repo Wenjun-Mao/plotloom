@@ -1,14 +1,15 @@
-# ADR 0222: Exchange, storage and service ownership
+# ADR 0222: Qualification, exchange, storage and service ownership
 
 Status: independent B4–B7 and target-independent B3 leaves implemented and reviewed;
-Gateway-only activation complete. Combined qualification/core activation remain pending,
+Gateway-only activation complete. Current native Codex selected for B3;
+target-dependent implementation and combined qualification/core activation pending,
 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
 cohesive capabilities with orchestration. Move those capabilities to explicit
 owners while preserving the current wire, persistence, dispatch and settlement
-contracts. Qualification target selection remains a separate B3 decision; this
-extraction does not adopt the proposed native 60/72 acceptance arithmetic.
+contracts. The owner subsequently selected current native Codex for B3; its
+separately versioned qualification decision is recorded below.
 
 `ApplicationRunRoutes` owns its two routing/frozen-profile tables and uses the
 application's existing read/write contexts. Deletion checks consume the caller's
@@ -100,3 +101,29 @@ review, receipt and execution responsibilities are separable but belong to the h
 B3 follow-up. This bounded assignment removes duplicated measurements and adds no
 responsibility; further extraction is deferred until target settlement under the
 current handoff, rather than expanding the independent cut.
+
+The owner resolved the target choice with current native Codex. Current Alpha
+qualification becomes `alpha_native_codex_three_story.v1`: three fixed stories
+times three repeats, all nine current text installations, at least 60 of the 72
+eight-job operations accepted first pass, and three preselected blinded repeat-one
+reviews under the existing quality rubric. This retains the earlier 5/6 first-pass
+fraction while naming the actual native workflow. Preserve the current correction
+default and allowlist; no validator weakening, extra retries or model change.
+
+The runner consumes the existing native process lease, repository claim, command
+authority and text controller, stopping at verified current Bridge installation.
+An explicit internal ownership boundary prevents the ordinary background image
+controller from competing. It introduces no second generation pipeline or public
+text-only product mode. Real CLI/toolchain/login/validator/profile prerequisites
+remain required. Qualification has machine text/adoption authority, not human
+Approval or material-generation authority. Frozen comparison-pair grants cannot
+be repurposed. Exact source/runtime/profile/attempt identities and secret-free
+receipts remain distinct from content-only blinded review exports.
+
+Retire mandatory two-profile Alpha execution and obsolete tests/invocations. Old
+18-run/six-review and saved-profile four-stage results retain their original
+meaning; they do not qualify this new version. Optional protocol conformance keeps
+its separate workload, disclosure and gates. This supersedes ADR 0024's four-stage
+Alpha arithmetic only for current native qualification; each supported backend
+still qualifies independently. The combined plan owns actual implementation,
+preflight, genuine canary/campaign, review and activation evidence.

@@ -15,11 +15,12 @@ batches remain pending.
 The owner subsequently requested [combined B3–B7 planning followed by E2E delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 The source-grounded boundaries are reviewed; the owner explicitly chose current
 single-backend qualification and retirement of the mandatory two-profile runner.
-The native-versus-saved-profile target clarification remains pending. Independent
+The owner subsequently selected the current native Codex target. Independent
 execution-limits review is complete without findings. Independent B4–B7 and
 target-independent B3 cuts are implemented and independently reviewed at `98e186a1`;
 Gateway alone is activated with exact preservation/readback. Dependent B3 work is
-held for the target choice, with combined qualification/core activation still open.
+resuming after bounded review of the settled native handoff; combined
+qualification/core activation remain open.
 The complete combined delivery remains the stopping condition.
 
 The owner subsequently requested a [combined B1–B2 plan](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).

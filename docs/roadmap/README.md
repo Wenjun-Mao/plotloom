@@ -13,12 +13,13 @@ fixture-only Lab work gets no runtime restart.
 The owner selected single-backend qualification and retirement of the mandatory
 two-profile Alpha runner. Planning found that runner targets saved OpenAI-compatible
 profiles, while the installed native Codex workbench has none. The target-path
-clarification is pending; native thresholds/driver and exact E2E proof must be
-versioned honestly if that target is selected. Independent execution-limits review
-found no unnecessary limits. **Independent B4–B7 and target-independent B3 source
+clarification is resolved: the owner selected current native Codex. The plan defines
+a distinct nine-run/72-operation/three-review version and preserves current native
+correction policy. Its bounded handoff review precedes implementation/campaign.
+The earlier execution-limits review found no unnecessary limits. **Independent B4–B7 and target-independent B3 source
 are implemented and independently reviewed at `98e186a1`; Gateway alone is activated
-with exact preservation and retained-media readback. Dependent B3 work stays held
-for the target choice.** Final combined qualification, core/bridge activation and
+with exact preservation and retained-media readback. Remaining B3 work now targets
+the selected native workflow.** Final combined qualification, core/bridge activation and
 recovery remain open; the plan records exact source/artifact and rollback evidence.
 This preserves the complete combined stopping condition. The owner's request
 covers covered implementation through scoped activation, preservation/rollback

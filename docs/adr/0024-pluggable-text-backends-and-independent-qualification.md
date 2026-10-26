@@ -2,6 +2,14 @@
 
 ## Status
 
+2026-10-26 amendment: the owner selected the current native Codex workbench for
+single-backend Alpha qualification. [ADR 0222](0222-exchange-storage-and-service-ownership.md)
+owns its separately versioned nine-run/72-operation/three-review contract and
+retirement of mandatory two-profile Alpha execution. The four-stage arithmetic,
+correction policy and older receipts below retain their original meaning; they
+are not the native workflow's acceptance definition. Independent qualification
+remains the principle; the native change implies no saved-profile migration.
+
 Accepted by the user on 2026-09-07; implementation pending. This amends the
 M1-C release policy, not the historical M1.5 or two-profile Alpha evidence.
 The `default` application canary has finished under its frozen contracts:
