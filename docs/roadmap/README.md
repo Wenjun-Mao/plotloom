@@ -10,20 +10,23 @@ source-reviewed. Service-root host and Lab tests and Gateway package/ARM64 proof
 are explicit additions to root full qualification. Cutovers remain component-owned;
 fixture-only Lab work gets no runtime restart.
 
-The owner selected single-backend qualification and retirement of the mandatory
-two-profile Alpha runner. Planning found that runner targets saved OpenAI-compatible
-profiles, while the installed native Codex workbench has none. The target-path
-clarification is resolved: the owner selected current native Codex. The plan defines
-a distinct nine-run/72-operation/three-review version and preserves current native
-correction policy. Its bounded handoff review precedes implementation/campaign.
-The earlier execution-limits review found no unnecessary limits. **Independent B4–B7 and target-independent B3 source
-are implemented and independently reviewed at `98e186a1`; Gateway alone is activated
-with exact preservation and retained-media readback. Remaining B3 work now targets
-the selected native workflow.** Final combined qualification, core/bridge activation and
-recovery remain open; the plan records exact source/artifact and rollback evidence.
-This preserves the complete combined stopping condition. The owner's request
-covers covered implementation through scoped activation, preservation/rollback
-and recovery without renewed milestone approvals.
+The owner selected current native Codex and retirement of mandatory two-profile
+Alpha execution. **B3–B7 source and the bounded CLI repair are independently reviewed
+at executable checkpoint `b5c9de51`; native Alpha qualification did NOT pass.** The
+frozen nine-sample matrix has one genuine eight-job current installation, one known
+terminal Script rejection (17.8s versus the unchanged 17.85s minimum), seven
+unadmitted samples and 12 accepted first-pass operations from 13 actual attempts.
+No blind publication/reviews followed. Composite software coverage includes the
+original full's 4,097 Python passes/one unresolved failure, 52 affected and 86
+service-root passes, 1,538 frontend and 358 browser passes plus all downstream gates;
+the original full remains failed. The plan retains exact evidence and reuse limits.
+
+Gateway alone is activated with preservation/readback. P/core/bridge and recovery
+remain at `0d4a47d4`. Further admissions, core activation and recovery refresh are
+held while the owner decides whether to authorize one bounded prospective Script
+correction or retain current policy and leave B3 unqualified. No policy expansion
+is approved by this documentation checkpoint. Standing implementation authority
+and routine internal review remain distinct from that material scope decision.
 
 ## Completed B1–B2 backend and HTTP ownership delivery
 

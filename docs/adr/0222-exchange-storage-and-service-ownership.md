@@ -1,8 +1,8 @@
 # ADR 0222: Qualification, exchange, storage and service ownership
 
-Status: independent B4–B7 and target-independent B3 leaves implemented and reviewed;
-Gateway-only activation complete. Current native Codex selected for B3;
-target-dependent implementation and combined qualification/core activation pending,
+Status: B3–B7 source independently reviewed through executable `b5c9de51`;
+Gateway-only activation complete. Native Alpha qualification did not pass;
+prospective Script correction awaits owner decision, with core activation held,
 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
@@ -207,3 +207,16 @@ postmortem no-remote-dispatch proof refuse it explicitly. The event reader remai
 cohesive at 376 lines, and the temporal process owner is unchanged. Immutable
 original replay and controlled-child/hold tests establish this software repair;
 neither ended campaign is promoted and no fresh model result is implied.
+
+At `b5c9de51`, independent code and genuine canary evidence reviews closed. The
+new frozen matrix installed one eight-job sample, then stopped on a known Script
+duration rejection in the second sample (17.8s versus 17.85s minimum). Seven
+samples remain unadmitted; 12 operations were accepted first pass from 13 actual
+attempts. This does not satisfy 9/9 installation or qualify the backend. No
+demonstrated source/validator defect was found. Current correction default 1 and
+the Outline/Characters/Art allowlist remain unchanged. Adding a bounded Script
+correction is a material prospective product-policy decision for the owner;
+that decision is pending. Original matrices, failed/UNKNOWN evidence and holds
+retain their meaning. The combined plan records software coverage and exact
+terminal evidence; no blind publication/review, core activation or recovery refresh
+followed this result.

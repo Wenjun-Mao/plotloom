@@ -1,15 +1,28 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **B4–B7 and target-independent B3 source implemented and independently
-reviewed; Gateway activated. Native B3 implemented/reviewed at `258f5a42`;
-the real canary exposed a current-CLI telemetry incompatibility. Bounded repair,
-campaign, combined qualification, core/bridge activation and recovery remain open**.
+Status: **B3–B7 source implemented and independently reviewed through `b5c9de51`;
+Gateway activated. Native Alpha qualification did NOT pass: one current installation,
+one terminal Script rejection and seven unadmitted samples. Further native admission,
+core/bridge activation and recovery refresh are on hold pending the owner's
+prospective correction-policy decision**.
 Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
 Starting baseline: both inspected clean at
-`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Current source checkpoint is
-`258f5a42e4aa385b585350f920422645344351b0`; P remains at the starting baseline.
+`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Executable/evidence checkpoint is
+`b5c9de51db583f4ad4c57dcbb2052bf2913f63fb`; later documentation does not relabel
+its receipts. P/core/bridge and the existing recovery remain at the starting baseline.
+
+Current result: **1/9 installed, 12/72 accepted first-pass operations from 13 actual
+text attempts; zero image attempts**. The second sample's Script completed normally
+but failed the unchanged duration validator: episodes 2 and 3 estimate 17.8s against
+a 17.85s minimum. Independent review found no demonstrated source/validator defect
+and confirmed the stop. The frozen matrix cannot satisfy 9/9 under its current
+policy. No blind pack/reviews, core activation or recovery refresh followed.
+The owner has been asked whether to authorize one bounded prospective Script
+correction or retain current policy and leave B3 unqualified; the answer is pending.
+No such expansion is selected or implemented here. Exact evidence and software
+qualification limits are recorded in the terminal checkpoint below.
 
 ## Outcome and authority
 
@@ -54,9 +67,9 @@ package/client owners before their affected consumers. B4 host-client ownership
 precedes B6 terminal collaborators. B5 client catalogue and B7 server coordinator
 have no required source ordering: preserve their versioned HTTP boundary.
 The independent B5 → B4 → B6/B7 source cuts and shared B3 leaves were completed
-while the target answer was pending. The native target is now settled. A bounded
-execution-limits review checks the clarified handoff before the existing writer
-resumes dependent B3 implementation/campaign; this adds no renewed owner approval.
+while the target answer was pending. The native target is now settled. Bounded
+execution-limits and implementation reviews closed before the genuine campaign;
+its terminal result is recorded below.
 No final combined qualification/activation claim follows from the independent cuts.
 Run the complete qualification campaign on stable final relevant source, rather
 than qualifying one source and silently applying that result to changed execution.
@@ -400,6 +413,9 @@ final was collected and access released before the native implementation handoff
 
 ## Independent implementation checkpoint (2026-10-26)
 
+The following intermediate checkpoints retain their original revisions and claims;
+the header and final terminal checkpoint own the current state.
+
 B4–B7 capability cuts are implemented in R, with B3 target/threshold/runner work
 still held pending the manager's target answer. [ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md)
 records the actual dependency owners and preserved contracts. One source writer
@@ -733,5 +749,93 @@ affected controlled-child cases pass: recovered text reaches both validation ste
 invalid candidate content fails validation, and nonzero CLI exit never validates
 or succeeds. Image cases with and without observed image calls preserve UNKNOWN,
 reserved budget and held slot; direct and postmortem recovery refuse reconnects.
-First fixture failures remain retained. Another native admission awaits bounded
-independent code review of the clean repair and a refreshed source/profile/proof.
+First fixture failures remain retained. Independent code review subsequently closed
+the repair at `b5c9de51` with no findings; the following checkpoint records actual
+new-source execution rather than promoting either ended campaign.
+
+
+### Terminal native and software checkpoint (2026-10-26)
+
+At executable `b5c9de51db583f4ad4c57dcbb2052bf2913f63fb`, fresh exact-envelope
+proof passed all 22 validator/render commands and seven controls. Profile hash
+`55685a8ae5d1b01852581aed97ce449edc46cdd5e3239aee324629c6e7503a54`, contract
+`b2c16952ef2aaa39b2e61281b7141d0a757486362b6c24429a8fde9ba52197d2`, unchanged
+CLI `a04752e4…` and checked Python 3.12.13 environment `02149676…` are retained in
+`.local/b37/b3-native/source-snapshot-b5c9de51.json` and
+`envelope-proof-b5c9de51.json` (proof hash
+`7b7efcdc037a4e66f5aedd7676a907f733665495c5b215d83975328f8b89d144`).
+Noneditable wheel/import/entrypoint smoke passed; final wheel SHA-256 is
+`e0d992dc87f8bb0e665a4cbdcc8dfec5b0816425fd61346129db8bcee75f0733`.
+
+The frozen campaign `/private/tmp/plotloom-alpha-b5c9de51-20261026` used supported
+per-sample CLI commands serially under the existing campaign/process leases, with
+actual pool limits 4 total/2 text/2 image/4 queued. Source, pins, CLI, runtime and
+profile equality were verified before continuing after software checks. No source
+changed during native attempts. Results:
+
+- `story-01-repeat-01`: eight distinct real typed attempts/receipts and sessions,
+  all eight operations accepted first pass, 16 validator records, current four-head
+  Bridge installation, API readback and fresh-store reopen. The run is durably
+  paused; no material/image/video/Approval rows were created. Independent canary
+  evidence review closed with no blocking findings.
+- `story-01-repeat-02`: four first-pass adoptions, then Script attempt
+  `18e6d9c3-a0bb-4a21-adbe-127d5a95010a` in job
+  `ch_15442715e85748c283d72c61c1d701c6` completed CLI exit 0 with one bound terminal
+  turn, but failed trusted content validation. Episodes 2 and 3 estimate 17.8s
+  against target 21s with tolerance 0.15, minimum 17.85s. Pinned instructions already
+  specify this tolerance. Independent review confirmed a genuine known rejection
+  and valid stop, with no demonstrated source/validator defect.
+- The remaining seven predeclared samples were never admitted. Total: **1 installed,
+  1 blocked, 7 unadmitted; 12/72 accepted first-pass operations, 13 actual text
+  attempts, zero image attempts**. The operator stopped on the first nonzero result.
+  The current frozen matrix cannot meet 9/9; **qualification did NOT pass**.
+
+Both outcome sets remain under campaign `evidence/<sampleId>/outcome/`; the first
+also retains canonical `content.json`, the second has no installed content.
+
+| Sample | Receipt SHA-256 |
+|---|---|
+| `story-01-repeat-01` | `ca3ca8873083479d68835adbeda0412cadbed1d3ce45b0fb8dbc8b579f5ff596` |
+| `story-01-repeat-02` | `9095f4888e2ea918ef1505e33ef3f0cdb511ec082c65288c4f9052b113f09168` |
+
+Installed content SHA-256 remains
+`43c196827aaa0383d39d74811cdbb3082f72355d457b2008a666877eebddf00d`.
+The second project's job is under
+`data/outputs/20261026T164602682778Z__31ce8540-5e50-4082-8e74-9b5c80498e6a/outputs/creative-handoff/jobs/`
+within the campaign. Exact validation evidence is
+`private/codex-exec/attempts/18e6d9c3-a0bb-4a21-adbe-127d5a95010a/validation/validate.stderr`
+(SHA-256 `fe153236ba1f07adde602ac6bc9b7cd2e37a15df4b6d1b6cd059435e369a843b`).
+Compact private metadata remains in `.local/b37/b3-native/`:
+`canary-b5c9de51-installed-checkpoint.json`, `matrix-b5c9de51-terminal-checkpoint.json`,
+`matrix-script-rejection-b5c9de51.json`, `matrix-script-rejection-guidance-b5c9de51.json`
+and `remaining-matrix-b5c9de51.log`. No raw generated payload is copied here.
+
+Software evidence at unchanged b5 is composite, independently reviewed for coverage:
+**the single original root full remains failed**, with 4,097 Python passes and one
+failure in `test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_hold`.
+Its precise first validator exception was not retained by the existing temporary
+cleanup; its cause remains unknown. The unchanged exact case passed, all 52 affected
+paid-outline cases passed, and one full-style lexical `/var` versus resolved
+`/private/var` exact-case probe passed, so that alias alone did not reproduce it.
+Explicit creator-workbench service-root host/supervisor/ledger/bridge/manage/isolation
+coverage passed 86 cases on Python 3.12.13. The original full's 1,538 frontend cases
+and type checks passed. All six previously unreached downstream gates then ran and
+passed, including deterministic bundle/parity, browser manifest, 358 unfiltered
+browser cases and noneditable wheel smoke. No whole-full rerun or source fix was
+used to erase the first failure. Exact logs and qualified-input equality are indexed
+by `.local/b37/b3-native/software-gates-b5c9de51-checkpoint.json` and adjacent
+`final-root-full-b5c9de51.log`, `paid-rootfull-affected-family.log`,
+`paid-rootfull-var-path-probe-2.log`, `final-creator-service-root-b5c9de51.log` and
+`final-unrun-downstream-b5c9de51.log`. Unchanged Gateway/Lab service-owned locked,
+package/ARM64 and browser evidence above retains its original inputs and scope.
+
+Execution is quiescent: slots, queue and validators are zero; the exact operator,
+runner, worker and CLI process/group identities are absent. No retry, further
+admission, blind pack/review, P/core/bridge activation, recovery refresh, cleanup,
+push or hosted CI followed. Gateway remains activated at its recorded exact
+subtree/image; P/core/bridge/recovery remain `0d4a47d4`. Both earlier failed/UNKNOWN
+campaigns, their slots and all eight valued projects/settings/grants remain untouched.
+The owner decision on one bounded prospective Script correction is pending; until
+answered, current correction policy remains and B3 stays unqualified. This is a
+documentation-only closeout: executable files/pinned resources remain b5 bytes,
+and all original evidence continues to name b5 rather than this later docs commit.
