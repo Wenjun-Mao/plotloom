@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage

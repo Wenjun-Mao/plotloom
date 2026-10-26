@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.branch_suggestions import BranchSuggestion, bind_branches
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.source_outline_contracts import (

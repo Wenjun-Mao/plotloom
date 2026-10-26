@@ -10,7 +10,7 @@ from plotloom.codex_exec_contracts import CodexExecAttempt
 from plotloom.codex_exec_profile import build_codex_exec_profile
 from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import validation_plan_from_package
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_identity import request_hash
 from plotloom.outline_report_metadata import (

@@ -9,7 +9,7 @@ import pytest
 from plotloom.art_contracts import (
     ArtAcceptRequest,
 )
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import ProjectBusyError, close_blockers
 from plotloom.script_contracts import (

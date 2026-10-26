@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from plotloom.config import PlotloomSettings
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.runtime import build_runtime_app
 
 from tests.project_storage_fixtures import fixture_profile

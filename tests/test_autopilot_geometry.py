@@ -5,7 +5,7 @@ from io import BytesIO
 import pytest
 from PIL import Image
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.geometry_preparation import prepare_geometry
 from plotloom.geometry_preparation_contracts import GeometryRecipe
 from plotloom.persistence.project.image_source_lineage import source_in_session

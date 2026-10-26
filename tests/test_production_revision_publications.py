@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage import ProjectFolderStorage

@@ -7,7 +7,7 @@ from threading import Barrier
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.artifact_contracts import Artifact, ArtifactKind
 from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, WorkUnitStatus
 from plotloom.stage_contracts import StageName

@@ -9,7 +9,7 @@ from PIL import Image
 import pytest
 
 from plotloom.config import PlotloomSettings
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import ProjectFolderStorage, ProjectStorageError
 from plotloom.project_storage.deletion import remove_owned_home
 from plotloom.runtime import build_runtime_app

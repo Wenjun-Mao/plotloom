@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from plotloom.config import PlotloomSettings
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.runtime import build_runtime_app
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage

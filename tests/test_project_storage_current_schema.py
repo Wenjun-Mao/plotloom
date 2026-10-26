@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.authored_route_timing import route_budget_hash
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import (
     ProjectClosedError,
     ProjectFolderStorage,

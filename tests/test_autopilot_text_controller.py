@@ -318,7 +318,7 @@ def test_interrupted_export_reuses_original_prepared_job_without_partial_package
 
 
 def test_general_routes_install_all_66_intent_targets_in_one_bounded_native_job(tmp_path, monkeypatch):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.source_structures import complete_routes
     from plotloom.stage_contracts import StageName
     storage, _registry, service, view, calls = environment(tmp_path, monkeypatch,

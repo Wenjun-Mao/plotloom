@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from tests.creative_delivery_fixtures import (
     _accepted_f4_script,

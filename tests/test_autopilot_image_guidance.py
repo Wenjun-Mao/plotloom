@@ -18,7 +18,7 @@ from plotloom.autopilot_image_guidance import (
     IMAGE_CONTENT_OWNERSHIP_INSTRUCTION,
 )
 from plotloom.codex_exec_prompts import assignment_prompt
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 
 
 @pytest.mark.parametrize("direction", ["2D 动画；白色背景；黄色向日葵；稳定构图", "Watercolor; red lantern; quiet street",

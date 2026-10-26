@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom import conformance
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.provider_contracts import ProviderSettings
 from plotloom.project_storage.application_profiles import ApplicationProfileRepository
 from plotloom.project_storage.application_store import ApplicationStore
@@ -57,7 +58,7 @@ def _application_data_dir(
 
 
 def test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes() -> None:
-    brief = conformance.FIXED_CHINESE_BRIEF
+    brief = FIXED_CHINESE_BRIEF
     assert conformance.CONFORMANCE_WORKLOAD_VERSION == "fixed_chinese_interactive_story.v8"
     assert brief.shots_per_scene_min == 1
     assert brief.shots_per_scene_max == 4

@@ -15,7 +15,7 @@ from plotloom.art_contracts import (
     ArtReopenRequest,
     ArtSaveRequest,
 )
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.format import ProjectStorageCorruptionError

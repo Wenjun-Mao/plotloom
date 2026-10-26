@@ -7,7 +7,7 @@ import pytest
 
 from plotloom.autopilot_contracts import OperationScope
 from plotloom.codex_exec_contracts import CodexExecProfile
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
 from plotloom.creative_package_publication import PUBLICATION_LOCK
 from plotloom.exceptions import InvalidTransitionError

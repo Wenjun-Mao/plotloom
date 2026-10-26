@@ -135,7 +135,7 @@ def test_four_real_whole_file_workers_keep_sqlite_storyboard_node_and_image_isol
                 assert connection.execute('SELECT value FROM marker').fetchall() == [('local',)]
         """,
         """
-        from plotloom.conformance import FIXED_CHINESE_BRIEF
+        from plotloom.story_workloads import FIXED_CHINESE_BRIEF
         from plotloom.project_storage.composition import ProjectFolderStorage
         from tests.creative_delivery_fixtures import _accepted_f4_script
         def test_case(tmp_path):

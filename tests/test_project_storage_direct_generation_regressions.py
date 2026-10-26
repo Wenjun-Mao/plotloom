@@ -14,7 +14,7 @@ from threading import Event
 import pytest
 
 from plotloom.artifacts import LocalArtifactStore
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.artifact_contracts import ArtifactKind
 from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, WorkUnitStatus
 from plotloom.stage_contracts import STAGE_ORDER, StageName

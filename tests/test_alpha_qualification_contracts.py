@@ -11,7 +11,7 @@ import pytest
 from plotloom import alpha_acceptance
 
 from tests.project_storage_fixtures import FixtureResolver
-from tests.test_alpha_acceptance import (
+from tests.alpha_acceptance_support import (
     _application_data_dir,
     _external_review,
     _fixture_provenance,

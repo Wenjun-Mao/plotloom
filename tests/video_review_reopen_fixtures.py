@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 from tests.video_storage_fixtures import (

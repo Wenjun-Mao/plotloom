@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_contracts import RunControlRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_abandonment_contracts import AbandonmentPreview
 from plotloom.project_storage.project_handle import ProjectStore
 from plotloom.project_storage.project_home import ProjectHome

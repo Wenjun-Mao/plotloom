@@ -1,7 +1,8 @@
 # ADR 0222: Exchange, storage and service ownership
 
 Status: independent B4–B7 implementation; combined B3–B7 qualification and activation
-pending, 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
+pending, with target-independent B3 metric/workload/test-support leaves implemented,
+2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
 cohesive capabilities with orchestration. Move those capabilities to explicit
@@ -78,3 +79,24 @@ Controlled CPU/API/SQLite/child-process/browser proofs establish software contra
 not native model success, creative acceptance or material QA enrollment. No provider,
 model, settings, grants, UNKNOWN clearing, live project edit, push or CI is authorized
 by this ownership decision.
+
+
+Target-independent B3 work shares only deterministic token accounting, sanitized
+issue codes, whole-stage primary-attempt statistics and maximum attempts per work
+unit. `acceptance_metrics` consumes already-read `RunTrace`/`RunExecutionTrace`
+records and an explicit stage order; it has no storage, execution or qualification
+policy authority. Each receipt owner still reads its own execution evidence and
+retains its original fields, sorted issue-code projection, thresholds and lifecycle.
+No Alpha/conformance workload or claim is merged by sharing measurements.
+
+`story_workloads` owns the exact fixed Chinese Brief used by probes and fixtures;
+its serialized bytes/canonical hash and conformance workload hash are unchanged.
+Direct consumers import that owner. The four cross-collected Alpha review builders
+and their two-helper dependency closure now live in non-collected test support,
+with an unchanged collected Alpha case union. Runner retirement, versioned target
+criteria and actual backend/model qualification remain held for the target answer.
+The Alpha owner remains above 500 lines (1,111): its other provenance, publication,
+review, receipt and execution responsibilities are separable but belong to the held
+B3 follow-up. This bounded assignment removes duplicated measurements and adds no
+responsibility; further extraction is deferred until target settlement under the
+current handoff, rather than expanding the independent cut.

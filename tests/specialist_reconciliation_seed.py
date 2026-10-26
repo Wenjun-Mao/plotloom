@@ -5,7 +5,7 @@ import fcntl
 from pathlib import Path
 import shutil
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers

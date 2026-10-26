@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.repair_contracts import FragmentReuseKind
 from plotloom.run_contracts import RunStatus, WorkUnitStatus
 from plotloom.stage_contracts import STAGE_ORDER, StageName

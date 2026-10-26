@@ -65,7 +65,7 @@ def prepare(case, source):
     from paid_outline_prepare import prepare_outline_allocation
 
     from plotloom.autopilot_contracts import LaunchRequest
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 
     qa_raw = (case / "qa.json").read_bytes()
     allocation = prepare_outline_allocation(data_root=case / "data", bundle_root=case / "bundle",

@@ -7,7 +7,7 @@ import pytest
 
 from plotloom.api.project_folder_specialists import METHODS
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.exceptions import NotFoundError
 from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS

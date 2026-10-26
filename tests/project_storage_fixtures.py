@@ -91,7 +91,7 @@ class FixtureResolver:
 
 def fixed_workload_footage_count() -> int:
     """Each footage node produces one scene and storyboard shard in this fixture."""
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.generation.story_graph_topology import plan_story_graph_topology
 
     topology = plan_story_graph_topology(project_id="fixed-workload", brief=FIXED_CHINESE_BRIEF)

@@ -6,7 +6,7 @@ import pytest
 
 from plotloom.art_style import freeze_art_style
 from plotloom.cast_style import freeze_cast_style
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers

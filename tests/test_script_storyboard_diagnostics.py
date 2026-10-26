@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtReopenRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.review_binding_diagnostics import FIELD_OWNERS, review_binding_diagnostics
 from plotloom.script_contracts import ScriptReopenRequest, ScriptReviewState

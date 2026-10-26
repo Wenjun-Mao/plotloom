@@ -131,7 +131,7 @@ def test_persisted_cast_style_change_revokes_art_consumption_without_mutation(
 ):
     from sqlalchemy import select
 
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.persistence.schema.project_cast import CastRevisionRow
     from plotloom.project_storage.composition import ProjectFolderStorage
     from plotloom.review_context_diagnostics import ReviewContextError

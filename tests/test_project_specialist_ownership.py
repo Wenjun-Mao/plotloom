@@ -6,7 +6,7 @@ from threading import Event
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import ProjectBusyError
 from tests.image_terminal_support import ImageTerminalRuntime

@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom.artifacts import LocalArtifactStore
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.artifact_contracts import ArtifactKind
 from plotloom.run_contracts import AttemptStatus, RunKind, RunStatus
 from plotloom.stage_contracts import StageName, StageStatus

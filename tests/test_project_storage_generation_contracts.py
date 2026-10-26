@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 import plotloom.work_unit_correction as work_unit_correction
 from plotloom.artifacts import LocalArtifactStore
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.run_contracts import GenerationAttemptKind, RunKind, RunStatus
 from plotloom.provider_contracts import ProviderSettings
 from plotloom.stage_contracts import StageName

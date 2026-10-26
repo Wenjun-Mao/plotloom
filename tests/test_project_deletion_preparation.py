@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_contracts import RunControlRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_abandonment_contracts import AbandonmentPreview
 from tests.autopilot_compact_text_fixtures import compact_safety_image_environment
 from tests.test_autopilot_recovery import storage_at

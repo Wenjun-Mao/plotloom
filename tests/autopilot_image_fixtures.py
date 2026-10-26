@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from plotloom.autopilot_materials import initial_inventory
 from plotloom.autopilot_contracts import POLICY_VERSION
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.image_commands import image_context
 from tests import autopilot_controller_fixtures
 from tests.autopilot_controller_fixtures import environment, run_text

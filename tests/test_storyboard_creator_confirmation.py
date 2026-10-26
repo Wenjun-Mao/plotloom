@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_contracts import OperationScope
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import STAGE_ORDER, InitialStage, StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.human_confirmation_contracts import UnnamedCreatorConfirmation

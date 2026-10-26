@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import Event
 from typing import Any
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
 from plotloom.generation.exceptions import (
     ProviderOutcomeUnknownError,

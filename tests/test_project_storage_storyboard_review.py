@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.production_dialogue_timing import TIMING_FILENAME
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import (

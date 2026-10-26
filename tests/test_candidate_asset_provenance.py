@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.contract_identity import utc_now
 from plotloom.persistence.project.media_art_reference_proposals import ArtReferenceProposalPersistence
 from plotloom.persistence.project.media_image_delivery import ImageJobDeliveryPersistence

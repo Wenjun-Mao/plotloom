@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import update
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
     CreativeHandoffRequest,

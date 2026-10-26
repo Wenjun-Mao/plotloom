@@ -5,7 +5,7 @@ from contextlib import closing
 import pytest
 
 from plotloom.autopilot_contracts import CheckpointEvidence, OperationScope
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.persistence.schema import ApprovalDecisionRow, AutopilotDecisionRow
 from plotloom.project_storage import ProjectFolderStorage

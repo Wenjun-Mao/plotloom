@@ -152,7 +152,7 @@ def test_unacknowledged_deletion_can_reinspect_and_refresh_explicit_consent(tmp_
 
 @pytest.mark.parametrize("substitution", ["home", "lock"])
 def test_revoked_erasure_revalidates_directory_and_held_lock_after_acquire(tmp_path, monkeypatch, substitution):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.exceptions import InvalidTransitionError
     from plotloom.project_storage.abandonment_ledger import resume_revoked_erasure
     from plotloom.project_storage.operational_state import ProjectAccessLease

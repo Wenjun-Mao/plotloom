@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.artifact_contracts import Artifact, ArtifactKind
 from plotloom.run_contracts import RunKind, RunStatus, WorkUnitStatus

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.production_bridge_contracts import (

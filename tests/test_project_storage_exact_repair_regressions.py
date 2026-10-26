@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from plotloom.api.project_folder_generation import register_project_folder_generation_routes
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.artifact_contracts import Artifact, ArtifactKind
 from plotloom.run_contracts import AttemptStatus, RunKind, RunStatus, WorkUnitFailureDisposition
 from plotloom.repair_contracts import FragmentReuseKind

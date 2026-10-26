@@ -6,7 +6,7 @@ from uuid import UUID, uuid5
 from plotloom.autopilot_contracts import CheckpointEvidence, LaunchPolicy
 from plotloom.codex_exec_contracts import CodexExecAttempt, CodexExecProfile
 from plotloom.codex_exec_validation import build_text_validation_plan
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_identity import request_hash
 from tests.autopilot_controller_fixtures import UPSTREAM_PIN
 from tests.codex_exec_fixtures import PROFILE

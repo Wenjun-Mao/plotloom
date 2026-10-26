@@ -34,7 +34,7 @@ def test_draft_only_creation_replay_incomplete_brief_and_restart(tmp_path: Path)
 
 
 def test_raw_input_adoption_and_nullable_lifecycle_are_exact(tmp_path: Path):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with TestClient(create_project_folder_authoring_app(storage)) as client:
         project = client.post("/api/v2/projects", json={"brief": None}).json()
@@ -65,7 +65,7 @@ def test_raw_input_adoption_and_nullable_lifecycle_are_exact(tmp_path: Path):
 
 
 def test_typed_partial_stage_input_and_raw_numeric_bounds(tmp_path: Path):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from tests.backend_core.conftest import all_stage_payloads
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
@@ -86,7 +86,7 @@ def test_typed_partial_stage_input_and_raw_numeric_bounds(tmp_path: Path):
 
 
 def test_unsubmitted_custom_direction_is_independent_bounded_text(tmp_path: Path):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with TestClient(create_project_folder_authoring_app(storage)) as client:
         project = client.post("/api/v2/projects", json={"brief": None}).json()
@@ -117,7 +117,7 @@ def test_working_display_title_is_independent_of_confirmed_brief():
 
 def test_incomplete_brief_restart_then_exact_adoption_receipt(tmp_path: Path):
     """The smallest B1/B2 real API/SQLite journey uses the same project home."""
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 
     roots = dict(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with TestClient(create_project_folder_authoring_app(ProjectFolderStorage(**roots))) as client:

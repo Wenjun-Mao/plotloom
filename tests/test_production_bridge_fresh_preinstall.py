@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest

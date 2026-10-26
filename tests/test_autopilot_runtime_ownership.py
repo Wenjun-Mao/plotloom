@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_service import AutopilotService
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import ProjectAccessLease
 from plotloom.project_storage.operational_state import ProjectBusyError

@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.art_contracts import ArtBinding, ArtReopenRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import NotFoundError
 from plotloom.persistence.project.art import ProjectArtPersistence
 from plotloom.persistence.project.script import ProjectScriptPersistence

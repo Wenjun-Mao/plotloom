@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from tests.art_delivery_fixtures import _deliver, _write_art_reference_delivery
 from tests.creative_delivery_fixtures import _prepare_art_context

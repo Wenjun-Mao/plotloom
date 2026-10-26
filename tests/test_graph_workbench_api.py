@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api.project_folder import create_project_folder_authoring_app
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from plotloom.autopilot_contracts import POLICY_VERSION, LaunchRequest
 from plotloom.autopilot_service import AutopilotService
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
 from plotloom.project_storage import ProjectFolderStorage
 from tests.autopilot_fake_exec_host import FakeCodexExecHost

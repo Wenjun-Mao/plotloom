@@ -140,7 +140,7 @@ def test_protected_mismatch_precedes_all_asset_extras_reads_and_full_hash(monkey
 
 @pytest.fixture
 def store(tmp_path):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as owned:
         yield owned

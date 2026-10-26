@@ -21,7 +21,7 @@ import uvicorn
 from isolated import RuntimeConfig, compose
 
 from plotloom.art_contracts import ArtAcceptRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from tests.codex_exec_runtime_fixtures import CLI_FIXTURE_VERSION
 from tests.test_project_storage_art import _deliver, _prepare_art_context
 

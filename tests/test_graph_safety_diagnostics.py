@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api.errors import register_api_error_handlers
 from plotloom.api.project_folder import create_project_folder_authoring_app
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft
 from plotloom.graph_edit_safety import assert_edit_safe, structural_violations

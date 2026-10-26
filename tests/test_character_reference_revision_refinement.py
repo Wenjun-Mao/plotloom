@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 
 from plotloom.cast_contracts import CastReopenRequest, CastSaveRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import (
     CharacterReferenceProposalCandidateRow,

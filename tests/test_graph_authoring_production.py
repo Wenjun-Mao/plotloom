@@ -2,7 +2,7 @@
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.source_outline_contracts import SectionMap

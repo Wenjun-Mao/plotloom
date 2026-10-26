@@ -7,7 +7,7 @@ import pytest
 
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastBinding, CastConsumerMapping
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.script_contracts import ScriptAcceptRequest

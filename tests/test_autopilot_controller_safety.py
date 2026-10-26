@@ -21,7 +21,7 @@ def _current(storage, view):
 def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, monkeypatch, readiness_state):
     from plotloom.autopilot_contracts import LaunchRequest
     from plotloom.autopilot_service import AutopilotService
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.creative_handoff_exchange import CreativeHandoffExchange
     from plotloom.image_job_contracts import ImageJobError
     from plotloom.codex_exec_contracts import CodexExecReadiness
@@ -203,7 +203,7 @@ def test_unsafe_controller_lock_keeps_supervisor_alive_without_claim(tmp_path, m
 def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, monkeypatch, closed, has_run):
     import sqlite3
     from plotloom.autopilot_service import AutopilotService
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.project_storage import ProjectFolderStorage
     from plotloom.specialist_settings import SpecialistRegistry
 
@@ -246,7 +246,7 @@ def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, mo
 def test_controller_observes_normal_closed_wal_folder_with_retained_lock_without_mutation(tmp_path, monkeypatch):
     import sqlite3
     from plotloom.autopilot_service import AutopilotService
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.project_storage import ProjectFolderStorage
     from plotloom.specialist_settings import SpecialistRegistry
 

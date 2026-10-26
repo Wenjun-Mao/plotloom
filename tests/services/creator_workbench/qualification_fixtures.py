@@ -15,7 +15,7 @@ from plotloom.autopilot_service import AutopilotService
 from plotloom.codex_exec_contracts import CodexExecReadiness
 from plotloom.codex_exec_pool_contracts import CodexExecPoolLimits
 from plotloom.codex_exec_qualification_contracts import CodexExecQualificationBinding, QualificationProject
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.persistence.codec import stable_hash
 

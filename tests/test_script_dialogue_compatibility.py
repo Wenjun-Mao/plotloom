@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.art_contracts import ArtAcceptRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.script_dialogue_compatibility import assert_planned_dialogue_necessary_bounds, freeze_planned_storyboard_dialogue
 from tests.art_delivery_fixtures import _deliver

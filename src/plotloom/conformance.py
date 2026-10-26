@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import re
 import sys
 import tempfile
 import time
@@ -19,11 +18,17 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
+from .story_workloads import FIXED_CHINESE_BRIEF
+from .acceptance_metrics import (
+    SAFE_ISSUE_CODE as _SAFE_ISSUE_CODE,
+    first_pass_stats,
+    maximum_attempts_per_work_unit,
+    public_token_usage,
+    stable_issue_codes,
+)
 from .config import PlotloomSettings
 from plotloom.stage_contracts import STAGE_ORDER, StageStatus
-from plotloom.artifact_contracts import ArtifactKind
-from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind
-from plotloom.brief_contracts import ProjectBrief
+from plotloom.run_contracts import RunKind
 from plotloom.generation.planning_contracts import PLANNING_POLICY_VERSION
 from .generation.prompts import PromptRepository, canonical_json, sha256_text
 from plotloom.generation.story_graph_content_contracts import STORY_GRAPH_CONTENT_FILL_SCHEMA_ID
@@ -46,29 +51,6 @@ from .runtime import RunContext
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2
 CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v8"
-
-
-# The fixed workload exercises the complete topology contract: three endings,
-# two decisions on every path, and one explicit JOIN. It is still bounded at
-# nine nodes and four shots per scene so repeated operator probes stay
-# practical without forcing several atomic beats into a single shot.
-FIXED_CHINESE_BRIEF = ProjectBrief(
-    title="雾港回声",
-    synopsis="失忆的摆渡人黎明前在雾港收到一封来自未来自己的信，必须决定交出船钟还是带它穿过封港线。",
-    genre="悬疑",
-    visual_style="克制的东方水墨电影感",
-    language="zh-CN",
-    target_playthrough_seconds=60,
-    decision_points_per_path=2,
-    ending_count=3,
-    node_budget=9,
-    max_out_degree=3,
-    desired_join_count=1,
-    shots_per_scene_min=1,
-    shots_per_scene_max=4,
-)
-
-_SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 
 
 def conformance_workload_hash() -> str:
@@ -105,118 +87,6 @@ def conformance_workload_hash() -> str:
     )
 
 
-def _public_token_usage(trace: Any) -> dict[str, int]:
-    """Aggregate only numeric provider usage recorded in the temporary trace."""
-
-    input_tokens = 0
-    output_tokens = 0
-    for artifact in trace.artifacts:
-        if artifact.kind != ArtifactKind.RESPONSE or not isinstance(artifact.content, dict):
-            continue
-        usage = artifact.content.get("usage")
-        if not isinstance(usage, dict):
-            continue
-        for field, total_name in (("inputTokens", "input"), ("outputTokens", "output")):
-            value = usage.get(field)
-            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
-                if total_name == "input":
-                    input_tokens += value
-                else:
-                    output_tokens += value
-    return {
-        "inputTokens": input_tokens,
-        "outputTokens": output_tokens,
-        "totalTokens": input_tokens + output_tokens,
-    }
-
-
-def _stable_issue_codes(trace: Any) -> list[str]:
-    """Extract machine-readable codes without exporting temporary evidence."""
-
-    codes: set[str] = set()
-    for artifact in trace.artifacts:
-        if artifact.kind != ArtifactKind.VALIDATION or not isinstance(artifact.content, dict):
-            continue
-        issues = artifact.content.get("issues")
-        if not isinstance(issues, list):
-            continue
-        for issue in issues:
-            code = issue.get("code") if isinstance(issue, dict) else None
-            if isinstance(code, str) and _SAFE_ISSUE_CODE.fullmatch(code):
-                codes.add(code)
-    # These outcomes are application-owned lifecycle codes.  Include them for
-    # a provider failure that has no validation artifact, but never include an
-    # arbitrary provider-provided string in the public receipt.
-    for attempt in trace.attempts:
-        code = attempt.outcome_code
-        if (
-            attempt.status != AttemptStatus.SUCCEEDED
-            and isinstance(code, str)
-            and (code.startswith("provider.") or code.startswith("contract."))
-            and _SAFE_ISSUE_CODE.fullmatch(code)
-        ):
-            codes.add(code)
-    return sorted(codes)
-
-
-def _first_pass_stats(store: ProjectStore, run_id: str, trace: Any) -> dict[str, int]:
-    """Count first-pass *stages*, not individual sharded work units.
-
-    Scene Beats and Storyboard can each contain many work units.  The M1.5
-    acceptance contract gives either stage one first-pass credit only when
-    every one of its units succeeds on its primary attempt.
-    """
-
-    execution = store.generation.get_run_execution_trace(run_id)
-    accepted = rejected = outcome_unknown = cancelled = not_run = 0
-    for stage in STAGE_ORDER:
-        unit_ids = {
-            unit.id for unit in execution.work_units if unit.stage == stage
-        }
-        stage_attempts = [
-            attempt for attempt in trace.attempts if attempt.work_unit_id in unit_ids
-        ]
-        primary_by_unit = {
-            attempt.work_unit_id: attempt
-            for attempt in stage_attempts
-            if attempt.attempt_kind == GenerationAttemptKind.PRIMARY
-        }
-        if unit_ids and set(primary_by_unit) == unit_ids and all(
-            attempt.status == AttemptStatus.SUCCEEDED
-            for attempt in primary_by_unit.values()
-        ):
-            accepted += 1
-        elif any(attempt.outcome_unknown for attempt in stage_attempts):
-            outcome_unknown += 1
-        elif any(
-            attempt.status == AttemptStatus.FAILED and not attempt.outcome_unknown
-            for attempt in primary_by_unit.values()
-        ):
-            rejected += 1
-        elif any(
-            attempt.status == AttemptStatus.CANCELLED for attempt in stage_attempts
-        ):
-            cancelled += 1
-        else:
-            not_run += 1
-    return {
-        "total": len(STAGE_ORDER),
-        "accepted": accepted,
-        "rejected": rejected,
-        "outcomeUnknown": outcome_unknown,
-        "cancelled": cancelled,
-        "notRun": not_run,
-    }
-
-
-def _maximum_attempts_per_work_unit(trace: Any) -> int:
-    counts: dict[str, int] = {}
-    for attempt in trace.attempts:
-        if attempt.work_unit_id is not None:
-            counts[attempt.work_unit_id] = counts.get(attempt.work_unit_id, 0) + 1
-    return max(counts.values(), default=0)
-
-
 def _conformance_invariant_codes(
     store: ProjectStore,
     *,
@@ -240,7 +110,7 @@ def _conformance_invariant_codes(
             codes.add("conformance.canonical_install_incomplete")
     elif installed or run.result_revision_ids:
         codes.add("conformance.partial_canonical_install")
-    if _maximum_attempts_per_work_unit(trace) > 3:
+    if maximum_attempts_per_work_unit(trace) > 3:
         codes.add("conformance.attempt_limit_exceeded")
     if any(attempt.outcome_unknown for attempt in trace.attempts):
         codes.add("provider.outcome_unknown")
@@ -262,7 +132,7 @@ def _receipt_for(
     trace = store.generation.get_run_trace(run_id)
     plan = store.generation.get_generation_plan(run_id)
     topology = store.generation.get_story_graph_topology(run_id)
-    issue_codes = set(_stable_issue_codes(trace))
+    issue_codes = set(stable_issue_codes(trace))
     if (
         isinstance(completed.failure_code, str)
         and _SAFE_ISSUE_CODE.fullmatch(completed.failure_code)
@@ -281,9 +151,9 @@ def _receipt_for(
         "status": completed.status.value,
         "issueCodes": sorted(issue_codes),
         "durationMilliseconds": duration_milliseconds,
-        "tokens": _public_token_usage(trace),
-        "firstPass": _first_pass_stats(store, run_id, trace),
-        "maxAttemptsPerWorkUnit": _maximum_attempts_per_work_unit(trace),
+        "tokens": public_token_usage(trace),
+        "firstPass": first_pass_stats(store.generation.get_run_execution_trace(run_id), trace, stage_order=STAGE_ORDER),
+        "maxAttemptsPerWorkUnit": maximum_attempts_per_work_unit(trace),
     }
 
 

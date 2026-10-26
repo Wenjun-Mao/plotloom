@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tarfile
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from tests.working_input_preservation import preservation_inventory
 

@@ -10,7 +10,7 @@ from plotloom.autopilot_contracts import (
     RunControlRequest,
 )
 from plotloom.codex_exec_contracts import CodexExecProfile
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage import (
     ProjectBusyError,
     ProjectFolderStorage,

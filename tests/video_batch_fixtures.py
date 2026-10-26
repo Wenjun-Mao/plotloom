@@ -1,5 +1,5 @@
 """Provider-fake batches use real current source, admission and selection owners."""
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.video_batch_contracts import BatchSetup, BatchDirectionsDraft, BatchStart
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile

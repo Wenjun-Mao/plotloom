@@ -13,7 +13,7 @@ from pydantic import ValidationError
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.managed_asset_provenance import project_asset_provenance
 from plotloom.project_storage.composition import ProjectFolderStorage
 from tests.art_delivery_fixtures import _deliver, _write_art_reference_delivery

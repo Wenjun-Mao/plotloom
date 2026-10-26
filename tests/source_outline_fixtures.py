@@ -7,7 +7,7 @@ import subprocess
 from hashlib import sha256
 from pathlib import Path
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_identity import canonical_json
 from plotloom.brief_contracts import ProjectBrief

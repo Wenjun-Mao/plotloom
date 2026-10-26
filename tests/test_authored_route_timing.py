@@ -10,7 +10,7 @@ from plotloom.authored_route_timing import (
     longest_authored_route_units,
     route_budget_hash,
 )
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.script_receiving import validate_timing_caps
 from plotloom.production_bridge_contracts import (

@@ -181,7 +181,7 @@ def test_continuation_cas_and_lifetime_cap_are_transactional(tmp_path, awaiting_
 def test_original_continuation_consent_cannot_replay_against_same_revision_descendant(tmp_path):
     from pydantic import ValidationError
 
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from tests.autopilot_fixtures import policy_for
     from tests.test_autopilot_recovery import storage_at
     storage = storage_at(tmp_path)

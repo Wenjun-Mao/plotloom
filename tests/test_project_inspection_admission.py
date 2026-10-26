@@ -46,7 +46,7 @@ def test_inspection_does_not_cache_out_of_band_asset_bytes_or_wal_schema(tmp_pat
 
 @pytest.mark.parametrize("admission", ["inspection", "authority"])
 def test_admitted_reads_require_initialized_lock_and_hold_exclusive_exclusion(tmp_path, admission, monkeypatch):
-    from plotloom.conformance import FIXED_CHINESE_BRIEF
+    from plotloom.story_workloads import FIXED_CHINESE_BRIEF
     from plotloom.project_storage import ProjectFolderStorage, ProjectBusyError
     from tests.working_input_preservation import preservation_inventory
 

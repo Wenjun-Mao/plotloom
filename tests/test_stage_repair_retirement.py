@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom.artifacts import LocalArtifactStore
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.run_contracts import RunKind
 from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError

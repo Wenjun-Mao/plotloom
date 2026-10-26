@@ -12,7 +12,7 @@ from plotloom.art_contracts import ArtAcceptRequest, ArtReviewState
 from plotloom.art_style import freeze_art_style
 from plotloom.cast_contracts import CastReopenRequest, CastReviewState
 from plotloom.cast_style import freeze_cast_style
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.graph_safety_diagnostics import transition_error_content
 from plotloom.persistence.project.art import ProjectArtPersistence

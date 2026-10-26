@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from tests import autopilot_controller_fixtures
 from tests.autopilot_image_fixtures import image_environment
 

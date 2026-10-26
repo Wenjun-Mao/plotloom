@@ -6,7 +6,7 @@ from types import MethodType, SimpleNamespace
 import pytest
 from sqlalchemy import select
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.contract_identity import utc_now
 from plotloom.persistence.project.script import ProjectScriptPersistence

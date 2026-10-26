@@ -48,10 +48,16 @@ from .alpha_review_templates import (
     is_unfilled_codex_external_review_template,
     write_codex_external_review_templates,
 )
+from .acceptance_metrics import (
+    SAFE_ISSUE_CODE as _SAFE_ISSUE_CODE,
+    first_pass_stats,
+    maximum_attempts_per_work_unit,
+    public_token_usage,
+    stable_issue_codes,
+)
 from .config import PlotloomSettings
 from plotloom.stage_contracts import STAGE_ORDER, StageName, StageStatus
-from plotloom.artifact_contracts import ArtifactKind
-from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind
+from plotloom.run_contracts import RunKind
 from plotloom.brief_contracts import ProjectBrief
 from plotloom.generation.planning_contracts import PLANNING_POLICY_VERSION
 from .generation.prompts import PromptRepository, canonical_json, sha256_text
@@ -80,7 +86,6 @@ ALPHA_EXPECTED_RUN_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT * ALPHA_REPEA
 ALPHA_EXPECTED_REVIEW_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT
 ALPHA_REQUIRED_FIRST_PASS_STAGES_PER_PROFILE = 30
 ALPHA_TOTAL_STAGES_PER_PROFILE = ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY * len(STAGE_ORDER)
-_SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 
 
 _RECEIPT_FIELDS = frozenset({
@@ -325,84 +330,6 @@ def alpha_contract_hash() -> str:
     }))
 
 
-def _public_token_usage(trace: Any) -> dict[str, int]:
-    input_tokens = output_tokens = 0
-    for artifact in trace.artifacts:
-        if artifact.kind != ArtifactKind.RESPONSE or not isinstance(artifact.content, dict):
-            continue
-        usage = artifact.content.get("usage")
-        if not isinstance(usage, dict):
-            continue
-        input_value = usage.get("inputTokens")
-        output_value = usage.get("outputTokens")
-        if isinstance(input_value, int) and not isinstance(input_value, bool) and input_value >= 0:
-            input_tokens += input_value
-        if isinstance(output_value, int) and not isinstance(output_value, bool) and output_value >= 0:
-            output_tokens += output_value
-    return {"inputTokens": input_tokens, "outputTokens": output_tokens, "totalTokens": input_tokens + output_tokens}
-
-
-def _stable_issue_codes(trace: Any) -> set[str]:
-    codes: set[str] = set()
-    for artifact in trace.artifacts:
-        if artifact.kind != ArtifactKind.VALIDATION or not isinstance(artifact.content, dict):
-            continue
-        issues = artifact.content.get("issues")
-        if not isinstance(issues, list):
-            continue
-        for issue in issues:
-            code = issue.get("code") if isinstance(issue, dict) else None
-            if isinstance(code, str) and _SAFE_ISSUE_CODE.fullmatch(code):
-                codes.add(code)
-    for attempt in trace.attempts:
-        code = attempt.outcome_code
-        if (
-            attempt.status != AttemptStatus.SUCCEEDED
-            and isinstance(code, str)
-            and (code.startswith("provider.") or code.startswith("contract."))
-            and _SAFE_ISSUE_CODE.fullmatch(code)
-        ):
-            codes.add(code)
-    return codes
-
-
-def _first_pass_stats(store: ProjectStore, run_id: str, trace: Any) -> dict[str, int]:
-    execution = store.generation.get_run_execution_trace(run_id)
-    accepted = rejected = outcome_unknown = cancelled = not_run = 0
-    for stage in STAGE_ORDER:
-        unit_ids = {unit.id for unit in execution.work_units if unit.stage == stage}
-        attempts = [attempt for attempt in trace.attempts if attempt.work_unit_id in unit_ids]
-        primary_by_unit = {
-            attempt.work_unit_id: attempt
-            for attempt in attempts
-            if attempt.attempt_kind == GenerationAttemptKind.PRIMARY
-        }
-        if unit_ids and set(primary_by_unit) == unit_ids and all(
-            attempt.status == AttemptStatus.SUCCEEDED for attempt in primary_by_unit.values()
-        ):
-            accepted += 1
-        elif any(attempt.outcome_unknown for attempt in attempts):
-            outcome_unknown += 1
-        elif any(attempt.status == AttemptStatus.FAILED and not attempt.outcome_unknown for attempt in primary_by_unit.values()):
-            rejected += 1
-        elif any(attempt.status == AttemptStatus.CANCELLED for attempt in attempts):
-            cancelled += 1
-        else:
-            not_run += 1
-    return {
-        "total": len(STAGE_ORDER), "accepted": accepted, "rejected": rejected,
-        "outcomeUnknown": outcome_unknown, "cancelled": cancelled, "notRun": not_run,
-    }
-
-
-def _maximum_attempts_per_work_unit(trace: Any) -> int:
-    counts: dict[str, int] = {}
-    for attempt in trace.attempts:
-        if attempt.work_unit_id is not None:
-            counts[attempt.work_unit_id] = counts.get(attempt.work_unit_id, 0) + 1
-    return max(counts.values(), default=0)
-
-
 def _invariant_codes(store: ProjectStore, *, run_id: str, trace: Any) -> set[str]:
     run = store.generation.get_run(run_id)
     envelopes = store.authoring.list_stage_envelopes(run.project_id)
@@ -416,7 +343,7 @@ def _invariant_codes(store: ProjectStore, *, run_id: str, trace: Any) -> set[str
             codes.add("conformance.canonical_install_incomplete")
     elif installed or run.result_revision_ids:
         codes.add("conformance.partial_canonical_install")
-    if _maximum_attempts_per_work_unit(trace) > 3:
+    if maximum_attempts_per_work_unit(trace) > 3:
         codes.add("conformance.attempt_limit_exceeded")
     if any(attempt.outcome_unknown for attempt in trace.attempts):
         codes.add("provider.outcome_unknown")
@@ -436,7 +363,7 @@ def _receipt_for(
 ) -> dict[str, Any]:
     completed = store.generation.get_run(run_id)
     trace = store.generation.get_run_trace(run_id)
-    codes = _stable_issue_codes(trace)
+    codes = stable_issue_codes(trace)
     if isinstance(completed.failure_code, str) and _SAFE_ISSUE_CODE.fullmatch(completed.failure_code):
         codes.add(completed.failure_code)
     codes.update(_invariant_codes(store, run_id=run_id, trace=trace))
@@ -452,10 +379,10 @@ def _receipt_for(
         "status": completed.status.value,
         "issueCodes": sorted(codes),
         "durationMilliseconds": duration_milliseconds,
-        "tokens": _public_token_usage(trace),
+        "tokens": public_token_usage(trace),
         "scores": {
-            "firstPass": _first_pass_stats(store, run_id, trace),
-            "maxAttemptsPerWorkUnit": _maximum_attempts_per_work_unit(trace),
+            "firstPass": first_pass_stats(store.generation.get_run_execution_trace(run_id), trace, stage_order=STAGE_ORDER),
+            "maxAttemptsPerWorkUnit": maximum_attempts_per_work_unit(trace),
         },
     }
 

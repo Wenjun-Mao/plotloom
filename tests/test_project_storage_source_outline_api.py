@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api.project_folder_source_outline import register_project_folder_source_outline_routes
 from plotloom.config import PlotloomSettings
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.runtime import build_runtime_app
 
 

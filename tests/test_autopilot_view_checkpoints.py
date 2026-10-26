@@ -16,7 +16,7 @@ from plotloom.autopilot_contracts import (
     ProvisionalFrame,
 )
 from plotloom.codex_exec_contracts import CodexExecAttempt
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.persistence.codec import stable_hash
 from plotloom.persistence.project import autopilot
 from plotloom.persistence.schema import (

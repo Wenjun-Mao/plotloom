@@ -2,7 +2,7 @@
 
 import pytest
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
 )

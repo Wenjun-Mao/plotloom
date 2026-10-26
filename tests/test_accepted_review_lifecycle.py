@@ -6,7 +6,7 @@ import pytest
 
 from plotloom.art_contracts import ArtAcceptRequest, ArtReopenRequest
 from plotloom.cast_contracts import CastReopenRequest, CastSaveRequest
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.review_context_diagnostics import ReviewContextError
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest

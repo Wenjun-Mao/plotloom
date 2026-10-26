@@ -439,7 +439,38 @@ bounded follow-up evidence are retained under `.local/b37/`. Gateway wheel and
 ARM64 smoke ran after the service README isolation-command correction; the later
 B4-only correction does not change that service's source, lock or artifact inputs.
 
-Independent B4–B7 source is awaiting the bounded review follow-up. B3's target
+Independent B4–B7 source review closed the package-ownership finding at `86a202bd`. B3's target
 answer, dependent implementation/campaign, final root full, activation and recovery
 refresh remain open. P, Spark, valued projects, settings, grants and UNKNOWN holds
 remain untouched; no push or hosted CI has run.
+
+### Target-independent B3 checkpoint
+
+With the target question still unanswered, only the reviewed independent clauses
+were implemented: pure shared measurements over already-read evidence, exact fixed
+Brief ownership/direct consumers and non-collected Alpha builders. The execution
+owners retain their own storage reads, receipt shapes, issue-code disclosures,
+workloads, profiles, thresholds and lifecycle; no runner or qualification matrix
+has been selected or changed. Existing two-profile tests exercise fixtures only,
+without claiming a backend/model qualification result.
+
+A pre-edit parity capture retained exact Brief JSON and canonical SHA-256
+`3c20eaf89fedefd724d78828e804b89a5bb7af392b08b6fba95f8b00fcb5368b`,
+conformance workload hash `3e419d23bd264a5aac5425f73ce1655255e7734bd897ec9e09ce920ca9e55113`
+and Alpha contract hash `17bf5d30bdc42904fd2433dc23adb5fe596f5a0542d31824cd21d216acb7c539`.
+All remain unchanged after the move. New metrics match both original metric owners
+on 200 heterogeneous traces without input mutation. The original 16 collected
+Alpha cases are unchanged; the four shared builders and complete dependency closure
+moved to `tests/alpha_acceptance_support.py`. Native module ownership includes the
+new pure-metric tests and non-collected support; the native discovery/ownership
+guard passed without executing test bodies.
+
+Focused Alpha/conformance, malformed usage, secret-rejection and profile snapshot
+checks passed 37 cases. Changed workload consumers passed 67 cases, including
+controller/API reservation and source-clone fixtures. Creator-workbench isolated
+runtime/controlled-child consumers passed 25 cases. Evidence is retained under
+`.local/b37/b3-*`; these are software/fixture checks, with no model calls or root
+full. B3 target-dependent implementation, final combined qualification, core/bridge
+activation and recovery refresh remain open. Gateway/Lab/package/service-lock
+inputs were untouched; Gateway subtree remains
+`5c1c42bad756af10a8557b730a0174f1ad30023f` under its separate activation owner.

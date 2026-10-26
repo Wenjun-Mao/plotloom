@@ -7,7 +7,7 @@ from hashlib import sha256
 import pytest
 from sqlalchemy import event, select
 
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.persistence.project import autopilot_closure as closure
 from plotloom.persistence.project.autopilot_handoff import (
     record_handoff,

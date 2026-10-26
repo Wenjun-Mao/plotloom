@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.config import PlotloomSettings
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.run_contracts import RunKind, StartupRecoveryPlan
 from plotloom.stage_contracts import STAGE_ORDER
 from plotloom.exceptions import InvalidTransitionError

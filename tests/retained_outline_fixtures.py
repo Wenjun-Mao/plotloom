@@ -14,7 +14,7 @@ from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import (
     CodexExecTextValidationEvidence, CodexExecValidationStepEvidence,
 )
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeDeliveryManifest
 from plotloom.creative_handoff_identity import canonical_json, request_hash
 from plotloom.outline_report_metadata import OUTLINE_REPORT_SCHEMA_FILENAME

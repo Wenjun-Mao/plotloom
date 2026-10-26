@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage import (
     ProjectBusyError,
