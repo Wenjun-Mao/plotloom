@@ -845,7 +845,8 @@ and all original evidence continues to name b5 rather than this later docs commi
 
 Purpose: one corrective Script candidate after trusted known content rejection, using
 the existing immutable mechanism. Material prospective policy: **UNAPPROVED**.
-Matrices/allowlist/holds stay intact; owner agreement and independent review precede handoff.
+Matrices/allowlist/holds stay intact; owner decision remains pending.
+Fresh independent Sol / Medium execution-limits review completed with no findings.
 
 Feasibility is more than adding Script to an allowlist: `TextContentRejection.stage`,
 correction persistence `HEADS`, public failure `STAGES` and `NativeOperationReceipt`
@@ -860,7 +861,7 @@ retaining all existing receiving checks and renderer is mandatory; any additiona
 receiving rejection eligibility needs its own explicit typed normal-result boundary,
 never blanket conversion of `ValueError`, thrown errors or subprocess failures.
 
-Keep automatic limit 1 per logical stage, adding Script; no manual-extra expansion.
+Extend the existing automatic correction default 1 to Script; explicit frozen launch limits (including 0) remain honored; no manual-extra expansion.
 Only completed CLI exit 0/exact session plus trusted validation may produce a
 closed typed rejection binding source attempt/run/job, candidate bytes, validation
 evidence, request/package/plan/profile/source. Feedback uses fixed issue codes/paths
