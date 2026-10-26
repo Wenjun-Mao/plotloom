@@ -286,7 +286,7 @@ def test_atomic_text_adoption_crash_keeps_delivery_but_rolls_back_heads_and_deci
 
 
 def test_interrupted_export_reuses_original_prepared_job_without_partial_package(tmp_path, monkeypatch):
-    import plotloom.creative_handoff_exchange as exchange_owner
+    import plotloom.creative_handoff_package_exchange as exchange_owner
     storage, _registry, service, view, calls = environment(tmp_path, monkeypatch)
     try:
         assert service.acquire_controller()

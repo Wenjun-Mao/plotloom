@@ -14,7 +14,7 @@ from tests.test_codex_exec_telemetry import _record,_image_call,_extension
 
 
 def typed_measurement_arm(root,*,zero=False):
-    from codex_exec_supervisor import CodexExecSupervisor
+    from codex_exec_terminal_receipt import evidence_hash_for_process
     database=root/'private/codex-exec/supervisor.sqlite3'
     database.parent.mkdir(parents=True,mode=0o700)
     (root/'plan.json').write_text(json.dumps({'profile':PROFILE.model_dump(mode='json',by_alias=True)}))
@@ -37,7 +37,7 @@ def typed_measurement_arm(root,*,zero=False):
             for name in ('stdout.jsonl','stderr.log'):
                 (private/name).write_bytes(b'synthetic private stream')
                 (private/name).chmod(0o600)
-            evidence=CodexExecSupervisor._evidence_hash(private/'stdout.jsonl',private/'stderr.log',session.transcript_sha256,0)
+            evidence=evidence_hash_for_process(private/'stdout.jsonl',private/'stderr.log',session.transcript_sha256,0)
             output=CodexExecOutputEvidence(outputHash='d'*64,outputRelativePath='delivery/outputs/frame.png',sizeBytes=9)
             prompt=hashlib.sha256(b'a quiet blue room').hexdigest()
             image=CodexExecImageEvidence(attemptId=attempt_id,sessionId=session_id,callId=call_id,callOrdinal=1,

@@ -12,7 +12,8 @@ from pathlib import Path
 from plotloom.authored_route_timing import route_budget_hash
 from plotloom.autopilot_brief_style import freeze_brief_style
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.production_dialogue_timing import (
     TIMING_FILENAME,
     freeze_f5_dialogue_timing,

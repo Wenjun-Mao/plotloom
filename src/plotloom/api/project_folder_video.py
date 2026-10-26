@@ -14,7 +14,7 @@ from ..project_storage.application_store import ApplicationStore
 from ..project_storage.project_handle import ProjectStore
 from ..project_storage.project_video import ProjectVideoRepository
 from ..project_storage.video_service import ProjectVideoService
-from ..video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
+from ..video_backends.minimax_h3.catalog import H3_QUALIFIED_DURATION_FRAMES
 from ..video_contracts import (
     VideoDiscardRequest,
     VideoDiscardUnselectedRequest,

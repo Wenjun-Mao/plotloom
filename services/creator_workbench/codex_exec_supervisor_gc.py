@@ -57,6 +57,14 @@ def _attempt_parent(path):
         os.close(root_fd)
 
 
+def _entry_identity(metadata):
+    # Reading evidence may update atime. Access time is observational; preserve
+    # every ownership/content identity field, including subsecond change times.
+    return (metadata.st_dev, metadata.st_ino, metadata.st_mode, metadata.st_nlink,
+            metadata.st_uid, metadata.st_gid, metadata.st_size,
+            metadata.st_mtime_ns, metadata.st_ctime_ns)
+
+
 def _private_tree(path):
     """Hash exact private evidence; child links are inert, never followed."""
     facts = []
@@ -77,7 +85,7 @@ def _private_tree(path):
                 child = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | (
                     os.O_DIRECTORY if stat.S_ISDIR(metadata.st_mode) else 0), dir_fd=descriptor)
                 try:
-                    if os.fstat(child) != metadata:
+                    if _entry_identity(os.fstat(child)) != _entry_identity(metadata):
                         raise CodexExecSupervisorError("private evidence changed during preview")
                     if stat.S_ISDIR(metadata.st_mode):
                         walk(child, entry)
@@ -86,7 +94,7 @@ def _private_tree(path):
                         with os.fdopen(child, "rb", closefd=False) as stream:
                             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                                 digest.update(chunk)
-                        if os.fstat(child) != metadata:
+                        if _entry_identity(os.fstat(child)) != _entry_identity(metadata):
                             raise CodexExecSupervisorError("private evidence changed during preview")
                         facts.append((*common, digest.hexdigest()))
                 finally:

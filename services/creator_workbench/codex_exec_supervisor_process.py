@@ -8,6 +8,8 @@ import time
 from contextlib import ExitStack, closing
 from pathlib import Path
 
+from codex_exec_terminal_inspection import inspect_domain_evidence, inspect_terminal
+from codex_exec_terminal_receipt import build_terminal_receipt, evidence_hash_for_process
 from codex_exec_supervisor_environment import CodexExecSupervisorEnvironmentMixin
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_image import CodexExecSupervisorImageMixin
@@ -43,21 +45,13 @@ class CodexExecSupervisorProcessMixin(
     def _execute(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import (
             CodexExecAttempt,
-            CodexExecOutputEvidence,
-            CodexExecReceipt,
-            output_manifest_hash,
             transition_exec_attempt,
         )
         from plotloom.codex_exec_files import scan_regular_tree
         from plotloom.codex_exec_prompts import assignment_prompt
         from plotloom.codex_exec_runtime import (
             CodexExecRuntimeError,
-            assert_file_changes_confined,
-            locate_exact_session,
-            package_tree_hash,
-            read_exec_events,
         )
-        from plotloom.codex_exec_telemetry import read_cli_session
 
         if source_resources is None:
             from plotloom.codex_exec_resources import codex_exec_image_resources, codex_exec_source_resources
@@ -309,24 +303,13 @@ class CodexExecSupervisorProcessMixin(
             return
         try:
             session = None
-            if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
-                raise CodexExecRuntimeError("Codex Exec frozen package changed during the process")
-            stream = read_exec_events(stdout_path, max_event_bytes=profile.max_event_bytes, max_total_bytes=profile.max_output_bytes)
-            assert_file_changes_confined(stream, job_root / "delivery")
-            session_path = locate_exact_session(self._codex_home(environment), stream.session_id)
-            session = read_cli_session(
-                session_path,
-                stream.session_id,
-                max_event_bytes=profile.max_event_bytes,
-                max_total_bytes=profile.max_output_bytes,
+            stream, session, session_path = inspect_terminal(
+                attempt, profile, job_root, stdout_path, self._codex_home(environment),
             )
-            if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
+            if not inspect_domain_evidence(attempt, stdout_path, session_path, stream, session,
+                                           job_root, self.source_root):
                 self._mark_unknown(current, session_id=stream.session_id)
                 return
-            if attempt.domain == "image" and not session.image_calls and not session.image_events:
-                from plotloom.codex_exec_recovery import prove_no_remote_dispatch
-                prove_no_remote_dispatch(stdout_path, session_path, stream.session_id,
-                                         job_root=job_root, source_root=self.source_root)
             if exit_code != 0 or stream.terminal_event != "turn.completed" or stream.diagnostics:
                 self._finish_failure(
                     current, exit_code, stream.session_id, session, stdout_path, stderr_path,
@@ -369,56 +352,14 @@ class CodexExecSupervisorProcessMixin(
                 image_call = completion.image_call
                 image_event = completion.image_event
                 reference_hashes = completion.reference_hashes
-            output_evidence = tuple(CodexExecOutputEvidence(
-                outputHash=item.sha256,
-                outputRelativePath=f"delivery/{item.relative_path}",
-                sizeBytes=item.size_bytes,
-            ) for item in outputs)
-            if not output_evidence:
-                raise CodexExecRuntimeError("Codex Exec produced no delivery files")
-            output_hash = output_manifest_hash(output_evidence)
-            evidence_hash = self._evidence_hash(stdout_path, stderr_path, session.transcript_sha256, exit_code)
-            if text_validation is not None:
-                from hashlib import sha256
-                evidence_hash = sha256(
-                    f"{evidence_hash}:{text_validation.evidence_hash}".encode("ascii")
-                ).hexdigest()
-            completed = transition_exec_attempt(
-                current,
-                state="completed",
-                session_id=stream.session_id,
-                process_exit_code=exit_code,
-                terminal_result="success",
-                remote_tool_state=remote_state,
-                evidence_hash=evidence_hash,
-                output_hash=output_hash,
-                remote_output_hash=image_facts[0].output_hash if image_facts else None,
-                image_budget_state="consumed" if attempt.domain == "image" else "none",
+            completed, receipt = build_terminal_receipt(
+                attempt=attempt, profile=profile, current=current, stream=stream, session=session,
+                outputs=outputs, image_facts=image_facts, remote_state=remote_state,
+                reference_views=reference_views if attempt.domain == "image" else (),
+                text_validation=text_validation, exit_code=exit_code,
+                process_evidence_hash=evidence_hash_for_process(
+                    stdout_path, stderr_path, session.transcript_sha256, exit_code),
             )
-            receipt = CodexExecReceipt(
-                attemptId=attempt.attempt_id,
-                sessionId=stream.session_id,
-                profileHash=profile.profile_hash,
-                requestHash=attempt.request_hash,
-                packageHash=attempt.package_hash,
-                plotloomCodeRevision=attempt.plotloom_code_revision,
-                processId=current.process_id,
-                processGroupId=current.process_group_id,
-                processBirthIdentity=current.process_birth_identity,
-                processExitCode=exit_code,
-                expectedImageOutputs=attempt.reserved_image_outputs,
-                evidenceHash=evidence_hash,
-                outputHash=output_hash,
-                outputs=output_evidence,
-                imageEvidence=image_facts,
-                referenceViews=reference_views if attempt.domain == "image" else (),
-                validationPlanHash=attempt.validation_plan_hash,
-                textValidation=text_validation,
-                remoteOutputHash=completed.remote_output_hash,
-                remoteToolState=remote_state,
-            )
-            from plotloom.codex_exec_contracts import assert_receipt_matches_attempt
-            assert_receipt_matches_attempt(completed, receipt)
             manifest_json = self._build_manifest_json(
                 attempt, profile, package_request, job_root, completed, receipt,
                 session, image_facts, image_call if attempt.domain == "image" else None,
@@ -438,18 +379,6 @@ class CodexExecSupervisorProcessMixin(
         if root != self.codex_home:
             raise CodexExecSupervisorError("Codex session evidence escaped its authenticated host home")
         return root
-
-    @staticmethod
-    def _evidence_hash(stdout_path, stderr_path, transcript_hash, exit_code):
-        from hashlib import sha256
-        digest = sha256()
-        for path in (stdout_path, stderr_path):
-            with path.open("rb") as stream:
-                for block in iter(lambda: stream.read(1024 * 1024), b""):
-                    digest.update(block)
-        digest.update(transcript_hash.encode("ascii"))
-        digest.update(str(exit_code).encode("ascii"))
-        return digest.hexdigest()
 
     @classmethod
     def _wait_for_process_group_exit(cls, process_group_id, *, grace_seconds=3.0):

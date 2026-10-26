@@ -412,3 +412,19 @@ clean. All three audit workers returned actual finals, released access and were
 archived; their reporting registrations were removed. No runtime qualification or implementation decision was implied by that audit
 closeout. The later owner-approved G1/R1–R3 implementation is tracked in the
 delivery plan; other batches remain proposed.
+
+### B4–B7 independent implementation checkpoint (2026-10-26)
+
+[ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md) and the
+[combined plan](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md) own
+current status. Extracted image FS/manifest/delivery, creative identity/files/pin/
+projection, explicit host client, application run routes, reference schemas,
+Plotloom H3 catalogue, native inspection/receipt and Qwen coordinator now have
+actual direct consumers. Lab producer support is non-collected; supervisor and
+bridge tests retain whole temporal cases under their original function fixtures.
+
+Substantial source owners are below 500 lines. The supervisor process owner stays
+about 400 lines because the process guard plus SQLite fence must remain continuous
+through authorization, spawn, identity commit, watchdog/group exit and settlement.
+Other modified files above 500 receive only direct import or fixture-patch changes;
+no unrelated restructuring is warranted. B3 and final combined evidence remain open.

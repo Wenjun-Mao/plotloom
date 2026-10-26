@@ -145,7 +145,7 @@ def test_manual_work_is_not_a_fresh_autopilot_project(tmp_path):
 
 def prepared_outline(store, run):
     from tests.source_outline_fixtures import _request
-    from plotloom.creative_handoff_exchange import request_hash
+    from plotloom.creative_handoff_identity import request_hash
     with store.repository.autopilot_command(authority(run)):
         source = exact_source(store)
         store.save_source_material(expected_source_revision=0, material=source)

@@ -14,7 +14,7 @@ from ...canonical_schema import (
     StoryboardV2,
     default_dialogue_timing_profile,
 )
-from ...creative_handoff_exchange import canonical_json
+from ...creative_handoff_identity import canonical_json
 from plotloom.brief_contracts import ProjectBrief
 from plotloom.stage_contracts import StageName
 from plotloom.contract_identity import new_id, utc_now

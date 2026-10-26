@@ -1,0 +1,224 @@
+{
+  "sourceRevision": "cab6090a",
+  "registrationOrder": [
+    "v2_video_pilot_ledger",
+    "v2_video_pilot_ledger_events",
+    "v2_provider_settings",
+    "v2_text_provider_profiles",
+    "v2_provider_profile_selection",
+    "v2_production_units",
+    "v2_image_jobs",
+    "v2_image_job_deliveries",
+    "v2_image_job_candidates",
+    "v2_autopilot_runs",
+    "v2_autopilot_checkpoints",
+    "v2_autopilot_inheritance",
+    "v2_autopilot_exec_attempts",
+    "v2_autopilot_decisions",
+    "v2_autopilot_frames",
+    "v2_autopilot_handoffs",
+    "v2_art_heads",
+    "v2_art_candidates",
+    "v2_art_revisions",
+    "v2_projects",
+    "v2_project_operational_states",
+    "v2_project_creation_idempotency",
+    "v2_project_duplicate_idempotency",
+    "v2_entity_revisions",
+    "v2_stage_heads",
+    "v2_authoring_drafts",
+    "v2_gate_results",
+    "v2_approval_decisions",
+    "v2_cast_heads",
+    "v2_cast_candidates",
+    "v2_cast_revisions",
+    "v2_creative_handoff_execution_pins",
+    "v2_generation_runs",
+    "v2_generation_attempts",
+    "v2_artifacts",
+    "v2_run_artifact_blobs",
+    "v2_generation_plans",
+    "v2_generation_stage_plans",
+    "v2_generation_work_units",
+    "v2_sealed_stage_aggregates",
+    "v2_generation_work_unit_repair_scopes",
+    "v2_generation_fragment_reuse_bindings",
+    "v2_generation_work_unit_repair_idempotency",
+    "v2_media_tasks",
+    "v2_generation_story_graph_topologies",
+    "v2_managed_assets",
+    "v2_managed_asset_provenance",
+    "v2_character_imported_appearances",
+    "v2_visual_intents",
+    "v2_visual_selection_states",
+    "v2_reviewed_shot_bindings",
+    "v2_still_previews",
+    "v2_video_jobs",
+    "v2_video_end_frame_decisions",
+    "v2_video_reviews",
+    "v2_video_candidate_selections",
+    "v2_video_segments",
+    "v2_project_video_dispatches",
+    "v2_character_reference_states",
+    "v2_character_reference_decisions",
+    "v2_character_reference_proposals",
+    "v2_character_reference_proposal_deliveries",
+    "v2_character_reference_proposal_candidates",
+    "v2_art_reference_proposals",
+    "v2_art_reference_proposal_deliveries",
+    "v2_art_reference_proposal_candidates",
+    "v2_art_reference_decision_states",
+    "v2_art_reference_decisions",
+    "v2_same_person_review_states",
+    "v2_same_person_reviews",
+    "v2_production_bridge_heads",
+    "v2_production_bridge_revisions",
+    "v2_production_bridge_admissions",
+    "v2_production_bridge_intent_jobs",
+    "v2_script_heads",
+    "v2_script_candidates",
+    "v2_script_revisions",
+    "v2_shot_presentations",
+    "v2_source_outline_heads",
+    "v2_source_outline_source_revisions",
+    "v2_source_outline_candidates",
+    "v2_source_outline_revisions",
+    "v2_source_outline_section_map_heads",
+    "v2_source_outline_section_map_revisions",
+    "v2_source_outline_graph_admissions",
+    "v2_source_graph_identities",
+    "v2_storyboard_review_heads",
+    "v2_storyboard_review_candidates",
+    "v2_storyboard_review_revisions",
+    "v2_video_batches",
+    "v2_video_batch_receipts"
+  ],
+  "ddl": [
+    [
+      "index",
+      "ix_v2_art_reference_decisions_project_subject",
+      "v2_art_reference_decisions",
+      "CREATE INDEX ix_v2_art_reference_decisions_project_subject ON v2_art_reference_decisions (project_id, subject_type, subject_id, reference_revision)"
+    ],
+    [
+      "index",
+      "ix_v2_art_reference_proposals_project_created",
+      "v2_art_reference_proposals",
+      "CREATE INDEX ix_v2_art_reference_proposals_project_created ON v2_art_reference_proposals (project_id, created_at)"
+    ],
+    [
+      "index",
+      "ix_v2_character_imported_appearances_project_character",
+      "v2_character_imported_appearances",
+      "CREATE INDEX ix_v2_character_imported_appearances_project_character ON v2_character_imported_appearances (project_id, character_id, created_at)"
+    ],
+    [
+      "index",
+      "ix_v2_character_reference_decisions_project_character",
+      "v2_character_reference_decisions",
+      "CREATE INDEX ix_v2_character_reference_decisions_project_character ON v2_character_reference_decisions (project_id, character_id, reference_revision)"
+    ],
+    [
+      "index",
+      "ix_v2_character_reference_proposals_project_created",
+      "v2_character_reference_proposals",
+      "CREATE INDEX ix_v2_character_reference_proposals_project_created ON v2_character_reference_proposals (project_id, created_at)"
+    ],
+    [
+      "index",
+      "ix_v2_same_person_reviews_project_binding_revision",
+      "v2_same_person_reviews",
+      "CREATE INDEX ix_v2_same_person_reviews_project_binding_revision ON v2_same_person_reviews (project_id, binding_id, review_revision)"
+    ],
+    [
+      "index",
+      "uq_v2_art_proposal_final_delivery",
+      "v2_art_reference_proposal_deliveries",
+      "CREATE UNIQUE INDEX uq_v2_art_proposal_final_delivery ON v2_art_reference_proposal_deliveries (proposal_id) WHERE delivery_id IS NOT NULL"
+    ],
+    [
+      "index",
+      "uq_v2_character_proposal_final_delivery",
+      "v2_character_reference_proposal_deliveries",
+      "CREATE UNIQUE INDEX uq_v2_character_proposal_final_delivery ON v2_character_reference_proposal_deliveries (proposal_id) WHERE delivery_id IS NOT NULL"
+    ],
+    [
+      "table",
+      "v2_art_reference_decision_states",
+      "v2_art_reference_decision_states",
+      "CREATE TABLE v2_art_reference_decision_states (\n\tproject_id VARCHAR(36) NOT NULL, \n\tsubject_type VARCHAR(16) NOT NULL, \n\tsubject_id VARCHAR(128) NOT NULL, \n\trevision INTEGER NOT NULL, \n\tactive_decision_id VARCHAR(36), \n\tupdated_at DATETIME NOT NULL, \n\tPRIMARY KEY (project_id, subject_type, subject_id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(active_decision_id) REFERENCES v2_art_reference_decisions (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_art_reference_decisions",
+      "v2_art_reference_decisions",
+      "CREATE TABLE v2_art_reference_decisions (\n\tid VARCHAR(36) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tsubject_type VARCHAR(16) NOT NULL, \n\tsubject_id VARCHAR(128) NOT NULL, \n\treference_revision INTEGER NOT NULL, \n\taccepted_art_revision INTEGER NOT NULL, \n\taccepted_art_hash VARCHAR(64) NOT NULL, \n\tsubject JSON NOT NULL, \n\tsubject_hash VARCHAR(64) NOT NULL, \n\tasset_id VARCHAR(36) NOT NULL, \n\tasset_hash VARCHAR(64) NOT NULL, \n\tproposal_id VARCHAR(67) NOT NULL, \n\tcandidate_id VARCHAR(36) NOT NULL, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(proposal_id) REFERENCES v2_art_reference_proposals (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(candidate_id) REFERENCES v2_art_reference_proposal_candidates (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_art_reference_proposal_candidates",
+      "v2_art_reference_proposal_candidates",
+      "CREATE TABLE v2_art_reference_proposal_candidates (\n\tid VARCHAR(36) NOT NULL, \n\tproposal_id VARCHAR(67) NOT NULL, \n\tdelivery_id VARCHAR(36) NOT NULL, \n\tasset_id VARCHAR(36) NOT NULL, \n\toutput_filename VARCHAR(180) NOT NULL, \n\toutput_hash VARCHAR(64) NOT NULL, \n\trole VARCHAR(24) NOT NULL, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_art_proposal_candidate_asset UNIQUE (delivery_id, asset_id), \n\tFOREIGN KEY(proposal_id) REFERENCES v2_art_reference_proposals (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(delivery_id) REFERENCES v2_art_reference_proposal_deliveries (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_art_reference_proposal_deliveries",
+      "v2_art_reference_proposal_deliveries",
+      "CREATE TABLE v2_art_reference_proposal_deliveries (\n\tid VARCHAR(36) NOT NULL, \n\tproposal_id VARCHAR(67) NOT NULL, \n\tdelivery_id VARCHAR(128), \n\tmanifest JSON, \n\tmanifest_hash VARCHAR(64), \n\tstate VARCHAR(24) NOT NULL, \n\tdiagnostic_code VARCHAR(80), \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_art_proposal_delivery_identity UNIQUE (proposal_id, delivery_id), \n\tFOREIGN KEY(proposal_id) REFERENCES v2_art_reference_proposals (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_art_reference_proposals",
+      "v2_art_reference_proposals",
+      "CREATE TABLE v2_art_reference_proposals (\n\tid VARCHAR(67) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tsubject_type VARCHAR(16) NOT NULL, \n\tsubject_id VARCHAR(128) NOT NULL, \n\trequest JSON NOT NULL, \n\trequest_hash VARCHAR(64) NOT NULL, \n\tstate VARCHAR(24) NOT NULL, \n\texported_at DATETIME, \n\tcancelled_at DATETIME, \n\tcancellation_reason TEXT, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tUNIQUE (request_hash)\n)"
+    ],
+    [
+      "table",
+      "v2_character_imported_appearances",
+      "v2_character_imported_appearances",
+      "CREATE TABLE v2_character_imported_appearances (\n\tid VARCHAR(36) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tcharacter_id VARCHAR(128) NOT NULL, \n\tasset_id VARCHAR(36) NOT NULL, \n\tcharacter_context JSON NOT NULL, \n\tcharacter_context_hash VARCHAR(64) NOT NULL, \n\tlabel VARCHAR(160) NOT NULL, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_character_imported_appearance UNIQUE (project_id, character_id, asset_id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_character_reference_decisions",
+      "v2_character_reference_decisions",
+      "CREATE TABLE v2_character_reference_decisions (\n\tid VARCHAR(36) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tcharacter_id VARCHAR(128) NOT NULL, \n\treference_revision INTEGER NOT NULL, \n\tcharacter_context JSON NOT NULL, \n\tcharacter_context_hash VARCHAR(64) NOT NULL, \n\tprimary_asset_id VARCHAR(36) NOT NULL, \n\tcomplementary_asset_ids JSON NOT NULL, \n\tasset_hashes JSON NOT NULL, \n\treviewer VARCHAR(160), \n\tnotes TEXT, \n\trevoked_at DATETIME, \n\trevoked_by VARCHAR(160), \n\trevocation_reason TEXT, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_character_reference_revision UNIQUE (project_id, character_id, reference_revision), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(primary_asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_character_reference_proposal_candidates",
+      "v2_character_reference_proposal_candidates",
+      "CREATE TABLE v2_character_reference_proposal_candidates (\n\tid VARCHAR(36) NOT NULL, \n\tproposal_id VARCHAR(67) NOT NULL, \n\tdelivery_id VARCHAR(36) NOT NULL, \n\tasset_id VARCHAR(36) NOT NULL, \n\toutput_filename VARCHAR(180) NOT NULL, \n\toutput_hash VARCHAR(64) NOT NULL, \n\trole VARCHAR(24) NOT NULL, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_character_proposal_candidate_asset UNIQUE (delivery_id, asset_id), \n\tFOREIGN KEY(proposal_id) REFERENCES v2_character_reference_proposals (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(delivery_id) REFERENCES v2_character_reference_proposal_deliveries (id) ON DELETE RESTRICT, \n\tFOREIGN KEY(asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_character_reference_proposal_deliveries",
+      "v2_character_reference_proposal_deliveries",
+      "CREATE TABLE v2_character_reference_proposal_deliveries (\n\tid VARCHAR(36) NOT NULL, \n\tproposal_id VARCHAR(67) NOT NULL, \n\tdelivery_id VARCHAR(128), \n\tmanifest JSON, \n\tmanifest_hash VARCHAR(64), \n\tstate VARCHAR(24) NOT NULL, \n\tdiagnostic_code VARCHAR(80), \n\tpublication_phase VARCHAR(24), \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tCONSTRAINT uq_v2_character_proposal_delivery_identity UNIQUE (proposal_id, delivery_id), \n\tFOREIGN KEY(proposal_id) REFERENCES v2_character_reference_proposals (id) ON DELETE RESTRICT\n)"
+    ],
+    [
+      "table",
+      "v2_character_reference_proposals",
+      "v2_character_reference_proposals",
+      "CREATE TABLE v2_character_reference_proposals (\n\tid VARCHAR(67) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tcharacter_id VARCHAR(128) NOT NULL, \n\tparent_candidate_asset_id VARCHAR(36), \n\trequest JSON NOT NULL, \n\trequest_hash VARCHAR(64) NOT NULL, \n\tstate VARCHAR(24) NOT NULL, \n\texported_at DATETIME, \n\tcancelled_at DATETIME, \n\tcancellation_reason TEXT, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(parent_candidate_asset_id) REFERENCES v2_managed_assets (id) ON DELETE RESTRICT, \n\tUNIQUE (request_hash)\n)"
+    ],
+    [
+      "table",
+      "v2_character_reference_states",
+      "v2_character_reference_states",
+      "CREATE TABLE v2_character_reference_states (\n\tproject_id VARCHAR(36) NOT NULL, \n\tcharacter_id VARCHAR(128) NOT NULL, \n\trevision INTEGER NOT NULL, \n\tactive_decision_id VARCHAR(36), \n\tupdated_at DATETIME NOT NULL, \n\tPRIMARY KEY (project_id, character_id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE\n)"
+    ],
+    [
+      "table",
+      "v2_same_person_review_states",
+      "v2_same_person_review_states",
+      "CREATE TABLE v2_same_person_review_states (\n\tproject_id VARCHAR(36) NOT NULL, \n\trevision INTEGER NOT NULL, \n\tupdated_at DATETIME NOT NULL, \n\tPRIMARY KEY (project_id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE\n)"
+    ],
+    [
+      "table",
+      "v2_same_person_reviews",
+      "v2_same_person_reviews",
+      "CREATE TABLE v2_same_person_reviews (\n\tid VARCHAR(36) NOT NULL, \n\tproject_id VARCHAR(36) NOT NULL, \n\tbinding_id VARCHAR(36) NOT NULL, \n\treview_revision INTEGER NOT NULL, \n\treference_bindings JSON NOT NULL, \n\tcomparisons JSON NOT NULL, \n\treviewer VARCHAR(160) NOT NULL, \n\tnotes TEXT NOT NULL, \n\tcreated_at DATETIME NOT NULL, \n\tPRIMARY KEY (id), \n\tFOREIGN KEY(project_id) REFERENCES v2_projects (id) ON DELETE CASCADE, \n\tFOREIGN KEY(binding_id) REFERENCES v2_reviewed_shot_bindings (id) ON DELETE RESTRICT\n)"
+    ]
+  ]
+}

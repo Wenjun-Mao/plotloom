@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from plotloom.autopilot_contracts import ContinueRequest, RunControlRequest
 from plotloom.codex_exec_contracts import CodexExecHostStatus, transition_exec_attempt
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.text_correction_contracts import TextContentIssue, TextContentRejection
 from tests.autopilot_controller_fixtures import candidate, environment
 

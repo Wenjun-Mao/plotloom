@@ -2,7 +2,7 @@
 import json
 from ..codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecReceipt, assert_receipt_matches_attempt
 from ..creative_handoff_contracts import CreativeHandoffRequest
-from ..creative_handoff_exchange import request_hash
+from ..creative_handoff_identity import request_hash
 from .format import ProjectStorageCorruptionError
 
 

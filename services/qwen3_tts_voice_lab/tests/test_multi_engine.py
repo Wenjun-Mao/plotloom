@@ -1,8 +1,6 @@
 """Independent stage selection, native audio and retained identity contracts."""
 
-import json
 import sqlite3
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,7 +11,7 @@ from plotloom_voice_lab.contracts import DeliveryControl
 from plotloom_voice_lab.media import file_sha256, persist_candidate_file, persist_clone_file
 from plotloom_voice_lab.migration import SCHEMA
 from plotloom_voice_lab.store import Store
-from test_voice_lab import FakeEngine, candidate, generate, project, wait_for, create_app
+from fixtures.producer import FakeEngine, candidate, generate, project, wait_for, create_app
 
 
 def test_paired_creation_and_all_independent_reuse_combinations(tmp_path):

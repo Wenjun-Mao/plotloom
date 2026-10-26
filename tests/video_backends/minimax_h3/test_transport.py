@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES, MiniMaxH3GatewayAdapter, MiniMaxH3GatewayTransport
-from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION, H3_QUALIFIED_DURATION_FRAMES
+from plotloom.video_backends.minimax_h3.catalog import H3_PROFILE_CONTRACT_VERSION, H3_QUALIFIED_DURATION_FRAMES
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_contracts import VideoJobRequest
 from plotloom.video_provider import VideoOutputContractError, VideoProviderError, WanDispatchError

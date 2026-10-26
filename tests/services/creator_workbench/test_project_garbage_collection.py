@@ -228,3 +228,43 @@ def test_replaced_attempt_parent_link_refuses_without_touching_external_target(s
     with pytest.raises(CodexExecSupervisorError): supervisor.collect_deleted_project(request)
     assert (sentinel / "keep").read_text() == "untouched"
     assert (retained / path.name / "private.log").is_file()
+
+
+def test_preview_read_ignores_only_access_time_and_retains_exact_evidence(supervisor):
+    import os
+    _original, path, request = deleted_project(supervisor)
+    evidence = path / "private.log"
+    initial = evidence.stat()
+    os.utime(evidence, ns=(initial.st_atime_ns - 2_000_000_000, initial.st_mtime_ns))
+    before = evidence.stat()
+    assert supervisor.project_gc_preview(request).eligible
+    after = evidence.stat()
+    assert after.st_atime_ns > before.st_atime_ns
+    assert after.st_mtime_ns == before.st_mtime_ns
+    assert after.st_ctime_ns == before.st_ctime_ns
+    assert evidence.read_text() == "private historical evidence"
+
+
+def test_preview_refuses_subsecond_evidence_change_during_read(supervisor, monkeypatch):
+    import os
+    import codex_exec_supervisor_gc as owner
+    _original, path, request = deleted_project(supervisor)
+    evidence = path / "private.log"
+    target = evidence.stat()
+    real_fstat = os.fstat
+    observations = 0
+
+    def changed(descriptor):
+        nonlocal observations
+        result = real_fstat(descriptor)
+        if result.st_ino == target.st_ino:
+            observations += 1
+            if observations == 2:
+                os.utime(evidence, ns=(result.st_atime_ns, result.st_mtime_ns + 1))
+                result = real_fstat(descriptor)
+        return result
+
+    monkeypatch.setattr(owner.os, "fstat", changed)
+    with pytest.raises(CodexExecSupervisorError, match="changed during preview"):
+        supervisor.project_gc_preview(request)
+    assert evidence.is_file()

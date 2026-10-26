@@ -39,6 +39,7 @@ def measurement_rows(path, profile, session):
 def admit_receipt_measurements(arm_root,row,receipt,session,profile):
     """Bind fresh measurement bytes to the successful owner's original evidence."""
     from codex_exec_supervisor import CodexExecSupervisor
+    from codex_exec_terminal_receipt import evidence_hash_for_process
     private=arm_root/'private/codex-exec/attempts'/str(receipt.attempt_id)
     if Path(row['private_dir'])!=private:
         raise RuntimeError('measurement private evidence path differs from original attempt')
@@ -48,7 +49,7 @@ def admit_receipt_measurements(arm_root,row,receipt,session,profile):
     for path in paths:
         CodexExecSupervisor._namespace_regular_file(path)
         CodexExecSupervisor._read_regular(path,max_bytes=profile.max_output_bytes)
-    evidence=CodexExecSupervisor._evidence_hash(*paths,session.transcript_sha256,receipt.process_exit_code)
+    evidence=evidence_hash_for_process(*paths,session.transcript_sha256,receipt.process_exit_code)
     if receipt.text_validation is not None:
         evidence=hashlib.sha256(f'{evidence}:{receipt.text_validation.evidence_hash}'.encode('ascii')).hexdigest()
     if evidence!=receipt.evidence_hash or any(identity(path)!=before[path] for path in paths):

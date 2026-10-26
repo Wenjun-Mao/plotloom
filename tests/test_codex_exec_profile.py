@@ -162,6 +162,19 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
     }
     source_root = Path(__file__).resolve().parents[1]
 
+    required.update({
+        "src/plotloom/image_exchange_files.py",
+        "src/plotloom/image_exchange_references.py",
+        "src/plotloom/image_delivery_reader.py",
+        "src/plotloom/image_delivery_manifest.py",
+        "src/plotloom/creative_handoff_identity.py",
+        "src/plotloom/creative_exchange_files.py",
+        "src/plotloom/creative_execution_pin.py",
+        "src/plotloom/creative_package_projection.py",
+        "src/plotloom/codex_exec_host_client.py",
+        "services/creator_workbench/codex_exec_terminal_inspection.py",
+        "services/creator_workbench/codex_exec_terminal_receipt.py",
+    })
     assert required <= set(VALIDATOR_FILES)
     assert all((source_root / relative).is_file() for relative in VALIDATOR_FILES)
     from plotloom.codex_exec_profile import INSTRUCTION_FILES

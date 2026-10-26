@@ -7,16 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from plotloom import creative_handoff_exchange
+from plotloom import creative_handoff_exchange, creative_execution_pin
 from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
     CreativeHandoffRequest,
 )
-from plotloom.creative_handoff_exchange import (
-    CreativeHandoffExchange,
-    canonical_json,
-    request_hash,
-)
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json, request_hash
 from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,
@@ -184,7 +181,7 @@ def test_delivery_verification_uses_the_captured_pin_not_current_checkout(
     def unexpected_current_lookup(_stage: str) -> dict[str, str]:
         raise AssertionError("existing package verification must not inspect current skills")
 
-    monkeypatch.setattr(exchange, "_pinned_execution", unexpected_current_lookup)
+    monkeypatch.setattr(creative_handoff_exchange, "current_execution_pin", unexpected_current_lookup)
     assert exchange.read_delivery(request, pin) is not None
 
 
@@ -212,7 +209,7 @@ def test_package_requires_checked_out_revision_to_match_recorded_submodule_gitli
             return subprocess.CompletedProcess(args, 0, f"160000 commit {recorded_revision}\tthird_party/shuohao-skills\n", "")
         return subprocess.CompletedProcess(args, 0, f"{arbitrary_checkout}\n", "")
 
-    monkeypatch.setattr(creative_handoff_exchange.subprocess, "run", fake_run)
+    monkeypatch.setattr(creative_execution_pin.subprocess, "run", fake_run)
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
 
     with pytest.raises(CreativeHandoffError, match="does not match") as error:
@@ -226,7 +223,7 @@ def test_package_preparation_is_explicitly_a_repository_checkout_seam(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        creative_handoff_exchange,
+        creative_execution_pin,
         "__file__",
         str(tmp_path / "site-packages" / "plotloom" / "creative_handoff_exchange.py"),
     )

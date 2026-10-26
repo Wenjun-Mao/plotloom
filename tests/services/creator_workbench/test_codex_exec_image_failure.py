@@ -19,7 +19,7 @@ NATIVE_PID = 54321
 def _execute_image(supervisor, tmp_path, monkeypatch, mode):
     import codex_exec_supervisor_process as process_owner
 
-    import plotloom.codex_exec_telemetry as telemetry_owner
+    import codex_exec_terminal_inspection as telemetry_owner
 
     profile = _write_fake_cli(supervisor, 'raise SystemExit(0)\n')
     monkeypatch.setattr(supervisor, 'profile', lambda: profile)

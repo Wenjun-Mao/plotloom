@@ -3,7 +3,7 @@ from contextlib import closing
 
 import pytest
 
-from plotloom.creative_handoff_exchange import request_hash
+from plotloom.creative_handoff_identity import request_hash
 from plotloom.persistence.schema import (
     CreativeHandoffExecutionPinRow,
     StoryboardReviewCandidateRow,

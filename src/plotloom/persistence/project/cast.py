@@ -26,7 +26,8 @@ from ...cast_writing_contract import (
     validate_cast_notes,
 )
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...creative_handoff_exchange import ValidatedCreativeDelivery
+from ...creative_handoff_identity import canonical_json
 from ...accepted_review_state import accepted_review_state
 from plotloom.brief_contracts import ProjectBrief
 from plotloom.stage_contracts import StageName, StageStatus

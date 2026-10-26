@@ -16,8 +16,11 @@ from pydantic import ConfigDict, Field, ValidationError, field_validator
 
 from plotloom.domain_base import CamelModel
 from plotloom.public_values import contains_secret_setting, contains_secret_value
+from .image_delivery_reader import read_executor_pin
+from .image_exchange_files import _open_directory, _open_child_directory, _read_regular_at, _directory_names
 from .image_job_contracts import ImageExecutorProvenance, ImageJobError, SHA256_PATTERN
-from .image_job_exchange import EXECUTOR_PIN_FILENAME, ImageJobExchange
+from .image_job_exchange import ImageJobExchange
+from .image_delivery_reader import EXECUTOR_PIN_FILENAME
 
 TERMINAL_FILENAME = "terminal.json"
 
@@ -86,21 +89,21 @@ def read_blocked_outcome(exchange: ImageJobExchange, context: dict) -> dict:
     preflight = context["request"].get("specialistPreflight", {})
     if context["state"] != "cancelled" or preflight.get("version") not in {"p1.5-pin.v1", "p1.5-pin.v2"}:
         raise ImageJobError("image_terminal_ineligible", "只可核对已取消且成功建立执行 pin 的生成前阻塞任务。")
-    descriptor = exchange._open_directory(exchange._root(), ("jobs", job_id, "delivery"))
+    descriptor = _open_directory(exchange._root(), ("jobs", job_id, "delivery"))
     try:
-        names = exchange._directory_names(descriptor)
+        names = _directory_names(descriptor)
         if TERMINAL_FILENAME not in names:
             raise ImageJobError("image_terminal_missing", "尚无请求绑定的 terminal.json；保留预约。")
         if names not in ({TERMINAL_FILENAME, EXECUTOR_PIN_FILENAME}, {TERMINAL_FILENAME, EXECUTOR_PIN_FILENAME, "outputs"}):
             raise ImageJobError("image_terminal_conflict", "终止声明与交付或其他文件冲突；保留预约。")
         if "outputs" in names:
-            outputs = exchange._open_child_directory(descriptor, "outputs")
+            outputs = _open_child_directory(descriptor, "outputs")
             try:
-                if exchange._directory_names(outputs):
+                if _directory_names(outputs):
                     raise ImageJobError("image_terminal_conflict", "已存在输出或暂存文件，不能声明生成前阻塞。")
             finally:
                 os.close(outputs)
-        raw = exchange._read_regular_at(descriptor, TERMINAL_FILENAME, max_bytes=20_000)
+        raw = _read_regular_at(descriptor, TERMINAL_FILENAME, max_bytes=20_000)
         try:
             payload = json.loads(raw)
             marker = ImageBlockedOutcome.model_validate(payload)
@@ -111,7 +114,7 @@ def read_blocked_outcome(exchange: ImageJobExchange, context: dict) -> dict:
         if marker.job_id != job_id or marker.request_hash != request_hash:
             raise ImageJobError("image_terminal_identity", "终止声明不属于此冻结请求；保留预约。")
         execution_contract = preflight.get("executionContract", "codex_specialist.v2")
-        pin = exchange._validated_executor_pin(
+        pin = read_executor_pin(
             descriptor, job_id=job_id, request_hash=request_hash,
             expected_skill_version=preflight.get("skillVersion"),
             expected_execution_contract=execution_contract,

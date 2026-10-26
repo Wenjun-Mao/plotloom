@@ -4,6 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .creative_handoff_identity import TEMPLATE_FILENAME, canonical_json, request_hash
+from .creative_exchange_files import _read_regular, _write_once
 from .creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 
 
@@ -27,12 +29,6 @@ class CreativeHandoffPackageExchangeMixin:
         plotloom_code_revision: str | None = None,
     ) -> tuple[Path, dict[str, Any]]:
         """Confirm every specialist-consumed package file still matches its projection."""
-        from .creative_handoff_exchange import (
-            TEMPLATE_FILENAME,
-            _read_regular,
-            canonical_json,
-        )
-
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
         projected, instructions, template, expected = self._projection(
@@ -89,13 +85,6 @@ class CreativeHandoffPackageExchangeMixin:
         plotloom_code_revision: str | None = None,
     ) -> dict[str, str]:
         """Publish the exact frozen package once, then verify its complete projection."""
-        from .creative_handoff_exchange import (
-            TEMPLATE_FILENAME,
-            _write_once,
-            canonical_json,
-            request_hash,
-        )
-
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
         package = job_root / "package"

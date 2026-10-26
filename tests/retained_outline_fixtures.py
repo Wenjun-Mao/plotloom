@@ -16,7 +16,7 @@ from plotloom.codex_exec_validation import (
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeDeliveryManifest
-from plotloom.creative_handoff_exchange import canonical_json, request_hash
+from plotloom.creative_handoff_identity import canonical_json, request_hash
 from plotloom.outline_report_metadata import OUTLINE_REPORT_SCHEMA_FILENAME
 from plotloom.project_storage import ProjectFolderStorage
 from tests.autopilot_fixtures import policy_for

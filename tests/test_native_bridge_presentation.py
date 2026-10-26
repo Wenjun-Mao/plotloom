@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_service import NativeBridgeIntentService

@@ -14,7 +14,7 @@ from plotloom.autopilot_contracts import (
 )
 from plotloom.autopilot_text_failures import comparison, failure_context
 from plotloom.codex_exec_contracts import CodexExecHostStatus, transition_exec_attempt
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.text_correction_contracts import (
     TextContentIssue,

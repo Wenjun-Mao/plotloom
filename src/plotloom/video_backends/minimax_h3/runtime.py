@@ -1,6 +1,7 @@
 """Server-owned H3 backend composition, independent of installation storage."""
 from ...config import PlotloomSettings, VideoProviderSettings
-from .adapter import H3_CATALOG_ID, H3_PROFILES_BY_ID, MiniMaxH3GatewayAdapter
+from .adapter import MiniMaxH3GatewayAdapter
+from .catalog import H3_CATALOG_ID, H3_PROFILES_BY_ID
 from .transport import MiniMaxH3GatewayTransport
 
 

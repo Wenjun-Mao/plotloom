@@ -10,7 +10,7 @@ from plotloom_voice_lab.contracts import TakeCreate
 from plotloom_voice_lab.dispatch import ExecutionGrant
 from plotloom_voice_lab.store import Store
 from test_takes import published_voice
-from test_voice_lab import FakeEngine, wait_for
+from fixtures.producer import FakeEngine, wait_for
 
 
 AUTH = {"Authorization": "Bearer private-fixture-key"}

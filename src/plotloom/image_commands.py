@@ -3,7 +3,7 @@ from hashlib import sha256
 from pathlib import Path
 from .image_job_contracts import ImageJobError, NativeTaskBinding
 from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecReceipt
-from .image_job_exchange import PackageReference
+from .image_exchange_references import PackageReference
 from .managed_media import publish_import
 
 IMAGE_METHODS = {

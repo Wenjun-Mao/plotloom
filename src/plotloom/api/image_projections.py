@@ -9,7 +9,7 @@ from ..exceptions import (
 from ..image_job_contracts import (
     NativeTaskBinding,
 )
-from ..image_job_exchange import PackageReference
+from ..image_exchange_references import PackageReference
 from ..specialist_settings import ImageSpecialist
 
 

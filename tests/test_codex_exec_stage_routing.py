@@ -17,7 +17,8 @@ from plotloom.cast_style import freeze_cast_style
 from plotloom.codex_exec_resources import codex_exec_source_resources
 from plotloom.codex_exec_validation import expand_validation_argv, validation_plan_from_package
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from tests.storyboard_brief_fixtures import real_example_request
 
 ROOT = Path(__file__).resolve().parents[1]

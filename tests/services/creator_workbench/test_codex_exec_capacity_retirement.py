@@ -223,7 +223,7 @@ def test_fresh_auto_material_preflight_blocks_only_nonprogressing_history_before
     storage = ProjectFolderStorage(outputs_root=tmp_path / "fresh-outputs", application_data_root=tmp_path / "application")
     with closing(storage.projects.create(default_brief())) as store: project = store.manifest.project_id
     registry, service, host = runtime(storage, monkeypatch, auto_deliver=False)
-    monkeypatch.setattr(registry, "codex_exec_readiness", lambda: CodexExecReadiness(state="ready", local_capacity=supervisor.local_capacity_readiness()))
+    monkeypatch.setattr(registry.host_client, "codex_exec_readiness", lambda: CodexExecReadiness(state="ready", local_capacity=supervisor.local_capacity_readiness()))
     request = LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic")
     try:
         if historical_blocked:

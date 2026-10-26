@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...creative_handoff_exchange import ValidatedCreativeDelivery
+from ...creative_handoff_identity import canonical_json
 from plotloom.brief_contracts import ProjectBrief
 from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError

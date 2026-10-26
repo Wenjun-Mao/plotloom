@@ -92,8 +92,8 @@ def test_current_pin_survives_reopen_and_missing_pin_fails_closed(
         store = storage.projects.open(project_id)
         monkeypatch.setattr(
             type(store.creative_handoff_exchange()),
-            "_pinned_execution",
-            staticmethod(lambda _stage: (_ for _ in ()).throw(AssertionError("current skills must not be read"))),
+            "current_execution_pin",
+            lambda _self, _stage: (_ for _ in ()).throw(AssertionError("current skills must not be read")),
         )
         persisted_pin = store.creative_handoff_execution_pin(request)
         assert persisted_pin == original_pin

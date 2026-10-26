@@ -150,10 +150,15 @@ From the repository root:
 
 ```sh
 uv sync --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable
-uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable pytest -q tests/services/minimax_h3_gateway tests/test_media_service_boundaries.py
+uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable pytest --confcutdir tests/services/minimax_h3_gateway -q tests/services/minimax_h3_gateway
+uv run --project services/minimax_h3_gateway --locked --no-sync pytest --noconftest -q tests/test_media_service_boundaries.py
 node --test tests/services/minimax_h3_gateway/test_dashboard*_ui.mjs
 sh services/minimax_h3_gateway/tools/packaging/verify_install.sh
 ```
+
+The service conftest boundary excludes Plotloom’s root test fixtures, so this
+service environment needs no Plotloom package or database dependencies. The
+separate static boundary test requires no fixtures.
 
 The last command builds a wheel and exercises both console entrypoints in fresh
 role-specific environments, from a temporary working directory with no source

@@ -16,7 +16,8 @@ from ...creative_handoff_contracts import (
     CREATIVE_CANDIDATE_FILENAMES,
     CreativeHandoffRequest,
 )
-from ...creative_handoff_exchange import execution_pin_for_request, request_hash
+from ...creative_execution_pin import execution_pin_for_request
+from ...creative_handoff_identity import request_hash
 from ...source_outline_contracts import SourceMaterial
 from ..codec import stable_hash
 

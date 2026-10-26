@@ -9,7 +9,7 @@ import pytest
 import plotloom.outline_report_metadata as metadata
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.persistence.schema import (
     CreativeHandoffExecutionPinRow,

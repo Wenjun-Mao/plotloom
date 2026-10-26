@@ -14,7 +14,8 @@ from sqlalchemy import select
 from ...accepted_review_state import accepted_review_state
 from ...authored_route_timing import validate_route_seconds
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...creative_handoff_exchange import ValidatedCreativeDelivery
+from ...creative_handoff_identity import canonical_json
 from plotloom.public_values import contains_secret_setting, contains_secret_value
 from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError

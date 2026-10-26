@@ -12,7 +12,7 @@ from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import validation_plan_from_package
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import request_hash
+from plotloom.creative_handoff_identity import request_hash
 from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,

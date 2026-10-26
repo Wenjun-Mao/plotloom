@@ -8,7 +8,6 @@ from sqlalchemy import and_, or_, select
 from plotloom.stage_contracts import StageName
 from plotloom.contract_identity import new_id, utc_now
 from ...creative_handoff_contracts import CreativeHandoffRequest
-from ...creative_handoff_exchange import request_hash
 from .creative_execution_pins import freeze_execution_pin
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...production_bridge_contracts import ProductionBridgeConflict, ProductionBridgeIntentPackage

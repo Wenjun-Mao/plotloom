@@ -1,6 +1,6 @@
 """Finite complete-file admission, independent of the API prompt budget."""
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .creative_handoff_exchange import canonical_json
+from .creative_handoff_identity import canonical_json
 from .exceptions import InvalidTransitionError
 
 MAX_NATIVE_BRIDGE_REQUEST_BYTES = 1_048_576

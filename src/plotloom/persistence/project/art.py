@@ -14,7 +14,8 @@ from ...art_contracts import (
 from ...art_style import CandidateArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
 from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...creative_handoff_exchange import ValidatedCreativeDelivery
+from ...creative_handoff_identity import canonical_json
 from ...accepted_review_state import accepted_review_state
 from plotloom.brief_contracts import ProjectBrief
 from plotloom.public_values import contains_secret_setting, contains_secret_value

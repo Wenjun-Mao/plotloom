@@ -5,11 +5,12 @@ from typing import Any, TYPE_CHECKING
 from hashlib import sha256
 import json
 import os
+from .image_exchange_files import _open_directory, _open_child_directory, _read_regular_at, _directory_names
 from .image_job_contracts import ImageJobError, NativeTaskBinding, is_image_job_id
 from .image_job_package import COMPLETION_TEMPLATE_FILENAME, project_image_package
 from .image_job_package import canonical_json as _canonical_json
 if TYPE_CHECKING:
-    from .image_job_exchange import PackageReference
+    from .image_exchange_references import PackageReference
 
 
 class ImagePackageCommands:
@@ -62,7 +63,7 @@ class ImagePackageCommands:
             files[COMPLETION_TEMPLATE_FILENAME] = template
         files.update({f"references/{item.filename}": item.content for item in reference_values})
         from .image_package_publication import publish_image_package
-        publish_image_package(self, root, job_id, request_hash, files)
+        publish_image_package(root, job_id, request_hash, files)
         self.verify_package(job_id=job_id, request=request, request_hash=request_hash,
             references=[(item.role, item.filename, item.content_hash) for item in reference_values],
             native_task_binding=native_task_binding)
@@ -102,31 +103,31 @@ class ImagePackageCommands:
             reference_entries=reference_entries,
             native_task_binding=native_task_binding,
         )
-        package_fd = self._open_directory(root, ("jobs", job_id, "package"), package=True)
+        package_fd = _open_directory(root, ("jobs", job_id, "package"), package=True)
         try:
-            if self._directory_names(package_fd, package=True) != expected_entries:
+            if _directory_names(package_fd, package=True) != expected_entries:
                 raise ImageJobError("package_conflict", "existing package has unexpected entries")
             try:
-                existing_request = json.loads(self._read_regular_at(
+                existing_request = json.loads(_read_regular_at(
                     package_fd, "request.json", max_bytes=1_000_000, package=True
                 ))
             except json.JSONDecodeError as error:
                 raise ImageJobError("package_conflict", "existing package request is malformed") from error
             if existing_request != package_request:
                 raise ImageJobError("package_conflict", "existing package does not match the frozen image request")
-            if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
+            if _read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
                 raise ImageJobError("package_conflict", "existing package instructions do not match the frozen image request")
-            if template is not None and self._read_regular_at(
+            if template is not None and _read_regular_at(
                 package_fd, COMPLETION_TEMPLATE_FILENAME, max_bytes=20_000, package=True
             ) != template:
                 raise ImageJobError("package_conflict", "existing package completion template does not match the frozen request")
             if reference_values:
-                references_fd = self._open_child_directory(package_fd, "references", package=True)
+                references_fd = _open_child_directory(package_fd, "references", package=True)
                 try:
-                    if self._directory_names(references_fd, package=True) != {filename for _, filename, _ in reference_values}:
+                    if _directory_names(references_fd, package=True) != {filename for _, filename, _ in reference_values}:
                         raise ImageJobError("package_conflict", "existing package reference set does not match the frozen request")
                     for _, filename, content_hash in reference_values:
-                        content = self._read_regular_at(
+                        content = _read_regular_at(
                             references_fd, filename, max_bytes=self.limits.max_import_bytes, package=True
                         )
                         if sha256(content).hexdigest() != content_hash:

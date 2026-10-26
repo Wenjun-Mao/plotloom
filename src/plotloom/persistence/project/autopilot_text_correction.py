@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from ...autopilot_contracts import CheckpointEvidence, LaunchPolicy, OperationScope
 from ...creative_handoff_contracts import CreativeHandoffRequest
-from ...creative_handoff_exchange import request_hash
+from ...creative_handoff_identity import request_hash
 from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...text_correction_contracts import (

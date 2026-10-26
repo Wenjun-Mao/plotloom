@@ -13,7 +13,7 @@ BASELINE = "731cfdbfb0d9139254e30c34c2a8e7669a98ddba"
 subprocess.run(["git", "diff", "--exit-code", BASELINE, "--", "src/plotloom", "tests"], check=True, stdout=subprocess.DEVNULL)
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.stage_contracts import StageName
 from plotloom.keyframe_preparation import has_matching_aspect
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest

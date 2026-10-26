@@ -6,7 +6,8 @@ import pytest
 
 from plotloom import native_bridge_request as budget
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.creative_handoff_package_exchange import _json_file_limit
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.project.production_bridge_intent import (

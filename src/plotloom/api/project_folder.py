@@ -17,7 +17,7 @@ from ..project_storage.text_dispatch import ProjectRunDispatcher
 from ..project_storage.video_service import ProjectVideoService
 from ..specialist_settings import ImageSpecialist, SpecialistRegistry
 from ..video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
-from ..video_backends.minimax_h3.adapter import H3_ALL_PROFILES_BY_ID
+from ..video_backends.minimax_h3.catalog import H3_ALL_PROFILES_BY_ID
 from ..video_ingestion import ObservedVideo, probe_video
 from ..video_provider import VideoAdapterPort, VideoProviderPort
 from .draft_scope import require_media_draft_scope

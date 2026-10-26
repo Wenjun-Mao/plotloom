@@ -3,7 +3,7 @@ from contextlib import closing
 from typing import Any
 
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .creative_handoff_exchange import request_hash
+from .creative_handoff_identity import request_hash
 from plotloom.contract_identity import new_id
 from .image_job_contracts import ImageJobError
 from .native_bridge_candidate_service import NativeBridgeCandidateService

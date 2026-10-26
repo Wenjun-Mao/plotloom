@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
 )

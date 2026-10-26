@@ -13,7 +13,7 @@ from plotloom.art_contracts import (
     ArtBinding,
 )
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.image_job_contracts import NativeTaskBinding
 
 

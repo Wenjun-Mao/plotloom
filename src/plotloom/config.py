@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from plotloom.provider_contracts import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
 from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, PROFILE_ID_PATTERN
-from .video_backends.minimax_h3 import H3_CATALOG_ID
+from .video_backends.minimax_h3.catalog import H3_CATALOG_ID
 
 
 def profile_text_api_key_environment_name(profile_id: str) -> str:

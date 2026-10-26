@@ -4,7 +4,7 @@ from hashlib import sha256
 from sqlalchemy import select
 
 from ...canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryboardV2
-from ...creative_handoff_exchange import canonical_json
+from ...creative_handoff_identity import canonical_json
 from plotloom.stage_contracts import StageName, StageStatus
 from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError

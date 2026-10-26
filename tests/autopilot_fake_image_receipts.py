@@ -24,7 +24,7 @@ from plotloom.codex_exec_telemetry import (
     ImageGenEvent,
     ReferenceViewEvidence,
 )
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 
 
 class FakeCodexImageReceipts:

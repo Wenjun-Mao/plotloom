@@ -22,7 +22,8 @@ from plotloom.codex_exec_validation import (
     validation_plan_from_package,
 )
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
 from plotloom.video_directions_contract import render_report as render_video_directions_report

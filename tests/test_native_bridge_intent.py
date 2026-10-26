@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_execution_pin import current_execution_pin
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
@@ -250,7 +252,7 @@ def test_native_execution_pin_refuses_uncommitted_source(monkeypatch):
         return subprocess.CompletedProcess(command, 0, " M src/plotloom/native_bridge_intent_contract.py\n")
     monkeypatch.setattr(subprocess, "run", dirty)
     with pytest.raises(CreativeHandoffError, match="committed"):
-        CreativeHandoffExchange._pinned_execution("bridge-intent")
+        current_execution_pin("bridge-intent")
     assert len(calls) == 1 and "--porcelain" in calls[0]
     assert "scripts/native_bridge_intent.py" in calls[0]
 
@@ -276,7 +278,7 @@ def test_send_rechecks_clean_frozen_execution_before_any_dispatch(seeded_native,
 
         monkeypatch.setattr(subprocess, "run", dirty)
         monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin",
-            lambda _self, stage: CreativeHandoffExchange._pinned_execution(stage))
+            lambda _self, stage: current_execution_pin(stage))
     else:
         changed_pin = frozen_pin | {change: "0" * len(frozen_pin[change])}
         monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: changed_pin)

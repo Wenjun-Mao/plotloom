@@ -9,7 +9,7 @@ from plotloom.codex_exec_validation import (
     build_text_validation_plan,
     expand_validation_argv,
 )
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.script_contracts import ScriptAcceptRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from tests.script_dialogue_runtime import manual_validation_runtime

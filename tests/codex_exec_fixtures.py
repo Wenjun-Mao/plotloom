@@ -33,5 +33,5 @@ PROFILE = CodexExecProfile(
 def install_profile(registry):
     """Inject a deterministic profile without contacting a host or provider."""
     registry.codex_exec_profile = lambda: PROFILE
-    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
+    registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
     return registry

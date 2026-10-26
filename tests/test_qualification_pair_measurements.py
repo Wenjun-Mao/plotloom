@@ -9,7 +9,7 @@ from tests.qualification_pair_test_support import pair_controls  # noqa: F401
 
 
 def evidence_case(tmp_path,*,text=False):
-    from codex_exec_supervisor import CodexExecSupervisor
+    from codex_exec_terminal_receipt import evidence_hash_for_process
     attempt=uuid4()
     private=tmp_path/'private/codex-exec/attempts'/str(attempt)
     private.mkdir(parents=True,mode=0o700)
@@ -21,7 +21,7 @@ def evidence_case(tmp_path,*,text=False):
     session=SimpleNamespace(transcript_sha256=hashlib.sha256(transcript.read_bytes()).hexdigest(),
         transcript_size_bytes=transcript.stat().st_size)
     validation=SimpleNamespace(evidence_hash='c'*64) if text else None
-    base=CodexExecSupervisor._evidence_hash(private/'stdout.jsonl',private/'stderr.log',session.transcript_sha256,0)
+    base=evidence_hash_for_process(private/'stdout.jsonl',private/'stderr.log',session.transcript_sha256,0)
     digest=hashlib.sha256(f'{base}:{validation.evidence_hash}'.encode('ascii')).hexdigest() if text else base
     receipt=SimpleNamespace(attempt_id=attempt,process_exit_code=0,evidence_hash=digest,text_validation=validation)
     return dict(root=tmp_path,private=private,row=dict(private_dir=str(private)),receipt=receipt,session=session,

@@ -11,7 +11,7 @@ from plotloom.autopilot_contracts import (
 from plotloom.codex_exec_contracts import CodexExecAttempt
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.creative_handoff_exchange import request_hash
+from plotloom.creative_handoff_identity import request_hash
 from plotloom.persistence.codec import stable_hash
 from tests.autopilot_controller_fixtures import UPSTREAM_PIN as PIN
 from tests.codex_exec_fixtures import PROFILE

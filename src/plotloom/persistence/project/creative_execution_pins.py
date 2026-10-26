@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import execution_pin_for_request, request_hash
+from ...creative_execution_pin import execution_pin_for_request
+from ...creative_handoff_identity import request_hash
 from plotloom.contract_identity import utc_now
 from ..schema.project_creative_handoff import CreativeHandoffExecutionPinRow
 

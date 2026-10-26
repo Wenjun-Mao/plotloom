@@ -1,5 +1,6 @@
 """Terminal settlement and private receipt publication for Codex attempts."""
 from __future__ import annotations
+from codex_exec_terminal_receipt import evidence_hash_for_process
 
 from pathlib import Path
 
@@ -14,7 +15,7 @@ class CodexExecSupervisorTerminalMixin:
             from plotloom.creative_handoff_contracts import (
                 creative_handoff_request_from_package,
             )
-            from plotloom.creative_handoff_exchange import canonical_json
+            from plotloom.creative_handoff_identity import canonical_json
             request = creative_handoff_request_from_package(package_request)
             manifest = publish_creative_completion(
                 request=request,
@@ -86,7 +87,7 @@ class CodexExecSupervisorTerminalMixin:
                 # verify the exact bytes. Keep the budget and slot unresolved.
                 self._mark_unknown(current)
                 return
-        evidence = self._evidence_hash(stdout_path, stderr_path,
+        evidence = evidence_hash_for_process(stdout_path, stderr_path,
             session.transcript_sha256 if session else "unavailable", exit_code)
         if extra_evidence_hash is not None:
             from hashlib import sha256

@@ -13,7 +13,8 @@ from plotloom.codex_exec_delivery import publish_creative_completion
 from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
 from plotloom.project_storage import ProjectStorageCorruptionError
 from plotloom.project_storage.autopilot_validation import assert_autopilot_contracts

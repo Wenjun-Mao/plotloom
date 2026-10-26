@@ -7,7 +7,7 @@ from .persistence.codec import stable_hash
 from .persistence.project.autopilot_closure import material_closure
 from .project_storage.project_video import ProjectVideoRepository
 from .provider_budgets import exceeds_budget
-from .video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
+from .video_backends.minimax_h3.catalog import H3_QUALIFIED_DURATION_FRAMES
 from .video_provider import VideoProviderError
 
 

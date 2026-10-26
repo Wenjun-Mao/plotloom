@@ -14,7 +14,7 @@ from plotloom.art_contracts import (
 )
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,

@@ -2,7 +2,7 @@
 from sqlalchemy import or_, select
 
 from ...creative_handoff_contracts import CreativeHandoffRequest
-from ...creative_handoff_exchange import request_hash
+from ...creative_handoff_identity import request_hash
 from ...native_bridge_presentation_contract import native_presentation_suggestions
 from ...production_bridge_contracts import ProductionBridgeIntentJob
 from ...production_presentation import PresentationCandidate, PresentationUpdate

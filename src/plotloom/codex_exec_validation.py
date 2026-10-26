@@ -140,7 +140,7 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
     """Construct fixed command vectors from the immutable stage request."""
     from .codex_exec_stage_routing import codex_exec_saved_brief_route
     from .creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES
-    from .creative_handoff_exchange import request_hash
+    from .creative_handoff_identity import request_hash
 
     if (not isinstance(execution_pin, dict)
             or set(execution_pin) != {"upstreamRevision", "upstreamSkillHash", "specialistSkillHash"}

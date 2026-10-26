@@ -25,11 +25,8 @@ from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
     CreativeHandoffRequest,
 )
-from plotloom.creative_handoff_exchange import (
-    CreativeHandoffExchange,
-    canonical_json,
-    request_hash,
-)
+from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_identity import canonical_json, request_hash
 from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,

@@ -20,7 +20,7 @@ from plotloom.text_provider_resolution import TextProviderResolver
 from ..providers import ProviderPorts
 from ..runtime import RunContext
 from .composition import ProjectFolderStorage
-from .application_store import ApplicationRunRoute
+from .application_run_routes import ApplicationRunRoute
 from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
 from .write_admission import ProjectDeletionPendingError

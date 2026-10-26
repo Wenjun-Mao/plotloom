@@ -24,3 +24,5 @@ def supervisor(tmp_path, monkeypatch, codex_exec_test_source):
         outputs_root=outputs_root,
         private_root=tmp_path / "private",
     )
+
+from bridge_test_support import bridge  # noqa: F401

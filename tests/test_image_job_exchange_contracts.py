@@ -16,7 +16,8 @@ from plotloom.image_job_contracts import (
     ImageJobError,
     NativeTaskBinding,
 )
-from plotloom.image_job_exchange import ImageJobExchange, PackageReference
+from plotloom.image_job_exchange import ImageJobExchange
+from plotloom.image_exchange_references import PackageReference
 from plotloom.image_job_package import package_version
 from plotloom.managed_media import ManagedMediaLimits
 
@@ -411,7 +412,7 @@ def test_schema_v3_delivery_matches_native_uuid_to_pin_and_frozen_binding(
             removed_draft = True
         return listed
 
-    monkeypatch.setattr("plotloom.image_job_exchange.os.listdir", remove_draft_after_listing)
+    monkeypatch.setattr("plotloom.image_exchange_files.os.listdir", remove_draft_after_listing)
     raced_read = exchange.read_delivery(
         job_id=request["jobId"], request_hash=request_hash,
         require_executor_provenance=True, require_executor_pin=True,

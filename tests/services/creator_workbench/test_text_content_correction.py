@@ -81,7 +81,7 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, co
     registry, _settings = configured(storage.application.root)
     from plotloom.codex_exec_contracts import CodexExecReadiness
     registry.codex_exec_profile = lambda: profile
-    registry.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
+    registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
     registry.require_codex_exec_readiness = lambda: CodexExecReadiness(state='ready')
     host = FakeCodexExecHost(storage, registry, candidate_factory=candidate)
     registry.codex_exec_admit = lambda attempt: supervisor.admit(attempt) if attempt.operation_key.startswith("art") else host.admit(attempt)
@@ -191,7 +191,7 @@ def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=Non
         CodexExecHostStatus,
         transition_exec_attempt,
     )
-    from plotloom.creative_handoff_exchange import canonical_json
+    from plotloom.creative_handoff_identity import canonical_json
     from plotloom.text_correction_contracts import TextContentRejection
     from tests.autopilot_controller_fixtures import environment
     storage, registry, service, run, calls = environment(tmp_path, monkeypatch, auto_deliver=True, limits=limits)

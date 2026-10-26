@@ -1,10 +1,8 @@
 """Migrated campaign capture cases; no CLI, provider, auth or HTTP runtime."""
-from contextlib import closing,contextmanager
-from dataclasses import asdict
+from contextlib import closing
 import json
 import os
 import sqlite3
-from pathlib import Path
 from time import monotonic_ns
 from types import SimpleNamespace as Namespace
 import pytest
@@ -148,7 +146,7 @@ def test_all_five_real_registry_methods_keep_exact_arguments_and_typed_returns(t
     def request(command, *arguments):
         calls.append((command, arguments))
         return replies[command]
-    monkeypatch.setattr(registry, "_codex_exec_request", request)
+    monkeypatch.setattr(registry.host_client, "_codex_exec_request", request)
     capture, _events = capture_for(tmp_path, registry)
     capture.observer.freeze_job(frozen(value))
     with capture.installed():
@@ -170,7 +168,7 @@ def test_stream_hook_never_copies_history_and_reports_truncation(tmp_path, monke
     registry = SpecialistRegistry(tmp_path / "registry", executable="never-called")
     value = attempt()
     reply = CodexExecHostStatus(state="not_found", capacityDeferred=True)
-    monkeypatch.setattr(registry, "_codex_exec_request", lambda *_args: reply)
+    monkeypatch.setattr(registry.host_client, "_codex_exec_request", lambda *_args: reply)
     def no_history(_self):
         pytest.fail("streaming capture must not request the complete record history")
     monkeypatch.setattr(AdmissionObserver, "records", property(no_history))
@@ -195,7 +193,7 @@ def test_persistence_uncertainty_blocks_new_calls_but_preserves_cleanup_returns(
     def request(*arguments):
         calls.append(arguments)
         return reply
-    monkeypatch.setattr(registry, "_codex_exec_request", request)
+    monkeypatch.setattr(registry.host_client, "_codex_exec_request", request)
     capture, _events = capture_for(tmp_path, registry)
     capture.observer.freeze_job(frozen(value))
     def fail_fsync(_descriptor):
@@ -220,7 +218,7 @@ def test_nested_original_cleanup_streams_each_completion_once_in_completion_orde
             assert registry.codex_exec_status(value.attempt_id) is status
             return admit
         return status
-    monkeypatch.setattr(registry, "_codex_exec_request", request)
+    monkeypatch.setattr(registry.host_client, "_codex_exec_request", request)
     capture, _events = capture_for(tmp_path, registry)
     capture.observer.freeze_job(frozen(value))
     with capture.installed():
@@ -261,5 +259,3 @@ def test_actual_ledger_decoder_and_cleanup_keep_disabled_jobs_parked(tmp_path, m
     assert not result.all_work_quiescent and not result.complete_success
     assert len(result.parked_attempts) == 5 and all(value is False for value in evidence["queue"].values())
     assert database.read_bytes() == before and closed == [True]
-
-

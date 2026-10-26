@@ -367,3 +367,45 @@ the earlier single-backend choice alone. The owner's implementation instruction
 already covers the independent reviewed source cuts; manager/worker must not edit
 concurrently. Final B3 settlement receives a bounded review follow-up before its
 dependent handoff, without another routine human milestone approval.
+
+## Independent implementation checkpoint (2026-10-26)
+
+B4–B7 capability cuts are implemented in R, with B3 target/threshold/runner work
+still held pending the manager's target answer. [ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md)
+records the actual dependency owners and preserved contracts. One source writer
+owns this diff; no installed checkout or serving runtime has been changed.
+
+The original-source 91-table registration order, actual SQLite DDL/indexes and
+H3 public/frozen catalogue descriptors/frame grid were captured before edits and
+match after extraction. The original database reopens. The reference schema
+regression fixture records actual pre-extraction DDL, rather than a new-code-only
+expectation. Focused API/SQLite image pending→complete/reopen/idempotency, routing
+reservation/deletion/completion/rebuild and trusted creative-pin tests use existing
+fixtures. Additional route transaction and Qwen uncertainty/CAS/cancel/snapshot/
+Comfy-queue regressions preserve the safety assertions.
+
+Current passing evidence: B5 initial focused selection 48 cases; pin/package/profile
+focused selection 115; controlled child+ledger first proof 6; moved supervisor/bridge
+families 49; Gateway locked/noneditable service suite 240, static service-boundary
+checks 4 and dashboard JavaScript 14; Lab locked service suite 80 plus wheel build.
+Gateway wheel entrypoint smoke passed both roles with zero generation calls, and
+ARM64 image smoke passed with network disabled and no host mounts. Evidence and
+first failures are retained in ignored `.local/b37/`. Service test environments use
+Python 3.13.12; root uses 3.12.13; wheel/ARM64 smoke uses 3.12. These differences are
+software qualification envelopes, not an inference environment change.
+
+The broad creator-workbench service selection initially passed 357 and failed 4
+cases (312.22s). Three parser-observation patches moved to the actual inspector;
+the affected 32-case rerun passed. The fourth exposed the existing GC access-time
+false refusal; a causal probe changed only atime and reproduced it. The explicit
+identity guard now excludes only access time and strengthens mtime/ctime to ns,
+with real-atime and subsecond-mutation regression checks. First failures are retained.
+Lab's two existing browser journeys passed against fresh temporary data, retaining
+actual audio/H3 hashes and screenshots under `output/playwright/`. Initial CLI
+dialog interception and reused-fixture duplicate-selector failures are retained;
+no Lab product code or browser assertions changed.
+
+The final failed/affected creator checks, module selection, clean-source image
+pin/publisher proof, integrated review and B3-dependent combined qualification
+are not yet complete. No root full, actual model qualification,
+activation/recovery refresh, creative acceptance, push or hosted CI has occurred.

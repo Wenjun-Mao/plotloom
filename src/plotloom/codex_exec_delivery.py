@@ -21,7 +21,7 @@ from .creative_handoff_contracts import (
     CreativeExecutorProvenance,
     CreativeHandoffRequest,
 )
-from .creative_handoff_exchange import canonical_json
+from .creative_handoff_identity import canonical_json
 from .image_job_contracts import (
     ImageDeliveryManifest,
     ImageExecutorProvenance,
@@ -74,7 +74,7 @@ def publish_creative_completion(
             or code_revision != attempt.plotloom_code_revision
             or receipt.plotloom_code_revision != attempt.plotloom_code_revision):
         raise ValueError("Codex Exec completion does not match the frozen creative request or profile")
-    from .creative_handoff_exchange import execution_pin_for_request
+    from .creative_execution_pin import execution_pin_for_request
     plan = build_text_validation_plan(
         request,
         execution_pin=execution_pin_for_request(request, execution_pin),

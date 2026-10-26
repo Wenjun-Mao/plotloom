@@ -8,7 +8,7 @@ import uvicorn
 import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from test_voice_lab import FakeEngine, create_app
+from fixtures.producer import FakeEngine, create_app
 
 
 class BrowserEngine(FakeEngine):

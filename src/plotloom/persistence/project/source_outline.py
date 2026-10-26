@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
 from typing import Any
 
 from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
+from ...creative_handoff_exchange import ValidatedCreativeDelivery
 from plotloom.stage_contracts import StageName, StageStatus
-from plotloom.contract_identity import new_id, utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision,
@@ -22,11 +21,8 @@ from ...source_outline_contracts import (
     SourceMaterial,
     SourceOutlineReviewState,
     SourceRevision,
-    compile_section_map_graph,
-    validate_section_map_graph,
 )
 from ..schema import (
-    AuthoringDraftRow,
     SourceOutlineCandidateRow,
     SourceOutlineGraphAdmissionRow,
     SourceOutlineHeadRow,

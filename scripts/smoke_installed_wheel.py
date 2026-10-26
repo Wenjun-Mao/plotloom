@@ -216,7 +216,7 @@ def main() -> None:
             from hashlib import sha256
             import json
             from plotloom.creative_handoff_contracts import CreativeHandoffError
-            from plotloom.creative_handoff_exchange import canonical_json
+            from plotloom.creative_handoff_identity import canonical_json
             from plotloom.outline_preparation import outline_request
             from plotloom.outline_report_metadata import (
                 assert_outline_report_metadata, outline_report_metadata_schema,

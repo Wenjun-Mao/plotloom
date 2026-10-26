@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import Field, StrictInt, model_validator
 
-from .creative_handoff_exchange import canonical_json
+from .creative_handoff_identity import canonical_json
 from plotloom.domain_base import CamelModel
 from .machine_adoption import MachineAdoption
 

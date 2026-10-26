@@ -3,7 +3,8 @@ import re
 from hashlib import sha256
 
 from .codex_exec_validation import CodexExecTextValidationPlan
-from .creative_handoff_exchange import canonical_json, execution_pin_for_request, request_hash
+from .creative_handoff_identity import canonical_json, request_hash
+from .creative_execution_pin import execution_pin_for_request
 
 
 def retained_outline_package_projection(request, execution_pin, *, source_revision):

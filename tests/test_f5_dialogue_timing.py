@@ -12,7 +12,7 @@ import pytest
 
 from plotloom.authored_route_timing import route_budget_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
-from plotloom.creative_handoff_exchange import canonical_json
+from plotloom.creative_handoff_identity import canonical_json
 from plotloom.stage_contracts import StageName
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
@@ -378,4 +378,3 @@ def test_raw_precision_preserves_frozen_cut_and_segment_limits(prepared, tmp_pat
     for render in (False, True):
         result = invoke(tmp_path, frozen, board, render=render)
         assert (result.returncode == 0) is accepted, result.stderr.decode()
-

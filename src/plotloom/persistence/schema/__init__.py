@@ -38,23 +38,10 @@ from .project_generation import (
     WorkUnitRepairScopeRow,
 )
 from .project_media import (
-    ArtReferenceDecisionRow,
-    ArtReferenceDecisionStateRow,
-    ArtReferenceProposalCandidateRow,
-    ArtReferenceProposalDeliveryRow,
-    ArtReferenceProposalRow,
-    CharacterImportedAppearanceRow,
-    CharacterReferenceDecisionRow,
-    CharacterReferenceProposalCandidateRow,
-    CharacterReferenceProposalDeliveryRow,
-    CharacterReferenceProposalRow,
-    CharacterReferenceStateRow,
     ManagedAssetProvenanceRow,
     ManagedAssetRow,
     ProjectVideoDispatchRow,
     ReviewedShotBindingRow,
-    SamePersonReviewRow,
-    SamePersonReviewStateRow,
     StillPreviewRow,
     VideoCandidateSelectionRow,
     VideoEndFrameDecisionRow,
@@ -63,6 +50,21 @@ from .project_media import (
     VideoSegmentRow,
     VisualIntentRow,
     VisualSelectionStateRow,
+)
+from .project_reference_appearance import CharacterImportedAppearanceRow
+from .project_references import (
+    ArtReferenceDecisionRow,
+    ArtReferenceDecisionStateRow,
+    ArtReferenceProposalCandidateRow,
+    ArtReferenceProposalDeliveryRow,
+    ArtReferenceProposalRow,
+    CharacterReferenceDecisionRow,
+    CharacterReferenceProposalCandidateRow,
+    CharacterReferenceProposalDeliveryRow,
+    CharacterReferenceProposalRow,
+    CharacterReferenceStateRow,
+    SamePersonReviewRow,
+    SamePersonReviewStateRow,
 )
 from .project_production_bridge import (
     ProductionBridgeAdmissionRow,

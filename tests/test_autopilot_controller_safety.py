@@ -38,7 +38,7 @@ def test_launch_requires_usable_cli_login_before_creating_frozen_run(tmp_path, m
         project_id = store.manifest.project_id
     registry, _settings = configured(storage.application.root)
     install_profile(registry)
-    registry.codex_exec_readiness = lambda: CodexExecReadiness(state=readiness_state)
+    registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state=readiness_state)
     monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda *_: PIN)
     service = AutopilotService(storage, registry)
     request = LaunchRequest(
@@ -131,7 +131,7 @@ def test_lost_cli_login_readiness_does_not_reserve_or_admit_prepared_job(tmp_pat
 
         admissions_before = registry._codex_exec_test_host.admissions
         calls_before = list(calls)
-        registry.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
+        registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state="not_authenticated")
         service.step(view.project_id)
 
         current = _current(storage, view)
@@ -219,7 +219,7 @@ def test_controller_inspects_idle_or_closed_folders_without_writing(tmp_path, mo
         install_profile(registry)
         service = AutopilotService(storage, registry)
         from plotloom.creative_handoff_exchange import CreativeHandoffExchange
-        monkeypatch.setattr(CreativeHandoffExchange, "_pinned_execution", staticmethod(lambda _: PIN))
+        monkeypatch.setattr(CreativeHandoffExchange, "current_execution_pin", lambda _self, _stage: PIN)
         view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic"))
         service.control(project_id, RunControlRequest(expected_revision=view.revision, action="cancel"))
     if closed:

@@ -1,5 +1,4 @@
 """One durable candidate-only job through the existing supervised Codex Exec host."""
-import json
 from pathlib import Path
 from uuid import uuid4
 from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecPackageFile, package_manifest_hash, assert_receipt_matches_attempt
@@ -7,7 +6,7 @@ from hashlib import sha256
 from .codex_exec_runtime import frozen_package_snapshot
 from .codex_exec_validation import validation_plan_from_package
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .creative_handoff_exchange import canonical_json, request_hash
+from .creative_handoff_identity import canonical_json, request_hash
 from .exceptions import InvalidTransitionError
 from .video_directions_contract import bind_draft, render_report
 
