@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
+from plotloom.api.errors import register_api_error_handlers
 from plotloom.api.project_folder_production_bridge import (
     register_project_folder_production_bridge_routes,
 )
@@ -26,6 +27,7 @@ def test_runtime_capability_enriches_every_bridge_response_without_changing_stor
         yield store
 
     app = FastAPI()
+    register_api_error_handlers(app)
     register_project_folder_production_bridge_routes(app, opened, intent_service=service if service_wired else None, text_admission=admission if admission_wired else None)
     available = service_wired and admission_wired
     expected = {"status": "available"} if available else {"status": "unavailable", "reason": "not_configured"}
@@ -77,6 +79,7 @@ def test_available_capability_does_not_mask_configured_profile_failure():
         yield store
 
     app = FastAPI()
+    register_api_error_handlers(app)
     register_project_folder_production_bridge_routes(
         app, opened, intent_service=service, text_admission=admission
     )

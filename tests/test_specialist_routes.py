@@ -9,7 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from plotloom.api.project_folder_media import register_project_folder_media_routes
+from plotloom.api.errors import register_api_error_handlers
 from plotloom.api.project_folder_specialists import METHODS, register_specialist_routes
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from tests.test_specialist_settings import configured
@@ -61,7 +61,7 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
         yield store
 
     app = FastAPI()
-    register_project_folder_media_routes(app, opened, require_media_draft_scope=lambda *_args: None)
+    register_api_error_handlers(app)
     register_specialist_routes(app, opened, registry)
     assert not hasattr(app.state, "autopilot_service")
     url = f"/api/v2/projects/project/specialist-tasks/{stage}/{job}"
