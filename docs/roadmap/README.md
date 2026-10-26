@@ -14,7 +14,9 @@ Planning and attended independent technical/execution-limits reviews are complet
 The combined source candidate and early native/production-adapter HTTP recovery
 proofs are implemented. Independent integrated review found no blocking source
 issues; its timestamp-normalization evidence finding is corrected and closed.
-Final qualification and activation remain pending. Other audit batches
+Full-local qualification passed all 4,026 Python, 1,538 frontend and 358 browser
+cases plus exact retained-wheel smoke. Manager activation, preservation/readback
+and the single recovery refresh remain pending. Other audit batches
 remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
 
 ## Completed G2 work-unit ownership delivery

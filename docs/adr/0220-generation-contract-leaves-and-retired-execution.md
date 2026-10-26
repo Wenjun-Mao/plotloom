@@ -136,6 +136,9 @@ are audited. Production-adapter loopback HTTP proves rejection/correction, durab
 response recovery with zero additional wire requests, installation and reopen.
 This candidate has no intentional product-contract delta. Independent integrated
 review found no blocking source issues and accepted the unit-loop cohesion;
-the evidence-only normalization finding is closed. Final full-local qualification
-and installed activation/recovery remain pending; the combined plan owns evidence,
+the evidence-only normalization finding is closed. The first unfiltered full-local
+gate passed all 4,026 Python/1,538 frontend/358 browser cases and package checks;
+the same-input retained wheel independently passed existing isolated installed
+smoke after the full runner consumed its temporary wheel. Installed activation/
+preservation/recovery remain manager-owned and pending; the combined plan owns evidence,
 retained failures, the cohesive 589-line unit-loop rationale and remaining gates.

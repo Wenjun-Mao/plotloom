@@ -31,7 +31,10 @@ has actual planning/context/topology, registry/selection/schema-family and durab
 runtime/evidence/exchange/compiler owners, with direct consumer imports. The small
 native project and real-adapter loopback recovery proofs pass. Integrated independent
 review found no blocking source issues; its evidence-only timestamp normalization
-finding is corrected and closed. Final qualification and activation remain pending. The 589-line unit owner
+finding is corrected and closed. First full-local qualification passed 4,026 Python,
+1,538 frontend and 358 browser cases plus installed-wheel checks; the exact retained
+same-input wheel passed isolated smoke. Manager activation/preservation/recovery
+remain pending. The 589-line unit owner
 retains one execution-local allocation/recovery/rejection/correction/candidate loop;
 its already-separated provider/evidence/compiler/source boundaries make another
 state-distributing split unwarranted. The plan records exact parity and failures.

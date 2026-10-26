@@ -1,6 +1,6 @@
 # G3–G5: Planning, correction and durable execution ownership
 
-Status: **combined source candidate implemented and independently reviewed; final qualification pending**.
+Status: **combined source implemented, independently reviewed and full-local qualified; manager operational closeout pending**.
 Date: 2026-10-25. Planning source and installed baseline:
 `a10a88592c25dfb4dad25aedffb1deb33136d8a7`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -313,9 +313,9 @@ needs no repeated full run/restart when executable inputs are demonstrably uncha
   any separately justified correction is explicit.
 - [x] Early native project and real-adapter loopback/recovery journeys pass,
   with honest external-provider and creative-acceptance limits.
-- [ ] UNKNOWN/no-replay, dispatch order, secret/profile/lease/cancellation/release,
+- [x] UNKNOWN/no-replay, dispatch order, secret/profile/lease/cancellation/release,
   exact-child/sibling/recovery and ordered seal/install guarantees pass.
-- [ ] Existing cases/assertions survive; native allocation and relevant consumers
+- [x] Existing cases/assertions survive; native allocation and relevant consumers
   are updated; independent stable review and final full-local/package checks close.
 - [ ] Quiet installed identity/readiness/readback/preservation, rollback availability,
   single recovery refresh and consumed-artifact cleanup close.
@@ -515,7 +515,7 @@ correction hash above supersedes the earlier observation. No product/source or
 contract change resulted. The manager verified these exact exclusion records
 and closed the finding before authorizing the sole-owner full-local gate.
 
-## Planning review and handoff
+## Initial planning review and handoff
 
 An attended independent GPT-6.1 Sol / High read-only technical review checked
 actual G5 lifecycle, exception boundaries, consumers and current owner tests.
@@ -532,3 +532,92 @@ actual finals, released access and were archived. Requested settings were explic
 effective host settings remain unverified. The manager checked source boundaries,
 current fixture/selector names and local documentation consistency. This checkpoint
 changes documentation only; implementation follows under the combined request.
+
+## Final source qualification receipt — 2026-10-25
+
+The owner explicitly confirmed **“Continue through activation”** during the
+manager's scope clarification. The same source worker remained the sole final
+qualification owner. Product revision is
+`30b27aa4fe1eca9945c8b8f2f5797d5252fea219`; the clean review-documentation
+checkpoint actually qualified was
+`5f28e473ce565cc370965449c700ec95171bea9f`. No product change followed stable
+review. Later receipt-only commits preserve executable, dependency, prompt,
+bundle and source/profile inputs and need no repeated full gate.
+
+Preflight passed the actual R interpreter/imports, locked dependencies, checked
+Python environment, prospective v8 profile, toolchain and ordinary login
+readiness. The full command was exactly
+`uv run --locked --no-sync python scripts/verify.py full`, unfiltered, first
+started at observed `2026-10-26T01:20:17Z` (October 25 locally), uv PID 48540,
+runner PID 48548, execution session 61932. Native discovery confirmed 4,026
+Python cases/328 files, 1,538 frontend cases/172 files and 358 browser cases/99
+files with the fingerprints recorded above. Counts were observed, not forced.
+
+The first actual **full run passed all 14 ordered gates in 1,931.706s**.
+There were no failed full gates or full retries. Development's earlier failed
+module command and its assertion-preserving targeted closure remain failed/pass
+as separately recorded above; they were not relabeled by this full result.
+
+| Gate | Actual result | Elapsed seconds |
+| --- | --- | ---: |
+| Locked dependencies, ffmpeg/ffprobe, API F401 and archived prompt reader | Passed | Per-step values in compact receipt |
+| Unfiltered frontend unit suite | 1,538 passed | 6.398 |
+| Frontend type contracts | Passed | 4.232 |
+| Full native Python | 4,026 passed | 1,261.445 step; 1,248.824 runner |
+| Deterministic production bundle and checked static parity | Passed | 1.306 + 0.021 |
+| Unfiltered browser allocation and suite | 358 passed, four workers | 1.884 + 651.387 |
+| Full temporary wheel build and isolated installed smoke | Passed | 0.127 + 4.229 |
+
+Python used two isolated whole-file workers, PIDs 48974/48975 under runner 48928:
+2,055 passed/one warning in 1,097.35s and 1,971 passed/nine warnings in 1,234.58s.
+Both completion reports passed exact assigned-case/native-fingerprint validation.
+Browser last-run status is passed with no failed tests. All recorded qualification
+process handles exited; no source worker verification process remains active.
+
+The existing full runner removed its temporary wheel directory on successful
+exit. To close only that retention gap, a same-input
+`uv build --wheel --out-dir .local/g345/wheel` followed by the existing
+`scripts/smoke_installed_wheel.py .local/g345/wheel` passed. No runner/framework
+or product/dependency change was added and no second full run occurred. The
+retained wheel itself passed isolated installed smoke; byte identity to the
+deleted original full wheel is not asserted. The existing uv-build range warning
+was nonfatal and is retained in metadata; no dependency workaround was made.
+
+Exact retained artifact:
+`.local/g345/wheel/plotloom-0.1.0-py3-none-any.whl`, **1,597,847 bytes**, SHA-256
+`fa2bccc70d27cd5636f496a72d983ebedd284f4b0f090bb0de9ed63627a3dfa5`.
+Its complete package inventory exactly matches all 516 tracked package-source
+files, including 496 Python files and nine YAML prompts, with no bytecode or
+extra/missing members. License/notice bytes also match source. All 522 wheel
+member hashes/sizes and applicable source mappings are retained in the compact receipt. The
+sorted package-name/SHA-256 inventory digest is
+`d422e801b17c9a2852e30c27348e52fbb0a7040110d5eff654844b695348bfa0`.
+
+The qualified platform is **macOS 27.0.1 arm64**, test Python **3.12.13**;
+the checked interpreter is R's `.local/codex-exec/python-env/bin/python`.
+Tools are uv 0.13.1, Node 24.18.0/npm 11.16.0 and ffmpeg/ffprobe 9.0.2.
+Post-package read-only checks reconfirmed the unchanged checked-environment
+receipt, dependency pins, source and prospective v8 profile with ordinary
+readiness **ready**, CLI `0.164.0-alpha.11.1`:
+
+- Source SHA-256: `d65b7c5189150784401021e812804dbf5629b9eefe2467f7bfc5c671edc59f1f`.
+- Prospective R profile: `79f5d8afeddd6c658dde352167e612e45aca8f48d80828a5bc7feb0fda55a886`.
+- Validator hash: `2320ece25b4761ab2a10a575740158b48d0051294f99f02d33e0c1c2bd86ccaa`.
+- Toolchain hash: `67792a8ac24d0a84f353af646dd604328ce6ac6d2582dd15ecca7ae0212f2e32`.
+
+P must derive its own environment-specific profile against the same qualified
+source; old frozen job/profile pins remain immutable. This is Mac full-local
+software qualification, not a Linux full-suite claim, external-provider output
+qualification or creative acceptance. No opt-in native qualification pair, new
+grant, external-provider generation, P/live/settings/recovery change, push or
+GitHub CI was performed by the source worker.
+
+Manager-consumed parity probes, development logs, successful full/browser
+outputs and temporary extraction/build helpers are consumed after their relevant
+reviews. Final ignored handoff contents are only `.local/g345/qualification.json`
+(complete compact review/parity/normalization/failure/native/profile/gate/package
+metadata) and the exact retained passing wheel. No new archive or source fork
+is retained. The source owner releases coherent clean local main and task-owned
+process access for the manager's final evidence review, quiet P activation,
+preservation/readback and single recovery refresh. Those operational steps and
+the combined assignment's final delivery remain pending with the manager.
