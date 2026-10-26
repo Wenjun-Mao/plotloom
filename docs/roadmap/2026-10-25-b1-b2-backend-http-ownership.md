@@ -1,6 +1,7 @@
 # B1–B2: Backend contracts and HTTP ownership
 
-Status: **approved; implementation in progress, not yet qualified or activated**.
+Status: **implemented, independently reviewed and locally qualified by composite
+evidence; manager-owned installed activation remains pending**.
 Date: 2026-10-25. Inspected source and installed baseline:
 `e3f0403e0247a4e5fc47fc8c20b8d9565fde4f64`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -378,3 +379,80 @@ No changed handwritten owner exceeds 500 lines after the substantial extraction;
 large existing consumers receive only direct-import edits. Named profiles retain
 their cohesive version/hash responsibility. No product provider call or owner
 creative-acceptance claim is part of these offline fixtures.
+
+
+## Source qualification and worker handoff — 2026-10-26
+
+The implementation checkpoint is `6eefc82a`. Independent integrated source/safety
+review found one obsolete native-image fixture composition; `1e56908e` registers
+both actual image families and removes the obsolete target-helper argument. All
+five original safety assertion trees remain unchanged; the exact affected safety
+and new before-send selection passed seven cases. Production review is closed.
+
+The qualification owner ran the actual locked/no-sync `scripts/verify.py full` on
+clean `1e56908e`. **That first full remains failed**, exit 1 in 1,280.641s:
+4,034 Python cases passed and nine failed (six specialist wake-unconfirmed cases,
+three bridge-unavailable cases). Both standalone test fixtures had relied on a
+route registrar implicitly installing HTTP handlers. `a3d442bc` explicitly installs
+the canonical live error registrar in those fixtures; all original assertion ASTs,
+case IDs and product sources are unchanged. The manager inspected the narrow fix;
+the production review carries. The seven-file affected error/secret/refusal/lease
+selection passed all 45 cases. This covers every originally failed case without
+shrinking or rewriting their safety assertions.
+
+One execution owner then refused any ambient full filters using the actual
+`verify._validate_full_filters`, and reused the six original remaining
+`verify._full_steps(...)[8:]` through `verify._run_steps`. All six passed in
+688.752s: deterministic bundle, checked bundle parity, complete native browser
+allocation, **358/358 browser cases** (680.564s), wheel build and isolated installed
+wheel smoke. First-full frontend evidence is **1,538/1,538** cases plus type checks,
+locked dependencies, media-tool readiness, API unused imports and prompt-reader
+verification. No second full was run. This is complete local **composite**
+qualification, not a newly green first-full result.
+
+The current native case union is **4,043 Python / 1,538 frontend / 358 browser**;
+Python adds 17 cases (ten schema fingerprints, four cold imports, two before-send
+routes and one same-home Brief restart/adoption). Python native-case hash is
+`90f84480abeb3b49a57ccb71713f93f7c03329a3eae56dcfcdafa25ee69a581e`.
+Native ownership discovery passed. The older three-owner module body run was
+explicitly cancelled (exit 130) after its successful complete union preflight;
+it is **not** module-pass evidence. Its first seven import-collection failures,
+the original safety-fixture failures, intermediate fixture mistakes and the
+first full failure remain in ignored `.local/b12` logs.
+
+Both current image families also passed a real API/SQLite offline delivery proof
+at clean `6eefc82a`: schema 3/package 6, configured binding to the qualification
+worker's actual native UUID, exact package write, actual clean-source
+`pin_image_specialist.py`, atomic `publish_image_completion.py`, accepted then
+idempotent refresh, confined byte/hash readback and terminal settlement. The queue
+CLI was mocked offline: no native message or provider generation was sent. The
+retained raster SHA-256 is
+`42ec6a9e52e84a7df0e5ffe11bbd18f478f2774db16d08d105f602108d4af8e5`;
+actual specialist skill hash is
+`76c6097e2736396762c1133ba9f3dd08bc14968fa0be5a2a42f7f97b9f907d64`.
+Frozen package JSON stayed unchanged. All pinned image inputs remain byte-identical
+through the later test/documentation commits. Both exact disposable projects used
+fresh ordinary deletion previews, supported permanent deletion and GET 404
+readback after terminal completion. Their settled fixture roots were removed;
+compact actual pin/hash results remain in `.local/b12/current-image-results.json`.
+No UNKNOWN reservation was cleared or native-worker lease bypassed.
+
+Retained exact smoke-passing wheel:
+`.local/b12/qualified-wheel/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+`c73df1a3212b4c3579952871a24ed92c469090e0654d2e6021f58b01138d2af0`.
+The continuation rebuilt and smoked this same retained artifact; its hash stayed
+identical. New-owner ZIP readback matches source and both removed barrels are
+absent. The manager independently checked all 540 packaged source/static files.
+R's native Python-tree identity remains
+`8f23fafc3b991c3e3925628adcebcb28811dbd48f3f8a66ead2a3871cdcda8a1`;
+P must derive its actual launch-environment profile rather than copy R's profile.
+
+Execution used macOS 27.0.1 arm64 / Python 3.12.13. No Linux/full, external-provider
+or owner creative-acceptance claim is made. Product/infrastructure/coordination
+wall-time splits were not separately instrumented; actual verification elapsed
+values are retained above and in the logs. Hosted CI was not requested or run and
+is not a release blocker. There was no push, live-project change, provider/model/
+settings/grant change, deployment or recovery refresh by this worker. Source is
+released to the manager after this clean local-main documentation checkpoint for
+quiet activation, preservation/readback and the single recovery refresh. The
+worker's native ID remains `01a17632-5738-7db3-8733-d0a718042e75`.
