@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Selected combined G3–G5 ownership delivery
+## Completed combined G3–G5 ownership delivery
 
 The owner requested planning and then implementing all three together. The
 [combined reviewed plan](2026-10-25-g3-g5-generation-ownership.md) covers serial
@@ -11,12 +11,14 @@ quiet activation/preservation/rollback and the single recovery refresh, without
 renewed milestone approvals. Early native project and production-adapter loopback
 proofs preserve the external-provider and creative-acceptance distinction.
 Planning and attended independent technical/execution-limits reviews are complete.
-The combined source candidate and early native/production-adapter HTTP recovery
+The combined delivery and early native/production-adapter HTTP recovery
 proofs are implemented. Independent integrated review found no blocking source
 issues; its timestamp-normalization evidence finding is corrected and closed.
 Full-local qualification passed all 4,026 Python, 1,538 frontend and 358 browser
-cases plus exact retained-wheel smoke. Manager activation, preservation/readback
-and the single recovery refresh remain pending. Other audit batches
+cases plus exact retained-wheel smoke. Quiet backend/bridge activation, exact
+preservation/readback and the single recovery refresh are complete. All eight
+projects and 26 selected playback ranges remain available; consumed task artifacts
+are removed and attended workers are archived/unregistered. Other audit batches
 remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
 
 ## Completed G2 work-unit ownership delivery
@@ -56,7 +58,7 @@ helper-consumer expectation, corrected in focused checks; all remaining gates,
 full result remains failed. Quiet activation is complete with all eight projects,
 settings, safety state and 26 selected playback ranges preserved. The single
 functional recovery package owns final source/wheel identity; no new archive,
-provider work, push or CI was created. G3–G5 and other audit batches remain unselected.
+provider work, push or CI was created. G3–G5 are delivered above; other audit batches remain unselected.
 
 ## Completed modularity audit; first selected batch complete
 

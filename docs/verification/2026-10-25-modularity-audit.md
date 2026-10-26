@@ -9,7 +9,7 @@ Implementation update: the owner approved G1/R1–R3 with Go on 2026-10-25.
 Those source boundaries are now implemented, independently reviewed and locally
 qualified by composite evidence and activated with preservation checks in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 The census and line references below remain the audit baseline.
-G3–G5 are now selected in the combined plan below; all other extraction batches
+G3–G5 are now delivered in the combined plan below; all other extraction batches
 remain pending.
 
 The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
@@ -21,24 +21,25 @@ The original full/browser failures and targeted corrections remain explicit;
 manager activation, exact preservation/readback and single recovery refresh are
 complete. The plan records the sole narrow continuity evidence persistence
 false-positive correction and the 571-line cohesive timing-owner rationale.
-The audit census below remains historical; no other batch is activated.
+The audit census below remains historical; the subsequent G3–G5 activation is recorded below.
 
 The owner subsequently requested planning and then implementing G3–G5 together.
 Their [combined reviewed plan](../roadmap/2026-10-25-g3-g5-generation-ownership.md)
 defines serial internal checkpoints and integrated review/qualification/activation,
-preservation and recovery under one combined request. Their source candidate now
+preservation and recovery under one combined request. Their completed delivery
 has actual planning/context/topology, registry/selection/schema-family and durable
 runtime/evidence/exchange/compiler owners, with direct consumer imports. The small
 native project and real-adapter loopback recovery proofs pass. Integrated independent
 review found no blocking source issues; its evidence-only timestamp normalization
 finding is corrected and closed. First full-local qualification passed 4,026 Python,
 1,538 frontend and 358 browser cases plus installed-wheel checks; the exact retained
-same-input wheel passed isolated smoke. Manager activation/preservation/recovery
-remain pending. The 589-line unit owner
+same-input wheel passed isolated smoke. Quiet backend/bridge activation, exact
+preservation/readback and single recovery refresh are complete. The 589-line unit owner
 retains one execution-local allocation/recovery/rejection/correction/candidate loop;
 its already-separated provider/evidence/compiler/source boundaries make another
 state-distributing split unwarranted. The plan records exact parity and failures.
-G3–G5 are implemented at source, not yet delivered. All unrelated
+G3–G5 are delivered, with eight projects, 26 selected playback ranges and all
+protected state preserved. All unrelated
 batches remain unselected.
 
 Baseline: clean retained `main` at `cfc55173df4418bc0d929ed93f2992daf99f03fb`, in `/Users/wjmao/.codex/worktrees/b30f/plotloom`. Three read-only reviews covered generation, backend/services and frontend; the manager independently reconciled the census, inspected material evidence and reviewed scripts, other tests and documentation code. This report and its roadmap pointer are the only intended changes.
@@ -312,11 +313,11 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 ## Proposed finite implementation batches
 
-**G1/R1–R3 and G2 are complete, including independent review, composite local qualification and preservation-checked activation. All unselected batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
+**G1–G5 and R1–R3 are complete, including independent review, applicable local qualification and preservation-checked activation. All unselected batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
 
 ### Recommended order and boundaries
 
-G1/G2 are delivered. Next consider G3, then G4 before G5; B1 precedes backend contract consumers; F4 precedes F5. F1/F2 can be scheduled independently between generation batches. Lower-priority script/auxiliary work does not gate runtime progress. Use a single source writer; independent reviewers inspect stable checkpoints. Each row below is a bounded assignment, not permission to run all work concurrently.
+G1–G5 are delivered. In the remaining queue, B1 precedes backend contract consumers and F4 precedes F5; F1/F2 are independent. Lower-priority script/auxiliary work does not gate runtime progress. Use a single source writer; independent reviewers inspect stable checkpoints. Each row below is a bounded assignment, not permission to run all work concurrently.
 
 | Batch | Deliverable and boundary | Proposed owner and relevant verification |
 |---|---|---|

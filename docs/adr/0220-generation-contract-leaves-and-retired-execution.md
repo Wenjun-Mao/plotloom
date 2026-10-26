@@ -108,7 +108,7 @@ and quiet preservation-checked activation are included. Independent planning
 reviews passed; implementation follows the planning checkpoint. No provider or
 creative acceptance is inferred from the local real-adapter loopback journey.
 
-The combined source candidate now implements these boundaries. Frozen planning
+The completed combined delivery implements these boundaries. Frozen planning
 contracts/hashes, enqueue planning, stage planning and selector context have
 separate actual owners. Topology contracts/semantics, bounded search/materialization,
 degree-bounded transition circulation, model-facing content schema/manifest and
@@ -139,6 +139,12 @@ review found no blocking source issues and accepted the unit-loop cohesion;
 the evidence-only normalization finding is closed. The first unfiltered full-local
 gate passed all 4,026 Python/1,538 frontend/358 browser cases and package checks;
 the same-input retained wheel independently passed existing isolated installed
-smoke after the full runner consumed its temporary wheel. Installed activation/
-preservation/recovery remain manager-owned and pending; the combined plan owns evidence,
-retained failures, the cohesive 589-line unit-loop rationale and remaining gates.
+smoke after the full runner consumed its temporary wheel. Quiet backend/owned-bridge
+activation, qualified source and prospective profile/readiness checks, exact
+installed-state/readback preservation and single recovery refresh are complete.
+Eight projects, 26 selected playback ranges, credentials/settings and safety state
+remain preserved. The combined plan owns the operational evidence, retained
+failures and cohesive 589-line unit-loop rationale; the single recovery manifest
+owns final source/wheel identity. All corresponding workers returned actual
+finals, released access and were archived/unregistered. Unrelated audit batches
+remain unselected; no new provider/grant, push or hosted CI was introduced.

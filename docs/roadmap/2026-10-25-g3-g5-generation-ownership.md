@@ -1,6 +1,6 @@
 # G3–G5: Planning, correction and durable execution ownership
 
-Status: **combined source implemented, independently reviewed and full-local qualified; manager operational closeout pending**.
+Status: **complete: G3–G5 implemented, independently reviewed, full-local qualified and activated with exact preservation checks; the single current recovery manifest owns final source/wheel identity**.
 Date: 2026-10-25. Planning source and installed baseline:
 `a10a88592c25dfb4dad25aedffb1deb33136d8a7`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -317,9 +317,9 @@ needs no repeated full run/restart when executable inputs are demonstrably uncha
   exact-child/sibling/recovery and ordered seal/install guarantees pass.
 - [x] Existing cases/assertions survive; native allocation and relevant consumers
   are updated; independent stable review and final full-local/package checks close.
-- [ ] Quiet installed identity/readiness/readback/preservation, rollback availability,
+- [x] Quiet installed identity/readiness/readback/preservation, rollback availability,
   single recovery refresh and consumed-artifact cleanup close.
-- [ ] Retained main/installed handoff is coherent and clean, workers are actually
+- [x] Retained main/installed handoff is coherent and clean, workers are actually
   idle/archived and exact reporting routes removed; no push/CI/provider expansion.
 
 Target roughly 400 handwritten source lines per file and review every resulting
@@ -619,5 +619,97 @@ reviews. Final ignored handoff contents are only `.local/g345/qualification.json
 metadata) and the exact retained passing wheel. No new archive or source fork
 is retained. The source owner releases coherent clean local main and task-owned
 process access for the manager's final evidence review, quiet P activation,
-preservation/readback and single recovery refresh. Those operational steps and
-the combined assignment's final delivery remain pending with the manager.
+preservation/readback and single recovery refresh. The manager receipt below
+closes those operational steps and the combined delivery.
+
+## Manager activation and final delivery receipt — 2026-10-25
+
+During qualification the owner explicitly selected “Continue through activation”
+and then set the active E2E Relay Direct goal, reaffirming standing native task
+and model/effort authority. The manager collected the worker's actual qualified
+final, confirmed idle/source release and independently reviewed the retained
+package, native results, source/profile identities and closed review finding.
+The worker and integrated reviewer were archived and their exact Relay routes
+removed. Planning reviewers had already returned finals and been archived.
+
+The actual full run qualified clean `5f28e473` over unchanged product `30b27aa4`;
+the source handoff is documentation-only `fe25a2c217b0baa7f098fa7f27cf7995679972b4`.
+All 516 wheel package files match tracked source bytes, including 496 Python
+files and nine YAML prompt templates. Independent pre-full and retained-wheel
+inventory SHA-256 both equal
+`d422e801b17c9a2852e30c27348e52fbb0a7040110d5eff654844b695348bfa0`.
+The retained wheel is 1,597,847 bytes, SHA-256
+`fa2bccc70d27cd5636f496a72d983ebedd284f4b0f090bb0de9ed63627a3dfa5`.
+Its own installed smoke passed after the full runner deleted the original
+temporary wheel; byte identity to that deleted artifact is not asserted.
+
+Resulting actual coordinator sizes make the architectural outcome explicit:
+
+| Source file | Before this delivery | Delivered lines |
+|---|---:|---:|
+| `generation/planning.py` | 1,110 | 443 |
+| `generation/story_graph_topology.py` | 1,096 | 378 |
+| `generation/correction_directives.py` | 829 | 430 |
+| `generation/correction_schema.py` | 669 | 55 |
+| `pipeline.py` | 313 | 150 |
+| `work_unit_pipeline.py` | 1,817 | 390 |
+
+The 443-line stage planner retains one frozen stage-plan assembly operation;
+the 430-line directive selector retains one interacting executable/deferred
+authority policy and lossless projection. Both were reviewed against the
+400-line target. The 589-line unit executor is the explicit reviewed exception:
+allocation, recovery, rejection/correction iteration and candidate settlement
+share one ordered lifecycle. Provider exchange, evidence, correction compilation
+and source verification are already separate owners. No responsibility is left
+implicitly waiting for a future edit or split solely to meet a line count.
+
+Fresh P preflight found clean detached `a10a8859`, eight projects, 26 selected
+playback ranges, 82 completed plus three settled host attempts, zero queue/slot/
+validator rows and five revocation guards. Project runs were cancelled/handed
+off, batches approved/cancelled and 30 video jobs ingested. Existing
+`manage.py stop` and owned launchd `bootout` stopped the quiet backend/bridge.
+Only after exact stopped-state equality did P check out qualified `fe25a2c2`.
+Supported `manage.py start` recreated the backend with cached service/dependency
+layers and freshly bootstrapped the bridge. Healthy container `9a911c7f2ea1`
+replaces `332b43caaa3d`; bridge PID 55189 replaces 38614.
+
+All 672 project tables, 14 application tables, nine host tables, 258 persistent
+files and seven present protected files match before shutdown, after shutdown
+and after activation. Aggregate semantic SHA-256:
+`45a33b4605f86167f8f87a7e4cccb0342ce5884321b40dc3eca7afd21788112c`.
+This preserves canonical data, drafts, media, reservations/revocations, frozen
+attempt/profile pins, settings, credentials and checked-environment/launchd
+configuration. Only fingerprints were recorded; secret contents were not logged.
+No healthy work was cancelled, hold cleared, data deleted or schema migrated.
+
+All 21 new owners and five existing coordinators import from P's actual
+`src/plotloom` in the new Linux aarch64 CPython 3.12.15 backend. Source SHA
+matches qualified R exactly:
+`d65b7c5189150784401021e812804dbf5629b9eefe2467f7bfc5c671edc59f1f`.
+Directory, each project/job read, all 26 selected `bytes=0-31` playback responses,
+HTML and four UI assets match pre-activation readback. Private HTTPS health
+and exact `/v2/` HTML pass. These checks preserve media availability; they do
+not relabel the local adapter fixture as external-provider/creative acceptance
+or the Mac full suite as Linux full qualification.
+
+P's independent prospective builder uses actual launchd tool discovery, current
+pool configuration and the unchanged checked environment. It exactly matches
+the live v8 profile; ordinary readiness is ready. Profile hash:
+`f0395d7ed21ef49ecda800627914496145b67d200e59c86eb0e031752d6b20d7`;
+validator hash:
+`4f8ba99c08ed17679058c53546f0928c5c0931c09e9f04d2b67d393bd0940ad4`.
+Only `validatorHash` differs from the pre-activation profile. Old pins remain
+unchanged. No opt-in qualification pair, new grant, provider/settings change,
+GitHub CI or push occurred.
+
+After readback the single `.local/current-qualified-recovery` source/wheel/
+manifest package owns this final clean documentation checkpoint and the actual
+full-qualified code reference. All archive/submodule members and the exact
+smoke-passing wheel are validated before atomic replacement and again afterward;
+the previous working package remains available until replacement is proven.
+No rollback/data restore was needed and no second archive is retained. Final P
+documentation sync changes no executable/profile inputs, so no second restart
+or full run is required. Consumed `.local/g345` metadata/wheel and private
+temporary preservation fingerprints are removed after verification. Both retained
+checkouts end clean at the same final main checkpoint. G3–G5 are delivered;
+unrelated audit batches remain unselected.
