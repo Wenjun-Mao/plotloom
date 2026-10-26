@@ -9,7 +9,13 @@ const desktopSizes = [[1700, 900], [1280, 768], [1280, 460]] as const;
 async function captureControl(page: Page, testInfo: TestInfo, name: string, control: Locator) {
   for (const [width, height] of desktopSizes) {
     await page.setViewportSize({ width, height });
-    await control.evaluate(element => element.scrollIntoView({ block: "center" }));
+    // A read settlement can grow the page after resizing; re-scroll the current
+    // control until its observable geometry fits, then keep the exact checks.
+    await expect.poll(async () => {
+      await control.evaluate(element => element.scrollIntoView({ block: "center" }));
+      const current = await control.boundingBox();
+      return current !== null && current.y >= 58 && current.y + current.height <= height - 12;
+    }).toBe(true);
     const bounds = await control.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.y).toBeGreaterThanOrEqual(58);
