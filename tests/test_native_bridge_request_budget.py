@@ -12,7 +12,7 @@ from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.project.production_bridge_intent import (
     ProductionBridgeIntentPersistence,
 )
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_intent_contract import MAX_INTENT_CONTEXT_BYTES
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
 from tests.native_bridge_runtime_fixtures import (

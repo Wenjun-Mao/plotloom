@@ -107,3 +107,32 @@ Internal checkpoints are not renewed human gates; final integrated qualification
 and quiet preservation-checked activation are included. Independent planning
 reviews passed; implementation follows the planning checkpoint. No provider or
 creative acceptance is inferred from the local real-adapter loopback journey.
+
+The combined source candidate now implements these boundaries. Frozen planning
+contracts/hashes, enqueue planning, stage planning and selector context have
+separate actual owners. Topology contracts/semantics, bounded search/materialization,
+degree-bounded transition circulation, model-facing content schema/manifest and
+trusted binding/diagnostics import directly in one direction. Static correction
+definitions/code ownership are separate from executable selection/projection;
+G1's version constants keep their contract owner. Schema families collect one
+fact at a time in the original order, then apply graph, continuity and cue/timing
+projections in the original order, preserving first-conflict error precedence.
+
+Runtime secrets and frozen provider resolution no longer live in the pipeline
+coordinator. Complete durable provider exchange, evidence construction/decoding,
+correction source verification and correction compilation have actual owners.
+The stage owner retains child-local reuse, ordered seals and final run release;
+the unit owner retains allocation/recovery/rejection/correction/candidate decisions.
+Repository transactions and LifecycleJobRunner's distinct cleanup are unchanged.
+Reusable responses bypass preflight/leasing/generation; dispatch/request order,
+provider catch scopes, post-catch normalization, delivery certainty categories,
+storage failure codes, redaction and process-loss propagation remain fixed.
+
+Representative baseline outputs and 66 additional exact planning/correction
+comparisons pass, including null/missing/error order and two complete correction
+ordinals. Production-adapter loopback HTTP proves rejection/correction, durable
+response recovery with zero additional wire requests, installation and reopen.
+This candidate has no intentional product-contract delta. Independent integrated
+review, final full-local qualification and installed activation/recovery are
+still pending at this source checkpoint; the combined plan owns current evidence,
+retained failures, the cohesive 589-line unit-loop rationale and remaining gates.

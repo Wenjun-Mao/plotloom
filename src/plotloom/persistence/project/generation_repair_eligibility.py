@@ -13,7 +13,7 @@ from ...domain import (
     WorkUnitRepairEligibility, WorkUnitStatus,
 )
 from ...exceptions import RepairEligibilityError
-from ...generation.planning import GenerationPlan, PLANNING_POLICY_VERSION
+from plotloom.generation.planning_contracts import GenerationPlan, PLANNING_POLICY_VERSION
 from ...generation.scene_timing_allocation import (
     SCENE_TIMING_ALLOCATION_VERSION, SceneTimingAllocation,
 )
@@ -122,7 +122,7 @@ class GenerationRepairEligibility:
     @staticmethod
     def _scene_beats_contract_code(stage_plan: object) -> str | None:
         from ...generation.dialogue_capacity import DIALOGUE_CAPACITY_POLICY_VERSION
-        from ...generation.planning import StagePlan
+        from plotloom.generation.planning_contracts import StagePlan
 
         plan_data = getattr(stage_plan, "plan")
         allocation = plan_data.get("scene_timing_allocation")

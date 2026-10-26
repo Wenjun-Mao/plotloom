@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import Field, ValidationInfo, field_validator, model_serializer, model_validator
 
 from .canonical_schema import StoryGraphV2
-from .generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .domain import CamelModel, contains_secret_setting, contains_secret_value
 from .source_structures import MAX_SOURCE_OPTIONS
 from .source_graph_structure import SourceStructure, structure_from_seed

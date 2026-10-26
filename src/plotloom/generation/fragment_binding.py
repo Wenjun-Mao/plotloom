@@ -17,10 +17,7 @@ from ..domain import (
     ShotV2,
 )
 from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
-from .planning import (
-    GenerationWorkUnit,
-    StagePlan,
-)
+from plotloom.generation.planning_contracts import GenerationWorkUnit, StagePlan
 from .scene_response_contracts import (
     SceneBeatsFragmentOutput,
 )

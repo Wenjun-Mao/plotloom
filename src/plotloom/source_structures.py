@@ -2,7 +2,8 @@
 from typing import Any
 from .canonical_schema import StoryGraphV2, StoryNodeV2, StoryEdgeV2, JoinContractV2
 from .domain import ProjectBrief
-from .generation.story_graph_topology import plan_story_graph_topology, StoryGraphTopologyError
+from plotloom.generation.story_graph_topology import plan_story_graph_topology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopologyError
 from .exceptions import InvalidTransitionError
 
 MAX_SOURCE_OPTIONS = 6

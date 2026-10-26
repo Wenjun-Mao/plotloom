@@ -30,17 +30,14 @@ from .json_schema import (
     explicit_presence_json_schema,
     inline_local_json_references,
 )
-from .planning import (
-    GenerationWorkUnit,
-    StagePlan,
-)
+from plotloom.generation.planning_contracts import GenerationWorkUnit, StagePlan
 from .scene_beats_semantics import (
     _scene_beats_semantic_issues,
 )
 from .scene_response_contracts import (
     SceneBeatsFragmentOutput,
 )
-from .story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .story_graph_validation import StoryGraphContentFillValidationAdapter
 from .storyboard_response_contracts import (
     StoryboardFragmentOutput,

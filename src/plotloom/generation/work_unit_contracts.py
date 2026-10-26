@@ -17,7 +17,7 @@ from .correction_contract import (
     CORRECTION_RESPONSE_SCHEMA_VERSION,
 )
 from .dialogue_capacity import DialogueCapacityNodeGuidance
-from .planning import WorkUnitSelectorKind
+from plotloom.generation.planning_contracts import WorkUnitSelectorKind
 from .repair_facts import SemanticRepairFact
 from .storyboard_timing_repair import StoryboardTimingGuidance
 from .validation import ValidationAdapter

@@ -9,7 +9,7 @@ import pytest
 from plotloom.domain import StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.prompts import PromptRenderer
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_contracts import (
     ProductionBridgeAcceptRequest,
     ProductionBridgeIntentUpdateRequest,

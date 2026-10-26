@@ -21,19 +21,17 @@ from plotloom.generation.graph_repair_contracts import (
 from plotloom.generation.graph_semantic_repair import (
     assert_join_state_effect_repair_fact_matches_source,
 )
-from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
 from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
 )
 from plotloom.generation.semantic_repair import (
     semantic_repair_facts,
 )
-from plotloom.generation.story_graph_topology import (
-    StoryGraphContentBindingError,
-    StoryGraphTopologyError,
-    bind_story_graph_content_fill,
-    plan_story_graph_topology,
-)
+from plotloom.generation.story_graph_content_fill import StoryGraphContentBindingError, bind_story_graph_content_fill
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopologyError
+from plotloom.generation.story_graph_topology import plan_story_graph_topology
 from plotloom.generation.story_graph_validation import (
     StoryGraphContentFillValidationAdapter,
 )
@@ -61,7 +59,7 @@ def _brief(**updates: int) -> ProjectBrief:
 
 def _footage_topology_fixture(brief):
     """A frozen current contract with explicit scene-bearing controls."""
-    from plotloom.generation.story_graph_topology import StoryGraphTopology
+    from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
     data = plan_story_graph_topology(project_id="project-a", brief=brief).model_dump(mode="json", by_alias=True)
     for node in data["nodes"]:
         node["footageMode"] = "footage"

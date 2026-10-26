@@ -20,7 +20,8 @@ from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
 from plotloom.generation.exceptions import ProviderError, ProviderResponseError
 from plotloom.jobs import LifecycleJobRunner
 from plotloom.persistence import stable_hash
-from plotloom.pipeline import PipelineEngine, RunSecretBroker
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.providers import ProviderPorts

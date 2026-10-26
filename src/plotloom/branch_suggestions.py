@@ -1,7 +1,7 @@
 """Model prose bound to a frozen, code-planned Source structure."""
 from pydantic import Field, field_validator
 from .domain import CamelModel
-from .generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .source_outline_contracts import SectionMap
 from .source_structures import MAX_SOURCE_OPTIONS
 from .source_graph_structure import structure_from_seed

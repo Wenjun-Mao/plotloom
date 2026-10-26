@@ -15,7 +15,8 @@ from plotloom.domain import (
     StoryGraphV2,
     StoryNodeV2,
 )
-from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
 from plotloom.generation.scene_response_contracts import (
     BeatContent,
     DramaticSceneContent,

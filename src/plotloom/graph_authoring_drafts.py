@@ -5,7 +5,7 @@ from pydantic import Field, model_validator
 
 from .canonical_schema import StableId
 from .domain_base import CamelModel
-from .generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .source_graph_structure import SourceStructureEdge, SourceStructureJoin, SourceStructureNode
 from .source_outline_contracts import SectionMap
 

@@ -90,10 +90,8 @@ def build_runtime_app(
     from .codex_image_dispatch import NativeCodexImageDispatcher
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .generation.contracts import ReasoningMode, RequestExtension
-    from .pipeline import (
-        RunSecretBroker,
-        SnapshotTextProviderResolver,
-    )
+    from plotloom.runtime_secrets import RunSecretBroker
+    from plotloom.text_provider_resolution import SnapshotTextProviderResolver
     from .project_storage import ProjectFolderStorage
     from .project_storage.application_profiles import ApplicationProfileRepository
     from .project_storage.text_dispatch import ProjectRunDispatcher

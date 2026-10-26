@@ -16,7 +16,7 @@ from plotloom.api import create_project_folder_authoring_app
 from plotloom.domain import Artifact, ArtifactKind, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
 from plotloom.exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import (
     OwnedArtifact,

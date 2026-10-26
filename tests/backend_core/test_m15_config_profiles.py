@@ -7,7 +7,7 @@ import pytest
 from plotloom.config import PlotloomSettings, resolve_text_provider_api_key
 from plotloom.domain import ProviderAuthMode
 from plotloom.generation.exceptions import SecretLeaseError
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 
 
 def test_repo_root_dotenv_is_non_overriding_and_profile_keys_do_not_cross(monkeypatch, tmp_path: Path) -> None:

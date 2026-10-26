@@ -26,7 +26,7 @@ from .fragments import (
     StoryboardFragment,
     StoryGraphFragment,
 )
-from .planning import StagePlan, WorkUnitSelectorKind
+from plotloom.generation.planning_contracts import StagePlan, WorkUnitSelectorKind
 
 
 class AggregateValidationError(ValueError):

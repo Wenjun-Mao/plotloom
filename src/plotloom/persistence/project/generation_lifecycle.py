@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from sqlalchemy import select
 from ..codec import stable_hash
 from ...domain import stage_payload_model
-from ...generation.planning import StagePlan
+from plotloom.generation.planning_contracts import StagePlan
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .canonical import ProjectCanonicalPersistence
 from .generation_snapshots import ProjectGenerationSnapshots

@@ -8,7 +8,8 @@ from ...domain import (
     CanonicalSnapshot, GenerationWorkUnitTrace, RunStatus, StageName,
     StagePayload, StageStatus, WorkUnitStatus, new_id, upstream_stages, utc_now,
 )
-from ...generation.planning import GenerationPlan, PLANNING_POLICY_VERSION, PlanningError, StagePlan, plan_stage
+from plotloom.generation.planning_contracts import GenerationPlan, PLANNING_POLICY_VERSION, PlanningError, StagePlan
+from plotloom.generation.planning import plan_stage
 from ..schema import (
     EntityRevisionRow, GenerationPlanRow, GenerationRunRow,
     GenerationWorkUnitRow, SealedStageAggregateRow, StagePlanRow,

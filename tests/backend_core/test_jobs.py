@@ -9,7 +9,7 @@ from plotloom.artifacts import MemoryArtifactStore
 from plotloom.domain import STAGE_ORDER, ProviderSnapshot, RunKind, RunStatus, StageName
 from plotloom.generation.aggregation import AggregateValidationError
 from plotloom.generation.exceptions import SecretLeaseError
-from plotloom.generation.planning import PlanningError
+from plotloom.generation.planning_contracts import PlanningError
 from plotloom.jobs import LifecycleJobRunner
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext, RunExecutionResult

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 from ...domain import CanonicalSnapshot, GenerationRun, RunKind, StageName, StagePayload, WorkUnitRepairEligibility, WorkUnitRepairRunCreation, WorkUnitRepairScope
-from ...generation.planning import DEFAULT_STAGE_BUDGETS, GenerationPlan, StageBudget, create_generation_plan
+from plotloom.generation.planning_contracts import DEFAULT_STAGE_BUDGETS, GenerationPlan, StageBudget
+from plotloom.generation.enqueue_planning import create_generation_plan
 from ..schema import GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, StagePlanRow, StoryGraphTopologyRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow
 from ...exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
-from ...generation.story_graph_topology import StoryGraphTopology, plan_story_graph_topology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
+from plotloom.generation.story_graph_topology import plan_story_graph_topology
 from ...provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3, is_v2_snapshot, is_v3_snapshot
 from ...generation.prompts import canonical_json
 from sqlalchemy import select

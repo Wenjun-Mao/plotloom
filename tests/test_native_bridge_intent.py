@@ -15,7 +15,7 @@ from plotloom.exceptions import InvalidTransitionError
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
 from plotloom.native_bridge_intent_service import NativeBridgeIntentService
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
 from tests.native_bridge_runtime_fixtures import create_native_intent_runtime

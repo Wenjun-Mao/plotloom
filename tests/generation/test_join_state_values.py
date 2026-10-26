@@ -12,12 +12,10 @@ from plotloom.canonical_schema import (
     StoryNodeV2,
 )
 from plotloom.domain import ProjectBrief, StageName
-from plotloom.generation.planning import (
-    PlanningError,
-    create_generation_plan,
-    plan_stage,
-    work_unit_context,
-)
+from plotloom.generation.planning_contracts import PlanningError
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
+from plotloom.generation.planning_context import work_unit_context
 from plotloom.join_state_values import (
     JOIN_STATE_VALUE_CONTRACT_VERSION,
     JOIN_VARIANT_VALUE_VERSION,

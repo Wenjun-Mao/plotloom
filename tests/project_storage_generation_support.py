@@ -11,7 +11,8 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import RunKind, StageName
 from plotloom.generation.contracts import ProviderResponse
 from plotloom.jobs import LifecycleJobRunner
-from plotloom.pipeline import PipelineEngine, RunSecretBroker
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext

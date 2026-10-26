@@ -7,7 +7,7 @@ from ..project.constants import CURRENT_STAGE_SCHEMA_VERSION
 from ...domain import CanonicalSnapshot, RunStatus, StageName, SealedStageAggregateTrace, WorkUnitStatus, new_id, utc_now
 from ..schema import FragmentReuseBindingRow, GenerationWorkUnitRow, SealedStageAggregateRow
 from ...exceptions import InvalidTransitionError, RepairEligibilityError
-from ...generation.planning import StagePlan
+from plotloom.generation.planning_contracts import StagePlan
 from ...generation.aggregation import aggregate_stage_fragments
 from sqlalchemy import select
 from ..codec import stable_hash

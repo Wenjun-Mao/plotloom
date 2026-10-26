@@ -7,7 +7,7 @@ import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
 from plotloom.project_storage import ProjectFolderStorage

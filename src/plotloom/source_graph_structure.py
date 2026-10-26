@@ -5,7 +5,7 @@ from .canonical_schema import (
     RequiredEntityState, StableId, V2StoryEdgeKind, V2StoryNodeKind,
 )
 from .domain_base import CamelModel
-from .generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 
 
 class SourceStructureNode(CamelModel):

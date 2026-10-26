@@ -37,9 +37,7 @@ from .scene_beats_edge_entry import (
 from .scene_beats_join_repair import (
     scene_beats_join_entry_repair_facts,
 )
-from .story_graph_topology import (
-    StoryGraphTopology,
-)
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .storyboard_audio_repair import (
     storyboard_audio_timing_repair_facts,
 )

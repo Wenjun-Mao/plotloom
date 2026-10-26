@@ -13,7 +13,8 @@ from .recovery import ProjectRecoveryService
 from .registry import ProjectDirectoryRegistry
 
 if TYPE_CHECKING:
-    from ..pipeline import RunSecretBroker, TextProviderResolver
+    from plotloom.runtime_secrets import RunSecretBroker
+    from plotloom.text_provider_resolution import TextProviderResolver
 
 
 class ProjectFolderStorage:

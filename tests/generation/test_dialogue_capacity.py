@@ -18,12 +18,9 @@ from plotloom.generation.dialogue_capacity import (
     DialogueCapacityPlanningError,
     plan_dialogue_capacity,
 )
-from plotloom.generation.planning import (
-    StagePlan,
-    _stage_plan_hash,
-    create_generation_plan,
-    plan_stage,
-)
+from plotloom.generation.planning_contracts import StagePlan, _stage_plan_hash
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
 from plotloom.generation.scene_timing_allocation import (
     SceneTimingAllocation,
     SceneTimingNodeAllocation,

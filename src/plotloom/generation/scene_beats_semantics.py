@@ -25,9 +25,7 @@ from .fragment_semantics import (
 from .frozen_join_requirements import (
     _continuity_requirements,
 )
-from .planning import (
-    GenerationWorkUnit,
-)
+from plotloom.generation.planning_contracts import GenerationWorkUnit
 from .scene_beats_edge_entry import (
     edge_entry_state_requirements,
     first_scene_entry_issues,

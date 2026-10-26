@@ -10,8 +10,10 @@ covers internal checkpoints, integrated independent review/full-local qualificat
 quiet activation/preservation/rollback and the single recovery refresh, without
 renewed milestone approvals. Early native project and production-adapter loopback
 proofs preserve the external-provider and creative-acceptance distinction.
-Planning and attended independent technical/execution-limits reviews are complete;
-source implementation follows this documentation checkpoint. Other audit batches
+Planning and attended independent technical/execution-limits reviews are complete.
+The combined source candidate and early native/production-adapter HTTP recovery
+proofs are implemented; independent integrated review and final qualification/
+activation remain pending. Other audit batches
 remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
 
 ## Completed G2 work-unit ownership delivery

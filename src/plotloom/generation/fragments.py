@@ -21,7 +21,7 @@ from ..domain import (
     StoryGraphV2,
 )
 from ..canonical_schema import V2CoverageRole
-from .planning import PlanningModel
+from plotloom.generation.planning_contracts import PlanningModel
 
 
 class FragmentValidationError(ValueError):

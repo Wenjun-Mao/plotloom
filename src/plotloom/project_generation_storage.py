@@ -10,7 +10,9 @@ from __future__ import annotations
 from .artifacts import LocalArtifactStore
 from .domain import GenerationRun, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
 from .jobs import LifecycleJobRunner
-from .pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
+from plotloom.text_provider_resolution import TextProviderResolver
 from .project_storage import ProjectStorageError, ProjectStore
 from .provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3
 from .providers import ProviderPorts

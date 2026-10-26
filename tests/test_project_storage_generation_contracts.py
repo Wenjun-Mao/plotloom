@@ -13,14 +13,15 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-import plotloom.work_unit_pipeline as work_unit_pipeline
+import plotloom.work_unit_correction as work_unit_correction
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import GenerationAttemptKind, ProviderSettings, RunKind, RunStatus, StageName
 from plotloom.exceptions import RepairEligibilityError, RevisionConflictError
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.jobs import LifecycleJobRunner
-from plotloom.pipeline import PipelineEngine, RunSecretBroker
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.project_storage.application_profiles import ApplicationProfileRepository
@@ -330,13 +331,13 @@ def test_project_generation_rejects_tampered_correction_audit_before_second_disp
     store = _store(tmp_path)
     run = _create_bible_run(store, fixture_profile())
     provider = _QueueProvider(["not json", "fixture"])
-    original_compile = work_unit_pipeline.compile_correction_instruction_plan
+    original_compile = work_unit_correction.compile_correction_instruction_plan
 
     def compile_with_tampered_audit(*args, **kwargs):
         plan = original_compile(*args, **kwargs)
         return plan.model_copy(update={"audit_issue_selection": {**plan.audit_issue_selection, "tampered": True}})
 
-    monkeypatch.setattr(work_unit_pipeline, "compile_correction_instruction_plan", compile_with_tampered_audit)
+    monkeypatch.setattr(work_unit_correction, "compile_correction_instruction_plan", compile_with_tampered_audit)
     broker = RunSecretBroker()
     try:
         completed = _execute(store, run.id, provider, broker)
@@ -359,12 +360,12 @@ def test_project_generation_persists_graph_entity_effect_correction_boundary(
     provider = _QueueProvider(["not json"])
 
     def forbid_graph_entity_effect_correction(*args, **kwargs):
-        raise work_unit_pipeline.GraphEntityStateEffectCorrectionPlanError(
+        raise work_unit_correction.GraphEntityStateEffectCorrectionPlanError(
             "new Story Graph generation required"
         )
 
     monkeypatch.setattr(
-        work_unit_pipeline,
+        work_unit_correction,
         "compile_correction_instruction_plan",
         forbid_graph_entity_effect_correction,
     )

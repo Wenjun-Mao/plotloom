@@ -11,7 +11,8 @@ from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import RunKind, StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
-from plotloom.pipeline import PipelineEngine, RunSecretBroker
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_storage.text_dispatch import ProjectRunDispatcher
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext

@@ -14,7 +14,7 @@ from plotloom.domain import ArtifactKind, StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.generation.repair_facts import parse_semantic_repair_fact
 from plotloom.persistence import stable_hash
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from tests.project_storage_generation_support import (
     _execute_stages,
     _MutatingFixtureProvider,

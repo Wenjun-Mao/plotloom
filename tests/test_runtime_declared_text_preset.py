@@ -44,7 +44,7 @@ def test_valid_declared_preset_is_retained(tmp_path, overrides, expected_preset)
 def test_invalid_declaration_fails_before_storage_keys_or_bootstrap(tmp_path, overrides):
     with (
         patch("plotloom.project_storage.ProjectFolderStorage") as storage,
-        patch("plotloom.pipeline.RunSecretBroker") as secrets,
+        patch("plotloom.runtime_secrets.RunSecretBroker") as secrets,
         patch("plotloom.project_storage.application_profiles.ApplicationProfileRepository.bootstrap_default_text_provider_profile") as bootstrap,
         pytest.raises(ValueError, match="TEXT_PRESET_ID=custom"),
     ):

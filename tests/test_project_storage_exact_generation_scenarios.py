@@ -12,7 +12,7 @@ import pytest
 from plotloom.domain import Artifact, ArtifactKind, RunStatus, StageName
 from plotloom.generation.contracts import ProviderResponse
 from plotloom.persistence import stable_hash
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from tests.project_storage_fixtures import fixture_profile
 from tests.project_storage_generation_support import (

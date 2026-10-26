@@ -37,7 +37,8 @@ from plotloom.generation.entity_state_repair import (
 from plotloom.generation.fragment_binding import (
     canonical_audio_event_id,
 )
-from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
 from plotloom.generation.scene_beats_dialogue_repair import (
     scene_beats_dialogue_capacity_repair_facts,
 )

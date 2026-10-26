@@ -1,10 +1,10 @@
 # G3–G5: Planning, correction and durable execution ownership
 
-Status: **reviewed combined implementation plan; source implementation starts after this planning checkpoint**.
-Date: 2026-10-25. Source and installed baseline:
+Status: **combined source candidate implemented; independent integrated review and final qualification pending**.
+Date: 2026-10-25. Planning source and installed baseline:
 `a10a88592c25dfb4dad25aedffb1deb33136d8a7`.
-Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, clean local main.
-Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached baseline.
+Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
+Installed P: `/Users/wjmao/projects/HU/plotloom`, planning-time detached baseline.
 
 ## Outcome and scope
 
@@ -306,12 +306,12 @@ needs no repeated full run/restart when executable inputs are demonstrably uncha
 
 ## Completion criteria and implementation discretion
 
-- [ ] All G3/G4/G5 responsibilities have real cohesive owners; no forwarding
+- [x] All G3/G4/G5 responsibilities have real cohesive owners; no forwarding
   barrels, new mixins/framework or return imports into coordinators.
-- [ ] Planning/topology/IDs/versions/hashes, directive text/selection/projection,
+- [x] Planning/topology/IDs/versions/hashes, directive text/selection/projection,
   schemas, errors, prompt/evidence bytes and source authority preserve baseline;
   any separately justified correction is explicit.
-- [ ] Early native project and real-adapter loopback/recovery journeys pass,
+- [x] Early native project and real-adapter loopback/recovery journeys pass,
   with honest external-provider and creative-acceptance limits.
 - [ ] UNKNOWN/no-replay, dispatch order, secret/profile/lease/cancellation/release,
   exact-child/sibling/recovery and ordered seal/install guarantees pass.
@@ -328,6 +328,162 @@ cuts. State the concrete rationale for a retained oversized owner. File names,
 small cohesive helper placement, typed source-evidence inputs, focused selectors
 and necessary consumer/fixture fixes remain engineering decisions within these
 invariants. No prewritten code or per-helper owner permission is required.
+
+## Source implementation checkpoint
+
+Implementation began from clean retained `main` at
+`c8ce6a80159d4bf2bcb64a0aadd1edbc68217c09`, using the checked R environment:
+CPython 3.12.13, macOS arm64, imports from R and locked `uv` dependencies.
+The source writer is native task `01a175a3-097e-77f1-a2ae-eda79c736cd8`,
+registered through Relay to the manager before edits. The manager explicitly
+selected GPT-6.1 Sol / High; effective host settings cannot be independently
+confirmed from the worker context. No additional source writer was used.
+
+G3 now has real `planning_contracts`, `enqueue_planning`, stage `planning` and
+`planning_context` owners. Topology contracts/semantics, bounded search and
+materialization, degree-bounded transition circulation, model-facing content
+contracts/schema/manifest and trusted content binding/diagnostics are separate
+cohesive owners. The small native four-stage project installed and reopened
+before broad G4/G5 work; its planning/topology/journey selection passed 27 cases.
+
+G4 keeps ordered static definitions/code uniqueness in `correction_registry`
+and executable selection/projection in `correction_directives`. Existing G1
+version constants remain in `correction_contract`. Graph/join, continuity/entity
+state and cue/timing schema families collect authority one fact at a time in the
+original traversal order; assembly applies them in the original family order.
+This preserves first-conflict precedence across families. Schema fixture builders
+now have one non-collected owner declared in module support allocation. Existing
+assertions remain, with new mixed graph/cue null and conflict-order cases.
+
+G5 gives runtime secrets/leasing and frozen provider resolution actual owners.
+`work_unit_pipeline` retains stage order, exact-child local reuse, ordered seals
+and `finally: release_run`; `work_unit_execution` owns the attempt/recovery/
+rejection/correction/candidate loop. Complete durable exchange, evidence codec/
+assertions, correction source verification and correction compilation have their
+own implementations. Direct consumers and monkeypatch targets follow those
+owners. Request construction remains after dispatch; response normalization stays
+outside the provider catch block. Durable response reuse bypasses schema preflight,
+leasing and generation. LifecycleJobRunner's separate cleanup remains unchanged.
+
+The 589-line unit owner was reviewed after extraction. Its remaining large method
+is one execution-local attempt loop whose allocation/recovery, validation outcome,
+rejection/next-correction decision and candidate settlement share ordered control
+flow. Provider exchange, persisted evidence and correction compilation/source
+authority have already moved out. Another split would distribute that lifecycle
+decision state without a new cohesive responsibility. Stage ownership is 390
+lines; the other new source owners are at most 443 lines. No framework, callback
+bag, mixin, compatibility barrel or repository facade was added.
+
+### Evidence and limits at source review
+
+Temporary review evidence is retained only in ignored `.local/g345/` until the
+manager's integrated review. The pre-edit representative planning/topology/
+directive/primary-request JSON and integrated result match SHA-256
+`b0c146b44ea597b6c38b2a18154b9384988ca32878c5cf4885e3eb25f2cacfb1`.
+Only observational `rendered_at` is omitted; IDs, authority fields, order, nulls,
+contracts, versions and hashes are retained. That sample alone is not exhaustive
+correction or error parity.
+
+The retained `correction_parity.py` probe loads trusted `c8ce6a8` source directly
+from Git into private in-memory `plotloom.generation._g345_baseline_*` and
+`plotloom._g345_baseline_work_unit_pipeline` namespaces. It writes no old-source
+checkout or archive. Baseline runner imports bind moved planning/topology types
+to their unchanged contract owners. Its directive/schema functions and associated
+error classes bind explicitly to the original in-memory G4 modules; remaining
+dependencies keep their current unchanged G1/domain/prompt/persistence owners.
+It compares 21 schema outputs/errors and 25
+directive/selection/projection outputs/errors while executing current assertions,
+including mixed-family null/conflict traversal cases. It also compares complete
+ordinal-1 and ordinal-2 correction packets against the same durable rejected
+attempts: rendered messages/output/trace, contract, schema, audit selection and
+executable facts. Dataclasses/models become JSON; only `rendered_at` is omitted.
+Errors compare type name, code and exact text in call order. All 48 comparisons
+pass; retained result SHA-256 is
+`8f1e4e912960ece43482bbf5bd531a70692c83bc0005a09eefa0a236691ab043`.
+This is representative exact baseline parity, complemented by current assertions,
+not an exhaustive proof over all possible inputs.
+
+The `planning_parity.py` probe additionally compares enqueue/stage planning
+errors, topology limits/option-cap errors, schema/manifest, valid binding and
+missing/unknown/duplicate/non-finite diagnostics against trusted in-memory
+baseline owners. It retains the exact compared outputs and error text/code.
+All 18 comparisons pass; optional error attributes retain their presence,
+including stage and the complete ordered code/path/message issue arrays.
+Retained result SHA-256 is
+`b406dc1c5f085aaf40cd5ce62310462af27422a3da01361bfd370a844b0b56a2`.
+
+The real-adapter HTTP proof uses production `SnapshotTextProviderResolver`,
+`OpenAICompatibleAdapter`, native project/repository and LifecycleJobRunner
+against a disposable loopback endpoint serving current V3 fixture data. The
+endpoint observes a committed dispatch marker before each request. One Story
+Bible rejection is corrected, the correction response commits, simulated process
+loss propagates, and startup recovery installs that same attempt with exactly two
+total wire requests. Single-stage authoring envelopes and exact run evidence
+survive close/reopen. No adapter/session is mocked. This establishes local
+production-owner/HTTP fidelity, not external-provider or creative acceptance.
+
+Retained failures are not passes: initial capture-helper import/attribute mistakes;
+one generated schema-assembly syntax error; a content-schema helper assigned to
+the binding owner causing a cold-import cycle; two HTTP attempts using an
+unsupported correction cap for `compatible_v1`; and a single-stage readback
+attempt using the full-pipeline `canonical_stages` convenience. Repairs bind
+helpers to their actual schema owner, use the existing compatible preset and
+single-stage authoring reader. A comparison probe initially attempted to create
+a plan after quarantine; it now reads the existing plan from its actual owner.
+No product behavior, assertions or authority were weakened for these repairs.
+
+Native discovery preserves all 4,020 original Python cases and adds six: one
+real-HTTP recovery journey, one mixed null/schema case, two conflict-order cases
+and two cold ownership import orders. Current allocation is 4,026 Python,
+1,538 frontend and 358 browser cases. Native SHA-256 values are respectively
+`23e9fc3d768aedb155c8605e23f5b37337b72baa36f396f85a0dc9b426d4d55c`,
+`87dd1b66fd7434fabb51ef264589d8cd9b20528f1f4bb1bade96b0ddb0e47394` and
+`8eafc782d980de4197ad0eb268a52cc4edc3a14ebfc961dba1748fb4ec4b8fae`.
+Quick passed; focused G4 passed 36 cases, persisted G5/source authority passed
+14 existing cases, and mixed-schema/cold-owner checks passed 21 cases.
+The combined scoped module selection and its resulting failures are recorded
+below. Final full-local qualification, installed activation,
+preservation/readback and recovery refresh remain later combined-delivery steps.
+The source worker has not touched P, live state, providers/settings or CI/push.
+Product implementation, infrastructure/fixture work and coordination time were
+not separately measured; exact verification command timings remain in the
+temporary logs. No usage/cost delta or category percentage is inferred.
+
+The scoped `module --depth contract` selection was `shared-generation`, `graph`,
+`project-lifecycle` and `shared-provider-dispatch`: 2,035 Python cases and 447
+Vitest cases, plus native ownership preflight and frontend type contracts. The
+original module command **failed**: 17 failures, 51 setup errors, 1,967 passes
+and six warnings; Python bodies took 626.87s, whole module command 652.328s.
+Its real subprocess fixtures clone HEAD and overlay only `git ls-files` source
+plus explicit instruction/validator paths. Newly extracted owners had not yet
+been staged, so these clones omitted `runtime_secrets`, `planning_contracts` and
+`story_graph_topology_contracts`. Tracebacks confirm the missing-module cause;
+an independent read-only `python -B` import reproduced the same failure in the
+existing fixture. No production source/fixture logic change was needed.
+
+After staging the legitimate new owners, the exact 68 failed/error nodes passed
+with fresh tracked-source fixtures: 68 passes, one warning, 287.03s bodies and
+333.101s focused command. A selector diagnostic first truncated parameter IDs
+containing spaces; its preflight refused with no test bodies run. The corrected
+selector list retains complete native IDs. The previously unrun exact module
+Vitest command passed all 62 files/447 cases in 2.87s. The unchanged 1,967 passes,
+native/type evidence, affected rerun and downstream Vitest complete this scoped
+selection by composite evidence; the original module command remains failed.
+No full-local gate has run at this checkpoint.
+
+The direct Conformance and Alpha acceptance consumers lie outside that module
+selection. Their exact focused files passed 20 cases (13.61s bodies, 16.192s
+focused command). These fixture-operated checks establish current code behavior,
+not external review or creative acceptance. Final read-only source/profile checks
+confirmed all 21 actual owners import from R under its 3.12.13 interpreter and
+the unchanged V3 auth-none fixture resolves to production
+`OpenAICompatibleAdapter` without a network call. Fresh tracked-source fixture
+imports now pass. Diff whitespace/changed-Python parse checks and native module
+allocation pass. Temporary baseline/parity probes and compact failure/result
+evidence remain in `.local/g345/` for independent review; extraction scripts and
+duplicate observations were consumed. The coherent clean-main candidate is ready
+for the manager's independent integrated review. Full qualification, installation
+and recovery remain the combined assignment's next steps.
 
 ## Planning review and handoff
 

@@ -24,11 +24,8 @@ from .graph_repair_contracts import (
     JoinStateEffectRepairFact,
 )
 from .repair_facts import SemanticRepairFact
-from .story_graph_topology import (
-    StoryGraphContentFill,
-    StoryGraphJoinContentFill,
-    StoryGraphTopology,
-)
+from plotloom.generation.story_graph_content_contracts import StoryGraphContentFill, StoryGraphJoinContentFill
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 
 
 def _story_graph_edge_state_effect_json_repair_facts(

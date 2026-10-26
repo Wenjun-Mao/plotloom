@@ -21,9 +21,7 @@ from .fragment_semantics import (
     cue_duration_units,
     required_entity_is_in_shot,
 )
-from .planning import (
-    GenerationWorkUnit,
-)
+from plotloom.generation.planning_contracts import GenerationWorkUnit
 from .storyboard_response_contracts import (
     StoryboardFragmentOutput,
 )

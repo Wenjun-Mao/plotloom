@@ -10,15 +10,15 @@ import pytest
 
 import plotloom.generation.fragment_validation as fragment_validation
 import plotloom.persistence.project.generation_snapshots as generation_snapshots
-import plotloom.work_unit_pipeline as work_unit_pipeline
+import plotloom.correction_source as correction_source
 from plotloom.domain import Artifact, ArtifactKind, RunStatus, StageName
 from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
     serialize_semantic_repair_fact,
 )
-from plotloom.generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from plotloom.persistence import stable_hash
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage
 from tests.project_storage_fixtures import FixtureResolver, _json_after, fixture_profile
@@ -66,14 +66,14 @@ def test_persisted_repair_null_and_sibling_authority_is_revalidated(
         if family == "join"
         else "assert_continuity_repair_fact_matches_source"
     )
-    original_assertion = getattr(work_unit_pipeline, source_assertion)
+    original_assertion = getattr(correction_source, source_assertion)
     observed = []
 
     def observe_parsed_fact(fact, value, **kwargs):
         observed.append(serialize_semantic_repair_fact(fact))
         return original_assertion(fact, value, **kwargs)
 
-    monkeypatch.setattr(work_unit_pipeline, source_assertion, observe_parsed_fact)
+    monkeypatch.setattr(correction_source, source_assertion, observe_parsed_fact)
 
     def reject_once(request, response):
         nonlocal corrected

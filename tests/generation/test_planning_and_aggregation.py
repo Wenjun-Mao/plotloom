@@ -33,14 +33,10 @@ from plotloom.generation.fragments import (
     StoryboardFragment,
     StoryGraphFragment,
 )
-from plotloom.generation.planning import (
-    PlanningError,
-    StageBudget,
-    WorkUnitSelectorKind,
-    create_generation_plan,
-    plan_stage,
-    work_unit_context,
-)
+from plotloom.generation.planning_contracts import PlanningError, StageBudget, WorkUnitSelectorKind
+from plotloom.generation.enqueue_planning import create_generation_plan
+from plotloom.generation.planning import plan_stage
+from plotloom.generation.planning_context import work_unit_context
 
 def _run_plan(
     *,

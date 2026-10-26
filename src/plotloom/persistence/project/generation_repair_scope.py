@@ -15,7 +15,7 @@ from ...domain import (
 from ...exceptions import (
     InvalidTransitionError, NotFoundError, RepairEligibilityError, StagePrerequisiteError,
 )
-from ...generation.planning import GenerationPlan, StagePlan
+from plotloom.generation.planning_contracts import GenerationPlan, StagePlan
 from ..codec import stable_hash
 from ..schema import (
     ArtifactRow, EntityRevisionRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow, GenerationRunRow,

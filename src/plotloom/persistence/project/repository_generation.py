@@ -28,8 +28,8 @@ from ...domain import (
     WorkUnitRepairScope,
 )
 from ...exceptions import InvalidTransitionError
-from ...generation.planning import GenerationPlan, StagePlan
-from ...generation.story_graph_topology import StoryGraphTopology
+from plotloom.generation.planning_contracts import GenerationPlan, StagePlan
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
 from .generation_admission import ProjectGenerationAdmission
 from .generation_aggregates import ProjectGenerationAggregatePersistence
 from .generation_attempts import ProjectGenerationAttemptPersistence

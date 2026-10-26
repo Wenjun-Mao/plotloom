@@ -20,7 +20,8 @@ from .generation.exceptions import (
 )
 from .generation.prompts import PromptRenderer
 from .generation.responses import extract_json_response, redact_provider_boundary_evidence
-from .pipeline import RunSecretBroker, TextProviderResolver
+from plotloom.runtime_secrets import RunSecretBroker
+from plotloom.text_provider_resolution import TextProviderResolver
 from .production_bridge_intent_contract import (
     MAX_INTENT_CONTEXT_BYTES, bind_intent_suggestions, intent_response_schema,
 )

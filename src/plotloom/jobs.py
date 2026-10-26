@@ -14,7 +14,7 @@ from .exceptions import (
 )
 from .generation.aggregation import AggregateValidationError
 from .generation.exceptions import SecretLeaseError
-from .generation.planning import PlanningError
+from plotloom.generation.planning_contracts import PlanningError
 from .runtime import GenerationEngine, RunContext
 from .validation import DomainValidationError
 

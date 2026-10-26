@@ -6,13 +6,9 @@ import json
 import pytest
 
 from plotloom.generation.contracts import ValidationIssue
-from plotloom.generation.correction_directives import (
-    CORRECTION_DIRECTIVE_REGISTRY_VERSION,
-    SUPPORTED_CORRECTION_ISSUE_CODES,
-    CorrectionDirectivePlanError,
-    GraphEntityStateEffectCorrectionPlanError,
-    compile_correction_instruction_plan,
-)
+from plotloom.generation.correction_contract import CORRECTION_DIRECTIVE_REGISTRY_VERSION
+from plotloom.generation.correction_registry import SUPPORTED_CORRECTION_ISSUE_CODES
+from plotloom.generation.correction_directives import CorrectionDirectivePlanError, GraphEntityStateEffectCorrectionPlanError, compile_correction_instruction_plan
 from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
 )

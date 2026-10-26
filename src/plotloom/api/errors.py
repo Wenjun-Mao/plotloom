@@ -29,7 +29,7 @@ from ..image_job_contracts import (
     ImageJobError,
 )
 from ..creative_handoff_contracts import CreativeHandoffError
-from ..generation.story_graph_topology import StoryGraphTopologyError
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopologyError
 from ..validation import DomainValidationError, pydantic_issues
 from ..graph_safety_diagnostics import transition_error_content
 

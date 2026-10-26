@@ -1,7 +1,7 @@
 """Fresh fake API jobs admit advice from copies without reading their seed."""
 from contextlib import closing
 
-from plotloom.pipeline import RunSecretBroker
+from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.production_bridge_intent_service import ProductionBridgeIntentService
 from tests.autopilot_seed_fixtures import seed_files
 from tests.native_bridge_seed_fixtures import pending_bridge_project

@@ -16,9 +16,7 @@ from .dialogue_capacity import (
 from .frozen_join_requirements import (
     _continuity_requirements,
 )
-from .planning import (
-    GenerationWorkUnit,
-)
+from plotloom.generation.planning_contracts import GenerationWorkUnit
 from .scene_beats_edge_entry import (
     edge_entry_state_requirements,
     require_first_scene_entity_state_values,

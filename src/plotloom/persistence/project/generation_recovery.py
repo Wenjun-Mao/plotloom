@@ -9,7 +9,7 @@ from sqlalchemy import select
 from .generation_access import GenerationPersistenceAccess
 from .generation_plans import ProjectGenerationPlanningPersistence
 from .generation_repair_eligibility import GenerationRepairEligibility
-from ...generation.planning import GenerationPlan, PLANNING_POLICY_VERSION
+from plotloom.generation.planning_contracts import GenerationPlan, PLANNING_POLICY_VERSION
 
 
 class ProjectGenerationRecoveryPersistence:

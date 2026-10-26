@@ -12,7 +12,9 @@ from typing import Any
 from ..domain import GenerationRun, RunKind, StageName, StartupRecoveryPlan, new_id
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..jobs import LifecycleJobRunner
-from ..pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
+from plotloom.pipeline import PipelineEngine
+from plotloom.runtime_secrets import RunSecretBroker
+from plotloom.text_provider_resolution import TextProviderResolver
 from ..providers import ProviderPorts
 from ..runtime import RunContext
 from .composition import ProjectFolderStorage

@@ -135,3 +135,55 @@ def test_scene_rounding_ties_follow_authored_order_with_nonempty_dialogue() -> N
         2: 1 + remaining,
     }
     assert sum(budgets.values()) == budget
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_generation_owners_import_without_stage_or_unit_coordinators(
+    reverse: bool,
+) -> None:
+    owners = [
+        "generation.planning_contracts",
+        "generation.planning_context",
+        "generation.enqueue_planning",
+        "generation.story_graph_topology_contracts",
+        "generation.story_graph_topology_flow",
+        "generation.story_graph_content_contracts",
+        "generation.story_graph_content_fill",
+        "generation.correction_registry",
+        "generation.correction_schema_graph",
+        "generation.correction_schema_continuity",
+        "generation.correction_schema_cue_timing",
+        "runtime_secrets",
+        "text_provider_resolution",
+        "work_unit_evidence",
+        "correction_source",
+        "work_unit_correction",
+        "durable_provider_exchange",
+    ]
+    if reverse:
+        owners.reverse()
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            f"""
+import importlib, sys
+for name in {owners!r}:
+    importlib.import_module('plotloom.' + name)
+assert 'plotloom.generation.work_units' not in sys.modules
+assert 'plotloom.work_unit_execution' not in sys.modules
+assert 'plotloom.work_unit_pipeline' not in sys.modules
+assert 'plotloom.pipeline' not in sys.modules
+planning = importlib.import_module('plotloom.generation.planning')
+assert planning.plan_stage.__module__ == planning.__name__
+assert not hasattr(planning, 'create_generation_plan')
+assert not hasattr(planning, 'work_unit_context')
+stage = importlib.import_module('plotloom.work_unit_pipeline')
+assert not any(hasattr(stage, name) for name in (
+    'compile_correction_instruction_plan', 'compile_correction_response_schema',
+    'assert_join_state_effect_repair_fact_matches_source',
+))
+""",
+        ],
+        check=True,
+    )
