@@ -96,3 +96,14 @@ and exact installed-wheel smoke. The original full result remains failed;
 see the plan's qualification receipt for revisions, timings and artifact hashes.
 G1 activation and recovery refresh are complete in its delivery plan; G2's
 corresponding operational closeout is recorded in the G2 plan.
+
+The owner's request to plan and then implement G3–G5 together selects the
+[combined ownership plan](../roadmap/2026-10-25-g3-g5-generation-ownership.md).
+Planning contracts/context/topology precede correction authority/schema owners,
+then durable exchange/evidence/compiler and explicit stage/unit composition.
+Current schemas/versions/hashes, dispatch ordering, delivery-certainty categories,
+response reuse, exact-child scope, UNKNOWN safety and layered release stay fixed.
+Internal checkpoints are not renewed human gates; final integrated qualification
+and quiet preservation-checked activation are included. Independent planning
+reviews passed; implementation follows the planning checkpoint. No provider or
+creative acceptance is inferred from the local real-adapter loopback journey.

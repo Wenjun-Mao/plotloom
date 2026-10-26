@@ -1,5 +1,19 @@
 # Plotloom roadmap entrypoint
 
+## Selected combined G3–G5 ownership delivery
+
+The owner requested planning and then implementing all three together. The
+[combined reviewed plan](2026-10-25-g3-g5-generation-ownership.md) covers serial
+G3 planning/context/topology, G4 correction registry/selection/schema, and G5
+durable exchange/evidence/compiler ownership. One combined implementation request
+covers internal checkpoints, integrated independent review/full-local qualification,
+quiet activation/preservation/rollback and the single recovery refresh, without
+renewed milestone approvals. Early native project and production-adapter loopback
+proofs preserve the external-provider and creative-acceptance distinction.
+Planning and attended independent technical/execution-limits reviews are complete;
+source implementation follows this documentation checkpoint. Other audit batches
+remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
+
 ## Completed G2 work-unit ownership delivery
 
 The [G2 plan](2026-10-25-g2-work-unit-ownership.md) follows completed G1/R1–R3:
