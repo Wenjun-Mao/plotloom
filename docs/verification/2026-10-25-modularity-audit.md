@@ -12,12 +12,13 @@ The census and line references below remain the audit baseline; unselected
 G3–G5 and all other extraction batches remain pending.
 
 The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
-with “Go ahead with Relay direct”. Its source candidate now owns canonical binding,
+with “Go ahead with Relay direct”. Its completed delivery owns canonical binding,
 schema/presence, stage semantics/adapters and repair derivation/source assertions
 outside the 489-line compiler. Exact extraction parity, early runtime and persisted snapshot/restore proofs,
 independent stable/security review and composite full-local qualification pass.
 The original full/browser failures and targeted corrections remain explicit;
-manager activation/preservation/recovery remain pending. The plan records the sole narrow continuity evidence persistence
+manager activation, exact preservation/readback and single recovery refresh are
+complete. The plan records the sole narrow continuity evidence persistence
 false-positive correction and the 571-line cohesive timing-owner rationale.
 The audit census below remains historical; no other batch is activated.
 
@@ -292,11 +293,11 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 ## Proposed finite implementation batches
 
-**G1/R1–R3 is complete, including independent review, composite local qualification and preservation-checked activation. All other batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
+**G1/R1–R3 and G2 are complete, including independent review, composite local qualification and preservation-checked activation. All unselected batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
 
 ### Recommended order and boundaries
 
-Start G1. Continue G2–G4 before G5; B1 precedes backend contract consumers; F4 precedes F5. F1/F2 and approved R1–R3 can be scheduled independently between generation batches. Lower-priority script/auxiliary work does not gate runtime progress. Use a single source writer; independent reviewers inspect stable checkpoints. Each row below is a bounded assignment, not permission to run all work concurrently.
+G1/G2 are delivered. Next consider G3, then G4 before G5; B1 precedes backend contract consumers; F4 precedes F5. F1/F2 can be scheduled independently between generation batches. Lower-priority script/auxiliary work does not gate runtime progress. Use a single source writer; independent reviewers inspect stable checkpoints. Each row below is a bounded assignment, not permission to run all work concurrently.
 
 | Batch | Deliverable and boundary | Proposed owner and relevant verification |
 |---|---|---|

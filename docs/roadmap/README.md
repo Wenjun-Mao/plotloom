@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## G2 source qualified; manager activation and preservation pending
+## Completed G2 work-unit ownership delivery
 
 The [G2 plan](2026-10-25-g2-work-unit-ownership.md) follows completed G1/R1–R3:
 canonical binding/IDs/durations, response schema and stage validation, then
@@ -14,7 +14,10 @@ independent stable/security review and composite local qualification are complet
 The plan records exact parity, the narrow typed-continuity persistence correction,
 actual snapshot/restore proof, both failed attempts and their targeted corrections.
 All 4,020 Python/1,538 frontend/358 browser cases are covered; the exact passing
-wheel is retained. Manager-owned activation/preservation/recovery remain pending.
+wheel passed isolated smoke. Quiet backend/bridge activation and exact
+data/settings/guard preservation are complete, with all eight projects and 26
+selected playback ranges available. The single current recovery manifest owns
+the final source/wheel identity; consumed task evidence has been removed.
 G3–G5 and unrelated audit batches remain outside this scope.
 
 ## Completed G1 and retired-execution delivery
@@ -43,7 +46,7 @@ handwritten source-like files above 400 lines (42 at or above 500), plus selecte
 smaller ownership clusters. Each has an explicit extract, retain or retire
 recommendation with reasoning; proposed changes map to named finite batches,
 not an implicit promise to extract on the next edit. The subsequently approved
-G1/R1–R3 delivery above is complete; all other batches remain pending. This audit
+G1/R1–R3 and G2 deliveries above are complete; all other batches remain pending. This audit
 alone does not authorize other implementation, provider work, push or CI.
 
 ## Completed validated installation-only reader

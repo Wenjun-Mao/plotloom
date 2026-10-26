@@ -49,7 +49,7 @@ media-task read response, snapshot/restore, leases, atomic installation and
 schema-version refusal remain supported. No live rows or settings are rewritten.
 
 The owner approved [G2](../roadmap/2026-10-25-g2-work-unit-ownership.md) with
-“Go ahead with Relay direct” on 2026-10-25. Its implementation candidate now
+“Go ahead with Relay direct” on 2026-10-25. Its completed implementation
 separates canonical binding/IDs/duration allocation, frozen join requirements,
 response schema/presence, ordered stage semantics, validation adapters and
 repair-family derivation/source assertions. `semantic_repair.py` owns explicit
@@ -79,7 +79,11 @@ failure, corrected by waiting for observable layout without changing its limits,
 captures or zero-write assertions. All 4,020 Python/1,538 frontend/358 browser cases
 are covered, and the exact retained wheel passes isolated installed smoke.
 Both failed attempts remain failed; the plan owns complete timings and identities.
-Manager-owned activation/preservation/recovery remain pending. G3–G5 and unrelated API/domain/frontend batches remain unselected. This decision
+Manager-owned quiet backend/bridge activation, source/profile/readiness checks,
+exact installed-state preservation and single recovery refresh are complete.
+Eight projects and 26 selected playback ranges remain available. The plan owns
+the operational receipt; the single recovery manifest owns final source/wheel
+identity. G3–G5 and unrelated API/domain/frontend batches remain unselected. This decision
 introduces no compatibility barrel or architecture framework. Source/profile
 identity changes prospectively; frozen source pins and prior evidence remain
 unchanged. No provider generation or creative acceptance is established by the
@@ -90,4 +94,5 @@ obsolete retired-test helper expectation), its assertion-preserving focused
 correction and all ordered remaining full gates, including 358 browser cases
 and exact installed-wheel smoke. The original full result remains failed;
 see the plan's qualification receipt for revisions, timings and artifact hashes.
-Activation and recovery refresh remain separate manager-owned operations.
+G1 activation and recovery refresh are complete in its delivery plan; G2's
+corresponding operational closeout is recorded in the G2 plan.

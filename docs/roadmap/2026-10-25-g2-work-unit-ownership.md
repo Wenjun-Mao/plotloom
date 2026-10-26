@@ -1,6 +1,6 @@
 # G2: Work-unit binding, validation and repair ownership
 
-Status: **implemented, independently reviewed and locally qualified through composite evidence; manager activation/preservation/recovery pending**.
+Status: **complete: implemented, independently reviewed, locally qualified through composite evidence and activated with preservation checks; current recovery identity is in the single package manifest**.
 Date: 2026-10-25. Source baseline: clean `main` at
 `f7da50ee503f38c0cb8a63f36c169b930445319c` in
 `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
@@ -344,9 +344,9 @@ manifest suffices; do not accumulate raw browser/failure/media archives.
   are preserved; small runtime/repair proof and stable review are complete.
 - [x] Final local qualification and exact wheel/isolated installed checks have
   truthful results, revisions, environment and failure/repair accounting.
-- [ ] Quiet activation, P-specific identity/readiness, data/media/settings/
+- [x] Quiet activation, P-specific identity/readiness, data/media/settings/
   guard preservation, rollback availability and single recovery update pass.
-- [ ] Local main handoff is coherent and clean; temporary artifacts are removed;
+- [x] Local main handoff is coherent and clean; temporary artifacts are removed;
   attended workers return actual finals and are archived/unregistered.
 - [x] Resulting sizes/cohesion and pending G3–G5/other audit batches are explicit;
   no provider generation, creative acceptance, push or hosted CI is implied.
@@ -581,7 +581,7 @@ asset parity and allocation, then **failed** the unfiltered browser phase:
 The first gallery reading-state capture measured bottom 1284.609375 against the
 unchanged 888 bound at 1700×900. Trace showed one scroll followed immediately by
 bounding-box sampling while another mocked 503 read settled; scrollTop stayed
-116. Independent manager trace review agreed this exposed a test layout-settling
+116. Manager review of the failure context and helper diff agreed this exposed a test layout-settling
 race, with no changed G2 response path or product reachability contract.
 
 The narrow helper correction re-scrolls/polls observable geometry before retaining
@@ -598,7 +598,7 @@ remain reusable because no product/runtime/bundle/dependency input changed.
 | Checked production asset parity | passed; no tracked static diff | 0.033 |
 | Unfiltered browser allocation | passed; rechecked after helper change | 1.882 |
 | Browser coverage | 357 initial passes + corrected complete 3-case file; all 358 covered | 651.510 + 14.825 focused |
-| Retained wheel build | passed | 0.127 |
+| Retained wheel build | passed | 0.126 |
 | Exact isolated installed-wheel smoke | passed | 4.423 |
 
 The original full and browser follow-up attempts remain failed. Together with
@@ -641,5 +641,79 @@ verbose logs were consumed and removed after their relevant reviews. No new
 archive or raw-data backup was created. The source owner releases clean local main
 and all task-owned verification processes; manager consumes these two artifacts
 for P activation/readiness/preservation and the existing single recovery refresh.
-That operational closeout remains pending. G3–G5 and all other excluded batches,
+The manager operational receipt below closes that handoff. G3–G5 and all other excluded batches,
 creative acceptance, GitHub CI and push remain outside this delivery.
+
+## Manager activation and final handoff receipt — 2026-10-25
+
+The manager reviewed the actual source/test diffs, qualification metadata and
+the exact retained wheel after the worker's final. All 495 package files match
+tracked source bytes and inventories; no bytecode is packaged. Product/runtime,
+dependency and bundle inputs are unchanged from the independently reviewed
+`7c6d54ee` product checkpoint. The snapshot proof and eight-line reading-state
+helper correction are test-only. All original geometry limits, three viewport
+sizes, captures and zero-write assertions remain. Composite qualification is
+accepted under the repository's explicit evidence-reuse policy; neither failed
+attempt is relabeled as a pass.
+
+Fresh P preflight found a clean detached predecessor at `f7da50ee`, eight
+projects, 26 selected playback ranges, 82 completed plus three settled host
+attempts, zero queue/slot/validator rows and five revocation guards. Current
+project runs were cancelled/handed off, batches approved/cancelled and 30 video
+jobs ingested. No healthy work was cancelled. All 672 project tables, 14
+application tables, nine host tables, 258 persistent files and seven present
+protected files were fingerprinted without logging their contents. Aggregate
+semantic fingerprint before shutdown, after shutdown and after activation:
+`45a33b4605f86167f8f87a7e4cccb0342ce5884321b40dc3eca7afd21788112c`.
+This covers canonical data, drafts, media, reservations, revocations, settings,
+credentials, checked-environment receipt and owned launchd configuration.
+
+The existing `manage.py stop` and owned launchd `bootout` stopped the quiet
+backend/bridge. Only after exact stopped-state equality did P check out the
+qualified source handoff `8fc625387c4f5345b7a00e618e06262e96300c34`.
+Supported `manage.py start` rebuilt cached service layers and recreated the
+backend; the bridge was freshly bootstrapped. New healthy container
+`332b43caaa3d` replaces `b319f3361284`; bridge PID 38614 replaces 56108.
+Rollback was available through the previous qualified package until verified
+replacement; no rollback or data restore was needed.
+
+Actual installed imports for nine affected owners resolve under P's `src/plotloom`,
+and the complete Python source SHA matches the qualified
+`f8457309a0ad52947c1f4a03860316586c7b760c80c0cc0e023b1188dc821e24`.
+Installed backend runtime is Linux aarch64 CPython 3.12.15; full qualification
+was macOS arm64 CPython 3.12.13, not a full Linux suite. Current directory,
+each project/job read, all 26 selected `bytes=0-31` playback responses, HTML and
+four static assets match pre-activation readback. Private HTTPS health and exact
+`/v2/` HTML also pass.
+
+P's prospective v8 profile and ordinary readiness pass. The independent profile
+probe uses the actual launchd PATH and current pool configuration, with no
+settings change. Its profile hash is
+`ca887b84b47b7e0e59e9c4a4a25a281afd5f1b9054f794daa00b8f3654f6c481`;
+validator hash is
+`90e57c83de4fb6ddc8fbcb4aa094b1cd864701cbb6345e3556464d1561084c2f`.
+Only `validatorHash` differs from the pre-activation profile. An initial manager
+probe used shell tool aliases, producing a different toolchain-bound hash;
+both shell/launchd Node and uv paths resolve to the same binaries. Repeating
+the existing builder with launchd's actual discovery paths exactly matches
+the live profile. This corrected the probe, not product code or configuration.
+Old attempt/profile pins remain byte-for-byte unchanged. No opt-in qualification
+pair, new grant, provider generation or owner creative acceptance is implied.
+
+The single `.local/current-qualified-recovery` manifest identifies final clean
+source, pinned submodule contents and the exact smoke-passing wheel
+`20d1de4bbfe399af1abdfcc7adfd408b6f0e62286f4f3ecc93e4761e353567da`.
+All archive members and wheel hashes are checked before replacing the previous
+package and again after replacement. There is no second retained archive.
+Only these closeout documents change after the activated checkpoint; final P
+documentation sync preserves executable/source/profile identity and needs no
+second process restart. Consumed `.local/g2` evidence/wheel and temporary
+preservation fingerprints are removed after package verification.
+
+Both the implementation worker and independent reviewer returned actual finals,
+released source/process access, and were archived and unregistered from Relay.
+The retained local main and installed checkout end clean at the same final
+documentation checkpoint. G2 is complete. G3–G5 and other audit work remain
+unselected; no push, GitHub CI, provider/settings change or live-data deletion
+occurred. Separate product/infrastructure/coordination timings are unavailable;
+measured verification times above remain the actual recorded values.
