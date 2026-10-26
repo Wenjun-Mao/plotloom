@@ -839,3 +839,64 @@ The owner decision on one bounded prospective Script correction is pending; unti
 answered, current correction policy remains and B3 stays unqualified. This is a
 documentation-only closeout: executable files/pinned resources remain b5 bytes,
 and all original evidence continues to name b5 rather than this later docs commit.
+
+
+### UNAPPROVED proposal: one linked automatic Script correction
+
+Purpose: one corrective Script candidate after trusted known content rejection, using
+the existing immutable mechanism. Material prospective policy: **UNAPPROVED**.
+Matrices/allowlist/holds stay intact; owner agreement and independent review precede handoff.
+
+Feasibility is more than adding Script to an allowlist: `TextContentRejection.stage`,
+correction persistence `HEADS`, public failure `STAGES` and `NativeOperationReceipt`
+attempt caps exclude it. `scripts/text-content-validation.mjs` adapts three stages;
+the native `scripts/script_receiving.py` broad exit 1 combines upstream rejection,
+parser/input/binding errors and runtime failures; neither that exit nor stderr can
+authorize correction. First establish a source-owned normal content-result boundary:
+reuse pinned `validateScript(candidate, {outline, art})` returned problems for known
+upstream content failure, including the observed duration rejection, while preserving
+its unchanged validator and exact native/upstream route. For the native route,
+retaining all existing receiving checks and renderer is mandatory; any additional
+receiving rejection eligibility needs its own explicit typed normal-result boundary,
+never blanket conversion of `ValueError`, thrown errors or subprocess failures.
+
+Keep automatic limit 1 per logical stage, adding Script; no manual-extra expansion.
+Only completed CLI exit 0/exact session plus trusted validation may produce a
+closed typed rejection binding source attempt/run/job, candidate bytes, validation
+evidence, request/package/plan/profile/source. Feedback uses fixed issue codes/paths
+and source-owned facts; display diagnostics remain literal explanations, not commands.
+Create one new immutable `script:correction:1` job/checkpoint under current leases,
+CAS and command authority; exact parent lineage, duplicate/reopen idempotency and
+atomic publication remain required. Exhaustion blocks; original history remains.
+A corrected adoption is accepted but never first pass; every attempt remains counted.
+
+Preserve frozen author source/Brief, section mapping, complete routes, route-only
+sections, route maximum `targetPlaythroughSeconds`, upstream artifacts, model/effort,
+style and selected dialogue constraints. Candidate episode `targetSeconds` are not
+therefore author-owned: preserve exact values where frozen inputs impose them;
+otherwise retain existing model ownership within the same route/timing contract.
+Do not relax effective estimator/tolerance parameters to repair the result. Model
+owned prose/action/dialogue may change; trusted code must not pad or rewrite it.
+The unchanged strict duration, route, dialogue, content and report gates decide success.
+
+Affected owners: `scripts/text-content-validation.mjs`, `scripts/script_receiving.py`,
+`src/plotloom/{script_receiving,codex_exec_validation,text_correction_contracts}.py`,
+`services/creator_workbench/codex_exec_supervisor_validation.py`,
+`src/plotloom/persistence/project/{script,autopilot_text_correction}.py`,
+`src/plotloom/{autopilot_text_controller,autopilot_text_failures,codex_exec_prompts}.py`
+and Alpha receipt/provenance/workload owners. Review request/package projection, pins/validator inventories and
+frontend `TextFailureCard.tsx`/contracts/API; generic support alone is insufficient.
+
+If approved, amend affected ADRs/contracts and version new qualification semantics;
+freeze new source/pins/profile/plans; never reinterpret b5/UNKNOWNs. Verify immutable
+rejected-byte replay and strict negatives, then a controlled child journey:
+normal rejection→one correction→validation/adoption/readback/reopen;
+cover repeated rejection, no third dispatch, malformed/foreign/stale evidence,
+source/input/parameter drift, cancellation/UNKNOWN/nonzero exit, quota/CAS/crash and
+first-pass accounting. Extend existing `test_codex_exec_validation.py`,
+`test_script_receiving.py`, creator-workbench `test_text_content_correction.py` and
+`test_text_correction_budget.py`, plus native Alpha receipt/prefix contracts.
+Then prove the genuine corrective journey early and a fresh frozen nine-sample
+matrix (9/9 installs, >=60/72 first pass) with three independent blind reviews before
+held core activation/recovery. Preserve the original failed matrices and all holds;
+no retry of their original identities or generation is authorized by this proposal.
