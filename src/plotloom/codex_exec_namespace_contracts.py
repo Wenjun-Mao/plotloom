@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 from .codex_exec_constants import HASH
 from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile
 from .codex_exec_pool_contracts import CodexExecPoolLimits
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class ExecNamespacePath(CamelModel):

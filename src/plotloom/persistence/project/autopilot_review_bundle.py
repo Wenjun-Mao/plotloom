@@ -3,7 +3,7 @@ from sqlalchemy import select
 from ...autopilot_contracts import LaunchPolicy, ProvisionalFrame
 from ...autopilot_materials import initial_inventory
 from ...autopilot_handoff_contracts import CurrentReviewBundle, ReviewReference, ReviewFrame, ReviewAsset
-from ...domain import StageName
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError
 from ...keyframe_preparation import has_matching_aspect
 from ...source_structures import complete_routes

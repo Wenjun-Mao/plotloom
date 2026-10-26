@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .video_contracts import H3DirectionField
 
 

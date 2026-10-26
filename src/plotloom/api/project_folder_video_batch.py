@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from pydantic import Field
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from ..video_batch_contracts import (
     BatchConfirmation,
     BatchControl,

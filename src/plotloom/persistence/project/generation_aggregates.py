@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 from ..project.constants import CURRENT_STAGE_SCHEMA_VERSION
-from ...domain import CanonicalSnapshot, RunStatus, StageName, SealedStageAggregateTrace, WorkUnitStatus, new_id, utc_now
+from plotloom.stage_contracts import CanonicalSnapshot, StageName
+from plotloom.run_contracts import RunStatus, WorkUnitStatus
+from plotloom.run_evidence_contracts import SealedStageAggregateTrace
+from plotloom.contract_identity import new_id, utc_now
 from ..schema import FragmentReuseBindingRow, GenerationWorkUnitRow, SealedStageAggregateRow
 from ...exceptions import InvalidTransitionError, RepairEligibilityError
 from plotloom.generation.planning_contracts import StagePlan

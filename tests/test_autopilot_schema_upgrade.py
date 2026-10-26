@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStorageCorruptionError
 from plotloom.project_storage.format import _read_json, parse_project_manifest

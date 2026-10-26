@@ -513,7 +513,8 @@
           "tests/services/creator_workbench/test_h3_runtime.py",
           "tests/test_conformance.py",
           "tests/test_secret_value_contract.py",
-          "tests/test_service_source_contract.py"
+          "tests/test_service_source_contract.py",
+          "tests/test_backend_contract_ownership.py"
         ],
         "vitest": [
           "frontend/tests/api-text-pipeline-commands.test.ts",
@@ -644,7 +645,8 @@
           "tests/services/minimax_h3_gateway/test_vae_policy.py",
           "tests/services/minimax_h3_gateway/test_vae_qualification.py",
           "tests/services/minimax_h3_gateway/test_voice_reference.py",
-          "tests/services/minimax_h3_gateway/test_voice_takes_api.py"
+          "tests/services/minimax_h3_gateway/test_voice_takes_api.py",
+          "tests/test_image_send_route_authority.py"
         ],
         "vitest": [
           "frontend/tests/bridge-choice-retry.test.ts",

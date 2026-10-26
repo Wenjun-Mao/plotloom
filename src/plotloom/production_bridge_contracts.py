@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .machine_adoption import MachineAdoption
 from .production_presentation import ProductionPresentation, PresentationCandidate
 

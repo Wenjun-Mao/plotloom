@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...video_batch_replacement import assert_rejected_take_mutable
 from ...video_segments import DerivedSegment

@@ -15,7 +15,9 @@ import pytest
 
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import ArtifactKind, AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, STAGE_ORDER, StageName, WorkUnitStatus
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import STAGE_ORDER, StageName
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.generation.exceptions import ProviderError, ProviderResponseError
 from plotloom.jobs import LifecycleJobRunner

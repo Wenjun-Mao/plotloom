@@ -5,7 +5,7 @@ from collections.abc import Callable
 from typing import Any
 
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import HTMLResponse
 
 from ..production_bridge_contracts import (
     ProductionBridgeAcceptRequest,
@@ -49,13 +49,6 @@ def register_project_folder_production_bridge_routes(
         if state.presentation_job is not None and native_presentation_service is not None:
             result.native_presentation_task = native_presentation_service.status(project_id, state.presentation_job.id)
         return result
-
-    @app.exception_handler(BridgeIntentUnavailableError)
-    async def unavailable_intent_handler(_request: Request, _error: BridgeIntentUnavailableError) -> JSONResponse:
-        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={
-            "code": "bridge_intent_not_configured", "reason": "not_configured",
-            "message": "当前服务未配置戏剧意图推断。可逐项填写作者意图并保存整包；不会自动配置或重试模型。",
-        })
 
     def require_intent_service() -> tuple[ProductionBridgeIntentService, TextAdmissionService]:
         if intent_service is None or text_admission is None:

@@ -7,13 +7,9 @@ from time import perf_counter
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import (
-    ProjectBrief,
-    StageName,
-    StoryBibleV2,
-    V2StoryEdgeKind,
-    V2StoryNodeKind,
-)
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
+from plotloom.canonical_schema import StoryBibleV2, V2StoryEdgeKind, V2StoryNodeKind
 from plotloom.generation.graph_repair_contracts import (
     EdgeStateEffectJsonRepairFact,
     JoinStateEffectRepairFact,

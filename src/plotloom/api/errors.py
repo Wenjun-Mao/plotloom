@@ -1,199 +1,41 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
-
 from fastapi import FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
 
+from ..creative_handoff_contracts import CreativeHandoffError
 from ..exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
-    KeyframeAspectMismatchError,
-    LifecycleContentionError,
     NotFoundError,
-    ProductionPipelineNotReadyError,
-    ProjectBusyError,
     ProjectManagedAssetsPresentError,
-    RepairEligibilityError,
     RevisionConflictError,
-    SchemaResetRequiredError,
-    StagePrerequisiteError,
 )
-from ..managed_media import (
-    ManagedMediaError,
-)
-from ..image_job_contracts import (
-    ImageJobError,
-)
-from ..creative_handoff_contracts import CreativeHandoffError
-from plotloom.generation.story_graph_topology_contracts import StoryGraphTopologyError
-from ..validation import DomainValidationError, pydantic_issues
+from ..exceptions import ProjectBusyError as LifecycleProjectBusyError
 from ..graph_safety_diagnostics import transition_error_content
+from ..image_job_contracts import ImageJobError
+from ..managed_media import ManagedMediaError
+from ..project_storage import (
+    ProjectBusyError,
+    ProjectClosedError,
+    ProjectStorageConflictError,
+    ProjectStorageError,
+)
+from ..validation import DomainValidationError
+from .production_bridge_state import BridgeIntentUnavailableError
 
 
 def register_api_error_handlers(app: FastAPI) -> None:
-    @app.exception_handler(NotFoundError)
-    async def not_found_handler(
-        _request: Request, error: NotFoundError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=404, content={"code": "not_found", "message": str(error)}
-        )
+    """Install the canonical project-folder HTTP policy, leaving native validation intact."""
 
-    @app.exception_handler(RevisionConflictError)
-    async def revision_conflict_handler(
-        _request: Request, error: RevisionConflictError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409,
-            content={
-                "code": "revision_conflict",
-                "message": str(error),
-                "resource": error.resource,
-                "expectedRevision": error.expected_revision,
-                "actualRevision": error.actual_revision,
-            },
-        )
-
-    @app.exception_handler(StagePrerequisiteError)
-    async def prerequisite_handler(
-        _request: Request, error: StagePrerequisiteError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409,
-            content={
-                "code": "stage_prerequisite",
-                "message": str(error),
-                "stage": error.stage.value,
-                "prerequisite": error.prerequisite.value,
-                "status": error.status,
-            },
-        )
-
-    @app.exception_handler(InvalidTransitionError)
-    async def transition_handler(
-        _request: Request, error: InvalidTransitionError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409,
-            content=transition_error_content(error),
-        )
-
-    @app.exception_handler(KeyframeAspectMismatchError)
-    async def keyframe_aspect_mismatch_handler(
-        _request: Request, error: KeyframeAspectMismatchError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={
-                "code": error.code,
-                "message": str(error),
-                "source": {"width": error.source_width, "height": error.source_height},
-                "target": {"width": error.target_width, "height": error.target_height},
-            },
-        )
-
-    @app.exception_handler(SchemaResetRequiredError)
-    async def schema_reset_required_handler(
-        _request: Request, error: SchemaResetRequiredError
+    @app.exception_handler(ProjectStorageConflictError)
+    async def project_storage_conflict_handler(
+        _request: Request, error: ProjectStorageConflictError
     ) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            content={
-                "code": error.code,
-                "message": str(error),
-                "stage": error.stage.value,
-                "schemaVersion": error.schema_version,
-            },
-        )
-
-    @app.exception_handler(RepairEligibilityError)
-    async def repair_eligibility_handler(
-        _request: Request, error: RepairEligibilityError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409,
-            content={"code": error.code, "message": str(error)},
-        )
-
-    @app.exception_handler(ProductionPipelineNotReadyError)
-    async def production_pipeline_not_ready_handler(
-        _request: Request, error: ProductionPipelineNotReadyError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
-            content={"code": error.code, "message": str(error)},
-        )
-
-    @app.exception_handler(ProjectBusyError)
-    async def project_busy_handler(
-        _request: Request, error: ProjectBusyError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409, content={"code": "project_busy", "message": str(error)}
-        )
-
-    @app.exception_handler(ProjectManagedAssetsPresentError)
-    async def project_managed_assets_present_handler(
-        _request: Request, error: ProjectManagedAssetsPresentError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=409, content={"code": error.code, "message": str(error)}
-        )
-
-    @app.exception_handler(ManagedMediaError)
-    async def managed_media_handler(
-        _request: Request, error: ManagedMediaError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=422, content={"code": error.code, "message": str(error)}
-        )
-
-    @app.exception_handler(ImageJobError)
-    async def image_job_handler(
-        _request: Request, error: ImageJobError
-    ) -> JSONResponse:
-        status_code = (
-            409
-            if error.code
-            in {
-                "image_exchange_not_configured",
-                "image_exchange_invalid",
-                "package_conflict",
-                "delivery_conflict",
-                "delivery_finalized",
-                "request_integrity",
-            }
-            else 422
-        )
-        return JSONResponse(
-            status_code=status_code, content={"code": error.code, "message": str(error)}
-        )
-
-    @app.exception_handler(CreativeHandoffError)
-    async def creative_handoff_handler(
-        _request: Request, error: CreativeHandoffError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=(
-                status.HTTP_409_CONFLICT
-                if error.code in {"delivery_stale", "delivery_conflict", "delivery_identity_mismatch", "request_identity_mismatch", "package_conflict"}
-                else status.HTTP_422_UNPROCESSABLE_CONTENT
-            ),
-            content={"code": error.code, "message": str(error)},
-        )
-
-    @app.exception_handler(LifecycleContentionError)
-    async def lifecycle_contention_handler(
-        _request: Request, error: LifecycleContentionError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=503,
-            content={"code": "lifecycle_contention", "message": str(error)},
-            headers={"Retry-After": str(error.retry_after_seconds)},
+            content={"code": "revision_conflict", "message": str(error)},
         )
 
     @app.exception_handler(IdempotencyConflictError)
@@ -201,7 +43,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
         _request: Request, error: IdempotencyConflictError
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=409,
+            status_code=status.HTTP_409_CONFLICT,
             content={"code": "idempotency_conflict", "message": str(error)},
         )
 
@@ -210,17 +52,117 @@ def register_api_error_handlers(app: FastAPI) -> None:
         _request: Request, error: BootstrapContentionError
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=503,
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={"code": "bootstrap_contention", "message": str(error)},
             headers={"Retry-After": str(error.retry_after_seconds)},
         )
 
+    @app.exception_handler(ProjectBusyError)
+    async def project_busy_handler(
+        _request: Request, error: ProjectBusyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_busy", "message": str(error)},
+        )
+
+    @app.exception_handler(LifecycleProjectBusyError)
+    async def persisted_project_busy_handler(
+        _request: Request, error: LifecycleProjectBusyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_busy", "message": str(error)},
+        )
+
+    @app.exception_handler(ProjectClosedError)
+    async def project_closed_handler(
+        _request: Request, error: ProjectClosedError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_closed", "message": str(error)},
+        )
+
+    @app.exception_handler(NotFoundError)
+    async def project_folder_not_found_handler(
+        _request: Request, error: NotFoundError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"code": "not_found", "message": str(error)},
+        )
+
+    @app.exception_handler(InvalidTransitionError)
+    async def project_folder_transition_handler(
+        _request: Request, error: InvalidTransitionError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=transition_error_content(error),
+        )
+
+    @app.exception_handler(CreativeHandoffError)
+    async def project_folder_creative_handoff_handler(
+        _request: Request, error: CreativeHandoffError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=(
+                status.HTTP_409_CONFLICT
+                if error.code
+                in {
+                    "delivery_stale",
+                    "delivery_conflict",
+                    "delivery_identity_mismatch",
+                    "request_identity_mismatch",
+                    "package_conflict",
+                    "delivery_cancelled",
+                }
+                else status.HTTP_422_UNPROCESSABLE_CONTENT
+            ),
+            content={"code": error.code, "message": str(error)},
+        )
+
+    @app.exception_handler(ProjectManagedAssetsPresentError)
+    async def project_folder_managed_assets_handler(
+        _request: Request, error: ProjectManagedAssetsPresentError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": error.code, "message": str(error)},
+        )
+
+    @app.exception_handler(ProjectStorageError)
+    async def project_storage_error_handler(
+        _request: Request, error: ProjectStorageError
+    ) -> JSONResponse:
+        missing = str(error).startswith("project not found")
+        if missing:
+            response_status = status.HTTP_404_NOT_FOUND
+            code = "not_found"
+        else:
+            response_status = status.HTTP_422_UNPROCESSABLE_CONTENT
+            code = "project_storage_error"
+        return JSONResponse(
+            status_code=response_status,
+            content={"code": code, "message": str(error)},
+        )
+
+    @app.exception_handler(RevisionConflictError)
+    async def authoring_revision_conflict_handler(
+        _request: Request, error: RevisionConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "revision_conflict", "message": str(error)},
+        )
+
     @app.exception_handler(DomainValidationError)
-    async def domain_validation_handler(
+    async def project_folder_domain_validation_handler(
         _request: Request, error: DomainValidationError
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=422,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={
                 "code": "domain_validation",
                 "message": str(error),
@@ -228,51 +170,57 @@ def register_api_error_handlers(app: FastAPI) -> None:
             },
         )
 
-    def schema_validation_response(issues: list[Mapping[str, Any]]) -> JSONResponse:
+    @app.exception_handler(ValueError)
+    async def authoring_validation_handler(
+        _request: Request, error: ValueError
+    ) -> JSONResponse:
         return JSONResponse(
-            status_code=422,
-            content={
-                "code": "schema_validation",
-                "message": "validated payload does not match its current schema",
-                "issues": issues,
-            },
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"code": "authoring_draft_invalid", "message": str(error)},
         )
 
-    @app.exception_handler(ValidationError)
-    async def canonical_schema_validation_handler(
-        _request: Request, error: ValidationError
-    ) -> JSONResponse:
-        return schema_validation_response(pydantic_issues(error))
-
-    @app.exception_handler(RequestValidationError)
-    async def request_schema_validation_handler(
-        _request: Request,
-        error: RequestValidationError,
-    ) -> JSONResponse:
-        # FastAPI's default response includes each rejected ``input`` value.
-        # That is unsafe for endpoints which defensively reject API-key-shaped
-        # fields, and it also bypasses the workbench's stable issue contract.
-        # Project only the three public fields we own and remove FastAPI's
-        # transport-level ``body`` prefix from author-facing paths.
-        issues = []
-        for item in error.errors():
-            location = [str(part) for part in item.get("loc", ())]
-            if location and location[0] == "body":
-                location = location[1:]
-            issues.append(
-                {
-                    "code": "schema_validation",
-                    "path": ".".join(location),
-                    "message": str(item.get("msg") or "invalid request value"),
-                }
-            )
-        return schema_validation_response(issues)
-
-    @app.exception_handler(StoryGraphTopologyError)
-    async def topology_planning_handler(
-        _request: Request, error: StoryGraphTopologyError
+    @app.exception_handler(ManagedMediaError)
+    async def managed_media_error_handler(
+        _request: Request, error: ManagedMediaError
     ) -> JSONResponse:
         return JSONResponse(
-            status_code=422,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={"code": error.code, "message": str(error)},
+        )
+
+    @app.exception_handler(ImageJobError)
+    async def image_job_error_handler(
+        _request: Request, error: ImageJobError
+    ) -> JSONResponse:
+        conflict_codes = {
+            # These mean a previously accepted immutable identity conflicts.
+            # Untrusted delivery shape/content (including geometry) is 422.
+            "package_conflict",
+            "delivery_conflict",
+            "delivery_finalized",
+            "specialist_busy",
+            "specialist_already_sent",
+            "image_dispatch_busy",
+            "image_dispatch_already_attempted",
+        }
+        return JSONResponse(
+            status_code=(
+                status.HTTP_409_CONFLICT
+                if error.code in conflict_codes
+                else status.HTTP_422_UNPROCESSABLE_CONTENT
+            ),
+            content={"code": error.code, "message": str(error)},
+        )
+
+    @app.exception_handler(BridgeIntentUnavailableError)
+    async def unavailable_intent_handler(
+        _request: Request, _error: BridgeIntentUnavailableError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "code": "bridge_intent_not_configured",
+                "reason": "not_configured",
+                "message": "当前服务未配置戏剧意图推断。可逐项填写作者意图并保存整包；不会自动配置或重试模型。",
+            },
         )

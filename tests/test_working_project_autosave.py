@@ -113,3 +113,36 @@ def test_working_display_title_is_independent_of_confirmed_brief():
     assert working_project_title("Confirmed", "  ") == "未命名项目"
     assert working_project_title(None, " Draft ") == "Draft"
     assert working_project_title("Confirmed", "Draft") == "Draft"
+
+
+def test_incomplete_brief_restart_then_exact_adoption_receipt(tmp_path: Path):
+    """The smallest B1/B2 real API/SQLite journey uses the same project home."""
+    from plotloom.conformance import FIXED_CHINESE_BRIEF
+
+    roots = dict(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    with TestClient(create_project_folder_authoring_app(ProjectFolderStorage(**roots))) as client:
+        response = client.post("/api/v2/projects", json={"brief": None}, headers={"Idempotency-Key": "b12-restart"})
+        assert response.status_code == 201, response.text
+        base = f"/api/v2/projects/{response.json()['id']}"
+        draft = client.put(base + "/authoring-drafts", json={
+            "editorScope": "brief", "entityId": "root", "baseCanonicalRevision": 1,
+            "expectedDraftRevision": 0, "payload": {"title": "B12 draft", "synopsis": "", "targetPlaythroughSeconds": ""},
+        })
+        assert draft.status_code == 200, draft.text
+        assert client.get(base).json()["displayTitle"] == "B12 draft"
+        assert client.get(base).json()["brief"] is None
+    with TestClient(create_project_folder_authoring_app(ProjectFolderStorage(**roots))) as client:
+        assert client.get(base + "/authoring-drafts").json() == [draft.json()]
+        complete = FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)
+        updated = client.put(base + "/authoring-drafts", json={
+            "editorScope": "brief", "entityId": "root", "baseCanonicalRevision": 1,
+            "expectedDraftRevision": draft.json()["draftRevision"], "payload": complete,
+        })
+        assert updated.status_code == 200, updated.text
+        adopted = client.patch(base, json={"expectedRevision": 1, "brief": complete, "consumedDraft": {
+            "editorScope": "brief", "entityId": "root", "draftRevision": updated.json()["draftRevision"],
+        }})
+        assert adopted.status_code == 200, adopted.text
+        assert adopted.headers["X-Plotloom-Draft-Consumed-Revision"] == str(updated.json()["draftRevision"])
+        assert client.get(base).json()["brief"] == adopted.json()["brief"]
+        assert client.get(base + "/authoring-drafts").json() == []

@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import Field
 
 from .codex_exec_contracts import CodexExecAttempt
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class AbandonmentPacket(CamelModel):

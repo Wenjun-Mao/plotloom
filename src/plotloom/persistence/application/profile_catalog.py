@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...provider_profiles import PROFILE_ID_PATTERN, TextProviderProfile, TextProviderProfileSnapshot
 from ..schema import TextProviderProfileRow

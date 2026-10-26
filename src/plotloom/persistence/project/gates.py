@@ -9,14 +9,13 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    STAGE_ORDER, AuthoringDraft, AuthoringDraftScope, DialogueTimingProfile,
-    EntityRevision, GateEvaluation, GateEvidence, GateResult, InitialStage,
-    LatestRunSummary, Project, ProjectBrief, ProjectCreation, ProjectDuplicateResult,
-    ProjectLifecycleStatus, ProjectSummary, StageEnvelope, StageHead, StageName,
-    StagePayload, StageStatus, downstream_stages, new_id, stage_payload_model,
-    utc_now, upstream_stages, validate_initial_stage_prefix,
-)
+from plotloom.stage_contracts import STAGE_ORDER, AuthoringDraft, AuthoringDraftScope, EntityRevision, InitialStage, StageEnvelope, StageHead, StageName, StagePayload, StageStatus, downstream_stages, stage_payload_model, upstream_stages, validate_initial_stage_prefix
+from plotloom.canonical_schema import DialogueTimingProfile
+from plotloom.gate_contracts import GateEvaluation, GateEvidence, GateResult
+from plotloom.run_contracts import LatestRunSummary
+from plotloom.project_contracts import Project, ProjectCreation, ProjectDuplicateResult, ProjectLifecycleStatus, ProjectSummary
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import (
     IdempotencyConflictError, InvalidTransitionError, NotFoundError, ProjectBusyError,
     ProjectManagedAssetsPresentError, RevisionConflictError, SchemaResetRequiredError,

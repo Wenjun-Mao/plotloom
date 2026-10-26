@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...video_batch_replacement import assert_rejected_take_mutable
 from ..schema import (

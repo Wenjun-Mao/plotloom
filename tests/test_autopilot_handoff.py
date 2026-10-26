@@ -214,7 +214,7 @@ def test_manual_multiview_reference_set_is_fully_displayed_and_endorsed(tmp_path
 
     from PIL import Image
 
-    from plotloom.domain import StageName
+    from plotloom.stage_contracts import StageName
     from plotloom.persistence.schema import AutopilotHandoffRow, VisualSelectionStateRow
     from plotloom.validation import STORYBOARD_GATE_SET_VERSION
     storage, _registry, service, view, calls, _text = handoff_image_environment(tmp_path, monkeypatch)

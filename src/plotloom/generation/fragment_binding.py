@@ -6,16 +6,7 @@ from typing import Mapping, TypeAlias
 from uuid import NAMESPACE_URL, uuid5
 
 from ..canonical_schema import V2CoverageRole
-from ..domain import (
-    AudioEvent,
-    AudioPlan,
-    BeatV2,
-    DialogueCue,
-    DialogueTimingProfile,
-    DramaticSceneV2,
-    ShotBeatLinkV2,
-    ShotV2,
-)
+from plotloom.canonical_schema import AudioEvent, AudioPlan, BeatV2, DialogueCue, DialogueTimingProfile, DramaticSceneV2, ShotBeatLinkV2, ShotV2
 from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
 from plotloom.generation.planning_contracts import GenerationWorkUnit, StagePlan
 from .scene_response_contracts import (

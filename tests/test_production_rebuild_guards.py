@@ -6,7 +6,7 @@ from copy import deepcopy
 import pytest
 from sqlalchemy import select
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from tests.production_bridge_fixtures import _prepare_installable_bridge
 from tests.production_rebuild_fixtures import _accept, _heads, _review, _store
@@ -19,7 +19,7 @@ from tests.production_rebuild_fixtures import _accept, _heads, _review, _store
 def test_direct_video_job_blocks_preparation_and_acceptance_without_clearing_it(
     tmp_path, job_state
 ):
-    from plotloom.domain import utc_now
+    from plotloom.contract_identity import utc_now
     from plotloom.persistence.schema import VideoJobRow
 
     _, store = _store(tmp_path)

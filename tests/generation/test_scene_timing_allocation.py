@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import ProjectBrief, StoryEdgeV2, StoryGraphV2, StoryNodeV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.canonical_schema import StoryEdgeV2, StoryGraphV2, StoryNodeV2
 from plotloom.generation.scene_timing_allocation import (
     SceneTimingAllocationError,
     plan_scene_timing_allocation,

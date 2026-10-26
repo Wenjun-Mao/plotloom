@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError
 from ..transactions import (
     bootstrap_lease,

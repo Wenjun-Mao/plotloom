@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import select
 
-from plotloom.api.models import _approval_decision_view
+from plotloom.api.approval_views import _approval_decision_view
 from plotloom.autopilot_contracts import OperationScope
 from plotloom.autopilot_handoff_contracts import (
     HumanHandoffRequest,

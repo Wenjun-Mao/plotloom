@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..domain import GenerationRun
+from plotloom.run_contracts import GenerationRun
 from .application_store import ApplicationStore
 from .format import ProjectStorageConfinementError
 from .lifecycle import ProjectFolderLifecycleService

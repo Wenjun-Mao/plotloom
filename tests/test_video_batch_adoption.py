@@ -58,7 +58,7 @@ def test_adoption_without_current_execution_authority_never_submits(tmp_path, st
         service.control(project_id, BatchControl(batchId=successor["id"], expectedControlRevision=successor["controlRevision"], action="pause" if state == "paused" else "cancel"))
     if state == "stale":
         with closing(storage.projects.open(project_id)) as store:
-            from plotloom.domain import StageName
+            from plotloom.stage_contracts import StageName
             head = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
             board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
             shot = board.shots[0].model_copy(update={"action": board.shots[0].action + " Changed current source."})

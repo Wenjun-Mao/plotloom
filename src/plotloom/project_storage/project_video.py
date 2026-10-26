@@ -5,7 +5,7 @@ from __future__ import annotations
 from hashlib import sha256
 from typing import Any
 
-from ..domain import utc_now
+from plotloom.contract_identity import utc_now
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..persistence.schema import ProjectVideoDispatchRow, VideoJobRow
 from ..video_provider import VideoBackendBinding, VideoProductionContract

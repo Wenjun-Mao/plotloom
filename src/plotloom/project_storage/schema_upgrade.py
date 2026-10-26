@@ -132,7 +132,7 @@ def assert_idle_prior(connection):
 
 def upgrade_database(connection, project_id, *, after_ddl=None, require_idle=True):
     """Transactional DDL, including the exclusive image-unit authority union."""
-    from ..domain import contains_secret_value
+    from plotloom.public_values import contains_secret_value
     from .recovery_validation import _contains_forbidden_database_setting
     layout = classify_layout(connection)
     if layout == "current":

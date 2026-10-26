@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import new_id
+from plotloom.contract_identity import new_id
 from ...exceptions import InvalidTransitionError
 from ..codec import _stored_utc
 from ..schema import VideoPilotLedgerEventRow, VideoPilotLedgerRow

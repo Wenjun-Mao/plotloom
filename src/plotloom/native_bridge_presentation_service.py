@@ -4,7 +4,7 @@ from typing import Any
 
 from .creative_handoff_contracts import CreativeHandoffRequest
 from .creative_handoff_exchange import request_hash
-from .domain import new_id
+from plotloom.contract_identity import new_id
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .native_bridge_candidate_service import NativeBridgeCandidateService

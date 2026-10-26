@@ -6,7 +6,7 @@ from copy import deepcopy
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
 )

@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from .codex_exec_constants import HASH, JOB_ID
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .text_correction_contracts import TextContentRejection
 
 

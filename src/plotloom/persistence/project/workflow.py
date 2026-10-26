@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...domain import StageHead, StageName, StagePayload, stage_payload_model, utc_now
+from plotloom.stage_contracts import StageHead, StageName, StagePayload, stage_payload_model
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .access import ProjectPersistenceAccess

@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import inspect, text
 
 from plotloom.autopilot_materials import initial_inventory
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.persistence.schema import ProductionBridgeHeadRow, ProductionBridgeRevisionRow
 from plotloom.script_contracts import ScriptReopenRequest

@@ -11,15 +11,7 @@ from collections import Counter, defaultdict
 
 from pydantic import ConfigDict, Field, model_validator
 
-from ..domain import (
-    BeatV2,
-    DialogueCue,
-    DramaticSceneV2,
-    ShotBeatLinkV2,
-    ShotV2,
-    StoryBibleV2,
-    StoryGraphV2,
-)
+from plotloom.canonical_schema import BeatV2, DialogueCue, DramaticSceneV2, ShotBeatLinkV2, ShotV2, StoryBibleV2, StoryGraphV2
 from ..canonical_schema import V2CoverageRole
 from plotloom.generation.planning_contracts import PlanningModel
 

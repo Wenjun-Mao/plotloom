@@ -4,12 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Mapping
 
-from .domain import (
-    Artifact,
-    ArtifactKind,
-    GenerationAttempt,
-    GenerationRun,
-)
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import GenerationAttempt, GenerationRun
 from .generation.contracts import (
     ProviderResponse,
     ProviderUsage,

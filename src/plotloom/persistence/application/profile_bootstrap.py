@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from ...domain import contains_secret_setting, contains_secret_value, utc_now
+from plotloom.public_values import contains_secret_setting, contains_secret_value
+from plotloom.contract_identity import utc_now
 from ...provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, PresetId, TextProviderProfile, TextProviderProfileSnapshot, is_v2_snapshot
 from ..schema import ProviderProfileSelectionRow, TextProviderProfileRow
 from .access import ApplicationControlAccess

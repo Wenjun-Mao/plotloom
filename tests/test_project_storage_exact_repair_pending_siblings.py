@@ -8,7 +8,9 @@ import pytest
 from sqlalchemy import select
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import FragmentReuseKind, RunStatus, STAGE_ORDER, StageName, WorkUnitStatus
+from plotloom.repair_contracts import FragmentReuseKind
+from plotloom.run_contracts import RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import STAGE_ORDER, StageName
 from plotloom.exceptions import RepairEligibilityError
 from plotloom.persistence import stable_hash
 from plotloom.persistence.schema.project_generation import GenerationWorkUnitRow, SealedStageAggregateRow

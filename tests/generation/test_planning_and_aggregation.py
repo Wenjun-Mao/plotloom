@@ -2,27 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import (
-    V2CoverageRole,
-    JoinContractV2,
-    V2ShotSize,
-    StageName,
-    StoryEdgeV2,
-    V2StoryEdgeKind,
-    StoryGraphV2,
-    StoryNodeV2,
-    V2StoryNodeKind,
-    AudioPlan,
-    BeatV2,
-    ContinuityStateV2,
-    DramaticSceneV2,
-    SceneBeatPlanV2,
-    ShotBeatLinkV2,
-    ShotV2,
-    StoryBibleV2,
-    StoryGraphV2,
-    StoryboardV2,
-)
+from plotloom.canonical_schema import V2CoverageRole, JoinContractV2, V2ShotSize, StoryEdgeV2, V2StoryEdgeKind, StoryGraphV2, StoryNodeV2, V2StoryNodeKind, AudioPlan, BeatV2, ContinuityStateV2, DramaticSceneV2, SceneBeatPlanV2, ShotBeatLinkV2, ShotV2, StoryBibleV2, StoryGraphV2, StoryboardV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.aggregation import (
     AggregateValidationError,
     aggregate_stage_fragments,
@@ -567,7 +548,7 @@ def test_aggregate_uses_frozen_profile_and_rejects_global_canonical_failures(mon
 
 
 def _brief(*, shots_per_scene_max: int = 2):
-    from plotloom.domain import ProjectBrief
+    from plotloom.brief_contracts import ProjectBrief
 
     return ProjectBrief(
         title="星海回声",

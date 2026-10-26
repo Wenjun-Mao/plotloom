@@ -6,7 +6,8 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...domain import StageName, new_id, utc_now
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import (
     InvalidTransitionError,
     NotFoundError,

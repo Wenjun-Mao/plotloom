@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import InitialStage, STAGE_ORDER, StageName
+from plotloom.stage_contracts import InitialStage, STAGE_ORDER, StageName
 from plotloom.project_storage import ProjectFolderStorage
 
 from tests.backend_core.conftest import all_stage_payloads

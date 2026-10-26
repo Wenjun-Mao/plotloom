@@ -30,7 +30,7 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
             expand_validation_argv,
             validation_plan_from_package,
         )
-        from plotloom.domain import contains_secret_value
+        from plotloom.public_values import contains_secret_value
 
         try:
             plan = validation_plan_from_package(package_request)

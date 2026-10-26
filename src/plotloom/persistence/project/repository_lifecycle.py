@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ...domain import Project
+from plotloom.project_contracts import Project
 from .lifecycle import ProjectLifecyclePersistence
 
 

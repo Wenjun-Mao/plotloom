@@ -6,14 +6,9 @@ from typing import Any, Mapping
 
 from pydantic import BaseModel
 
-from ..domain import (
-    DialogueTimingProfile,
-    ProjectBrief,
-    SceneBeatPlanV2,
-    StageName,
-    StoryGraphV2,
-    default_dialogue_timing_profile,
-)
+from plotloom.canonical_schema import DialogueTimingProfile, SceneBeatPlanV2, StoryGraphV2, default_dialogue_timing_profile
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from ..edge_entry_states import (
     EdgeEntryStateContractError,
     compile_edge_entry_state_contract,

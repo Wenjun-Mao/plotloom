@@ -11,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 # Manifest admission remains exact. The separately invoked immediate-prior
 # schema transition never runs through ordinary folder reads or opens.

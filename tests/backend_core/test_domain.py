@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import ProjectBrief, V2CoverageRole, StoryEdgeV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.canonical_schema import V2CoverageRole, StoryEdgeV2
 from plotloom.validation import (
     DomainValidationError,
     validate_scene_beat_coverage,

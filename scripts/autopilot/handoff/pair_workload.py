@@ -5,7 +5,7 @@ import hashlib
 import json
 
 from plotloom.codex_exec_contracts import assert_receipt_matches_attempt
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.source_structures import complete_routes
 
 

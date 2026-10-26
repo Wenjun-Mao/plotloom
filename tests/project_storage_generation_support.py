@@ -8,7 +8,8 @@ from typing import Any
 
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import RunKind, StageName
+from plotloom.run_contracts import RunKind
+from plotloom.stage_contracts import StageName
 from plotloom.generation.contracts import ProviderResponse
 from plotloom.jobs import LifecycleJobRunner
 from plotloom.pipeline import PipelineEngine

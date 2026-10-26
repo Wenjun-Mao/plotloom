@@ -8,7 +8,7 @@ from plotloom.codex_exec_namespace_contracts import (
     CodexExecNamespaceBinding,
     ExecNamespacePath,
 )
-from plotloom.domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 HASH = r"^[a-f0-9]{64}$"
 

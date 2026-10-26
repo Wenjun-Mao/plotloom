@@ -4,7 +4,7 @@ from contextlib import closing
 from plotloom import delegated_qa
 from plotloom.delegated_qa import DelegatedQaScope, QaMaterial
 from plotloom.delegated_qa_contracts import AgentQaAttribution
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.project_storage.delegated_qa_grants import (
     bind_original_qa_scope,
     qa_command,

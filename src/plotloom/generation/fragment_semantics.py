@@ -14,7 +14,7 @@ from typing import Any, Literal, Mapping, Sequence
 from pydantic import ValidationError
 
 from ..canonical_schema import ContinuityStateV2, EntityType, RequiredEntityState
-from ..domain import StoryBibleV2
+from plotloom.canonical_schema import StoryBibleV2
 from ..json_value_contract import (
     CanonicalJsonValueError,
     finite_canonical_json,

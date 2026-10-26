@@ -17,7 +17,7 @@ from uuid import uuid4
 
 from pydantic import Field
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .format import (
     ProjectStorageConfinementError,
     ProjectStorageCorruptionError,

@@ -13,13 +13,9 @@ from plotloom.creative_handoff_contracts import (
     CreativeHandoffError,
     CreativeHandoffRequest,
 )
-from plotloom.domain import (
-    InitialStage,
-    ProjectLifecycleStatus,
-    StageName,
-    StageStatus,
-    utc_now,
-)
+from plotloom.stage_contracts import InitialStage, StageName, StageStatus
+from plotloom.project_contracts import ProjectLifecycleStatus
+from plotloom.contract_identity import utc_now
 from plotloom.exceptions import (
     InvalidTransitionError,
     RevisionConflictError,

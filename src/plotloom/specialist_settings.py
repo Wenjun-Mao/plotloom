@@ -18,7 +18,7 @@ from .codex_exec_contracts import (
     CodexExecReadiness,
 )
 from .codex_image_dispatch import NativeCodexImageDispatcher
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .image_job_contracts import ImageJobError, NativeTaskBinding
 
 Role = Literal["text", "image"]

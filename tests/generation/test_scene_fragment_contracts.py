@@ -6,14 +6,8 @@ from copy import deepcopy
 
 import pytest
 
-from plotloom.domain import (
-    JoinContractV2,
-    RequiredEntityState,
-    StageName,
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-)
+from plotloom.canonical_schema import JoinContractV2, RequiredEntityState, StoryEdgeV2, StoryGraphV2, StoryNodeV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.correction_directives import (
     compile_correction_instruction_plan,
 )

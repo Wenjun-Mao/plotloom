@@ -8,7 +8,9 @@ from threading import Barrier
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import Artifact, ArtifactKind, AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, StageName, WorkUnitStatus
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.fragments import StoryBibleFragment
 from plotloom.persistence import stable_hash

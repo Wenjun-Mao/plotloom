@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from pydantic import ValidationError
 from .canonical_schema import EntityType, StoryBibleV2, StoryGraphV2, V2StoryEdgeKind, V2StoryNodeKind
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from .join_state_values import JoinStateValueContractError, compile_join_state_value_contract
 from .edge_entry_states import EdgeEntryStateContractError, compile_edge_entry_state_contract
 from .validation_state import _allowed_entity_states

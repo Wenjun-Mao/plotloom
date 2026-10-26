@@ -1,7 +1,7 @@
 """Portable frozen manifests, execution facts and CAS commands for video batches."""
 from copy import deepcopy
 from sqlalchemy import select
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
 from ..schema import VideoBatchRow, VideoBatchReceiptRow, VideoJobRow, VideoReviewRow

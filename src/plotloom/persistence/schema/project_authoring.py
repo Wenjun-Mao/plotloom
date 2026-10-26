@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
 
-from ...domain import ProjectLifecycleStatus
+from plotloom.project_contracts import ProjectLifecycleStatus
 
 class ProjectRow(Base):
     __tablename__ = "v2_projects"

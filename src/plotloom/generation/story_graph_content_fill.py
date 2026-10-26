@@ -14,7 +14,7 @@ from ..canonical_schema import (
     StoryNodeV2,
     V2StoryEdgeKind,
 )
-from ..domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from ..join_state_values import (
     JoinStateValueContractError,
     compile_join_state_value_contract,

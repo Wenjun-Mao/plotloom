@@ -1,7 +1,7 @@
 """Non-collected helpers for production rebuild contract tests."""
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.production_bridge_contracts import (
     ProductionBridgeAcceptRequest,
     ProductionBridgeIntentUpdateRequest,

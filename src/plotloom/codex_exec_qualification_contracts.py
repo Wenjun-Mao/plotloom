@@ -8,7 +8,7 @@ from .codex_exec_constants import HASH
 from .codex_exec_contracts import CodexExecProfile
 from .codex_exec_namespace_contracts import ExecNamespaceExecutable, ExecNamespacePath
 from .codex_exec_pool_contracts import CodexExecPoolLimits
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 TEXT_OPERATIONS = frozenset({
     "outline", "branches", "characters", "art", "script", "storyboard",

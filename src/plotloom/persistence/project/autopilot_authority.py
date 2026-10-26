@@ -2,7 +2,7 @@
 from sqlalchemy import select
 
 from ...autopilot_contracts import MachineDecision, OperationScope
-from ...domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
 from ..schema import AutopilotDecisionRow, AutopilotRunRow, AutopilotHandoffRow, EntityRevisionRow, GateResultRow
 from .autopilot_closure import material_closure, production_closure

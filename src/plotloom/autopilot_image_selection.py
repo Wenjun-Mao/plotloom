@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from .autopilot_contracts import CheckpointEvidence, ProvisionalFrame
 from .autopilot_materials import AutomaticMaterialBundle, GalleryMaterial
-from .domain import StageName
+from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .image_commands import image_context
 from .keyframe_preparation import has_matching_aspect

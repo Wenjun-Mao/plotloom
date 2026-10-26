@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, field_validator
 
 from .accepted_review_state import AcceptedReviewState
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 
 

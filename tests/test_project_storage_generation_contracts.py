@@ -16,7 +16,9 @@ from sqlalchemy import select
 import plotloom.work_unit_correction as work_unit_correction
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import GenerationAttemptKind, ProviderSettings, RunKind, RunStatus, StageName
+from plotloom.run_contracts import GenerationAttemptKind, RunKind, RunStatus
+from plotloom.provider_contracts import ProviderSettings
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import RepairEligibilityError, RevisionConflictError
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.jobs import LifecycleJobRunner

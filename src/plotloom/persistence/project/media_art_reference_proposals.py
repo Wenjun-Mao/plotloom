@@ -10,7 +10,8 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import ProjectLifecycleStatus, new_id, utc_now
+from plotloom.project_contracts import ProjectLifecycleStatus
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
 from ...managed_asset_provenance import project_asset_provenance

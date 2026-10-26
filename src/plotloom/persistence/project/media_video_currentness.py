@@ -6,7 +6,8 @@ from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
-from ...domain import ProjectLifecycleStatus, StageName
+from plotloom.project_contracts import ProjectLifecycleStatus
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
 from ..codec import _stored_utc
 from ..schema import (

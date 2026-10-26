@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Literal
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .style_contract_cache import derive_style_contract
 
 ArtRenderStyle = Literal["live-action", "realistic", "ghibli"]

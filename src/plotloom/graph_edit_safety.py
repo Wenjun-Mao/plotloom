@@ -1,7 +1,7 @@
 """Incomplete draft states are allowed; edits cannot add structural violations."""
 from collections import Counter
 
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from .graph_authoring_drafts import GraphAuthoringDraft
 from .graph_safety_diagnostics import GraphEditSafetyError, GraphSafetyDiagnostic
 

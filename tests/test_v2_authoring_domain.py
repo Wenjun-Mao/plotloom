@@ -3,41 +3,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import (
-    AudioEvent,
-    AudioKind,
-    AudioPlan,
-    BeatV2,
-    CharacterV2,
-    ContinuityStateV2,
-    DialogueCue,
-    DialogueDeliveryPace,
-    DialogueTimingProfile,
-    DialogueTimingRule,
-    DramaticSceneV2,
-    EntityType,
-    LocationV2,
-    ProjectBrief,
-    PropV2,
-    RequiredEntityState,
-    SceneBeatPlanV2,
-    StoryEdgeV2,
-    JoinContractV2,
-    ShotBeatLinkV2,
-    ShotV2,
-    StoryBibleV2,
-    StoryboardV2,
-    StoryGraphV2,
-    StoryNodeV2,
-    StageName,
-    TimelineContractError,
-    V2CoverageRole,
-    V2ShotSize,
-    derive_node_timecodes,
-    derive_path_timecode,
-    derive_scene_timecodes,
-    stage_payload_model,
-)
+from plotloom.canonical_schema import AudioEvent, AudioKind, AudioPlan, BeatV2, CharacterV2, ContinuityStateV2, DialogueCue, DialogueDeliveryPace, DialogueTimingProfile, DialogueTimingRule, DramaticSceneV2, EntityType, LocationV2, PropV2, RequiredEntityState, SceneBeatPlanV2, StoryEdgeV2, JoinContractV2, ShotBeatLinkV2, ShotV2, StoryBibleV2, StoryboardV2, StoryGraphV2, StoryNodeV2, V2CoverageRole, V2ShotSize
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName, stage_payload_model
+from plotloom.timeline import TimelineContractError, derive_node_timecodes, derive_path_timecode, derive_scene_timecodes
 from plotloom.validation import (
     DomainValidationError,
     StoryboardGateEvaluator,

@@ -8,7 +8,7 @@ from typing import Literal
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from .domain import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
+from plotloom.provider_contracts import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
 from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, PROFILE_ID_PATTERN
 from .video_backends.minimax_h3 import H3_CATALOG_ID
 

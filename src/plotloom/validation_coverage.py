@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from .canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryGraphV2, StoryboardV2, V2CoverageRole
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from .json_value_contract import CanonicalJsonValueError, finite_json_values_equal
 from .join_state_values import JoinStateValueContractError, compile_join_state_value_contract
 from .edge_entry_states import EdgeEntryStateContractError, compile_edge_entry_state_contract

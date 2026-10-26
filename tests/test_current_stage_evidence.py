@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import EntityRevision, StageHead, StageName
+from plotloom.stage_contracts import EntityRevision, StageHead, StageName
 from plotloom.exceptions import SchemaResetRequiredError
 from plotloom.persistence.project.repository_codecs import (
     decode_stage_payload, entity_revision_from_row, stage_head_from_row,

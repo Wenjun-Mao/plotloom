@@ -7,9 +7,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    ArtifactKind, AttemptStatus, StageName, WorkUnitStatus,
-)
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, WorkUnitStatus
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ...provider_profiles import (
     TextProviderProfileSnapshot, TextProviderProfileSnapshotV3, is_v2_snapshot,

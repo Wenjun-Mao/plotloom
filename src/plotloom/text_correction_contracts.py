@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import Field, model_validator
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 HASH = r"^[a-f0-9]{64}$"
 CORRECTION_CONTRACT = "plotloom.text-correction.v2"

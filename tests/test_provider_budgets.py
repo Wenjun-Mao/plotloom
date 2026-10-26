@@ -211,7 +211,7 @@ def test_qa_batch_caps_intersect_each_frozen_authority_independently(tmp_path, m
 def test_cumulative_qa_counts_failed_unknown_and_uncapped_still_blocks_unsettled(tmp_path, monkeypatch, state, unlimited):
     from copy import deepcopy
     from sqlalchemy import select
-    from plotloom.domain import new_id
+    from plotloom.contract_identity import new_id
     from plotloom.exceptions import InvalidTransitionError
     from plotloom.delegated_qa_video import assert_dispatch
     from plotloom.persistence.schema import VideoJobRow, ProjectVideoDispatchRow

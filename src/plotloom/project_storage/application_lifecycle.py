@@ -9,7 +9,7 @@ import json
 import sqlite3
 from typing import ContextManager
 
-from ..domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ..exceptions import BootstrapContentionError, IdempotencyConflictError
 
 

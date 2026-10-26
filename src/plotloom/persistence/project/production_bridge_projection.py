@@ -7,7 +7,8 @@ from typing import Any
 from sqlalchemy import select
 
 from ...creative_handoff_exchange import canonical_json
-from ...domain import ProjectBrief, StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from ...edge_entry_states import compile_edge_entry_state_contract
 from ...production_bridge_contracts import (
     ProductionBridgeConflict,

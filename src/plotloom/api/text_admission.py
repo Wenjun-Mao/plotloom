@@ -5,12 +5,8 @@ from typing import Any, Callable, Mapping
 
 from fastapi import HTTPException, Request, status
 
-from ..domain import (
-    GenerationRun,
-    ProviderAuthMode,
-    ProviderProfileCapabilities,
-    ProviderSettings,
-)
+from plotloom.run_contracts import GenerationRun
+from plotloom.provider_contracts import ProviderAuthMode, ProviderProfileCapabilities, ProviderSettings
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..generation.exceptions import SecretLeaseError
 from ..generation.secrets import InMemorySecretVault, SecretLease
@@ -22,16 +18,11 @@ from ..provider_profiles import (
     preset_values,
 )
 from ..text_adapters import DEFAULT_TEXT_ADAPTER_REGISTRY
-from .models import (
-    RunScheduler,
-    TextBackendReadiness,
-    TextProfileSecretSource,
-    TextProviderProfileView,
-    TextProviderProfilesResponse,
-    TextProviderResolver,
-    _merge_provider_settings,
-    _session_api_key,
-)
+from plotloom.api.protocols import RunScheduler, TextProfileSecretSource
+from plotloom.api.contracts import TextBackendReadiness, TextProviderProfileView, TextProviderProfilesResponse
+from plotloom.text_provider_resolution import TextProviderResolver
+from plotloom.api.provider_views import _merge_provider_settings
+from plotloom.api.request_headers import _session_api_key
 
 
 class TextAdmissionService:

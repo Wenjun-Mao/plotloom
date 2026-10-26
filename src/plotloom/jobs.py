@@ -4,7 +4,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Event, RLock
 from typing import TYPE_CHECKING, Callable, Protocol
 
-from .domain import GenerationRun, RunStatus
+from plotloom.run_contracts import GenerationRun, RunStatus
 from .exceptions import (
     InvalidTransitionError,
     QuarantinedOutputError,

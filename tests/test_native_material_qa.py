@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from plotloom import delegated_qa
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.delegated_qa import NativeMaterialQaScope, QaMaterial, QaReference
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.delegated_qa_grants import bind_original_qa_scope
 from plotloom.project_storage.project_handle import ProjectStore

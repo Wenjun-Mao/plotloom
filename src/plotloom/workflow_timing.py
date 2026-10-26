@@ -1,7 +1,8 @@
 """Response-only workflow facts; mutable updated_at is never progress evidence."""
 from datetime import datetime, timezone
 
-from .domain import CamelModel, utc_now
+from plotloom.domain_base import CamelModel
+from plotloom.contract_identity import utc_now
 
 
 class WorkflowTiming(CamelModel):

@@ -1,6 +1,6 @@
 """Suggestion evidence does not advance or project an author-owned proposal."""
 from ...creative_handoff_contracts import CreativeHandoffRequest
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError
 from ...native_bridge_presentation_contract import native_presentation_suggestions
 

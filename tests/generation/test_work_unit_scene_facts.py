@@ -8,7 +8,7 @@ from copy import deepcopy
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.dialogue_repair_contracts import (
     CueOrderRepairAssignment,

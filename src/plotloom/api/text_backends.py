@@ -5,25 +5,14 @@ from typing import Annotated, Any
 from fastapi import FastAPI, HTTPException, Query, Request, status
 from pydantic import ValidationError
 
-from ..domain import (
-    ProviderSettings,
-)
+from plotloom.provider_contracts import ProviderSettings
 from ..provider_profiles import (
     ProviderProfileSelection,
 )
 
 
-from .models import (
-    ProviderSettingsUpdate,
-    TextProviderProfilesResponse,
-    TextProviderProfileView,
-    TextProviderProfileCreate,
-    TextProviderProfileUpdate,
-    TextProviderProfileActivate,
-    TextProviderProfileAvailabilityUpdate,
-    TextProviderProbeResponse,
-    _merge_provider_settings,
-)
+from plotloom.api.contracts import ProviderSettingsUpdate, TextProviderProfilesResponse, TextProviderProfileView, TextProviderProfileCreate, TextProviderProfileUpdate, TextProviderProfileActivate, TextProviderProfileAvailabilityUpdate, TextProviderProbeResponse
+from plotloom.api.provider_views import _merge_provider_settings
 from .text_admission import TextAdmissionService
 
 

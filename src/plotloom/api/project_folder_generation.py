@@ -6,18 +6,16 @@ from typing import Annotated
 
 from fastapi import FastAPI, Header, HTTPException, Request, status
 
-from ..domain import GenerationRun, ProviderAuthMode, RunExecutionTrace, RunKind, RunProgress, RunTrace, STAGE_ORDER
+from plotloom.run_contracts import GenerationRun, RunKind
+from plotloom.provider_contracts import ProviderAuthMode
+from plotloom.run_evidence_contracts import RunExecutionTrace, RunProgress, RunTrace
+from plotloom.stage_contracts import STAGE_ORDER
 from ..exceptions import InvalidTransitionError
 from ..generation.exceptions import SecretLeaseError
 from ..project_storage.text_dispatch import ProjectRunDispatcher
 from ..provider_profiles import DEFAULT_PROVIDER_PROFILE_ID
-from .models import (
-    ExactWorkUnitRepairRequest,
-    PipelineRunRequest,
-    RebuildRequest,
-    _normalize_idempotency_key,
-    _session_api_key,
-)
+from plotloom.api.contracts import ExactWorkUnitRepairRequest, PipelineRunRequest, RebuildRequest
+from plotloom.api.request_headers import _normalize_idempotency_key, _session_api_key
 from .text_admission import TextAdmissionService
 
 

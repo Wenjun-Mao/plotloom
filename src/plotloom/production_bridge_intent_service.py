@@ -10,7 +10,7 @@ from typing import Any, Mapping
 from pydantic import ValidationError
 
 from .creative_handoff_exchange import canonical_json
-from .domain import ProviderAuthMode
+from plotloom.provider_contracts import ProviderAuthMode
 from .exceptions import InvalidTransitionError
 from .generation.contracts import GenerationRequest, PromptMessage
 from .generation.exceptions import (

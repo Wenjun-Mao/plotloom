@@ -8,7 +8,8 @@ terminal disposition directly to the one repository in the project folder.
 from __future__ import annotations
 
 from .artifacts import LocalArtifactStore
-from .domain import GenerationRun, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
+from plotloom.run_contracts import GenerationRun, RunKind, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import STAGE_ORDER
 from .jobs import LifecycleJobRunner
 from plotloom.pipeline import PipelineEngine
 from plotloom.runtime_secrets import RunSecretBroker

@@ -338,3 +338,43 @@ UNKNOWN/native-worker safety. Both read-only reviewers released access; their
 attended native tasks are archived. Planning made no source changes. The owner's
 subsequent implementation authorization is recorded above; qualification and
 activation remain to be demonstrated by actual delivery evidence.
+
+## Implementation checkpoints (qualification owner)
+
+Implementation decision: [ADR 0221](../adr/0221-backend-contract-and-http-ownership.md).
+Sole writer/qualification worker: native `01a17632-5738-7db3-8733-d0a718042e75`,
+registered with Relay to manager `01a04525-e907-7630-9640-78790d69e8ae`.
+Retained R stays on local main; P/live runtime remain read-only for this worker.
+
+- B1: removed domain forwarding; actual family leaves and direct production,
+  service, script and test consumers; named profiles depend on public validation,
+  with version dispatch above both provider families. Pure storyboard helpers
+  return ordered observations while the assembler retains complete hash/version.
+- Representative baseline (`d919e37f`) versus integrated source: exact schemas,
+  defaults/aliases, V1 values/hashes, URL/secret refusals, full ordered gates with
+  absent Brief context, final handler table, route order and OpenAPI match without
+  observational-field exclusions. Separately replayed 23 exact accepted/refused
+  V1/V2/V3 inputs against the baseline domain implementation; all match.
+- Early B1 focused set: 34 passed, including real factory/SQLite incomplete-Brief
+  restart and exact raw-input adoption receipts. B2 core focused: 18 passed,
+  including retained request proofs and both generic-registrar safety consumers.
+  These inputs were staged uncommitted cuts above `d919e37f`, not qualified commits.
+- Before broad image work, real browser/API/SQLite draft autosave, stale-tab CAS,
+  explicit canonical save and backend restart, plus Freeze/read JSON/HTML lifetime,
+  late-write refusal and unfreeze without adoption: seven browser cases passed.
+- Added one same-home incomplete-Brief→restart→complete draft→exact adoption
+  journey, 14 schema/cold-import cases and both actual route before-send races.
+  Their focused set passed 23. Two earlier race-test attempts failed on fixture
+  context-manager misuse and UUID/string comparison respectively; both first logs
+  are retained, with actual close and typed binding contracts used in the repair.
+- Native ownership preflight first exposed seven collection errors from two
+  missed service imports. Direct service imports were corrected; no compatibility
+  layer was added. Current native union/module, offline image, clean image pin,
+  independent review, final full and retained wheel results follow below.
+
+Scratch evidence is supported ignored `.local/b12` (compact baseline/parity JSON
+and execution logs), without permanent old-source archives or a parallel runner.
+No changed handwritten owner exceeds 500 lines after the substantial extraction;
+large existing consumers receive only direct-import edits. Named profiles retain
+their cohesive version/hash responsibility. No product provider call or owner
+creative-acceptance claim is part of these offline fixtures.

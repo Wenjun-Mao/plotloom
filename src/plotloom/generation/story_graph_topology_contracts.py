@@ -16,7 +16,8 @@ from ..canonical_schema import (
     V2StoryEdgeKind,
     V2StoryNodeKind,
 )
-from ..domain import CamelModel, ProjectBrief, to_camel
+from plotloom.domain_base import CamelModel, to_camel
+from plotloom.brief_contracts import ProjectBrief
 from ..validation import DomainValidationError, validate_story_graph
 
 STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v3"

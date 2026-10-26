@@ -13,12 +13,9 @@ from pydantic import (
     BaseModel,
 )
 
-from ..domain import (
-    CanonicalSnapshot,
-    ProjectBrief,
-    StageName,
-    StoryGraphV2,
-)
+from plotloom.stage_contracts import CanonicalSnapshot, StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.canonical_schema import StoryGraphV2
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CORRECTION_EVIDENCE_PROJECTION_VERSION,

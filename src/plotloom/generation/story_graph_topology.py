@@ -12,7 +12,7 @@ from ..canonical_schema import (
     V2StoryEdgeKind,
     V2StoryNodeKind,
 )
-from ..domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from ..node_footage import creation_footage_mode
 from .story_graph_topology_contracts import (
     DEFAULT_MAX_DOWNSTREAM_WORK_UNITS,

@@ -6,7 +6,7 @@ from hashlib import sha256
 from pathlib import Path
 from urllib.parse import parse_qsl, urlparse
 
-from plotloom import codex_exec_contracts, domain
+from plotloom import codex_exec_contracts, public_values
 from plotloom.codex_exec_contracts import CodexExecProfile
 from plotloom.codex_exec_pool_contracts import CodexExecPoolLimits
 from plotloom.domain_base import CamelModel
@@ -16,7 +16,7 @@ REVIEWED = {
     "src/plotloom/codex_exec_contracts.py": ["CodexExecProfile"],
     "src/plotloom/codex_exec_pool_contracts.py": ["CodexExecPoolLimits"],
     "src/plotloom/domain_base.py": ["CamelModel", "to_camel"],
-    "src/plotloom/domain.py": ["SECRET_SETTING_NAMES", "is_secret_setting_name",
+    "src/plotloom/public_values.py": ["SECRET_SETTING_NAMES", "is_secret_setting_name",
                               "contains_secret_setting", "contains_secret_value"],
 }
 
@@ -39,14 +39,14 @@ def test_profile_construction_value_only_contract_requires_explicit_review():
         assert len(nodes) == len(expected)
         payload[name] = ast.dump(ast.Module(body=nodes, type_ignores=[]), include_attributes=False)
     digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    assert digest == "4672f7436763c060a0f8824378f8da219f9e0b394981ef908678f5da2760ec59", (
+    assert digest == "8712c9cbf75e5dc4a5b6d10c91640c949ba7863320d11c206661c511559dc9c4", (
         "Profile construction dependencies changed: disable reuse or review ADR 0184 before updating this pin.")
     assert codex_exec_contracts.CamelModel is CamelModel
-    assert codex_exec_contracts.contains_secret_setting is domain.contains_secret_setting
-    assert codex_exec_contracts.contains_secret_value is domain.contains_secret_value
-    assert domain.re is re and domain.urlparse is urlparse and domain.parse_qsl is parse_qsl
-    assert type(domain.SECRET_SETTING_NAMES) is frozenset
-    assert all(type(value) is str for value in domain.SECRET_SETTING_NAMES)
+    assert codex_exec_contracts.contains_secret_setting is public_values.contains_secret_setting
+    assert codex_exec_contracts.contains_secret_value is public_values.contains_secret_value
+    assert public_values.re is re and public_values.urlparse is urlparse and public_values.parse_qsl is parse_qsl
+    assert type(public_values.SECRET_SETTING_NAMES) is frozenset
+    assert all(type(value) is str for value in public_values.SECRET_SETTING_NAMES)
     for model, expected in (
         (CodexExecProfile, {"supported_capability_set"}),
         (CodexExecPoolLimits, {"domains_fit_global_capacity"}),

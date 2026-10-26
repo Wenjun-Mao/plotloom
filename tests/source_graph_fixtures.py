@@ -1,6 +1,6 @@
 """Explicit current source structure fixtures with an immutable planner seed."""
 
-from plotloom.domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.source_outline_contracts import SectionMap
 from plotloom.source_structures import planned_structure
 

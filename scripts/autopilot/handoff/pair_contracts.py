@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 from plotloom.codex_exec_namespace_contracts import ExecNamespacePath
 from plotloom.codex_exec_qualification_contracts import CodexExecQualificationBinding
-from plotloom.domain import CamelModel
+from plotloom.domain_base import CamelModel
 if __package__ == 'handoff':
     # Source-only offline builder package; sealed entries use the flat fixed B.
     from .paid_outline_contracts import PaidFileIdentity, PaidSourceIdentity, PaidValidatorRuntime

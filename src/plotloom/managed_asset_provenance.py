@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class ManagedAssetProvenance(CamelModel):

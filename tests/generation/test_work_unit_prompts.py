@@ -5,14 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import (
-    ContinuityStateV2,
-    LocationV2,
-    RequiredEntityState,
-    StageName,
-    StoryEdgeV2,
-    StoryGraphV2,
-)
+from plotloom.canonical_schema import ContinuityStateV2, LocationV2, RequiredEntityState, StoryEdgeV2, StoryGraphV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_directives import (
     compile_correction_instruction_plan,

@@ -5,13 +5,8 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import (
-    CharacterV2,
-    ContinuityStateV2,
-    RequiredEntityState,
-    StageName,
-    StoryBibleV2,
-)
+from plotloom.canonical_schema import CharacterV2, ContinuityStateV2, RequiredEntityState, StoryBibleV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.continuity_repair import (
     assert_continuity_repair_fact_matches_source,
 )

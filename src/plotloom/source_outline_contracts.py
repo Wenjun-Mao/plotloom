@@ -9,7 +9,8 @@ from pydantic import Field, ValidationInfo, field_validator, model_serializer, m
 
 from .canonical_schema import StoryGraphV2
 from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .source_structures import MAX_SOURCE_OPTIONS
 from .source_graph_structure import SourceStructure, structure_from_seed
 

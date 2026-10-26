@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import utc_now
+from plotloom.contract_identity import utc_now
 from plotloom.persistence.project.media_art_reference_proposals import ArtReferenceProposalPersistence
 from plotloom.persistence.project.media_image_delivery import ImageJobDeliveryPersistence
 from plotloom.persistence.project.media_reference_proposals import CharacterReferenceProposalPersistence

@@ -13,7 +13,9 @@ from pydantic import ValidationError
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.domain import Artifact, ArtifactKind, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import RunKind, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import STAGE_ORDER
 from plotloom.exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
 from plotloom.runtime_secrets import RunSecretBroker

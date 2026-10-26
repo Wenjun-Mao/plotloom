@@ -2,23 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import (
-    AudioPlan,
-    BeatV2,
-    ContinuityStateV2,
-    DialogueCue,
-    DramaticSceneV2,
-    JoinContractV2,
-    ProjectBrief,
-    SceneBeatPlanV2,
-    ShotBeatLinkV2,
-    ShotV2,
-    StoryBibleV2,
-    StoryboardV2,
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-)
+from plotloom.canonical_schema import AudioPlan, BeatV2, ContinuityStateV2, DialogueCue, DramaticSceneV2, JoinContractV2, SceneBeatPlanV2, ShotBeatLinkV2, ShotV2, StoryBibleV2, StoryboardV2, StoryEdgeV2, StoryGraphV2, StoryNodeV2
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.canonical_schema import V2CoverageRole, V2ShotSize
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 @pytest.fixture

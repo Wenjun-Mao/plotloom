@@ -8,7 +8,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import StageName, new_id, utc_now
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (

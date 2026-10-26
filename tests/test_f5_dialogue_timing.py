@@ -13,7 +13,7 @@ import pytest
 from plotloom.authored_route_timing import route_budget_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,
 )

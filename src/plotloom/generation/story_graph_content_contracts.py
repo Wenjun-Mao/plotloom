@@ -10,7 +10,7 @@ from ..canonical_schema import (
     RequiredEntityState,
     V2StoryEdgeKind,
 )
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 from .story_graph_topology_contracts import StoryGraphTopology
 

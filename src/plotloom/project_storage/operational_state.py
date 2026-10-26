@@ -17,7 +17,8 @@ import stat
 from typing import Literal
 from threading import Lock
 
-from ..domain import TERMINAL_MEDIA_TASK_STATUSES, TERMINAL_RUN_STATUSES
+from plotloom.media_task_contracts import TERMINAL_MEDIA_TASK_STATUSES
+from plotloom.run_contracts import TERMINAL_RUN_STATUSES
 from .format import ProjectStorageConfinementError, ProjectStorageError
 from .observation_admission import ObservationAdmission, admit_project_observation
 

@@ -11,7 +11,8 @@ from plotloom.canonical_schema import (
     StoryGraphV2,
     StoryNodeV2,
 )
-from plotloom.domain import ProjectBrief, StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from plotloom.generation.planning_contracts import PlanningError
 from plotloom.generation.enqueue_planning import create_generation_plan
 from plotloom.generation.planning import plan_stage

@@ -10,7 +10,7 @@ from ...autopilot_handoff_contracts import (
     QaMaterialHandoffReceipt,
     parse_handoff_receipt,
 )
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...human_confirmation_contracts import UnnamedCreatorConfirmation
 from ...validation import STORYBOARD_GATE_SET_VERSION

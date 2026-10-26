@@ -9,7 +9,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .format import ProjectManifest, _relative_owned_path
 
 

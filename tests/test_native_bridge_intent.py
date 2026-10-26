@@ -133,7 +133,7 @@ def test_cancelled_or_changed_authority_contains_late_delivery(native, change):
                 # A changed canonical replacement target is distinct from source.
                 from sqlalchemy import select
 
-                from plotloom.domain import StageName
+                from plotloom.stage_contracts import StageName
                 from plotloom.persistence.schema import StageHeadRow
                 with store.repository._write() as session:
                     head = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project, StageHeadRow.stage == StageName.STORY_GRAPH.value))

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import StageName, new_id, utc_now
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import (
     InvalidTransitionError,
     NotFoundError,

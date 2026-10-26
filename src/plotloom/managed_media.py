@@ -16,7 +16,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import Field, field_validator, model_validator
 
 from .artifacts import ArtifactStore
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .delegated_qa_contracts import AgentQaAttribution
 
 SUPPORTED_MEDIA_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png"}

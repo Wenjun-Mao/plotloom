@@ -6,7 +6,7 @@ from .autopilot_contracts import CheckpointEvidence
 from .cast_contracts import CastAcceptRequest, CastConsumerMapping
 from .creative_commands import CREATIVE_METHODS
 from .creative_handoff_exchange import request_hash
-from .domain import StageName
+from plotloom.stage_contracts import StageName
 from .graph_draft_creation import create_graph_draft
 from .outline_preparation import outline_request
 from .persistence.codec import stable_hash

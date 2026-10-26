@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import Field, model_validator
 
 from .authored_route_timing import route_budget_hash, validate_route_seconds
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .script_contracts import ScriptBinding, ScriptSectionBinding
 from .script_dialogue_compatibility import PlannedStoryboardDialogue, assert_planned_dialogue_necessary_bounds
 

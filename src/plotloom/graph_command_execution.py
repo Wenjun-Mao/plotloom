@@ -1,7 +1,7 @@
 """Pure current-draft transactions; stable IDs and authored effects stay in place."""
 from hashlib import sha256
 
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from .exceptions import InvalidTransitionError
 from .graph_authoring_drafts import DetachedEndpoint, GraphAuthoringDraft
 from .graph_commands import (

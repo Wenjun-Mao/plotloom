@@ -7,14 +7,9 @@ from typing import Any, Generic, Iterable, Mapping, Protocol, TypeVar, runtime_c
 
 from pydantic import BaseModel, ValidationError
 
-from ..domain import (
-    ProjectBrief,
-    StageName,
-    SceneBeatPlanV2,
-    StoryBibleV2,
-    StoryGraphV2,
-    stage_payload_model,
-)
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName, stage_payload_model
+from plotloom.canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryGraphV2
 from .contracts import ValidationIssue, ValidationReport, ValidationSeverity
 from .exceptions import ResponseValidationError
 from .json_schema import explicit_presence_json_schema, inline_local_json_references

@@ -1,4 +1,4 @@
-"""Both API compositions expose the same actionable identity-review refusal."""
+"""Canonical live registration and the factory expose the same actionable identity-review refusal."""
 
 import pytest
 from fastapi import FastAPI
@@ -10,7 +10,7 @@ from plotloom.exceptions import SamePersonReviewRequiredError
 from tests.source_outline_fixtures import _storage
 
 
-@pytest.mark.parametrize("composition", ["service", "project_folder"])
+@pytest.mark.parametrize("composition", ["canonical_registrar", "project_folder"])
 def test_identity_review_refusal_has_identical_public_contract(tmp_path, composition):
     if composition == "project_folder":
         app = create_project_folder_authoring_app(_storage(tmp_path))

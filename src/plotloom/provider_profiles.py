@@ -21,7 +21,7 @@ from .generation.contracts import (
     ReasoningMode,
     RequestExtension,
 )
-from .domain import validate_public_api_root
+from plotloom.public_values import validate_public_api_root
 
 
 PROFILE_ID_PATTERN = r"^[a-z][a-z0-9_]{0,62}$"

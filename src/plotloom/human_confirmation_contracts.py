@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class UnnamedCreatorConfirmation(CamelModel):

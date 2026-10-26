@@ -5,11 +5,10 @@ from collections.abc import Callable
 from hashlib import sha256
 from typing import Annotated, Any, Literal
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
-from fastapi.responses import JSONResponse, Response
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import Response
 
 from ..exceptions import NotFoundError
-from ..image_job_contracts import ImageJobError
 from ..managed_media import (
     ImportDeclaration,
     ManagedMediaError,
@@ -21,7 +20,7 @@ from ..managed_media import (
 )
 from ..persistence import stable_hash
 from ..shot_presentation import ShotPresentationRequest
-from .models import ProjectFolderVisualIntentRequest
+from plotloom.api.contracts import ProjectFolderVisualIntentRequest
 from ..project_storage.delegated_qa_grants import qa_command
 
 
@@ -45,39 +44,6 @@ def register_project_folder_media_routes(
     def review_shot_presentation(project_id: str, shot_id: str, body: ShotPresentationRequest) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return store.media.shot_presentations.review(project_id, shot_id, body)
-
-    @app.exception_handler(ManagedMediaError)
-    async def managed_media_error_handler(
-        _request: Request, error: ManagedMediaError
-    ) -> JSONResponse:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={"code": error.code, "message": str(error)},
-        )
-
-    @app.exception_handler(ImageJobError)
-    async def image_job_error_handler(
-        _request: Request, error: ImageJobError
-    ) -> JSONResponse:
-        conflict_codes = {
-            # These mean a previously accepted immutable identity conflicts.
-            # Untrusted delivery shape/content (including geometry) is 422.
-            "package_conflict",
-            "delivery_conflict",
-            "delivery_finalized",
-            "specialist_busy",
-            "specialist_already_sent",
-            "image_dispatch_busy",
-            "image_dispatch_already_attempted",
-        }
-        return JSONResponse(
-            status_code=(
-                status.HTTP_409_CONFLICT
-                if error.code in conflict_codes
-                else status.HTTP_422_UNPROCESSABLE_CONTENT
-            ),
-            content={"code": error.code, "message": str(error)},
-        )
 
     def preview_view(
         store: Any, project_id: str, preview: dict[str, Any]

@@ -12,7 +12,8 @@ from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
 
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 
 
 SHA256_PATTERN = r"^[a-f0-9]{64}$"

@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field
 
 from .creative_handoff_contracts import CreativeHandoffRequest
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .production_presentation import (
     PresentationSpan,
     PresentationUpdate,

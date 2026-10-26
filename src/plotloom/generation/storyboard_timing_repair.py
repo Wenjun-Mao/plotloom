@@ -13,7 +13,7 @@ from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import ConfigDict, Field, model_validator
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from ..json_value_contract import finite_canonical_json
 from .contracts import ValidationIssue
 

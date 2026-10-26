@@ -9,7 +9,8 @@ import pytest
 
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import RunKind, StageName
+from plotloom.run_contracts import RunKind
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.pipeline import PipelineEngine
 from plotloom.runtime_secrets import RunSecretBroker

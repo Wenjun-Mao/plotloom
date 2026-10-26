@@ -10,13 +10,8 @@ from plotloom.generation.correction_schema_contracts import (
 )
 from plotloom.generation.planning_contracts import GenerationWorkUnit
 
-from .domain import (
-    GenerationAttempt,
-    GenerationAttemptKind,
-    GenerationRun,
-    StageName,
-    StagePayload,
-)
+from plotloom.run_contracts import GenerationAttempt, GenerationAttemptKind, GenerationRun
+from plotloom.stage_contracts import StageName, StagePayload
 from .generation.contracts import (
     ExtractionPolicy,
 )

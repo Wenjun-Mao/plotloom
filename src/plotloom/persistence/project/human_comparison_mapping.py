@@ -1,5 +1,5 @@
 """Explicit human comparison context for manually completed non-v3 material."""
-from ...domain import StageName
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError
 from ..schema import ManagedAssetRow
 

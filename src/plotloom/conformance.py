@@ -20,15 +20,10 @@ from pathlib import Path
 from typing import Any
 
 from .config import PlotloomSettings
-from .domain import (
-    STAGE_ORDER,
-    ArtifactKind,
-    AttemptStatus,
-    GenerationAttemptKind,
-    ProjectBrief,
-    RunKind,
-    StageStatus,
-)
+from plotloom.stage_contracts import STAGE_ORDER, StageStatus
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.generation.planning_contracts import PLANNING_POLICY_VERSION
 from .generation.prompts import PromptRepository, canonical_json, sha256_text
 from plotloom.generation.story_graph_content_contracts import STORY_GRAPH_CONTENT_FILL_SCHEMA_ID

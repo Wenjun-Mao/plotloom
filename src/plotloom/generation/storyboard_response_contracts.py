@@ -5,7 +5,8 @@ from __future__ import annotations
 from pydantic import Field
 
 from ..canonical_schema import AudioKind, V2ShotSize
-from ..domain import CamelModel, ContinuityStateV2, RequiredEntityState
+from plotloom.domain_base import CamelModel
+from plotloom.canonical_schema import ContinuityStateV2, RequiredEntityState
 
 
 class AudioEventContent(CamelModel):

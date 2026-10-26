@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from ..domain import (
-    DialogueTimingProfile,
-    StageName,
-    StoryBibleV2,
-)
+from plotloom.canonical_schema import DialogueTimingProfile, StoryBibleV2
+from plotloom.stage_contracts import StageName
 from .continuity_repair import (
     continuity_sequence_repair_facts,
 )

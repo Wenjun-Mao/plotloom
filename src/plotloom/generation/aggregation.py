@@ -8,15 +8,9 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from ..domain import (
-    DialogueTimingProfile,
-    ProjectBrief,
-    StageName,
-    SceneBeatPlanV2,
-    StoryBibleV2,
-    StoryGraphV2,
-    StoryboardV2,
-)
+from plotloom.canonical_schema import DialogueTimingProfile, SceneBeatPlanV2, StoryBibleV2, StoryGraphV2, StoryboardV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from ..canonical_schema import V2CoverageRole
 from ..validation import DomainValidationError, validate_stage_payload
 from .fragments import (

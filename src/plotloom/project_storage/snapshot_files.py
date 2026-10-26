@@ -9,7 +9,7 @@ from pathlib import Path, PurePosixPath
 import stat
 from typing import Any, Iterable
 
-from ..domain import contains_secret_setting, contains_secret_value
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .format import (
     ProjectStorageConfinementError,
     ProjectStorageCorruptionError,

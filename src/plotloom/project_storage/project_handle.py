@@ -7,23 +7,12 @@ from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..domain import (
-    STAGE_ORDER,
-    AuthoringDraft,
-    AuthoringDraftScope,
-    FragmentReuseBinding,
-    GenerationRun,
-    InitialStage,
-    Project,
-    ProjectBrief,
-    RunExecutionTrace,
-    RunTrace,
-    StageEnvelope,
-    StageHead,
-    StageName,
-    StageStatus,
-    WorkUnitRepairScope,
-)
+from plotloom.stage_contracts import STAGE_ORDER, AuthoringDraft, AuthoringDraftScope, InitialStage, StageEnvelope, StageHead, StageName, StageStatus
+from plotloom.repair_contracts import FragmentReuseBinding, WorkUnitRepairScope
+from plotloom.run_contracts import GenerationRun
+from plotloom.project_contracts import Project
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.run_evidence_contracts import RunExecutionTrace, RunTrace
 from ..exceptions import NotFoundError, RevisionConflictError
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import (

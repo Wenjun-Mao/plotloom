@@ -19,7 +19,7 @@ from .codex_exec_tool_source import (
     _Token,
     _tokens,
 )
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 MAX_BYTES = 2_000_000
 

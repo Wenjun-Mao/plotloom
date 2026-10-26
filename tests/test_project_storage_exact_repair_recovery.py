@@ -9,7 +9,9 @@ import pytest
 
 from plotloom.artifacts import LocalArtifactStore
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import ArtifactKind, RunStatus, STAGE_ORDER, StageName
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import RunStatus
+from plotloom.stage_contracts import STAGE_ORDER, StageName
 from plotloom.pipeline import PipelineEngine
 from plotloom.runtime_secrets import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor

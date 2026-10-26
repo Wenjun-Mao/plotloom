@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.production_bridge_contracts import (
     ProductionBridgeAcceptRequest,

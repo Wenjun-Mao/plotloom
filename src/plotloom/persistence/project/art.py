@@ -16,7 +16,9 @@ from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...accepted_review_state import accepted_review_state
-from ...domain import ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.public_values import contains_secret_setting, contains_secret_value
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...review_context_diagnostics import ReviewContextDiagnostic, ReviewContextError, binding_diagnostics
 from ..schema.project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow

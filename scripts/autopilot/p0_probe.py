@@ -14,7 +14,7 @@ subprocess.run(["git", "diff", "--exit-code", BASELINE, "--", "src/plotloom", "t
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.keyframe_preparation import has_matching_aspect
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.project_storage import ProjectFolderStorage

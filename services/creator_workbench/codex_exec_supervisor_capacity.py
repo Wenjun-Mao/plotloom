@@ -15,7 +15,7 @@ from plotloom.codex_exec_capacity_contracts import (
     LocalCapacityReadiness,
 )
 from plotloom.codex_exec_contracts import CodexExecAttempt
-from plotloom.domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from plotloom.persistence.codec import stable_hash
 
 

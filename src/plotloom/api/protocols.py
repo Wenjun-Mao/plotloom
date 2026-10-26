@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
-from ..domain import (
-    GenerationRun,
-    ProviderAuthMode,
-)
-from ..generation.providers import ProviderAdapter
+from plotloom.provider_contracts import ProviderAuthMode
+from plotloom.run_contracts import GenerationRun
+
 from ..generation.secrets import SecretLease
 
 
@@ -14,16 +12,6 @@ class RunScheduler(Protocol):
     def submit(self, run_id: str, *, session_api_key: str | None = None) -> Any: ...
 
     def request_cancel(self, run_id: str) -> GenerationRun: ...
-
-
-
-
-
-
-class TextProviderResolver(Protocol):
-    def resolve(
-        self, provider_snapshot: Mapping[str, Any]
-    ) -> tuple[ProviderAdapter, str]: ...
 
 
 class TextProfileSecretSource(Protocol):

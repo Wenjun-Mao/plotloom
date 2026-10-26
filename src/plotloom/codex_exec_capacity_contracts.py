@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import Field, field_validator, model_validator
 
 from .codex_exec_pool_contracts import CodexExecPoolLimits
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class LocalCapacityReadiness(CamelModel):

@@ -12,7 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from plotloom.exceptions import InvalidTransitionError, LifecycleContentionError
 from plotloom.persistence.project.command_transactions import ProjectCommandTransactions
 from plotloom.persistence.schema import AutopilotCheckpointRow, AutopilotFrameRow

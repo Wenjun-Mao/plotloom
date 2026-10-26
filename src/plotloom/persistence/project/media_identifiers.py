@@ -1,6 +1,6 @@
 """Namespaced identifiers for durable project-media records."""
 
-from ...domain import new_id
+from plotloom.contract_identity import new_id
 
 
 def new_image_job_id() -> str:

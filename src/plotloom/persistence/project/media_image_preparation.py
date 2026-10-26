@@ -6,7 +6,8 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...domain import StageName, utc_now, new_id
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import utc_now, new_id
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
 from ..codec import stable_hash

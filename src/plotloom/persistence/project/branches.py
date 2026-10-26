@@ -5,7 +5,7 @@ from sqlalchemy import select
 from ...branch_suggestions import BranchSuggestion, BranchTaskCandidate, BranchTaskState, bind_branches
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ...outline_settings import outline_settings
 from ..schema import SourceOutlineCandidateRow
@@ -32,7 +32,7 @@ class ProjectBranchPersistence:
         }
 
     def _planned(self, session, project_id):
-        from ...domain import ProjectBrief
+        from plotloom.brief_contracts import ProjectBrief
         from ...source_structures import planned_structure
         return planned_structure(project_id, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief))
 
@@ -53,7 +53,7 @@ class ProjectBranchPersistence:
         if self._latest(session, project_id).job_id != row.job_id:
             raise CreativeHandoffError("delivery_stale", "分支建议已不是当前任务，请刷新。")
         project = self._access.rows.project(session, project_id)
-        from ...domain import ProjectBrief
+        from plotloom.brief_contracts import ProjectBrief
         request = CreativeHandoffRequest.model_validate(row.request)
         if request.source != self._basis(session, project_id) or request.input_artifacts["outline-settings.json"] != outline_settings(ProjectBrief.require_confirmed(project.brief)):
             raise CreativeHandoffError("delivery_stale", "来源、大纲、简报或已保存分支已变化，请取消旧建议后重新准备。")
@@ -93,7 +93,7 @@ class ProjectBranchPersistence:
             if prior and prior.status in {"prepared", "ready"}:
                 raise InvalidTransitionError("已有分支建议任务，请先审阅或取消它。")
             basis = self._basis(session, project_id)
-            from ...domain import ProjectBrief
+            from plotloom.brief_contracts import ProjectBrief
             request = CreativeHandoffRequest(
                 job_id=f"ch_{uuid4().hex}", project_id=project_id, section_id="branches", stage="branches",
                 expected_stage_revision=basis["mapRevision"], source=basis,
@@ -129,7 +129,7 @@ class ProjectBranchPersistence:
                 proposal = BranchSuggestion.model_validate(delivery.candidate)
                 mapping = bind_branches(proposal, request.source["topology"])
                 from ...source_outline_contracts import compile_section_map_graph, validate_section_map_graph
-                from ...domain import ProjectBrief
+                from plotloom.brief_contracts import ProjectBrief
                 validate_section_map_graph(compile_section_map_graph(mapping), ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief))
             except ValueError as error:
                 raise CreativeHandoffError("delivery_candidate_invalid", "分支建议不完整或链接无效，请检查助手交付。") from error

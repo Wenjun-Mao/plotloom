@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...domain import PUBLIC_PROVIDER_SETTING_FIELDS, ProviderSettings, contains_secret_setting, contains_secret_value, utc_now
+from plotloom.provider_contracts import PUBLIC_PROVIDER_SETTING_FIELDS, ProviderSettings
+from plotloom.public_values import contains_secret_setting, contains_secret_value
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...provider_profiles import PresetId, TextProviderProfile, TextProviderProfileSnapshot
 from ..schema import ProviderProfileSelectionRow, ProviderSettingsRow, TextProviderProfileRow

@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from typing import Any
-from ...domain import (
-    Artifact, ArtifactKind, AttemptStatus, CanonicalSnapshot, DialogueTimingProfile,
-    TERMINAL_RUN_STATUSES, GenerationRun, RunStatus, StageHead, StageName,
-    StagePayload, WorkUnitStatus, upstream_stages, utc_now,
-)
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import AttemptStatus, TERMINAL_RUN_STATUSES, GenerationRun, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import CanonicalSnapshot, StageHead, StageName, StagePayload, upstream_stages
+from plotloom.canonical_schema import DialogueTimingProfile
+from plotloom.contract_identity import utc_now
 from ..schema import ArtifactRow, EntityRevisionRow, GenerationAttemptRow, GenerationRunRow, GenerationWorkUnitRow, SealedStageAggregateRow, StagePlanRow
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from collections.abc import Sequence
 from sqlalchemy import select
 from ..codec import stable_hash
-from ...domain import stage_payload_model
+from plotloom.stage_contracts import stage_payload_model
 from plotloom.generation.planning_contracts import StagePlan
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .canonical import ProjectCanonicalPersistence

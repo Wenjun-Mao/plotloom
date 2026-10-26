@@ -15,7 +15,9 @@ from ...canonical_schema import (
     default_dialogue_timing_profile,
 )
 from ...creative_handoff_exchange import canonical_json
-from ...domain import ProjectBrief, StageName, new_id, utc_now
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...production_bridge_contracts import (
     BridgePrepareAvailable,

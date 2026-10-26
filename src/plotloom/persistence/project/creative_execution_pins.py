@@ -5,7 +5,7 @@ from typing import Any
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import execution_pin_for_request, request_hash
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ..schema.project_creative_handoff import CreativeHandoffExecutionPinRow
 
 

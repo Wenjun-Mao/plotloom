@@ -8,10 +8,7 @@ from pydantic import (
     ValidationError,
 )
 
-from ..domain import (
-    DialogueDeliveryPace,
-    DialogueTimingProfile,
-)
+from plotloom.canonical_schema import DialogueDeliveryPace, DialogueTimingProfile
 from .contracts import ValidationIssue
 from .dialogue_capacity import (
     DialogueCapacityNodeGuidance,

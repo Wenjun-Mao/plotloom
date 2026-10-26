@@ -9,17 +9,9 @@ from typing import Literal
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..domain import (
-    Project,
-    ProjectBrief,
-    ProjectCreation,
-    ProjectDuplicateResult,
-    InitialStage,
-    STAGE_ORDER,
-    StageName,
-    StageStatus,
-    validate_initial_stage_prefix,
-)
+from plotloom.project_contracts import Project, ProjectCreation, ProjectDuplicateResult
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import InitialStage, STAGE_ORDER, StageName, StageStatus, validate_initial_stage_prefix
 from ..exceptions import (
     InvalidTransitionError,
     RevisionConflictError,

@@ -7,15 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 from plotloom.generation.planning_contracts import GenerationWorkUnit
 
-from .domain import (
-    Artifact,
-    AttemptStatus,
-    GenerationAttempt,
-    GenerationRun,
-    ProviderAuthMode,
-    ProviderSnapshot,
-    WorkUnitFailureDisposition,
-)
+from plotloom.artifact_contracts import Artifact
+from plotloom.run_contracts import AttemptStatus, GenerationAttempt, GenerationRun, WorkUnitFailureDisposition
+from plotloom.provider_contracts import ProviderAuthMode, ProviderSnapshot
 from .generation.contracts import (
     GenerationRequest,
     ProviderResponse,

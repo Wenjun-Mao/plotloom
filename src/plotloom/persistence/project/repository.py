@@ -10,16 +10,9 @@ from typing import Any, ContextManager
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    STAGE_ORDER,
-    InitialStage,
-    Project,
-    StageName,
-    StageStatus,
-    stage_payload_model,
-    utc_now,
-    validate_initial_stage_prefix,
-)
+from plotloom.stage_contracts import STAGE_ORDER, InitialStage, StageName, StageStatus, stage_payload_model, validate_initial_stage_prefix
+from plotloom.project_contracts import Project
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..database import RepositoryDatabase
 from ..schema import (

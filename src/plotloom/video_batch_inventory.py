@@ -1,7 +1,7 @@
 """Missing-only all-route inventory and exact source/settings preflight."""
 from secrets import randbits
 
-from .domain import StageName
+from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.project.autopilot_closure import material_closure

@@ -13,7 +13,8 @@ from typing import Any, Literal
 from pydantic import ValidationError, model_validator
 
 from ..canonical_schema import NonBlankText
-from ..domain import CamelModel, EntityType
+from plotloom.domain_base import CamelModel
+from plotloom.canonical_schema import EntityType
 from .contracts import ValidationIssue
 from .fragment_semantics import required_entity_is_in_shot
 from .storyboard_response_contracts import StoryboardFragmentOutput

@@ -5,9 +5,7 @@ from __future__ import annotations
 from threading import RLock
 from typing import Callable, Mapping, Protocol
 
-from .domain import (
-    ProviderAuthMode,
-)
+from plotloom.provider_contracts import ProviderAuthMode
 from .generation.exceptions import SecretLeaseError
 from .generation.secrets import InMemorySecretVault, SecretLease
 

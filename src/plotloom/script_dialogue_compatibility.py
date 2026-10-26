@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .canonical_schema import DialogueTimingProfile, default_dialogue_timing_profile
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .production_dialogue_timing import DIALOGUE_NORMALIZATION_VERSION, projected_dialogue_timing
 
 

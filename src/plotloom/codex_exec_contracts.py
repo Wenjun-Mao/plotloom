@@ -10,7 +10,8 @@ from pydantic import Field, model_validator
 
 from .codex_exec_constants import HASH
 from .codex_exec_constants import JOB_ID as JOB_ID
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .codex_exec_capacity_contracts import LocalCapacityReadiness
 
 ExecCapability = Literal[

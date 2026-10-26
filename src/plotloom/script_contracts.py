@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 from .art_contracts import ArtBinding
 from .authored_route_timing import route_budget_hash
 from .accepted_review_state import AcceptedReviewState
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_dialogue_compatibility import PlannedStoryboardDialogue
 

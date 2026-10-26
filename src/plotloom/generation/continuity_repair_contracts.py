@@ -7,7 +7,8 @@ from typing import Annotated, Any, Literal, TypeAlias
 from pydantic import Field, model_validator
 
 from ..canonical_schema import NonBlankText
-from ..domain import CamelModel, EntityType
+from plotloom.domain_base import CamelModel
+from plotloom.canonical_schema import EntityType
 from ..json_value_contract import finite_canonical_json
 
 CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION = "continuity_sequence.boundary_owner.v1"

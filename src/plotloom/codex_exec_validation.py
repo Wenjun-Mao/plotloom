@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from .codex_exec_constants import HASH
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 _PLACEHOLDER = re.compile(r"\{(?:source|submodule|package|delivery|candidate|report|input:[A-Za-z0-9_.-]+|tool:(?:uv|node))\}")
 

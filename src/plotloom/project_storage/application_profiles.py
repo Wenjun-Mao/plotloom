@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..domain import ProviderSettings, utc_now
+from plotloom.provider_contracts import ProviderSettings
+from plotloom.contract_identity import utc_now
 from ..exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,

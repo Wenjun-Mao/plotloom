@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
-from plotloom.domain import utc_now
+from plotloom.contract_identity import utc_now
 from plotloom.persistence.project.script import ProjectScriptPersistence
 from plotloom.persistence.project.storyboard_review import (
     ProjectStoryboardReviewPersistence,

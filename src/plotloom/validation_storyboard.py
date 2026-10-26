@@ -4,8 +4,11 @@ from collections import defaultdict
 import hashlib
 import json
 from .canonical_schema import DialogueTimingProfile, EntityType, SceneBeatPlanV2, StoryBibleV2, StoryboardV2
-from .domain import ProjectBrief, GateEvaluation, GateResult, GateEvidence, GateStatus, GateSeverity
-from .validation_state import _allowed_entity_states, _continuity_entity_states_are_unique, _continuity_sequence_is_compatible, _continuity_state_issues
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.gate_contracts import GateEvaluation, GateResult, GateEvidence, GateStatus, GateSeverity
+from .validation_state import _allowed_entity_states
+from .validation_storyboard_dialogue import dialogue_observations
+from .validation_storyboard_continuity import shot_continuity_observations, sequence_continuity_observations
 
 STORYBOARD_GATE_SET_VERSION = "storyboard.v2"
 
@@ -70,7 +73,6 @@ class StoryboardGateEvaluator:
         scenes_by_id = {scene.id: scene for scene in plan.scenes}
         beats_by_id = {beat.id: beat for beat in plan.beats}
         shots_by_id = {shot.id: shot for shot in storyboard.shots}
-        cues_by_id = {cue.id: cue for cue in plan.dialogue_cues}
         scene_ids = [scene.id for scene in plan.scenes]
         beat_ids = [beat.id for beat in plan.beats]
         shot_ids = [shot.id for shot in storyboard.shots]
@@ -292,126 +294,11 @@ class StoryboardGateEvaluator:
                 path=("shots", shot.id, "audioPlan"),
                 reason="structured audio events must fit inside their shot duration",
             )
-            continuity_states_are_available = (
-                not _continuity_state_issues("", shot.entry_state, bible)
-                and not _continuity_state_issues("", shot.exit_state, bible)
-            )
-            record(
-                f"continuity.entity_state.available.shot.{shot.id}",
-                continuity_states_are_available,
-                path=("shots", shot.id),
-                reason="shot continuity states must reference Bible entities and allowed states",
-            )
+            for observation in shot_continuity_observations(shot, bible):
+                record(observation.gate_id, observation.passed, path=observation.path, reason=observation.reason, evidence=observation.evidence, required=observation.required)
 
-        cues_by_beat: dict[str, list] = defaultdict(list)
-        for cue in plan.dialogue_cues:
-            cues_by_beat[cue.beat_id].append(cue)
-        for beat_id in sorted(cues_by_beat):
-            beat_cues = sorted(cues_by_beat[beat_id], key=lambda item: item.order)
-            record(
-                f"dialogue_cue.ownership.{beat_id}", beat_id in beats_by_id,
-                path=("dialogueCues", beat_id), reason="dialogue cues must be owned by a known beat",
-            )
-            record(
-                f"dialogue_cue.order.{beat_id}",
-                [cue.order for cue in beat_cues] == list(range(1, len(beat_cues) + 1)),
-                path=("dialogueCues", beat_id),
-                reason="dialogue cue order must be contiguous and start at 1 within its beat",
-            )
-            for cue in beat_cues:
-                speaker_is_valid = cue.voice_over is not None or cue.speaker_id in character_ids
-                record(
-                    f"dialogue_cue.speaker.{cue.id}", speaker_is_valid,
-                    path=("dialogueCues", cue.id, "speakerId"),
-                    reason="a dialogue speaker must be a story-bible character; voice-over is explicit",
-                )
-
-        references_by_cue: dict[str, list] = defaultdict(list)
-        for shot in storyboard.shots:
-            for cue_id in shot.cue_ids:
-                references_by_cue[cue_id].append(shot)
-        for shot in sorted(storyboard.shots, key=lambda item: item.id):
-            record(
-                f"dialogue_cue.reference_unique.{shot.id}",
-                len(shot.cue_ids) == len(set(shot.cue_ids)),
-                path=("shots", shot.id, "cueIds"),
-                reason="a shot must not schedule the same dialogue cue more than once",
-            )
-            references_are_known = all(cue_id in cues_by_id for cue_id in shot.cue_ids)
-            record(
-                f"dialogue_cue.reference.{shot.id}", references_are_known,
-                path=("shots", shot.id, "cueIds"), reason="shots may reference only canonical dialogue cue IDs",
-            )
-            known_cues = [cues_by_id[cue_id] for cue_id in shot.cue_ids if cue_id in cues_by_id]
-            same_scene = all(
-                cue.beat_id in beats_by_id and beats_by_id[cue.beat_id].scene_id == shot.scene_id
-                for cue in known_cues
-            )
-            record(
-                f"dialogue_cue.scene_reference.{shot.id}", same_scene,
-                path=("shots", shot.id, "cueIds"), reason="a shot can schedule only dialogue from its own scene",
-            )
-            key_by_cue = {
-                cue.id: (beats_by_id[cue.beat_id].order, cue.order)
-                for cue in known_cues if cue.beat_id in beats_by_id
-            }
-            record(
-                f"dialogue_cue.reference_order.{shot.id}",
-                [key_by_cue[cue.id] for cue in known_cues if cue.id in key_by_cue]
-                == sorted(key_by_cue[cue.id] for cue in known_cues if cue.id in key_by_cue),
-                path=("shots", shot.id, "cueIds"), reason="cue IDs must retain beat/cue order within a shot",
-            )
-            total_cue_duration = sum(cue.estimated_duration_units for cue in known_cues)
-            record(
-                f"dialogue_cue.shot_fit.{shot.id}", total_cue_duration <= shot.duration_units,
-                path=("shots", shot.id, "cueIds"), reason="scheduled dialogue estimates must fit the shot duration",
-            )
-
-        linked_pairs = {
-            (link.shot_id, link.beat_id)
-            for link in storyboard.shot_beat_links
-        }
-        for cue in sorted(plan.dialogue_cues, key=lambda item: item.id):
-            scheduled_shots = references_by_cue[cue.id]
-            record(
-                f"dialogue_cue.scheduled.{cue.id}", bool(scheduled_shots),
-                path=("dialogueCues", cue.id), reason="every canonical dialogue cue must be scheduled by at least one shot",
-            )
-            record(
-                f"dialogue_cue.schedule_cardinality.{cue.id}",
-                len(scheduled_shots) == 1,
-                path=("dialogueCues", cue.id),
-                reason="a canonical dialogue cue must be scheduled by exactly one shot",
-            )
-            record(
-                f"dialogue_cue.beat_coverage.{cue.id}",
-                cue.beat_id in beats_by_id
-                and all((shot.id, cue.beat_id) in linked_pairs for shot in scheduled_shots),
-                path=("dialogueCues", cue.id),
-                reason="the shot scheduling a cue must cover the cue's owning beat",
-            )
-            scheduled_duration = sum(shot.duration_units for shot in scheduled_shots)
-            record(
-                f"dialogue_cue.total_fit.{cue.id}", cue.estimated_duration_units <= scheduled_duration,
-                path=("dialogueCues", cue.id), reason="a cue estimate must fit its scheduled shot duration",
-            )
-            if timing_profile is None:
-                profile_match: bool | None = None
-                profile_reason = "dialogue-fit requires an explicit versioned timing profile"
-            else:
-                expected = timing_profile.estimate_duration_units(cue)
-                profile_match = (
-                    expected is not None
-                    and cue.estimated_duration_units >= expected
-                )
-                profile_reason = (
-                    "cue estimate must not understate its versioned "
-                    "language/delivery timing-profile minimum"
-                )
-            record(
-                f"dialogue_cue.profile_fit.{cue.id}", profile_match,
-                path=("dialogueCues", cue.id, "estimatedDurationUnits"), reason=profile_reason,
-            )
+        for observation in dialogue_observations(storyboard, plan, bible, timing_profile):
+            record(observation.gate_id, observation.passed, path=observation.path, reason=observation.reason, evidence=observation.evidence, required=observation.required)
 
         primary_count_by_beat: dict[str, int] = defaultdict(int)
         linked_shots: set[str] = set()
@@ -457,62 +344,8 @@ class StoryboardGateEvaluator:
             path=("shotBeatLinks",), reason="every shot must cover at least one beat",
         )
 
-        for scene in sorted(plan.scenes, key=lambda item: item.id):
-            scene_beats = sorted(beats_by_scene[scene.id], key=lambda item: item.order)
-            scene_shots = sorted(shots_by_scene[scene.id], key=lambda item: item.order)
-            scene_continuity_states_are_available = (
-                not _continuity_state_issues("", scene.entry_state, bible)
-                and not _continuity_state_issues("", scene.exit_state, bible)
-            )
-            record(
-                f"continuity.entity_state.available.scene.{scene.id}",
-                scene_continuity_states_are_available,
-                path=("scenes", scene.id),
-                reason="scene continuity states must reference Bible entities and allowed states",
-            )
-            record(
-                f"continuity.entity_state.unique.scene.{scene.id}",
-                _continuity_entity_states_are_unique(scene.entry_state)
-                and _continuity_entity_states_are_unique(scene.exit_state),
-                path=("scenes", scene.id),
-                reason="scene continuity states must not repeat or conflict on an entity",
-            )
-            for shot in scene_shots:
-                record(
-                    f"continuity.entity_state.unique.shot.{shot.id}",
-                    _continuity_entity_states_are_unique(shot.entry_state)
-                    and _continuity_entity_states_are_unique(shot.exit_state),
-                    path=("shots", shot.id),
-                    reason="shot continuity states must not repeat or conflict on an entity",
-                )
-            continuity_ok = _continuity_sequence_is_compatible(scene.entry_state, scene_shots, scene.exit_state)
-            record(
-                f"continuity.shot_sequence.{scene.id}", continuity_ok,
-                path=("scenes", scene.id),
-                reason="scene and adjacent shot entry/exit states must be compatible",
-            )
-            beat_continuity_ok = _continuity_sequence_is_compatible(
-                scene.entry_state,
-                scene_beats,
-                scene.exit_state,
-            )
-            record(
-                f"continuity.beat_sequence.{scene.id}", beat_continuity_ok,
-                path=("scenes", scene.id),
-                reason="scene and ordered beat entry/exit states must be compatible",
-            )
-
-        for beat in sorted(plan.beats, key=lambda item: item.id):
-            beat_continuity_states_are_available = (
-                not _continuity_state_issues("", beat.entry_state, bible)
-                and not _continuity_state_issues("", beat.exit_state, bible)
-            )
-            record(
-                f"continuity.entity_state.available.beat.{beat.id}",
-                beat_continuity_states_are_available,
-                path=("beats", beat.id),
-                reason="beat continuity states must reference Bible entities and allowed states",
-            )
+        for observation in sequence_continuity_observations(storyboard, plan, bible):
+            record(observation.gate_id, observation.passed, path=observation.path, reason=observation.reason, evidence=observation.evidence, required=observation.required)
 
         return GateEvaluation(
             gate_set_version=self.gate_set_version,

@@ -7,11 +7,8 @@ from threading import Event
 from typing import TYPE_CHECKING
 
 from .artifacts import RunEvidenceArtifactStore
-from .domain import (
-    GenerationRun,
-    ProviderSnapshot,
-    RunKind,
-)
+from plotloom.run_contracts import GenerationRun, RunKind
+from plotloom.provider_contracts import ProviderSnapshot
 from .exceptions import (
     InvalidTransitionError,
     NotFoundError,

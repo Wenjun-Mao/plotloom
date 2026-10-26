@@ -17,7 +17,8 @@ from typing import Literal
 from pydantic import ConfigDict, Field, model_validator
 
 from ..canonical_schema import StoryGraphV2, StoryNodeV2, V2StoryNodeKind
-from ..domain import CamelModel, ProjectBrief, to_camel
+from plotloom.domain_base import CamelModel, to_camel
+from plotloom.brief_contracts import ProjectBrief
 
 
 SCENE_TIMING_ALLOCATION_VERSION = "scene_timing_allocation.v2"

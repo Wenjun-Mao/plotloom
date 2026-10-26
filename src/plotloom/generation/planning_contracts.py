@@ -7,11 +7,8 @@ from typing import Any, Literal, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..domain import (
-    STAGE_ORDER,
-    DialogueTimingProfile,
-    StageName,
-)
+from plotloom.stage_contracts import STAGE_ORDER, StageName
+from plotloom.canonical_schema import DialogueTimingProfile
 from .dialogue_capacity import (
     DialogueCapacityPlan,
     DialogueCapacityPlanningError,

@@ -6,7 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import RunKind, STAGE_ORDER, StartupRecoveryPlan
+from plotloom.run_contracts import RunKind, StartupRecoveryPlan
+from plotloom.stage_contracts import STAGE_ORDER
 from plotloom.project_storage import ProjectStorageCorruptionError
 from plotloom.runtime import build_runtime_app
 from tests.autopilot_fixtures import start_run

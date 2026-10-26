@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class ProjectGarbageCollectionRequest(CamelModel):

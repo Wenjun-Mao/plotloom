@@ -164,3 +164,5 @@ its verification receipt; it does not authorize Plotloom integration.
 with the INT8 ConvRot checkpoint, stock audio BF16, reload/clone persistence and
 frozen VAE snapshots. The [D receipt](../verification/2026-10-06-h3-vae-d-adoption.md)
 is the deployment authority, not the historical experimental callback.
+
+- [0221: Backend contract and HTTP ownership](0221-backend-contract-and-http-ownership.md)

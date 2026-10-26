@@ -48,7 +48,7 @@ def canonical_json(value: Any) -> str:
 
 
 def _json_default(value: Any) -> Any:
-    from ..domain import ProjectBrief
+    from plotloom.brief_contracts import ProjectBrief
     if isinstance(value, ProjectBrief):
         return value.generation_input()
     if isinstance(value, BaseModel):

@@ -7,7 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
 from ...production_timing import source_seconds_to_milliseconds
 from ..codec import stable_hash

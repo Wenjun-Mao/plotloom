@@ -6,7 +6,7 @@ from copy import deepcopy
 import pytest
 from sqlalchemy import select
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.persistence.schema.project_source_outline import SourceGraphIdentityRow
 from plotloom.production_bridge_contracts import (
     ProductionBridgeAcceptRequest,

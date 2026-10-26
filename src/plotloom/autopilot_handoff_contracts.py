@@ -4,7 +4,8 @@ from typing import Annotated, Literal
 from pydantic import Field, TypeAdapter, field_validator, model_validator
 
 from .autopilot_materials import MaterialInventory
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .geometry_preparation_contracts import GeometryPreparation
 from .human_confirmation_contracts import UnnamedCreatorConfirmation
 from .delegated_qa_contracts import AgentQaAttribution

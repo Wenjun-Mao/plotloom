@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .accepted_review_state import AcceptedReviewState
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .production_dialogue_timing import FrozenF5DialogueTiming
 from .review_context_diagnostics import ReviewContextDiagnostic
 from .script_contracts import ScriptBinding, ScriptSectionBinding

@@ -205,7 +205,7 @@ def test_first_install_independence_refuses_manual_foreign_non_early_drift_and_r
     from sqlalchemy import select
 
     from plotloom.autopilot_contracts import CommandAuthority, OperationScope
-    from plotloom.domain import utc_now
+    from plotloom.contract_identity import utc_now
     from plotloom.exceptions import InvalidTransitionError
     from plotloom.persistence.codec import stable_hash
     from plotloom.persistence.project.first_install_references import (

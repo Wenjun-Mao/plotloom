@@ -1,6 +1,6 @@
 """Provenance for machine adoption, never an author review flag."""
 from pydantic import Field
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class MachineAdoption(CamelModel):

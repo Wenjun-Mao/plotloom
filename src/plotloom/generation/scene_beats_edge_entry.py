@@ -15,7 +15,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from ..canonical_schema import EntityType, NonBlankText
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .contracts import ValidationIssue
 
 

@@ -5,11 +5,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Mapping
 
-from ..domain import (
-    ProjectBrief,
-    StageName,
-    StoryBibleV2,
-)
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
+from plotloom.canonical_schema import StoryBibleV2
 from .dialogue_capacity import (
     DialogueCapacityNodeGuidance,
 )

@@ -10,7 +10,7 @@ from .creative_handoff_contracts import (
     CREATIVE_CANDIDATE_FILENAMES,
     CreativeHandoffRequest,
 )
-from .domain import contains_secret_value
+from plotloom.public_values import contains_secret_value
 from .exceptions import InvalidTransitionError
 from .text_correction_contracts import CORRECTION_CONTRACT, logical_checkpoint
 

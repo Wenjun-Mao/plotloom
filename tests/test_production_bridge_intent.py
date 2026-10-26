@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from plotloom.domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.prompts import PromptRenderer
 from plotloom.runtime_secrets import RunSecretBroker

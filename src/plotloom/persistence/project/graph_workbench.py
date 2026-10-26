@@ -2,7 +2,9 @@
 from sqlalchemy import select
 from pydantic import Field
 
-from ...domain import AuthoringDraft, ProjectBrief, StageName, utc_now, new_id
+from plotloom.stage_contracts import AuthoringDraft, StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.contract_identity import utc_now, new_id
 from ...domain_base import CamelModel
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...graph_authoring_drafts import GraphAuthoringDraft

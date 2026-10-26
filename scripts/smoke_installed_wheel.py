@@ -119,7 +119,7 @@ def main() -> None:
             from alembic.script import ScriptDirectory
             import plotloom
             from plotloom.config import PlotloomSettings
-            from plotloom.domain import ProjectBrief
+            from plotloom.brief_contracts import ProjectBrief
             from plotloom.generation.prompts import PromptRepository
             from plotloom.project_storage import ProjectFolderStorage
             from plotloom.runtime import build_runtime_app

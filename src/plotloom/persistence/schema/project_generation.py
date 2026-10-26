@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
 
-from ...domain import WorkUnitStatus
+from plotloom.run_contracts import WorkUnitStatus
 
 class GenerationRunRow(Base):
     __tablename__ = "v2_generation_runs"

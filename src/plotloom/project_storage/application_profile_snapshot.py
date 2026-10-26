@@ -7,7 +7,7 @@ from pathlib import Path
 import sqlite3
 from typing import Iterable
 
-from ..domain import contains_secret_setting, contains_secret_value
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from ..provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3
 from .format import ProjectStorageCorruptionError, ProjectStorageError
 

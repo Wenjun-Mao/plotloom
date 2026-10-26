@@ -16,7 +16,7 @@ from typing import Literal
 from pydantic import ConfigDict, Field, model_validator
 
 from ..canonical_schema import DialogueDeliveryPace, DialogueTimingProfile
-from ..domain import CamelModel, to_camel
+from plotloom.domain_base import CamelModel, to_camel
 from .scene_timing_allocation import SceneTimingAllocation
 
 

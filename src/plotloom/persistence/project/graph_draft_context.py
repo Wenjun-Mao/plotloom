@@ -1,7 +1,8 @@
 """Exact current context for the shared graph draft; no accepted authority copying."""
 from sqlalchemy import select
 
-from ...domain import ProjectBrief, StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...graph_authoring_drafts import GraphAuthoringDraft
 from ...source_outline_contracts import SectionMap

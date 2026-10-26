@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_ingestion import ObservedVideo

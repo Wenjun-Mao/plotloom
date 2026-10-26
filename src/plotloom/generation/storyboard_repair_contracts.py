@@ -7,7 +7,8 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from ..canonical_schema import NonBlankText
-from ..domain import CamelModel, EntityType
+from plotloom.domain_base import CamelModel
+from plotloom.canonical_schema import EntityType
 
 
 class AudioTimingRepairFact(CamelModel):

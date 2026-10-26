@@ -4,7 +4,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from pydantic import Field
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class TextGenerationRequest(CamelModel):

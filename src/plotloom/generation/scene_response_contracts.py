@@ -7,7 +7,8 @@ from typing import Annotated, Any
 from pydantic import Field, model_validator
 
 from ..canonical_schema import NonBlankText
-from ..domain import CamelModel, ContinuityStateV2, DialogueDeliveryPace
+from plotloom.domain_base import CamelModel
+from plotloom.canonical_schema import ContinuityStateV2, DialogueDeliveryPace
 
 
 class DramaticSceneContent(CamelModel):

@@ -9,7 +9,8 @@ from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...domain import StageName, StageStatus, new_id, utc_now
+from plotloom.stage_contracts import StageName, StageStatus
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision,

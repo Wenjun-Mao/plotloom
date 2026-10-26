@@ -12,7 +12,7 @@ from pydantic import Field, model_validator
 from .codex_exec_attempt_contracts import CodexExecAttempt
 from .codex_exec_constants import HASH
 from .codex_exec_validation import CodexExecTextValidationEvidence
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 def _canonical_hash(payload) -> str:

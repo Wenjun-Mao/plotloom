@@ -8,7 +8,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import TERMINAL_RUN_STATUSES, utc_now
+from plotloom.run_contracts import TERMINAL_RUN_STATUSES
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, ProviderProfileSelection, TextProviderProfile, is_v3_snapshot
 from ..schema import GenerationRunRow, ProviderProfileSelectionRow, TextProviderProfileRow

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.image_job_contracts import ImageJobCreateRequest
 from plotloom.image_job_package import project_image_package

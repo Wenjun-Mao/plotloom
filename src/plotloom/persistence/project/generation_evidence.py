@@ -8,23 +8,12 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    Artifact,
-    ArtifactKind,
-    AttemptStatus,
-    CanonicalSnapshot,
-    GenerationAttempt,
-    GenerationAttemptKind,
-    RunStatus,
-    RunTrace,
-    StageName,
-    WorkUnitFailureDisposition,
-    WorkUnitStatus,
-    contains_secret_setting,
-    contains_secret_value,
-    is_secret_setting_name,
-    utc_now,
-)
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttempt, GenerationAttemptKind, RunStatus, WorkUnitFailureDisposition, WorkUnitStatus
+from plotloom.stage_contracts import CanonicalSnapshot, StageName
+from plotloom.run_evidence_contracts import RunTrace
+from plotloom.public_values import contains_secret_setting, contains_secret_value, is_secret_setting_name
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ...generation.continuity_repair_contracts import (
     ContinuityFactAssignment,
@@ -288,7 +277,7 @@ class ProjectGenerationEvidencePersistence:
         by_stage = {StageName(item.stage): item for item in result_rows}
         if set(by_stage) != requested:
             return False
-        from ...domain import upstream_stages
+        from plotloom.stage_contracts import upstream_stages
         for stage in requested:
             if self._access.rows.stage(session, run_row.project_id, stage).entity_revision_id != by_stage[stage].id:
                 return False

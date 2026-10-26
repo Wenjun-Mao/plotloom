@@ -13,7 +13,7 @@ from hashlib import sha256
 from typing import Any, ClassVar, Literal, Protocol
 from urllib.parse import urlparse
 
-from .domain import contains_secret_setting, contains_secret_value
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .video_ingestion import ObservedVideo
 
 

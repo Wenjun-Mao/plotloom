@@ -6,7 +6,7 @@ from io import BytesIO
 from PIL import Image
 
 from plotloom.canonical_schema import CharacterV2
-from plotloom.domain import RunStatus
+from plotloom.run_contracts import RunStatus
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectStore
 from tests.project_storage_fixtures import (

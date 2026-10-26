@@ -12,7 +12,7 @@ def batch_environment(tmp_path):
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     project_id = store.manifest.project_id
     ProjectPipelineExecutor(FixtureResolver()).execute(store, profile=fixture_profile())
-    from plotloom.domain import StageName
+    from plotloom.stage_contracts import StageName
     board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
     board = board.model_copy(update={"shots": [shot.model_copy(update={"duration_units": 5000}) for shot in board.shots]})
     store.update_stage(StageName.STORYBOARD, board, expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision)

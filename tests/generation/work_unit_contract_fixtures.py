@@ -2,19 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from plotloom.domain import (
-    BeatV2,
-    CharacterV2,
-    ContinuityStateV2,
-    DramaticSceneV2,
-    ProjectBrief,
-    SceneBeatPlanV2,
-    StageName,
-    StoryBibleV2,
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-)
+from plotloom.canonical_schema import BeatV2, CharacterV2, ContinuityStateV2, DramaticSceneV2, SceneBeatPlanV2, StoryBibleV2, StoryEdgeV2, StoryGraphV2, StoryNodeV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from plotloom.generation.enqueue_planning import create_generation_plan
 from plotloom.generation.planning import plan_stage
 from plotloom.generation.scene_response_contracts import (

@@ -1,7 +1,7 @@
 """Credential assignments and report JavaScript equality have distinct syntax."""
 import pytest
 
-from plotloom.domain import contains_secret_value
+from plotloom.public_values import contains_secret_value
 
 
 @pytest.mark.parametrize("prose", [

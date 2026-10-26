@@ -1,7 +1,7 @@
 """Finite trusted host capacity, frozen in every current CLI profile."""
 from pydantic import Field, model_validator
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class CodexExecPoolLimits(CamelModel):

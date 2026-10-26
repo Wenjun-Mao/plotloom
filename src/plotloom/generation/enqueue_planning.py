@@ -6,10 +6,7 @@ from typing import Any, Mapping
 
 from pydantic import BaseModel
 
-from ..domain import (
-    STAGE_ORDER,
-    StageName,
-)
+from plotloom.stage_contracts import STAGE_ORDER, StageName
 from .planning_contracts import (
     DEFAULT_STAGE_BUDGETS,
     PLANNING_POLICY_VERSION,

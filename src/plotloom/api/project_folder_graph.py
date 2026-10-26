@@ -1,7 +1,7 @@
 """Shared graph authoring capability; commands never install or dispatch."""
 from fastapi import FastAPI
 
-from ..domain import AuthoringDraft
+from plotloom.stage_contracts import AuthoringDraft
 from ..graph_commands import GraphCommandApplyRequest, GraphCommandPreview, GraphCommandRequest
 from ..persistence.project.graph_workbench import GraphDraftRebaseRequest, GraphWorkbenchState
 

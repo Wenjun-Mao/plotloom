@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from ..production_bridge_contracts import ProductionBridgeState
 
 # The domain state declares its job later in that module; resolve its completed

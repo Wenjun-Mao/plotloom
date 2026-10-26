@@ -1,7 +1,7 @@
 """Full-scope review projection and one atomic audiovisual selection receipt."""
 from hashlib import sha256
 from sqlalchemy import select
-from .domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from .exceptions import InvalidTransitionError, RevisionConflictError, NotFoundError
 from .project_storage.format import ProjectStorageError
 from .persistence.codec import stable_hash

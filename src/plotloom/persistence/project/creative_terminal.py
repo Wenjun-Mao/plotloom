@@ -61,7 +61,7 @@ class ProjectCreativeTerminalPersistence:
     def retain_run_receipt(self, project_id, delivery):
         """Retain validated late evidence without readiness, adoption or heads."""
         from ...autopilot_contracts import OperationScope
-        from ...domain import utc_now
+        from plotloom.contract_identity import utc_now
         from .autopilot_authority import require_machine_scope
         require_machine_scope(self._access, OperationScope.EVIDENCE)
         request = delivery.request

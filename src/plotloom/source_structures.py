@@ -1,7 +1,7 @@
 """Trusted topology admission, compilation and complete Source playback routes."""
 from typing import Any
 from .canonical_schema import StoryGraphV2, StoryNodeV2, StoryEdgeV2, JoinContractV2
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.generation.story_graph_topology import plan_story_graph_topology
 from plotloom.generation.story_graph_topology_contracts import StoryGraphTopologyError
 from .exceptions import InvalidTransitionError

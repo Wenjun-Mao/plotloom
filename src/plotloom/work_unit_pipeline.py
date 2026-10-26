@@ -7,17 +7,11 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from plotloom.generation.planning_contracts import StagePlan
 
-from .domain import (
-    ArtifactKind,
-    AttemptStatus,
-    GenerationRun,
-    ProviderSnapshot,
-    RunStatus,
-    StageName,
-    StagePayload,
-    WorkUnitRepairScope,
-    stage_payload_model,
-)
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationRun, RunStatus
+from plotloom.provider_contracts import ProviderSnapshot
+from plotloom.stage_contracts import StageName, StagePayload, stage_payload_model
+from plotloom.repair_contracts import WorkUnitRepairScope
 from .exceptions import QuarantinedOutputError, RunExecutionError
 from .generation.prompts import PromptRenderer
 from .generation.providers import ProviderAdapter

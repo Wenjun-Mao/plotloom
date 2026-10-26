@@ -9,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
-from ...domain import StageName, new_id, utc_now
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
 from ...same_person_review_contracts import SamePersonReviewObservations, SamePersonReviewRequest
 from ...human_confirmation_contracts import UnnamedCreatorConfirmation

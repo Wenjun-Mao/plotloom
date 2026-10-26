@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ..contract_hash import stable_hash
-from ..domain import is_secret_setting_name
+from plotloom.public_values import is_secret_setting_name
 
 def _json_data(value: Any) -> Any:
     if hasattr(value, "model_dump"):

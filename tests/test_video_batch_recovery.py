@@ -3,7 +3,7 @@ from contextlib import closing
 from copy import deepcopy
 import shutil
 import pytest
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.project_handle import ProjectStore
 from plotloom.video_batch_contracts import BatchControl

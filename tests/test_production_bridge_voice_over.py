@@ -8,7 +8,7 @@ import pytest
 
 from plotloom.canonical_schema import default_dialogue_timing_profile
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.project_storage import ProjectFolderStorage
 from tests import creative_delivery_fixtures, production_bridge_fixtures

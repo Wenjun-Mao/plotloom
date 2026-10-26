@@ -10,7 +10,8 @@ from uuid import uuid4
 
 import pytest
 
-from plotloom.domain import ArtifactKind, StageName
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.generation.repair_facts import parse_semantic_repair_fact
 from plotloom.persistence import stable_hash

@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..domain import contains_secret_value, is_secret_setting_name
+from plotloom.public_values import contains_secret_value, is_secret_setting_name
 from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES
 from .current_schema import assert_current_review_bindings, assert_current_schema
 from .format import (

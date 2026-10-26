@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .canonical_schema import DialogueDeliveryPace, default_dialogue_timing_profile
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 TIMING_FILENAME = "dialogue-timing-contract.json"
 TIMING_VERSION = "plotloom.f5-dialogue-timing.v1"

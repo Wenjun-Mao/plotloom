@@ -26,7 +26,7 @@ from .creative_commands import (
     read_creative_delivery,
     send_creative_candidate,
 )
-from .domain import StageName
+from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .native_bridge_intent_service import NativeBridgeIntentService

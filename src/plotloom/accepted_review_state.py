@@ -1,7 +1,7 @@
 """Accepted evidence never inherits a replacement candidate's authority."""
 from typing import Literal
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
 
 

@@ -10,7 +10,9 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
-from ..domain import CamelModel, contains_secret_value, utc_now
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_value
+from plotloom.contract_identity import utc_now
 from .format import ProjectStorageConflictError, ProjectStorageError
 
 

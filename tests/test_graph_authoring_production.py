@@ -3,7 +3,7 @@
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.source_outline_contracts import SectionMap
 from plotloom.source_structures import complete_routes

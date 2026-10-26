@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .exceptions import InvalidTransitionError
 
 ReviewContextCode = Literal[

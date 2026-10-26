@@ -8,7 +8,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import ProjectLifecycleStatus, StageName
+from plotloom.project_contracts import ProjectLifecycleStatus
+from plotloom.stage_contracts import StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
 from ..codec import _stored_utc
 from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow, ManagedAssetRow

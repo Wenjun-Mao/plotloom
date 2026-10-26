@@ -21,7 +21,7 @@ from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
 from plotloom.cast_style import freeze_cast_style
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.domain import utc_now
+from plotloom.contract_identity import utc_now
 from tests.source_graph_fixtures import letter_section_map
 from tests.cast_style_fixtures import style_fixture
 from tests.creative_delivery_fixtures import run_brief_instruction_delivery

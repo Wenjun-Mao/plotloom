@@ -5,7 +5,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import BeatV2, SceneBeatPlanV2, StageName
+from plotloom.canonical_schema import BeatV2, SceneBeatPlanV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.fragment_binding import (
     canonical_audio_event_id,
 )

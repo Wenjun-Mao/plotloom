@@ -6,14 +6,9 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from plotloom.generation.planning_contracts import GenerationWorkUnit
 
-from .domain import (
-    ArtifactKind,
-    GenerationAttempt,
-    GenerationAttemptKind,
-    GenerationRun,
-    StageName,
-    StagePayload,
-)
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import GenerationAttempt, GenerationAttemptKind, GenerationRun
+from plotloom.stage_contracts import StageName, StagePayload
 from .generation.continuity_repair import (
     assert_continuity_repair_fact_matches_source,
 )

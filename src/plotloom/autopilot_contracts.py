@@ -12,7 +12,8 @@ from pydantic import Field, model_validator
 from .art_style import ArtRenderStyle
 from .cast_style import CastRenderStyle
 from .codex_exec_contracts import CodexExecProfile, ExecutorBinding
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .geometry_preparation import geometry_policy
 from .geometry_preparation_contracts import GeometryPolicy, GeometryPreparation
 from .workflow_timing import WorkflowTiming

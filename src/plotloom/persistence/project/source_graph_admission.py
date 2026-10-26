@@ -4,7 +4,8 @@ from hashlib import sha256
 from sqlalchemy import select
 
 from ...creative_handoff_exchange import canonical_json
-from ...domain import StageName, StageStatus, new_id, utc_now
+from plotloom.stage_contracts import StageName, StageStatus
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...graph_authoring_drafts import GraphAuthoringDraft
 from ...source_outline_contracts import (
@@ -57,7 +58,7 @@ class SourceGraphAdmission:
                 raise InvalidTransitionError("确认内容必须与已保存的当前图草稿完全一致。")
             outline_head = self._source._head(session, project_id, create=True)
             section_map_head = self._source._section_map_head(session, project_id, create=True)
-            from ...domain import ProjectBrief
+            from plotloom.brief_contracts import ProjectBrief
             graph = compile_section_map_graph(request.mapping)
             brief = ProjectBrief.require_confirmed(project.brief)
             bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
@@ -145,7 +146,7 @@ class SourceGraphAdmission:
             if graph_head.revision and (admission is None or admission.graph_revision != graph_head.revision or identity is None or identity.project_id != project_id or identity.canonical_revision != graph_head.revision or identity.content_hash != graph_head.content_hash):
                 raise InvalidTransitionError("the current canonical graph is not source-map-owned and cannot be overwritten")
             graph = compile_section_map_graph(mapping.mapping)
-            from ...domain import ProjectBrief
+            from plotloom.brief_contracts import ProjectBrief
             bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
             bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE) if bible_head.status == StageStatus.READY.value else None
             validate_section_map_graph(graph, ProjectBrief.require_confirmed(project.brief), bible)
@@ -188,7 +189,7 @@ class SourceGraphAdmission:
         if mapping is None or mapping.revision != admission.section_map_revision or mapping.content_hash != admission.section_map_content_hash:
             raise InvalidTransitionError("current graph source mapping changed")
         graph = compile_section_map_graph(mapping.mapping)
-        from ...domain import ProjectBrief
+        from plotloom.brief_contracts import ProjectBrief
         from ..codec import stable_hash
         if stable_hash(graph.model_dump(mode="json", by_alias=False)) != head.content_hash:
             raise InvalidTransitionError("compiled source mapping differs from canonical graph")

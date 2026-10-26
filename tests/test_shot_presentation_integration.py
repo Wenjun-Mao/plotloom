@@ -9,7 +9,7 @@ import pytest
 
 from plotloom.canonical_schema import AuthoredVisibleText, V2CoverageRole
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 from tests.test_project_storage_image_workflow import _approve

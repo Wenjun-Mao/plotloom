@@ -9,7 +9,9 @@ import logging
 from threading import RLock
 from typing import Any
 
-from ..domain import GenerationRun, RunKind, StageName, StartupRecoveryPlan, new_id
+from plotloom.run_contracts import GenerationRun, RunKind, StartupRecoveryPlan
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import new_id
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..jobs import LifecycleJobRunner
 from plotloom.pipeline import PipelineEngine

@@ -127,7 +127,7 @@ def test_late_delivery_preserves_saved_content_and_report(presentation, change):
                 store.update_brief(current.brief.model_copy(update={"target_playthrough_seconds": current.brief.target_playthrough_seconds + 1}), expected_revision=current.revision)
             else:
                 from sqlalchemy import select
-                from plotloom.domain import StageName
+                from plotloom.stage_contracts import StageName
                 from plotloom.persistence.schema import StageHeadRow
                 with store.repository._write() as session:
                     head = session.scalar(select(StageHeadRow).where(StageHeadRow.project_id == project, StageHeadRow.stage == StageName.STORY_GRAPH.value))

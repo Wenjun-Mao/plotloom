@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ...domain import contains_secret_setting, contains_secret_value
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from ...provider_profiles import ProviderProfileSelection, TextProviderProfile, TextProviderProfileSnapshot
 from ..codec import _stored_utc
 from ..schema import ProviderProfileSelectionRow, TextProviderProfileRow

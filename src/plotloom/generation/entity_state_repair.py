@@ -8,11 +8,8 @@ from pydantic import (
     ValidationError,
 )
 
-from ..domain import (
-    EntityType,
-    StageName,
-    StoryBibleV2,
-)
+from plotloom.canonical_schema import EntityType, StoryBibleV2
+from plotloom.stage_contracts import StageName
 from .continuity_repair_contracts import (
     ContinuityEntityStateRepairFact,
     ContinuityStateEndpoint,

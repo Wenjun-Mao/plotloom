@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from typing import Any
-from ...domain import Artifact, ArtifactKind, AttemptStatus, GenerationAttempt, GenerationAttemptKind, RunStatus, StageName, WorkUnitStatus, utc_now
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttempt, GenerationAttemptKind, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import StageName
+from plotloom.contract_identity import utc_now
 from ..schema import ArtifactRow, GenerationAttemptRow, GenerationWorkUnitRow
 from sqlalchemy.exc import IntegrityError
 from ...exceptions import InvalidTransitionError, NotFoundError

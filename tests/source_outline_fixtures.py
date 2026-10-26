@@ -10,7 +10,7 @@ from pathlib import Path
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
-from plotloom.domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,

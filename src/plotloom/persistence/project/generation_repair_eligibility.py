@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    ArtifactKind, AttemptStatus, CanonicalSnapshot, FragmentReuseKind, FrozenFragmentReuseSource,
-    ProjectLifecycleStatus, RunStatus, STAGE_ORDER, StageName,
-    WorkUnitRepairEligibility, WorkUnitStatus,
-)
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, RunStatus, WorkUnitStatus
+from plotloom.stage_contracts import CanonicalSnapshot, STAGE_ORDER, StageName
+from plotloom.repair_contracts import FragmentReuseKind, FrozenFragmentReuseSource, WorkUnitRepairEligibility
+from plotloom.project_contracts import ProjectLifecycleStatus
 from ...exceptions import RepairEligibilityError
 from plotloom.generation.planning_contracts import GenerationPlan, PLANNING_POLICY_VERSION
 from ...generation.scene_timing_allocation import (

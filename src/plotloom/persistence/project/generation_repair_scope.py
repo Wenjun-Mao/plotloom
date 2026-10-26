@@ -7,11 +7,10 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    CanonicalSnapshot, DialogueTimingProfile, RunKind, RunStatus, STAGE_ORDER,
-    StageName, StagePayload, StageStatus, WorkUnitRepairScope, WorkUnitStatus,
-    upstream_stages,
-)
+from plotloom.stage_contracts import CanonicalSnapshot, STAGE_ORDER, StageName, StagePayload, StageStatus, upstream_stages
+from plotloom.canonical_schema import DialogueTimingProfile
+from plotloom.run_contracts import RunKind, RunStatus, WorkUnitStatus
+from plotloom.repair_contracts import WorkUnitRepairScope
 from ...exceptions import (
     InvalidTransitionError, NotFoundError, RepairEligibilityError, StagePrerequisiteError,
 )

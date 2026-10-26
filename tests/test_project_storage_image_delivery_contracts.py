@@ -451,7 +451,7 @@ def test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source
 def test_raw_invalid_visual_references_survive_restart_without_canonical_adoption(tmp_path: Path):
     from io import BytesIO
     from PIL import Image
-    from plotloom.domain import STAGE_ORDER
+    from plotloom.stage_contracts import STAGE_ORDER
     from tests.backend_core.conftest import all_stage_payloads
     roots = dict(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     storage = ProjectFolderStorage(**roots)

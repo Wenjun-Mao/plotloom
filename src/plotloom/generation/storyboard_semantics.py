@@ -4,11 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from ..domain import (
-    EntityType,
-    ProjectBrief,
-    StoryBibleV2,
-)
+from plotloom.canonical_schema import EntityType, StoryBibleV2
+from plotloom.brief_contracts import ProjectBrief
 from .contracts import ValidationIssue
 from .fragment_semantics import (
     FragmentSemanticContextError,

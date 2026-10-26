@@ -11,7 +11,9 @@ import pytest
 import plotloom.generation.fragment_validation as fragment_validation
 import plotloom.persistence.project.generation_snapshots as generation_snapshots
 import plotloom.correction_source as correction_source
-from plotloom.domain import Artifact, ArtifactKind, RunStatus, StageName
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import RunStatus
+from plotloom.stage_contracts import StageName
 from plotloom.generation.repair_facts import (
     parse_semantic_repair_fact,
     serialize_semantic_repair_fact,

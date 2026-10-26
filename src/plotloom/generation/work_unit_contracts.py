@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..domain import StageName
+from plotloom.stage_contracts import StageName
 from .contracts import RenderedPrompt
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,

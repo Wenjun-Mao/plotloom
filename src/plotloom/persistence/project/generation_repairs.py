@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from typing import Any
-from ...domain import CanonicalSnapshot, GenerationRun, RunKind, StageName, StagePayload, WorkUnitRepairEligibility, WorkUnitRepairRunCreation, WorkUnitRepairScope
+from plotloom.stage_contracts import CanonicalSnapshot, StageName, StagePayload
+from plotloom.run_contracts import GenerationRun, RunKind
+from plotloom.repair_contracts import WorkUnitRepairEligibility, WorkUnitRepairRunCreation, WorkUnitRepairScope
 from plotloom.generation.planning_contracts import DEFAULT_STAGE_BUDGETS, GenerationPlan, StageBudget
 from plotloom.generation.enqueue_planning import create_generation_plan
 from ..schema import GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, StagePlanRow, StoryGraphTopologyRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow

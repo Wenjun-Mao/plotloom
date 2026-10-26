@@ -10,12 +10,9 @@ from pydantic import (
     ValidationError,
 )
 
-from ..domain import (
-    DialogueTimingProfile,
-    ProjectBrief,
-    StageName,
-    StoryBibleV2,
-)
+from plotloom.canonical_schema import DialogueTimingProfile, StoryBibleV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from .contracts import ValidationIssue, ValidationReport
 from .dialogue_capacity import (
     DialogueCapacityNodeGuidance,

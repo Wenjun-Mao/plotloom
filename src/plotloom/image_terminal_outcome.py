@@ -14,7 +14,8 @@ from uuid import UUID
 
 from pydantic import ConfigDict, Field, ValidationError, field_validator
 
-from .domain import CamelModel, contains_secret_setting, contains_secret_value
+from plotloom.domain_base import CamelModel
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 from .image_job_contracts import ImageExecutorProvenance, ImageJobError, SHA256_PATTERN
 from .image_job_exchange import EXECUTOR_PIN_FILENAME, ImageJobExchange
 

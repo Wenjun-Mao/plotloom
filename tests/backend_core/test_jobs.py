@@ -6,7 +6,9 @@ from threading import Event
 import pytest
 
 from plotloom.artifacts import MemoryArtifactStore
-from plotloom.domain import STAGE_ORDER, ProviderSnapshot, RunKind, RunStatus, StageName
+from plotloom.stage_contracts import STAGE_ORDER, StageName
+from plotloom.provider_contracts import ProviderSnapshot
+from plotloom.run_contracts import RunKind, RunStatus
 from plotloom.generation.aggregation import AggregateValidationError
 from plotloom.generation.exceptions import SecretLeaseError
 from plotloom.generation.planning_contracts import PlanningError

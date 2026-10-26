@@ -2,13 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import (
-    StoryBibleV2,
-    SceneBeatPlanV2,
-    StoryGraphV2,
-    ProjectBrief,
-    StageName,
-)
+from plotloom.canonical_schema import StoryBibleV2, SceneBeatPlanV2, StoryGraphV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from plotloom.generation.validation import (
     CanonicalStageValidationAdapter,
     SemanticValidationContext,

@@ -18,7 +18,7 @@ from typing import Any, Literal
 from pydantic import ConfigDict, Field, model_validator
 
 from .canonical_schema import StoryGraphV2
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .json_value_contract import finite_canonical_json
 
 

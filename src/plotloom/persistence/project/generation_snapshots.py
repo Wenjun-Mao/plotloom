@@ -8,19 +8,10 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import (
-    STAGE_ORDER,
-    CanonicalSnapshot,
-    GenerationRun,
-    ProjectBrief,
-    RunKind,
-    RunStatus,
-    StageName,
-    StagePayload,
-    StageStatus,
-    upstream_stages,
-    validate_public_provider_snapshot,
-)
+from plotloom.stage_contracts import STAGE_ORDER, CanonicalSnapshot, StageName, StagePayload, StageStatus, upstream_stages
+from plotloom.run_contracts import GenerationRun, RunKind, RunStatus
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.provider_snapshot import validate_public_provider_snapshot
 from ...exceptions import (
     InvalidTransitionError,
     NotFoundError,

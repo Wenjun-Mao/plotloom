@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..domain import Project, ProjectDuplicateResult
+from plotloom.project_contracts import Project, ProjectDuplicateResult
 from ..persistence.codec import stable_hash
 from .application_store import ApplicationStore
 from .registry import ProjectDirectoryRegistry
@@ -43,7 +43,7 @@ class ProjectFolderLifecycleService:
         if normalized_title == "":
             raise ValueError("duplicate title must not be blank")
         if idempotency_key is None:
-            from ..domain import new_id, utc_now
+            from plotloom.contract_identity import new_id, utc_now
 
             return self._registry.duplicate_project(
                 project_id,

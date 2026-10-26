@@ -49,16 +49,10 @@ from .alpha_review_templates import (
     write_codex_external_review_templates,
 )
 from .config import PlotloomSettings
-from .domain import (
-    STAGE_ORDER,
-    ArtifactKind,
-    AttemptStatus,
-    GenerationAttemptKind,
-    ProjectBrief,
-    RunKind,
-    StageName,
-    StageStatus,
-)
+from plotloom.stage_contracts import STAGE_ORDER, StageName, StageStatus
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import AttemptStatus, GenerationAttemptKind, RunKind
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.generation.planning_contracts import PLANNING_POLICY_VERSION
 from .generation.prompts import PromptRepository, canonical_json, sha256_text
 from plotloom.generation.story_graph_content_contracts import STORY_GRAPH_CONTENT_FILL_SCHEMA_ID

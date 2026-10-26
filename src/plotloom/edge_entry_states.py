@@ -17,7 +17,7 @@ from typing import Any
 from pydantic import ConfigDict, Field, model_validator
 
 from .canonical_schema import EntityType, StoryGraphV2
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 EDGE_ENTRY_STATE_CONTRACT_VERSION = "edge_entity_entry_states.v1"

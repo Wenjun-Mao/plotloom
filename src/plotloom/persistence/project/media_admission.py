@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..schema import (
     ApprovalDecisionRow,

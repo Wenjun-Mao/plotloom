@@ -14,7 +14,7 @@ from ...autopilot_contracts import (
     ProvisionalFrame,
     RunView,
 )
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
 from ..schema import (

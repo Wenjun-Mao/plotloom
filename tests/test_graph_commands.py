@@ -1,7 +1,7 @@
 """Pure and persisted command proof; provider/job/media owners are never touched."""
 import pytest
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft
 from plotloom.graph_command_execution import execute_graph_command

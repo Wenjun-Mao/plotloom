@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName, StageStatus
+from plotloom.stage_contracts import StageName, StageStatus
 from plotloom.persistence.schema import ProductionBridgeAdmissionRow
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.source_outline_contracts import (

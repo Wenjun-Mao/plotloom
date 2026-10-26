@@ -8,7 +8,7 @@ from ...codex_exec_contracts import (
     assert_receipt_matches_attempt,
     transition_exec_attempt,
 )
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...exceptions import InvalidTransitionError
 from ...provider_budgets import exceeds_budget
 from ..schema import AutopilotCheckpointRow, AutopilotExecAttemptRow

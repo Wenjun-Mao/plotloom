@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...domain import (
-    AuthoringDraft, AuthoringDraftScope, GateEvaluation, Project, ProjectBrief,
-    StageEnvelope, StageHead, StageName, StagePayload,
-)
+from plotloom.stage_contracts import AuthoringDraft, AuthoringDraftScope, StageEnvelope, StageHead, StageName, StagePayload
+from plotloom.gate_contracts import GateEvaluation
+from plotloom.project_contracts import Project
+from plotloom.brief_contracts import ProjectBrief
 from .approvals import ApprovalClosure, ApprovalDecision, ProjectApprovalPersistence
 from .canonical import ProjectCanonicalPersistence
 from .catalog import ProjectCatalogPersistence

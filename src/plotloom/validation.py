@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Literal
 from pydantic import ValidationError
 from .canonical_schema import DialogueTimingProfile, StoryBibleV2, StoryGraphV2, SceneBeatPlanV2, StoryboardV2, default_dialogue_timing_profile
-from .domain import StageName, ProjectBrief, GateEvaluation
+from plotloom.stage_contracts import StageName
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.gate_contracts import GateEvaluation
 from .validation_issues import DomainValidationError, ValidationIssue, _issue
 from .validation_graph import validate_story_graph
 from .validation_coverage import validate_scene_beat_coverage, validate_storyboard_coverage

@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from pydantic import Field
 
 from .artifacts import ArtifactStore
-from .domain import Artifact, CamelModel, GenerationRun, StageName
+from plotloom.artifact_contracts import Artifact
+from plotloom.domain_base import CamelModel
+from plotloom.run_contracts import GenerationRun
+from plotloom.stage_contracts import StageName
 from .providers import ProviderPorts
 
 if TYPE_CHECKING:
@@ -88,7 +91,7 @@ def build_runtime_app(
 
     from .api import create_project_folder_authoring_app
     from .codex_image_dispatch import NativeCodexImageDispatcher
-    from .domain import ProviderProfileCapabilities, ProviderSettings
+    from plotloom.provider_contracts import ProviderProfileCapabilities, ProviderSettings
     from .generation.contracts import ReasoningMode, RequestExtension
     from plotloom.runtime_secrets import RunSecretBroker
     from plotloom.text_provider_resolution import SnapshotTextProviderResolver

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom import conformance
-from plotloom.domain import ProviderSettings
+from plotloom.provider_contracts import ProviderSettings
 from plotloom.project_storage.application_profiles import ApplicationProfileRepository
 from plotloom.project_storage.application_store import ApplicationStore
 from plotloom.project_storage.application_profile_snapshot import load_saved_text_profiles

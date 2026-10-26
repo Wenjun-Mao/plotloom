@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.production_presentation import (
     prepare_presentation,

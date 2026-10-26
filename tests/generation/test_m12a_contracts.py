@@ -3,24 +3,9 @@ from __future__ import annotations
 import pytest
 
 import plotloom.generation.planning as generation_planning
-from plotloom.domain import (
-    BeatV2,
-    CharacterV2,
-    ContinuityStateV2,
-    DialogueCue,
-    DialogueDeliveryPace,
-    DialogueTimingProfile,
-    DialogueTimingRule,
-    DramaticSceneV2,
-    ProjectBrief,
-    PropV2,
-    SceneBeatPlanV2,
-    StageName,
-    StoryBibleV2,
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-)
+from plotloom.canonical_schema import BeatV2, CharacterV2, ContinuityStateV2, DialogueCue, DialogueDeliveryPace, DialogueTimingProfile, DialogueTimingRule, DramaticSceneV2, PropV2, SceneBeatPlanV2, StoryBibleV2, StoryEdgeV2, StoryGraphV2, StoryNodeV2
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
 from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,

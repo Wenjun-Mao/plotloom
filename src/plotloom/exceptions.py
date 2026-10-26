@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .domain import StageName
+from plotloom.stage_contracts import StageName
 
 if TYPE_CHECKING:
-    from .domain import Artifact
+    from plotloom.artifact_contracts import Artifact
 
 
 class PlotloomError(Exception):

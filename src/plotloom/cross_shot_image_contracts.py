@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 
 
 class ReviewedFrameSource(CamelModel):

@@ -6,7 +6,7 @@ from plotloom.config import (
     profile_text_api_key_environment_name,
     resolve_text_provider_api_key,
 )
-from plotloom.domain import ProviderSnapshot
+from plotloom.provider_contracts import ProviderSnapshot
 from plotloom.generation.contracts import ReasoningMode, RequestExtension
 from plotloom.provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,

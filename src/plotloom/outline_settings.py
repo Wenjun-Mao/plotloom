@@ -3,7 +3,7 @@
 from typing import Any
 
 from .creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 
 
 OUTLINE_SETTINGS_FILENAME = "outline-settings.json"

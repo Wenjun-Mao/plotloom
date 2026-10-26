@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import Field, StrictInt, model_validator
 
-from .domain import CamelModel
+from plotloom.domain_base import CamelModel
 from .production_presentation import stable_hash
 
 

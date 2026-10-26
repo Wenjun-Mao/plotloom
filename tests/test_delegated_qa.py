@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import select
 
 from plotloom.delegated_qa import REVIEWER_PREFIX, SCOPES, DelegatedQaScope, QaMaterial
-from plotloom.domain import new_id
+from plotloom.contract_identity import new_id
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import ProjectVideoDispatchRow, VideoJobRow
 from plotloom.project_storage.delegated_qa_grants import (

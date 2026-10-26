@@ -4,10 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Protocol
 
-from .domain import (
-    ProviderAuthMode,
-    ProviderSnapshot,
-)
+from plotloom.provider_contracts import ProviderAuthMode, ProviderSnapshot
 from .generation.contracts import (
     ProviderCapabilities,
 )

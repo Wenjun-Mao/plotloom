@@ -8,12 +8,9 @@ from pydantic import (
     ValidationError,
 )
 
-from ..domain import (
-    ProjectBrief,
-    StageName,
-    StoryBibleV2,
-    StoryGraphV2,
-)
+from plotloom.brief_contracts import ProjectBrief
+from plotloom.stage_contracts import StageName
+from plotloom.canonical_schema import StoryBibleV2, StoryGraphV2
 from ..json_value_contract import (
     finite_canonical_json,
 )

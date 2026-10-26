@@ -3,7 +3,7 @@ import json
 import sqlite3
 from contextlib import closing
 
-from ..domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from ..project_abandonment_contracts import PriorAbandonmentCandidate
 from .format import (
     PROJECT_MANIFEST_FILENAME,

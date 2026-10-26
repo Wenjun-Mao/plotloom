@@ -6,13 +6,8 @@ from copy import deepcopy
 
 import pytest
 
-from plotloom.domain import (
-    ContinuityStateV2,
-    DialogueCue,
-    DialogueDeliveryPace,
-    SceneBeatPlanV2,
-    StageName,
-)
+from plotloom.canonical_schema import ContinuityStateV2, DialogueCue, DialogueDeliveryPace, SceneBeatPlanV2
+from plotloom.stage_contracts import StageName
 from plotloom.generation.continuity_repair_contracts import (
     ContinuityEntityStateRepairFact,
 )

@@ -6,7 +6,8 @@ from pydantic import Field, model_validator
 from .provider_budgets import exceeds_budget
 from .autopilot_contracts import ProvisionalFrame
 from .contract_hash import stable_hash
-from .domain import CamelModel, StageName
+from plotloom.domain_base import CamelModel
+from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .source_structures import complete_routes
 

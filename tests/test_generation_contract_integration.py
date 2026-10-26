@@ -5,7 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import ArtifactKind, RunStatus, STAGE_ORDER, StageName
+from plotloom.artifact_contracts import ArtifactKind
+from plotloom.run_contracts import RunStatus
+from plotloom.stage_contracts import STAGE_ORDER, StageName
 from plotloom.generation.work_unit_contracts import (
     WorkUnitPromptContract,
 )

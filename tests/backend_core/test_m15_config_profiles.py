@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from plotloom.config import PlotloomSettings, resolve_text_provider_api_key
-from plotloom.domain import ProviderAuthMode
+from plotloom.provider_contracts import ProviderAuthMode
 from plotloom.generation.exceptions import SecretLeaseError
 from plotloom.runtime_secrets import RunSecretBroker
 

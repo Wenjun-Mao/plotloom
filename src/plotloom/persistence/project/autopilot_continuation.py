@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from ...provider_budgets import exceeds_budget
 from ...autopilot_contracts import POLICY_VERSION, CheckpointEvidence, LaunchPolicy
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..codec import stable_hash
 from ..schema import (

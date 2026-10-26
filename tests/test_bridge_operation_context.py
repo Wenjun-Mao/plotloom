@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.persistence.project.production_bridge import ProductionBridgePersistence
 from plotloom.persistence.project.storyboard_review import ProjectStoryboardReviewPersistence, _ResolvedStoryboardContext

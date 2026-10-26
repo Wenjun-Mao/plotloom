@@ -23,7 +23,7 @@ def bind_original_qa_scope(store, application):
     The operator must verify this is the original disposable home first. Binding
     is immutable and uses this runtime's path/stat view, including in containers.
     """
-    from ..domain import StageName
+    from plotloom.stage_contracts import StageName
     scope = project_scope(store.manifest.project_id)
     if scope is None or store.authoring.get_stage_head(scope.project_id, StageName.STORYBOARD).content_hash != scope.storyboard_hash:
         raise InvalidTransitionError("no exact owner-granted QA storyboard")
@@ -40,7 +40,7 @@ def bind_original_qa_scope(store, application):
 
 def browser_qa_context(store, application):
     """Read-only discovery; explicit browser opt-in still supplies every actor."""
-    from ..domain import StageName
+    from plotloom.stage_contracts import StageName
     from ..project_storage.format import ProjectStorageError
     scope = project_scope(store.manifest.project_id)
     if scope is None:

@@ -1,6 +1,6 @@
 """Explicit native window preparation updates an unconfirmed batch proposal."""
 from copy import deepcopy
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ...video_batch_basis import batch_for_job
 
 

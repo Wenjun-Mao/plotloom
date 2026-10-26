@@ -7,7 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from ..canonical_schema import NonBlankText
-from ..domain import CamelModel
+from plotloom.domain_base import CamelModel
 from ..json_value_contract import finite_canonical_json
 
 

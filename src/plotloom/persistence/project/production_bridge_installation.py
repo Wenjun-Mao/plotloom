@@ -5,7 +5,8 @@ from sqlalchemy import select
 
 from ...canonical_schema import SceneBeatPlanV2, StoryBibleV2, StoryboardV2
 from ...creative_handoff_exchange import canonical_json
-from ...domain import StageName, StageStatus, new_id, utc_now
+from plotloom.stage_contracts import StageName, StageStatus
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError
 from ...production_bridge_contracts import (
     CanonicalReplacementHead,

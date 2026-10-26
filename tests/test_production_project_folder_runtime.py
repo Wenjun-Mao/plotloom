@@ -14,7 +14,7 @@ from PIL import Image
 
 from plotloom.config import PlotloomSettings
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.project_storage import ProjectStore
 from plotloom.runtime import build_runtime_app
 from plotloom.video_ingestion import ObservedVideo

@@ -4,7 +4,7 @@ from contextlib import closing
 
 import pytest
 
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
 from tests.production_bridge_fixtures import (

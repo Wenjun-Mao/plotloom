@@ -208,7 +208,7 @@ def raw_connection(session):
 
 
 def require_qa_write(session, project_id, attribution, *, board_hash=None, asset_id=None, shot_id=None):
-    from .domain import StageName
+    from plotloom.stage_contracts import StageName
     from .persistence.schema import EntityRevisionRow, ManagedAssetRow, StageHeadRow
     scope = require_scope(project_id, attribution)
     from .project_storage.delegated_qa_grants import require_command_context

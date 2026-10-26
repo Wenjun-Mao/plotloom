@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from .canonical_schema import DialogueCue, DialogueTimingProfile, SceneBeatPlanV2, StoryBibleV2, StoryGraphV2, default_dialogue_timing_profile
-from .domain import ProjectBrief
+from plotloom.brief_contracts import ProjectBrief
 from .json_value_contract import CanonicalJsonValueError, finite_canonical_json
 from .authored_route_timing import longest_authored_route_units
 from .validation_state import _continuity_sequence_is_compatible, _continuity_state_issues

@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from ...domain import STAGE_ORDER, Artifact, ArtifactKind, FragmentReuseBinding, StageName, WorkUnitStatus, new_id
+from plotloom.stage_contracts import STAGE_ORDER, StageName
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.repair_contracts import FragmentReuseBinding
+from plotloom.run_contracts import WorkUnitStatus
+from plotloom.contract_identity import new_id
 from ..schema import ArtifactRow, FragmentReuseBindingRow, GenerationWorkUnitRow, StagePlanRow
 from ...exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from sqlalchemy import select

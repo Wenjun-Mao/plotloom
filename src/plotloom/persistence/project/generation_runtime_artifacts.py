@@ -7,7 +7,7 @@ from pathlib import PurePosixPath
 from sqlalchemy import select
 
 from ...exceptions import InvalidTransitionError
-from ...domain import utc_now
+from plotloom.contract_identity import utc_now
 from ..schema import RunArtifactBlobRow
 from .generation_access import GenerationPersistenceAccess
 

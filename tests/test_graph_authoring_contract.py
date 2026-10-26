@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.canonical_schema import StoryBibleV2, StoryGraphV2
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.generation.scene_timing_allocation import plan_scene_timing_allocation
 from plotloom.graph_authoring_drafts import GraphAuthoringDraft

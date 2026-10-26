@@ -2,16 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import (
-    DialogueDeliveryPace,
-    DialogueTimingProfile,
-    DialogueTimingRule,
-    ProjectBrief,
-    StoryEdgeV2,
-    StoryGraphV2,
-    StoryNodeV2,
-    default_dialogue_timing_profile,
-)
+from plotloom.canonical_schema import DialogueDeliveryPace, DialogueTimingProfile, DialogueTimingRule, StoryEdgeV2, StoryGraphV2, StoryNodeV2, default_dialogue_timing_profile
+from plotloom.brief_contracts import ProjectBrief
 from plotloom.generation.dialogue_capacity import (
     DIALOGUE_CAPACITY_POLICY_VERSION,
     DialogueCapacityPlan,
@@ -26,7 +18,7 @@ from plotloom.generation.scene_timing_allocation import (
     SceneTimingNodeAllocation,
     plan_scene_timing_allocation,
 )
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 
 
 def _brief(*, seconds: int = 4) -> ProjectBrief:
@@ -197,7 +189,7 @@ def test_scene_beats_stage_plan_requires_current_frozen_capacity() -> None:
         "locations": [],
         "props": [],
     }
-    from plotloom.domain import StoryBibleV2
+    from plotloom.canonical_schema import StoryBibleV2
 
     generation_plan = create_generation_plan(
         run_id="capacity-stage",

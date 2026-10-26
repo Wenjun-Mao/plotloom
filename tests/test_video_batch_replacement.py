@@ -133,12 +133,12 @@ def test_replacement_refuses_invalid_or_unsettled_predecessor(tmp_path, native_b
             if case in {"prepared", "submitted", "outcome_unknown"}:
                 session.get(VideoJobRow, identifier).state = case
             elif case == "selected":
-                from plotloom.domain import utc_now
+                from plotloom.contract_identity import utc_now
                 shot_id = session.get(VideoJobRow, identifier).snapshot["shot"]["id"]
                 session.add(VideoCandidateSelectionRow(project_id=project_id, shot_id=shot_id,
                     selected_video_job_id=identifier, revision=1, updated_at=utc_now()))
         if case == "stale_source":
-            from plotloom.domain import StageName
+            from plotloom.stage_contracts import StageName
             board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
             changed = board.shots[0].model_copy(update={"action": board.shots[0].action + " Changed."})
             store.update_stage(StageName.STORYBOARD, board.model_copy(update={"shots": [changed, *board.shots[1:]]}),

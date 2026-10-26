@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import StageName
+from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import EntityRevisionRow, ProductionBridgeAdmissionRow
 from plotloom.persistence.schema.project_source_outline import SourceGraphIdentityRow
@@ -141,7 +141,7 @@ def test_same_hash_unowned_graph_cannot_borrow_authored_identity(tmp_path):
         )
         with store.repository._lifecycle_write() as session:
             project = store.repository._project_row(session, store.manifest.project_id)
-            from plotloom.domain import utc_now
+            from plotloom.contract_identity import utc_now
 
             store.repository.production_bridge._canonical.install_source_map_graph_in_session(
                 session,

@@ -3,7 +3,7 @@ from .autopilot_authority import require_human_command
 from sqlalchemy import select
 from ...production_presentation import ProductionPresentation, ProductionPresentationUpdateRequest, review_presentation, project_presentation, bind_presentation_spans
 from ...production_bridge_contracts import ProductionBridgeConflict
-from ...domain import new_id, utc_now
+from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ..schema.project_production_bridge import ProductionBridgeRevisionRow
 

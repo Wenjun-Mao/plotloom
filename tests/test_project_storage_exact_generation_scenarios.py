@@ -9,7 +9,9 @@ from typing import Any
 
 import pytest
 
-from plotloom.domain import Artifact, ArtifactKind, RunStatus, StageName
+from plotloom.artifact_contracts import Artifact, ArtifactKind
+from plotloom.run_contracts import RunStatus
+from plotloom.stage_contracts import StageName
 from plotloom.generation.contracts import ProviderResponse
 from plotloom.persistence import stable_hash
 from plotloom.runtime_secrets import RunSecretBroker
