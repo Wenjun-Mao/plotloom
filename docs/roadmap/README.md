@@ -32,10 +32,13 @@ and routine internal review remain distinct from that material scope decision.
 ## Su Tang six-clip game preview
 
 The owner approved [six short Su Tang game previews](2026-10-26-h5-sutang-preview.md)
-through Plotloom. The new original canonical project and six actual imported
-keyframes are prepared against the installed baseline; the exact appended QA
-scope awaits independent manager review/activation. The earlier B3–B7 goal stays
-paused. Human creative/canon acceptance and game embedding remain pending.
+through Plotloom. Six real clips and exact ten-second windows are confirmed,
+exported and naturally playable with restart; independent manager review and
+preservation passed. The [completion record](../verification/2026-10-26-h5-sutang-preview.md)
+retains SH03's re-encode audio overshoot/source preference and very quiet04/05.
+Grant checkpoint `31ab677b` must be integrated before any paused-source activation.
+The earlier B3–B7 goal stays paused. Human creative/canon acceptance, perceptual
+listening and game embedding remain pending.
 
 ## Completed B1–B2 backend and HTTP ownership delivery
 

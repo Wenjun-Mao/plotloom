@@ -1,8 +1,11 @@
 # Su Tang six-clip game preview
 
-Status: canonical project and six actual managed originals prepared; exact grant
-candidate awaiting manager review and original-runtime activation. No H3 request
-or owner creative/canon acceptance is claimed. The earlier B3–B7 goal stays paused.
+Status: six real H3 clips and exact ten-second playback windows are confirmed
+through agent-operated QA, exported and naturally playable with restart. Independent
+manager frame/playback/preservation review passed. See the [completion record](../verification/2026-10-26-h5-sutang-preview.md)
+for actual identities, source-versus-window audio limits and trigger interpretations.
+Owner creative/canon acceptance, perceptual listening and game embedding remain
+pending. The earlier B3–B7 goal stays paused.
 
 The owner asked to use Plotloom all the way to generated videos for review, then
 requested more than three short clips if feasible. The finite outcome is six
