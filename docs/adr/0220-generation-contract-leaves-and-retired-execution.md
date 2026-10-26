@@ -130,9 +130,12 @@ storage failure codes, redaction and process-loss propagation remain fixed.
 
 Representative baseline outputs and 66 additional exact planning/correction
 comparisons pass, including null/missing/error order and two complete correction
-ordinals. Production-adapter loopback HTTP proves rejection/correction, durable
+ordinals. Timestamp normalization now excludes only typed PromptTrace timestamps;
+authored/nested/untyped same-name values are preserved and exact omitted paths
+are audited. Production-adapter loopback HTTP proves rejection/correction, durable
 response recovery with zero additional wire requests, installation and reopen.
 This candidate has no intentional product-contract delta. Independent integrated
-review, final full-local qualification and installed activation/recovery are
-still pending at this source checkpoint; the combined plan owns current evidence,
+review found no blocking source issues and accepted the unit-loop cohesion;
+the evidence-only normalization finding is closed. Final full-local qualification
+and installed activation/recovery remain pending; the combined plan owns evidence,
 retained failures, the cohesive 589-line unit-loop rationale and remaining gates.

@@ -1,6 +1,6 @@
 # G3–G5: Planning, correction and durable execution ownership
 
-Status: **combined source candidate implemented; independent integrated review and final qualification pending**.
+Status: **combined source candidate implemented and independently reviewed; final qualification pending**.
 Date: 2026-10-25. Planning source and installed baseline:
 `a10a88592c25dfb4dad25aedffb1deb33136d8a7`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -380,7 +380,7 @@ Temporary review evidence is retained only in ignored `.local/g345/` until the
 manager's integrated review. The pre-edit representative planning/topology/
 directive/primary-request JSON and integrated result match SHA-256
 `b0c146b44ea597b6c38b2a18154b9384988ca32878c5cf4885e3eb25f2cacfb1`.
-Only observational `rendered_at` is omitted; IDs, authority fields, order, nulls,
+Only typed `PromptTrace.rendered_at` is omitted; IDs, authority fields, order, nulls,
 contracts, versions and hashes are retained. That sample alone is not exhaustive
 correction or error parity.
 
@@ -396,10 +396,11 @@ directive/selection/projection outputs/errors while executing current assertions
 including mixed-family null/conflict traversal cases. It also compares complete
 ordinal-1 and ordinal-2 correction packets against the same durable rejected
 attempts: rendered messages/output/trace, contract, schema, audit selection and
-executable facts. Dataclasses/models become JSON; only `rendered_at` is omitted.
+executable facts. Dataclasses/models become JSON; only the real `PromptTrace`'s
+own observational `rendered_at` field is omitted.
 Errors compare type name, code and exact text in call order. All 48 comparisons
 pass; retained result SHA-256 is
-`8f1e4e912960ece43482bbf5bd531a70692c83bc0005a09eefa0a236691ab043`.
+`701ec4c4c51e50070c865a83e4f96dd8a0baf636fac96f1dd4f93df9dd5cba3c`.
 This is representative exact baseline parity, complemented by current assertions,
 not an exhaustive proof over all possible inputs.
 
@@ -484,6 +485,35 @@ evidence remain in `.local/g345/` for independent review; extraction scripts and
 duplicate observations were consumed. The coherent clean-main candidate is ready
 for the manager's independent integrated review. Full qualification, installation
 and recovery remain the combined assignment's next steps.
+
+### Integrated stable review and evidence correction
+
+Independent integrated production review of product revision
+`30b27aa4fe1eca9945c8b8f2f5797d5252fea219` found no blocking source issues and
+accepted the cohesive 589-line ordered unit lifecycle. The reviewer returned an
+actual final, released access, and was archived/unregistered by the manager.
+The manager independently checked durable exchange, the 199-line production
+HTTP proof, probe baseline bindings and corrected output hashes.
+
+One evidence-only finding is closed: the first probe normalizer recursively
+dropped dictionary keys named `rendered_at`, broader than the intended timestamp
+exception. Current fixtures showed no lost authoritative same-name value, but
+the old normalizer could not prove that. The corrected normalizer pairs typed
+objects with serialized values and omits only a real
+`plotloom.generation.contracts.PromptTrace.rendered_at`. In-memory assertions
+preserve authored root/nested values and untyped trace-shaped dictionaries with
+that same key. Each omission logs exact path, typed owner, observed timestamp
+and comparison context. The representative probe excludes exactly one
+`/compiled/prompt/trace/rendered_at`; planning excludes zero fields; correction
+excludes exactly four `/rendered/trace/rendered_at` fields, one each for current
+and baseline ordinals 1 and 2. A first paired-walker attempt exposed enum mapping
+keys' Pydantic JSON spelling; resolving those keys by serialized value corrected
+the probe without adding any exclusion. The representative and all 18/48 exact
+planning/correction comparisons pass with trusted baseline bindings unchanged.
+The representative and planning hashes above are unchanged; the corrected
+correction hash above supersedes the earlier observation. No product/source or
+contract change resulted. The manager verified these exact exclusion records
+and closed the finding before authorizing the sole-owner full-local gate.
 
 ## Planning review and handoff
 

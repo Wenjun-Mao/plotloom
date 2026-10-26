@@ -12,8 +12,9 @@ renewed milestone approvals. Early native project and production-adapter loopbac
 proofs preserve the external-provider and creative-acceptance distinction.
 Planning and attended independent technical/execution-limits reviews are complete.
 The combined source candidate and early native/production-adapter HTTP recovery
-proofs are implemented; independent integrated review and final qualification/
-activation remain pending. Other audit batches
+proofs are implemented. Independent integrated review found no blocking source
+issues; its timestamp-normalization evidence finding is corrected and closed.
+Final qualification and activation remain pending. Other audit batches
 remain unselected. No GitHub CI, push or provider/settings expansion is authorized.
 
 ## Completed G2 work-unit ownership delivery
