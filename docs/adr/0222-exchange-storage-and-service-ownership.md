@@ -1,7 +1,7 @@
 # ADR 0222: Exchange, storage and service ownership
 
-Status: independent B4–B7 implementation; combined B3–B7 qualification and activation
-pending, with target-independent B3 metric/workload/test-support leaves implemented,
+Status: independent B4–B7 and target-independent B3 leaves implemented and reviewed;
+Gateway-only activation complete. Combined qualification/core activation remain pending,
 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed

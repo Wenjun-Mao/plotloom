@@ -1,10 +1,13 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **B4–B7 sections reviewed and authorized for independent implementation;
-B3 target clarification remains open and dependent work is held**. Date: 2026-10-26.
+Status: **B4–B7 and target-independent B3 source implemented and independently
+reviewed; Gateway activated. B3 target-dependent work and combined qualification,
+core/bridge activation and recovery remain open**. Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
-Both inspected clean at `0d4a47d4c1b42ca635413673ebfb136c7fb68135`.
+Starting baseline: both inspected clean at
+`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Current source checkpoint is
+`98e186a1f19bfde8f51013b87d2aaaece5bb716d`; P remains at the starting baseline.
 
 ## Outcome and authority
 
@@ -439,10 +442,10 @@ bounded follow-up evidence are retained under `.local/b37/`. Gateway wheel and
 ARM64 smoke ran after the service README isolation-command correction; the later
 B4-only correction does not change that service's source, lock or artifact inputs.
 
-Independent B4–B7 source review closed the package-ownership finding at `86a202bd`. B3's target
-answer, dependent implementation/campaign, final root full, activation and recovery
-refresh remain open. P, Spark, valued projects, settings, grants and UNKNOWN holds
-remain untouched; no push or hosted CI has run.
+Independent B4–B7 source review closed the package-ownership finding at `86a202bd`.
+That checkpoint had not activated any runtime. The subsequent Gateway-only
+activation is recorded below; B3's target answer, dependent implementation/campaign,
+final root full, core/bridge activation and recovery refresh remain open.
 
 ### Target-independent B3 checkpoint
 
@@ -474,3 +477,87 @@ full. B3 target-dependent implementation, final combined qualification, core/bri
 activation and recovery refresh remain open. Gateway/Lab/package/service-lock
 inputs were untouched; Gateway subtree remains
 `5c1c42bad756af10a8557b730a0174f1ad30023f` under its separate activation owner.
+
+Independent follow-up review of clean `98e186a1` found no issues. All eight captured
+original measurement functions and six moved builders retain identical ASTs;
+the reviewer checked actual parity evidence, workload hashes, direct consumers,
+the 16-case Alpha union and retained focused results. This closes only the
+target-independent cut. The existing source worker and reviewer are idle, with
+their assignment/routes retained for the target-dependent continuation.
+
+### Gateway-only activation and manager verification
+
+The independently qualified Gateway component was activated on Spark at
+2026-10-26 08:40:20 UTC under the existing component release procedure. Its build
+source remains `494222ad`, with identical service subtree
+`5c1c42bad756af10a8557b730a0174f1ad30023f` at reviewed `86a202bd` and `98e186a1`.
+The service lock SHA-256 is
+`023b29e28d045d44610fe5425123d02403bfabe10d1fd59338607454f2fbf15c`.
+The wheel SHA-256 is
+`404df2a2f803b52ead4d945512b80933158e83033da22dd4f26235e6168e865a`.
+All 42 installed package files match the exact source; their canonical map hash is
+`53c08228a8689589e36332b2fcbad6bba4c19f2b4ba7512078b31feed3e4b6ea`.
+
+The local OCI index `e4c5e5c1…`, manifest `a602216c…` and classic Docker image
+config are distinct identities. Export archive SHA-256
+`ba61e89c810a73bcdaff7ae98db792d45c94cc75acaccbd1bfff6e253a1d80f5`
+mapped to config
+`sha256:97f7dfa920b72aa3c90fdc91a7a35628c2eb1f7f0caaf11115e5bcbe3866199c`.
+All five rootfs diff IDs matched the local build and Spark load. Manager separately
+checked the wheel against source, exported manifest/config/rootfs mapping, serving
+container/image/health, and the actual before/final evidence and probe logic.
+Serving Python remains 3.12.14 with the same 26 installed distributions. This is
+distinct from Spark's host Python 3.12.3 and the service test environment noted above.
+
+The earlier active H3 job completed normally. Fresh health, persisted jobs/lane,
+Lab work/grants and native Comfy queue were empty immediately before replacement,
+after stopping the previous sole worker, and after candidate startup. Gateway/Lab
+listen on their Tailnet address; an initial loopback health probe was a wrong
+endpoint, not a serving failure. No other service or inference runtime was stopped.
+
+| Preserved state | Before and after SHA-256 |
+|---|---|
+| Gateway logical records (198 jobs, 156 lane rows) | `423b1536e59237a5584fb79c2d53beece88fc521c1c96840e8ef17099a5ffea8` |
+| Gateway DDL | `aa16c762833dd92bd81ebda3458ecd7a40b4067d98aa8e491b2a0d893436155b` |
+| Gateway 41 data/media files | `fd7069bd9f61456ebad1b4e68fd9b121b94c7adb894f1fd44805679174e0e9a9` |
+| Lab logical records | `524358f70be2213d5a366fbf16278e855cdfc1f08c5a298be500b96b5ba64a89` |
+| Lab DDL | `5804c3255ff6ded91ac1ea26d3428d6765b1ef75af81414c1603b8ebba971aee` |
+| Lab 129 data/media files | `ebb7cd7e4f61467c730b66f0d1ca5b98d9bfc2dd116f2c3f743a287e6b93924a` |
+
+Complete row values, schema and file maps were compared without dropping arbitrary
+fields. Environment/configuration/mount hashes, sibling container/service identities
+and start times, and Tailscale handler configuration also matched. Authenticated
+metadata and original output bytes passed for all 16 currently retained Gateway
+outputs and both Lab takes; private HTTPS original/download and byte-range requests
+passed. Unauthenticated access still returns 401. These readbacks introduce no model
+generation or creative-acceptance claim.
+
+The sole serving container is
+`663c15fa9f9b1b77045f5c787567acdc595b97b62009298a7cce97fbade45065`,
+restart `unless-stopped`. The preceding container
+`ea78201826381058704b0c478c06c90580f2d350e30e781b36332e2897e14fa9`
+is retained as `plotloom-h3-gateway-before-b7-20261026`, stopped with restart `no`,
+using config
+`sha256:16137351b8103d812a02680fe054703007529c1b0631d23b5a3ce525d5dd38c4`.
+The obsolete selected rollback container was removed only after verification.
+Guarded rollback is available through
+`ssh -o BatchMode=yes -o ConnectTimeout=10 -o HostName=100.64.35.71 Spark python3 /home/wjmao/.local/b37/gateway-activation/rollback.py`.
+It requires exact identities, fresh quiet/uncertainty checks, a sole-worker
+replacement and current-data/consumer verification. It never restores data.
+The handoff was syntax checked; actual rollback was unnecessary and not exercised.
+
+Detailed secret-free evidence remains in `.local/b37/gateway-activation/receipt.json`
+and its before/final snapshots until combined closeout consumes the scratch. Export
+tars were removed. The completed operations worker was archived and its Relay route
+removed. Temporary private configuration snapshots were consumed and removed
+locally and on Spark; the actual serving and selected rollback containers retain
+their configuration. The earlier read-only preflight worker's native archive still cannot be
+confirmed because its native lookup reports an unavailable durable host; its actual
+final was reviewed, access released and reporting route removed. This is a task-UI
+cleanup limitation, not a live process or generation hold.
+
+P/core/owned bridge and the existing functional recovery remain at `0d4a47d4`.
+Valued Plotloom projects/settings/grants/UNKNOWN holds were not changed. No root
+full, actual B3 model campaign, push or GitHub CI has run. The remaining required
+target choice was surfaced again after the independent work was exhausted; silence
+does not select a target or authorize dependent work.

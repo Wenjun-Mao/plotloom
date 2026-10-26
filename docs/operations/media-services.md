@@ -113,7 +113,9 @@ environment privately and recreate from the tested package entrypoint; never
 copy environment values into a public command, log or receipt.
 
 The [October 22 packaging receipt](../verification/2026-10-22-media-service-boundaries.md)
-records the current service-only release and exact rollback references. A retained
+records the earlier service packaging release. The current
+[B7 Gateway-only activation](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md#gateway-only-activation-and-manager-verification)
+records the serving artifact, preserved state and selected rollback. A retained
 stopped gateway rollback container must have restart disabled to prevent a second
 dispatcher after a reboot. Restore its original restart policy only when it
 becomes the sole active gateway again, after fresh idle/uncertainty checks.

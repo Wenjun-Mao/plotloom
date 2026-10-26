@@ -15,8 +15,11 @@ two-profile Alpha runner. Planning found that runner targets saved OpenAI-compat
 profiles, while the installed native Codex workbench has none. The target-path
 clarification is pending; native thresholds/driver and exact E2E proof must be
 versioned honestly if that target is selected. Independent execution-limits review
-found no unnecessary limits. **The reviewed independent B4–B7 cuts are starting
-under the existing implementation instruction; dependent B3 work stays held.**
+found no unnecessary limits. **Independent B4–B7 and target-independent B3 source
+are implemented and independently reviewed at `98e186a1`; Gateway alone is activated
+with exact preservation and retained-media readback. Dependent B3 work stays held
+for the target choice.** Final combined qualification, core/bridge activation and
+recovery remain open; the plan records exact source/artifact and rollback evidence.
 This preserves the complete combined stopping condition. The owner's request
 covers covered implementation through scoped activation, preservation/rollback
 and recovery without renewed milestone approvals.
