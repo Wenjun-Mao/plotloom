@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from plotloom.api.project_folder_character_references import register_project_character_reference_routes
 from plotloom.api.project_folder_image_jobs import (
     register_project_folder_image_job_routes,
 )
@@ -123,10 +124,12 @@ def _client(exchange: Any | None = None) -> tuple[TestClient, RecordingDispatche
         yield store
 
     app = FastAPI()
+    register_project_character_reference_routes(
+        app, opened_project, image_dispatcher=dispatcher,  # type: ignore[arg-type]
+    )
     register_project_folder_image_job_routes(
         app,
         opened_project,
-        image_job_target_id=lambda _body: "fixture",
         require_media_draft_scope=lambda **_kwargs: None,
         project_h3_target=lambda _project_id: {},
         image_dispatcher=dispatcher,  # type: ignore[arg-type]
@@ -180,10 +183,12 @@ def _terminal_client() -> tuple[TestClient, RecordingDispatcher]:
         yield TerminalStore()
 
     app = FastAPI()
+    register_project_character_reference_routes(
+        app, opened_project, image_dispatcher=dispatcher,  # type: ignore[arg-type]
+    )
     register_project_folder_image_job_routes(
         app,
         opened_project,
-        image_job_target_id=lambda _body: "fixture",
         require_media_draft_scope=lambda **_kwargs: None,
         project_h3_target=lambda _project_id: {},
         image_dispatcher=dispatcher,  # type: ignore[arg-type]
