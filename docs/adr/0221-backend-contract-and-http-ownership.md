@@ -1,7 +1,8 @@
 # ADR 0221: Backend contract and HTTP ownership
 
-Status: implemented, independently reviewed and locally qualified by composite
-evidence, 2026-10-26. Installed activation and owner acceptance remain separate.
+Status: implemented, independently reviewed, locally qualified by composite
+evidence and activated with exact preservation/readback, 2026-10-26. Offline QA
+does not imply owner creative acceptance.
 Authority: [approved B1–B2 delivery](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).
 
 The backend domain module forwarded unrelated canonical, Brief and timing models,

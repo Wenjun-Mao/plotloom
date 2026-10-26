@@ -1,7 +1,8 @@
 # B1–B2: Backend contracts and HTTP ownership
 
-Status: **implemented, independently reviewed and locally qualified by composite
-evidence; manager-owned installed activation remains pending**.
+Status: **delivered: implemented, independently reviewed, locally qualified by
+composite evidence and activated with exact preservation/readback; the single
+current recovery manifest owns final source/wheel identity**.
 Date: 2026-10-25. Inspected source and installed baseline:
 `e3f0403e0247a4e5fc47fc8c20b8d9565fde4f64`.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
@@ -373,8 +374,9 @@ Retained R stays on local main; P/live runtime remain read-only for this worker.
   layer was added. Current native union/module, offline image, clean image pin,
   independent review, final full and retained wheel results follow below.
 
-Scratch evidence is supported ignored `.local/b12` (compact baseline/parity JSON
-and execution logs), without permanent old-source archives or a parallel runner.
+Scratch evidence used supported ignored `.local/b12` (baseline/parity JSON and
+execution logs), without permanent old-source archives or a parallel runner.
+The manager consumed this task directory after reviewing the actual evidence.
 No changed handwritten owner exceeds 500 lines after the substantial extraction;
 large existing consumers receive only direct-import edits. Named profiles retain
 their cohesive version/hash responsibility. No product provider call or owner
@@ -418,7 +420,8 @@ Native ownership discovery passed. The older three-owner module body run was
 explicitly cancelled (exit 130) after its successful complete union preflight;
 it is **not** module-pass evidence. Its first seven import-collection failures,
 the original safety-fixture failures, intermediate fixture mistakes and the
-first full failure remain in ignored `.local/b12` logs.
+first full failure were retained through manager review. Their outcomes and
+causes remain explicit here; the task logs were consumed at final closeout.
 
 Both current image families also passed a real API/SQLite offline delivery proof
 at clean `6eefc82a`: schema 3/package 6, configured binding to the qualification
@@ -434,11 +437,11 @@ Frozen package JSON stayed unchanged. All pinned image inputs remain byte-identi
 through the later test/documentation commits. Both exact disposable projects used
 fresh ordinary deletion previews, supported permanent deletion and GET 404
 readback after terminal completion. Their settled fixture roots were removed;
-compact actual pin/hash results remain in `.local/b12/current-image-results.json`.
+the manager read the compact actual pin/hash records before task consumption.
 No UNKNOWN reservation was cleared or native-worker lease bypassed.
 
 Retained exact smoke-passing wheel:
-`.local/b12/qualified-wheel/plotloom-0.1.0-py3-none-any.whl`, SHA-256
+`.local/current-qualified-recovery/plotloom-0.1.0-py3-none-any.whl`, SHA-256
 `c73df1a3212b4c3579952871a24ed92c469090e0654d2e6021f58b01138d2af0`.
 The continuation rebuilt and smoked this same retained artifact; its hash stayed
 identical. New-owner ZIP readback matches source and both removed barrels are
@@ -456,3 +459,74 @@ settings/grant change, deployment or recovery refresh by this worker. Source is
 released to the manager after this clean local-main documentation checkpoint for
 quiet activation, preservation/readback and the single recovery refresh. The
 worker's native ID remains `01a17632-5738-7db3-8733-d0a718042e75`.
+
+## Manager activation and closeout — 2026-10-26
+
+The manager collected the actual idle handoff `c9a6fade`, independently inspected
+parity probes/results, the corrected fixture diffs and actual qualification
+footers, and checked all 540 wheel package members against committed source
+(520 Python files, nine YAML templates; removed barrels absent). Executable,
+dependency and frontend inputs match the composite-qualified `a3d442bc` candidate;
+the actual failed first-full input remains `1e56908e`, not a relabelled pass.
+The retained schema/OpenAPI/route/ordered-gate baseline and integrated JSON were
+byte-identical: 73 schemas, 189 routes, 20 final handler names and two complete
+gate evaluations, with no observational exclusions. Independent source review
+also verified the actual 17 winning handler bodies and moved definition ASTs.
+
+Fresh live checks found eight projects, 26 selected playback ranges, 82 completed
+plus three settled host attempts, zero queue/slot/validator rows and five revocation
+guards. Project execution rows were 13 completed/three settled; runs cancelled or
+handed off, batches approved/cancelled, and all 30 video jobs ingested. No healthy
+work was cancelled to make a quiet window. Supported `manage.py stop` stopped the
+backend and owned launchd `bootout` unloaded the bridge. The immediate bootout
+observation briefly still showed the job; a subsequent native observation proved
+the label and old PID absent, without a duplicate bootout or process signal.
+
+All 672 project tables, 14 application tables and ten host tables (including the
+SQLite internal sequence), 301 persistent data files, 439 host files and four
+unique protected configuration/credential files match before shutdown, while
+stopped and after activation. Settings and pool limits are included in those
+data/file owners. SQLite comparisons used logical schema/rows, not WAL bytes.
+Mac direct read-only project access could not open these databases; the stopped
+comparison used a disposable no-network/read-only inspector from the existing
+image with the exact mounts/user and SQLite `mode=ro`, then removed it. No
+permission repair, data migration, reset or rollback was performed.
+
+Data semantic/file aggregate SHA-256:
+`fe25190c2d011b1c110ae72352b2dfe8a5aa38ea65902c4648a0aad66faced02`.
+Host/protected-state aggregate SHA-256:
+`cc5388187ac64924e1ea21d3e1f6f7ffd973f158787fa25d3d6a7d7b25653224`.
+
+Only after stopped-state equality did P check out the source handoff. Supported
+`manage.py start` rebuilt the affected service and recreated healthy backend
+`27e2ce22e1dc`, replacing `9a911c7f2ea1`; the fresh owned bridge PID is 59312,
+replacing 55189. All 26 new owners and three existing coordinators import from
+P's actual source in Linux aarch64 Python 3.12.15; native Python-tree identity
+matches qualified R's `8f23fafc…` exactly. This is installed-runtime readback,
+not an unrun Linux full-suite claim.
+
+An independent P builder used actual launchd tool discovery, unchanged checked
+environment and persisted pool limits. Its complete profile equals the live v8
+profile, and ordinary readiness is ready. Only `validatorHash` differs from the
+previous installed profile. Prospective profile hash:
+`413c7118c22654486fc6209f539d78ec1eba4bf60e95846824c95d53237db0a8`;
+validator hash:
+`fb9afe97ae179226c28bd9f39ca3fda7702005b1771ae22620ec552e8f628666`.
+Existing frozen pins, reservations and revocations remain unchanged.
+
+All 48 exact HTTP/media readbacks match before activation: directory including
+archived projects, every project and video-job read, all 26 selected 32-byte
+playback ranges, HTML and four UI assets. Local/private HTTPS health returns 200;
+private HTTPS HTML matches local HTML. These prove availability and preservation,
+not external generation, actual audio listening or owner creative acceptance.
+
+The single `.local/current-qualified-recovery/manifest.json` is authoritative for
+final source/submodule membership, composite-qualified revision and exact retained
+wheel. Its source archive and wheel are checked against committed bytes/modes
+before an atomic directory exchange, then checked again; the previous functional
+package stays intact until the replacement is validated. No second archive or
+data backup is retained. Final documentation synchronization changes no executable
+inputs and requires identity/readiness checks rather than another service restart.
+Consumed task scratch was 49 files/32,824,328 bytes. The actual idle worker and
+read-only reviewers are archived; both implementation/review Relay routes are
+removed. No push, CI, provider/settings/grant change or UNKNOWN clearing occurred.

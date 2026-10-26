@@ -9,8 +9,8 @@ Implementation update: the owner approved G1/R1–R3 with Go on 2026-10-25.
 Those source boundaries are now implemented, independently reviewed and locally
 qualified by composite evidence and activated with preservation checks in the [delivery plan](../roadmap/2026-10-25-generation-contracts-and-retirements.md).
 The census and line references below remain the audit baseline.
-G3–G5 are now delivered in the combined plan below; all other extraction batches
-remain pending.
+G1–G5 and B1–B2 are now delivered as recorded below; unselected extraction
+batches remain pending.
 
 The owner subsequently requested a [combined B1–B2 plan](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).
 It proposes backend contract leaves/ordered validation before HTTP request,
@@ -18,7 +18,14 @@ error/lifecycle/draft/image ownership, with explicit behavior/hash/authority par
 and early API/persistence/browser proof. Independent technical and execution-limits
 reviews are complete with useful findings incorporated. The owner subsequently
 approved implementation through scoped activation with “go ahead with Relay direct”.
-B1/B2 are in progress; qualification and activation remain unproven.
+B1/B2 are delivered with actual contract/HTTP owners and direct consumers, closed
+independent review and composite qualification covering 4,043 Python, 1,538 frontend
+and 358 browser cases plus installed-wheel smoke. The first full's nine standalone
+fixture failures remain failed; narrow composition repairs passed all 45 affected
+cases and all unrun downstream gates passed. Quiet activation, exact preservation/
+readback and the single functional recovery closeout are recorded in the plan.
+The domain/API-model barrels are removed; the factory is 223 lines and ordered
+storyboard evaluator 373. The audit census below remains historical.
 
 The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
 with “Go ahead with Relay direct”. Its completed delivery owns canonical binding,
@@ -94,7 +101,7 @@ The [correction-directive module](../../src/plotloom/generation/correction_direc
 
 ### P1 — Shared domain and frontend contracts obscure actual ownership
 
-[domain.py](../../src/plotloom/domain.py) combines stage/run, provider, public evidence and security/value validation. [provider_profiles.py](../../src/plotloom/provider_profiles.py):24 imports its URL validator, while `domain.py:1215` imports profile models locally to avoid a cycle. This is an observed dependency problem, not a hypothetical future growth concern.
+At the audit baseline, [domain.py (now replaced by B1 owners)](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md#b1-contract-leaves-and-ordered-storyboard-validation) combines stage/run, provider, public evidence and security/value validation. [provider_profiles.py](../../src/plotloom/provider_profiles.py):24 imports its URL validator, while `domain.py:1215` imports profile models locally to avoid a cycle. This is an observed dependency problem, not a hypothetical future growth concern.
 
 [frontend types.ts](../../frontend/src/types.ts) combines story, media, projects/drafts, execution/review, providers and source review across 1,367 lines. [api.ts](../../frontend/src/api.ts) combines the corresponding endpoint groups in 822 lines.
 
@@ -116,7 +123,7 @@ The [Codex Exec supervisor](../../services/creator_workbench/codex_exec_supervis
 
 [Cast-reference E2E helpers](../../frontend/e2e/cast-reference-studies.spec.ts):577–733 duplicate [existing shared fixtures](../../frontend/e2e/fixtures/cast-reference.ts):38–168/:216–229. `copyProposalFromBrowser` (:663) repeats the shared send request/button interaction (:110).
 
-Five protocols are duplicated in [api/models.py](../../src/plotloom/api/models.py):71–101 and [api/protocols.py](../../src/plotloom/api/protocols.py):16–46: RunScheduler, MediaScheduler, MediaPromptCompiler, TextProviderResolver and TextProfileSecretSource. Keep one owner for the three live text/run protocols; R2 removes both unused media copies.
+At the audit baseline, five protocols are duplicated in [api/models.py (now removed by B2)](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md#actual-protocol-and-helper-ownership):71–101 and [api/protocols.py](../../src/plotloom/api/protocols.py):16–46: RunScheduler, MediaScheduler, MediaPromptCompiler, TextProviderResolver and TextProfileSecretSource. Keep one owner for the three live text/run protocols; R2 removes both unused media copies.
 
 Collected Python tests also serve as fixture libraries:
 - Alpha review builders → `test_alpha_qualification_contracts.py:14`.
@@ -168,7 +175,7 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 | File | Lines | Decision / batch | Reason or extraction boundary |
 |---|---:|---|---|
-| [src/plotloom/domain.py](../../src/plotloom/domain.py) | 1,228 | **EXTRACT** · B1 | Stage/run, provider/snapshot and public evidence projections have distinct consumers; move URL/security validation to a leaf to break provider_profiles' return dependency. |
+| [src/plotloom/domain.py (audit baseline)](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md#b1-contract-leaves-and-ordered-storyboard-validation) | 1,228 | **EXTRACT** · B1 | Stage/run, provider/snapshot and public evidence projections have distinct consumers; move URL/security validation to a leaf to break provider_profiles' return dependency. |
 | [src/plotloom/alpha_acceptance.py](../../src/plotloom/alpha_acceptance.py) | 1,195 | **EXTRACT** · B3 | Separate sample execution, blind artifact publication, receipt assembly and independent review/gates; share only deterministic metrics with conformance. |
 | [src/plotloom/api/project_folder.py](../../src/plotloom/api/project_folder.py) | 830 | **EXTRACT** · B2 | Separate HTTP error mapping, lifecycle and canonical/draft routes; keep read-open proof scope and per-request lifetime together. |
 | `src/plotloom/media.py` (retired; [ADR 0220](../adr/0220-generation-contract-leaves-and-retired-execution.md)) | 665 | **RETIRE** · R2 | Obsolete generic raw-media compiler/adapters have test-only imports and no production execution route; remove retired execution and its tests, retaining current row decoding/recovery. |

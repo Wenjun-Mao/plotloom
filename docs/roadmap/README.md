@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Approved B1–B2 backend and HTTP ownership delivery
+## Completed B1–B2 backend and HTTP ownership delivery
 
 The owner requested a [combined B1–B2 plan](2026-10-25-b1-b2-backend-http-ownership.md):
 backend contract leaves and ordered storyboard validation first, then request
@@ -11,7 +11,14 @@ API/SQLite and browser/restart proof, one integrated final qualification and qui
 preservation-checked activation/recovery. Source-grounded technical and independent
 execution-limits reviews are complete, with useful findings incorporated. The owner
 approved implementation through scoped activation with “go ahead with Relay direct”.
-**Implementation is in progress; qualification and activation are not yet complete.**
+The contract/HTTP owners and direct consumers are implemented; independent review
+is closed. Composite local qualification covers all 4,043 Python, 1,538 frontend
+and 358 browser cases plus exact installed-wheel smoke. The first full remains
+failed on nine standalone fixture compositions, repaired without changing their
+assertions and covered by 45 affected passes; all six remaining gates passed.
+Quiet backend/bridge activation preserved all eight projects, 26 selected playback
+ranges and protected state. The single functional recovery owns final source/wheel
+identity; task scratch is consumed and idle workers are archived/unregistered.
 Standing native-task/model approval remains separate from product scope.
 
 ## Completed combined G3–G5 ownership delivery
@@ -32,7 +39,7 @@ Full-local qualification passed all 4,026 Python, 1,538 frontend and 358 browser
 cases plus exact retained-wheel smoke. Quiet backend/bridge activation, exact
 preservation/readback and the single recovery refresh are complete. All eight
 projects and 26 selected playback ranges remain available; consumed task artifacts
-are removed and attended workers are archived/unregistered. B1/B2 planning is
+are removed and attended workers are archived/unregistered. B1/B2 delivery is
 recorded above; other audit batches remain unselected. No GitHub CI, push or
 provider/settings expansion is authorized.
 
