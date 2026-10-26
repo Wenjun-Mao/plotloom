@@ -15,8 +15,10 @@ batches remain pending.
 The owner subsequently requested [combined B3–B7 planning followed by E2E delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 The source-grounded boundaries are reviewed; the owner explicitly chose current
 single-backend qualification and retirement of the mandatory two-profile runner.
-The native-versus-saved-profile target clarification and the plan's independent
-execution-limits review remain pending. No B3–B7 implementation has started.
+The native-versus-saved-profile target clarification remains pending. Independent
+execution-limits review is complete without findings; independent reviewed B4–B7
+cuts are starting under the existing instruction while dependent B3 work is held.
+The complete combined delivery remains the stopping condition.
 
 The owner subsequently requested a [combined B1–B2 plan](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).
 It proposes backend contract leaves/ordered validation before HTTP request,

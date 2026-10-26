@@ -1,7 +1,7 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **planning in progress; no implementation started**. The qualification
-target clarification below remains open. Date: 2026-10-26.
+Status: **B4–B7 sections reviewed and authorized for independent implementation;
+B3 target clarification remains open and dependent work is held**. Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
 Both inspected clean at `0d4a47d4c1b42ca635413673ebfb136c7fb68135`.
@@ -47,6 +47,11 @@ and the smallest vertical proof early; settle storage/catalogue leaves and B4
 package/client owners before their affected consumers. B4 host-client ownership
 precedes B6 terminal collaborators. B5 client catalogue and B7 server coordinator
 have no required source ordering: preserve their versioned HTTP boundary.
+The independent B5 → B4 → B6/B7 source cuts can proceed under the already-reviewed
+sections while the required B3 target answer is pending. This does not select a
+target or reduce the full B3–B7 stopping condition. Dependent B3 implementation
+and campaign wait for the answer and settled versioned criteria; no final combined
+qualification/activation claim is made from completing only the independent cuts.
 Run the complete qualification campaign on stable final relevant source, rather
 than qualifying one source and silently applying that result to changed execution.
 
@@ -152,6 +157,15 @@ runtime passes are software evidence, not real model or backend qualification.
 Existing isolated runtime/compose owners can provide an independent application,
 outputs/private supervisor and real bridge/CLI; do not repurpose the frozen
 serial/parallel comparison-pair grants or create a new qualification runtime.
+
+Before a real native attempt, prove the existing original-runtime permission/
+validator preflight (all eleven validator/render plans and negative controls),
+checked interpreter/dependency receipt, CLI file-store login and exact native
+profile/tool discovery. Metadata-only test receipts and the fixture executable
+that exits 78 are not qualification. Keep campaign execution inputs frozen while
+native attempts are active. A later documentation-only closeout may reuse evidence
+only after actual executable/pin/profile equality is demonstrated; retain the
+original evidence commit rather than rewriting its receipts to a later commit.
 
 Qualification uses machine text/adoption authority only. Existing ADR 0198 material
 QA grants do not enroll these projects; stop before human/material/AV boundaries.
@@ -342,8 +356,14 @@ combined plan and compact evidence here, not a new tracking/archive hierarchy.
 
 ## Planning review and open decisions
 
-Independent source-grounded B4/B6 and B5/B7 reviews are complete and incorporated;
-their read-only native tasks are archived. Native target feasibility review is
-complete, pending manager assessment and the user's target answer. No implementation
-has started. Required independent GPT-6.1 Sol / Medium execution-limits review follows
-the settled draft before implementation handoff.
+Independent source-grounded B4/B6, B5/B7 and native-target feasibility reviews are
+complete and incorporated; their read-only native tasks are archived. Independent
+GPT-6.1 Sol / Medium execution-limits review of `9d1077db` found no plan-created
+stall, unnecessary gate, arbitrary cap or restricted engineering judgment. It
+confirmed the separate service gates and the genuine target decision. That native
+review task is archived after its actual final/access release. The required B3
+target answer and versioned native arithmetic remain conditional, not approved by
+the earlier single-backend choice alone. The owner's implementation instruction
+already covers the independent reviewed source cuts; manager/worker must not edit
+concurrently. Final B3 settlement receives a bounded review follow-up before its
+dependent handoff, without another routine human milestone approval.

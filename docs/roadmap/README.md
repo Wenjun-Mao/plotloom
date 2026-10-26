@@ -14,10 +14,12 @@ The owner selected single-backend qualification and retirement of the mandatory
 two-profile Alpha runner. Planning found that runner targets saved OpenAI-compatible
 profiles, while the installed native Codex workbench has none. The target-path
 clarification is pending; native thresholds/driver and exact E2E proof must be
-versioned honestly if that target is selected. **Planning is in progress; no B3–B7
-implementation has started.** Once choices and independent execution-limits review
-close, the owner's existing request covers implementation through scoped activation,
-preservation/rollback and recovery without renewed milestone approvals.
+versioned honestly if that target is selected. Independent execution-limits review
+found no unnecessary limits. **The reviewed independent B4–B7 cuts are starting
+under the existing implementation instruction; dependent B3 work stays held.**
+This preserves the complete combined stopping condition. The owner's request
+covers covered implementation through scoped activation, preservation/rollback
+and recovery without renewed milestone approvals.
 
 ## Completed B1–B2 backend and HTTP ownership delivery
 
