@@ -234,3 +234,33 @@ def test_package_preparation_is_explicitly_a_repository_checkout_seam(
         exchange.write_package(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "execution_pin_missing"
+
+
+@pytest.mark.parametrize("backend", ["specialist_chat", "codex_exec"])
+def test_package_capability_publishes_and_verifies_without_delivery_exchange(tmp_path, backend):
+    from plotloom.creative_exchange_files import creative_job_root
+    from plotloom.creative_execution_pin import current_execution_pin
+    from plotloom.creative_handoff_package_exchange import CreativeHandoffPackageExchange
+    from plotloom.creative_package_projection import project_creative_package
+
+    request = _request()
+    pin = current_execution_pin(request.stage)
+    package_owner = CreativeHandoffPackageExchange(tmp_path)
+    options = {"executor_backend": backend}
+    if backend == "codex_exec":
+        options["plotloom_code_revision"] = "e" * 40
+    paths = package_owner.write_package(request, pin, **options)
+    assert package_owner.verified_package_paths(request, pin, **options) == paths
+    job_root = creative_job_root(package_owner.root, request.job_id)
+    projected, instructions, template, names = project_creative_package(job_root, request, pin, **options)
+    package = job_root / "package"
+    assert {path.name for path in package.iterdir()} == names
+    assert (package / "request.json").read_bytes() == canonical_json(projected)
+    assert (package / "COPY_ASSIGNMENT.txt").read_bytes() == instructions
+    if backend == "specialist_chat":
+        assert (package / "completion-manifest.example.json").read_bytes() == template
+    before = {str(path.relative_to(package)): path.read_bytes()
+              for path in package.rglob("*") if path.is_file()}
+    assert package_owner.write_package(request, pin, **options) == paths
+    assert {str(path.relative_to(package)): path.read_bytes()
+            for path in package.rglob("*") if path.is_file()} == before

@@ -418,7 +418,8 @@ delivery plan; other batches remain proposed.
 [ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md) and the
 [combined plan](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md) own
 current status. Extracted image FS/manifest/delivery, creative identity/files/pin/
-projection, explicit host client, application run routes, reference schemas,
+projection and concrete root-bound package capability, explicit host client,
+application run routes, reference schemas,
 Plotloom H3 catalogue, native inspection/receipt and Qwen coordinator now have
 actual direct consumers. Lab producer support is non-collected; supervisor and
 bridge tests retain whole temporal cases under their original function fixtures.

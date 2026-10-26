@@ -7,12 +7,11 @@ from pathlib import Path
 from typing import Any
 from pydantic import ValidationError
 from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecReceipt, assert_receipt_matches_attempt
-from .creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES, CreativeDeliveryManifest, CreativeHandoffError, CreativeHandoffRequest, is_creative_job_id
-from .creative_handoff_package_exchange import CreativeHandoffPackageExchangeMixin
+from .creative_handoff_contracts import CreativeDeliveryManifest, CreativeHandoffError, CreativeHandoffRequest
+from .creative_handoff_package_exchange import CreativeHandoffPackageExchange
 from .creative_handoff_identity import COMPLETION_FILENAME, canonical_json, request_hash
-from .creative_exchange_files import _read_regular
+from .creative_exchange_files import _read_regular, directory_names
 from .creative_execution_pin import current_execution_pin
-from .creative_package_projection import project_creative_package
 
 
 @dataclass(frozen=True)
@@ -24,46 +23,28 @@ class ValidatedCreativeDelivery:
     report: bytes
 
 
-class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
+class CreativeHandoffExchange:
     """Packages immutable requests and reads untrusted specialist candidates."""
 
     def __init__(self, root: Path) -> None:
-        configured = root.expanduser()
-        if configured.is_symlink():
-            raise CreativeHandoffError("package_conflict", "creative exchange root must not be a symlink")
-        self.root = configured.resolve()
+        self.packages = CreativeHandoffPackageExchange(root)
+        self.root = self.packages.root
 
-    def _job_root(self, job_id: str) -> Path:
-        if not is_creative_job_id(job_id):
-            raise CreativeHandoffError("invalid_job_id", "creative handoff job identifier is invalid")
-        job_root = self.root / "jobs" / job_id
-        if (self.root / "jobs").is_symlink() or job_root.is_symlink():
-            raise CreativeHandoffError("package_conflict", "creative job paths must not traverse symlinks")
-        return job_root
+    def write_package(self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
+                      executor_backend: str = "specialist_chat",
+                      plotloom_code_revision: str | None = None) -> dict[str, str]:
+        return self.packages.write_package(request, execution_pin,
+            executor_backend=executor_backend, plotloom_code_revision=plotloom_code_revision)
 
-    @staticmethod
-    def _names(directory: Path, *, package: bool = False) -> set[str]:
-        if not directory.exists():
-            return set()
-        if directory.is_symlink() or not directory.is_dir():
-            raise CreativeHandoffError("package_conflict" if package else "delivery_path_invalid", "handoff directory is unsafe")
-        names = {entry.name for entry in directory.iterdir()}
-        if any((directory / name).is_symlink() for name in names):
-            raise CreativeHandoffError("delivery_symlink", "handoff paths must not traverse symlinks")
-        return names
-
-    @staticmethod
-    def _candidate_filename(stage: str) -> str:
-        return CREATIVE_CANDIDATE_FILENAMES[stage]
+    def verified_package_paths(self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
+                               executor_backend: str = "specialist_chat",
+                               plotloom_code_revision: str | None = None) -> dict[str, str]:
+        return self.packages.verified_package_paths(request, execution_pin,
+            executor_backend=executor_backend, plotloom_code_revision=plotloom_code_revision)
 
     def current_execution_pin(self, stage: str) -> dict[str, str]:
         """Read source authority for preparation; never reinterpret a frozen delivery."""
         return current_execution_pin(stage)
-
-    def _projection(self, request, execution_pin, *, executor_backend="specialist_chat",
-                    plotloom_code_revision=None):
-        return project_creative_package(self._job_root(request.job_id), request, execution_pin,
-            executor_backend=executor_backend, plotloom_code_revision=plotloom_code_revision)
 
     def read_delivery(
         self, request: CreativeHandoffRequest, execution_pin: dict[str, str], *,
@@ -72,12 +53,12 @@ class CreativeHandoffExchange(CreativeHandoffPackageExchangeMixin):
         plotloom_code_revision: str | None = None,
     ) -> ValidatedCreativeDelivery | None:
         request.assert_secret_free()
-        job_root, projected = self._verify_frozen_package(
+        job_root, projected = self.packages.verify_frozen_package(
             request, execution_pin, executor_backend=executor_backend,
             plotloom_code_revision=plotloom_code_revision,
         )
         delivery = job_root / "delivery"
-        names = self._names(delivery)
+        names = directory_names(delivery)
         if not names:
             return None
         if names != {COMPLETION_FILENAME, projected["candidateFilename"], projected["reportFilename"]}:

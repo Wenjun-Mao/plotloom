@@ -7,10 +7,12 @@ from pathlib import PurePosixPath
 from ..codex_exec_resources import upstream_skill_path_for_stage
 from ..codex_exec_retained_outline import retained_outline_package_projection
 from ..creative_handoff_contracts import (
+    CREATIVE_CANDIDATE_FILENAMES,
     CreativeDeliveryManifest,
     CreativeHandoffRequest,
 )
-from ..creative_handoff_exchange import CreativeHandoffExchange
+from ..creative_exchange_files import configured_exchange_root, creative_job_root
+from ..creative_package_projection import project_creative_package
 from ..creative_handoff_identity import canonical_json, request_hash
 from ..creative_execution_pin import execution_pin_for_request
 from ..creative_package_publication import PUBLICATION_LOCK
@@ -109,7 +111,7 @@ def _codex_creative_jobs(connection):
 
 
 def _retained_codex_request_projection(
-    request, execution_pin, profile, projection_exchange, *, plotloom_code_revision=None
+    request, execution_pin, profile, exchange_root, *, plotloom_code_revision=None
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
     if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
@@ -120,8 +122,8 @@ def _retained_codex_request_projection(
                 )
             except (TypeError, ValueError) as error:
                 raise ProjectStorageCorruptionError("retained Outline package projection is invalid") from error
-        projected, _instructions, _template, _members = projection_exchange._projection(
-            request,
+        projected, _instructions, _template, _members = project_creative_package(
+            creative_job_root(exchange_root, request.job_id), request,
             execution_pin,
             executor_backend="codex_exec",
             plotloom_code_revision=plotloom_code_revision,
@@ -133,7 +135,7 @@ def _retained_codex_request_projection(
         return request.model_dump(mode="json", by_alias=True) | {
             "packageVersion": 3,
             "requestHash": request_hash(request),
-            "candidateFilename": CreativeHandoffExchange._candidate_filename(request.stage),
+            "candidateFilename": CREATIVE_CANDIDATE_FILENAMES[request.stage],
             "reportFilename": "report.html",
             "upstreamSkillPath": upstream_skill_path_for_stage(request.stage),
             "executionPin": execution_pin_for_request(request, execution_pin),
@@ -149,7 +151,7 @@ def _retained_codex_request_projection(
     return request.model_dump(mode="json", by_alias=True) | {
         "packageVersion": 2,
         "requestHash": request_hash(request),
-        "candidateFilename": CreativeHandoffExchange._candidate_filename(request.stage),
+        "candidateFilename": CREATIVE_CANDIDATE_FILENAMES[request.stage],
         "reportFilename": "report.html",
         "upstreamSkillPath": upstream_skill_path_for_stage(request.stage),
         "executionPin": execution_pin_for_request(request, execution_pin),
@@ -186,7 +188,7 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
     if any(path.name not in requests for path in base.iterdir()):
         raise ProjectStorageCorruptionError("creative evidence has an unowned job directory")
     paths = []
-    projection_exchange = CreativeHandoffExchange(base.parent)
+    exchange_root = configured_exchange_root(base.parent)
     for identifier, (request, manifest_hash) in requests.items():
         job = base / identifier
         if not job.exists() and not job.is_symlink():
@@ -203,18 +205,18 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"
         if codex_binding is None:
-            projected, _instructions, _template, _package_members = projection_exchange._projection(
-                request, execution_pin, executor_backend="specialist_chat"
+            projected, _instructions, _template, _package_members = project_creative_package(
+                creative_job_root(exchange_root, request.job_id), request, execution_pin, executor_backend="specialist_chat"
             )
         else:
             projected = _retained_codex_request_projection(
                 request,
                 execution_pin,
                 codex_binding["profile"],
-                projection_exchange,
+                exchange_root,
                 plotloom_code_revision=codex_binding["plotloom_code_revision"],
             )
-        candidate_name = CreativeHandoffExchange._candidate_filename(request.stage)
+        candidate_name = CREATIVE_CANDIDATE_FILENAMES[request.stage]
         expected = {
             "package/request.json", "package/COPY_ASSIGNMENT.txt",
             *(f"package/inputs/{name}" for name in request.input_artifacts),

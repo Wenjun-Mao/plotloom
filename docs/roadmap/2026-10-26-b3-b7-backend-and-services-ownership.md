@@ -409,3 +409,37 @@ The final failed/affected creator checks, module selection, clean-source image
 pin/publisher proof, integrated review and B3-dependent combined qualification
 are not yet complete. No root full, actual model qualification,
 activation/recovery refresh, creative acceptance, push or hosted CI has occurred.
+
+### Independent source review follow-up
+
+The original module run completed on `494222ad`: 1,040 Python cases and 435
+Vitest cases passed, exit 0 in 655.691s. That run was observed to completion,
+not restarted after an observation/capacity interruption. The final creator
+failed/affected safety selection passed 42 cases, including real access-time
+and subsecond-mutation checks; direct receiving/recovery consumers passed 50.
+
+Independent review at `494222ad` requested one B4 ownership correction: package
+operations still consumed subclass `_job_root`/`_projection`/`_names` hooks. The
+package owner is now concrete and root-bound, invoking the real projection and
+confined filesystem leaves directly. The exchange composes it and has no private
+projection facade. Retained-evidence inventory and video directions use those
+actual leaves and candidate-name declarations. Public package API, projection
+bytes and assertion order are preserved. The first affected failure identified
+remaining direct consumers; its log is retained without weakening assertions.
+The corrected nine-file focused selection passed 147 cases, including standalone
+package publication, metadata limits, current/retained receiving, snapshot/reopen,
+controller, video directions and realistic 42-shot pack. The real controlled-child
+terminal selection passed 2 cases on the corrected package capability.
+
+The `494222ad` clean-source ordinary/reference pin+atomic-publisher proof passed
+with synthetic rasters and zero model calls. Original pin/manifest/source identities
+remain immutable in `.local/b37/clean-pin-publisher-2/result.json`; they do not become
+receipts for a later source revision. Final exact package/image/pin inputs and
+bounded follow-up evidence are retained under `.local/b37/`. Gateway wheel and
+ARM64 smoke ran after the service README isolation-command correction; the later
+B4-only correction does not change that service's source, lock or artifact inputs.
+
+Independent B4–B7 source is awaiting the bounded review follow-up. B3's target
+answer, dependent implementation/campaign, final root full, activation and recovery
+refresh remain open. P, Spark, valued projects, settings, grants and UNKNOWN holds
+remain untouched; no push or hosted CI has run.

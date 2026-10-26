@@ -21,8 +21,7 @@ from plotloom.codex_exec_validation import (
     CodexExecValidationStepEvidence,
     validation_plan_from_package,
 )
-from plotloom.creative_handoff_contracts import CreativeHandoffRequest
-from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES, CreativeHandoffRequest
 from plotloom.creative_handoff_identity import canonical_json
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.native_bridge_intent_contract import render_native_intent_report
@@ -189,7 +188,7 @@ class FakeCodexExecHost(FakeCodexImageReceipts):
         job_root = Path(paths["packagePath"]).parent
         delivery = Path(paths["deliveryPath"])
         delivery.mkdir(exist_ok=True)
-        candidate_filename = CreativeHandoffExchange._candidate_filename(request.stage)
+        candidate_filename = CREATIVE_CANDIDATE_FILENAMES[request.stage]
         content = canonical_json(value if value is not None else self.candidate_factory(store, request))
         report = (
             render_native_intent_report(request, json.loads(content))

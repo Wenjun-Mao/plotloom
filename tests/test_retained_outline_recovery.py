@@ -14,6 +14,8 @@ from plotloom.codex_exec_runtime import package_tree_hash
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
+from plotloom.creative_package_projection import project_creative_package
+from plotloom.creative_exchange_files import creative_job_root
 from plotloom.creative_handoff_identity import canonical_json
 from plotloom.persistence.project.autopilot_bindings import assert_checkpoint_binding
 from plotloom.project_storage import ProjectStorageCorruptionError
@@ -42,7 +44,7 @@ def test_passive_outline_projection_preserves_original_schema_and_plan(tmp_path,
     request = historical_request(_request("project", _material()), schema)
     original = request.model_dump_json(by_alias=True)
     projected = _retained_codex_request_projection(request, UPSTREAM_PIN, historical_profile(version),
-        CreativeHandoffExchange(tmp_path), plotloom_code_revision=REVISION)
+        CreativeHandoffExchange(tmp_path).root, plotloom_code_revision=REVISION)
     assert projected == historical_package(request, UPSTREAM_PIN)
     assert request.model_dump_json(by_alias=True) == original
 
@@ -51,9 +53,9 @@ def test_passive_outline_projection_preserves_original_schema_and_plan(tmp_path,
 def test_current_outline_projection_matches_live_package(tmp_path, version):
     request = _request("project", _material())
     exchange = CreativeHandoffExchange(tmp_path)
-    expected, *_ = exchange._projection(request, UPSTREAM_PIN, executor_backend="codex_exec", plotloom_code_revision=REVISION)
+    expected, *_ = project_creative_package(creative_job_root(exchange.root, request.job_id), request, UPSTREAM_PIN, executor_backend="codex_exec", plotloom_code_revision=REVISION)
     assert _retained_codex_request_projection(request, UPSTREAM_PIN, historical_profile(version),
-        exchange, plotloom_code_revision=REVISION) == expected
+        exchange.root, plotloom_code_revision=REVISION) == expected
 
 
 @pytest.mark.parametrize("boundary,allowed", [("inputs", True), ("inputs", False), ("filename", True), ("filename", False), ("size", True), ("size", False)])
@@ -69,7 +71,7 @@ def test_historical_expected_plan_retains_plan_v1_structural_limits(tmp_path, bo
     request = _request("project", _material()).model_copy(update={"input_artifacts": artifacts})
     def project():
         return _retained_codex_request_projection(request, UPSTREAM_PIN, historical_profile(8),
-            CreativeHandoffExchange(tmp_path), plotloom_code_revision=REVISION)
+            CreativeHandoffExchange(tmp_path).root, plotloom_code_revision=REVISION)
     if allowed:
         assert project() == historical_package(request, UPSTREAM_PIN)
     else:
@@ -112,7 +114,7 @@ def test_stopped_native_snapshot_and_folder_restore_keep_original_bytes_and_iden
         pytest.fail("passive recovery invoked live projection, validation or a process")
 
     monkeypatch.setattr("plotloom.codex_exec_validation.build_text_validation_plan", forbidden)
-    monkeypatch.setattr(CreativeHandoffExchange, "_projection", forbidden)
+    monkeypatch.setattr("plotloom.creative_handoff_package_exchange.project_creative_package", forbidden)
     monkeypatch.setattr("subprocess.Popen", forbidden)
     storage.projects.reopen_project(project_id)
     with closing(storage.projects.open(project_id)) as store:

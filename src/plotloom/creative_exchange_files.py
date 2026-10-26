@@ -2,7 +2,7 @@
 import os
 import stat
 from pathlib import Path
-from .creative_handoff_contracts import CreativeHandoffError
+from .creative_handoff_contracts import CreativeHandoffError, is_creative_job_id
 
 
 def _read_regular(path: Path, *, max_bytes: int, package: bool = False) -> bytes:
@@ -25,3 +25,29 @@ def _write_once(path: Path, content: bytes) -> None:
         handle.write(content)
         handle.flush()
         os.fsync(handle.fileno())
+
+
+def configured_exchange_root(root: Path) -> Path:
+    configured = root.expanduser()
+    if configured.is_symlink():
+        raise CreativeHandoffError("package_conflict", "creative exchange root must not be a symlink")
+    return configured.resolve()
+
+
+def creative_job_root(root: Path, job_id: str) -> Path:
+    if not is_creative_job_id(job_id):
+        raise CreativeHandoffError("invalid_job_id", "creative handoff job identifier is invalid")
+    job_root = root / "jobs" / job_id
+    if (root / "jobs").is_symlink() or job_root.is_symlink():
+        raise CreativeHandoffError("package_conflict", "creative job paths must not traverse symlinks")
+    return job_root
+
+def directory_names(directory: Path, *, package: bool = False) -> set[str]:
+    if not directory.exists():
+        return set()
+    if directory.is_symlink() or not directory.is_dir():
+        raise CreativeHandoffError("package_conflict" if package else "delivery_path_invalid", "handoff directory is unsafe")
+    names = {entry.name for entry in directory.iterdir()}
+    if any((directory / name).is_symlink() for name in names):
+        raise CreativeHandoffError("delivery_symlink", "handoff paths must not traverse symlinks")
+    return names

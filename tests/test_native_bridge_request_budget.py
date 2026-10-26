@@ -87,18 +87,19 @@ def test_exact_budget_request_survives_package_metadata_and_readback(tmp_path, s
 def test_metadata_ceiling_refuses_before_any_package_publication(tmp_path, monkeypatch, stage):
     request = _request(stage)
     exchange = CreativeHandoffExchange(tmp_path)
-    original = exchange._projection
+    import plotloom.creative_handoff_package_exchange as package_owner
+    original = package_owner.project_creative_package
 
     def oversized(*args, **kwargs):
         projected, instructions, template, expected = original(*args, **kwargs)
         projected["syntheticMetadata"] = "x" * budget.MAX_NATIVE_BRIDGE_PACKAGE_JSON_BYTES
         return projected, instructions, template, expected
 
-    monkeypatch.setattr(exchange, "_projection", oversized)
+    monkeypatch.setattr(package_owner, "project_creative_package", oversized)
     pin = {"upstreamRevision": "b" * 40, "upstreamSkillHash": "c" * 64, "specialistSkillHash": "d" * 64}
     with pytest.raises(ValueError, match="exceeds its file limit"):
         exchange.write_package(request, pin)
-    assert not exchange._job_root(request.job_id).exists()
+    assert not (exchange.root / "jobs" / request.job_id).exists()
 
 
 @pytest.mark.parametrize("stage,previous_limit", [("intent", 60_000), ("presentation", 180_000)])

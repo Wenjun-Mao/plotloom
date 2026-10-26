@@ -34,7 +34,11 @@ foreign-file refusal, fsync/rename ordering and frozen package bytes are preserv
 
 Creative package identity/JSON, filesystem operations, trusted pin validation and
 current-checkout discovery, and deterministic package projection are separate
-leaves. The existing package capability no longer imports its subclass's helpers.
+leaves. `CreativeHandoffPackageExchange(root)` is a concrete capability; it
+consumes the projection and filesystem leaves directly, with no subclass helper
+dependency or `_projection` facade. The delivery exchange composes this capability.
+Retained evidence and video directions consume the actual projection and filename
+owners directly.
 Refresh consumes only persisted trusted pins; current skill drift cannot rewrite
 old delivery authority. Specialist-chat output and native host output remain
 separate contracts. No new mixin, compatibility barrel or context bag is introduced.

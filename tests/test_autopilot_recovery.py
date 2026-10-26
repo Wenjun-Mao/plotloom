@@ -117,7 +117,7 @@ def test_retained_v4_codex_package_inventory_uses_revisionless_v2_shape(tmp_path
             request,
             UPSTREAM_PIN,
             profile,
-            CreativeHandoffExchange(tmp_path / "creative-handoff"),
+            CreativeHandoffExchange(tmp_path / "creative-handoff").root,
         )
 
     assert projection["packageVersion"] == 2

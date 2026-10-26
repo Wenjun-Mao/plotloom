@@ -5,7 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from .creative_handoff_identity import TEMPLATE_FILENAME, canonical_json, request_hash
-from .creative_exchange_files import _read_regular, _write_once
+from .creative_exchange_files import (
+    _read_regular, _write_once, configured_exchange_root, creative_job_root, directory_names,
+)
+from .creative_package_projection import project_creative_package
 from .creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 
 
@@ -17,10 +20,13 @@ def _json_file_limit(request: CreativeHandoffRequest) -> int:
     return 1_000_000
 
 
-class CreativeHandoffPackageExchangeMixin:
+class CreativeHandoffPackageExchange:
     """Own immutable package projection checks and first publication."""
 
-    def _verify_frozen_package(
+    def __init__(self, root: Path) -> None:
+        self.root = configured_exchange_root(root)
+
+    def verify_frozen_package(
         self,
         request: CreativeHandoffRequest,
         execution_pin: dict[str, str],
@@ -29,15 +35,15 @@ class CreativeHandoffPackageExchangeMixin:
         plotloom_code_revision: str | None = None,
     ) -> tuple[Path, dict[str, Any]]:
         """Confirm every specialist-consumed package file still matches its projection."""
-        job_root = self._job_root(request.job_id)
+        job_root = creative_job_root(self.root, request.job_id)
         package = job_root / "package"
-        projected, instructions, template, expected = self._projection(
-            request,
+        projected, instructions, template, expected = project_creative_package(
+            job_root, request,
             execution_pin,
             executor_backend=executor_backend,
             plotloom_code_revision=plotloom_code_revision,
         )
-        names = self._names(package, package=True)
+        names = directory_names(package, package=True)
         if names != expected:
             raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
         json_limit = _json_file_limit(request)
@@ -50,7 +56,7 @@ class CreativeHandoffPackageExchangeMixin:
         ) != template:
             raise CreativeHandoffError("package_conflict", "existing package template differs from frozen request")
         inputs = package / "inputs"
-        if self._names(inputs, package=True) != set(request.input_artifacts):
+        if directory_names(inputs, package=True) != set(request.input_artifacts):
             raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
         for filename, payload in request.input_artifacts.items():
             if _read_regular(inputs / filename, max_bytes=json_limit, package=True) != canonical_json(payload):
@@ -67,7 +73,7 @@ class CreativeHandoffPackageExchangeMixin:
     ) -> dict[str, str]:
         """Recover an existing handoff without creating or repairing frozen files."""
         request.assert_secret_free()
-        job_root, _ = self._verify_frozen_package(
+        job_root, _ = self.verify_frozen_package(
             request,
             execution_pin,
             executor_backend=executor_backend,
@@ -86,17 +92,17 @@ class CreativeHandoffPackageExchangeMixin:
     ) -> dict[str, str]:
         """Publish the exact frozen package once, then verify its complete projection."""
         request.assert_secret_free()
-        job_root = self._job_root(request.job_id)
+        job_root = creative_job_root(self.root, request.job_id)
         package = job_root / "package"
-        projected, instructions, template, _expected = self._projection(
-            request,
+        projected, instructions, template, _expected = project_creative_package(
+            job_root, request,
             execution_pin,
             executor_backend=executor_backend,
             plotloom_code_revision=plotloom_code_revision,
         )
-        self._names(package, package=True)
+        directory_names(package, package=True)
         if package.exists():
-            self._verify_frozen_package(
+            self.verify_frozen_package(
                 request,
                 execution_pin,
                 executor_backend=executor_backend,
@@ -120,7 +126,7 @@ class CreativeHandoffPackageExchangeMixin:
         ):
             raise CreativeHandoffError("package_conflict", "native bridge package JSON exceeds its file limit")
         publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
-        self._verify_frozen_package(
+        self.verify_frozen_package(
             request,
             execution_pin,
             executor_backend=executor_backend,

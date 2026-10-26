@@ -6,6 +6,8 @@ from hashlib import sha256
 from .codex_exec_runtime import frozen_package_snapshot
 from .codex_exec_validation import validation_plan_from_package
 from .creative_handoff_contracts import CreativeHandoffRequest
+from .creative_exchange_files import creative_job_root
+from .creative_package_projection import project_creative_package
 from .creative_handoff_identity import canonical_json, request_hash
 from .exceptions import InvalidTransitionError
 from .video_directions_contract import bind_draft, render_report
@@ -26,7 +28,7 @@ def prepare_directions(store, registry, grants, view):
         creative_brief="Draft complete faithful English H3 directions for every frozen target. Follow the native video-directions contract. Do not approve, dispatch, generate media or change canon.")
     if len(canonical_json(request.input_artifacts["video-targets.json"])) > 1_000_000:
         raise InvalidTransitionError("complete directions source exceeds the one-package limit; no source was truncated")
-    projected, instructions, _template, _members = exchange._projection(request, pin, executor_backend="codex_exec", plotloom_code_revision=pin["upstreamRevision"])
+    projected, instructions, _template, _members = project_creative_package(creative_job_root(exchange.root, request.job_id), request, pin, executor_backend="codex_exec", plotloom_code_revision=pin["upstreamRevision"])
     files = {"request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions,
         **{f"inputs/{name}": canonical_json(value) for name,value in request.input_artifacts.items()}}
     package_hash = package_manifest_hash(tuple(CodexExecPackageFile(relativePath=name, sha256=sha256(content).hexdigest(), sizeBytes=len(content)) for name,content in sorted(files.items())))
