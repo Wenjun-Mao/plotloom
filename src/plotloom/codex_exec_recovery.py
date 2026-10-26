@@ -108,7 +108,7 @@ def prove_no_remote_dispatch(stdout: Path, rollout: Path, session_id: UUID, *, j
     stream = read_exec_events(stdout, max_event_bytes=MAX_BYTES, max_total_bytes=MAX_BYTES)
     session = read_cli_session(rollout, session_id, max_event_bytes=MAX_BYTES, max_total_bytes=MAX_BYTES)
     if (stream.session_id != session_id or stream.terminal_event != "turn.completed"
-            or stream.diagnostics or stream.file_changes or session.image_calls or session.image_events
+            or stream.diagnostics or stream.transport_diagnostics or stream.file_changes or session.image_calls or session.image_events
             or session.reference_views):
         raise CodexExecTelemetryError("recovery requires a complete turn without remote or file effects")
     stream_bytes, stream_rows = _read_rows(stdout)

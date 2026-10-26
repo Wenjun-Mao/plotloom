@@ -652,7 +652,9 @@
           "tests/test_specialist_settings.py",
           "tests/test_specialist_terminal_reconciliation.py",
           "tests/test_specialist_workflow.py",
-          "tests/video_backends/minimax_h3/test_transport.py"
+          "tests/video_backends/minimax_h3/test_transport.py",
+          "tests/test_codex_exec_transport_diagnostics.py",
+          "tests/services/creator_workbench/test_codex_exec_transport_diagnostics.py"
         ],
         "vitest": [
           "frontend/tests/bridge-choice-retry.test.ts",

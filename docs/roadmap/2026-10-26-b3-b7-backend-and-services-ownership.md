@@ -708,3 +708,30 @@ hashes remain unchanged. Prototype replay and production repair are still distin
 from a new native outcome. Model, prompt, driver retry, correction, sandbox and
 UNKNOWN-settlement policy changes are outside this repair. No broad scaling,
 root full or core activation has occurred.
+
+The bounded semantic implementation recognizes only the current observed in-turn
+reconnect grammar, with retry counters 1–5 of 5 and the observed HTTP 429 status
+phrase. Other top-level errors retain terminal refusal. `ExecTransportDiagnostic`
+is immutable and contains only ordinal, SHA-256 and byte size; the complete stream
+hash still covers the original diagnostic bytes. Image domain inspection refuses
+these diagnostics before failure/completion settlement, and no-remote-dispatch
+proof explicitly refuses them. No model/content/prompt/driver policy changed.
+The reader is 376 lines and remains one cohesive strict event/file reader; no
+line-count extraction is warranted. The 405-line process owner is unchanged.
+
+Side-effect-free prototype results and production replay are retained under
+`.local/b37/b3-native/telemetry-compat-258f5a42/`. All three exact streams, package
+hashes and session identities read successfully with their bytes unchanged.
+Characters remains UNKNOWN, with no normal exit recorded and no content validation
+performed by replay; statuses and slots were checked unchanged. Twenty-six strict
+synthetic prototype cases and pure image/recovery consumer probes passed.
+The 78-case focused source selection initially passed 76 with two controlled-text
+fixture assertions failing: transient validator rows are removed after completion.
+The stronger fixture now records actual validator argv and reads the candidate at
+its frozen absolute argv path rather than the private validation cwd. All three
+affected controlled-child cases pass: recovered text reaches both validation steps,
+invalid candidate content fails validation, and nonzero CLI exit never validates
+or succeeds. Image cases with and without observed image calls preserve UNKNOWN,
+reserved budget and held slot; direct and postmortem recovery refuse reconnects.
+First fixture failures remain retained. Another native admission awaits bounded
+independent code review of the clean repair and a refreshed source/profile/proof.

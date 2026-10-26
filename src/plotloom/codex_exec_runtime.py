@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -39,6 +40,29 @@ class ExecFileChange:
 
 
 @dataclass(frozen=True)
+class ExecTransportDiagnostic:
+    event_ordinal: int
+    message_sha256: str
+    message_size_bytes: int
+
+
+def _read_transport_retry(record, event_ordinal):
+    # Empirical current-binary reconnect shape only; generic errors stay fatal.
+    if set(record) != {"type", "message"} or not isinstance(record.get("message"), str):
+        return None
+    message = record["message"]
+    if re.fullmatch(r"Reconnecting\.\.\. [1-5]/5 \(exceeded retry limit, last status: 429 Too Many Requests\)", message) is None:
+        return None
+    try:
+        data = message.encode("utf-8", "strict")
+    except UnicodeEncodeError as error:
+        raise CodexExecRuntimeError("Reconnect diagnostic is not valid Unicode") from error
+    if len(data) > MAX_DIAGNOSTIC_MESSAGE_BYTES:
+        raise CodexExecRuntimeError("Reconnect diagnostic exceeds its byte bound")
+    return ExecTransportDiagnostic(event_ordinal, sha256(data).hexdigest(), len(data))
+
+
+@dataclass(frozen=True)
 class ExecStreamEvidence:
     session_id: UUID
     transcript_sha256: str
@@ -47,6 +71,7 @@ class ExecStreamEvidence:
     terminal_event: str
     diagnostics: tuple[ExecDiagnostic, ...]
     file_changes: tuple[ExecFileChange, ...]
+    transport_diagnostics: tuple[ExecTransportDiagnostic, ...] = ()
 
 
 MAX_DIAGNOSTICS = 128
@@ -93,6 +118,7 @@ def read_exec_events(
     terminal = []
     event_types: list[str] = []
     diagnostics: list[ExecDiagnostic] = []
+    transport_diagnostics: list[ExecTransportDiagnostic] = []
     diagnostic_ids: set[str] = set()
     pending_file_changes: dict[str, tuple[ExecFileChangeEntry, ...]] = {}
     file_changes: list[ExecFileChange] = []
@@ -138,6 +164,11 @@ def read_exec_events(
                     if turn_started:
                         raise CodexExecRuntimeError("Codex CLI stream contains duplicate turn starts")
                     turn_started = True
+                elif (event_type == "error" and turn_started
+                        and (transport := _read_transport_retry(record, len(event_types) - 1)) is not None):
+                    if len(transport_diagnostics) >= MAX_DIAGNOSTICS:
+                        raise CodexExecRuntimeError("Reconnect diagnostic count exceeds its bound")
+                    transport_diagnostics.append(transport)
                 elif event_type in {"turn.completed", "turn.failed", "error"}:
                     terminal.append(event_type)
                 elif event_type in {"turn.started", "item.started", "item.completed"}:
@@ -197,7 +228,7 @@ def read_exec_events(
             raise CodexExecRuntimeError("Codex CLI stream ends with an incomplete file-change item")
         return ExecStreamEvidence(
             started[0], digest.hexdigest(), total, tuple(event_types), terminal[0],
-            tuple(diagnostics), tuple(file_changes),
+            tuple(diagnostics), tuple(file_changes), tuple(transport_diagnostics),
         )
     finally:
         os.close(descriptor)

@@ -65,3 +65,11 @@ def test_unaccounted_or_ambiguous_execution_is_not_absence_proof(read_turn, defe
     if defect == "unfinished-record": rollout.write_bytes(rollout.read_bytes().rstrip(b"\n"))
     with pytest.raises((ValueError, TypeError, IndexError, KeyError)):
         prove_no_remote_dispatch(private / "stdout.jsonl", rollout, session, job_root=job, source_root=source)
+
+
+def test_reconnect_diagnostic_cannot_prove_no_remote_dispatch(read_turn):
+    job, source, private, rollout, session, _rows, records = read_turn
+    records.insert(2, {"type": "error", "message": "Reconnecting... 2/5 (exceeded retry limit, last status: 429 Too Many Requests)"})
+    save_rows(private / "stdout.jsonl", records)
+    with pytest.raises(ValueError, match="complete turn without remote or file effects"):
+        prove_no_remote_dispatch(private / "stdout.jsonl", rollout, session, job_root=job, source_root=source)

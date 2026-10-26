@@ -197,3 +197,13 @@ promotion or model/prompt/sandbox change. Independent assessment requires immuta
 real-stream replay plus strict negatives and consumer/hold regressions before a
 new frozen source/profile/proof/matrix and another genuine canary. Both original
 failed campaigns retain their actual identities, statuses, slots and evidence.
+
+The implemented exception matches only the observed current in-turn reconnect
+message grammar (retry 1–5 of 5 with the observed HTTP 429 status phrase). It does
+not generalize error fatality. The immutable transport diagnostic stores ordinal,
+message hash and byte size only. The existing domain inspection returns UNKNOWN
+for image transport evidence before any failure/completion settlement; direct and
+postmortem no-remote-dispatch proof refuse it explicitly. The event reader remains
+cohesive at 376 lines, and the temporal process owner is unchanged. Immutable
+original replay and controlled-child/hold tests establish this software repair;
+neither ended campaign is promoted and no fresh model result is implied.

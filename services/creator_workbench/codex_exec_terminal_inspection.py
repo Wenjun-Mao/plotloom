@@ -22,6 +22,10 @@ def inspect_terminal(attempt, profile, job_root, stdout_path, codex_home):
 def inspect_domain_evidence(attempt, stdout_path, session_path, stream, session,
                             job_root, source_root) -> bool:
     """Reject text/ImageGen contamination and require strict image no-dispatch proof."""
+    # Transport recovery does not prove the outcome of an image-side effect.
+    # Refuse before either the process failure or success path can settle it.
+    if attempt.domain == "image" and stream.transport_diagnostics:
+        return False
     if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
         return False
     if attempt.domain == "image" and not session.image_calls and not session.image_events:
