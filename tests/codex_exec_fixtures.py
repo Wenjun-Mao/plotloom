@@ -4,7 +4,7 @@ from plotloom.codex_exec_contracts import CodexExecProfile, CodexExecReadiness
 
 PROFILE = CodexExecProfile(
     contractVersion="plotloom.codex-exec.v8",
-    textCorrectionContract="plotloom.text-correction.v2",
+    textCorrectionContract="plotloom.text-correction.v3",
     executableSha256="a" * 64,
     cliVersion="codex-cli test-fixture",
     model="gpt-6.1-sol",

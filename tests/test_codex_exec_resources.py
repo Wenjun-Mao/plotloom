@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize("planned", [False, True])
-def test_opted_in_script_keeps_checked_python_and_pinned_node_together(planned):
+@pytest.mark.parametrize("typed", [False, True])
+def test_opted_in_script_keeps_checked_python_and_pinned_node_together(planned, typed):
     from plotloom.script_dialogue_compatibility import freeze_planned_storyboard_dialogue
     artifacts = {}
     if planned:
@@ -32,7 +33,10 @@ def test_opted_in_script_keeps_checked_python_and_pinned_node_together(planned):
             max_cut_seconds=8, language="zh-CN").model_dump(mode="json", by_alias=True)}
     request = dict(stage="script", upstreamSkillPath=upstream_skill_path_for_stage("script"),
         executionPin=_pin("script"), inputArtifacts=artifacts)
+    if typed:
+        request["contentValidationContract"] = "plotloom.typed-content-result.v1"
     resources = codex_exec_source_resources(ROOT, request)
+    assert (ROOT / "scripts/script-content-validation.mjs" in resources.read_paths) is typed
     tools = dict(resources.tools)
     assert set(tools) == ({"uv", "python", "node"} if planned else {"node"})
     assert tools["node"].parent.parent.resolve() in resources.read_paths

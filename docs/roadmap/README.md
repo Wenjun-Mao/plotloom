@@ -23,9 +23,10 @@ the original full remains failed. The plan retains exact evidence and reuse limi
 
 Gateway alone is activated with preservation/readback. P/core/bridge and recovery
 remain at `0d4a47d4`. Further admissions, core activation and recovery refresh are
-held while the owner decides whether to authorize one bounded prospective Script
-correction or retain current policy and leave B3 unqualified. No policy expansion
-is approved by this documentation checkpoint. Standing implementation authority
+held during the prospective Script-correction implementation/qualification. The
+owner explicitly delegated judgment while unavailable; the manager selected the
+independently reviewed extension under that authority. Original b5 evidence remains
+failed; new version/source/pins/profile and model qualification are required. Standing implementation authority
 and routine internal review remain distinct from that material scope decision.
 
 ## Completed B1–B2 backend and HTTP ownership delivery

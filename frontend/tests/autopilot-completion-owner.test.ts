@@ -126,3 +126,18 @@ it("a stale finally cannot clear a newer project's pending operation", async () 
   await act(async () => releaseB({ ...running, id: "b-run" }));
   expect(host.querySelector<HTMLButtonElement>("#start")?.disabled).toBe(false);
 });
+
+it.each([false, true])("shows Script failure and resolved history without manual retry (resolved=%s)", async resolved => {
+  current = { ...fixtureRun, phase: resolved ? "storyboard" : "script", state: resolved ? "running" : "blocked",
+    checkpoints: resolved ? [{ ...fixtureRun.checkpoints[0], operationKey: "script:correction:1", state: "adopted",
+      evidence: { ...fixtureRun.checkpoints[0].evidence, owner: "script" } }] : fixtureRun.checkpoints };
+  vi.spyOn(autopilotApi, "textFailure").mockResolvedValue({ runId: current.id, runRevision: current.revision,
+    stage: "script", stageLabel: "完整剧本", failedAttemptId: "rejected-script", rejectionHash: "a".repeat(64),
+    terminalContentFailure: !resolved, resolved, canRetry: false, reason: "本阶段未授予手动追加修正",
+    automaticUsed: 1, automaticLimit: 1, issues: [], diagnostics: ["Script duration rejected"],
+    history: [{ ordinal: 0, mode: "original", state: "failed", outcome: "failure", comparison: "unknown" }] });
+  await render();
+  expect(autopilotApi.textFailure).toHaveBeenCalledWith("disposable", expect.any(AbortSignal), resolved ? "script" : undefined);
+  expect(host.textContent).toContain("完整剧本");
+  expect(host.textContent).not.toContain("修改要求后重试");
+});

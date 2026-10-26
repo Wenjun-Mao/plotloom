@@ -2,7 +2,7 @@
 
 Status: B3–B7 source independently reviewed through executable `b5c9de51`;
 Gateway-only activation complete. Native Alpha qualification did not pass;
-prospective Script correction awaits owner decision, with core activation held,
+prospective Script correction selected under delegated judgment, with core activation held,
 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
@@ -220,3 +220,25 @@ that decision is pending. Original matrices, failed/UNKNOWN evidence and holds
 retain their meaning. The combined plan records software coverage and exact
 terminal evidence; no blind publication/review, core activation or recovery refresh
 followed this result.
+
+
+The owner subsequently delegated judgment for the unattended long run. The manager
+selected the independently reviewed one-automatic-Script-correction extension under
+that authority; this is not personal creative acceptance. Extend the existing default
+1 to Script while honoring explicit frozen launch limits including 0. No manual-extra
+Script grant follows. Freeze a new correction capability and Alpha acceptance version;
+original v1 campaigns/receipts, known rejection and UNKNOWN holds keep their meaning.
+
+Trusted code alone may classify the pinned Script API's normal content issue return;
+its wrapper binds exact candidate/input/request/package/plan/profile/attempt identities.
+Parser, binding, interpreter/subprocess, cancellation, nonzero model exit and UNKNOWN
+failures never become typed content rejection. Native planned-dialogue validation keeps
+all existing receiving and report gates; receiving exceptions remain terminal.
+A corrected job retains exact author source/Brief/routes/budget/style/model authority
+and cannot relax effective estimator/tolerance parameters. Model-owned episode targets
+and prose remain model-owned within those unchanged gates. The original failed attempt
+and a distinct immutable corrective job remain in history; correction adoption cannot
+count first pass. Exhaustion blocks; leases, CAS, currentness and snapshot guards stay.
+Existing source-owned correction storage/controller/package owners implement the change;
+no second pipeline or generic retry framework. Focused replay/controlled-child evidence
+and independent source review precede new genuine correction/native-matrix admission.

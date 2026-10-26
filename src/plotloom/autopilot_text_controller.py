@@ -33,7 +33,7 @@ from .native_bridge_intent_service import NativeBridgeIntentService
 from .native_bridge_presentation_service import NativeBridgePresentationService
 from .persistence.schema import AutopilotCheckpointRow, ProductionBridgeRevisionRow
 from .production_bridge_contracts import ProductionBridgeAcceptRequest
-from .text_correction_contracts import logical_checkpoint
+from .text_correction_contracts import automatic_correction_limit, logical_checkpoint
 
 
 class AutopilotTextController:
@@ -235,7 +235,7 @@ class AutopilotTextController:
         )
         if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
             if (attempt.content_rejection is not None and
-                    store.repository.autopilot.automatic_corrections_used(view.id, stage) < (view.policy.text_correction_limit or 0)):
+                    store.repository.autopilot.automatic_corrections_used(view.id, stage) < automatic_correction_limit(view.policy, stage)):
                 self.prepare_correction(store, view, claim, request, attempt)
                 return
             if attempt.content_rejection is not None:

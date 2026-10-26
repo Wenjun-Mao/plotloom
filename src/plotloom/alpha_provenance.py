@@ -70,7 +70,7 @@ def native_contract_hash(snapshot):
         "repeats": 3, "operations": NATIVE_OPERATIONS, "requiredInstallations": 9,
         "firstPassRequired": 60, "firstPassTotal": 72,
         "reviewRepeats": [1], "correctionLimit": 1,
-        "correctionStages": ["outline", "characters", "art"],
+        "correctionStages": ["outline", "characters", "art", "script"],
         "profileHash": snapshot["profileHash"], "executionPins": snapshot["executionPins"],
     }))
 

@@ -3,13 +3,13 @@
 Status: **B3–B7 source implemented and independently reviewed through `b5c9de51`;
 Gateway activated. Native Alpha qualification did NOT pass: one current installation,
 one terminal Script rejection and seven unadmitted samples. Further native admission,
-core/bridge activation and recovery refresh are on hold pending the owner's
-prospective correction-policy decision**.
+core/bridge activation and recovery refresh remain held while the delegated
+Script-correction extension is implemented and qualified**.
 Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
 Starting baseline: both inspected clean at
-`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Executable/evidence checkpoint is
+`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Last completed native evidence checkpoint is
 `b5c9de51db583f4ad4c57dcbb2052bf2913f63fb`; later documentation does not relabel
 its receipts. P/core/bridge and the existing recovery remain at the starting baseline.
 
@@ -19,9 +19,9 @@ but failed the unchanged duration validator: episodes 2 and 3 estimate 17.8s aga
 a 17.85s minimum. Independent review found no demonstrated source/validator defect
 and confirmed the stop. The frozen matrix cannot satisfy 9/9 under its current
 policy. No blind pack/reviews, core activation or recovery refresh followed.
-The owner has been asked whether to authorize one bounded prospective Script
-correction or retain current policy and leave B3 unqualified; the answer is pending.
-No such expansion is selected or implemented here. Exact evidence and software
+The owner delegated judgment for this long run while unavailable. Under that
+authority the manager selected the independently reviewed single Script correction
+proposal; implementation and fresh qualification follow, without changing this result. Exact evidence and software
 qualification limits are recorded in the terminal checkpoint below.
 
 ## Outcome and authority
@@ -124,12 +124,13 @@ backend. Do not build a general version-compatibility or archival framework.
 ### Selected native target and versioned acceptance contract
 
 The owner selected the current native Codex workbench. Use a distinct current
-acceptance version, `alpha_native_codex_three_story.v1`; retire the old mandatory
+acceptance version, `alpha_native_codex_three_story.v2`; retire the old mandatory
 two-profile Alpha execution path and its obsolete invocation tests/documentation.
 The old 18-run/six-review and four-stage 30/36 results retain their original
 meaning and cannot pass the new gate. No legacy executable or compatibility
 framework is required. The existing optional protocol-conformance path retains
-its own contracts. This version supersedes ADR 0024's four-stage arithmetic only
+its own contracts. The original native v1 result remains failed; v2 adds the delegated prospective
+Script policy only. This version supersedes ADR 0024's four-stage arithmetic only
 for current native Alpha qualification, not its independent-backend principle.
 
 Reuse the current production text owners:
@@ -147,8 +148,9 @@ first-pass fraction while naming the actual eight-operation denominator. Record
 all underlying outcomes; never reinterpret old 30/36 statistics. Native operation
 accounting uses actual eight-job attempt evidence; the shared four-stage metric
 helper is not authority to relabel native operations as pipeline stages. Keep the current
-one-correction default and Outline/Characters/Art allowlist; the other five
-rejections remain terminal. Do not extend retries or lower validators to pass.
+one-correction default and Outline/Characters/Art/Script allowlist; honor frozen
+limits including zero, cap Script at one and grant it no manual-extra correction.
+The other four rejections remain terminal. Do not extend retries or lower validators to pass.
 
 Use a source-owned qualification prefix around the existing process lease,
 repository claim, `AutopilotTextController.advance` and exact command authority,
@@ -835,17 +837,19 @@ admission, blind pack/review, P/core/bridge activation, recovery refresh, cleanu
 push or hosted CI followed. Gateway remains activated at its recorded exact
 subtree/image; P/core/bridge/recovery remain `0d4a47d4`. Both earlier failed/UNKNOWN
 campaigns, their slots and all eight valued projects/settings/grants remain untouched.
-The owner decision on one bounded prospective Script correction is pending; until
-answered, current correction policy remains and B3 stays unqualified. This is a
+The manager subsequently selected the reviewed prospective correction under the
+owner's explicit delegated judgment; B3 remains unqualified pending new evidence. This is a
 documentation-only closeout: executable files/pinned resources remain b5 bytes,
 and all original evidence continues to name b5 rather than this later docs commit.
 
 
-### UNAPPROVED proposal: one linked automatic Script correction
+### Selected prospective extension: one linked automatic Script correction
 
 Purpose: one corrective Script candidate after trusted known content rejection, using
-the existing immutable mechanism. Material prospective policy: **UNAPPROVED**.
-Matrices/allowlist/holds stay intact; owner decision remains pending.
+the existing immutable mechanism. Selected by the manager under the owner's explicit
+2026-10-26 delegation to exercise judgment and record material decisions for later review.
+This is agent-operated qualification, not the owner personally reviewing creative output.
+Original matrices/holds stay intact; source review precedes new model admission.
 Fresh independent Sol / Medium execution-limits review completed with no findings.
 
 Feasibility is more than adding Script to an allowlist: `TextContentRejection.stage`,
@@ -888,7 +892,7 @@ Affected owners: `scripts/text-content-validation.mjs`, `scripts/script_receivin
 and Alpha receipt/provenance/workload owners. Review request/package projection, pins/validator inventories and
 frontend `TextFailureCard.tsx`/contracts/API; generic support alone is insufficient.
 
-If approved, amend affected ADRs/contracts and version new qualification semantics;
+Amend affected ADRs/contracts and version new qualification semantics;
 freeze new source/pins/profile/plans; never reinterpret b5/UNKNOWNs. Verify immutable
 rejected-byte replay and strict negatives, then a controlled child journey:
 normal rejection→one correction→validation/adoption/readback/reopen;
@@ -900,4 +904,38 @@ first-pass accounting. Extend existing `test_codex_exec_validation.py`,
 Then prove the genuine corrective journey early and a fresh frozen nine-sample
 matrix (9/9 installs, >=60/72 first pass) with three independent blind reviews before
 held core activation/recovery. Preserve the original failed matrices and all holds;
-no retry of their original identities or generation is authorized by this proposal.
+never retry their original identities. New-source execution follows the reviewed handoff.
+
+
+Prospective implementation checkpoint: `plotloom.text-correction.v3` and
+`alpha_native_codex_three_story.v2` add Script to automatic correction only. The
+source-owned Script adapter takes normal `validateScript` issues; native receiving
+and render checks remain unchanged and receiving exceptions remain terminal. Both
+routes include the adapter in actual source read paths and validator inventories.
+Existing default 1, explicit frozen 0 and Script's single-correction ceiling are
+covered. New immutable lineage/adoption/history and API/workspace visibility reuse
+current owners; public Script manual retry remains false. The 461-line controller
+changes only its limit helper/import and gains no responsibility; other affected
+source owners remain below 400 lines. The small enum addition retains value-only
+profile construction; ADR 0184 records the AST-pin re-review for independent review.
+
+Development evidence is under `.local/b37/script-correction/`: `focused.log` passed
+94 cases, `affected.log` 49, final Script adapter/authority cases 12 and profile
+construction/binding/transaction/receipt re-review 68. Alpha affected cases passed
+19 before the intentional purity tripwire, now covered by that re-review. Frontend
+26 cases/typecheck and deterministic asset build passed. Controlled child proofs
+exercise real Script validators/render/storage, adoption/readback/reopen/snapshot,
+exhaustion at one even with configured 2, frozen 0, no third dispatch, manual refusal,
+noncontent/UNKNOWN refusal, duplicate/CAS/crash and paid zero-retry preservation.
+The child fixture explicitly substitutes its test interpreter for its metadata-only
+interpreter; it is not actual Codex/native-envelope or model proof. First fixture
+lighting/pin/interpreter/assertion failures and the purity tripwire remain retained.
+
+`immutable-replay/result.json` proves the exact original rejected candidate SHA-256
+`bf5bd6abd2db2b584403dcf956f74c55ca585d3a796d26453f6301df4ffb09cf` returns the
+same typed result through both new paths while all 24 original protected files
+stay byte-identical. Only the scratch request copy gains the prospective capability;
+no old adoption/settlement/status changes follow. Clean-source exact sandbox proof,
+noneditable wheel and independent source review precede new genuine admission.
+New-source native correction/matrix/blind reviews, final software qualification,
+core/bridge activation and recovery remain incomplete; b5's failed result is unchanged.

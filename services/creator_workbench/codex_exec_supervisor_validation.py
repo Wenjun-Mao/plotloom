@@ -157,9 +157,10 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
                     (stdout_path, stderr_path), argv_hash=argv_hash, exit_code=exit_code,
                 )
                 if (step.step_id == "validate" and exit_code == 42
-                        and plan.stage in {"outline", "characters", "art"}
+                        and plan.stage in {"outline", "characters", "art", "script"}
                         and package_request.get("contentValidationContract") == "plotloom.typed-content-result.v1"
-                        and (profile.text_correction_contract == "plotloom.text-correction.v2"
+                        and (plan.stage != "script" or profile.text_correction_contract == "plotloom.text-correction.v3")
+                        and (profile.text_correction_contract in {"plotloom.text-correction.v2", "plotloom.text-correction.v3"}
                             or profile.text_correction_limit == 1)):
                     # Recheck all immutable authority before promoting this source API's
                     # normal result. Neither stderr nor arbitrary exits grant correction.

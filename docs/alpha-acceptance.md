@@ -1,16 +1,18 @@
 # Current native Alpha acceptance
 
-`alpha_native_codex_three_story.v1` qualifies the current native Codex workbench
+`alpha_native_codex_three_story.v2` qualifies the current native Codex workbench
 independently: three fixed Chinese stories × three repeats, nine current text
 installations, and at least 60 of 72 operations accepted on their first attempt.
 The eight operations are Outline, Branches, Characters, Art, Script, Storyboard,
 Bridge Intent and Bridge Presentation. The production correction default remains
-one, restricted to Outline/Characters/Art. The source requests `gpt-6.1-sol` with
+one, restricted to Outline/Characters/Art/Script. Explicit frozen limits including
+zero remain honored; Script has at most one automatic correction and no manual-extra grant. The source requests `gpt-6.1-sol` with
 `medium` effort; its alias does not establish stronger server weight identity.
 
 This executable replaces the mandatory two-saved-profile Alpha runner. Historical
 18-run/six-review and four-stage 30/36 receipts retain their original meanings.
-They cannot pass this native gate. Optional protocol conformance remains a
+They cannot pass this native gate. The original native v1 campaign remains failed;
+v2 versions the prospective Script correction and does not reinterpret its receipts. Optional protocol conformance remains a
 separate workload and policy in `plotloom.conformance`.
 
 Use a clean owning source checkout and its checked locked Python environment.

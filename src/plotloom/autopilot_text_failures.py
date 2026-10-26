@@ -12,9 +12,9 @@ from .creative_handoff_contracts import (
 )
 from plotloom.public_values import contains_secret_value
 from .exceptions import InvalidTransitionError
-from .text_correction_contracts import CORRECTION_CONTRACT, logical_checkpoint
+from .text_correction_contracts import MANUAL_CORRECTION_CONTRACTS, MANUAL_CORRECTION_STAGES, automatic_correction_limit, logical_checkpoint
 
-STAGES = {"outline": "故事大纲", "characters": "角色设定", "art": "美术方向"}
+STAGES = {"outline": "故事大纲", "characters": "角色设定", "art": "美术方向", "script": "剧本"}
 
 
 def prior_candidate(store, request, rejection):
@@ -123,11 +123,13 @@ def failure_context(store, registry, *, stage=None):
         details = issue_details(display_rejection, prior_candidate(store, display_request, display_rejection))
     if rejection is not None:
         try:
+            if stage not in MANUAL_CORRECTION_STAGES:
+                raise InvalidTransitionError("本阶段未授予手动追加修正；请保留当前失败证据。")
             if view.state != "blocked" or not view.material_current or view.phase != stage:
                 raise InvalidTransitionError("本次运行未处于可追加修正的当前失败状态。")
             if view.id in store.repository.autopilot.recovered_run_ids():
                 raise InvalidTransitionError("恢复的证据副本不能重新发送原生任务。")
-            if view.policy.executor_binding.text_correction_contract != CORRECTION_CONTRACT:
+            if view.policy.executor_binding.text_correction_contract not in MANUAL_CORRECTION_CONTRACTS:
                 raise InvalidTransitionError("本次冻结运行未授予额外修正能力；请保留证据并接管。")
             assert_frozen_execution(store, registry, view.policy)
             require_job_capacity(view)
@@ -142,7 +144,7 @@ def failure_context(store, registry, *, stage=None):
         "rejectionHash": rejection.rejection_hash if rejection else None,
         "terminalContentFailure": rejection is not None, "resolved": resolved, "canRetry": can_retry, "reason": reason,
         "automaticUsed": store.repository.autopilot.automatic_corrections_used(history_view.id, stage),
-        "automaticLimit": history_view.policy.text_correction_limit or 0, "issues": details,
+        "automaticLimit": automatic_correction_limit(history_view.policy, stage), "issues": details,
         "diagnostics": [literal(item) for item in display_rejection.display_diagnostics] if display_rejection else [], "history": history}
 
 
@@ -154,7 +156,7 @@ def retry_text(store, registry, grant):
         assert_frozen_execution(store, registry, view.policy)
         checkpoint = next((item for item in view.checkpoints
             if item["evidence"].get("executorAttemptId") == str(grant.failed_attempt_id)), None)
-        if checkpoint is None or checkpoint["evidence"]["owner"] not in STAGES:
+        if checkpoint is None or checkpoint["evidence"]["owner"] not in MANUAL_CORRECTION_STAGES:
             raise InvalidTransitionError("text retry failed identity is unavailable")
         attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
         if attempt.content_rejection is None or attempt.content_rejection.rejection_hash != grant.rejection_hash:

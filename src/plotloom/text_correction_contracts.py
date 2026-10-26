@@ -11,7 +11,18 @@ from pydantic import Field, model_validator
 from plotloom.domain_base import CamelModel
 
 HASH = r"^[a-f0-9]{64}$"
-CORRECTION_CONTRACT = "plotloom.text-correction.v2"
+CORRECTION_CONTRACT = "plotloom.text-correction.v3"
+MANUAL_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v2", CORRECTION_CONTRACT})
+MANUAL_CORRECTION_STAGES = frozenset({"outline", "characters", "art"})
+
+
+def automatic_correction_limit(policy, stage):
+    limit = policy.text_correction_limit or 0
+    if stage == "script":
+        if policy.executor_binding is None or policy.executor_binding.text_correction_contract != CORRECTION_CONTRACT:
+            return 0
+        return min(1, limit)
+    return limit
 
 
 class TextContentIssue(CamelModel):
@@ -39,7 +50,7 @@ class TextContentRejection(CamelModel):
     contract: Literal["plotloom.text-content-rejection.v1"] = "plotloom.text-content-rejection.v1"
     source_attempt_id: UUID
     run_id: UUID
-    stage: Literal["outline", "characters", "art"]
+    stage: Literal["outline", "characters", "art", "script"]
     job_id: str
     candidate_hash: str = Field(pattern=HASH)
     validation_evidence_hash: str = Field(pattern=HASH)
@@ -90,6 +101,8 @@ class TextCorrection(CamelModel):
                 or sha256(self.prior_candidate_json.encode("utf-8")).hexdigest() != self.rejection.candidate_hash
                 or not isinstance(json.loads(self.prior_candidate_json), dict)):
             raise ValueError("correction prior candidate differs from rejected exact bytes")
+        if self.manual_grant is not None and self.rejection.stage not in MANUAL_CORRECTION_STAGES:
+            raise ValueError("stage has no manual extra-correction authority")
         if self.manual_grant is not None and (
                 self.manual_grant.expected_run_id != self.rejection.run_id
                 or self.manual_grant.failed_attempt_id != self.rejection.source_attempt_id

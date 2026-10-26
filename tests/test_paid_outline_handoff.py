@@ -354,7 +354,7 @@ def test_actual_node_paid_profile_correction_contract_is_strict(paid_case, kind,
         assert connection.execute("SELECT count(*) FROM exec_attempts").fetchone()[0] == 0
 
 
-@pytest.mark.parametrize("value,allowed", [(None, True), ("plotloom.text-correction.v2", True), (True, False), ("v3", False)])
+@pytest.mark.parametrize("value,allowed", [(None, True), ("plotloom.text-correction.v2", True), ("plotloom.text-correction.v3", True), (True, False), ("v3", False)])
 def test_paid_capsule_diagnostic_capability_never_expands_its_zero_retry_grant(paid_case, value, allowed):
     case = paid_case
     def substitute(allocation):

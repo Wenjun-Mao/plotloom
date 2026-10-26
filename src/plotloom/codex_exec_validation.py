@@ -233,6 +233,8 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
             base = f"{source}/third_party/shuohao-skills/skills/novel-script/scripts/novel-script.mjs"
             validate = ("node", (base, "validate", cand, "--outline", input_path("outline.json"), "--art", input_path("art.json")))
             render = ("node", (base, "render", cand, "--html", "--outline", input_path("outline.json"), "--art", input_path("art.json"), "--cast", input_path("cast.json")))
+            if request.content_validation_contract is not None:
+                validate = ("node", (f"{source}/scripts/script-content-validation.mjs", cand, request_path))
             route = "upstream"
     elif stage == "storyboard":
         base = f"{source}/scripts/storyboard-receiving.mjs"

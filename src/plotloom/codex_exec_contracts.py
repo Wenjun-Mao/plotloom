@@ -119,7 +119,7 @@ class CodexExecProfile(CamelModel):
     external_mcp_servers: Literal[False] = False
     nested_dispatch: Literal[False] = False
     text_correction_limit: int | None = Field(default=None, strict=True, ge=1, le=1, exclude_if=lambda value: value is None)
-    text_correction_contract: Literal["plotloom.text-correction.v2"] | None = Field(default=None, exclude_if=lambda value: value is None)
+    text_correction_contract: Literal["plotloom.text-correction.v2", "plotloom.text-correction.v3"] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def supported_capability_set(self):

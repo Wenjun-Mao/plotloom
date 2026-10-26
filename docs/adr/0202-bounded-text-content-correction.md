@@ -65,3 +65,31 @@ Focused tests cover typed rejection eligibility, one-correction exhaustion,
 authority tampering, inactive controls, restart/duplicate reconciliation and
 retained provenance. Provider-boundary fixtures are labelled separately from real
 provider E2E and human acceptance. No migration rewrites old frozen authority.
+
+
+## Prospective Script extension (2026-10-26)
+
+Under the owner's explicit delegation to exercise judgment during this long run,
+the manager selected the independently reviewed Script extension. New capability
+`plotloom.text-correction.v3` adds one automatic Script correction, honoring frozen
+limit 0 and capping Script at one even when another stage's explicit limit is higher.
+Existing v2 evidence remains decodable but acquires no Script authority. No Script
+manual-extra grant is introduced. The three earlier stage contracts remain intact.
+
+The Script adapter consumes the pinned `validateScript` API's normal issue array,
+not upstream exit status/stderr. Both upstream and planned-dialogue routes retain
+unchanged receiving/render validation. Parser, binding and receiving exceptions,
+subprocess/runtime errors, cancelled or UNKNOWN work never authorize correction.
+The exact rejected candidate is bound into the new immutable corrective request;
+its effective timing/estimator parameters cannot change. Frozen author routes,
+maximum playthrough budget, mapping, source/style/model and dialogue constraints
+remain fixed; episode targets remain model-owned unless a frozen input imposes them.
+The model repairs candidate content; trusted code never pads it. Final known failure
+and corrected history are visible, with Script manual canRetry false.
+
+Native Alpha becomes `alpha_native_codex_three_story.v2` with unchanged 9/9 install,
+60/72 first-pass and three blind-review gates; Script correction adoption is not
+first pass. Original b5/v1 known rejection and earlier UNKNOWN campaigns remain
+unchanged. This is prospective implementation authority, not model qualification,
+creative acceptance or permission to re-run original identities. ADR 0222 and the
+combined plan own the actual source/replay/controlled-child and fresh-model gates.

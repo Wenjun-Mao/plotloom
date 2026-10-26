@@ -93,7 +93,7 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, co
     monkeypatch.setattr(autopilot_service, "freeze_launch_policy", lambda *args: freeze(*args).model_copy(update={"early_reference_limit": 0}))
     view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", text_correction_limit=correction_limit))
     assert view.policy.text_correction_limit == correction_limit
-    assert profile.text_correction_contract == "plotloom.text-correction.v2"
+    assert profile.text_correction_contract == "plotloom.text-correction.v3"
     assert service.acquire_controller()
     return storage, registry, service, view
 
@@ -238,20 +238,21 @@ def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=Non
 
 
 @pytest.mark.parametrize("kind", ["runtime", "refusal", "unknown"])
-def test_noncontent_host_outcomes_never_authorize_correction(tmp_path, monkeypatch, kind):
-    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, kind=kind)
+@pytest.mark.parametrize("stage", ["outline", "script"])
+def test_noncontent_host_outcomes_never_authorize_correction(tmp_path, monkeypatch, kind, stage):
+    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, kind=kind, stage=stage)
     try:
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
-            assert len([c for c in current.checkpoints if c["evidence"]["owner"] == "outline"]) == 1
+            assert len([c for c in current.checkpoints if c["evidence"]["owner"] == stage]) == 1
             assert current.state in {"waiting", "blocked"}
-            assert "source_outline_publication_active" in storage.projects.specialist_blockers(store)
-        assert len(calls) == 1
+            assert ("source_outline_publication_active" if stage == "outline" else "script_publication_active") in storage.projects.specialist_blockers(store)
+        assert len(calls) == (1 if stage == "outline" else 5)
         if kind != "unknown":
             service.control(run.project_id, RunControlRequest(expected_revision=current.revision, action="cancel"))
             with closing(storage.projects.open(run.project_id)) as store:
-                assert "source_outline_publication_active" not in storage.projects.specialist_blockers(store)
+                assert ("source_outline_publication_active" if stage == "outline" else "script_publication_active") not in storage.projects.specialist_blockers(store)
     finally:
         service.close()
 
@@ -279,12 +280,13 @@ def test_control_fences_prepared_correction_before_host_launch(tmp_path, monkeyp
         service.close()
 
 
-def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, monkeypatch):
+@pytest.mark.parametrize("stage", ["outline", "script"])
+def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, monkeypatch, stage):
     from plotloom.persistence.project.autopilot import AutopilotPersistence
-    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch)
+    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, stage=stage)
     original = AutopilotPersistence.checkpoint
     def crash(owner, key, **values):
-        if key == "outline:correction:1":
+        if key == f"{stage}:correction:1":
             raise RuntimeError("fixture interruption before corrective checkpoint")
         return original(owner, key, **values)
     try:
@@ -294,34 +296,35 @@ def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, 
                 service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
-            assert logical_checkpoint(current, "outline")["operationKey"] == "outline"
-            assert current.lifetime_jobs == 1
+            assert logical_checkpoint(current, stage)["operationKey"] == stage
+            assert current.lifetime_jobs == (1 if stage == "outline" else 5)
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
-            assert logical_checkpoint(current, "outline")["operationKey"] == "outline:correction:1"
-            assert current.lifetime_jobs == 2
-        assert len(calls) == 1
+            assert logical_checkpoint(current, stage)["operationKey"] == f"{stage}:correction:1"
+            assert current.lifetime_jobs == (2 if stage == "outline" else 6)
+        assert len(calls) == (1 if stage == "outline" else 5)
     finally:
         service.close()
 
 
-def test_duplicate_correction_preparation_reuses_exact_job_and_immutable_feedback(tmp_path, monkeypatch):
-    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch)
+@pytest.mark.parametrize("stage", ["outline", "script"])
+def test_duplicate_correction_preparation_reuses_exact_job_and_immutable_feedback(tmp_path, monkeypatch, stage):
+    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, stage=stage)
     try:
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
-            source, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, "outline")
+            source, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, stage)
             from plotloom.autopilot_contracts import OperationScope
             with service.controller.command(store, current, service.claim, OperationScope.EVIDENCE):
-                request = store.repository.creative_terminal.run_request(run.project_id, "outline", source.job_id)
-            original_correction = logical_checkpoint(current, "outline")
+                request = store.repository.creative_terminal.run_request(run.project_id, stage, source.job_id)
+            original_correction = logical_checkpoint(current, stage)
             service.controller.prepare_correction(store, current, service.claim, request, source)
             after = store.repository.autopilot.current(run.project_id)
-            assert logical_checkpoint(after, "outline") == original_correction
-            assert after.lifetime_jobs == 2
-        assert len(calls) == 1
+            assert logical_checkpoint(after, stage) == original_correction
+            assert after.lifetime_jobs == (2 if stage == "outline" else 6)
+        assert len(calls) == (1 if stage == "outline" else 5)
     finally:
         service.close()
 

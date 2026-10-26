@@ -222,8 +222,9 @@ def script_publication_blockers(store: object) -> list[str]:
     repository = store.repository  # type: ignore[attr-defined]
     project_id = store.manifest.project_id  # type: ignore[attr-defined]
     with repository.engine.connect() as connection:
-        prepared = connection.exec_driver_sql("SELECT 1 FROM v2_script_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
-    return ["script_publication_active"] if prepared is not None else []
+        from ..persistence.project.autopilot_text_correction import has_publishable_candidates
+        prepared = has_publishable_candidates(connection.connection.driver_connection, project_id, "v2_script_candidates")
+    return ["script_publication_active"] if prepared else []
 
 
 def storyboard_review_publication_blockers(store: object) -> list[str]:

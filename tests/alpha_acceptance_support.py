@@ -53,7 +53,7 @@ def native_receipts(first_pass=72):
                 first_pass += 1
             operations.append({"stage": stage, "attemptCount": 2 if corrected else 1,
                 "accepted": True, "firstPass": not corrected, "bindingHash": "e" * 64})
-        rows.append({"version": "alpha_native_codex_three_story.v1", "commit": "a" * 40,
+        rows.append({"version": "alpha_native_codex_three_story.v2", "commit": "a" * 40,
             "contractHash": "b" * 64, "profileHash": "c" * 64, "sampleId": sample_id,
             "status": "installed", "operations": operations, "installationHash": "d" * 64, "contentHash": "f" * 64,
             "durationMilliseconds": 0, "issueCodes": []})

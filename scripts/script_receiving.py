@@ -53,7 +53,14 @@ def main(argv=None) -> int:
         node = _pinned_node()
         upstream = SOURCE / "third_party/shuohao-skills/skills/novel-script/scripts/novel-script.mjs"
         common = [str(candidate), "--outline", str(inputs / "outline.json"), "--art", str(inputs / "art.json")]
-        checked = subprocess.run([node, str(upstream), "validate", *common], capture_output=True, check=False)
+        typed = request.get("contentValidationContract") == "plotloom.typed-content-result.v1"
+        checked = subprocess.run(
+            [node, str(SOURCE / "scripts/script-content-validation.mjs"), str(candidate), str(request_path)]
+            if typed and args.command == "validate" else [node, str(upstream), "validate", *common],
+            capture_output=True, check=False)
+        if typed and args.command == "validate" and checked.returncode == 42:
+            sys.stdout.buffer.write(checked.stdout)
+            return 42
         if checked.returncode:
             raise ValueError((checked.stderr or checked.stdout).decode("utf-8", "replace").strip())
         stats = upstream_timing_stats(candidate, upstream, node=node)

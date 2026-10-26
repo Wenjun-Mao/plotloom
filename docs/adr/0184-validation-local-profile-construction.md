@@ -91,3 +91,17 @@ independent WAL observations without forcing cursor or transaction visibility.
 Keep original expected failures and native receipts. Stop with an uncommitted
 scoped correctness packet for Root/independent review. Performance, full/whole
 qualification, providers, commit/push/merge and product acceptance are excluded.
+
+
+### Prospective Script capability value review (2026-10-26)
+
+ADR 0202/0222's delegated Script extension admits the additional immutable literal
+`plotloom.text-correction.v3` in the existing optional capability field. The writer
+compared named dependencies and the lexical construction owner: only that literal
+union changes; default None, scalar immutability, exclusion, validators and all
+other dependencies remain value-only, without new state, factory or I/O. Update
+the AST tripwire while preserving every shape/replacement assertion. Existing v2
+values remain readable with their original three-stage meaning; Script requires v3.
+Fresh v3/null/omitted construction and exact-text/hash replacement checks join the
+existing guards. Independent review of this pin/assumption update remains part of
+the stable Script source checkpoint, before any new native admission.
