@@ -2,7 +2,7 @@
 
 Status: **B4–B7 and target-independent B3 source implemented and independently
 reviewed; Gateway activated. Owner selected current native Codex for B3; settled
-native handoff review, implementation/campaign, combined qualification,
+native handoff reviewed; implementation/campaign, combined qualification,
 core/bridge activation and recovery remain open**. Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
@@ -389,6 +389,13 @@ contract above makes the eight-operation arithmetic explicit. The owner's implem
 already covers the independent reviewed source cuts; manager/worker must not edit
 concurrently. Final B3 settlement receives a bounded review follow-up before its
 dependent handoff, without another routine human milestone approval.
+
+That bounded follow-up reviewed `a6b498b5..32aea487` after the explicit native
+target answer and returned no findings. It confirmed the nine-run matrix is an
+evidence requirement rather than an engineering-attempt budget, supported pool
+capacity remains available after the canary, and concrete in-scope defect fixes
+remain authorized. No new owner confirmation is required. The actual read-only
+final was collected and access released before the native implementation handoff.
 
 ## Independent implementation checkpoint (2026-10-26)
 
