@@ -12,6 +12,12 @@ The census and line references below remain the audit baseline.
 G1–G5 and B1–B2 are now delivered as recorded below; unselected extraction
 batches remain pending.
 
+The owner subsequently requested [combined B3–B7 planning followed by E2E delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
+The source-grounded boundaries are reviewed; the owner explicitly chose current
+single-backend qualification and retirement of the mandatory two-profile runner.
+The native-versus-saved-profile target clarification and the plan's independent
+execution-limits review remain pending. No B3–B7 implementation has started.
+
 The owner subsequently requested a [combined B1–B2 plan](../roadmap/2026-10-25-b1-b2-backend-http-ownership.md).
 It proposes backend contract leaves/ordered validation before HTTP request,
 error/lifecycle/draft/image ownership, with explicit behavior/hash/authority parity
@@ -328,11 +334,16 @@ Paths are relative to the repository; links point to the audited source. All rec
 
 ## Proposed finite implementation batches
 
-**G1–G5 and R1–R3 are complete, including independent review, applicable local qualification and preservation-checked activation. All unselected batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
+**G1–G5, R1–R3 and B1–B2 are complete, including independent review, applicable local qualification and preservation-checked activation. B3–B7 are selected for combined planning then E2E implementation; their reviewed handoff is in progress. All other unselected batches are NOT STARTED and await implementation authorization.** The table is the actionable queue linked from the existing roadmap, not a new tracking system. Completing a batch requires its boundary, actual consumer updates and relevant assertion-preserving tests; merely creating new files does not complete it. Any rejection of an EXTRACT recommendation should be an explicit reviewed RETAIN decision with a reason, not “next time.”
 
 ### Recommended order and boundaries
 
-G1–G5 are delivered. In the remaining queue, B1 precedes backend contract consumers and F4 precedes F5; F1/F2 are independent. Lower-priority script/auxiliary work does not gate runtime progress. Use a single source writer; independent reviewers inspect stable checkpoints. Each row below is a bounded assignment, not permission to run all work concurrently.
+G1–G5 and B1–B2 are delivered. The selected B3–B7 combined plan owns its actual
+dependency-led checkpoints and distinct service qualification/cutovers. In the
+unselected queue, F4 precedes F5; F1/F2 are independent. Lower-priority script/
+auxiliary work does not gate runtime progress. Use a single source writer;
+independent reviewers inspect stable checkpoints. Each row below is a bounded
+assignment, not permission to run all work concurrently.
 
 | Batch | Deliverable and boundary | Proposed owner and relevant verification |
 |---|---|---|

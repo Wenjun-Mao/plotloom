@@ -1,5 +1,24 @@
 # Plotloom roadmap entrypoint
 
+## Combined B3–B7 planning and approved subsequent delivery
+
+The owner requested [one combined plan](2026-10-26-b3-b7-backend-and-services-ownership.md)
+followed by Relay Direct E2E implementation, with standing native-task/model/effort
+authority reaffirmed. B4 exchange/package/host-client, B5 storage/schema/client
+catalogue, B6 supervisor evidence and B7 Gateway/Voice Lab fixture boundaries are
+source-reviewed. Service-root host and Lab tests and Gateway package/ARM64 proof
+are explicit additions to root full qualification. Cutovers remain component-owned;
+fixture-only Lab work gets no runtime restart.
+
+The owner selected single-backend qualification and retirement of the mandatory
+two-profile Alpha runner. Planning found that runner targets saved OpenAI-compatible
+profiles, while the installed native Codex workbench has none. The target-path
+clarification is pending; native thresholds/driver and exact E2E proof must be
+versioned honestly if that target is selected. **Planning is in progress; no B3–B7
+implementation has started.** Once choices and independent execution-limits review
+close, the owner's existing request covers implementation through scoped activation,
+preservation/rollback and recovery without renewed milestone approvals.
+
 ## Completed B1–B2 backend and HTTP ownership delivery
 
 The owner requested a [combined B1–B2 plan](2026-10-25-b1-b2-backend-http-ownership.md):
