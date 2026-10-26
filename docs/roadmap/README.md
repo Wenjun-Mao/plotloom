@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## G2 implementation candidate; stable review and qualification pending
+## G2 source qualified; manager activation and preservation pending
 
 The [G2 plan](2026-10-25-g2-work-unit-ownership.md) follows completed G1/R1–R3:
 canonical binding/IDs/durations, response schema and stage validation, then
@@ -9,10 +9,12 @@ It preserves current behavior/hashes and defines early provider-free runtime
 proof, final local qualification, proposed quiet activation/preservation and
 rollback without renewed milestone approvals. Independent technical and
 execution-limits review is complete. The owner approved implementation on
-2026-10-25 with “Go ahead with Relay direct”. Source ownership, early runtime proof
-and scoped verification are complete; the plan records exact parity and one narrow
-typed-continuity persistence guard correction. Independent stable/security review,
-final local qualification and manager-owned activation/preservation remain pending.
+2026-10-25 with “Go ahead with Relay direct”. Source ownership, early runtime proof,
+independent stable/security review and composite local qualification are complete.
+The plan records exact parity, the narrow typed-continuity persistence correction,
+actual snapshot/restore proof, both failed attempts and their targeted corrections.
+All 4,020 Python/1,538 frontend/358 browser cases are covered; the exact passing
+wheel is retained. Manager-owned activation/preservation/recovery remain pending.
 G3–G5 and unrelated audit batches remain outside this scope.
 
 ## Completed G1 and retired-execution delivery
@@ -32,7 +34,7 @@ helper-consumer expectation, corrected in focused checks; all remaining gates,
 full result remains failed. Quiet activation is complete with all eight projects,
 settings, safety state and 26 selected playback ranges preserved. The single
 functional recovery package owns final source/wheel identity; no new archive,
-provider work, push or CI was created. G2–G5 and other audit batches remain unselected.
+provider work, push or CI was created. G3–G5 and other audit batches remain unselected.
 
 ## Completed modularity audit; first selected batch complete
 

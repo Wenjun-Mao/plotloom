@@ -70,9 +70,16 @@ aliases/nulls and generic response/redaction behavior remain unchanged. Actual
 persisted JSON/codec/source checks and 23 adversarial/redaction cases pass.
 This supported-contract restoration is separate from extraction parity.
 
-G2 stable independent/security review, final full-local qualification and
-manager-owned activation/preservation/recovery are pending; the plan owns their
-results. G3–G5 and unrelated API/domain/frontend batches remain unselected. This decision
+G2 independent stable/security review and composite full-local qualification are
+complete. A newly persisted continuity null fact survives supported snapshot/restore
+with exact artifact/hash/codec/source validation. The original full failed only on
+an undeclared task-evidence directory; its exact boundary rerun passed after moving
+evidence to `.local`. The ordered browser follow-up retained a geometry-helper
+failure, corrected by waiting for observable layout without changing its limits,
+captures or zero-write assertions. All 4,020 Python/1,538 frontend/358 browser cases
+are covered, and the exact retained wheel passes isolated installed smoke.
+Both failed attempts remain failed; the plan owns complete timings and identities.
+Manager-owned activation/preservation/recovery remain pending. G3–G5 and unrelated API/domain/frontend batches remain unselected. This decision
 introduces no compatibility barrel or architecture framework. Source/profile
 identity changes prospectively; frozen source pins and prior evidence remain
 unchanged. No provider generation or creative acceptance is established by the

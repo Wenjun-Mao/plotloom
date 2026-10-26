@@ -1,6 +1,6 @@
 # G2: Work-unit binding, validation and repair ownership
 
-Status: **implementation candidate complete; independent review, final local qualification and activation pending**.
+Status: **implemented, independently reviewed and locally qualified through composite evidence; manager activation/preservation/recovery pending**.
 Date: 2026-10-25. Source baseline: clean `main` at
 `f7da50ee503f38c0cb8a63f36c169b930445319c` in
 `/Users/wjmao/.codex/worktrees/b30f/plotloom` (R).
@@ -340,15 +340,15 @@ manifest suffices; do not accumulate raw browser/failure/media archives.
   exact issue/fact/artifact outputs match the baseline, including nulls.
 - [x] Trusted program faults remain fail-closed; malformed/foreign repair
   evidence cannot widen authority, become retryable or bypass source checking.
-- [ ] All surviving tests/assertions/native ownership and relevant consumers
+- [x] All surviving tests/assertions/native ownership and relevant consumers
   are preserved; small runtime/repair proof and stable review are complete.
-- [ ] Final local qualification and exact wheel/isolated installed checks have
+- [x] Final local qualification and exact wheel/isolated installed checks have
   truthful results, revisions, environment and failure/repair accounting.
 - [ ] Quiet activation, P-specific identity/readiness, data/media/settings/
   guard preservation, rollback availability and single recovery update pass.
 - [ ] Local main handoff is coherent and clean; temporary artifacts are removed;
   attended workers return actual finals and are archived/unregistered.
-- [ ] Resulting sizes/cohesion and pending G3–G5/other audit batches are explicit;
+- [x] Resulting sizes/cohesion and pending G3–G5/other audit batches are explicit;
   no provider generation, creative acceptance, push or hosted CI is implied.
 
 The implementer chooses cohesive file names, helper placement, adapter/factory
@@ -496,7 +496,7 @@ The exact-scenario runner/provider helpers moved once into non-collected
 and `tests/test_verification_module_ownership.py` consumer expectations changed
 atomically. No collected test imports or duplicate fixture builders were added.
 
-Compact review evidence is ignored under R's `.scratch/g2/`: `baseline.json`,
+Review initially retained ignored evidence under R's `.scratch/g2/`: `baseline.json`,
 `final-parity.json`, `ownership-parity-summary.json`, `case-union-summary.json`,
 `parity-final.log`, `module-shared-generation-final.log` and
 `runtime-focused-final.log`. The raw large native collection was replaced with
@@ -506,11 +506,140 @@ worker removes consumed R artifacts on follow-up, coordinated with the manager's
 single recovery refresh. Fixtures are disposable pytest projects; current runner
 and project handles close after the new reopen proofs.
 
-Independent stable review and the sole-owner final `verify.py full` gate remain
-pending. The manager owns P activation, preservation, rollback/readiness and the
+The stable-review checkpoint below supersedes the preceding pending qualification
+status; its final evidence lives under supported `.local/g2/`. The manager owns
+P activation, preservation, rollback/readiness and the
 single recovery refresh after qualification; this worker touched no P/live data,
 settings, provider operation or recovery package. Hosted CI/push were not requested
 and were not run. G3–G5, API/domain/frontend and unrelated T1/T2 remain excluded.
 Known execution times are recorded above; separate implementation/infrastructure/
 coordination wall-time measurements are unavailable. This checkpoint releases
 source/process access for review, and is not final delivery or a new owner gate.
+
+
+## Final source qualification receipt — 2026-10-25
+
+Independent GPT-6.1 Sol / High stable/security review closed `7c6d54ee` without
+blocking findings; the manager also inspected the actual guard and callers.
+The reviewer verified the 47 algorithm/adapter owners, the sole deferred nested
+annotation correction, strict raw-content/alias/context screening and nonmutating
+scan projection. The 620 pure-extraction observations remain unchanged; the one
+supported-continuity persistence correction remains explicitly separate above.
+
+Product code is qualified at `7c6d54ee4dc35c41a8e089106e9b25d92dc833c5`.
+Test-only snapshot proof is `92670a29e11094937902395ca7b00896f062ff0b`;
+test-only browser stabilization is `eaf758d4b7842e7d883f17167a99e51d4ca766f8`.
+The manager inspected and accepted both narrow test additions. No product,
+dependency, schema, prompt, provider, bundle input or source/profile identity
+changed during final qualification.
+
+### Persisted continuity evidence really survives recovery
+
+The new positive case creates current continuity validation evidence through the
+native runner, including `{kind: fact, key: weather, expectedValue: null}`.
+After closing the source handle, it uses supported snapshot/export and restore
+into a fresh installation root. The restored artifact content and hash are exact;
+JSON/codec round-trip, stable-issue binding and source assertion all pass using
+the restored response and Story Bible. The whole security/recovery file passes
+24 cases (0.64 s; focused tier 1.953 s). Two fixture-only diagnostics were corrected:
+exclusive snapshot requires closing the source handle, and a valid three-stage
+project needs a stage-specific payload read rather than the four-stage aggregate
+convenience method. No product change was needed.
+
+Native Python allocation is now **4,020 = 3,985 retained + 35 additions**,
+with zero removals or current-contract retirements. The final native fingerprint
+is `a9bed6351b7c574aa66fb32cc27977b42146e901bbcd77ce7b938335b4a4264e`.
+The additional case is the snapshot/restore proof; the earlier 34-case accounting
+above describes the preceding stable candidate. Browser allocation remains
+99 specs/358 cases with zero overlap or missing cases; frontend units remain 1,538.
+
+### Actual failed attempts and composite closure
+
+The actual command `uv run --locked --no-sync python scripts/verify.py full`
+ran once on stable `92670a29` and **failed**, exit 1, after **1,409.178 s**.
+All earlier gates passed: locked dependencies, ffmpeg/ffprobe, API unused imports,
+archived reader, all 1,538 frontend tests and app type checks. Python took
+1,397.505 s and completed both partitions:
+
+| Partition | Actual result | Pytest seconds | Runner seconds |
+|---|---|---:|---:|
+| 1, 2,152 assigned cases | 2,151 passed; 1 failed | 900.95 | 914.453 |
+| 2, 1,868 assigned cases | 1,868 passed | 1,370.76 | 1,384.368 |
+
+The sole Python failure was
+`test_extraction_contract.py::test_clean_repository_has_only_declared_product_roots`:
+my task-owned `.scratch` directory violated the declared-root boundary even though
+Git ignored it. Evidence moved atomically to supported `.local/g2`, and the empty
+undeclared root was removed. The exact boundary rerun passed (1 case, 0.06 s;
+focused tier 1.667 s). No product/test assertion, dependency or configuration was
+changed for that environment correction; the original full result remains failed.
+
+The existing `verify.py` step builder/runner then executed every unrun step in
+order, with a retained wheel directory. Its first downstream run passed bundle,
+asset parity and allocation, then **failed** the unfiltered browser phase:
+357 passed and one failed (651.510 s; follow-up total 655.089 s).
+The first gallery reading-state capture measured bottom 1284.609375 against the
+unchanged 888 bound at 1700×900. Trace showed one scroll followed immediately by
+bounding-box sampling while another mocked 503 read settled; scrollTop stayed
+116. Independent manager trace review agreed this exposed a test layout-settling
+race, with no changed G2 response path or product reachability contract.
+
+The narrow helper correction re-scrolls/polls observable geometry before retaining
+all original bounds, three viewport sizes, screenshots and zero-write assertions.
+The full affected three-case file passed (12.3 s browser; focused tier 14.825 s),
+with the e2e type check and current allocation guard passing. No assertion or case
+was removed. An unchanged diagnostic rerun was unnecessary after trace review.
+The first browser result remains failed; the other 357 cases and earlier gates
+remain reusable because no product/runtime/bundle/dependency input changed.
+
+| Remaining full gate | Final evidence | Seconds |
+|---|---|---:|
+| Deterministic production bundle | passed | 1.664 |
+| Checked production asset parity | passed; no tracked static diff | 0.033 |
+| Unfiltered browser allocation | passed; rechecked after helper change | 1.882 |
+| Browser coverage | 357 initial passes + corrected complete 3-case file; all 358 covered | 651.510 + 14.825 focused |
+| Retained wheel build | passed | 0.127 |
+| Exact isolated installed-wheel smoke | passed | 4.423 |
+
+The original full and browser follow-up attempts remain failed. Together with
+their assertion-preserving targeted corrections and all ordered remaining gates,
+**local qualification is complete through composite evidence**. No duplicate full
+or reduced release coverage was used. Existing FastAPI/httpx deprecation and
+Playwright color-environment warnings are unchanged.
+
+### Exact retained package and prospective identity
+
+The exact wheel that passed smoke is
+`.local/g2/wheel/plotloom-0.1.0-py3-none-any.whl`, **1,581,963 bytes**,
+SHA-256 `20d1de4bbfe399af1abdfcc7adfd408b6f0e62286f4f3ecc93e4761e353567da`.
+All 495 package files match source bytes, with exact inventories of 475 Python
+files and nine prompt files and no bytecode. Its sorted package-name/SHA-256
+inventory digest is
+`9b000594e336a35dec9ff71d2c59372368b75f3bc9c5bccd12b7f0cf7ea62577`.
+The existing smoke installs this exact retained wheel into a fresh environment
+and runs from an unrelated working directory with isolated site-packages imports,
+package-owned prompts, project persistence/snapshot and installed receiving.
+
+The actual R prospective builder, checked Python receipt, toolchain and ordinary
+login readiness pass: **v8 ready**, CLI `0.164.0-alpha.11.1`. Tests use R's
+`.venv/bin/python` 3.12.13; the profile's checked interpreter is R's
+`.local/codex-exec/python-env/bin/python`, with its receipt unchanged.
+Source SHA-256 is
+`f8457309a0ad52947c1f4a03860316586c7b760c80c0cc0e023b1188dc821e24`;
+prospective R profile hash is
+`2581f99f9c96088e191dcfd0832a86df00bcd20f25684fdc06ac25be60f0aaf8`.
+Validator hash is
+`799b47ab716c69fa41ac90b3461c2c35e1a270b839bd4b9cb181ee7f220d990d`.
+These identities were rechecked after package qualification. P must derive its own
+environment-specific profile while matching this qualified source; old pins stay
+immutable. No opt-in serial/parallel pair, provider generation or grant was run.
+
+Final ignored handoff contents are only `.local/g2/qualification.json` (compact
+parity, security, case-union, source/profile, failure and qualification metadata)
+and the exact passing wheel. Successful browser outputs, extraction helpers and
+verbose logs were consumed and removed after their relevant reviews. No new
+archive or raw-data backup was created. The source owner releases clean local main
+and all task-owned verification processes; manager consumes these two artifacts
+for P activation/readiness/preservation and the existing single recovery refresh.
+That operational closeout remains pending. G3–G5 and all other excluded batches,
+creative acceptance, GitHub CI and push remain outside this delivery.

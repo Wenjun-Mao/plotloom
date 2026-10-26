@@ -14,9 +14,10 @@ G3–G5 and all other extraction batches remain pending.
 The owner approved the subsequent [G2 plan](../roadmap/2026-10-25-g2-work-unit-ownership.md)
 with “Go ahead with Relay direct”. Its source candidate now owns canonical binding,
 schema/presence, stage semantics/adapters and repair derivation/source assertions
-outside the 489-line compiler. Exact extraction parity and early/scoped runtime
-proof pass; stable/security review, full-local qualification and manager activation
-remain pending. The plan records the sole narrow continuity evidence persistence
+outside the 489-line compiler. Exact extraction parity, early runtime and persisted snapshot/restore proofs,
+independent stable/security review and composite full-local qualification pass.
+The original full/browser failures and targeted corrections remain explicit;
+manager activation/preservation/recovery remain pending. The plan records the sole narrow continuity evidence persistence
 false-positive correction and the 571-line cohesive timing-owner rationale.
 The audit census below remains historical; no other batch is activated.
 
