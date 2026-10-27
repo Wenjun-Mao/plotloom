@@ -52,8 +52,9 @@ def issue_details(rejection, raw):
 def comparison(previous, current):
     if previous is None or current is None:
         return "unknown"
-    # The source bounds display data to 16 messages / 500 JS UTF-16 units.
-    # Equal visible prefixes cannot prove equal complete validator explanations.
+    # Legacy Node explanations can be truncated at 16 messages / 500 UTF-16 units.
+    # Retained receipts lack a truncation flag; stay conservative even for a
+    # newer complete Art shape result. Equal prefixes do not prove equal errors.
     def bounded(rejection):
         return len(rejection.display_diagnostics) >= 16 or any(
             len(item.encode("utf-16-le", errors="surrogatepass")) // 2 >= 500

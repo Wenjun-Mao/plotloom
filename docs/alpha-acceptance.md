@@ -9,6 +9,19 @@ one, restricted to Outline/Characters/Art/Script/Storyboard. Explicit frozen lim
 zero remain honored; Script and Storyboard each have at most one automatic correction and no manual-extra grant. Storyboard requires the new frozen correction capability v4; prior v3 retains Script authority without gaining Storyboard. The source requests `gpt-6.1-sol` with
 `medium` effort; its alias does not establish stronger server weight identity.
 
+Current Art preparation includes a frozen `art-structure-schema.json`, marked
+`plotloom.art-structural-result.v1`, from its pure shape owner. Marked native Art
+validation binds checked Python/uv and explicit Node, verifies the exact generated
+schema, copied inputs and current context/style authority, then returns complete
+predictable shape issues through the existing typed wire. Original bytes continue
+through unchanged semantic, receiving and render gates; there is no coercion or
+exception-based retry. Marked props permits omission and arrays, and rejects explicit null as the existing
+application receiving owner already does. Unmarked upstream validate/render retains
+its null tolerance. Supported extensions and the receiving code remain unchanged.
+Unmarked requests gain no new structural correction authority, and current native
+preflight refuses old/manual Art substitutes. This is a prospective method: the
+original `791f6fec` cohort remains failed at 1 installed / 1 blocked / 7 unadmitted.
+
 Bridge Presentation preserves literal source words: only `physical` spans have
 nonempty rendering; every other role requires `rendering: ""`. Its stage-owned schema
 and frozen assignment encode that existing rule directly. This guides authored files,

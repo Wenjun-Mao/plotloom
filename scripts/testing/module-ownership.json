@@ -598,6 +598,7 @@
           "tests/services/creator_workbench/test_text_content_correction.py",
           "tests/services/creator_workbench/test_script_content_correction.py",
           "tests/services/creator_workbench/test_storyboard_content_correction.py",
+          "tests/services/creator_workbench/test_art_structure_correction.py",
           "tests/services/creator_workbench/test_text_correction_budget.py",
           "tests/services/creator_workbench/test_text_retry_controls.py",
           "tests/services/creator_workbench/test_text_retry_journey.py",
@@ -665,6 +666,7 @@
           "tests/services/creator_workbench/test_codex_exec_transport_diagnostics.py",
           "tests/test_codex_exec_catalog.py",
           "tests/test_storyboard_content_correction.py",
+          "tests/test_art_structure.py",
           "tests/services/creator_workbench/test_codex_exec_catalog.py"
         ],
         "vitest": [
@@ -860,6 +862,18 @@
       "consumers": [
         "shared-provider-dispatch"
       ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/art_structure_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/art_structure_host_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
     },
     {
       "suite": "pytest",

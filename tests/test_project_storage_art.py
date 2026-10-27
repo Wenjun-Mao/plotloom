@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
+from plotloom.art_structure import ART_STRUCTURE_FILENAME, art_structure_artifact
 from plotloom.art_contracts import (
     ArtAcceptRequest,
     ArtReopenRequest,
@@ -48,7 +49,9 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
             "section-map.json",
             "cast.json",
             "art-style-contract.json",
+            ART_STRUCTURE_FILENAME,
         }
+        assert request.input_artifacts[ART_STRUCTURE_FILENAME] == art_structure_artifact(preset=True)
         assert "F3B" in request.creative_brief
         assert "EXPLICIT SAVED-BRIEF RECEIVING-CONTRACT OVERRIDE" not in request.creative_brief
         assert "The author-selected art-style-contract.json owns render style" in request.creative_brief

@@ -12,6 +12,7 @@ from ...art_contracts import (
     ArtReopenRequest, ArtReviewState, ArtSaveRequest,
 )
 from ...art_style import CandidateArtRenderStyle, art_style_current, freeze_art_style, validate_art_style
+from ...art_structure import ART_STRUCTURE_FILENAME, art_structure_artifact
 from ...cast_contracts import CastBinding
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery
@@ -148,7 +149,8 @@ class ProjectArtPersistence:
                 job_id=job_id, project_id=project_id, section_id="shared-art", stage="art",
                 content_validation_contract="plotloom.typed-content-result.v1",
                 expected_stage_revision=head.revision, source=source,
-                input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast, "art-style-contract.json": contract},
+                input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast, "art-style-contract.json": contract,
+                    ART_STRUCTURE_FILENAME: art_structure_artifact(preset=render_style != "brief")},
                 creative_brief=(
                     "Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. "
                     + style_instructions

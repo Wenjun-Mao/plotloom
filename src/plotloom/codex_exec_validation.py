@@ -253,6 +253,14 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         validate = ("node", (f"{source}/scripts/text-content-validation.mjs", cand, request_path))
     if stage == "storyboard" and request.content_validation_contract is not None:
         validate = ("node", (f"{source}/scripts/storyboard-content-validation.mjs", cand, request_path))
+    if stage == "art":
+        from .art_structure import marked_art_structure
+        if marked_art_structure(artifacts):
+            if request.content_validation_contract is None:
+                raise ValueError("marked Art requires the typed content boundary")
+            validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
+                f"{source}/scripts/art_content_validation.py", cand, "--request", request_path,
+                "--node", "{tool:node}"))
     steps = tuple(CodexExecValidationStep(
         stepId=step_id, program=program,
         argv=argv,

@@ -289,6 +289,12 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             assert_current_planned_dialogue(planned)
             planned_script = True
             plan = replace(plan, python_project=True, validator_paths=("scripts/script_receiving.py",))
+    marked_art = False
+    if stage == "art":
+        from .art_structure import marked_art_structure
+        marked_art = marked_art_structure(package_request.get("inputArtifacts", {}))
+        if marked_art:
+            plan = replace(plan, python_project=True)
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
     if stage in {"outline", "characters", "art"} and package_request.get("contentValidationContract") is not None:
@@ -301,6 +307,11 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             relative_paths.append("scripts/storyboard-content-validation.mjs")
         if saved_brief_route is None:
             relative_paths.append("scripts/storyboard-receiving.mjs")
+    if marked_art:
+        relative_paths.append("scripts/art_content_validation.py")
+        if saved_brief_route:
+            relative_paths.extend(("scripts/brief-cast-style.mjs",
+                "third_party/shuohao-skills/skills/novel-characters/scripts/novel-characters.mjs"))
     environment = None
     source_hash = None
     if plan.python_project:
@@ -311,7 +322,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         _source_parent, source_hash = python_source_identity(root)
         relative_paths.extend(("src", "pyproject.toml", "uv.lock"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
-    tools = _required_tool_paths(plan, environment, include_node=planned_script)
+    tools = _required_tool_paths(plan, environment, include_node=planned_script or marked_art)
     for name, executable in tools:
         if name == "uv":
             paths.append(executable)

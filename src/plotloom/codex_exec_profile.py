@@ -46,6 +46,8 @@ VALIDATOR_FILES = (
     "scripts/text-content-validation.mjs",
     "scripts/script-content-validation.mjs",
     "scripts/storyboard-content-validation.mjs",
+    "scripts/art_content_validation.py",
+    "src/plotloom/art_structure.py",
     "src/plotloom/text_correction_contracts.py",
     "src/plotloom/persistence/project/autopilot_text_correction.py",
     "src/plotloom/persistence/project/production_rebuild_quiescence.py",

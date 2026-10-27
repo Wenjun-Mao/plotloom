@@ -1,13 +1,14 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Reviewed decoder source `5c60d508` stopped its fresh canary on a genuine
-Storyboard segment-cap rejection: 0 installed, 1 blocked, 8 unadmitted, 5/72
-first-pass operations from 6 attempts. Qualification did NOT pass. The earlier `95213d31`
-canonical UNKNOWN and one held slot remain unchanged; all owned generation and
-test processes are absent. Under delegated judgment, independent design review
-closed one prospective bounded automatic Storyboard correction. Its focused
-implementation/control proofs are complete; stable source review and fresh envelope
-proof remain before one new cohort. No old cohort resumes. Gateway remains activated; core activation held**.
+Status: **Reviewed source `791f6fec` installed its first v4 canary with eight first-pass
+operations, then blocked sample two on malformed Art structure. The cohort remains
+1 installed / 1 blocked / 7 unadmitted, with 11/72 first-pass operations from 12
+attempts. Qualification did NOT pass. Independent causal/design review closed a
+prospective versioned Art structural-result repair under delegated judgment.
+Implementation/control proofs are complete; stable independent source review is
+pending. No new cohort or full run is authorized.
+Original outcomes and the earlier `95213d31` UNKNOWN/held slot stay unchanged.
+Gateway remains activated; core activation and recovery remain held**.
 Date: 2026-10-27.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
@@ -38,6 +39,58 @@ nine valued projects. The durable-storage/pause repair changed no generation ins
 The earlier Bridge Presentation producer repair changed stage assignment/schema/skill
 guidance. The prospective Storyboard decision below extends one automatic correction;
 model, workloads, effective validators and qualification thresholds remain fixed.
+
+## Art structural-result boundary (approved prospective repair)
+
+The second `791f6fec` sample supplied valid JSON with string scene lighting and
+missing scene anchors/summary and prop anchors/scale/summary. The pinned upstream
+validator recorded invalid lighting, then threw on an unsafe `.map` before returning
+normal issues. CLI exit zero and a complete session are retained; this was not
+correction exhaustion. Preserve candidate `60297a6a…`, both canonical outcomes and
+all 12 attempts. Exact evidence is in
+`.local/b37/resumed-integration/native-791f6fec-terminal-checkpoint.json`.
+
+Under the owner's delegated judgment, the manager selected the independently reviewed
+Art-specific structural-result boundary. A pure Pydantic owner generates the exact
+frozen `inputs/art-structure-schema.json`, marked `plotloom.art-structural-result.v1`.
+It expresses existing structural requirements, preserves omitted/array props,
+extension fields and tolerated tag elements, and performs strict validation without converting,
+trimming or serializing its result into acceptance. No prose-only requirements or
+blanket extra-field ban are added. The upstream gitlink and primary prompt stay fixed.
+
+Exact marker/schema equality, copied frozen inputs, trusted context and current
+style/authority checks precede any positive structural result, without calling the
+semantic validator as a preliminary guard. Only candidate-shape `ValidationError`
+is converted into complete source-owned diagnostics; parser, input, context,
+authority, runtime and overflow failures remain terminal. Structurally valid original
+bytes pass through unchanged semantic, receiving and render gates. Existing typed
+wire v1, Art correction quota, manual meanings and all native acceptance gates remain.
+Old unmarked requests acquire no new structural correction authority. Independent
+contract-alignment review confirmed that marked props must be optional but non-nullable:
+the existing application receiving owner already rejects explicit null. Return a
+positive structural issue without normalization. Unmarked upstream validate/render
+keeps its null tolerance; that case is upstream-only, not application-accepted.
+This unpublished v1 refinement narrows no accepted application payload.
+
+Marked Art explicitly binds checked Python/uv and Node through frozen tool argv,
+with exact source read paths. New owners are included in validator/resource/package
+inventories; no provisioning, fallback or ambient Node lookup is introduced. ADR 0184's
+reused profile-construction graph is unchanged unless the actual dependency comparison
+shows otherwise. Controlled proof includes exact rejected-byte replay in a fresh
+software-only context, all structural errors together, strict refusal cases, accepted
+corpus/optional/extension report parity on both routes, and actual child correction,
+head/CAS/adoption/API/reopen, zero/exhaustion/lineage coverage. The 104 old 5c files,
+280 old 952 files/tables/hold and every current 791 outcome/file/table stay exact.
+Controlled checks cover three real-child Art head/API/reopen states, 18 complete
+structural errors from exact `60297a6a…` bytes, and nine unchanged reports: eight
+marked host contexts plus the upstream-only example through its actual owner.
+The proof retains all 288 current 791 files/session references and every table of
+its four databases, plus the 104/280 old files/tables/hold, byte-identical. Initial
+fixture/owner-pairing failures and causal corrections remain in existing scratch;
+no production acceptance rule was weakened. The profile dependency graph and typed
+wire schema are unchanged. Exact pointers are in the source-review checkpoint.
+Independent stable source review precedes any separately authorized envelope or real
+journey. This decision authorizes no new campaign, full, deployment or cleanup.
 
 ## One automatic Storyboard correction (approved prospective decision)
 
@@ -87,9 +140,9 @@ handler: exit 143 after 957.588 seconds, all owned groups quiet. Locked dependen
 API/archived-reader and frontend units/types passed; Python collected 4,274 cases but has no
 completed pass count, and downstream gates did not run. This is PARTIAL/CANCELLED,
 never a full pass (`final-full-5c60d508-cancelled-checkpoint.json`). No duplicate full.
-After controlled/source review and exact sandbox/wheel proof, admit only ONE fresh
-predeclared nine-sample cohort, smallest genuine canary first then serial stop-first-nonzero.
-A further content stop returns to method review. Disclose controlled-only correction
+That one authorized fresh v4 cohort was `791f6fec`; its terminal Art stop above
+consumed the admission authority. It is not permission to replace the failed matrix.
+The current Art repair authorizes source/control proofs only, pending stable review. Disclose controlled-only correction
 if no natural provider rejection occurs. One final full belongs to that stable candidate;
 Native qualification, quality review, activation and recovery remain unmet until actual evidence closes.
 

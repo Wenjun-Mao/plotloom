@@ -30,23 +30,25 @@ integrated into R. Fresh integrated source/pins/profile/envelope precede the gen
 canary and new fixed nine-sample qualification; old b5 evidence remains failed.
 Activation and recovery remain manager-owned after complete qualification/review.
 
-Reviewed decoder source `5c60d508` stopped its fresh canary on a genuine Storyboard
-segment-cap rejection: **0 installed / 1 blocked / 8 unadmitted, 5/72 first-pass
-operations from six attempts. Qualification did NOT pass.** The earlier `95213d31`
-cohort remains two installed/one UNKNOWN/six unadmitted with its original held slot;
-older outcomes and missing temporary artifacts retain their original meanings.
+Reviewed source `791f6fec` installed its first native v4 sample with all eight
+operations first-pass, then blocked sample two on malformed Art structure. The
+cohort remains 1 installed / 1 blocked / 7 unadmitted, with 11/72 first-pass
+operations from 12 attempts. No correction was granted for the upstream TypeError;
+qualification did not pass. All original outcomes, earlier UNKNOWN evidence and
+the 952 held slot remain unchanged.
 
-Under delegated judgment and independent design review, one prospective automatic
-Storyboard correction is authorized through the existing mechanism. Capability v4
-honors zero, defaults to one, caps at one and grants no manual extra; prior v3 keeps
-Script authority without gaining Storyboard. Validators, model and acceptance gates
-remain fixed. Focused controlled proofs are complete; independent stable source
-review and fresh envelope proof precede one new nine-sample cohort. No new provider
-call has occurred. The superseded `5c60d508` full was safely cancelled through its
-supported cleanup and is partial evidence, never a full pass. Current v4 service
-proof and one final full remain before release. Gateway/Lab inputs remain unchanged.
-P's nine QA write contexts are already ineligible before release; preserve and
-disclose that existing binding refusal without grant repair in this scope.
+Under delegated judgment and independent design review, a versioned Art-specific
+structural-result repair is authorized for implementation/control proof only. It
+uses existing Pydantic and generated frozen schema, preserves supported payloads
+and optional/extension values, and keeps semantic/render gates and the Art quota.
+No primary prompt, upstream gitlink or model change follows. Stable source review
+is required; no new cohort, full, publication, activation or cleanup is authorized
+by this phase. Current Art/Storyboard correction branches have controlled proof,
+but neither naturally occurred in the completed 791 canary.
+
+The superseded `5c60d508` full remains partial/cancelled, never a pass. Gateway/Lab
+inputs remain unchanged. P's nine QA write contexts were already ineligible before
+release; preserve and disclose that existing binding refusal without grant repair.
 
 ## Su Tang six-clip game preview
 

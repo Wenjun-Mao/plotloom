@@ -1,5 +1,6 @@
 """Disposable real host/validator journey; generated text is a fake CLI fixture."""
 import json
+import sys
 import time
 from contextlib import closing
 from pathlib import Path
@@ -10,7 +11,7 @@ from codex_exec_supervisor_test_support import _write_fake_cli
 from plotloom.autopilot_contracts import LaunchRequest, RunControlRequest
 from plotloom.autopilot_service import AutopilotService
 from plotloom.project_storage import ProjectFolderStorage
-from plotloom.text_correction_contracts import TextContentIssue, logical_checkpoint
+from plotloom.text_correction_contracts import CORRECTION_CONTRACT, TextContentIssue, logical_checkpoint
 from tests.autopilot_controller_fixtures import candidate, default_brief
 from tests.autopilot_fake_exec_host import FakeCodexExecHost
 from tests.test_specialist_settings import configured
@@ -37,6 +38,9 @@ from pathlib import Path
 from uuid import uuid4
 if len(sys.argv) > 1 and sys.argv[1] == "sandbox":
     args = sys.argv[sys.argv.index("--") + 1:]
+    # The checked environment here is metadata-only; this is a controlled child.
+    if Path(args[0]).name == "uv" and "python" in args:
+        args = [{sys.executable!r}, *args[args.index("python") + 1:]]
     os.execv(args[0], args)
 sys.stdin.read()
 request = json.loads((Path.cwd().parent / "package/request.json").read_bytes())
@@ -93,7 +97,7 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, co
     monkeypatch.setattr(autopilot_service, "freeze_launch_policy", lambda *args: freeze(*args).model_copy(update={"early_reference_limit": 0}))
     view = service.launch(project_id, LaunchRequest(expected_brief_revision=1, render_style="realistic", art_render_style="realistic", text_correction_limit=correction_limit))
     assert view.policy.text_correction_limit == correction_limit
-    assert profile.text_correction_contract == "plotloom.text-correction.v3"
+    assert profile.text_correction_contract == CORRECTION_CONTRACT
     assert service.acquire_controller()
     return storage, registry, service, view
 

@@ -11,6 +11,8 @@ from pydantic import Field, model_validator
 from plotloom.domain_base import CamelModel
 
 HASH = r"^[a-f0-9]{64}$"
+CONTENT_DIAGNOSTIC_COUNT = 32
+CONTENT_DIAGNOSTIC_LENGTH = 1000
 CORRECTION_CONTRACT = "plotloom.text-correction.v4"
 SCRIPT_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v3", CORRECTION_CONTRACT})
 MANUAL_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v2", *SCRIPT_CORRECTION_CONTRACTS})
@@ -72,7 +74,7 @@ class TextContentRejection(CamelModel):
     profile_hash: str = Field(pattern=HASH)
     source_revision: str
     issues: tuple[TextContentIssue, ...] = Field(min_length=1, max_length=128)
-    display_diagnostics: tuple[Annotated[str, Field(max_length=1000)], ...] = Field(default=(), max_length=32, exclude_if=lambda value: not value)
+    display_diagnostics: tuple[Annotated[str, Field(max_length=CONTENT_DIAGNOSTIC_LENGTH)], ...] = Field(default=(), max_length=CONTENT_DIAGNOSTIC_COUNT, exclude_if=lambda value: not value)
 
     @property
     def rejection_hash(self):

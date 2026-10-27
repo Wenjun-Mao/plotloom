@@ -102,6 +102,10 @@ def preflight_plan_identity(package_path):
     plan = validation_plan_from_package(payload)
     if plan.stage == "storyboard" and payload.get("contentValidationContract") != "plotloom.typed-content-result.v1":
         raise ValueError("current native Storyboard preflight requires its typed content boundary")
+    if plan.stage == "art":
+        from .art_structure import marked_art_structure
+        if not marked_art_structure(payload.get("inputArtifacts", {})) or plan.steps[0].program != "uv":
+            raise ValueError("current native Art preflight requires its marked Python structural boundary")
     return plan.stage, plan.route, plan.plan_hash, plan.source_revision
 
 

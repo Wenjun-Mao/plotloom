@@ -108,6 +108,8 @@ def test_frozen_profile_still_binds_observed_metadata_and_executable(observed_cl
 def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources() -> None:
     required = {
         "scripts/storyboard-content-validation.mjs",
+        "scripts/art_content_validation.py",
+        "src/plotloom/art_structure.py",
         "src/plotloom/project_storage/operational_state.py",
         "src/plotloom/persistence/project/production_rebuild_quiescence.py",
         "src/plotloom/outline_report_metadata.py",

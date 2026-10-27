@@ -346,3 +346,28 @@ replay preserves both failed cohorts, and valid reports remain byte-identical fo
 both routes. ADR 0184's full named dependency comparison changes only the immutable
 v4 capability Literal; its stable independent review remains required. No new real
 provider correction or qualification result is claimed by these controlled proofs.
+
+### Prospective Art structural-result repair (2026-10-27)
+
+The `791f6fec` cohort stopped at 1 installed / 1 blocked / 7 unadmitted, with
+11 first-pass operations from 12 attempts. Malformed Art lighting and missing
+required fields triggered an upstream TypeError before a normal result; no
+correction was granted or exhausted. Those bytes/outcomes and earlier holds remain.
+
+Under delegated judgment and independent design review, add a versioned Art-specific
+structural-result owner using existing Pydantic and its generated frozen schema.
+This makes known existing structural failures predictable normal results within the
+existing Art quota; it does not relax acceptance or grant arbitrary exception retries.
+Preserve omitted/array props, extension fields and tolerated element values.
+A narrow independent alignment review confirmed that the new marked schema must
+reject explicit null, as application receiving already does. This narrows no
+accepted application payload; unmarked upstream-only null tolerance is unchanged.
+The marker is unpublished, so the alignment remains v1. Never normalize null. Exact
+marker/schema, frozen inputs, context and current style guards precede the strictly
+candidate-only ValidationError boundary. No coercion or model serialization replaces
+original bytes; unchanged semantic/receiving/render gates remain authoritative.
+Overflow, parser/input/authority/runtime failures remain terminal. Unmarked requests
+gain no new authority. Checked Python/uv and explicit frozen Node argv/resources
+are bound; upstream gitlink, primary prompt, typed wire, model and gates remain.
+Controlled preservation/parity/correction proofs and stable independent source review
+are required. No new native cohort, full or activation is authorized by this repair.

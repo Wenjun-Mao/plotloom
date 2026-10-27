@@ -126,6 +126,9 @@ def main() -> None:
             from plotloom.runtime import build_runtime_app
             from plotloom.schema import SchemaMigrator
             from plotloom.alpha_acceptance import main as alpha_main
+            from plotloom.art_structure import art_structure_artifact, art_structure_issues
+            assert art_structure_artifact(preset=False)["contract"] == "plotloom.art-structural-result.v1"
+            assert art_structure_issues({}, preset=True)
             from plotloom.alpha_provenance import source_checkout_root
 
             # Packaged Alpha imports without unpackaged creator-workbench files.
