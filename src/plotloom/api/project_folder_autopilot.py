@@ -38,7 +38,7 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
             return browser_qa_context(store, app.state.project_folder_storage.application)
 
     @app.get("/api/v2/projects/{project_id}/autopilot/text-failure")
-    def text_failure(project_id: str, stage: Literal["outline", "characters", "art", "script"] | None = None):
+    def text_failure(project_id: str, stage: Literal["outline", "characters", "art", "script", "storyboard"] | None = None):
         from ..autopilot_text_failures import failure_context
         with opened_project(project_id) as store:
             return failure_context(store, service.registry, stage=stage)

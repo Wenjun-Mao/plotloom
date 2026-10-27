@@ -1,12 +1,12 @@
 # Current native Alpha acceptance
 
-`alpha_native_codex_three_story.v3` qualifies the current native Codex workbench
+`alpha_native_codex_three_story.v4` qualifies the current native Codex workbench
 independently: three fixed Chinese stories × three repeats, nine current text
 installations, and at least 60 of 72 operations accepted on their first attempt.
 The eight operations are Outline, Branches, Characters, Art, Script, Storyboard,
 Bridge Intent and Bridge Presentation. The production correction default remains
-one, restricted to Outline/Characters/Art/Script. Explicit frozen limits including
-zero remain honored; Script has at most one automatic correction and no manual-extra grant. The source requests `gpt-6.1-sol` with
+one, restricted to Outline/Characters/Art/Script/Storyboard. Explicit frozen limits including
+zero remain honored; Script and Storyboard each have at most one automatic correction and no manual-extra grant. Storyboard requires the new frozen correction capability v4; prior v3 retains Script authority without gaining Storyboard. The source requests `gpt-6.1-sol` with
 `medium` effort; its alias does not establish stronger server weight identity.
 
 Bridge Presentation preserves literal source words: only `physical` spans have
@@ -18,7 +18,7 @@ never normalized into acceptance, and Bridge Presentation gains no automatic ret
 This executable replaces the mandatory two-saved-profile Alpha runner. Historical
 18-run/six-review and four-stage 30/36 receipts retain their original meanings.
 They cannot pass this native gate. The original native v1 campaign remains failed;
-v2 introduced prospective Script correction. Current v3 adds durable campaign storage and exact pause continuation; it does not reinterpret historical receipts. Optional protocol conformance remains a
+v2 introduced prospective Script correction, and v3 added durable campaign storage and exact pause continuation. Current v4 adds one prospective host-validated Storyboard correction; prior failed/UNKNOWN receipts retain their meaning. Optional protocol conformance remains a
 separate workload and policy in `plotloom.conformance`.
 
 Use a clean owning source checkout and its checked locked Python environment.

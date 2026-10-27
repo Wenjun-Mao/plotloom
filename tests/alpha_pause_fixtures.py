@@ -9,16 +9,24 @@ from plotloom.autopilot_text_prefix import AutopilotTextPrefix
 from tests.autopilot_controller_fixtures import environment
 
 
-def sent_pause(tmp_path, monkeypatch):
+def sent_pause(tmp_path, monkeypatch, *, stage="outline"):
     storage, registry, original, run, _ = environment(tmp_path, monkeypatch, auto_deliver=False, early_references=True)
     prefix = AutopilotTextPrefix(storage, registry)
     prefix.__enter__()
     host = registry._codex_exec_test_host
-    for _ in range(8):
+    if stage != 'outline':
+        host.auto_deliver = True
+        admit = registry.codex_exec_admit
+        def hold_target(attempt):
+            if attempt.operation_key == stage:
+                host.auto_deliver = False
+            return admit(attempt)
+        monkeypatch.setattr(registry, 'codex_exec_admit', hold_target)
+    for _ in range(40):
         view = prefix.step(run.project_id)
-        if host.admissions:
+        if any(status.attempt.operation_key == stage for status in host.statuses.values()):
             break
-    assert host.admissions == 1
+    assert host.admissions == (1 if stage == 'outline' else 6)
     view = prefix.service.control(run.project_id,
         RunControlRequest(action="pause", expected_revision=view.revision), expected_run_id=run.id)
     evidence = tmp_path / "evidence/story-01-repeat-01"

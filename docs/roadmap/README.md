@@ -30,27 +30,23 @@ integrated into R. Fresh integrated source/pins/profile/envelope precede the gen
 canary and new fixed nine-sample qualification; old b5 evidence remains failed.
 Activation and recovery remain manager-owned after complete qualification/review.
 
-Native v3 at `54726f69` proved the real eight-job safe-pause/drain/same-attempt
-resume canary, then stopped on the second cell's genuine Bridge Presentation content
-rejection. Result: **1 installed / 1 blocked / 7 unadmitted, 14/72 first-pass operations
-from 17 text attempts; qualification did NOT pass.** Canonical outcomes and durable
-artifacts remain immutable. Under delegated judgment, the manager selected narrow
-producer schema/assignment/skill hardening after independent causal/method review;
-no validator weakening, retry expansion or old-cohort salvage. Source/evidence review,
-fresh exact envelope/new nine identities, three fresh blind reviews and applicable
-local gates remain before manager-owned core/bridge activation. Historical D2 temporary
-runtime artifacts remain missing, and old UNKNOWN ledgers/holds cannot currently be
-verified or reconstructed.
+Reviewed decoder source `5c60d508` stopped its fresh canary on a genuine Storyboard
+segment-cap rejection: **0 installed / 1 blocked / 8 unadmitted, 5/72 first-pass
+operations from six attempts. Qualification did NOT pass.** The earlier `95213d31`
+cohort remains two installed/one UNKNOWN/six unadmitted with its original held slot;
+older outcomes and missing temporary artifacts retain their original meanings.
 
-Reviewed producer source `95213d31` subsequently installed two samples, then stopped
-on an unsupported empty-catalog event in the third Outline: **2 installed / 1 UNKNOWN /
-6 unadmitted, 16/72 first-pass operations from 17 attempts. Qualification did NOT pass.**
-Its canonical UNKNOWN and one held slot remain unchanged; owned processes are absent.
-Independent causal/method review authorized only prospective TEXT decoding of the two
-exact empty catalog observation pairs, with strict default/image/recovery refusal.
-Source/evidence review and a fresh envelope precede any new admission; no old-cohort
-salvage or settlement. P's nine QA write contexts are already ineligible before release;
-preserve/disclose that existing binding refusal, without grant repair in this scope.
+Under delegated judgment and independent design review, one prospective automatic
+Storyboard correction is authorized through the existing mechanism. Capability v4
+honors zero, defaults to one, caps at one and grants no manual extra; prior v3 keeps
+Script authority without gaining Storyboard. Validators, model and acceptance gates
+remain fixed. Focused controlled proofs are complete; independent stable source
+review and fresh envelope proof precede one new nine-sample cohort. No new provider
+call has occurred. The superseded `5c60d508` full was safely cancelled through its
+supported cleanup and is partial evidence, never a full pass. Current v4 service
+proof and one final full remain before release. Gateway/Lab inputs remain unchanged.
+P's nine QA write contexts are already ineligible before release; preserve and
+disclose that existing binding refusal without grant repair in this scope.
 
 ## Su Tang six-clip game preview
 

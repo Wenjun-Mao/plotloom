@@ -26,13 +26,13 @@ class NativeOperationReceipt(CamelModel):
     def exact_accounting(self):
         if self.first_pass != (self.accepted and self.attempt_count == 1):
             raise ValueError("first pass must represent one accepted actual native attempt")
-        if self.attempt_count > (2 if self.stage in {"outline", "characters", "art", "script"} else 1):
+        if self.attempt_count > (2 if self.stage in {"outline", "characters", "art", "script", "storyboard"} else 1):
             raise ValueError("native Alpha cannot expand the production correction policy")
         return self
 
 
 class NativeSampleReceipt(CamelModel):
-    version: Literal["alpha_native_codex_three_story.v3"] = ALPHA_ACCEPTANCE_VERSION
+    version: Literal["alpha_native_codex_three_story.v4"] = ALPHA_ACCEPTANCE_VERSION
     commit: str = Field(pattern=r"^[a-f0-9]{40}$")
     contract_hash: str = Field(pattern=HASH)
     profile_hash: str = Field(pattern=HASH)

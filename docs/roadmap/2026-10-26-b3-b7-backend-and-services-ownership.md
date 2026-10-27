@@ -1,12 +1,13 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Reviewed producer source `95213d31` installed two real samples, then
-stopped on an unsupported empty-catalog CLI event in the third sample: 2 installed,
-1 UNKNOWN, 6 unadmitted, 16/72 first-pass operations from 17 attempts. Qualification
-did NOT pass. Its canonical UNKNOWN and one held slot remain unchanged, with all
-owned processes absent. Independent causal/method review authorized a prospective
-TEXT-only decoder compatibility fix; source/evidence review precedes any fresh
-admission. Gateway remains activated; core activation held**.
+Status: **Reviewed decoder source `5c60d508` stopped its fresh canary on a genuine
+Storyboard segment-cap rejection: 0 installed, 1 blocked, 8 unadmitted, 5/72
+first-pass operations from 6 attempts. Qualification did NOT pass. The earlier `95213d31`
+canonical UNKNOWN and one held slot remain unchanged; all owned generation and
+test processes are absent. Under delegated judgment, independent design review
+closed one prospective bounded automatic Storyboard correction. Its focused
+implementation/control proofs are complete; stable source review and fresh envelope
+proof remain before one new cohort. No old cohort resumes. Gateway remains activated; core activation held**.
 Date: 2026-10-27.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
@@ -34,8 +35,80 @@ The owner delegated judgment and explicitly resumed the combined E2E outcome. St
 `338ac39b` source/evidence review is closed; D2 also carries the exact reviewed H5
 grant and documentation, preserving all nine older QA scopes. P remains at47ab with
 nine valued projects. The durable-storage/pause repair changed no generation instructions or validators.
-The producer method below changes stage assignment/schema/skill guidance only;
-model, correction policy, workloads and qualification thresholds stay fixed.
+The earlier Bridge Presentation producer repair changed stage assignment/schema/skill
+guidance. The prospective Storyboard decision below extends one automatic correction;
+model, workloads, effective validators and qualification thresholds remain fixed.
+
+## One automatic Storyboard correction (approved prospective decision)
+
+The `5c60d508` canary's Storyboard candidate preserved frozen timing parameters
+2/8/15, but E06-02 cuts `[4,3,3.5,2,3,3]` totalled 18.5 seconds against the unchanged
+15-second segment cap. The trusted upstream validator correctly rejected it after
+a normal CLI exit of zero and a complete session; no decoder, binding, validator or environment
+defect was demonstrated. Preserve canonical receipt `b8775917…`, original candidate
+`da79b51f…` and full evidence at the durable `5c60d508` root; exact pointers/hashes are in
+`.local/b37/resumed-integration/native-5c60d508-terminal-checkpoint.json`. Its six
+attempts remain five completed/one known failed, with no UNKNOWN or held capacity.
+The 280 protected files and host tables from `95213d31` remain exact, including its
+16 completed/one UNKNOWN and one held slot. Neither cohort is promoted or resumed.
+
+Under the owner's delegated judgment, the manager selected one automatic Storyboard
+correction through the existing mechanism, after independent causal/design review.
+Freeze correction capability v4 and current native Alpha v4; v3 keeps its Script
+authority and never gains Storyboard. Existing earlier-stage/manual meanings remain.
+Extend the default of one to Storyboard, honor an explicit frozen limit of zero,
+and cap at one even for a larger configured limit. Grant no manual extra correction. Eight logical jobs,
+72 primary opportunities, 9/9 installations, >=60 first-pass and three blind reviews
+stay fixed; a corrected adoption is never first pass. No third attempt or silent
+splitting, model/effort, validator, timing or budget change follows.
+
+Only the source-owned upstream API's normal string-issue result, after exact frozen
+input/style/source/mapping/timing guards, may produce the bound typed content result.
+Parser, authority, missing/rebound input, thrown/receiving/runtime/UNKNOWN failures
+remain ineligible; arbitrary stderr or exit status is insufficient. Separate the
+existing frozen dialogue-input checks from candidate checks only as needed to run
+them before this positive boundary. Keep every effective receiving/render gate and
+valid report bytes. The model authors a complete replacement preserving accepted
+Script, Brief/style, source words, mappings, frozen timing and complete-route budget.
+Trusted code binds immutable full parent bytes, exact lineage, deterministic child,
+existing head/CAS/leases/currentness and final adoption; it never rewrites the candidate.
+
+Reuse `StoryboardReviewHeadRow` and the existing candidate/controller/publication
+owners. Expose final failure/history in API/UI with manual canRetry=false. Review
+ADR 0184 purity and owners exceeding 400 lines before substantial edits; the existing 461-line
+controller needs no new responsibility. Focused proof includes immutable bad-byte
+typed replay without old-state adoption, controlled child rejection→one replacement→
+adoption/API/reopen, repeat failure without a third attempt, explicit zero and the one-correction cap, lineage/CAS/crash,
+receiving/render equality, strict negatives and paused/late-result/exact resume through
+the actual Storyboard head with acknowledgement before correction. No extra real pause.
+
+The manager stopped the superseded `5c60d508` full through its supported suite SIGTERM
+handler: exit 143 after 957.588 seconds, all owned groups quiet. Locked dependencies, tool probes,
+API/archived-reader and frontend units/types passed; Python collected 4,274 cases but has no
+completed pass count, and downstream gates did not run. This is PARTIAL/CANCELLED,
+never a full pass (`final-full-5c60d508-cancelled-checkpoint.json`). No duplicate full.
+After controlled/source review and exact sandbox/wheel proof, admit only ONE fresh
+predeclared nine-sample cohort, smallest genuine canary first then serial stop-first-nonzero.
+A further content stop returns to method review. Disclose controlled-only correction
+if no natural provider rejection occurs. One final full belongs to that stable candidate;
+Native qualification, quality review, activation and recovery remain unmet until actual evidence closes.
+
+The implementation checkpoint retains focused first failures and their causal repairs
+under `.local/b37/resumed-integration/`. Controlled actual-child success/exhaustion,
+zero/capped limits, real head adoption, API history, crash/CAS/idempotence, snapshot
+restore and six pause/late-result cases pass. Final source/timing selection: 141 passes;
+final child/contracts selection: 35 passes; guard/purity selection: 70 passes. These
+selections overlap and are not a total. No new provider call has occurred.
+`storyboard-immutable-replay-final.json` binds the exact 110,169-byte rejected candidate,
+its prospective typed result and unchanged 104 old 5c files plus 280 old 952 files/tables.
+`storyboard-render-parity-final.json` proves both valid route reports byte-identical to
+5c; `storyboard-profile-purity-review.json` records the complete named AST comparison.
+The only profile construction dependency change is the immutable v4 Literal. New
+owners remain below 400 lines; the 404-line handoff helper changes one capability
+literal list, and the existing 461-line controller remains unchanged. No unrelated
+extraction is warranted. Independent source/purity review is pending. Current
+source-bound sandbox/wheel, applicable creator-service and final full proofs are
+still required; prior v3 native outcomes are not reinterpreted.
 
 ## Empty catalog telemetry compatibility (approved prospective repair)
 
@@ -70,7 +143,7 @@ foreign/mutating tools, duplicate/mismatched/incomplete/out-of-turn/after-termin
 items, text content/exit failures, image holds and direct recovery refusal. Protect
 all original files and 17 host states (16 completed + 1 UNKNOWN, slot1) before/after.
 A clean source/evidence checkpoint returns for independent review before refreshed
-source-bound sandbox/wheel proof or any new frozen cohort. Prior547's content failure
+source-bound sandbox/wheel proof or any new frozen cohort. The earlier `54726f69` content failure
 and real safe-pause proof retain their meanings; no failed cohort is salvaged.
 
 Initial focused proof passed 137 CPU/controlled-child/runtime/recovery cases

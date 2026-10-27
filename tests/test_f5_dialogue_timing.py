@@ -112,7 +112,8 @@ def test_fresh_prompt_plan_and_both_validators_refuse_upstream_only_fit(prepared
     assert TIMING_FILENAME in frozen.creative_brief and "sum of minima" in frozen.creative_brief
     assert f"scripts/{adapter}" in frozen.creative_brief and f"scripts/{other}" not in frozen.creative_brief
     plan = build_text_validation_plan(frozen, execution_pin=store.creative_handoff_execution_pin(frozen), source_revision="a" * 40)
-    assert all(step.argv[0].endswith(adapter) for step in plan.steps)
+    assert plan.steps[0].argv[0].endswith('scripts/storyboard-content-validation.mjs')
+    assert plan.steps[1].argv[0].endswith(adapter)
     board = narrated_board(6.5, style="brief" if saved else "realistic")
     inputs = frozen.input_artifacts
     # Original upstream validation accepts these exact bytes. Receiving must
@@ -122,6 +123,13 @@ def test_fresh_prompt_plan_and_both_validators_refuse_upstream_only_fit(prepared
     upstream = subprocess.run(["node", "--input-type=module", "--eval", program, str(tmp_path / "board.json"), str(tmp_path / "request.json")], cwd=ROOT, capture_output=True, text=True, check=True)
     assert json.loads(upstream.stdout) == []
     assert result.returncode != 0 and b"Canonical dialogue minima" in result.stderr
+    inputs_path = tmp_path / 'inputs'
+    inputs_path.mkdir()
+    for name, value in frozen.input_artifacts.items():
+        (inputs_path / name).write_bytes(canonical_json(value))
+    typed = subprocess.run(['node', str(ROOT / 'scripts/storyboard-content-validation.mjs'),
+        str(tmp_path / 'board.json'), str(tmp_path / 'request.json')], capture_output=True, check=False)
+    assert typed.returncode == 1 and typed.stdout == b'' and b'Canonical dialogue minima' in typed.stderr
     with pytest.raises(ValueError, match="Canonical dialogue minima"):
         ProjectStoryboardReviewPersistence._validate(board, candidate.binding, inputs["script.json"], inputs["outline.json"], inputs["cast.json"], frozen)
 

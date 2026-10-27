@@ -44,6 +44,20 @@ it("renders literal source diagnostics and labels whole-candidate precision hone
   expect(host.textContent).toContain("<script>literal candidate explanation</script>");
   expect(host.querySelector("script")).toBeNull();
 });
+it("shows Storyboard failure and correction history without manual extra authority", async () => {
+  vi.mocked(autopilotApi.textFailure).mockResolvedValue({ ...failure, stage: "storyboard", stageLabel: "分镜",
+    canRetry: false, automaticLimit: 1, automaticUsed: 1,
+    history: [{ ordinal: 0, mode: "original", state: "failed", outcome: "failure", comparison: "unknown" },
+      { ordinal: 1, mode: "automatic", state: "failed", outcome: "failure", comparison: "repeated" }] });
+  await render("a", { ...fixtureRun, phase: "storyboard" });
+  expect(host.textContent).toContain("分镜");
+  expect(host.textContent).not.toContain("修改要求后重试");
+  await click("查看问题");
+  expect(host.textContent).toContain("首次生成");
+  expect(host.textContent).toContain("自动修正 1");
+  expect(host.textContent).toContain("与上次相同的问题");
+  expect(autopilotApi.retryText).not.toHaveBeenCalled();
+});
 async function directions(value: string) {
   const textarea = host.querySelector("textarea")!;
   await act(async () => {

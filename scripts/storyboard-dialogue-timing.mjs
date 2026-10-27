@@ -35,7 +35,7 @@ function fitsDuration(minimum, available) {
   return alignedCoefficient(minimum, scale) <= alignedCoefficient(available, scale);
 }
 
-export function validateF5ReceivingTiming(board, request) {
+export function frozenF5DialogueTiming(request) {
   assert(request?.stage === 'storyboard', 'Frozen storyboard request is required');
   const inputs = request.inputArtifacts, admission = inputs?.['storyboard-admission.json'];
   const script = inputs?.['script.json'], timing = inputs?.['dialogue-timing-contract.json'];
@@ -44,6 +44,14 @@ export function validateF5ReceivingTiming(board, request) {
   assert(contentHash === textHash(canonical(payload)), 'Frozen canonical dialogue timing content hash differs');
   assert(timing.profileVersion === 'dialogue.default.v1' && typeof timing.language === 'string' && timing.language.trim(), 'Canonical dialogue timing profile/language is invalid');
   assert(timing.scriptContentHash === admission.scriptContentHash && admission.scriptRevision === request.source?.acceptedScriptRevision && admission.scriptContentHash === request.source?.acceptedScriptContentHash, 'Canonical dialogue timing Script identity differs');
+  assert(Number.isSafeInteger(admission.scriptRevision) && admission.scriptRevision > 0
+    && typeof admission.scriptContentHash === 'string' && /^[a-f0-9]{64}$/.test(admission.scriptContentHash), 'Frozen Script identity is required');
+  assert(Array.isArray(admission.sectionBindings) && admission.sectionBindings.every(item =>
+    typeof item?.sectionId === 'string' && item.sectionId.trim() && Number.isSafeInteger(item.episode) && item.episode > 0), 'Frozen section mapping is required');
+  assert(Array.isArray(admission.completeRouteSectionIds) && admission.completeRouteSectionIds.every(route =>
+    Array.isArray(route) && route.every(id => typeof id === 'string'))
+    && Array.isArray(admission.routeOnlySectionIds) && admission.routeOnlySectionIds.every(id => typeof id === 'string'), 'Frozen complete routes are required');
+  assert(Number.isSafeInteger(admission.targetPlaythroughSeconds) && admission.targetPlaythroughSeconds > 0, 'Author playthrough maximum must be a safe positive integer');
   assert(Array.isArray(timing.lines), 'Canonical dialogue timing lines are required');
   const source = [];
   for (const episode of script.episodes ?? []) {
@@ -63,6 +71,13 @@ export function validateF5ReceivingTiming(board, request) {
     assert(!minima.has(key), 'Canonical dialogue timing source coordinates repeat');
     minima.set(key, BigInt(line.minimumDurationUnits));
   });
+  assert(admission.reviewTiming, 'Frozen review timing is required');
+  for (const key of ['minCutSeconds', 'maxCutSeconds', 'maxSegmentSeconds']) sourceDuration(admission.reviewTiming[key]);
+  return { admission, minima };
+}
+
+export function validateF5ReceivingTiming(board, request) {
+  const { admission, minima } = frozenF5DialogueTiming(request);
   const mapping = admission.sectionBindings;
   assert(Array.isArray(mapping) && canonical(board.episodes?.map(ep => ep.ep)) === canonical(mapping.map(item => item.episode)), 'Storyboard episodes must exactly match frozen F4 mapping');
   assert(admission.reviewTiming && Object.entries(admission.reviewTiming).every(([key, value]) => board.params?.[key] === value), 'Storyboard params must match frozen review timing');

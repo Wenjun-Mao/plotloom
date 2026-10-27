@@ -54,7 +54,7 @@ export function frozenContext(request) {
   return { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], admission };
 }
 
-export function validateBriefStoryboard(board, request, recipes = null) {
+export function briefStoryboardContext(board, request, recipes = null) {
   const ctx = frozenContext(request);
   assert(board?.style === 'saved-brief', 'storyboard.style must identify saved Brief authority');
   assert(board.promptLang === 'en', 'saved-Brief storyboard promptLang must be en');
@@ -68,6 +68,11 @@ export function validateBriefStoryboard(board, request, recipes = null) {
   const footage = new Set(admission.completeRouteSectionIds.flat().filter(id => !admission.routeOnlySectionIds.includes(id)));
   assert(footage.size === durations.size && [...durations].every(([id, seconds]) => footage.has(id) && Number.isFinite(seconds) && seconds > 0), 'Storyboard timing must cover every footage section exactly');
   assert(admission.completeRouteSectionIds.every(route => route.reduce((sum, id) => sum + (durations.get(id) ?? 0), 0) <= admission.targetPlaythroughSeconds + 0.0001), 'Complete storyboard route exceeds author playthrough maximum');
+  return { ...ctx, recipes };
+}
+
+export function validateBriefStoryboard(board, request, recipes = null) {
+  const ctx = briefStoryboardContext(board, request, recipes);
   const issues = validateStoryboard(board, { ...ctx, recipes });
   assert(!issues.length, issues.join('\n'));
   validateF5ReceivingTiming(board, request);

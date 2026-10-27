@@ -9,11 +9,11 @@ from ...creative_handoff_identity import request_hash
 from plotloom.contract_identity import new_id, utc_now
 from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...text_correction_contracts import (
-    CORRECTION_CONTRACT,
     MANUAL_CORRECTION_CONTRACTS,
     TextCorrection,
     correction_key,
     automatic_correction_limit,
+    content_correction_capability,
 )
 from ..schema import (
     ArtHeadRow,
@@ -21,11 +21,13 @@ from ..schema import (
     CastHeadRow,
     SourceOutlineHeadRow,
     ScriptHeadRow,
+    StoryboardReviewHeadRow,
 )
 from .creative_execution_pins import freeze_execution_pin
 from .creative_terminal import CANDIDATE_ROWS
 
-HEADS = {"outline": SourceOutlineHeadRow, "characters": CastHeadRow, "art": ArtHeadRow, "script": ScriptHeadRow}
+HEADS = {"outline": SourceOutlineHeadRow, "characters": CastHeadRow, "art": ArtHeadRow, "script": ScriptHeadRow,
+         "storyboard": StoryboardReviewHeadRow}
 
 
 def correction_job(run_id, rejection, ordinal):
@@ -61,8 +63,8 @@ def assert_correction_lineage(connection, request, *, run_id, operation_key):
         if (not supports_corrections(policy) or policy.code_revision != rejection.source_revision
                 or policy.executor_binding.profile_hash != rejection.profile_hash):
             raise ValueError("correction differs from frozen launch capability")
-        if current.stage == "script" and policy.executor_binding.text_correction_contract != CORRECTION_CONTRACT:
-            raise ValueError("frozen launch lacks Script correction capability")
+        if not content_correction_capability(policy.executor_binding, current.stage):
+            raise ValueError("frozen launch lacks this stage's correction capability")
         if correction.manual_grant is not None:
             if policy.executor_binding.text_correction_contract not in MANUAL_CORRECTION_CONTRACTS:
                 raise ValueError("retained launch cannot acquire explicit extra correction authority")
@@ -253,8 +255,7 @@ def terminal_content_rejection(connection, project_id, table, job_id):
     policy = LaunchPolicy.model_validate_json(row[3])
     key = correction_key(request.stage, request.text_correction.ordinal) if request.text_correction else request.stage
     if (request.stage not in HEADS
-                or (request.stage == "script" and (policy.executor_binding is None
-                    or policy.executor_binding.text_correction_contract != CORRECTION_CONTRACT))
+                or not content_correction_capability(policy.executor_binding, request.stage)
                 or CANDIDATE_ROWS[request.stage].__tablename__ != table
                 or attempt.content_rejection is None or row[1] != "failed" or not supports_corrections(policy)
                 or attempt.profile_hash != policy.executor_binding.profile_hash

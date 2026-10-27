@@ -31,7 +31,7 @@ class NativeSample(CamelModel):
 
 
 class NativeCampaign(CamelModel):
-    version: Literal["alpha_native_codex_three_story.v3"] = ALPHA_ACCEPTANCE_VERSION
+    version: Literal["alpha_native_codex_three_story.v4"] = ALPHA_ACCEPTANCE_VERSION
     samples: tuple[NativeSample, ...]
     source: dict
     contract_hash: str

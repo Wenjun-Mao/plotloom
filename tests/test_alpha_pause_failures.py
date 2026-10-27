@@ -14,18 +14,19 @@ from tests.alpha_pause_fixtures import sent_pause
 from tests.autopilot_controller_fixtures import candidate
 
 
-def fail_original(storage, host, *, kind):
-    attempt = next(iter(host.statuses.values())).attempt
+def fail_original(storage, host, *, kind, stage='outline'):
+    attempt = next(status.attempt for status in host.statuses.values() if status.attempt.operation_key == stage)
     with closing(storage.projects.open(str(attempt.project_id))) as store:
         request = host.request(store, attempt)
         raw = canonical_json(candidate(store, request))
         job = store.creative_handoff_exchange().root / "jobs" / attempt.job_id
-        (job / "delivery/outline.json").write_bytes(raw)
+        from plotloom.creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES
+        (job / 'delivery' / CREATIVE_CANDIDATE_FILENAMES[stage]).write_bytes(raw)
     changes = dict(state="failed", session_id=uuid4(), process_exit_code=0,
         terminal_result="failure", remote_tool_state="not_applicable", evidence_hash="a" * 64)
     if kind == "content":
         changes["content_rejection"] = TextContentRejection(source_attempt_id=attempt.attempt_id,
-            run_id=attempt.run_id, stage="outline", job_id=attempt.job_id,
+            run_id=attempt.run_id, stage=stage, job_id=attempt.job_id,
             candidate_hash=sha256(raw).hexdigest(), validation_evidence_hash="b" * 64,
             request_hash=attempt.request_hash, package_hash=attempt.package_hash,
             plan_hash=attempt.validation_plan_hash, profile_hash=attempt.profile_hash,
@@ -42,42 +43,44 @@ def fail_original(storage, host, *, kind):
 
 
 @pytest.mark.parametrize("kind", ["content", "noncontent", "unknown"])
-def test_paused_host_failure_keeps_production_correction_policy_and_original_identity(tmp_path, monkeypatch, kind):
-    storage, _, original, prefix, host, run, evidence, pause, request, identity, snapshot = sent_pause(tmp_path, monkeypatch)
+@pytest.mark.parametrize('stage', ['outline', 'storyboard'])
+def test_paused_host_failure_keeps_production_correction_policy_and_original_identity(tmp_path, monkeypatch, kind, stage):
+    storage, _, original, prefix, host, run, evidence, pause, request, identity, snapshot = sent_pause(tmp_path, monkeypatch, stage=stage)
+    before_admissions = 1 if stage == 'outline' else 6
     try:
         original_bytes = {p.name: p.read_bytes() for p in pause.iterdir()}
-        failed = fail_original(storage, host, kind=kind)
+        failed = fail_original(storage, host, kind=kind, stage=stage)
         if kind == "unknown":
             with pytest.raises(ValueError, match="UNKNOWN"):
                 resume_paused_sample(prefix, run.project_id, evidence, request, identity)
             assert not (evidence / "resumptions" / str(request.revision) / "ack.json").exists()
-            assert host.admissions == 1
+            assert host.admissions == before_admissions
             return
         resume_paused_sample(prefix, run.project_id, evidence, request, identity)
         assert (evidence / "resumptions" / str(request.revision) / "ack.json").is_file()
-        assert host.admissions == 1
+        assert host.admissions == before_admissions
         host.auto_deliver = True
         for _ in range(12):
             view = prefix.step(run.project_id)
-            current = logical_checkpoint(view, "outline")
+            current = logical_checkpoint(view, stage)
             if view.state == "blocked" or current and current["state"] == "adopted": break
         with closing(storage.projects.open(run.project_id)) as store:
-            original_attempt, _ = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, "outline")
+            original_attempt, _ = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, stage)
             assert original_attempt == failed
-            corrected, _ = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, "outline:correction:1")
+            corrected, _ = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, stage + ':correction:1')
             if kind == "content":
                 assert view.state == "running" and current["state"] == "adopted"
-                assert host.admissions == 2 and corrected is not None
+                assert host.admissions == before_admissions + 1 and corrected is not None
                 assert corrected.attempt_id != failed.attempt_id and corrected.job_id != failed.job_id
                 assert original_attempt.content_rejection is not None
                 receipt, _ = collect_native_evidence(store, view, snapshot=snapshot,
                     contract_hash="b" * 64, sample_id=evidence.name, duration_ms=200)
-                outline = receipt.operations[0]
-                assert outline.attempt_count == 2 and outline.accepted and not outline.first_pass
+                operation = next(op for op in receipt.operations if op.stage == stage)
+                assert operation.attempt_count == 2 and operation.accepted and not operation.first_pass
                 # No third attempt or manual retry is authorized by resume.
-                assert not any(c["operationKey"] == "outline:correction:2" for c in view.checkpoints)
+                assert not any(c['operationKey'] == stage + ':correction:2' for c in view.checkpoints)
             else:
-                assert view.state == "blocked" and host.admissions == 1 and corrected is None
+                assert view.state == "blocked" and host.admissions == before_admissions and corrected is None
                 assert original_attempt.content_rejection is None
         assert {p.name: p.read_bytes() for p in pause.iterdir()} == original_bytes
         assert not host.image_calls

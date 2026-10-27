@@ -1,7 +1,7 @@
 """The three fixed Chinese Alpha workloads and exact native sample matrix."""
 from dataclasses import dataclass
 from plotloom.brief_contracts import ProjectBrief
-ALPHA_ACCEPTANCE_VERSION = "alpha_native_codex_three_story.v3"
+ALPHA_ACCEPTANCE_VERSION = "alpha_native_codex_three_story.v4"
 ALPHA_EXPECTED_REVIEW_COUNT = 3
 NATIVE_OPERATIONS = ("outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation")
 

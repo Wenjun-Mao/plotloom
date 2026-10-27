@@ -221,7 +221,7 @@ def test_reuse_requires_frozen_extra_forbidden_structurally_immutable_profile():
     assert all(immutable(field.annotation) for field in CodexExecProfile.model_fields.values())
 
 
-@pytest.mark.parametrize("value", ["omitted", None, "plotloom.text-correction.v2", "plotloom.text-correction.v3"])
+@pytest.mark.parametrize("value", ["omitted", None, "plotloom.text-correction.v2", "plotloom.text-correction.v3", "plotloom.text-correction.v4"])
 def test_diagnostic_capability_preserves_exact_text_hash_and_failed_replacement_clears_slot(monkeypatch, value):
     binding = PROFILE.model_dump(mode="json", by_alias=True)
     binding.pop("textCorrectionContract", None)

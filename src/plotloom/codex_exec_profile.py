@@ -45,8 +45,11 @@ INSTRUCTION_FILES = (
 VALIDATOR_FILES = (
     "scripts/text-content-validation.mjs",
     "scripts/script-content-validation.mjs",
+    "scripts/storyboard-content-validation.mjs",
     "src/plotloom/text_correction_contracts.py",
     "src/plotloom/persistence/project/autopilot_text_correction.py",
+    "src/plotloom/persistence/project/production_rebuild_quiescence.py",
+    "src/plotloom/project_storage/operational_state.py",
     "scripts/video_directions.py",
     "src/plotloom/video_directions_contract.py",
     "src/plotloom/video_batch_contracts.py",
@@ -250,7 +253,7 @@ def build_codex_exec_profile(executable: Path, *, source_root: Path, pool_limits
     limits = CodexExecPoolLimits.model_validate(pool_limits or CodexExecPoolLimits())
     return CodexExecProfile(
         contractVersion="plotloom.codex-exec.v8",
-        text_correction_contract="plotloom.text-correction.v3",
+        text_correction_contract="plotloom.text-correction.v4",
         executable_sha256=_hash_file(executable),
         cli_version=version,
         model=EXECUTION_MODEL,

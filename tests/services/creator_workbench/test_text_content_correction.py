@@ -280,7 +280,7 @@ def test_control_fences_prepared_correction_before_host_launch(tmp_path, monkeyp
         service.close()
 
 
-@pytest.mark.parametrize("stage", ["outline", "script"])
+@pytest.mark.parametrize("stage", ["outline", "script", "storyboard"])
 def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, monkeypatch, stage):
     from plotloom.persistence.project.autopilot import AutopilotPersistence
     storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, stage=stage)
@@ -297,18 +297,18 @@ def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, 
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(current, stage)["operationKey"] == stage
-            assert current.lifetime_jobs == (1 if stage == "outline" else 5)
+            assert current.lifetime_jobs == {"outline": 1, "script": 5, "storyboard": 6}[stage]
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(current, stage)["operationKey"] == f"{stage}:correction:1"
-            assert current.lifetime_jobs == (2 if stage == "outline" else 6)
-        assert len(calls) == (1 if stage == "outline" else 5)
+            assert current.lifetime_jobs == {"outline": 2, "script": 6, "storyboard": 7}[stage]
+        assert len(calls) == {"outline": 1, "script": 5, "storyboard": 6}[stage]
     finally:
         service.close()
 
 
-@pytest.mark.parametrize("stage", ["outline", "script"])
+@pytest.mark.parametrize("stage", ["outline", "script", "storyboard"])
 def test_duplicate_correction_preparation_reuses_exact_job_and_immutable_feedback(tmp_path, monkeypatch, stage):
     storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, stage=stage)
     try:
@@ -323,8 +323,8 @@ def test_duplicate_correction_preparation_reuses_exact_job_and_immutable_feedbac
             service.controller.prepare_correction(store, current, service.claim, request, source)
             after = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(after, stage) == original_correction
-            assert after.lifetime_jobs == (2 if stage == "outline" else 6)
-        assert len(calls) == (1 if stage == "outline" else 5)
+            assert after.lifetime_jobs == {"outline": 2, "script": 6, "storyboard": 7}[stage]
+        assert len(calls) == {"outline": 1, "script": 5, "storyboard": 6}[stage]
     finally:
         service.close()
 

@@ -169,8 +169,8 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {ready && <ConcurrentActivity run={run} />}
       {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
       {ready && run.blocker && run.blocker.code !== "text_content_rejected" && <p role="status">{run.blocker.message}</p>}
-      {["outline", "characters", "art", "script"].includes(run.phase) && <TextFailureCard key={`${projectId}:${run.id}:${run.phase}`} projectId={projectId} run={run} disabled={busy || readOnly || !ready} readingDisabled={busy} execute={execute} />}
-      {["outline", "characters", "art", "script"].filter(stage => stage !== run.phase && run.checkpoints.some(item =>
+      {["outline", "characters", "art", "script", "storyboard"].includes(run.phase) && <TextFailureCard key={`${projectId}:${run.id}:${run.phase}`} projectId={projectId} run={run} disabled={busy || readOnly || !ready} readingDisabled={busy} execute={execute} />}
+      {["outline", "characters", "art", "script", "storyboard"].filter(stage => stage !== run.phase && run.checkpoints.some(item =>
         item.evidence.owner === stage && item.state === "adopted" && item.operationKey.startsWith(`${stage}:correction:`))).map(stage =>
         <TextFailureCard key={`${projectId}:${run.id}:${stage}`} projectId={projectId} run={run} stage={stage} disabled execute={execute} />)}
       <div className="button-row" id="material-next-action">

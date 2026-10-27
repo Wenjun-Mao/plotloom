@@ -11,15 +11,27 @@ from pydantic import Field, model_validator
 from plotloom.domain_base import CamelModel
 
 HASH = r"^[a-f0-9]{64}$"
-CORRECTION_CONTRACT = "plotloom.text-correction.v3"
-MANUAL_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v2", CORRECTION_CONTRACT})
+CORRECTION_CONTRACT = "plotloom.text-correction.v4"
+SCRIPT_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v3", CORRECTION_CONTRACT})
+MANUAL_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v2", *SCRIPT_CORRECTION_CONTRACTS})
 MANUAL_CORRECTION_STAGES = frozenset({"outline", "characters", "art"})
+
+
+def content_correction_capability(binding, stage):
+    if binding is None:
+        return False
+    if stage == "script":
+        return binding.text_correction_contract in SCRIPT_CORRECTION_CONTRACTS
+    if stage == "storyboard":
+        return binding.text_correction_contract == CORRECTION_CONTRACT
+    return stage in MANUAL_CORRECTION_STAGES and (
+        binding.text_correction_contract in MANUAL_CORRECTION_CONTRACTS or binding.text_correction_limit == 1)
 
 
 def automatic_correction_limit(policy, stage):
     limit = policy.text_correction_limit or 0
-    if stage == "script":
-        if policy.executor_binding is None or policy.executor_binding.text_correction_contract != CORRECTION_CONTRACT:
+    if stage in {"script", "storyboard"}:
+        if not content_correction_capability(policy.executor_binding, stage):
             return 0
         return min(1, limit)
     return limit
@@ -50,7 +62,7 @@ class TextContentRejection(CamelModel):
     contract: Literal["plotloom.text-content-rejection.v1"] = "plotloom.text-content-rejection.v1"
     source_attempt_id: UUID
     run_id: UUID
-    stage: Literal["outline", "characters", "art", "script"]
+    stage: Literal["outline", "characters", "art", "script", "storyboard"]
     job_id: str
     candidate_hash: str = Field(pattern=HASH)
     validation_evidence_hash: str = Field(pattern=HASH)

@@ -296,14 +296,14 @@ policy is unchanged; new source/schema/package/skill/pins/profile bind the chang
 producer method. Focused immutable replay/all-role/receiving/reopen proofs and
 independent review precede a fresh exact envelope and genuinely fresh nine IDs.
 
-The reviewed952 producer installed two samples, then its third Outline ended
+The reviewed `95213d31` producer installed two samples, then its third Outline ended
 UNKNOWN before content validation because the current CLI emitted two unsupported
 empty catalog item pairs. The exact `codex` tools are `list_mcp_resources` and
 `list_mcp_resource_templates`, arguments `{}`, null errors, and one completed text
 block containing exactly the matching empty JSON catalog, with null structured
 content. The stream/session completed and a separate exit0 wait result exists;
 this is a decoder compatibility defect, not a model-content acceptance result.
-The original952 canonical UNKNOWN, candidate, identities and held slot stay intact.
+The original `95213d31` canonical UNKNOWN, candidate, identities and held slot stay intact.
 
 Under delegated judgment and independent causal/method review, recognize only
 these source-owned observed shapes in prospective TEXT inspection. A pure catalog
@@ -316,3 +316,33 @@ This adds no MCP tool/server permission, prompt/model change, retry or correctio
 grant. Author/model/trusted content ownership and qualification gates are unchanged.
 Protected immutable replay and positive/negative/hold proofs precede independent
 source review, fresh envelope proof and any genuinely fresh qualification cohort.
+
+The `5c60d508` canary then correctly blocked on Storyboard E06-02 at 18.5 seconds
+against its frozen 15-second segment cap; no validator/runtime defect was demonstrated. Its
+original failed bytes/receipts and prior `95213d31` UNKNOWN/held slot remain unchanged.
+Under delegated judgment and independent design review, the manager selected one
+prospective automatic Storyboard correction using the existing mechanism. New
+capability v4 honors an explicit frozen limit of zero, defaults to one, and permits
+at most one automatic correction with no manual extra. Version v3 retains Script
+authority and never acquires Storyboard. Earlier stage/manual semantics remain.
+
+Only the unchanged upstream API's normal content issues after exact frozen guards
+can grant correction; parser/input/authority/receiving/runtime/UNKNOWN exceptions
+cannot. The model authors a complete replacement within unchanged Script/style,
+mapping/timing/budget constraints. Trusted code retains full immutable parent bytes,
+exact lineage, deterministic child identity and existing head/CAS/publication/adoption.
+No silent splitting, validator/model change, third attempt or first-pass promotion.
+ADR 0184 purity and controlled actual-Storyboard-head/crash/reopen/pause tests precede
+source review and fresh envelope proof. The eight-operation/72-opportunity and 9/9 installations,
+60 first-pass operations and three-review gates remain. One fresh cohort follows; further content
+failure returns to method review. Real-provider correction is unobserved unless it
+naturally occurs. The superseded `5c60d508` full is PARTIAL/CANCELLED via supported SIGTERM,
+not a pass; one final full belongs to the new stable candidate.
+
+The controlled implementation checkpoint exercises actual Storyboard persistence,
+child validation/render, one replacement/adoption, exhaustion/zero, API history,
+crash/CAS/idempotence and acknowledged late-result resume. Immutable rejected-byte
+replay preserves both failed cohorts, and valid reports remain byte-identical for
+both routes. ADR 0184's full named dependency comparison changes only the immutable
+v4 capability Literal; its stable independent review remains required. No new real
+provider correction or qualification result is claimed by these controlled proofs.

@@ -105,3 +105,18 @@ values remain readable with their original three-stage meaning; Script requires 
 Fresh v3/null/omitted construction and exact-text/hash replacement checks join the
 existing guards. Independent review of this pin/assumption update remains part of
 the stable Script source checkpoint, before any new native admission.
+
+### Prospective Storyboard capability value review (2026-10-27)
+
+ADR 0222's independently reviewed prospective decision adds only the immutable
+`plotloom.text-correction.v4` literal to the same optional field. Full named AST
+comparison against `5c60d508` confirms that every other field/default/validator and
+every named pool/base/public-value dependency is unchanged. The lexical
+`_ProfileConstruction` owner is byte-identical. There is no new factory, mutable
+field, ambient state or construction I/O. Keep the same exact whole-TEXT reuse,
+replacement/clearing and fresh-validation boundary; update its reviewed AST pin
+and extend omitted/null/v2/v3/v4 and invalid replacement tests. Stage authorization
+remains outside model construction: v3 retains Script, v4 alone adds Storyboard.
+The writer's bounded comparison is retained in
+`.local/b37/resumed-integration/storyboard-profile-purity-review.json`; independent
+review of this assumption/pin update remains part of the stable source checkpoint.

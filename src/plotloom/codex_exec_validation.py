@@ -251,6 +251,8 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
     # Render remains the same source-owned command and every thrown failure stays terminal.
     if stage in {"outline", "characters", "art"} and request.content_validation_contract is not None:
         validate = ("node", (f"{source}/scripts/text-content-validation.mjs", cand, request_path))
+    if stage == "storyboard" and request.content_validation_contract is not None:
+        validate = ("node", (f"{source}/scripts/storyboard-content-validation.mjs", cand, request_path))
     steps = tuple(CodexExecValidationStep(
         stepId=step_id, program=program,
         argv=argv,

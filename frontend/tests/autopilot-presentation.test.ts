@@ -18,6 +18,30 @@ import type { RecommendedWorkflowModel } from "../src/app/workspace/recommendedW
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.restoreAllMocks());
 
+it.each([false, true])("keeps Storyboard failure/history visible without manual extra (history=%s)", async history => {
+  const run = { ...fixtureRun, state: "blocked" as const, phase: history ? "bridge-presentation" : "storyboard",
+    checkpoints: [{ operationKey: "storyboard", state: "failed", evidence: { owner: "storyboard", result: {} } },
+      ...(history ? [{ operationKey: "storyboard:correction:1", state: "adopted", evidence: { owner: "storyboard", result: {} } }] : [])] };
+  vi.spyOn(autopilotApi, "current").mockResolvedValue(run);
+  const read = vi.spyOn(autopilotApi, "textFailure").mockResolvedValue({ runId: run.id, runRevision: run.revision,
+    stage: "storyboard", stageLabel: "分镜", canRetry: false, reason: "保留原始失败", automaticUsed: 1,
+    automaticLimit: 1, terminalContentFailure: true, failedAttemptId: "attempt", rejectionHash: "a".repeat(64),
+    issues: [], resolved: history, diagnostics: ["frozen storyboard diagnostic"], history: [{ ordinal: 0, mode: "original", state: "failed", outcome: "failure", comparison: "unknown" }] });
+  const retry = vi.spyOn(autopilotApi, "retryText");
+  const host = document.createElement("div"), root = createRoot(host); document.body.append(host);
+  try {
+    await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "disposable", revision: 1,
+      readOnly: true, onChanged: async () => undefined, onVideo: vi.fn(), children: createElement("div") })));
+    expect(read).toHaveBeenCalledWith("disposable", expect.any(AbortSignal), history ? "storyboard" : undefined);
+    const opener = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "查看问题")!;
+    expect(opener).toBeTruthy(); await act(async () => opener.click());
+    expect(host.textContent).toContain("frozen storyboard diagnostic");
+    expect(host.textContent).toContain("首次生成");
+    expect(host.textContent).not.toContain("修改要求后重试");
+    expect(retry).not.toHaveBeenCalled();
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
 it.each([["outline", "故事大纲"], ["characters", "角色设定"], ["art", "美术设定"], ["script", "完整剧本"],
   ["storyboard", "分镜"], ["bridge-intent", "戏剧意图"], ["bridge-presentation", "画面呈现"], ["references", "参考图片"], ["first-frames", "镜头首帧"]])("automatic guidance identifies %s and keeps final review/manual takeover separate", (phase, name) => {
   const text = automaticGuidance({ ...fixtureRun, state: "running", phase }, true)!;

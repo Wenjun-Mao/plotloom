@@ -70,7 +70,7 @@ def native_contract_hash(snapshot):
         "repeats": 3, "operations": NATIVE_OPERATIONS, "requiredInstallations": 9,
         "firstPassRequired": 60, "firstPassTotal": 72,
         "reviewRepeats": [1], "correctionLimit": 1,
-        "correctionStages": ["outline", "characters", "art", "script"],
+        "correctionStages": ["outline", "characters", "art", "script", "storyboard"],
         "profileHash": snapshot["profileHash"], "executionPins": snapshot["executionPins"],
     }))
 
@@ -100,6 +100,8 @@ def preflight_plan_identity(package_path):
         raise ValueError("preflight package must be a physical absolute directory")
     payload = json.loads(read_confined_regular_file(package, "request.json", max_bytes=1_000_000))
     plan = validation_plan_from_package(payload)
+    if plan.stage == "storyboard" and payload.get("contentValidationContract") != "plotloom.typed-content-result.v1":
+        raise ValueError("current native Storyboard preflight requires its typed content boundary")
     return plan.stage, plan.route, plan.plan_hash, plan.source_revision
 
 

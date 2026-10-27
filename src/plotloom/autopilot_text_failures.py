@@ -14,7 +14,7 @@ from plotloom.public_values import contains_secret_value
 from .exceptions import InvalidTransitionError
 from .text_correction_contracts import MANUAL_CORRECTION_CONTRACTS, MANUAL_CORRECTION_STAGES, automatic_correction_limit, logical_checkpoint
 
-STAGES = {"outline": "故事大纲", "characters": "角色设定", "art": "美术方向", "script": "剧本"}
+STAGES = {"outline": "故事大纲", "characters": "角色设定", "art": "美术方向", "script": "剧本", "storyboard": "分镜"}
 
 
 def prior_candidate(store, request, rejection):

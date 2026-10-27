@@ -38,7 +38,7 @@ def _external_review(
     }
 
 
-from plotloom.alpha_workloads import SAMPLE_KEYS, NATIVE_OPERATIONS
+from plotloom.alpha_workloads import SAMPLE_KEYS, NATIVE_OPERATIONS, ALPHA_ACCEPTANCE_VERSION
 
 def native_receipts(first_pass=72):
     rows = []
@@ -47,13 +47,13 @@ def native_receipts(first_pass=72):
         for stage_index, stage in enumerate(NATIVE_OPERATIONS):
             # Corrections only on the production allowlist; select the earliest
             # eligible slots to place the exact requested failures.
-            eligible = stage in {"outline", "characters", "art"}
+            eligible = stage in {"outline", "characters", "art", "script", "storyboard"}
             corrected = eligible and first_pass < 72
             if corrected:
                 first_pass += 1
             operations.append({"stage": stage, "attemptCount": 2 if corrected else 1,
                 "accepted": True, "firstPass": not corrected, "bindingHash": "e" * 64})
-        rows.append({"version": "alpha_native_codex_three_story.v3", "commit": "a" * 40,
+        rows.append({"version": ALPHA_ACCEPTANCE_VERSION, "commit": "a" * 40,
             "contractHash": "b" * 64, "profileHash": "c" * 64, "sampleId": sample_id,
             "status": "installed", "operations": operations, "installationHash": "d" * 64, "contentHash": "f" * 64,
             "durationMilliseconds": 0, "issueCodes": []})
