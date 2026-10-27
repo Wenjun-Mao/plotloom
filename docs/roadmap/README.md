@@ -13,8 +13,8 @@ fixture-only Lab work gets no runtime restart.
 The owner selected current native Codex and retirement of mandatory two-profile
 Alpha execution. **B3–B7 source and the bounded CLI repair are independently reviewed
 through Script v3/native Alpha v2 checkpoint `338ac39b`; its source/evidence review
-is closed. The original b5 native Alpha qualification did NOT pass.** The
-frozen nine-sample matrix has one genuine eight-job current installation, one known
+is closed. Exact H5 integration is at D2. Native qualification has NOT passed.** The
+historical b5 nine-sample matrix had one genuine eight-job current installation, one known
 terminal Script rejection (17.8s versus the unchanged 17.85s minimum), seven
 unadmitted samples and 12 accepted first-pass operations from 13 actual attempts.
 No blind publication/reviews followed. Composite software coverage includes the
@@ -29,6 +29,15 @@ valued projects. The exact `31ab677b` grant and `47ab708f` completion record are
 integrated into R. Fresh integrated source/pins/profile/envelope precede the genuine
 canary and new fixed nine-sample qualification; old b5 evidence remains failed.
 Activation and recovery remain manager-owned after complete qualification/review.
+
+Current recovery: six D2 installations were observed before a supported user pause;
+original OS-temporary campaign/runtime artifacts are now absent, so they remain
+historical results. Old UNKNOWN ledgers/holds are no longer currently verifiable;
+none may be recreated, promoted or cleared. Reviewed prospective Alpha v3 durable
+storage and exact pause continuation are in progress before a fresh predeclared
+nine-sample cohort. Source/evidence review, 9/9 installs, 60/72 first-pass operations,
+three fresh blind reviews and applicable local gates remain before manager-owned
+core/bridge activation. No current qualification pass is claimed.
 
 ## Su Tang six-clip game preview
 

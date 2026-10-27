@@ -32,7 +32,7 @@ class NativeOperationReceipt(CamelModel):
 
 
 class NativeSampleReceipt(CamelModel):
-    version: Literal["alpha_native_codex_three_story.v2"] = ALPHA_ACCEPTANCE_VERSION
+    version: Literal["alpha_native_codex_three_story.v3"] = ALPHA_ACCEPTANCE_VERSION
     commit: str = Field(pattern=r"^[a-f0-9]{40}$")
     contract_hash: str = Field(pattern=HASH)
     profile_hash: str = Field(pattern=HASH)

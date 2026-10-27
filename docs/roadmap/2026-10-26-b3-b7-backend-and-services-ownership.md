@@ -1,35 +1,92 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Resumed under the owner's explicit E2E continuation. B3–B7 source,
-including Script correction v3 / native Alpha v2, independently reviewed through
-`338ac39b` with no actionable findings. Exact H5 grant/completion source is integrated;
-fresh integrated-source preflight and native qualification follow. Gateway remains
-activated; core/bridge activation and recovery stay manager-owned after qualification**.
+Status: **Explicitly resumed. Reviewed B3–B7 / Script correction v3 source and exact
+H5 grant are integrated at D2. OS-temporary native campaign state is now absent;
+prospective native Alpha v3 durable storage/pause continuation is in implementation
+under closed independent design review. Fresh source/evidence review precedes any
+new admission. Qualification, blind reviews and manager-owned core activation remain
+incomplete; Gateway is already activated**.
 Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
 `47ab708f51c2a113ceadda67e2ebcda2ccc7aed9`: qualified installed `0d4a47d4` plus
 exact H5 QA grant `31ab677b` and completion documentation. Nine valued projects,
 including H5 project `b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6` and its six confirmed
-clips, must be preserved. Runtime activation/recovery belongs to the manager.
+clips, must be preserved. Runtime activation/recovery belongs to the manager. A manager read-only pre-release
+probe found the H5 QA context already ineligible/required: retained grants do not
+match the current Linux project database incarnation. Cause is unproven; preserve
+and disclose this existing refusal, with no grant repair in this scope.
 
-Last completed native evidence remains `b5c9de51`: **1/9 installed, one known Script
-rejection, seven unadmitted; 12/72 accepted first-pass operations from 13 text
-attempts, zero image attempts**. Duration 17.8s versus 17.85s minimum was a valid
-known rejection, not a demonstrated source/validator defect. That v1 matrix did
-NOT pass. Its receipts and the earlier f20/258 UNKNOWNs/held slots are unchanged.
-No blind pack/reviews or core activation followed. No v2 model outcome is claimed.
+Historical b5 native v1 did NOT pass: 1/9 installed, one valid known Script rejection,
+seven unadmitted; 12/72 accepted first-pass operations from 13 text attempts. Reviewed
+prospective Script correction v3/native Alpha v2 then produced six D2 installations
+(47 accepted first-pass operations / 49 attempts); a seventh sample safely paused
+with Art later completed, and two were never admitted. Source/log/checkpoint/session
+references survive, but all original OS-temporary campaign runtime/package/outcome
+roots are absent. Those observations are historical; current on-disk old UNKNOWN
+ledgers/held slots can no longer be verified. Do not reconstruct, promote or clear
+them. No blind pack/reviews, core activation or recovery refresh followed.
 
-The owner delegated judgment while unavailable, and explicitly resumed the original
-combined E2E outcome after the H5 priority task. The manager selected the independently
-reviewed one-Script-correction extension under that authority. Stable `338ac39b`
-source/evidence review is closed, including purity, controlled proofs, original-byte
-replay, exact sandbox and wheel. The subsequent integration carries only the exact
-reviewed H5 grant and documentation; all nine older QA scope identities remain.
-Fresh source/tree/profile/pins/envelope must be frozen before the new predeclared
-nine-sample matrix. Prove the genuine eight-job current-installation/readback/reopen
-canary first; do not force a model rejection to demonstrate correction. If none occurs,
-disclose real-provider correction as unobserved while retaining controlled-path proof.
+The owner delegated judgment and explicitly resumed the combined E2E outcome. Stable
+`338ac39b` source/evidence review is closed; D2 also carries the exact reviewed H5
+grant and documentation, preserving all nine older QA scopes. P remains at47ab with
+nine valued projects. The reviewed prospective recovery below does not change model,
+prompts, validators, correction policy, workloads or qualification thresholds.
+
+## Prospective durable campaign and pause continuation (approved)
+
+The owner explicitly resumed after a safe pause. The D2 campaign and prior native
+campaign directories under OS temporary storage are now absent; the cause is not
+proven. Six D2 installations remain historically observed successes, with logs and
+hashed session references, but their lost trusted runtime/packages/outcomes cannot
+qualify a replacement cohort. Do not reconstruct databases or authority from sessions.
+Independent design review closed this prospective repair under the existing E2E
+mandate. No failed or UNKNOWN result is reclassified or retried.
+
+Use a fresh physical owner-only durable qualification directory outside source and
+resolved OS temporary roots, under `/Users/wjmao/.local/share/plotloom/qualification/`.
+Prepare/load refuse temporary aliases and missing original state; a missing namespace
+is never recreated. Current acceptance v3 retains the same fixed stories, nine samples,
+60/72 first-pass threshold, three blind reviews, model and correction/validator policy.
+Freeze a fresh complete matrix and current source/profile/pins/proof before admission.
+
+A user pause publishes immutable `pauses/<run-revision>` evidence, separately from
+write-once terminal `outcome` and cancellation evidence. Re-observing the same pause
+reuses its exact bytes even after its original sent attempt finishes; late drain is
+separate evidence, not retroactive adoption or a whole-ledger-equality prerequisite.
+Explicit qualification resume is narrower than product control: paused only, exact
+sample/project/run/revision/snapshot hash, original database incarnations/namespace,
+source/profile/policy and material currentness. UNKNOWN, rebound, stale, foreign and
+terminal states refuse. Existing campaign/process leases and text-prefix authority
+remain. Durable order is intent → same-run CAS → immutable acknowledgement → any
+prefix step/claim. A pending intent recovers only its original paused revision or
+exact matching running revision+1; an acknowledged intent never repeats CAS.
+Count all actual attempts and each recorded elapsed slice once across pauses.
+A pause is not a claim of worker quiescence. No new generation/retry framework.
+
+Focused real-storage/controller proofs cover late completion, exact same-attempt
+adoption/no duplicate dispatch, CAS/fault windows/refusals, cumulative accounting,
+terminal immutability and background-image exclusion. Independent source/evidence
+review precedes fresh admission; refresh source-bound 22+2 sandbox commands, seven
+controls and noneditable wheel smoke. The smallest genuine eight-job canary will
+exercise one deliberate supported pause of an already-sent healthy text attempt,
+safe drain and explicit resume/adoption, then real API/reopen. No forced rejection,
+extra generation or model change follows. Only then scale the fresh nine matrix.
+
+Focused prospective repair proof: 90 CPU/SQLite/controller/CLI and affected
+pause-UNKNOWN/safety cases passed on checked root Python3.12.13, including exact
+same-attempt receive→adopt, reopened installation and eight admissions/zero image
+calls, all four intent/ack fault windows, pause-publication interruption, immutable
+snapshot reuse after late completion, cumulative slices and path/refusal guards.
+First development failures remain in `.local/b37/resumed-integration/pause-focused-1.log`
+and `pause-affected-2.log`: a string/UUID CAS boundary defect was fixed; the last
+fixture expectation was corrected to assert the production controller's separate
+receive/adopt steps. Final selection is `pause-final-focused-5.log`. These are
+controlled transport proofs, not real native success. Source/evidence review and
+fresh exact sandbox/wheel proof still precede any new admission. Final additional
+selections passed 23 exact CLI/refusal/current-version cases and 47 pause/history,
+storage and prefix cases (`pause-last-affected-6.log`, `pause-history-7.log`); these
+overlap the earlier selection and are not additive coverage totals.
 
 ## Outcome and authority
 
@@ -131,13 +188,14 @@ backend. Do not build a general version-compatibility or archival framework.
 ### Selected native target and versioned acceptance contract
 
 The owner selected the current native Codex workbench. Use a distinct current
-acceptance version, `alpha_native_codex_three_story.v2`; retire the old mandatory
+acceptance version, `alpha_native_codex_three_story.v3`; retire the old mandatory
 two-profile Alpha execution path and its obsolete invocation tests/documentation.
 The old 18-run/six-review and four-stage 30/36 results retain their original
 meaning and cannot pass the new gate. No legacy executable or compatibility
 framework is required. The existing optional protocol-conformance path retains
-its own contracts. The original native v1 result remains failed; v2 adds the delegated prospective
-Script policy only. This version supersedes ADR 0024's four-stage arithmetic only
+its own contracts. The original native v1 result remains failed; historical v2 added
+the delegated Script policy, and v3 adds durable storage/pause continuation without
+changing generation policy. This version supersedes ADR 0024's four-stage arithmetic only
 for current native Alpha qualification, not its independent-backend principle.
 
 Reuse the current production text owners:

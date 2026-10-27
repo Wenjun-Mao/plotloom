@@ -57,11 +57,12 @@ def test_native_exact_nine_and_sixty_of_seventy_two_boundary():
     assert "alpha.sample_matrix" in native_qualification_issue_codes(rows * 2)
 
 
-@pytest.mark.parametrize("change", ["legacy-version", "secret", "float", "extra-stage", "expanded-retry", "false-install", "identity"])
+@pytest.mark.parametrize("change", ["legacy-version", "retired-native-v2", "secret", "float", "extra-stage", "expanded-retry", "false-install", "identity"])
 def test_native_receipts_reject_legacy_secret_or_fabricated_accounting(change):
     rows = native_receipts()
     row = rows[0]
     if change == "legacy-version": row["version"] = "alpha_chinese_three_story.v1"
+    if change == "retired-native-v2": row["version"] = "alpha_native_codex_three_story.v2"
     if change == "secret": row["apiKey"] = "secret-marker"
     if change == "float": row["operations"][0]["attemptCount"] = 1.0
     if change == "extra-stage": row["operations"].append(deepcopy(row["operations"][0]))

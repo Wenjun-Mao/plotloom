@@ -17,6 +17,9 @@ def frozen_campaign(tmp_path, monkeypatch):
     proof = {"test": "provider-free fixture, never native qualification"}
     monkeypatch.setattr(alpha_campaign, "source_snapshot", lambda *_: source)
     monkeypatch.setattr(alpha_campaign, "require_preflight", lambda *_: "d" * 64)
+    # These are provider-free contract fixtures in pytest's temporary storage,
+    # never admitted native campaigns. Storage refusal is exercised separately.
+    monkeypatch.setattr(alpha_campaign, "durable_campaign_root", lambda root, **_: Path(root))
     path = tmp_path / "proof.json"
     path.write_text(json.dumps(proof))
     root = tmp_path / "private-campaign"
@@ -186,3 +189,35 @@ def test_preflight_identity_recomputes_retained_production_plan_and_rejects_tamp
     path.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="does not match"):
         alpha_provenance.preflight_plan_identity(package)
+
+
+def test_campaign_storage_refuses_resolved_temp_source_alias_foreign_and_missing(tmp_path, monkeypatch):
+    root = tmp_path.resolve()
+    root.chmod(0o700)
+    temporary, source, durable = [root / name for name in ("os-temp", "source", "durable")]
+    for path in (temporary, source, durable): path.mkdir(mode=0o700)
+    monkeypatch.setattr(alpha_campaign.tempfile, "gettempdir", lambda: str(temporary))
+    check = alpha_campaign.durable_campaign_root
+    assert check(durable / "fresh", source_root=source, creating=True) == durable / "fresh"
+    for path in (temporary / "fresh", source / "fresh", Path('/tmp/native-alpha-refusal'), Path('/var/tmp/native-alpha-refusal')):
+        with pytest.raises(ValueError, match="durable"):
+            check(path, source_root=source, creating=True)
+        assert not path.exists()
+    alias = root / "alias"
+    alias.symlink_to(temporary, target_is_directory=True)
+    with pytest.raises(ValueError, match="durable"):
+        check(alias / "fresh", source_root=source, creating=True)
+    durable.chmod(0o755)
+    with pytest.raises(ValueError, match="owner-only"):
+        check(durable / "fresh", source_root=source, creating=True)
+    durable.chmod(0o700)
+    with pytest.raises(FileNotFoundError): check(durable / "missing", source_root=source)
+    assert not (durable / "missing").exists()
+
+
+def test_loading_missing_campaign_state_never_recreates_directories(tmp_path, monkeypatch):
+    root, _ = frozen_campaign(tmp_path, monkeypatch)
+    (root / "data/application").rmdir()
+    with pytest.raises(ValueError, match="original private physical state"):
+        alpha_campaign.load_campaign(root)
+    assert not (root / "data/application").exists()

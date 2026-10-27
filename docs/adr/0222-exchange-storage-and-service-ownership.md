@@ -1,9 +1,9 @@
 # ADR 0222: Qualification, exchange, storage and service ownership
 
-Status: B3–B7 source independently reviewed through executable `b5c9de51`;
-Gateway-only activation complete. Native Alpha qualification did not pass;
-prospective Script correction selected under delegated judgment, with core activation held,
-2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
+Status: B3–B7 / Script correction source independently reviewed through338;
+D2 adds the reviewed H5 grant. Gateway is activated. Native qualification remains
+incomplete; prospective durable-storage/pause repair follows closed design review,
+with core activation held. 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
 cohesive capabilities with orchestration. Move those capabilities to explicit
@@ -242,3 +242,26 @@ count first pass. Exhaustion blocks; leases, CAS, currentness and snapshot guard
 Existing source-owned correction storage/controller/package owners implement the change;
 no second pipeline or generic retry framework. Focused replay/controlled-child evidence
 and independent source review precede new genuine correction/native-matrix admission.
+
+
+The D2 qualification's OS-temporary campaign state disappeared after a user-directed
+safe pause; cause unproven. Its six observed installations remain historical, with
+lost trusted runtime evidence, and are not promoted into a replacement matrix.
+Prospective native Alpha v3 requires physical owner-only durable storage outside
+source and resolved OS temporary roots; absent original roots/databases never
+recreate an incarnation. Existing model/workloads/validators/corrections and gates
+are unchanged. This is recovery from missing disposable state, not rerolling a rejection.
+
+User pauses have immutable revision-specific snapshots separate from terminal
+outcomes. Late completion preserves snapshot bytes and records drain separately.
+Qualification resume binds exact sample/project/run/revision/snapshot, original
+namespace/database incarnations, source/profile/policy and currentness, refusing
+UNKNOWN/stale/rebound/terminal states. Existing leases and text prefix remain the
+only execution authority. Fsynced intent precedes same-run CAS, immutable ack
+precedes every step/claim; interruption recovery accepts only the original paused
+revision or exact matching running revision+1, without repeating acknowledged CAS.
+Recorded elapsed slices and all actual attempts count once. A pause does not imply
+worker quiescence. No successor-reader or multi-version compatibility framework.
+Focused fault/reopen/identity/hold proofs and independent review precede a fresh
+frozen nine-sample cohort; its real canary deliberately pauses/drains/resumes one
+healthy sent attempt without duplicate dispatch, before scale and unchanged gates.

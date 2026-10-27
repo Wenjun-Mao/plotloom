@@ -63,7 +63,7 @@ def test_terminal_publication_fault_reopens_installed_project_without_dispatch(t
         with closing(storage.projects.open(run.project_id)) as store:
             readback = installed_text_readback(store)
         evidence = tmp_path / "sample-evidence"
-        evidence.mkdir()
+        evidence.mkdir(mode=0o700)
         values = {"receipt": {"status": "installed"}, "bindings": readback,
             "content": {"canonical": "retained"}}
         write = alpha_campaign.write_private_json

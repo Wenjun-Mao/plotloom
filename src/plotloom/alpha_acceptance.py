@@ -19,10 +19,15 @@ def main(argv=None):
     prepare.add_argument("--campaign", type=Path, required=True)
     prepare.add_argument("--codex", type=Path, required=True)
     prepare.add_argument("--preflight-proof", type=Path, required=True)
-    for name in ("run", "cancel"):
+    for name in ("run", "cancel", "resume"):
         command = commands.add_parser(name, help="Use the source-owned isolated workbench for one exact sample")
         command.add_argument("--campaign", type=Path, required=True)
         command.add_argument("--sample", required=True)
+        if name == "resume":
+            command.add_argument("--project", required=True)
+            command.add_argument("--run", required=True)
+            command.add_argument("--revision", type=int, required=True)
+            command.add_argument("--pause-hash", required=True)
     publish = commands.add_parser("publish-review", help="Atomically publish the three preselected blind samples")
     publish.add_argument("--campaign", type=Path, required=True)
     publish.add_argument("--review-directory", type=Path, required=True)
@@ -39,7 +44,7 @@ def main(argv=None):
             campaign = prepare_campaign(args.campaign, args.codex, args.preflight_proof)
             print(json.dumps({"version": campaign.version, "samples": len(campaign.samples),
                 "commit": campaign.source["commit"], "contractHash": campaign.contract_hash}))
-        elif args.command in {"run", "cancel"}:
+        elif args.command in {"run", "cancel", "resume"}:
             root = source_checkout_root()
             load_campaign(args.campaign, check_source=True)
             runtime = root / "services/creator_workbench/alpha_native_runtime.py"
@@ -48,6 +53,12 @@ def main(argv=None):
             command = [sys.executable, str(runtime), "--campaign", str(args.campaign), "--sample", args.sample]
             if args.command == "cancel":
                 command.append("--cancel")
+            if args.command == "resume":
+                from .alpha_pause import QualificationResume
+                request = QualificationResume(project_id=args.project, run_id=args.run,
+                    revision=args.revision, snapshot_hash=args.pause_hash)
+                command.extend(["--resume-project", str(request.project_id), "--resume-run", str(request.run_id),
+                    "--resume-revision", str(request.revision), "--pause-hash", request.snapshot_hash])
             return subprocess.run(command, cwd=root, check=False).returncode
         elif args.command == "publish-review":
             paths, _mapping = publish_native_review_pack(args.campaign, args.review_directory)
