@@ -1,5 +1,13 @@
 # Plotloom roadmap entrypoint
 
+## Approved disposable QA authorization repair
+
+The [bounded repair](2026-10-27-qa-runtime-authorization.md) addresses all nine
+existing projects' nonportable write-grant refusals. It requires exact-scope
+adoption, real Docker/restart and copy/restore refusal evidence, independent review,
+one local qualification owner and preservation-checked core activation/recovery.
+No fresh generation, creative acceptance, unrelated service restart, push or CI.
+
 ## Completed B3–B7 software delivery; native Alpha quality failed
 
 The [combined delivery](2026-10-26-b3-b7-backend-and-services-ownership.md) is

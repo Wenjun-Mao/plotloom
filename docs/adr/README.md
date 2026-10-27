@@ -168,3 +168,7 @@ is the deployment authority, not the historical experimental callback.
 [ADR 0221](0221-backend-contract-and-http-ownership.md) owns the backend contract
 leaves, direct consumer direction and canonical HTTP registration policy. Its local
 composite qualification is separate from installed activation and owner acceptance.
+
+[ADR 0223](0223-durable-runtime-grant-identity.md) replaces durable filesystem-stat
+grant identity with DB-attached installation-local metadata while preserving exact
+QA scopes, truthful attribution and supported copy/restore refusal.

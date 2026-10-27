@@ -65,7 +65,7 @@ def test_adoption_without_current_execution_authority_never_submits(tmp_path, st
             store.update_stage(StageName.STORYBOARD, board.model_copy(update={"shots": [shot, *board.shots[1:]]}), expected_revision=head.revision)
     if state == "missing_grant":
         with storage.application._write() as connection:
-            connection.execute("DELETE FROM video_batch_grants WHERE batch_id=?", (successor["id"],))
+            connection.execute("DELETE FROM runtime_execution_grants WHERE batch_id=?", (successor["id"],))
     with closing(storage.projects.open(project_id)) as store:
         with pytest.raises(InvalidTransitionError):
             service.video.submit(store, job["id"])

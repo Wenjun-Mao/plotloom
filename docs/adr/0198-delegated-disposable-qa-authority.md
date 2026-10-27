@@ -6,6 +6,10 @@
 
 Status: accepted implementation decision, 2026-10-19
 
+The durable runtime device/inode binding below is superseded by
+[ADR 0223](0223-durable-runtime-grant-identity.md). Exact source scopes, attribution,
+budget limits and portable-evidence versus local-authority boundaries remain.
+
 ## Su Tang six-clip preview scope addition · 2026-10-26
 
 The owner explicitly requested Plotloom-generated game-character videos for
