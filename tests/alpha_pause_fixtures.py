@@ -50,5 +50,3 @@ def complete_original(storage, host):
     with closing(storage.projects.open(str(attempt.project_id))) as store:
         host.complete(store, host.request(store, attempt), attempt)
     return attempt
-
-

@@ -34,4 +34,3 @@ class ImageDirectionDraftPayload(CamelModel):
     target_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9._:-]+$")
     context_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9._:-]+$")
     presentation_change: str = Field(max_length=2_000)
-
