@@ -16,7 +16,7 @@ from plotloom.codex_exec_runtime import package_tree_hash
 NATIVE_PID = 54321
 
 
-def _execute_image(supervisor, tmp_path, monkeypatch, mode, *, reconnect=False):
+def _execute_image(supervisor, tmp_path, monkeypatch, mode, *, reconnect=False, catalogs=False):
     import codex_exec_supervisor_process as process_owner
 
     import codex_exec_terminal_inspection as telemetry_owner
@@ -134,6 +134,9 @@ def _execute_image(supervisor, tmp_path, monkeypatch, mode, *, reconnect=False):
             events = [{'type': 'thread.started', 'thread_id': str(session_id)}, {'type': 'turn.started'}]
             if reconnect:
                 events.append({'type': 'error', 'message': 'Reconnecting... 2/5 (exceeded retry limit, last status: 429 Too Many Requests)'})
+            if catalogs:
+                from tests.codex_exec_catalog_fixtures import empty_catalog_pair
+                events.extend(empty_catalog_pair())
             events.append({'type': 'turn.completed'})
             for event in events:
                 stdout.write((json.dumps(event) + '\n').encode())
@@ -219,3 +222,15 @@ def test_recovered_image_transport_preserves_unknown_budget_and_slot_before_sett
     with closing(supervisor._connect()) as connection:
         assert connection.execute("SELECT * FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
         assert connection.execute("SELECT * FROM exec_recovery_evidence WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone() is None
+
+
+@pytest.mark.parametrize("mode", ["failed-null", "no-remote-call"])
+def test_image_empty_catalogs_preserve_unknown_before_any_settlement(supervisor, tmp_path, monkeypatch, mode):
+    attempt, result, _session, groups, parsed = _execute_image(supervisor, tmp_path, monkeypatch, mode, catalogs=True)
+    assert groups == [NATIVE_PID] and not parsed  # Default/image reader refuses before session/content settlement.
+    assert result.state == "outcome_unknown" and result.receipt is None
+    assert result.attempt.image_budget_state == "reserved" and result.attempt.reserved_image_outputs == 1
+    assert result.attempt.terminal_result is None and result.attempt.process_exit_code is None
+    with closing(supervisor._connect()) as connection:
+        assert connection.execute("SELECT * FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
+        assert connection.execute("SELECT * FROM exec_recovery_evidence").fetchall() == []

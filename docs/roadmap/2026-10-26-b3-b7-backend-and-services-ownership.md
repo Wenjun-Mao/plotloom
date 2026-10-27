@@ -1,13 +1,12 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Native Alpha v3 source/pause implementation independently reviewed at
-`54726f69`; its real canary proved pause/drain/same-attempt resume and current
-installation. The second cell stopped on a genuine Bridge Presentation content
-rejection: 1 installed, 1 blocked, 7 unadmitted, 14/72 first-pass operations from
-17 attempts. Qualification did NOT pass. Under delegated judgment, the manager
-selected narrowly scoped producer schema/instruction hardening after independent
-causal/method review; no retry or correction-policy expansion. Source/evidence
-review precedes any fresh cohort. Gateway remains activated; core activation held**.
+Status: **Reviewed producer source `95213d31` installed two real samples, then
+stopped on an unsupported empty-catalog CLI event in the third sample: 2 installed,
+1 UNKNOWN, 6 unadmitted, 16/72 first-pass operations from 17 attempts. Qualification
+did NOT pass. Its canonical UNKNOWN and one held slot remain unchanged, with all
+owned processes absent. Independent causal/method review authorized a prospective
+TEXT-only decoder compatibility fix; source/evidence review precedes any fresh
+admission. Gateway remains activated; core activation held**.
 Date: 2026-10-27.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
@@ -15,9 +14,11 @@ Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
 exact H5 QA grant `31ab677b` and completion documentation. Nine valued projects,
 including H5 project `b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6` and its six confirmed
 clips, must be preserved. Runtime activation/recovery belongs to the manager. A manager read-only pre-release
-probe found the H5 QA context already ineligible/required: retained grants do not
-match the current Linux project database incarnation. Cause is unproven; preserve
-and disclose this existing refusal, with no grant repair in this scope.
+probe found all nine QA contexts already required/ineligible with null attribution:
+none of their 25 Linux grant rows matches its current project database incarnation.
+Only H5's exact inode mismatch was inspected; cause is unproven. Preserve and
+disclose these existing refusals, with no grant repair in this scope. The six H5
+selected videos retain current metadata and minimal range-read HTTP206 evidence.
 
 Historical b5 native v1 did NOT pass: 1/9 installed, one valid known Script rejection,
 seven unadmitted; 12/72 accepted first-pass operations from 13 text attempts. Reviewed
@@ -35,6 +36,57 @@ grant and documentation, preserving all nine older QA scopes. P remains at47ab w
 nine valued projects. The durable-storage/pause repair changed no generation instructions or validators.
 The producer method below changes stage assignment/schema/skill guidance only;
 model, correction policy, workloads and qualification thresholds stay fixed.
+
+## Empty catalog telemetry compatibility (approved prospective repair)
+
+The `95213d31` third cell ended UNKNOWN before content validation. Its immutable
+35,026-byte stream (`1bae42aadaf9ba7ab962a209a4084e31e0239162bc19f30721b3ed93a0e818a8`)
+contains one normal completed turn and an exact session (`1c460234…`), plus paired
+`codex` MCP `list_mcp_resources` / `list_mcp_resource_templates` observations.
+Each has empty arguments, null error, and a completed result containing exactly
+one text block with `{"resources":[]}` or `{"resourceTemplates":[]}` and null
+`structured_content`. These are bounded empty catalog observations, not arbitrary
+MCP execution authority. The strict reader currently rejects their item type.
+The separately retained wait result is exit0; it does not promote the host UNKNOWN.
+Canonical outcomes, original packages/session/DB identities and the held slot stay
+immutable at `/Users/wjmao/.local/share/plotloom/qualification/native-alpha-95213d31-20261027`.
+Exact hashes/ownership proof: `.local/b37/resumed-integration/native-95213d31-terminal-checkpoint.json`.
+
+Under delegated judgment and independent causal/method review, add only prospective
+TEXT recognition of these exact shapes. Require one open turn, bounded unique IDs,
+exact start→completion binding, source-owned tool/server/empty arguments, no extra
+fields and no dangling call at termination. Retain immutable ordinal/hash/size
+metadata and the complete stream hash. Default/image readers and direct/postmortem
+NoRemoteDispatch remain strict; image holds must refuse before any failure or
+completion settlement. No new tool/server permissions, prompts, models, correction
+policy, validator or acceptance changes. Author/model/content ownership is unchanged;
+normal exit0, exact complete session, confinement and trusted validate/render still
+own text success. Do not validate/adopt the old candidate or settle its UNKNOWN.
+
+The 376-line shared reader will consume a cohesive pure catalog-state leaf rather
+than grow a general MCP framework. Focused proofs replay original immutable bytes
+without adoption and check clean streams plus malformed/extra/nonempty/error/ref,
+foreign/mutating tools, duplicate/mismatched/incomplete/out-of-turn/after-terminal
+items, text content/exit failures, image holds and direct recovery refusal. Protect
+all original files and 17 host states (16 completed + 1 UNKNOWN, slot1) before/after.
+A clean source/evidence checkpoint returns for independent review before refreshed
+source-bound sandbox/wheel proof or any new frozen cohort. Prior547's content failure
+and real safe-pause proof retain their meanings; no failed cohort is salvaged.
+
+Initial focused proof passed 137 CPU/controlled-child/runtime/recovery cases
+(`catalog-focused-1.log`). Exact prospective replay recognizes both observations,
+while all 16 prior clean streams retain identical evidence in both reader modes.
+The before/after proof protects 280 existing files plus all host-state/slot tables;
+17 original states remain 16 completed + 1 UNKNOWN with one held slot. No old
+candidate validation/adoption occurred (`catalog-immutable-replay.json`). The shared
+reader remains 395 lines; a 77-line pure pair-state leaf owns the added responsibility.
+Affected profile/pin, dependency/purity, lifecycle and invocation checks passed 99
+cases (`catalog-affected-2.log`), including mutation of the actual decoder leaf
+changing the validator/profile identity. Final expanded catalog/text-domain negatives
+passed 62 cases (`catalog-final-3.log`); this overlaps the initial selection and is
+not an additive total. Native module ownership discovery passed without test bodies
+(`catalog-module-discovery.log`). No model calls or full release gate ran for this
+checkpoint; independent review still precedes fresh envelope/admission.
 
 ## Prospective durable campaign and pause continuation (approved)
 

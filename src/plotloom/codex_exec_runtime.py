@@ -14,6 +14,7 @@ from uuid import UUID
 
 from .codex_exec_contracts import package_manifest_hash
 from .codex_exec_files import read_confined_regular_file, scan_regular_tree
+from .codex_exec_catalog import EmptyCatalogItems, ExecEmptyCatalogCall
 
 
 class CodexExecRuntimeError(ValueError):
@@ -72,6 +73,7 @@ class ExecStreamEvidence:
     diagnostics: tuple[ExecDiagnostic, ...]
     file_changes: tuple[ExecFileChange, ...]
     transport_diagnostics: tuple[ExecTransportDiagnostic, ...] = ()
+    empty_catalog_calls: tuple[ExecEmptyCatalogCall, ...] = ()
 
 
 MAX_DIAGNOSTICS = 128
@@ -105,6 +107,7 @@ def read_exec_events(
     *,
     max_event_bytes: int,
     max_total_bytes: int,
+    allow_empty_catalog_calls: bool = False,
 ) -> ExecStreamEvidence:
     """Validate the pinned ``codex exec --json`` terminal event stream."""
     if max_event_bytes < 1 or max_total_bytes < max_event_bytes:
@@ -124,6 +127,8 @@ def read_exec_events(
     file_changes: list[ExecFileChange] = []
     file_change_ids: set[str] = set()
     turn_started = False
+    catalog = EmptyCatalogItems()
+    other_item_ids: set[str] = set()
     first = True
     try:
         initial = os.fstat(descriptor)
@@ -177,6 +182,18 @@ def read_exec_events(
                         if not isinstance(item, dict) or not isinstance(item.get("type"), str):
                             raise CodexExecRuntimeError("Codex CLI item event has an unsupported item type")
                         item_type = item["type"]
+                        if item_type == "mcp_tool_call":
+                            if not allow_empty_catalog_calls or not turn_started:
+                                raise CodexExecRuntimeError("Codex catalog items require prospective text inspection")
+                            try:
+                                catalog.accept(record, raw, len(event_types) - 1, other_item_ids)
+                            except ValueError as error:
+                                raise CodexExecRuntimeError("Codex catalog item is not a qualified empty observation") from error
+                            continue
+                        if isinstance(item.get("id"), str):
+                            if item["id"] in catalog.item_ids:
+                                raise CodexExecRuntimeError("Codex catalog item ID collides with another item")
+                            other_item_ids.add(item["id"])
                         if item_type == "error":
                             diagnostic = _read_diagnostic_item(item, event_type)
                             if diagnostic.item_id in diagnostic_ids or diagnostic.item_id in file_change_ids:
@@ -226,9 +243,11 @@ def read_exec_events(
             raise CodexExecRuntimeError("Codex CLI turn terminal lacks turn.started")
         if pending_file_changes:
             raise CodexExecRuntimeError("Codex CLI stream ends with an incomplete file-change item")
+        if catalog.pending:
+            raise CodexExecRuntimeError("Codex CLI stream ends with an incomplete catalog item")
         return ExecStreamEvidence(
             started[0], digest.hexdigest(), total, tuple(event_types), terminal[0],
-            tuple(diagnostics), tuple(file_changes), tuple(transport_diagnostics),
+            tuple(diagnostics), tuple(file_changes), tuple(transport_diagnostics), tuple(catalog.calls),
         )
     finally:
         os.close(descriptor)

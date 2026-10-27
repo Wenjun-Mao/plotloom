@@ -295,3 +295,24 @@ expansion, model/effort/limit/gate change or old-outcome promotion. Acceptance v
 policy is unchanged; new source/schema/package/skill/pins/profile bind the changed
 producer method. Focused immutable replay/all-role/receiving/reopen proofs and
 independent review precede a fresh exact envelope and genuinely fresh nine IDs.
+
+The reviewed952 producer installed two samples, then its third Outline ended
+UNKNOWN before content validation because the current CLI emitted two unsupported
+empty catalog item pairs. The exact `codex` tools are `list_mcp_resources` and
+`list_mcp_resource_templates`, arguments `{}`, null errors, and one completed text
+block containing exactly the matching empty JSON catalog, with null structured
+content. The stream/session completed and a separate exit0 wait result exists;
+this is a decoder compatibility defect, not a model-content acceptance result.
+The original952 canonical UNKNOWN, candidate, identities and held slot stay intact.
+
+Under delegated judgment and independent causal/method review, recognize only
+these source-owned observed shapes in prospective TEXT inspection. A pure catalog
+state leaf owns bounded unique IDs, exact start/completion binding and immutable
+ordinal/hash/size evidence; the shared reader retains turn/terminal/file/byte guards.
+Default and image inspection plus direct/postmortem NoRemoteDispatch still refuse;
+image refusal precedes all settlement. Normal exit0, exact complete session, package
+confinement and unchanged content validate/render remain necessary for text success.
+This adds no MCP tool/server permission, prompt/model change, retry or correction
+grant. Author/model/trusted content ownership and qualification gates are unchanged.
+Protected immutable replay and positive/negative/hold proofs precede independent
+source review, fresh envelope proof and any genuinely fresh qualification cohort.

@@ -7,7 +7,8 @@ from plotloom.codex_exec_telemetry import read_cli_session
 def inspect_terminal(attempt, profile, job_root, stdout_path, codex_home):
     if package_tree_hash(job_root, max_total_bytes=profile.max_output_bytes) != attempt.package_hash:
         raise CodexExecRuntimeError("Codex Exec frozen package changed during the process")
-    stream = read_exec_events(stdout_path, max_event_bytes=profile.max_event_bytes, max_total_bytes=profile.max_output_bytes)
+    stream = read_exec_events(stdout_path, max_event_bytes=profile.max_event_bytes,
+        max_total_bytes=profile.max_output_bytes, allow_empty_catalog_calls=attempt.domain == "text")
     assert_file_changes_confined(stream, job_root / "delivery")
     session_path = locate_exact_session(codex_home, stream.session_id)
     session = read_cli_session(
@@ -22,9 +23,9 @@ def inspect_terminal(attempt, profile, job_root, stdout_path, codex_home):
 def inspect_domain_evidence(attempt, stdout_path, session_path, stream, session,
                             job_root, source_root) -> bool:
     """Reject text/ImageGen contamination and require strict image no-dispatch proof."""
-    # Transport recovery does not prove the outcome of an image-side effect.
+    # Transport recovery or an empty catalog does not settle image-side effects.
     # Refuse before either the process failure or success path can settle it.
-    if attempt.domain == "image" and stream.transport_diagnostics:
+    if attempt.domain == "image" and (stream.transport_diagnostics or stream.empty_catalog_calls):
         return False
     if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
         return False

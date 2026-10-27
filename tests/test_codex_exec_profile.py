@@ -125,6 +125,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "scripts/provision_codex_exec_python.py",
         "src/plotloom/codex_exec_prompts.py",
         "src/plotloom/codex_exec_runtime.py",
+        "src/plotloom/codex_exec_catalog.py",
         "src/plotloom/codex_exec_telemetry.py",
         "src/plotloom/codex_exec_tool_source.py",
         "src/plotloom/autopilot_exec.py",
@@ -228,3 +229,14 @@ def test_v8_requires_the_current_checked_python_permission_and_capacity_contract
         "textValidatorRuntimeProfile": "node_openssl_private_zsh_tmp_and_validator_aliases_v2",
     })
     assert retained_v6.profile_hash != current.profile_hash
+
+
+def test_empty_catalog_decoder_is_bound_into_the_validator_profile(observed_cli):
+    module, executable, source, _observation = observed_cli
+    first = module.build_codex_exec_profile(executable, source_root=source)
+    leaf = source / 'src/plotloom/codex_exec_catalog.py'
+    assert leaf.is_file() and 'src/plotloom/codex_exec_catalog.py' in module.VALIDATOR_FILES
+    leaf.write_text(leaf.read_text() + '\n# Test-owned changed decoder identity.\n')
+    changed = module.build_codex_exec_profile(executable, source_root=source)
+    assert changed.validator_hash != first.validator_hash
+    assert changed.profile_hash != first.profile_hash

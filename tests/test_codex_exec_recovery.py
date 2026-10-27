@@ -73,3 +73,12 @@ def test_reconnect_diagnostic_cannot_prove_no_remote_dispatch(read_turn):
     save_rows(private / "stdout.jsonl", records)
     with pytest.raises(ValueError, match="complete turn without remote or file effects"):
         prove_no_remote_dispatch(private / "stdout.jsonl", rollout, session, job_root=job, source_root=source)
+
+
+def test_empty_catalogs_cannot_prove_no_remote_dispatch(read_turn):
+    from tests.codex_exec_catalog_fixtures import empty_catalog_pair
+    job, source, private, rollout, session, _rows, records = read_turn
+    records[2:2] = empty_catalog_pair()
+    save_rows(private / "stdout.jsonl", records)
+    with pytest.raises(ValueError, match="prospective text inspection"):
+        prove_no_remote_dispatch(private / "stdout.jsonl", rollout, session, job_root=job, source_root=source)

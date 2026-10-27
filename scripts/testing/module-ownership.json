@@ -661,7 +661,9 @@
           "tests/test_specialist_workflow.py",
           "tests/video_backends/minimax_h3/test_transport.py",
           "tests/test_codex_exec_transport_diagnostics.py",
-          "tests/services/creator_workbench/test_codex_exec_transport_diagnostics.py"
+          "tests/services/creator_workbench/test_codex_exec_transport_diagnostics.py",
+          "tests/test_codex_exec_catalog.py",
+          "tests/services/creator_workbench/test_codex_exec_catalog.py"
         ],
         "vitest": [
           "frontend/tests/bridge-choice-retry.test.ts",
@@ -844,6 +846,14 @@
     {
       "suite": "pytest",
       "path": "tests/codex_exec_runtime_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/codex_exec_catalog_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "shared-provider-dispatch"

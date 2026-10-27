@@ -77,6 +77,7 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_auth.py",
     "src/plotloom/codex_exec_prompts.py",
     "src/plotloom/codex_exec_runtime.py",
+    "src/plotloom/codex_exec_catalog.py",
     "src/plotloom/codex_exec_recovery.py",
     "src/plotloom/codex_exec_stage_routing.py",
     "src/plotloom/codex_exec_validation.py",

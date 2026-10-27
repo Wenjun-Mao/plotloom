@@ -78,15 +78,19 @@ def test_postmortem_settles_only_exact_attempt_and_retains_original_unknown(supe
 
 
 @pytest.mark.parametrize("defect", ["changed-package", "stderr", "delivery", "validator", "live-group", "live-pid",
-                                    "stale-snapshot", "ambiguous-session", "missing-session", "reconnect"])
+                                    "stale-snapshot", "ambiguous-session", "missing-session", "reconnect", "empty-catalog"])
 def test_recovery_refuses_ambiguity_without_any_settlement(supervisor, recoverable, monkeypatch, defect):
     import codex_exec_supervisor_recovery as owner
     unknown, private, job, rollout, session = recoverable
     requested = unknown
-    if defect == "reconnect":
+    if defect in {"reconnect", "empty-catalog"}:
         path = private / "stdout.jsonl"
         rows = [json.loads(line) for line in path.read_bytes().splitlines()]
-        rows.insert(2, {"type": "error", "message": "Reconnecting... 2/5 (exceeded retry limit, last status: 429 Too Many Requests)"})
+        if defect == "reconnect":
+            rows.insert(2, {"type": "error", "message": "Reconnecting... 2/5 (exceeded retry limit, last status: 429 Too Many Requests)"})
+        else:
+            from tests.codex_exec_catalog_fixtures import empty_catalog_pair
+            rows[2:2] = empty_catalog_pair()
         path.write_text("".join(json.dumps(row) + "\n" for row in rows))
     elif defect == "changed-package": (job / "package/request.json").write_text("{}")
     elif defect == "stderr": (private / "stderr.log").write_text("unaccounted CLI diagnostic")
