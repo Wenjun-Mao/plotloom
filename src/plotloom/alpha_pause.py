@@ -139,9 +139,9 @@ def _observe_sent(store, registry, view, directory):
         if attempt is None or checkpoint["state"] in {"adopted", "failed"}:
             continue
         status = registry.codex_exec_status(attempt.attempt_id)
-        if (status.state in {"not_found", "outcome_unknown", "failed", "settled"} or status.attempt is None
+        if (status.state in {"not_found", "outcome_unknown", "settled"} or status.attempt is None
                 or _identity(status.attempt) != _identity(attempt)):
-            raise ValueError("paused attempt is missing, failed, UNKNOWN or rebound")
+            raise ValueError("paused attempt is missing, settled, UNKNOWN or rebound")
         observations.append(status.model_dump(mode="json", by_alias=True))
     root = private_directory(directory / "drains", create=True)
     digest = sha256(canonical_json(observations).encode()).hexdigest()

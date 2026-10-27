@@ -10,7 +10,7 @@ from urllib.request import ProxyHandler, build_opener
 import uvicorn
 from isolated import RuntimeConfig, compose
 
-from plotloom.alpha_campaign import campaign_lease, load_campaign, write_private_json, publish_sample_outcome
+from plotloom.alpha_campaign import campaign_lease, load_campaign, private_directory, write_private_json, publish_sample_outcome
 from plotloom.alpha_publication import content_only_review_payload
 from plotloom.alpha_pause import (QualificationResume, database_identity, pause_directories,
     pause_snapshot, publish_pause, recorded_duration, require_original_runtime, resume_paused_sample)
@@ -49,8 +49,11 @@ def run_sample(work_root, sample_id, *, cancel=False, resume=None):
         sample = next((s for s in campaign.samples if s.sample_id == sample_id), None)
         if sample is None:
             raise ValueError("sample is outside the frozen native matrix")
-        evidence = root / "evidence" / sample_id
-        evidence.mkdir(exist_ok=True, mode=0o700)
+        evidence = private_directory(root / "evidence" / sample_id, create=True)
+        reserved = [evidence / name for name in ("outcome", "cancellation", "pauses", "resumptions", "runtime.json")]
+        reserved.append(root / "private/runtime.json")
+        if any(path.is_symlink() for path in reserved):
+            raise ValueError("reserved qualification evidence cannot be an alias")
         receipt_file = evidence / "outcome/receipt.json"
         if receipt_file.exists() and not cancel:
             raise ValueError("sample already has an outcome; inspect it instead of repeating native work")

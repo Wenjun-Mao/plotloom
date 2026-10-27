@@ -7,49 +7,14 @@ import pytest
 
 from plotloom import alpha_pause
 from plotloom.alpha_campaign import publish_sample_outcome, write_private_json
-from plotloom.alpha_pause import (QualificationResume, database_identity, pause_snapshot,
+from plotloom.alpha_pause import (database_identity, pause_snapshot,
     publish_pause, recorded_duration, require_original_runtime, resume_paused_sample)
 from plotloom.alpha_receipts import collect_native_evidence, installed_text_readback
 from plotloom.autopilot_contracts import RunControlRequest
 from plotloom.autopilot_service import AutopilotService
 from plotloom.autopilot_text_prefix import AutopilotTextPrefix
 from plotloom.project_storage import ProjectStorageCorruptionError
-from tests.autopilot_controller_fixtures import environment
-
-
-def sent_pause(tmp_path, monkeypatch):
-    storage, registry, original, run, _ = environment(tmp_path, monkeypatch, auto_deliver=False, early_references=True)
-    prefix = AutopilotTextPrefix(storage, registry)
-    prefix.__enter__()
-    host = registry._codex_exec_test_host
-    for _ in range(8):
-        view = prefix.step(run.project_id)
-        if host.admissions:
-            break
-    assert host.admissions == 1
-    view = prefix.service.control(run.project_id,
-        RunControlRequest(action="pause", expected_revision=view.revision), expected_run_id=run.id)
-    evidence = tmp_path / "evidence/story-01-repeat-01"
-    evidence.mkdir(parents=True, mode=0o700)
-    snapshot = {"commit": view.policy.code_revision, "profileHash": view.policy.executor_binding.profile_hash}
-    with closing(storage.projects.open(run.project_id)) as store:
-        receipt, bindings = collect_native_evidence(store, view, snapshot=snapshot,
-            contract_hash="b" * 64, sample_id=evidence.name, duration_ms=125)
-        identity = snapshot | {"contractHash": "b" * 64, "namespaceBinding": "controlled-fixture-not-native-proof", "databases": {
-            "project": database_identity(store.database_path), "application": database_identity(storage.application.path)}}
-    write_private_json(evidence / "runtime.json", identity)
-    path, digest = publish_pause(evidence, receipt=receipt.model_dump(mode="json", by_alias=True),
-        bindings=bindings, runtime_identity=identity, elapsed_ms=125)
-    request = QualificationResume(project_id=run.project_id, run_id=run.id,
-        revision=view.revision, snapshot_hash=digest)
-    return storage, registry, original, prefix, host, run, evidence, path, request, identity, snapshot
-
-
-def complete_original(storage, host):
-    attempt = next(iter(host.statuses.values())).attempt
-    with closing(storage.projects.open(str(attempt.project_id))) as store:
-        host.complete(store, host.request(store, attempt), attempt)
-    return attempt
+from tests.alpha_pause_fixtures import sent_pause, complete_original
 
 
 def test_late_completion_reuses_pause_bytes_and_adopts_exact_attempt_without_duplicate(tmp_path, monkeypatch):

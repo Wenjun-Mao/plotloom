@@ -86,7 +86,17 @@ controlled transport proofs, not real native success. Source/evidence review and
 fresh exact sandbox/wheel proof still precede any new admission. Final additional
 selections passed 23 exact CLI/refusal/current-version cases and 47 pause/history,
 storage and prefix cases (`pause-last-affected-6.log`, `pause-history-7.log`); these
-overlap the earlier selection and are not additive coverage totals.
+overlap the earlier selection and are not additive coverage totals. Bounded independent
+source review then required upfront physical/private selected-evidence and lexical
+reserved-name alias refusal before compose/launch, plus removal of an unnecessary
+blanket host-known-failed veto. After strict attempt identity observation and durable
+ack, only the unchanged controller may make its capped typed correction or ordinary
+non-content block; UNKNOWN still refuses. Actual owner path refusals leave compose,
+launch and foreign targets untouched. Regressions passed 57 controlled cases
+(`pause-review-fixes-8.log`), including paused typed rejection → exactly one existing
+correction/adoption, non-content → block/no replacement and UNKNOWN → refusal.
+The ffb source-bound proof remains actual superseded evidence, not fresh-candidate
+admission authority.
 
 ## Outcome and authority
 

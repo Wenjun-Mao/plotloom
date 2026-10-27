@@ -265,3 +265,10 @@ worker quiescence. No successor-reader or multi-version compatibility framework.
 Focused fault/reopen/identity/hold proofs and independent review precede a fresh
 frozen nine-sample cohort; its real canary deliberately pauses/drains/resumes one
 healthy sent attempt without duplicate dispatch, before scale and unchanged gates.
+
+The reviewed implementation refuses selected-evidence/private-path and lexical
+reserved-name aliases before compose or launch. A known failed sent attempt is
+observed with its strict original identity, then the existing controller may
+reconcile it only after durable resume acknowledgement: typed rejection uses the
+unchanged capped correction, non-content failure blocks, and UNKNOWN still refuses.
+The sample's terminal outcome remains immutable and cannot resume.
