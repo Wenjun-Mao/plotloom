@@ -127,11 +127,17 @@ def _current_checkpoint_validation_plan(request, *, execution_pin, source_revisi
 
 
 def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revision):
+    from ...codex_exec_validation import CodexExecTextValidationPlan
+
     if request.stage == "outline":
         from ...codex_exec_retained_outline import retained_outline_package_projection
-        from ...codex_exec_validation import CodexExecTextValidationPlan
 
         expected = retained_outline_package_projection(request, execution_pin, source_revision=source_revision)
+        return CodexExecTextValidationPlan.model_validate(expected["validationPlan"])
+    if request.stage == "storyboard" and "storyboard-style-contract.json" in request.input_artifacts:
+        from ...codex_exec_retained_storyboard import retained_storyboard_package_projection
+
+        expected = retained_storyboard_package_projection(request, execution_pin, source_revision=source_revision)
         return CodexExecTextValidationPlan.model_validate(expected["validationPlan"])
     return _current_checkpoint_validation_plan(request, execution_pin=execution_pin, source_revision=source_revision)
 

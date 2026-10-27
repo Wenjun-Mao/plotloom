@@ -38,6 +38,7 @@ PINNED_SOURCES = (
     Path("src/plotloom/image_delivery_reader.py"),
     Path("src/plotloom/image_delivery_manifest.py"),
     Path("src/plotloom/codex_exec_host_client.py"),
+    Path("src/plotloom/codex_exec_retained_storyboard.py"),
     Path("src/plotloom/image_exchange_packages.py"),
     Path("src/plotloom/image_package_publication.py"),
     Path("src/plotloom/package_publication_lock.py"),

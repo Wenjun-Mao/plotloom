@@ -1,14 +1,16 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Reviewed source `791f6fec` installed its first v4 canary with eight first-pass
-operations, then blocked sample two on malformed Art structure. The cohort remains
-1 installed / 1 blocked / 7 unadmitted, with 11/72 first-pass operations from 12
-attempts. Qualification did NOT pass. Independent causal/design review closed a
-prospective versioned Art structural-result repair under delegated judgment.
-Implementation/control proofs are complete; stable independent source review is
-pending. No new cohort or full run is authorized.
-Original outcomes and the earlier `95213d31` UNKNOWN/held slot stay unchanged.
-Gateway remains activated; core activation and recovery remain held**.
+Status: **The `79668e1a` native cohort completed nine current installations,
+68/72 first-pass operations and 76 actual attempts. Alpha FAILED independent blind
+quality: narrative clarity and pacing/edit cost medians were 3, below 4. No waiver,
+new generation or owner acceptance follows. The software-only C4 activation then
+exposed a retained Storyboard provenance readback regression in one valued project.
+The manager rolled P back to `47ab708f`; all nine QA contexts and the exact logical
+preservation baseline were restored. A bounded passive provenance/inherited snapshot
+repair is being qualified before independent source review, fresh source-bound
+proof and one final full. Gateway stays activated; core activation and recovery
+remain manager-owned and held. Original native outcomes and the 952 UNKNOWN/held
+slot remain immutable**.
 Date: 2026-10-27.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
@@ -1265,3 +1267,26 @@ QA scope, with all nine earlier scope hashes preserved. No current H5 project,
 media, runtime grant, settings or P47 source was changed. Stable338 software review
 and earlier component/service evidence retain their exact inputs and limits; fresh
 integrated source-bound sandbox/wheel proof and actual native results remain required.
+
+### Retained Storyboard readback repair
+
+The current repair reconstructs only the known frozen saved-Brief Storyboard
+package-v4/plan-v1 in `codex_exec_retained_storyboard.py`. Passive checkpoint and
+snapshot inventory callers use the original authority and hashes; fresh package,
+resource and admission checks remain current-source strict. Inventory resolves an
+inherited job to its canonical origin run and policy, requires the attempt's exact
+origin run, and rejects conflicting owners rather than choosing by row order.
+
+The actual valued project's original plan remains `41a7bb91…`. Candidate read-only
+SQL assertions pass for all nine projects. API/snapshot/restore checks run only on
+isolated copies: the exact inherited handed-off project opens and restores with
+unchanged authority tables and QA ineligibility. The first overly strict physical
+DB/WAL guard failure and the pre-existing snapshot owner-overwrite failure remain
+failed observations; neither authorizes a live data rewrite. The manager separately
+verified logical preservation after the first probe.
+
+The new pure leaf is included in native validator and image-specialist source pins;
+ordinary source packaging includes it. ADR 0184's reviewed model/value dependencies
+and fingerprint remain unchanged. Focused origin/tamper/fresh-refusal tests and the
+stable source checkpoint precede independent review and costly final gates. Current
+796 native receipts remain bound to their original source and failed quality result.

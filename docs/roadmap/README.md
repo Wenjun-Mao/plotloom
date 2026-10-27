@@ -11,44 +11,24 @@ are explicit additions to root full qualification. Cutovers remain component-own
 fixture-only Lab work gets no runtime restart.
 
 The owner selected current native Codex and retirement of mandatory two-profile
-Alpha execution. **B3–B7 source and the bounded CLI repair are independently reviewed
-through Script v3/native Alpha v2 checkpoint `338ac39b`; its source/evidence review
-is closed. Exact H5 integration is at D2. Native qualification has NOT passed.** The
-historical b5 nine-sample matrix had one genuine eight-job current installation, one known
-terminal Script rejection (17.8s versus the unchanged 17.85s minimum), seven
-unadmitted samples and 12 accepted first-pass operations from 13 actual attempts.
-No blind publication/reviews followed. Composite software coverage includes the
-original full's 4,097 Python passes/one unresolved failure, 52 affected and 86
-service-root passes, 1,538 frontend and 358 browser passes plus all downstream gates;
-the original full remains failed. The plan retains exact evidence and reuse limits.
+Alpha execution. Under delegated judgment and independent review, the current
+`79668e1a` cohort completed nine installations, 68/72 first-pass operations and 76
+attempts. **Native Alpha FAILED blind quality:** narrative clarity and pacing/edit
+cost medians were 3, below 4. No waiver, regrading, new cohort or owner acceptance
+is claimed. Original failed/UNKNOWN evidence and the 952 held slot remain unchanged.
 
-Gateway alone is activated with preservation/readback. The owner explicitly resumed
-B3–B7 E2E under delegated judgment after the H5 priority task. Installed P/core/bridge
-is now `47ab708f` (installed `0d4a47d4` plus exact H5 grant/completion docs), with nine
-valued projects. The exact `31ab677b` grant and `47ab708f` completion record are
-integrated into R. Fresh integrated source/pins/profile/envelope precede the genuine
-canary and new fixed nine-sample qualification; old b5 evidence remains failed.
-Activation and recovery remain manager-owned after complete qualification/review.
+A software-only C4 activation exposed one valued project's retained Storyboard
+readback regression. The manager rolled P/core/bridge back to `47ab708f`; all nine
+QA contexts returned to their exact HTTP200/ineligible baseline and logical data
+preservation matched. A reviewed passive provenance and inherited snapshot repair
+is now in focused qualification. Stable independent review, fresh source-bound
+envelope and one final full precede any manager-owned activation/recovery. Gateway
+remains activated; unchanged Gateway/Lab proofs are reusable. The nine pre-existing
+QA write-binding refusals remain disclosed and are not repaired by this scope.
 
-Reviewed source `791f6fec` installed its first native v4 sample with all eight
-operations first-pass, then blocked sample two on malformed Art structure. The
-cohort remains 1 installed / 1 blocked / 7 unadmitted, with 11/72 first-pass
-operations from 12 attempts. No correction was granted for the upstream TypeError;
-qualification did not pass. All original outcomes, earlier UNKNOWN evidence and
-the 952 held slot remain unchanged.
-
-Under delegated judgment and independent design review, a versioned Art-specific
-structural-result repair is authorized for implementation/control proof only. It
-uses existing Pydantic and generated frozen schema, preserves supported payloads
-and optional/extension values, and keeps semantic/render gates and the Art quota.
-No primary prompt, upstream gitlink or model change follows. Stable source review
-is required; no new cohort, full, publication, activation or cleanup is authorized
-by this phase. Current Art/Storyboard correction branches have controlled proof,
-but neither naturally occurred in the completed 791 canary.
-
-The superseded `5c60d508` full remains partial/cancelled, never a pass. Gateway/Lab
-inputs remain unchanged. P's nine QA write contexts were already ineligible before
-release; preserve and disclose that existing binding refusal without grant repair.
+The [combined plan](2026-10-26-b3-b7-backend-and-services-ownership.md) retains exact
+proof locations, failed software observations and reuse boundaries. Historical full
+and browser failures remain failures; current focused evidence is reported separately.
 
 ## Su Tang six-clip game preview
 

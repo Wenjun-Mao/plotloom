@@ -86,6 +86,7 @@ VALIDATOR_FILES = (
     "src/plotloom/codex_exec_recovery.py",
     "src/plotloom/codex_exec_stage_routing.py",
     "src/plotloom/codex_exec_validation.py",
+    "src/plotloom/codex_exec_retained_storyboard.py",
     "src/plotloom/autopilot_contracts.py",
     "src/plotloom/autopilot_exec.py",
     "src/plotloom/autopilot_exec_reservation.py",

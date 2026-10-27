@@ -126,6 +126,18 @@ def test_retained_v4_codex_package_inventory_uses_revisionless_v2_shape(tmp_path
     assert "plotloomCodeRevision" not in projection
 
 
+@pytest.mark.parametrize("typed", [False, True])
+def test_retained_storyboard_snapshot_projection_ignores_current_validator_hashes(tmp_path, typed):
+    from tests.retained_storyboard_fixtures import PIN, REVISION, storyboard_request
+    from plotloom.codex_exec_retained_storyboard import retained_storyboard_package_projection
+    request = storyboard_request(typed=typed, historical=True)
+    projection = _retained_codex_request_projection(request, PIN, PROFILE,
+        tmp_path / "absent-original-job", plotloom_code_revision=REVISION)
+    assert projection == retained_storyboard_package_projection(request, PIN, source_revision=REVISION)
+    assert projection["inputArtifacts"] == request.input_artifacts
+    assert ("contentValidationContract" in projection) is typed
+
+
 def test_portable_autopilot_cannot_resume_after_acknowledgement(tmp_path):
     storage = storage_at(tmp_path / "source")
     with closing(storage.projects.create(FIXED_CHINESE_BRIEF)) as store:

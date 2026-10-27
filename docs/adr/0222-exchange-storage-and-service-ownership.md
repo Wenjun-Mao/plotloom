@@ -371,3 +371,29 @@ gain no new authority. Checked Python/uv and explicit frozen Node argv/resources
 are bound; upstream gitlink, primary prompt, typed wire, model and gates remain.
 Controlled preservation/parity/correction proofs and stable independent source review
 are required. No new native cohort, full or activation is authorized by this repair.
+
+### Retained Storyboard provenance boundary (2026-10-27)
+
+Passive project validation must reconstruct the original saved-Brief Storyboard
+package-v4/plan-v1 from retained canonical authority, not compare its validator
+hashes to today's files. The C4 readback regression exposed that leak on a valid
+inherited, handed-off project after prospective adapter/timing changes. Its frozen
+request, pin, attempt, receipt and plan hashes remain authoritative and unchanged.
+
+A pure, stage-specific retained projection checks the known outer/inherited
+authority, direction, key and hash representation and derives fixed vectors and
+input hashes. Both passive checkpoint validation and snapshot evidence inventory
+use it. It reads no old package or checkout and accepts no recorded command vector.
+Current package building, resources and admission retain their filesystem-current
+checks; retained evidence grants no dispatch, correction, approval or migration.
+This changes source/pin/wheel identities, not the existing wire or execution policy.
+Snapshot inventory resolves each inherited reference through its canonical origin
+and uses that run's original profile/source. Repeated references to the same exact
+origin may coalesce; unrelated/conflicting job owners refuse even when their
+profile/source hashes coincide. The attempt must name that exact origin run.
+The new leaf is pinned by native validators and image-specialist source inspection;
+the reviewed ADR 0184 model/value construction dependencies remain unchanged.
+Actual valued-project read-only proof, inherited/snapshot/tamper checks and ADR 0184
+dependency comparison precede stable review and final release gates. Original 796
+native evidence remains historical and failed independent quality; no new model
+campaign is authorized by this persistence repair.

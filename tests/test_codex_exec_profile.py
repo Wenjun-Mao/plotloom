@@ -131,6 +131,7 @@ def test_codex_exec_validator_pin_covers_runtime_authority_and_current_sources()
         "src/plotloom/codex_exec_prompts.py",
         "src/plotloom/codex_exec_runtime.py",
         "src/plotloom/codex_exec_catalog.py",
+        "src/plotloom/codex_exec_retained_storyboard.py",
         "src/plotloom/codex_exec_telemetry.py",
         "src/plotloom/codex_exec_tool_source.py",
         "src/plotloom/autopilot_exec.py",

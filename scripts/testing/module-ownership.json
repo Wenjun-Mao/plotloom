@@ -446,6 +446,7 @@
           "tests/test_reference_schema_ownership.py",
           "tests/test_request_proof_scope.py",
           "tests/test_retained_outline_recovery.py",
+          "tests/test_retained_creative_origins.py",
           "tests/test_retained_proof_boundaries.py",
           "tests/test_script_dialogue_compatibility.py",
           "tests/test_script_dialogue_composition.py",
@@ -635,6 +636,7 @@
           "tests/test_codex_exec_stage_routing.py",
           "tests/test_codex_exec_telemetry.py",
           "tests/test_codex_exec_validation.py",
+          "tests/test_retained_storyboard_provenance.py",
           "tests/test_codex_image_dispatch.py",
           "tests/test_h3_i2va_prompt.py",
           "tests/test_image_send_route_authority.py",
@@ -880,6 +882,12 @@
       "path": "tests/storyboard_correction_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": ["shared-provider-dispatch"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/retained_storyboard_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch", "project-lifecycle"]
     },
     {
       "suite": "pytest",

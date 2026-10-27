@@ -69,6 +69,7 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/image_delivery_reader.py": "# image_delivery_reader owner\n",
         "src/plotloom/image_delivery_manifest.py": "# image_delivery_manifest owner\n",
         "src/plotloom/codex_exec_host_client.py": "# codex_exec_host_client owner\n",
+        "src/plotloom/codex_exec_retained_storyboard.py": "# passive retained Storyboard authority owner\n",
         "src/plotloom/image_exchange_packages.py": "# package owner\n",
         "src/plotloom/image_package_publication.py": "# publication owner\n",
         "src/plotloom/package_publication_lock.py": "# publication lock owner\n",
@@ -125,7 +126,8 @@ def test_pin_refuses_frozen_image_execution_drift_before_generation(modular_chec
     assert not (package.parent / "delivery" / "executor-pin.json").exists()
 
 
-@pytest.mark.parametrize("source", ["image_terminal_outcome.py", "specialist_settings.py", "codex_image_dispatch.py"])
+@pytest.mark.parametrize("source", ["image_terminal_outcome.py", "specialist_settings.py", "codex_image_dispatch.py",
+    "codex_exec_retained_storyboard.py"])
 def test_pin_rejects_dirty_terminal_execution_owner(modular_checkout, source):
     repository, package = modular_checkout
     (repository / "src/plotloom" / source).write_text("# uncommitted terminal change\n")

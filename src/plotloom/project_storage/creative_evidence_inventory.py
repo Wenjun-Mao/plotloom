@@ -6,6 +6,7 @@ from pathlib import PurePosixPath
 
 from ..codex_exec_resources import upstream_skill_path_for_stage
 from ..codex_exec_retained_outline import retained_outline_package_projection
+from ..codex_exec_retained_storyboard import retained_storyboard_package_projection
 from ..creative_handoff_contracts import (
     CREATIVE_CANDIDATE_FILENAMES,
     CreativeDeliveryManifest,
@@ -50,8 +51,9 @@ def missing_completed_jobs(root, database):
 
 def _codex_creative_jobs(connection):
     """Bind CLI package shape to the frozen checkpoint and its project attempt."""
-    from ..autopilot_contracts import POLICY_VERSION, LaunchPolicy
+    from ..autopilot_contracts import POLICY_VERSION, CheckpointEvidence, LaunchPolicy
     from ..codex_exec_contracts import CodexExecAttempt, CodexExecReceipt
+    from ..persistence.project.autopilot_continuation import inherited_origin
 
     tables = {row[0] for row in connection.execute(
         "SELECT name FROM sqlite_master WHERE type='table'"
@@ -74,10 +76,19 @@ def _codex_creative_jobs(connection):
             run_binding = v4_runs.get(run_id)
             if run_binding is None or run_binding[0] != project_id:
                 continue
-            evidence = json.loads(raw_evidence)
-            job_id = evidence.get("jobId")
+            evidence = CheckpointEvidence.model_validate_json(raw_evidence)
+            job_id = evidence.job_id
             if job_id is not None:
-                jobs[job_id] = {
+                try:
+                    origin = (inherited_origin(connection, run_id, operation_key, evidence)
+                        if "v2_autopilot_inheritance" in tables else None) or run_id
+                except (TypeError, ValueError, KeyError) as error:
+                    raise ProjectStorageCorruptionError("retained Codex checkpoint origin is invalid") from error
+                run_binding = v4_runs.get(origin)
+                if run_binding is None or run_binding[0] != project_id:
+                    raise ProjectStorageCorruptionError("retained Codex checkpoint origin policy differs")
+                binding = {
+                    "run_id": origin,
                     "project_id": project_id,
                     "operation_key": operation_key,
                     "profile": run_binding[1],
@@ -85,21 +96,26 @@ def _codex_creative_jobs(connection):
                     "attempt": None,
                     "receipt": None,
                 }
+                if job_id in jobs and jobs[job_id] != binding:
+                    raise ProjectStorageCorruptionError("retained Codex creative job has conflicting origin owners")
+                jobs[job_id] = binding
 
     if "v2_autopilot_exec_attempts" in tables:
-        for project_id, operation_key, job_id, raw_attempt, raw_receipt in connection.execute(
-            "SELECT project_id, operation_key, job_id, snapshot, receipt FROM v2_autopilot_exec_attempts"
+        for run_id, project_id, operation_key, job_id, raw_attempt, raw_receipt in connection.execute(
+            "SELECT run_id, project_id, operation_key, job_id, snapshot, receipt FROM v2_autopilot_exec_attempts"
         ):
             attempt = CodexExecAttempt.model_validate_json(raw_attempt)
             if attempt.domain != "text":
                 continue
-            if (str(attempt.project_id) != project_id or attempt.operation_key != operation_key
+            if (str(attempt.run_id) != run_id or str(attempt.project_id) != project_id or attempt.operation_key != operation_key
                     or attempt.job_id != job_id):
                 raise ProjectStorageCorruptionError("retained Codex creative attempt row identity changed")
             binding = jobs.get(job_id)
-            if (binding is None or (binding["project_id"], binding["operation_key"])
-                    != (project_id, operation_key) or binding["profile"] is None
-                    or binding["profile"].profile_hash != attempt.profile_hash):
+            if (binding is None or (binding["run_id"], binding["project_id"], binding["operation_key"])
+                    != (run_id, project_id, operation_key) or binding["profile"] is None
+                    or binding["profile"].profile_hash != attempt.profile_hash
+                    or (binding["profile"].contract_version in {"plotloom.codex-exec.v5", "plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}
+                        and binding["plotloom_code_revision"] != attempt.plotloom_code_revision)):
                 raise ProjectStorageCorruptionError("retained Codex creative attempt has no exact v4 checkpoint")
             binding["attempt"] = attempt
             binding["receipt"] = CodexExecReceipt.model_validate_json(raw_receipt) if raw_receipt else None
@@ -122,6 +138,12 @@ def _retained_codex_request_projection(
                 )
             except (TypeError, ValueError) as error:
                 raise ProjectStorageCorruptionError("retained Outline package projection is invalid") from error
+        if request.stage == "storyboard" and "storyboard-style-contract.json" in request.input_artifacts:
+            try:
+                return retained_storyboard_package_projection(
+                    request, execution_pin, source_revision=plotloom_code_revision)
+            except (TypeError, ValueError) as error:
+                raise ProjectStorageCorruptionError("retained Storyboard package projection is invalid") from error
         projected, _instructions, _template, _members = project_creative_package(
             creative_job_root(exchange_root, request.job_id), request,
             execution_pin,

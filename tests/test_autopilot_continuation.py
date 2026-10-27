@@ -1,6 +1,7 @@
 """Real partial material continuation retains immutable origin authority."""
 import json
 from contextlib import closing
+from pathlib import Path
 
 import pytest
 
@@ -69,6 +70,16 @@ def test_partial_pack_continues_missing_only_and_handoff_keeps_frame_origins(tmp
                 assert video_eligible(session, view.project_id)
         with closing(storage.projects.open(view.project_id)):
             pass
+        snapshot = storage.recovery.create_snapshot(view.project_id)
+        from plotloom.project_storage import ProjectFolderStorage
+        restored = ProjectFolderStorage(outputs_root=tmp_path / "restored/outputs",
+            application_data_root=tmp_path / "restored/application")
+        restored.recovery.restore(Path(snapshot.location))
+        with closing(restored.projects.open(view.project_id)) as store:
+            current = store.repository.autopilot.current(view.project_id)
+            assert current.id == complete.id and current.state == "handed_off"
+            assert current.predecessor_run_id == view.id
+            assert origin_rows(store, view.id) == before
     finally:
         service.close()
 
