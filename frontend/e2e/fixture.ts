@@ -1,18 +1,20 @@
 import { test as base, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { usePageWithDrainedRoutes } from "./page-route-lifecycle";
 import { pollHttpReadiness } from "./http-readiness";
-import { waitForListenerOrigin, type ListenerRole } from "./listener-address";
+import { waitForListenerOrigin, waitForPreparedTextRetryOrigin, type ListenerRole } from "./listener-address";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(configDirectory, "../..");
 const frontendRoot = path.resolve(configDirectory, "..");
 const loopbackHost = "127.0.0.1";
+const workbenchSetupTimeout = 45_000;
 
 export type Workbench = {
   apiOrigin: string;
@@ -69,6 +71,7 @@ function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "fr
     await usePageWithDrainedRoutes(page, use);
   },
   workbench: [async ({}, use) => {
+    const setupDeadline = Date.now() + workbenchSetupTimeout;
     // A deliberately requested retained fixture keeps its isolated project
     // bytes for attended inspection; ordinary test runs still clean up.
     const retainedParent = process.env.PLOTLOOM_E2E_RETAIN_PARENT;
@@ -100,7 +103,8 @@ function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "fr
       await mkdir(outputsRoot, { recursive: true });
       await mkdir(applicationDataRoot, { recursive: true });
       const providerOrigin = await ownedOrigin(provider, "provider");
-      const apiOrigin = await ownedOrigin(backend, "backend");
+      const apiOrigin = await ownedOrigin(backend, "backend",
+        backendEntrypoint === "frontend/e2e/text_retry_runtime.py" ? setupDeadline : undefined);
       let frontendOrigin = apiOrigin;
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
@@ -149,7 +153,7 @@ function createWorkbenchTest(frontendMode: FrontendMode, backendEntrypoint = "fr
         }
       }
     }
-  }, { scope: "test", timeout: 45_000 }],
+  }, { scope: "test", timeout: workbenchSetupTimeout }],
   });
 }
 
@@ -174,11 +178,32 @@ function startProcess(
   };
   child.stdout?.on("data", append);
   child.stderr?.on("data", append);
+  if (process.env.PLOTLOOM_E2E_STARTUP_DIAGNOSTICS) {
+    const birth = spawnSync("/bin/ps", ["-p", String(child.pid), "-o", "lstart="], { encoding: "utf8" });
+    startupObservation("process-spawned", { label, childPid: child.pid,
+      birth: birth.status === 0 ? birth.stdout.trim() : null });
+  }
   return { child, label, output: () => output };
 }
 
-async function ownedOrigin(process: ManagedProcess, role: ListenerRole): Promise<string> {
-  return base.step(`Workbench listener: ${process.label} (${role})`, () => waitForListenerOrigin(process, role, Date.now() + 25_000));
+function startupObservation(phase: string, facts: Record<string, unknown>): void {
+  const directory = process.env.PLOTLOOM_E2E_STARTUP_DIAGNOSTICS;
+  if (directory) appendFileSync(path.join(directory, `parent-${process.pid}.jsonl`),
+    JSON.stringify({ phase, monotonicNs: process.hrtime.bigint().toString(), wallTimeMs: Date.now(),
+      parentPid: process.pid, ...facts }) + "\n", { encoding: "utf8", mode: 0o600 });
+}
+
+async function ownedOrigin(process: ManagedProcess, role: ListenerRole, textRetrySetupDeadline?: number): Promise<string> {
+  return base.step(`Workbench listener: ${process.label} (${role})`, async () => {
+    const deadline = Date.now() + 25_000;
+    startupObservation(textRetrySetupDeadline === undefined ? "listener-wait-start" : "preparation-and-listener-wait-start",
+      { role, childPid: process.child.pid, deadlineWallTimeMs: textRetrySetupDeadline ?? deadline });
+    const origin = textRetrySetupDeadline === undefined
+      ? await waitForListenerOrigin(process, role, deadline)
+      : await waitForPreparedTextRetryOrigin(process, textRetrySetupDeadline);
+    startupObservation("owned-listener-observed", { role, childPid: process.child.pid, origin });
+    return origin;
+  });
 }
 
 async function waitForHttpUnavailable(url: string): Promise<void> {
