@@ -905,6 +905,14 @@
     },
     {
       "suite": "pytest",
+      "path": "tests/paid_outline_runtime_diagnostics.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
+    },
+    {
+      "suite": "pytest",
       "path": "tests/paid_outline_cli_fixture.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
