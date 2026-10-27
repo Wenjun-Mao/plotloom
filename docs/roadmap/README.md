@@ -1,12 +1,17 @@
 # Plotloom roadmap entrypoint
 
-## Approved disposable QA authorization repair
+## Completed disposable QA authorization repair
 
-The [bounded repair](2026-10-27-qa-runtime-authorization.md) addresses all nine
-existing projects' nonportable write-grant refusals. It requires exact-scope
-adoption, real Docker/restart and copy/restore refusal evidence, independent review,
-one local qualification owner and preservation-checked core activation/recovery.
-No fresh generation, creative acceptance, unrelated service restart, push or CI.
+The [bounded repair](2026-10-27-qa-runtime-authorization.md) is independently
+reviewed, scoped-composite qualified and activated at `3f4bdfbf`. All nine exact
+original scopes are eligible with truthful agent-QA actors; 25 new grants preserve
+all 28 old rows, including three inert absent-project rows. Real Docker write/
+restart/readback, copy/restore refusal and exact preservation evidence are retained.
+The one full invocation remains failed on the text-retry seed limit; its cause
+and broad startup reliability remain unproven. Reviewed exact/concurrent diagnostic
+passes and unrun wheel gates complete the stated scoped qualification. The single
+recovery manifest owns final source/wheel identity. No fresh media generation,
+creative acceptance, unrelated service restart, push or CI.
 
 ## Completed B3–B7 software delivery; native Alpha quality failed
 
@@ -30,8 +35,9 @@ The actual `79668e1a` native experiment completed9 installations and 68/72 first
 operations from 76 attempts, but **FAILED independent blind quality**: narrative
 clarity and pacing/edit-cost medians 3, required 4. No waiver/regrading/new campaign
 or owner acceptance follows. Earlier failed/UNKNOWN evidence and952 slot 1 remain.
-All 9pre-existing QA write-binding refusals remain disclosed (28 unmatched grant
-rows), without repair. [ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md)
+At B3–B7 closeout, all nine QA write-binding refusals remained disclosed (28
+unmatched grant rows); the later repair is recorded above.
+[ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md)
 captures current durable decisions and their rationale.
 
 ## Su Tang six-clip game preview

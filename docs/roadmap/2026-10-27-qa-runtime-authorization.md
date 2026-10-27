@@ -1,9 +1,9 @@
 # Disposable QA runtime authorization repair
 
-Status: implemented and source-reviewed; real fixture proof complete,
-final qualification and installed adoption pending, 2026-10-27.
+Status: runtime repair implemented, independently reviewed, scoped-composite
+qualified and activated, 2026-10-27. The original full run remains FAILED.
 Source owner uses retained main at `/Users/wjmao/.codex/worktrees/b30f/plotloom`.
-Installed checkout remains `/Users/wjmao/projects/HU/plotloom` until qualification.
+Installed checkout is `/Users/wjmao/projects/HU/plotloom`, clean detached `3f4bdfbf`.
 
 ## Outcome and smallest real journey
 
@@ -74,3 +74,90 @@ all 23 H5 export files and the retained ZIP hash match. Gate execution time is
 89.97 seconds for the two focused commands; product, infrastructure and coordination
 timing breakdowns are unavailable. This checkpoint is neither nine-project
 adoption nor activation/full qualification or creative acceptance.
+
+## Delivered authorization outcome
+
+Qualified/installed code is `3f4bdfbfbe46b48450790bc824cfef4b191e6195`.
+The reviewed operator procedure revalidated all nine original homes under their
+exclusive leases: exact prior rows and source scopes, storyboard, every scoped
+shot/reference original's actual bytes, exact native bundle/current handoff and
+terminal work. One application transaction added exactly 25 current grants.
+All 28 old inode rows remain unchanged; three belong to the absent October 19
+project and remain inert. There is no automatic adoption or public enrollment.
+
+Actual installed Docker readback verifies every new grant and every scoped
+material's persistence authorization in read-only sessions. All nine HTTP QA
+contexts are eligible/required with their exact agent-QA actors; all nine
+unrelated-scope writes return 409. Host and guest identities agree. Successful
+write/restart/readback evidence is the disposable synthetic journey, never a new
+review or content write in the preserved production projects.
+
+Fresh quiet capture and stopped-state preservation match the original
+`89bd5b9c6ccd765aeb514f885d374f54b8114ae823adbe213dea4e50caabec54`.
+The managed bridge's immediate exit assertion caught asynchronous shutdown;
+its process/service were subsequently proven absent before adoption. The core
+remained stopped, no force signal was sent, and preservation was exact.
+Cold activation now has healthy core and fresh bridge PID 35688. Installed profile
+`aedbdd3fed3251b8d0107e587f86ddd39ce9cfa254e134d0bfefc22a8fc89db3`
+matches the actual physical launch PATH envelope. Source R's separate profile
+`a92b01f57e8922dcb7324bc9c4490fee1714542873a1ad462216e857a037dbb6`
+is correctly distinct. Two affected native validator/render commands, five
+permission/import controls and the current image pin passed without model calls.
+
+Afterward, all nine projects' logical schemas/rows, files and home metadata,
+all prior application schemas/tables, native state, settings and specialist state
+remain exact. All 40 application claims remain (36 paired / four prior unpaired).
+All 23 H5 export files and ZIP remain exact. The only permitted additions are nine
+DB xattrs and `runtime_execution_grants`: 25 rows plus its table/primary-key index.
+The resulting preservation digest is
+`72cab08e7a1e0fbda05c16bc965e96ed742d2f5e3cfd4e75ea389eb2ac43c63a`.
+Independent source, adoption, qualification-method and installed-evidence reviews
+collected actual finals without an outstanding product/authority finding.
+
+## Qualification and explicit remaining limits
+
+The one full invocation **FAILED** after 2098.703 seconds. It passed all 4,431
+Python and 1,564 frontend cases, types, build/parity and shard coverage, then
+357 browser cases; `text-retry.spec.ts` expired its existing 40-second seed before
+preparation/listener publication. The original seed state was auto-cleaned by
+the ordinary fixture. Its exact cause remains unproven, distinct from the prior
+25-second listener failure. No assertion, deadline, model or validator changed.
+
+Existing diagnostic/retention options measured the exact case passing in
+isolation (seed 13.0239s; focused tier 26.526s), then 23 selected contemporaneous
+cases across six files at the unchanged four workers (seed 16.5037s; tier 63.503s).
+Three other workers' backend-listener observations occurred within that seed.
+Each diagnostic retained terminal failed/completed attempts, empty native ledgers
+and absent owned groups. These observations neither establish the original cause
+nor fix or qualify broad startup reliability. The v2 context timing record keeps
+the reporter's rounded `1.0m` separate from exact measurements.
+
+Independent review and the manager accepted scoped composite qualification:
+unchanged native/frontend/build evidence, the 357 unaffected browser passes,
+the exact failed case and measured concurrent-context passes, followed only by
+the two unrun wheel owners. The retained wheel and isolated installation smoke
+passed; all 548 packaged Python modules match the committed code. Wheel SHA-256:
+`0fdc19ca0e18cb707b7a026d97131e5c1ba3bfaa03f801371dcf0c06ed25b2b9`.
+No unchanged broad reroll or claim of a passing full invocation follows.
+
+Evidence root remains `.local/qa-authorization-20261027/`: authoritative receipts
+are `qualification-complete.json`, `adoption-complete.json`,
+`installed-readback.json`, `activation-verified.json` and
+`preservation-verified.json`. Final source/wheel recovery identity is owned by
+the existing `.local/current-qualified-recovery/manifest.json` and the task's
+`recovery-verified.json`; documentation alone does not prove the atomic refresh.
+The coordinator verifies the committed archive members and retained wheel before
+reporting final completion. The source documentation checkpoint may be newer
+than the unchanged qualified/installed code.
+
+The authorization fixture used supported ordinary idle deletion and its owned
+container/files were removed with original preservation rechecked. Diagnostic
+process/ledger closure is retained separately. Product/infrastructure/coordination
+timing breakdowns remain unavailable; the executed full and focused times above
+are measurements, not estimates. No paid media generation, valued content write,
+scope/budget expansion, UNKNOWN clearing, quality regrade, provider/model/prompt
+change, Gateway/Lab/Comfy/SGLang restart, push or GitHub CI occurred. The historical
+drift event, earlier Alpha quality failure and lost-D2-state limitation remain.
+Protected 952 UNKNOWN/slot-1 evidence was not modified or cleared; no recovery
+or new verification of the missing original D2 state is claimed.
+Creative/canon/material inspection acceptance is separate from authorization.
