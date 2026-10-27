@@ -321,7 +321,8 @@
           "tests/test_delegated_qa.py",
           "tests/test_finished_example_qa_scopes.py",
           "tests/test_provider_budgets.py",
-          "tests/test_minute_example_qa_scope.py"
+          "tests/test_minute_example_qa_scope.py",
+          "tests/test_sutang_preview_qa_scope.py"
         ],
         "vitest": [
           "frontend/tests/art-reference-preparation.test.ts",

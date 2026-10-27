@@ -12,7 +12,8 @@ fixture-only Lab work gets no runtime restart.
 
 The owner selected current native Codex and retirement of mandatory two-profile
 Alpha execution. **B3–B7 source and the bounded CLI repair are independently reviewed
-at executable checkpoint `b5c9de51`; native Alpha qualification did NOT pass.** The
+through Script v3/native Alpha v2 checkpoint `338ac39b`; its source/evidence review
+is closed. The original b5 native Alpha qualification did NOT pass.** The
 frozen nine-sample matrix has one genuine eight-job current installation, one known
 terminal Script rejection (17.8s versus the unchanged 17.85s minimum), seven
 unadmitted samples and 12 accepted first-pass operations from 13 actual attempts.
@@ -21,13 +22,13 @@ original full's 4,097 Python passes/one unresolved failure, 52 affected and 86
 service-root passes, 1,538 frontend and 358 browser passes plus all downstream gates;
 the original full remains failed. The plan retains exact evidence and reuse limits.
 
-Gateway alone is activated with preservation/readback. P/core/bridge and recovery
-remain at `0d4a47d4`. Further admissions, core activation and recovery refresh are
-held during the prospective Script-correction implementation/qualification. The
-owner explicitly delegated judgment while unavailable; the manager selected the
-independently reviewed extension under that authority. Original b5 evidence remains
-failed; new version/source/pins/profile and model qualification are required. Standing implementation authority
-and routine internal review remain distinct from that material scope decision.
+Gateway alone is activated with preservation/readback. The owner explicitly resumed
+B3–B7 E2E under delegated judgment after the H5 priority task. Installed P/core/bridge
+is now `47ab708f` (installed `0d4a47d4` plus exact H5 grant/completion docs), with nine
+valued projects. The exact `31ab677b` grant and `47ab708f` completion record are
+integrated into R. Fresh integrated source/pins/profile/envelope precede the genuine
+canary and new fixed nine-sample qualification; old b5 evidence remains failed.
+Activation and recovery remain manager-owned after complete qualification/review.
 
 ## Su Tang six-clip game preview
 
@@ -36,8 +37,8 @@ through Plotloom. Six real clips and exact ten-second windows are confirmed,
 exported and naturally playable with restart; independent manager review and
 preservation passed. The [completion record](../verification/2026-10-26-h5-sutang-preview.md)
 retains SH03's re-encode audio overshoot/source preference and very quiet04/05.
-Grant checkpoint `31ab677b` must be integrated before any paused-source activation.
-The earlier B3–B7 goal stays paused. Human creative/canon acceptance, perceptual
+Grant checkpoint `31ab677b` and completion record `47ab708f` are integrated into
+the resumed B3–B7 source; the H5 project/media and runtime grant remain unchanged. Human creative/canon acceptance, perceptual
 listening and game embedding remain pending.
 
 ## Completed B1–B2 backend and HTTP ownership delivery

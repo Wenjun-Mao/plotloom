@@ -1,28 +1,35 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **B3–B7 source implemented and independently reviewed through `b5c9de51`;
-Gateway activated. Native Alpha qualification did NOT pass: one current installation,
-one terminal Script rejection and seven unadmitted samples. Further native admission,
-core/bridge activation and recovery refresh remain held while the delegated
-Script-correction extension is implemented and qualified**.
+Status: **Resumed under the owner's explicit E2E continuation. B3–B7 source,
+including Script correction v3 / native Alpha v2, independently reviewed through
+`338ac39b` with no actionable findings. Exact H5 grant/completion source is integrated;
+fresh integrated-source preflight and native qualification follow. Gateway remains
+activated; core/bridge activation and recovery stay manager-owned after qualification**.
 Date: 2026-10-26.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
-Installed P: `/Users/wjmao/projects/HU/plotloom`, detached installed checkout.
-Starting baseline: both inspected clean at
-`0d4a47d4c1b42ca635413673ebfb136c7fb68135`. Last completed native evidence checkpoint is
-`b5c9de51db583f4ad4c57dcbb2052bf2913f63fb`; later documentation does not relabel
-its receipts. P/core/bridge and the existing recovery remain at the starting baseline.
+Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
+`47ab708f51c2a113ceadda67e2ebcda2ccc7aed9`: qualified installed `0d4a47d4` plus
+exact H5 QA grant `31ab677b` and completion documentation. Nine valued projects,
+including H5 project `b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6` and its six confirmed
+clips, must be preserved. Runtime activation/recovery belongs to the manager.
 
-Current result: **1/9 installed, 12/72 accepted first-pass operations from 13 actual
-text attempts; zero image attempts**. The second sample's Script completed normally
-but failed the unchanged duration validator: episodes 2 and 3 estimate 17.8s against
-a 17.85s minimum. Independent review found no demonstrated source/validator defect
-and confirmed the stop. The frozen matrix cannot satisfy 9/9 under its current
-policy. No blind pack/reviews, core activation or recovery refresh followed.
-The owner delegated judgment for this long run while unavailable. Under that
-authority the manager selected the independently reviewed single Script correction
-proposal; implementation and fresh qualification follow, without changing this result. Exact evidence and software
-qualification limits are recorded in the terminal checkpoint below.
+Last completed native evidence remains `b5c9de51`: **1/9 installed, one known Script
+rejection, seven unadmitted; 12/72 accepted first-pass operations from 13 text
+attempts, zero image attempts**. Duration 17.8s versus 17.85s minimum was a valid
+known rejection, not a demonstrated source/validator defect. That v1 matrix did
+NOT pass. Its receipts and the earlier f20/258 UNKNOWNs/held slots are unchanged.
+No blind pack/reviews or core activation followed. No v2 model outcome is claimed.
+
+The owner delegated judgment while unavailable, and explicitly resumed the original
+combined E2E outcome after the H5 priority task. The manager selected the independently
+reviewed one-Script-correction extension under that authority. Stable `338ac39b`
+source/evidence review is closed, including purity, controlled proofs, original-byte
+replay, exact sandbox and wheel. The subsequent integration carries only the exact
+reviewed H5 grant and documentation; all nine older QA scope identities remain.
+Fresh source/tree/profile/pins/envelope must be frozen before the new predeclared
+nine-sample matrix. Prove the genuine eight-job current-installation/readback/reopen
+canary first; do not force a model rejection to demonstrate correction. If none occurs,
+disclose real-provider correction as unobserved while retaining controlled-path proof.
 
 ## Outcome and authority
 
@@ -939,3 +946,15 @@ no old adoption/settlement/status changes follow. Clean-source exact sandbox pro
 noneditable wheel and independent source review precede new genuine admission.
 New-source native correction/matrix/blind reviews, final software qualification,
 core/bridge activation and recovery remain incomplete; b5's failed result is unchanged.
+
+
+Resumed integration preserves the exact reviewed `31ab677b` executable grant as
+`58531ba1` and `47ab708f` completion documents as `e9fe0c60`. Only the roadmap index
+needed a conflict resolution, retaining both workflows. The new Su Tang test is
+registered with the existing media-lifecycle verification owner. All 125 scoped
+grant/preservation/guard cases passed; native module discovery passed without test
+bodies. The executable delta from reviewed338 is exactly the eleven-line appended
+QA scope, with all nine earlier scope hashes preserved. No current H5 project,
+media, runtime grant, settings or P47 source was changed. Stable338 software review
+and earlier component/service evidence retain their exact inputs and limits; fresh
+integrated source-bound sandbox/wheel proof and actual native results remain required.
