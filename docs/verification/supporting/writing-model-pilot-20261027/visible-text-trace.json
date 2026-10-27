@@ -1,0 +1,56 @@
+{
+  "examples": [
+    {
+      "canonicalPointer": "/storyboard/shots/1/visibleTexts",
+      "durationUnits": 3000,
+      "presentationPointer": "/entries/1/spans/1",
+      "scriptPointer": "/episodes/0/scenes/0/flow/1/action",
+      "selectedRole": "visible_text",
+      "selectedText": "旧雪灾同一刻，同一闸柄只有陈山独自拉过；请女儿离开，不要为父亲留下。"
+    },
+    {
+      "canonicalPointer": "/storyboard/shots/2/visibleTexts",
+      "durationUnits": 3000,
+      "presentationPointer": "/entries/2/spans/1",
+      "scriptPointer": "/episodes/0/scenes/0/flow/2/action",
+      "selectedRole": "visible_text",
+      "selectedText": "正文对同一刻、同一只闸柄声称只有陈禾独自拉过，同样请许宁离开、别为自己留下；"
+    },
+    {
+      "canonicalPointer": "/storyboard/shots/3/visibleTexts",
+      "durationUnits": 3000,
+      "presentationPointer": "/entries/3/spans/1",
+      "scriptPointer": "/episodes/0/scenes/0/flow/3/action",
+      "selectedRole": "visible_text",
+      "selectedText": "正文仍指向同一刻的同一次拉闸，却声称只有许宁独自做过，请陈山离岗、别再为自己留下。"
+    },
+    {
+      "canonicalPointer": "/storyboard/shots/8/visibleTexts",
+      "durationUnits": 3500,
+      "presentationPointer": "/entries/9/spans/1",
+      "scriptPointer": "/episodes/0/scenes/4/flow/1/action",
+      "selectedRole": "visible_text",
+      "selectedText": "警示文字交代跨支路邮路将封；本地撤离道只能单向撤出，不能返回邮路绕投。"
+    }
+  ],
+  "contractMeaning": "exact viewer-facing nonspoken words; coordinates/hash are separate provenance",
+  "finding": "descriptive action prose promoted to literal text; finished literal wording missing/ambiguous; not conflicting schema/compiler definitions and not directly authored F5 text",
+  "ownership": "F4 action wording -> bridge-presentation model role selection -> trusted verbatim projection -> exact-literal downstream consumer",
+  "limits": [
+    "no rendered media/actual reading performance",
+    "no general historical cause established",
+    "firstletter colon wording may plausibly be literal"
+  ],
+  "source": "ec7dd08913905c5d532a25baf28f6425187f7ffb",
+  "sourceOwners": [
+    "src/plotloom/canonical_schema.py:448",
+    "docs/creative-workflow/native-bridge-presentation.md:24",
+    "src/plotloom/production_presentation.py:170",
+    "src/plotloom/video_backends/minimax_h3/prompt.py:37"
+  ],
+  "files": {
+    "scriptCandidate": "sol/snow-script.json",
+    "presentationCandidate": "sol/snow-presentation.json",
+    "canonicalContent": "sol/story-03.json"
+  }
+}

@@ -16,12 +16,17 @@ grant authorization may create the attribute, exclusively and durably. Reads,
 including browser QA discovery, never create metadata or grant tables. A token
 left by a failed grant transaction confers no authority by itself.
 
-Use a distinct current grant table; retained inode rows remain unchanged evidence
-and are never an executable fallback. Existing scopes require reviewed one-time
+Use a distinct current grant table; old inode rows are never an executable
+fallback. Existing scopes require reviewed one-time
 exact-inventory adoption with old-row/current-material checks, never enrollment
 by a label or a blanket regrant. Preserve source scope hashes and prior budget,
 attribution, before-send/UNKNOWN and currentness contracts. New ordinary batch
 authorization uses the same identity owner without acquiring agent-QA authority.
+
+After independently verified adoption, the owner authorized retiring the obsolete
+28-row inode table. Current code neither creates nor reads it; the cleanup keeps
+all 25 current grants exact. Historical verification does not require indefinite
+retention of inert operational rows.
 
 The current snapshot backup and restore copy only declared bytes into newly
 created files, omitting xattrs. Different-home copies fail the home binding; a

@@ -1,0 +1,698 @@
+{
+  "version": "plotloom.writing-model-pilot-results.v1",
+  "generationSource": "ec7dd08913905c5d532a25baf28f6425187f7ffb",
+  "formalAlphaQualification": false,
+  "monetaryCost": "unavailable",
+  "serverWeights": "unavailable",
+  "outcomes": [
+    {
+      "actualAliasesVerified": true,
+      "arm": "sol",
+      "attempts": 8,
+      "canonicalBytes": 151367,
+      "contentHash": "bff574f168f2780fd0601f1bbc997be9a3eeb5f1017cf385d093bd63ae6c70c2",
+      "durationMs": 1263402,
+      "firstPass": 8,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "491a35a5dfb12eda81e958b2a7abb89db4a6ea904e37966f2be53946fbf5cffa",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "8d38aeeceed83c6b6b3fb72e118754b028cda894d42b16f226095f7f236cbc17",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "d75695b8659d2c374cd816615c9d049316d9c1f2caa83ba5f8de600d62aa6b65",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "fa350faa2a4a27adc92ad13bab18318f6aecca4bff3e38683ea87a37f1077727",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "ebbfc95fe767494e645a6fdb0bfc08b64037c2f88a727e27788bb43edca2d8a5",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "7ea875232d5f196da9aa160d831708cbd74bd8c5a0cf3067d3f0859077fb5014",
+          "firstPass": true,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "60382cf3ebb0c99544671fe6c192940b36ed2ecc402939ef9bcc011089789dac",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "b44979dfd01263d6fc94bea3b6649c0c168dd961c4eaf85854e16f697b58619e",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 2516224,
+        "input_tokens": 3005487,
+        "output_tokens": 48642,
+        "reasoning_output_tokens": 4895
+      },
+      "sampleId": "story-01-repeat-01",
+      "status": "installed"
+    },
+    {
+      "actualAliasesVerified": true,
+      "arm": "sol",
+      "attempts": 8,
+      "canonicalBytes": 151787,
+      "contentHash": "340e3ce790ef7a8cb31c28787e74fec949802acb37d6fff196f1af282f1bd4dd",
+      "durationMs": 1163988,
+      "firstPass": 8,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "0ff6a3c0dde0b70b4d52c73d00fdf61fe4ad303a74e876d841659dcd1156ec5f",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "61315fd49477473d9f38b47ec12d108c18919b16897412ec5fdcd69f4c1e5ed6",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "da355804f07098e3324ab66a019cb53a7513bdb556d05e1271311b6d60fcce0c",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "db23bc1c93ee248c08266d8dfb8803d0354a30d54199f7ca8c86c7288f6611f3",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "e54771057908b8af4e68dfa95ca97a2be42f22d499a3f99ebd2c3ef42475d4cc",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "84a2a7758205395c547293be42cdb2f4ef93552c38552d90e8daa40a11f8de19",
+          "firstPass": true,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "91922ec2406c169c20cc938f7e7db7309c37283ab2ed1728cc32753bd64ec7fc",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "5c75e687776bc93ca762f01d78f7b82dbce267d3c1e1918c4b9e880d788d6f31",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 2565120,
+        "input_tokens": 3003879,
+        "output_tokens": 49423,
+        "reasoning_output_tokens": 3832
+      },
+      "sampleId": "story-02-repeat-01",
+      "status": "installed"
+    },
+    {
+      "actualAliasesVerified": true,
+      "arm": "sol",
+      "attempts": 8,
+      "canonicalBytes": 201881,
+      "contentHash": "4e1c5af42ee3c67534ced6748dcdf8b2de1104c2d240fe9d0dc527ce26bf39b5",
+      "durationMs": 1612327,
+      "firstPass": 8,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "22c58b41ef2afdb11600836e7fbd81719d1eafd1f252011c36b08de854a2cc17",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "421e5a0a8c08e90321fd7cb7e9eaa4ebcbc95a42b6094119a8635c67f92ffaf4",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "7f0a9f6c189202358c68d47fff983c05deba47b0ba2efe53437581e57f410db0",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "fb9a574a5baedb38be6b21e77c67c2b2b71e22c0e1bfb80297c5152a7a92bfdb",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "89f990b2a449d7a6d94df4a33085bdde3e10c2cbf7acb0194495c97f41476a4f",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "a5e40ad181306f1a1af21e1656da7c2b23dd0414d1021299f51ccbe548b08866",
+          "firstPass": true,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "fed8169e2aed522039462731fb0b873359c024f698a7624ed7a16540a7b7422a",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "8422ebfa3ac0930b172a09a2a5073cc5bac5ece7cc1f787276e954fa568c06a4",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 3015040,
+        "input_tokens": 3468618,
+        "output_tokens": 64988,
+        "reasoning_output_tokens": 11346
+      },
+      "sampleId": "story-03-repeat-01",
+      "status": "installed"
+    },
+    {
+      "actualAliasesVerified": true,
+      "arm": "terra",
+      "attempts": 8,
+      "canonicalBytes": 61549,
+      "contentHash": "44726873699557fcfdf6be3ead9aaba7e72b1c37ac014eba0cca9c2eb9372e3e",
+      "durationMs": 555668,
+      "firstPass": 8,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "46b5dc41ea5193448c6aa709bc4511b60a1940e309c1682d1fe2e629c98be7a1",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "27f97d406eebef6ab02ec54ea55583edc520e6219e63a1c56c28f8d71e3f49b6",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "f0744b3ed1f1b86ce809cf3370d738acfbf7765c0114eb520ee6c67dd6e0679d",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "5c5a06694816b6a886d8bdde119eb0ba59b99b3f4a0cc221aea0fffc0e948f57",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "5e675b9ca35eddf38f8aeba4da9a3bbbd90b2c63de3fac1680676fc0a0a88234",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "61c6326022bd6ba85d8d735d139e3cb3f7035fe1c6334df3282ea8e5ac0e9024",
+          "firstPass": true,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "cc017377b3000aa22d90dde7d601053323be654176aa17399642491f3c7c7547",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "7d3cba534ee544914a179148877e91b4b77f452a9eea3dce1cb60c91e4aec305",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 1492608,
+        "input_tokens": 1802894,
+        "output_tokens": 27601,
+        "reasoning_output_tokens": 867
+      },
+      "sampleId": "story-01-repeat-01",
+      "status": "installed"
+    },
+    {
+      "actualAliasesVerified": true,
+      "arm": "terra",
+      "attempts": 8,
+      "canonicalBytes": 67610,
+      "contentHash": "96f6f01542de65464262687e747534bc3575aea10be05ebb02acd9305ff70c81",
+      "durationMs": 542135,
+      "firstPass": 8,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "b7280011791239fd09e9e2214dc03b5ec63e9ad7ca11d9e8697a1ebde13c2fec",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "1ea143b307c7fdbce00d8624cdb594711793c722c637bc30f32e4bef22b42268",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "266f086ec4cda8f0d0bbe9db39db6e677480bb6bd91474ecedf05e4a9b71d327",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "b8991b815d6f59e4cad0e4dba838552b7c12da23a942fccadb9b43555208efc8",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "2687abab1b25281493f1469837f1587c8ce7343286cd4af7319ee6271d54d38a",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "d646ec71bcddec5358bcea1c759b17db9901605e33cb70f4b752d4ea55c27019",
+          "firstPass": true,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "bf27faa1c5e1584148997bab9aec99cba314c0500f530222a19e2950e4c388a0",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "60b341ec6d6de1efd188989fe73e378078850d3d23023010b4069687fbd94237",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 1649024,
+        "input_tokens": 1956897,
+        "output_tokens": 27864,
+        "reasoning_output_tokens": 1281
+      },
+      "sampleId": "story-02-repeat-01",
+      "status": "installed"
+    },
+    {
+      "actualAliasesVerified": true,
+      "arm": "terra",
+      "attempts": 9,
+      "canonicalBytes": 79328,
+      "contentHash": "ba106cfc3f8e16457b16b86ae01a16facfa7df8f0c4dce1f5241702fb886ad9c",
+      "durationMs": 527102,
+      "firstPass": 7,
+      "operations": [
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "1da6510b321b6fe0c47657efe70cf2241cccfcba6d17bd7b2fb1f670e4fe0e11",
+          "firstPass": true,
+          "stage": "outline"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "5c6a84ae5678d679c01f42394c472bae0e37c2237a4d847d8e10069b56a5cd46",
+          "firstPass": true,
+          "stage": "branches"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "d1f061335b4f1f849b150df1e8a7dd7410831ff88b28b851669f7d35d6dfc312",
+          "firstPass": true,
+          "stage": "characters"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "1b3de30ab9371fe9b73b179eb240d5054dbb92e2f3a09b17afeb402b2f91a11e",
+          "firstPass": true,
+          "stage": "art"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "9a6289d5f70e565005ec4fda1c34c0cab8c4a778553fc725fb690d5d98df6175",
+          "firstPass": true,
+          "stage": "script"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 2,
+          "bindingHash": "e0559de3c6f530e62f85781c81536b895999002f2f4ee9ef3d247342185af609",
+          "firstPass": false,
+          "stage": "storyboard"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "f02df75f61a2a5c92edae91e5d7c8eefbb612ecb3d8d5062b76bfff715bbfecd",
+          "firstPass": true,
+          "stage": "bridge-intent"
+        },
+        {
+          "accepted": true,
+          "attemptCount": 1,
+          "bindingHash": "945ebae5cb290648747d50f8b2e09fed84d891691cb58359aad41cb07f3e5bda",
+          "firstPass": true,
+          "stage": "bridge-presentation"
+        }
+      ],
+      "reportedUsage": {
+        "cached_input_tokens": 1723520,
+        "input_tokens": 2080810,
+        "output_tokens": 30619,
+        "reasoning_output_tokens": 1224
+      },
+      "sampleId": "story-03-repeat-01",
+      "status": "installed"
+    }
+  ],
+  "readers": [
+    {
+      "reader": "reader-1",
+      "requestedModel": "gpt-6.1-sol",
+      "requestedReasoningEffort": "high",
+      "effectiveHostSettings": "unverified",
+      "entries": [
+        {
+          "arm": "terra",
+          "contentHash": "96f6f01542de65464262687e747534bc3575aea10be05ebb02acd9305ff70c81",
+          "reviewId": "review-c92eeaa2e46ce4df00597720eaec527d",
+          "sampleId": "story-02-repeat-01"
+        },
+        {
+          "arm": "terra",
+          "contentHash": "44726873699557fcfdf6be3ead9aaba7e72b1c37ac014eba0cca9c2eb9372e3e",
+          "reviewId": "review-5e07fe8ccda84115e0c10148cd391a2e",
+          "sampleId": "story-01-repeat-01"
+        },
+        {
+          "arm": "terra",
+          "contentHash": "ba106cfc3f8e16457b16b86ae01a16facfa7df8f0c4dce1f5241702fb886ad9c",
+          "reviewId": "review-8883d25c11babeff4ae32ff8aa9178e1",
+          "sampleId": "story-03-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "bff574f168f2780fd0601f1bbc997be9a3eeb5f1017cf385d093bd63ae6c70c2",
+          "reviewId": "review-1f49227747353412799b1f4bc0003e8e",
+          "sampleId": "story-01-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "4e1c5af42ee3c67534ced6748dcdf8b2de1104c2d240fe9d0dc527ce26bf39b5",
+          "reviewId": "review-bc322f8ecff543c6d7ca701eed6bbe3e",
+          "sampleId": "story-03-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "340e3ce790ef7a8cb31c28787e74fec949802acb37d6fff196f1af282f1bd4dd",
+          "reviewId": "review-c48aa747f1e7aca73ba34f073385d30f",
+          "sampleId": "story-02-repeat-01"
+        }
+      ]
+    },
+    {
+      "reader": "reader-2",
+      "requestedModel": "gpt-6.1-sol",
+      "requestedReasoningEffort": "high",
+      "effectiveHostSettings": "unverified",
+      "entries": [
+        {
+          "arm": "terra",
+          "contentHash": "44726873699557fcfdf6be3ead9aaba7e72b1c37ac014eba0cca9c2eb9372e3e",
+          "reviewId": "review-9e8cb810a39a4bb5f7ae00f5a79bee9c",
+          "sampleId": "story-01-repeat-01"
+        },
+        {
+          "arm": "terra",
+          "contentHash": "96f6f01542de65464262687e747534bc3575aea10be05ebb02acd9305ff70c81",
+          "reviewId": "review-2ac95d75a0fd7f53f5b480d512f1ded8",
+          "sampleId": "story-02-repeat-01"
+        },
+        {
+          "arm": "terra",
+          "contentHash": "ba106cfc3f8e16457b16b86ae01a16facfa7df8f0c4dce1f5241702fb886ad9c",
+          "reviewId": "review-c53050fedf0e667255de5c262fa67e47",
+          "sampleId": "story-03-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "4e1c5af42ee3c67534ced6748dcdf8b2de1104c2d240fe9d0dc527ce26bf39b5",
+          "reviewId": "review-cb27bff2a90f5d2727e0339b398d9c30",
+          "sampleId": "story-03-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "340e3ce790ef7a8cb31c28787e74fec949802acb37d6fff196f1af282f1bd4dd",
+          "reviewId": "review-4a69cf3be04f094eb5592f28e2b547d1",
+          "sampleId": "story-02-repeat-01"
+        },
+        {
+          "arm": "sol",
+          "contentHash": "bff574f168f2780fd0601f1bbc997be9a3eeb5f1017cf385d093bd63ae6c70c2",
+          "reviewId": "review-2dbaa6c9c8fc3d4c6e0dd064ae772c1a",
+          "sampleId": "story-01-repeat-01"
+        }
+      ]
+    }
+  ],
+  "realizedReadingOrder": "both Terra x3 followed by Sol x3; genuine independent random draws; possible shared order/calibration effects",
+  "preservationPurpose": "canonical baseline, editorial feedback and exact visible-text failure inputs for the next quality repair; no executable runtime or replay claim",
+  "files": [
+    {
+      "path": "sol/story-01.json",
+      "bytes": 151367,
+      "sha256": "bff574f168f2780fd0601f1bbc997be9a3eeb5f1017cf385d093bd63ae6c70c2"
+    },
+    {
+      "path": "sol/story-02.json",
+      "bytes": 151787,
+      "sha256": "340e3ce790ef7a8cb31c28787e74fec949802acb37d6fff196f1af282f1bd4dd"
+    },
+    {
+      "path": "sol/story-03.json",
+      "bytes": 201881,
+      "sha256": "4e1c5af42ee3c67534ced6748dcdf8b2de1104c2d240fe9d0dc527ce26bf39b5"
+    },
+    {
+      "path": "terra/story-01.json",
+      "bytes": 61549,
+      "sha256": "44726873699557fcfdf6be3ead9aaba7e72b1c37ac014eba0cca9c2eb9372e3e"
+    },
+    {
+      "path": "terra/story-02.json",
+      "bytes": 67610,
+      "sha256": "96f6f01542de65464262687e747534bc3575aea10be05ebb02acd9305ff70c81"
+    },
+    {
+      "path": "terra/story-03.json",
+      "bytes": 79328,
+      "sha256": "ba106cfc3f8e16457b16b86ae01a16facfa7df8f0c4dce1f5241702fb886ad9c"
+    },
+    {
+      "path": "reader-1/assessment.md",
+      "bytes": 24055,
+      "sha256": "74dcb85a8d512c07b3170d3f028bb8730759846637cb698144eb7be74267deef"
+    },
+    {
+      "path": "reader-1/paired-assessment.md",
+      "bytes": 19437,
+      "sha256": "7ba6cfb892c761f65283ceb25920c282d2e5e46323e9efab35e8a50b5d03efd0"
+    },
+    {
+      "path": "reader-1/review-c92eeaa2e46ce4df00597720eaec527d.score-sheet.json",
+      "bytes": 508,
+      "sha256": "ba2559a970b87e5c9c79b067f23401913e6142f7635828c619604a744b7b57c9"
+    },
+    {
+      "path": "reader-1/review-5e07fe8ccda84115e0c10148cd391a2e.score-sheet.json",
+      "bytes": 508,
+      "sha256": "32fe5cd99b0120f4d5ac839b5c728512e32b9ae8efc145bdd78e2410c4d9481a"
+    },
+    {
+      "path": "reader-1/review-8883d25c11babeff4ae32ff8aa9178e1.score-sheet.json",
+      "bytes": 508,
+      "sha256": "b0351413aad496ee144125ac3275fd0aa9e7e12d6019d54232344e9ad7821f54"
+    },
+    {
+      "path": "reader-1/review-1f49227747353412799b1f4bc0003e8e.score-sheet.json",
+      "bytes": 508,
+      "sha256": "304d94add0a51c8fe5cba5189338a2717db4935d6638c5360e6619b418555e7f"
+    },
+    {
+      "path": "reader-1/review-bc322f8ecff543c6d7ca701eed6bbe3e.score-sheet.json",
+      "bytes": 508,
+      "sha256": "7cbf4cd772abdbee2e68a0e2fb9e00f512a4c4e786e4ffc080080ceb6bcc35a6"
+    },
+    {
+      "path": "reader-1/review-c48aa747f1e7aca73ba34f073385d30f.score-sheet.json",
+      "bytes": 508,
+      "sha256": "c16a009b406f4e6ecff9662c8badc9b005c433db24389e86e8dccbb80fefa675"
+    },
+    {
+      "path": "reader-1/order.json",
+      "bytes": 273,
+      "sha256": "3d50076a6a41e1157b7885718cb270f2d5eb0bbb65a4c7a9db876a52632f6711"
+    },
+    {
+      "path": "reader-1/rubric.md",
+      "bytes": 1641,
+      "sha256": "6a89bde54a11341c693e384d8d755802700356aa02bb2f183b4f662439416d14"
+    },
+    {
+      "path": "reader-2/assessment.md",
+      "bytes": 21106,
+      "sha256": "aaa4ef9482211d5a0a250e879447ae7ac27cba794d92d16deac343a011cdbab4"
+    },
+    {
+      "path": "reader-2/paired-assessment.md",
+      "bytes": 22594,
+      "sha256": "8ba55498bb285b895a7d4262c823afc464eda993a2b4fc77b7dfbd6679efafd0"
+    },
+    {
+      "path": "reader-2/review-9e8cb810a39a4bb5f7ae00f5a79bee9c.score-sheet.json",
+      "bytes": 508,
+      "sha256": "37b8d5bd8a4af2b4e372ddefc90e572a89af66b8ca5ac0a646ad07bd12904b70"
+    },
+    {
+      "path": "reader-2/review-2ac95d75a0fd7f53f5b480d512f1ded8.score-sheet.json",
+      "bytes": 508,
+      "sha256": "58ea688e74b063ecfd4e647b9f087ec0047f02f71528a85102c1759d33da4671"
+    },
+    {
+      "path": "reader-2/review-c53050fedf0e667255de5c262fa67e47.score-sheet.json",
+      "bytes": 507,
+      "sha256": "fd37859f7a469072ab828cfb9656875472ecb64aba251cb6cee8a55818d07847"
+    },
+    {
+      "path": "reader-2/review-cb27bff2a90f5d2727e0339b398d9c30.score-sheet.json",
+      "bytes": 508,
+      "sha256": "7950c21423625084082e8b15a188026c6ad9082eb97391240d0dfe5f53121047"
+    },
+    {
+      "path": "reader-2/review-4a69cf3be04f094eb5592f28e2b547d1.score-sheet.json",
+      "bytes": 508,
+      "sha256": "cc597d9d4e1562c94c94e20a0e0d36ebd62555e8e99b41be5ecff4e481dcd193"
+    },
+    {
+      "path": "reader-2/review-2dbaa6c9c8fc3d4c6e0dd064ae772c1a.score-sheet.json",
+      "bytes": 508,
+      "sha256": "7fa283fdac3efa9d3c0b78110b03e5ddf19008a614534ee1b94bdb4325b58106"
+    },
+    {
+      "path": "reader-2/order.json",
+      "bytes": 273,
+      "sha256": "94ea5ac1542d273016dc589b5f4fd37da58872edbffe40a6efc28a31eca46ade"
+    },
+    {
+      "path": "reader-2/rubric.md",
+      "bytes": 1641,
+      "sha256": "6a89bde54a11341c693e384d8d755802700356aa02bb2f183b4f662439416d14"
+    },
+    {
+      "path": "sol/snow-script.json",
+      "bytes": 20554,
+      "sha256": "a58ab811ea5f972fb41b3a0bdbf66c346812d55d272c7f180bd045a30ac787ed"
+    },
+    {
+      "path": "sol/snow-presentation.json",
+      "bytes": 128888,
+      "sha256": "b67d542ebad9fc14654bcb12f0f01312166cb3d14463e767406ed4dab8d3bcaf"
+    },
+    {
+      "path": "visible-text-trace.json",
+      "bytes": 2662,
+      "sha256": "9b3edbb031a1a75153a319c7f8eb046e00ec99d0f8ceefeb76fdeeb706a69b0d"
+    }
+  ]
+}

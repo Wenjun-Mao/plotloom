@@ -161,3 +161,21 @@ drift event, earlier Alpha quality failure and lost-D2-state limitation remain.
 Protected 952 UNKNOWN/slot-1 evidence was not modified or cleared; no recovery
 or new verification of the missing original D2 state is claimed.
 Creative/canon/material inspection acceptance is separate from authorization.
+
+## Owner-approved post-review cleanup
+
+After acceptance, the owner requested cleanup and publication. The inert
+`video_batch_grants` table (28 rows and its primary-key index) was removed in
+one `BEGIN IMMEDIATE` transaction after confirming no current source consumer
+or schema dependency. The 25 `runtime_execution_grants` rows and every other
+application table remained exact; integrity and foreign-key checks passed.
+All nine project schemas/rows/files, native state, settings, claims, protected
+metadata and H5 exports remain unchanged. No service restart or project write
+was needed. All nine live exact-scope QA contexts remain eligible.
+
+This is a later explicitly authorized removal, not a revision of the repair's
+original preservation result. The post-cleanup preservation digest is
+`52efb2d3cef611aa6cc2b307ed39de1b115b142e74ff9cfc0a050288234e0309`.
+The [writing-model report](../verification/2026-10-27-writing-model-pilot.md)
+records selective practical preservation and retirement of the separate
+unadopted experiment. The original fixture-seed timeout remains unresolved.

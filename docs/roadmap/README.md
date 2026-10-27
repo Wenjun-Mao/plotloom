@@ -1,11 +1,28 @@
 # Plotloom roadmap entrypoint
 
+## Completed writing-model comparison and owner-approved cleanup
+
+The [paired comparison](../verification/2026-10-27-writing-model-pilot.md)
+tested Sol/medium and Terra/medium on three stories each. Keep Sol: both models
+failed the unchanged quality bar; two blinded AI readers preferred Sol's dramatic
+construction, with evaluator-family and shared reading-order limits disclosed.
+The next suggested quality work is exact on-screen wording and the one-minute
+information budget, not another automatic model trial.
+
+The owner approved retaining the compact examples/feedback, retiring both
+disposable installations/readings and the unadopted experiment worktree/branch,
+and publishing main. The experiment selector and duplicate ADR were not merged.
+The obsolete 28-row inode-grant table was removed in one checked transaction;
+all 25 current grants, nine projects and protected state remain exact. No service
+restart, generation, quality regrading or GitHub CI followed this cleanup.
+
 ## Completed disposable QA authorization repair
 
 The [bounded repair](2026-10-27-qa-runtime-authorization.md) is independently
 reviewed, scoped-composite qualified and activated at `3f4bdfbf`. All nine exact
-original scopes are eligible with truthful agent-QA actors; 25 new grants preserve
-all 28 old rows, including three inert absent-project rows. Real Docker write/
+original scopes are eligible with truthful agent-QA actors. The adoption added
+25 new grants while preserving all 28 old rows; the later approved cleanup
+retired that inert old table. Real Docker write/
 restart/readback, copy/restore refusal and exact preservation evidence are retained.
 The one full invocation remains failed on the text-retry seed limit; its cause
 and broad startup reliability remain unproven. Reviewed exact/concurrent diagnostic

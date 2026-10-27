@@ -1,0 +1,1363 @@
+{
+  "entries": [
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 27,
+          "role": "physical",
+          "rendering": "邮差顶雪跨进邮亭，从红色邮包取出恰好三封原信放上灰木台。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 27,
+          "end": 39,
+          "role": "physical",
+          "rendering": "三份原信封各保留对应作者的签署及授权文字位置，字层独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 39,
+          "end": 48,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 48,
+          "end": 54,
+          "role": "physical",
+          "rendering": "三封信的类别标记各留在原信上，文字独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 54,
+          "end": 56,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 56,
+          "end": 78,
+          "role": "physical",
+          "rendering": "方口外白雪压着暗色山线，画面中只有邮包保留饱和红色。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 28,
+          "role": "physical",
+          "rendering": "邮差依授权展开陈山寄陈禾的暖灰原信；保留两道横折及折痕之间的正文位置，字层另行合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 28,
+          "end": 62,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 14,
+          "role": "physical",
+          "rendering": "邮差展开陈禾寄许宁的冷灰原信，正文留给独立文字合成层。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 14,
+          "end": 52,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 52,
+          "end": 61,
+          "role": "physical",
+          "rendering": "冷灰原信的一道中折完整保留。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-b4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 14,
+          "role": "physical",
+          "rendering": "邮差展开许宁寄陈山的灰米原信，正文与干净纸面分层合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 14,
+          "end": 55,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 55,
+          "end": 62,
+          "role": "physical",
+          "rendering": "三份原信的独责正文并排可供核对，纸张各自保持原有身份。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 62,
+          "end": 69,
+          "role": "review_only",
+          "rendering": "",
+          "reason": "此跨度是对冻结叙事关系的审阅判断，不是可直接拍摄的动作或需显示的文字。保留其约束：互斥独责不能裁定真凶，结伴或撤离不等于父女和解；不新增判罪、洗白或和解画面。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-b5",
+      "spans": [
+        {
+          "start": 0,
+          "end": 13,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 41,
+          "role": "physical",
+          "rendering": "陈山在信号站门口拉紧石墨灰工作外套，转身朝窄门内继续值守。右侧方窗的淡暖灯还亮着。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s3-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 43,
+          "role": "physical",
+          "rendering": "陈禾从磨白的长凳上起身，走向棚边末班车的上车位置；她独自回望信号站方向，又停在车门外。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s4-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 40,
+          "role": "physical",
+          "rendering": "许宁收拢外套，走到已收拾完的诊所门外，伸手准备合上门边锁扣。门廊内无人等待同行。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s5-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 8,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s5-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 26,
+          "role": "physical",
+          "rendering": "方口外封路警示升起；邮差按住灰木台上尚未投递的三封原信，警示字层与干净画面分开。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 26,
+          "end": 61,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 61,
+          "end": 80,
+          "role": "physical",
+          "rendering": "雪光中的纸张保持灰白；人物面部维持低饱和，不增加其他饱和色。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 17,
+          "role": "physical",
+          "rendering": "邮差将三张原信的独责正文并排放下，正文另层合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 17,
+          "end": 41,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 41,
+          "end": 46,
+          "role": "review_only",
+          "rendering": "",
+          "reason": "此跨度是对冻结叙事关系的审阅判断，不是可直接拍摄的动作或需显示的文字。保留其约束：互斥独责不能裁定真凶，结伴或撤离不等于父女和解；不新增判罪、洗白或和解画面。"
+        },
+        {
+          "start": 46,
+          "end": 60,
+          "role": "physical",
+          "rendering": "邮差不从三封原信中单独挑出任何一封作为定罪证据；不增加指认、定罪动作或旧灾闪回。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 43,
+          "role": "physical",
+          "rendering": "邮差依各自原封地址，把陈山寄陈禾、陈禾寄许宁、许宁寄陈山的三封原信排成闭环；每张原信的劝离正文均露出，地址及正文留在独立字层。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 43,
+          "end": 65,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 10,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-b4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 50,
+          "role": "physical",
+          "rendering": "她将三张纸各自收回原封，再全部装进同一个红色邮包。没有删信、抄信或投递，三位作者的原定去留尚未改变。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 38,
+          "role": "physical",
+          "rendering": "邮差携齐三封未投递原信走出邮亭，停在三岔雪路中央；邮亭右柱仍在身后。三片原有路牌各指向对应支路，路牌文字独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 38,
+          "end": 48,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 48,
+          "end": 68,
+          "role": "physical",
+          "rendering": "仍是同一封路窗口，仅够投递一处；保持恰好三条支路，不增加捷径或绕投通路。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 43,
+          "role": "physical",
+          "rendering": "邮差依各自原封地址，把陈山寄陈禾、陈禾寄许宁、许宁寄陈山的三封原信排成闭环；每张原信的劝离正文均露出，地址及正文留在独立字层。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 43,
+          "end": 65,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 17,
+          "role": "physical",
+          "rendering": "邮差将三张原信的独责正文并排放下，正文另层合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 17,
+          "end": 41,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 41,
+          "end": 46,
+          "role": "review_only",
+          "rendering": "",
+          "reason": "此跨度是对冻结叙事关系的审阅判断，不是可直接拍摄的动作或需显示的文字。保留其约束：互斥独责不能裁定真凶，结伴或撤离不等于父女和解；不新增判罪、洗白或和解画面。"
+        },
+        {
+          "start": 46,
+          "end": 60,
+          "role": "physical",
+          "rendering": "邮差不从三封原信中单独挑出任何一封作为定罪证据；不增加指认、定罪动作或旧灾闪回。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 10,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-b4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 50,
+          "role": "physical",
+          "rendering": "她将三张纸各自收回原封，再全部装进同一个红色邮包。没有删信、抄信或投递，三位作者的原定去留尚未改变。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 38,
+          "role": "physical",
+          "rendering": "邮差携齐三封未投递原信走出邮亭，停在三岔雪路中央；邮亭右柱仍在身后。三片原有路牌各指向对应支路，路牌文字独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 38,
+          "end": 48,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 48,
+          "end": 68,
+          "role": "physical",
+          "rendering": "仍是同一封路窗口，仅够投递一处；保持恰好三条支路，不增加捷径或绕投通路。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 46,
+          "role": "physical",
+          "rendering": "邮差从三岔路走上候车棚支路；她只取出陈山寄陈禾的原封，陈禾寄许宁及许宁寄陈山的原信仍在包里。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 27,
+          "role": "physical",
+          "rendering": "邮差抵达候车棚，将陈山原信交给陈禾。陈禾展开暖灰原信阅读，正文留给独立字层。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 27,
+          "end": 40,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 40,
+          "end": 58,
+          "role": "physical",
+          "rendering": "陈禾读完该段，原先朝着信号站的脸转回末班车车门。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 8,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 38,
+          "role": "physical",
+          "rendering": "陈禾把父亲原信收进衣内，独自登上末班车。邮差留在车门外，候车棚的空位显出来。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s3-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 36,
+          "role": "physical",
+          "rendering": "陈山独自退回信号站窄门。右侧值守窗仍亮，他没有收到许宁的信，也没有离岗。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s4-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 33,
+          "role": "physical",
+          "rendering": "许宁独自合上诊所门边的锁扣；没有陈禾来信，她仍照原定撤离安排行动。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s5-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 43,
+          "role": "physical",
+          "rendering": "许宁沿门廊外的本地单向撤离道独自离开。她没有赶上与陈禾同行，没有接触或传递另外两封信。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s6-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 7,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s6-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 55,
+          "role": "physical",
+          "rendering": "邮差在空棚旁打开邮包，里面只剩陈禾寄许宁、许宁寄陈山的两封原信。她合上包盖，身后邮路已被雪吞没；无人替她补送。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 42,
+          "role": "physical",
+          "rendering": "邮差走上通向诊所的支路，只取出陈禾寄许宁的原信；陈山寄陈禾、许宁寄陈山两封仍在包里。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 27,
+          "role": "physical",
+          "rendering": "邮差抵达诊所门廊，将陈禾原信递给许宁；许宁展开冷灰原信阅读，正文独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 27,
+          "end": 42,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 42,
+          "end": 58,
+          "role": "physical",
+          "rendering": "许宁读完该段，从诊所门槛转向候车棚方向。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s2-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 5,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s2-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 53,
+          "role": "physical",
+          "rendering": "许宁收好收到的原信，合上诊所锁扣，踏上与候车棚共用的本地单向撤离道。邮差留在门廊，其他两封信始终在她包中。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 42,
+          "role": "physical",
+          "rendering": "许宁沿撤离道走到候车棚，停在独自候车的陈禾身旁；她空着双手，没有替邮差带来父亲的信。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 9,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 4,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-b4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 32,
+          "role": "physical",
+          "rendering": "许宁陪陈禾共同登上末班车；陈禾回望一次信号站方向，随后跨过车门，只呈现上车口，不展示车厢内部。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 32,
+          "end": 46,
+          "role": "review_only",
+          "rendering": "",
+          "reason": "此跨度是对冻结叙事关系的审阅判断，不是可直接拍摄的动作或需显示的文字。保留其约束：互斥独责不能裁定真凶，结伴或撤离不等于父女和解；不新增判罪、洗白或和解画面。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s4-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 34,
+          "role": "physical",
+          "rendering": "陈山独自走回值守的窄门，右侧灯仍亮着。许宁的原信没有到，他继续留守。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s5-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 61,
+          "role": "physical",
+          "rendering": "关门的诊所外，邮差打开红色邮包：陈山寄陈禾、许宁寄陈山的两封原信仍在。她合上包盖，封闭的邮路不再容她补送，两封只能等雪停。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s1-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 40,
+          "role": "physical",
+          "rendering": "邮差走上信号站支路，只取出许宁寄陈山的原信；陈山寄陈禾、陈禾寄许宁两封留在包中。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s2-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 27,
+          "role": "physical",
+          "rendering": "邮差抵达信号站窄门，将许宁原信交给陈山。陈山展开灰米原信阅读，正文独立合成。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 27,
+          "end": 47,
+          "role": "visible_text",
+          "rendering": "",
+          "reason": "此跨度归属原信、信封、警示或路牌上已冻结的书面内容；原字及其限定由源跨度保留，仅供独立文字层，不朗读、不改成对白，不生成新字句。"
+        },
+        {
+          "start": 47,
+          "end": 61,
+          "role": "physical",
+          "rendering": "陈山读完该段，原先收紧的肩背慢慢放下；不以身体反应裁定旧灾责任。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-c5881779-b010-505a-b41e-0fc6580c2616-s2-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 5,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s2-b3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 49,
+          "role": "physical",
+          "rendering": "陈山熄灭值守灯，走出并关上窄门，带着收到的原信踏上值守人员通往诊所的本地单向撤离道。邮差留在站外。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s3-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 58,
+          "role": "physical",
+          "rendering": "陈山沿本地撤离道来到诊所门前，许宁正在合上锁扣。她见到他离岗便停下脚步，没有收到陈禾的信；两人相遇没有交接其他信件。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-c5881779-b010-505a-b41e-0fc6580c2616-s3-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 7,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s4-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 56,
+          "role": "physical",
+          "rendering": "陈山与许宁沿诊所外本地撤离道结伴撤出，把关好的诊所留在身后。许宁改为同行的原因是陈山来到，不是有人补送女儿的信。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "dialogue:node-c5881779-b010-505a-b41e-0fc6580c2616-s5-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 6,
+          "role": "dialogue",
+          "rendering": "",
+          "reason": "此来源为冻结对白，仅由原说话者及既有对白提示承接；保留原字、语气和对话对象，不改成画面文字，不增加读信或远程通话。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s5-b2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 39,
+          "role": "physical",
+          "rendering": "陈禾独自登上末班车，没有父亲原信，也没有同行的人。车门合上，候车棚前留下空位。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        }
+      ]
+    },
+    {
+      "id": "action:node-c5881779-b010-505a-b41e-0fc6580c2616-s6-b1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 55,
+          "role": "physical",
+          "rendering": "已暗下来的值守窗旁，邮差打开红色邮包，里面恰好留下陈山寄陈禾、陈禾寄许宁的两封原信；她合上包盖，邮路封闭，雪停前不再补送，也无人代投。",
+          "reason": "此跨度为可见动作、物件状态或物理连续性限制；按冻结来源保持人物、原信身份与数量、动作先后及通路限制，文字另层承接。"
+        },
+        {
+          "start": 55,
+          "end": 67,
+          "role": "review_only",
+          "rendering": "",
+          "reason": "此跨度是对冻结叙事关系的审阅判断，不是可直接拍摄的动作或需显示的文字。保留其约束：互斥独责不能裁定真凶，结伴或撤离不等于父女和解；不新增判罪、洗白或和解画面。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1717,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier crosses the kiosk threshold, her mailbag at her right hip; her hands begin lifting exactly three original envelopes toward the ledge. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1763,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Over the courier shoulder, the father-to-daughter warm gray ivory sheet begins opening above its plain triangular-flap envelope; its two horizontal folds and rounded lower-left corner are clear. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-c3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1474,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. extreme close-up, 16:9. The courier hands begin opening the cool gray-white daughter-to-nurse original; the central horizontal fold and short lower-right diagonal crease distinguish it. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-c4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1468,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier begins opening the nurse-to-father pale gray sheet with a low horizontal fold and shallow wavy upper edge; the first two originals remain on the ledge. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s1-c5",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1718,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier face is held above the three opened originals; the scarlet bag rests beside the gray ledge. Her expression registers restrained surprise. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1180,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The keeper stands at his narrow station door, hands at his graphite jacket, the small right window glowing. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. Overcast snowlight; the right duty window carries a dim desaturated pale warm glow until the scripted departure extinguishes it. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s3-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1141,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The daughter rises from the worn rear bench, facing the nearby boarding position alone. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s4-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1136,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The nurse gathers her coat at the clinic porch, her hand approaching the fixed door hasp. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-0922e2a3-0d18-5156-9a5b-8a6c10cea728-s5-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1687,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. Back at the kiosk the courier faces the closing postal road, one hand poised above the three undelivered originals. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. Overcast pre-closure snowlight, cool bounce into the shelter. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1688,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier hands move the three opened originals into a row of sole-responsibility paragraphs. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1423,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Over her shoulder, the three original envelopes form an address cycle beside the unfolded sheets. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-c3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1511,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier looks down at the ledge beyond the lower frame edge, her restrained face resolved against dark kiosk wood; bag corner at her side. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s1-c4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1691,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Her hands begin folding each original into its own matching envelope beside the open scarlet mailbag. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-6f058879-6df4-50c4-9dc5-4ba7642a83e0-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1415,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. extreme wide shot, 16:9. The courier exits the kiosk toward the junction, bag closed at her right hip, carrying all three originals inside. At the same kiosk exterior, its square opening and right upright remain behind the junction. Exactly three snow branches diverge beside a gray post with three narrow directional boards; no shortcut or extra branch. Overcast daylight in the unchanged remaining delivery window, windblown snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1694,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier hands start moving the original envelopes into an address cycle beside the opened sheets. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1429,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Over her shoulder, three originals start sliding into a parallel row of sole-responsibility paragraphs. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-c3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1489,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier holds a steady downward gaze toward the letters beyond the lower frame edge; scarlet bag corner at her side. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s1-c4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1683,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Her hands begin returning each folded original to its own plain envelope beside the open bag. Inside the sheltered mountain-pass postal kiosk, a gray wooden ledge has a worn central notch; the square front opening, narrow flat eave, right upright and left narrow window with triangular sill frost retain their accepted positions. White snow and dark mountain contours lie outside. The same overcast daylight, with denser snow reducing visibility beyond the kiosk. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-fdd61900-cd37-52e3-b5b7-8a023b72ccf9-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1422,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. extreme wide shot, 16:9. The courier walks out from the kiosk toward the junction with all three original letters inside her closed right-hip bag. At the same kiosk exterior, its square opening and right upright remain behind the junction. Exactly three snow branches diverge beside a gray post with three narrow directional boards; no shortcut or extra branch. Overcast daylight in the unchanged remaining delivery window, windblown snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1646,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier steps onto the shelter branch, lifting only the father-to-daughter warm gray original envelope from the right-hip bag. At the same kiosk exterior, its square opening and right upright remain behind the junction. Exactly three snow branches diverge beside a gray post with three narrow directional boards; no shortcut or extra branch. Overcast daylight in the unchanged remaining delivery window, windblown snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1881,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. At the shelter boarding edge the courier extends the father original toward the daughter, whose face is still angled toward the station. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1386,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The daughter holds her unfolded father original below her chin, facing the bus door with a newly softened mouth. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s2-c3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1860,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The daughter begins tucking the received original inside her coat beside the bus doorway; the courier stands outside. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s3-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1190,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The keeper is alone at the station threshold, shoulders gathered beneath the graphite jacket; right window still lit. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. Overcast snowlight; the right duty window carries a dim desaturated pale warm glow until the scripted departure extinguishes it. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s4-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1156,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The nurse hand approaches the fixed clinic hasp; her face remains visible above the hand in a tight composition. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s5-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1118,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The nurse begins moving outward from the closed clinic along its local one-way evacuation path. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. The same overcast daylight, clinic door closed and hasp fastened. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s6-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1457,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier stands beside the vacant shelter boarding position, red bag closed at her hip, face heavy but composed. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. The same overcast daylight after departure, with the boarding space vacant. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-d2e98572-bf6c-547f-9ddc-4913e19d7d3a-s6-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1683,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Her hands begin lifting the mailbag flap beside the empty shelter; the bag mouth reveals exactly two original envelopes. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. The same overcast daylight after departure, with the boarding space vacant. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1614,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier moves onto the clinic branch, taking out only the daughter-to-nurse original envelope. At the same kiosk exterior, its square opening and right upright remain behind the junction. Exactly three snow branches diverge beside a gray post with three narrow directional boards; no shortcut or extra branch. Overcast daylight in the unchanged remaining delivery window, windblown snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1848,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The courier offers the daughter original at the clinic porch; the nurse starts receiving it, hasp still unfastened. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s2-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1854,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The nurse starts tucking the received original inside her coat beside the fixed clinic hasp; courier stays on the porch. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1400,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. At the shelter the daughter waits alone as the nurse approaches from the evacuation path, her hands empty and received letter pocketed. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1177,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The daughter looks toward the station from beside the shelter boarding position, her mouth tense and scarf held by the wind. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-c3",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1230,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Reverse angle on the nurse at the same boarding position, daughter outside this tight frame; the received daughter letter stays pocketed. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s3-c4",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1338,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The nurse and daughter begin stepping toward the same bus doorway together. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s4-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1162,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The keeper stands alone at the narrow station threshold, right duty window still glowing. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. Overcast snowlight; the right duty window carries a dim desaturated pale warm glow until the scripted departure extinguishes it. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-9baefb20-55d5-5217-8a4b-ada4d3fa78fe-s5-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1616,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Outside the locked clinic, the courier starts opening her scarlet bag; exactly two envelopes occupy the bag mouth. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. The same overcast daylight, clinic door closed and hasp fastened. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s1-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1623,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The courier moves onto the station branch, lifting only the nurse-to-father original envelope from her bag. At the same kiosk exterior, its square opening and right upright remain behind the junction. Exactly three snow branches diverge beside a gray post with three narrow directional boards; no shortcut or extra branch. Overcast daylight in the unchanged remaining delivery window, windblown snow. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s2-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1882,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. At the narrow station doorway the courier offers the nurse original to the keeper, his shoulders tight and duty window lit. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. Overcast snowlight; the right duty window carries a dim desaturated pale warm glow until the scripted departure extinguishes it. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s2-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1890,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The keeper starts turning from the doorway with his received original folded and secured inside his jacket; courier waits outside. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. Overcast snowlight; the right duty window carries a dim desaturated pale warm glow until the scripted departure extinguishes it. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s3-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1377,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. The keeper arrives at the clinic via the local evacuation path; the nurse is about to finish fastening the door hasp. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s3-c2",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1159,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. The keeper faces the nurse beyond the tight frame at the clinic threshold; his shoulders are no longer hunched. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. Cool overcast snowlight reaches the recessed porch, the door hasp initially unfastened. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s4-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1335,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. wide shot, 16:9. The keeper and nurse begin moving outward from the shut clinic together, hasp fastened behind them. Outside the clinic, a shallow taupe porch recess has a narrower right wall, a dark wooden door with a fixed right-hand matte gray hasp, and two stone steps with a chipped lower-left corner. Keep the interior unseen. The same overcast daylight, clinic door closed and hasp fastened. The tall, spare late-fifties male station keeper has silver temples, sparse gray moustache, a long face with a pale brown spot beneath the right eye, graphite work jacket, brown wool collar and black earflap cap. The solidly built mid-forties nurse has a square-round face, short brows, downturned outer eyelids, black-and-gray hair in a compact bun, taupe long overcoat and pale gray tunic collar; no red medical emblem. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s5-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1175,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. medium shot, 16:9. At the shelter the daughter stands alone outside the bus doorway, facing the distant station direction before boarding. At the final-bus shelter, the thin gray roof slopes away, a right windbreak has a triangular lower gap, and the rear backless gray bench has a worn pale center. Show only the separately composited bus doorway at the boarding edge when needed, never the bus interior. Overcast snowlight before the last bus departs, dark roof underside over bright snow. The petite mid-twenties daughter has a low black braid, oval face with pointed chin, slate-blue quilted coat with long sleeves, oatmeal scarf and narrow black trousers. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    },
+    {
+      "id": "composition:node-c5881779-b010-505a-b41e-0fc6580c2616-s6-c1",
+      "spans": [
+        {
+          "start": 0,
+          "end": 1599,
+          "role": "physical",
+          "rendering": "Use the accepted environment reference for architecture and light, the listed character references for faces and clothing, and the listed prop references for material and proportions. close-up, 16:9. Beside the station dark window, the courier begins lifting the red bag flap; exactly two original envelopes remain. Outside the dark gray signal hut, the narrow door top aligns with the right square window, divided by one vertical mullion. The low threshold has a dark right-end patch and a white upper snow rim. The same overcast daylight; duty window dark, station door closed. The sturdy female courier, about forty, has a charcoal knit cap over a short black bob, a rectangular face, broad cheekbones, slightly higher left eyebrow, faded gray-green padded coat and dark trousers. The scarlet canvas bag is handheld scale, about 32 by 24 by 10 centimeters, with a shallow lower-front diagonal crease, dull rectangular buckle with one bright upper-right corner, and a reinforced single diagonal strap; worn at the courier right hip when carried. Each visible original sheet is handheld scale, about 21 by 15 centimeters, with its own plain envelope; no duplicate letter or red paper. Lettering is a separate source-approved compositing layer, never generated glyphs. Saved Brief direction: high-contrast snowfields with white snow against charcoal structures; low-saturation faces and clothing, with intimate facial detail in close-ups. The red canvas mailbag is the sole saturated accent when present; no competing red accents. No text, no watermark, no borders — a single clean full-bleed frame.",
+          "reason": "逐句归属可见构图及物理限制：参考图连续性、景别、16:9、建筑、光线、人物外貌服饰、道具比例、颜色和无字底图。这里没有待显示的具体字句；独立字层要求不等于生成文字。完整保留全部限制。"
+        }
+      ]
+    }
+  ]
+}
