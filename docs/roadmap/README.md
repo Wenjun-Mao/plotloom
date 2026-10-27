@@ -1,34 +1,30 @@
 # Plotloom roadmap entrypoint
 
-## Combined B3–B7 planning and approved subsequent delivery
+## Completed B3–B7 software delivery; native Alpha quality failed
 
-The owner requested [one combined plan](2026-10-26-b3-b7-backend-and-services-ownership.md)
-followed by Relay Direct E2E implementation, with standing native-task/model/effort
-authority reaffirmed. B4 exchange/package/host-client, B5 storage/schema/client
-catalogue, B6 supervisor evidence and B7 Gateway/Voice Lab fixture boundaries are
-source-reviewed. Service-root host and Lab tests and Gateway package/ARM64 proof
-are explicit additions to root full qualification. Cutovers remain component-owned;
-fixture-only Lab work gets no runtime restart.
+The [combined delivery](2026-10-26-b3-b7-backend-and-services-ownership.md) is
+implemented, independently reviewed and activated at `5971239f`. Cohesive
+qualification, exchange/package/host-client, storage/schema/catalogue, supervisor
+evidence and Gateway/Voice Lab fixture owners are in place. Root, affected-service,
+envelope, package and installed evidence are explicitly attributed; original full/
+browser failures remain failed with reviewed focused/composite closure.
 
-The owner selected current native Codex and retirement of mandatory two-profile
-Alpha execution. Under delegated judgment and independent review, the current
-`79668e1a` cohort completed nine installations, 68/72 first-pass operations and 76
-attempts. **Native Alpha FAILED blind quality:** narrative clarity and pacing/edit
-cost medians were 3, below 4. No waiver, regrading, new cohort or owner acceptance
-is claimed. Original failed/UNKNOWN evidence and the 952 held slot remain unchanged.
+Manager core/cold-bridge activation preserved all nine projects, settings, claims,
+DB incarnations and uncertainty exactly; all 9 readbacks return their original
+HTTP200 contexts. The retained Storyboard regression that rejected C4 is repaired.
+Installed native profile/readiness,24 validator/render commands,7 permission controls,
+Creator/Pro views and actual playback passed. Gateway's separate qualified activation
+is retained; fixture-only Lab needed no serving restart. The single functional
+recovery binds final source and the qualified wheel; exact approved scratch and
+the integrated H5 worktree are retired in manager closeout.
 
-A software-only C4 activation exposed one valued project's retained Storyboard
-readback regression. The manager rolled P/core/bridge back to `47ab708f`; all nine
-QA contexts returned to their exact HTTP200/ineligible baseline and logical data
-preservation matched. A reviewed passive provenance and inherited snapshot repair
-is now in focused qualification. Stable independent review, fresh source-bound
-envelope and one final full precede any manager-owned activation/recovery. Gateway
-remains activated; unchanged Gateway/Lab proofs are reusable. The nine pre-existing
-QA write-binding refusals remain disclosed and are not repaired by this scope.
-
-The [combined plan](2026-10-26-b3-b7-backend-and-services-ownership.md) retains exact
-proof locations, failed software observations and reuse boundaries. Historical full
-and browser failures remain failures; current focused evidence is reported separately.
+The actual `79668e1a` native experiment completed9 installations and 68/72 first-pass
+operations from 76 attempts, but **FAILED independent blind quality**: narrative
+clarity and pacing/edit-cost medians 3, required 4. No waiver/regrading/new campaign
+or owner acceptance follows. Earlier failed/UNKNOWN evidence and952 slot 1 remain.
+All 9pre-existing QA write-binding refusals remain disclosed (28 unmatched grant
+rows), without repair. [ADR 0222](../adr/0222-exchange-storage-and-service-ownership.md)
+captures current durable decisions and their rationale.
 
 ## Su Tang six-clip game preview
 
@@ -1331,7 +1327,7 @@ recorded separately; Plotloom integration/director contact/merge/push remain hel
 The [private generation gateway dashboard plan](2026-10-20-generation-gateway-dashboard-plan.md)
 proposes a read-only Spark viewer for operational state and retained media through
 Tailscale HTTPS, with owner-selected Tailscale-only access and no extra browser login.
-Implementation and private HTTPS checks passed on2026-10-21 after native owner
+Implementation and private HTTPS checks passed on 2026-10-21 after native owner
 activation; see the [closeout](../verification/2026-10-21-h3-dashboard-generation.md).
 The broader specialist integration hold remains unchanged.
 The owner subsequently approved [single H3 image submission](2026-10-21-h3-dashboard-generation.md)

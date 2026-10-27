@@ -4,7 +4,8 @@ Status: six real H3 sources and six exact ten-second windows are preserved,
 confirmed through truthful delegated agent QA and playable in the existing
 Plotloom player. Native Safari and independent manager IAB natural playback and
 restart passed. Owner creative/canon acceptance, perceptual listening and game
-embedding remain pending. The older B3–B7 goal remains paused.
+embedding remain pending. The [B3–B7 software delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md)
+is now activated; its separate native Alpha quality result remains FAILED.
 
 [Review 苏棠 · 六段日常预览](https://plotloom.tail6040ad.ts.net/v2/?project=b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6&view=play).
 
@@ -20,13 +21,14 @@ all nine preceding dataclasses and hashes remain exact. The [plan](../roadmap/20
 and [ADR 0198](../adr/0198-delegated-disposable-qa-authority.md) own this finite scope.
 
 **Grant integration checkpoint: `31ab677bceb265e8944cc784aac2164e87fae0b5`.**
-The manager installed that clean grant-only revision from the installed `0d4a47d4`
-baseline and bound the exact scope once in the original Linux runtime. The paused
-R checkout at `338ac39b` was not used or edited. Before any later activation of
-paused-source work, integrate and recheck this exact grant and its preservation
-tests so current agent-QA clips retain their source authority. This record does
-not authorize activating that paused source. The manager owns integration and
-runtime lifecycle; the worker performed no merge, checkout or serving restart.
+The manager originally installed that clean grant-only revision from `0d4a47d4`
+and bound the exact scope once in the original Linux runtime. The then-paused R
+checkout at `338ac39b` was untouched during H5 execution. This integration prerequisite
+is now fulfilled: the exact grant, preservation tests and completion documentation
+are integrated into retained main and installed `5971239f`. Runtime lifecycle and
+integration remained manager-owned; the media worker performed no merge or restart.
+Current incarnation-bound QA write refusals are disclosed in the combined closeout;
+the grant's source presence alone does not establish current runtime eligibility.
 
 All six requests used the unchanged
 `minimax_h3_quality8_portrait_576x1024_v2` profile, native audio and explicit center
@@ -41,7 +43,7 @@ The supported four-stage initial creation passed native validators/190 storyboar
 gates. Six actual built-in ImageGen keyframes were inspected/imported/hash-checked;
 the first successful covered frame was reviewed before scaling. One prior output
 safety refusal, the explicit covered wardrobe variation and exact provenance are
-recorded in the plan and task-local evidence. The original game portrait remains
+recorded in the plan; temporary delivery evidence was reviewed and consumed. The original game portrait remains
 unchanged; no image API fallback occurred. The genuine missing character-reference
 prerequisite was resolved through the supported story-bible reference decision,
 truthfully naming **Codex agent-operated preview QA**, and cancellation of only the
@@ -110,8 +112,8 @@ SHA-256 `c4238c0df9b4532db4885a4d4f9a0a68173779f242346df4a201704ed2feb8e3`.
 It contains six selected MP4s, six untouched sources, six actual decoded-frame
 posters, and README/manifest/prompts/compact QA evidence/immutable confirmation.
 All eighteen media/poster hashes and ZIP CRC readback pass. Derivable contact/raw/
-spectrum images remain task-local for current independent review, not duplicated
-in the user export. No pre-existing owner file was overwritten; only the task's
+spectrum images were reviewed and then consumed with the temporary worktree; they
+are not a current dependency or duplicated in the user export. No pre-existing owner file was overwritten; only the task's
 own redundant QA export copies were removed and its ZIP regenerated once.
 
 The manifest uses `state.partner.template_key == 'sutang'`, not the generated
@@ -129,8 +131,9 @@ reward or integration at `experience_begin` was installed. Game code is unchange
 Grant checkpoint `31ab677b` has 229 focused unique passing cases. The initial
 220 passes/nine fixture setup errors and successful ten-case affected rerun after
 pinned-submodule initialization remain distinct; the plan identifies all selectors.
-Final changes are docs only; diff/identity/command consistency was checked. No full
-release run, bundle rebuild, GitHub CI or push was requested/performed.
+Original H5 closeout changes were docs only; diff/identity/command consistency
+was checked. No full release run, bundle rebuild, GitHub CI or push was performed
+for that original delivery. Later B3–B7 software gates are recorded separately.
 
 Manager final preservation passed: all eight older projects' logical schemas/
 rows, non-SQLite bytes and home metadata match the fresh pre-write baseline.
@@ -139,11 +142,15 @@ and every prior row remain exact; only this project's six leases, twelve events
 and two grants (exact QA scope and active batch) were added. The four older
 unmatched claims are unchanged; all nine projects have zero nonterminal jobs and
 this new project has six ingested jobs. Comparison used exact identity filtering,
-not timestamp normalization. Manager receipt:
-`.local/sutang-preview-root/activation/final-preservation.json`.
+not timestamp normalization. The original temporary activation receipt was consumed by manager review.
+Current nine-project preservation/readback is recorded at source R
+`.local/b37/core-activation-b37-final-20261027/activation-verified.json` and
+[combined closeout](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
-Task-local `.local/sutang-preview-20261026/` retains actual authoring/import/grant,
-material/batch/confirmation, image provenance, frame/audio observations, technical
-probes and export receipts. The current Plotloom project owns the canonical data,
-originals and confirmed clips. The worker leaves the retained checkout/branch and
-Relay route intact for manager review and integration; manager owns cleanup.
+The current Plotloom project owns canonical data, originals and confirmed clips;
+the game output folder/ZIP owns the review delivery. Wanted grant/completion
+changes are integrated into current source. The isolated worktree, its branch and
+redundant technical scratch are retired after manager dependency review. Existing
+inspection evidenceRefs remain unchanged metadata; no current reader opens those
+external historical reports. Human creative acceptance/listening and game embedding
+remain separate from technical playback proof.

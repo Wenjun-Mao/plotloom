@@ -5,7 +5,8 @@ through agent-operated QA, exported and naturally playable with restart. Indepen
 manager frame/playback/preservation review passed. See the [completion record](../verification/2026-10-26-h5-sutang-preview.md)
 for actual identities, source-versus-window audio limits and trigger interpretations.
 Owner creative/canon acceptance, perceptual listening and game embedding remain
-pending. The earlier B3–B7 goal stays paused.
+pending. The [B3–B7 software delivery](2026-10-26-b3-b7-backend-and-services-ownership.md)
+is now activated; its separate native Alpha quality result remains FAILED.
 
 The owner asked to use Plotloom all the way to generated videos for review, then
 requested more than three short clips if feasible. The finite outcome is six
@@ -28,11 +29,13 @@ The worker never restarts serving or binds a scope. Once continued by the manage
 dispatch one real ten-second H3 clip, pause/reconcile safely and inspect that
 actual output before the other five. A timeout never permits duplicate dispatch.
 
-The sole execution owner uses retained checkout `plotloom-h5-sutang-preview`,
-branch `codex/h5-sutang-preview-20261026`, installed baseline `0d4a47d4`.
-The installed checkout and paused B3–B7 checkout remain untouched. The manager
-owns independent final review, activation, merge and cleanup; the worker retains
-live-media ownership until idle. No GitHub push/CI is authorized.
+The completed execution used isolated checkout `plotloom-h5-sutang-preview` from
+installed baseline `0d4a47d4`. Its wanted grant/completion changes are integrated
+into retained local main and the current installed release. After final manager
+preservation/dependency checks, the disposable checkout and branch are retired.
+Current P project/media and the game review export/ZIP own the useful delivery;
+[combined closeout](2026-10-26-b3-b7-backend-and-services-ownership.md) records current
+release/cleanup evidence. No GitHub push/CI was performed.
 
 ## Exact prepared identities and evidence
 
@@ -45,13 +48,12 @@ The exact six triples are in `delegated_qa.SCOPES`, with null aggregate caps.
 The current [ADR 0198 amendment](../adr/0198-delegated-disposable-qa-authority.md)
 owns the new authority; generic enrollment and fallback actors are unchanged.
 
-Task-local `.local/sutang-preview-20261026/` retains `author.py`, the genuine
-`project-request.json`, `authoring-validation.json`, `project-create.json`,
-six `shNN-import.json` receipts, `materials.json`, `scope.json` and
-`grant-checkpoint.json`. Native validators pass all four stages and 190 storyboard
-gates. Each imported original was fetched through the supported API and its
-SHA-256 compared with the retained selected workspace PNG. This is source and
-asset evidence, separate from runtime binding or generated video evidence.
+The original task-local authoring/import/grant receipts were reviewed and consumed
+at integration. Native validators passed all four stages and 190 storyboard gates;
+all six imported originals were fetched through the supported API and hash-checked.
+Current P owns canonical source/assets/videos and the game export owns review media,
+manifest/prompts and compact QA evidence. Raw temporary receipts are no longer a
+current dependency or preservation target.
 
 Focused qualification covers 229 unique cases across
 `test_sutang_preview_qa_scope.py`, `test_minute_example_qa_scope.py`,
@@ -60,10 +62,11 @@ Focused qualification covers 229 unique cases across
 passed 220 with nine setup errors because this new checkout had not initialized
 the pinned `shuohao-skills` submodule. After initializing exact checked-in
 `4f9b2128`, the affected native-material module passed all ten cases in 19.72s.
-The task retains the initial failed log and successful affected rerun; unchanged
-passes are reused. The existing Starlette/httpx deprecation warning remains.
+The initial failure and affected rerun were reviewed before integration; their
+historical results remain distinct. The existing Starlette/httpx deprecation warning remains.
 `git diff --check` passes. This constant-only addition needs no bundle rebuild or
-full release run. The new project's video-job readback is empty at this checkpoint.
+full release run. The video-job readback was empty at that preparation checkpoint; the completed
+project now retains six ingested jobs.
 
 The original game reference remains untouched at
 `H5_games/h5game/assets/images/sutang-v2.webp`. The first benign rainy-bookstore
@@ -73,7 +76,7 @@ image request produced no image: ImageGen output safety rejected it with
 variation: same fictional adult face/hair and game-art finish, buttoned cream
 cardigan over a high-neck rose blouse. The successful frame became the reference
 for the other five; no rejected content was routed to another provider. Actual
-tool prompts and provenance are retained in task-local evidence. The wardrobe
+tool prompts/provenance were reviewed during delivery; temporary copies were consumed. The wardrobe
 variation is explicit, not a claim of exact original neckline continuity.
 
 All six actual selected frames were viewed. Face/updo/fringe/style and covered
