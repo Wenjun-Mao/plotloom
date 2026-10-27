@@ -102,6 +102,11 @@ def test_delivery_prefills_advice_without_changing_proposal_then_explicit_save(p
         assert current["installation"] is None and current["presentationCandidate"] is None
         assert current["presentationJob"]["status"] == "stale"
         assert client.get(f"{base}/native-presentation-jobs/{job}/report").content == report.content
+    with closing(storage.projects.open(project)) as reopened:
+        persisted = reopened.production_bridge_state()
+        assert persisted.proposal.presentation.model_dump(mode="json", by_alias=True) == current["proposal"]["presentation"]
+        assert persisted.proposal.presentation.reviewed and persisted.presentation_candidate is None
+        assert persisted.installation is None
     validated = subprocess.run(["uv", "run", "--locked", "python", "scripts/native_bridge_presentation.py", "validate",
         str(output / "presentation.json"), "--request", str(output.parent / "package" / "request.json")], capture_output=True, check=True)
     assert b"validated" in validated.stdout

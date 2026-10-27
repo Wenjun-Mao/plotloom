@@ -638,6 +638,7 @@
           "tests/test_image_send_route_authority.py",
           "tests/test_native_bridge_intent.py",
           "tests/test_native_bridge_presentation.py",
+          "tests/test_native_presentation_producer.py",
           "tests/test_native_bridge_request_budget.py",
           "tests/test_native_bridge_seed.py",
           "tests/test_outline_report_schema_binding.py",

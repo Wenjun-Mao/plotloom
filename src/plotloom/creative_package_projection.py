@@ -67,11 +67,19 @@ def project_creative_package(
         "then render with the same arguments to derive report.html. "
         if request.stage == "bridge-intent" else ""
     )
+    presentation_content_instruction = (
+        "For bridge-presentation, fully read docs/creative-workflow/native-bridge-presentation.md and "
+        "inputs/presentation-schema.json before authoring. Return every frozen source ID with exhaustive "
+        "ordered Unicode-codepoint ownership spans and required reasons. Only physical spans have faithful "
+        "nonempty rendering. Every visible_text, dialogue, runtime_choice and review_only span must set "
+        "rendering to exactly the empty string \"\". Preserve literal source words by their spans; never "
+        "copy, paraphrase or explain them in a non-physical rendering field. "
+    )
     presentation_instruction = (
-        "For bridge-presentation, use the local presentation contract and inputs/presentation-schema.json. "
-        "Return every frozen source ID with exhaustive ordered Unicode-codepoint ownership spans, faithful rendering and required reasons. "
+        presentation_content_instruction +
         "From the repository root run uv run --locked python scripts/native_bridge_presentation.py validate <absolute-delivery/presentation.json> --request <absolute-package/request.json>, "
-        "then render with the same arguments to derive report.html. Suggestions do not approve presentation or production. "
+        "then render with the same arguments to derive report.html. Both must succeed before publishing completion. "
+        "Suggestions do not approve presentation or production. "
         if request.stage == "bridge-presentation" else ""
     )
     if executor_backend == "codex_exec":
@@ -102,9 +110,8 @@ def project_creative_package(
             )
         elif request.stage == "bridge-presentation":
             codex_validator_instruction += (
-                "For bridge-presentation, use the local presentation contract and "
-                "inputs/presentation-schema.json. Return every frozen source ID with exhaustive ordered "
-                "Unicode-codepoint ownership spans, faithful rendering and required reasons. Suggestions "
+                presentation_content_instruction +
+                "The trusted host must successfully validate and render before publishing completion. Suggestions "
                 "do not approve presentation or production. "
             )
         elif request.stage in {"characters", "art", "storyboard"}:

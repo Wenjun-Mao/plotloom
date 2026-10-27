@@ -30,14 +30,17 @@ integrated into R. Fresh integrated source/pins/profile/envelope precede the gen
 canary and new fixed nine-sample qualification; old b5 evidence remains failed.
 Activation and recovery remain manager-owned after complete qualification/review.
 
-Current recovery: six D2 installations were observed before a supported user pause;
-original OS-temporary campaign/runtime artifacts are now absent, so they remain
-historical results. Old UNKNOWN ledgers/holds are no longer currently verifiable;
-none may be recreated, promoted or cleared. Reviewed prospective Alpha v3 durable
-storage and exact pause continuation are in progress before a fresh predeclared
-nine-sample cohort. Source/evidence review, 9/9 installs, 60/72 first-pass operations,
-three fresh blind reviews and applicable local gates remain before manager-owned
-core/bridge activation. No current qualification pass is claimed.
+Current native v3 at `54726f69` proved the real eight-job safe-pause/drain/same-attempt
+resume canary, then stopped on the second cell's genuine Bridge Presentation content
+rejection. Result: **1 installed / 1 blocked / 7 unadmitted, 14/72 first-pass operations
+from 17 text attempts; qualification did NOT pass.** Canonical outcomes and durable
+artifacts remain immutable. Under delegated judgment, the manager selected narrow
+producer schema/assignment/skill hardening after independent causal/method review;
+no validator weakening, retry expansion or old-cohort salvage. Source/evidence review,
+fresh exact envelope/new nine identities, three fresh blind reviews and applicable
+local gates remain before manager-owned core/bridge activation. Historical D2 temporary
+runtime artifacts remain missing, and old UNKNOWN ledgers/holds cannot currently be
+verified or reconstructed.
 
 ## Su Tang six-clip game preview
 

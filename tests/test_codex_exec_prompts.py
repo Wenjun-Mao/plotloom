@@ -16,7 +16,8 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
         domain="text",
     )
 
-    assert PROMPT_VERSION.endswith("v6")
+    assert PROMPT_VERSION == "plotloom.codex-exec-assignment.v7"
+    assert prompt.startswith(PROMPT_VERSION)
     assert "Write only the requested candidate JSON" in prompt
     assert "trusted host runs its exact frozen validation plan" in prompt
     assert "request.creativeBrief" in prompt
@@ -29,6 +30,7 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
     assert "request.textCorrection" in prompt
     assert "untrusted candidate data" in prompt
     assert "preserve every frozen source/style/upstream constraint" in prompt
+    assert "For Script correction preserve the rejected candidate's effective params" in prompt
 
 
 def test_image_prompt_reserves_delivery_tree_for_trusted_host_copy(tmp_path):

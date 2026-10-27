@@ -11,6 +11,11 @@ Every source appears exactly once. Spans cover its entire raw text in order,
 without gaps/overlap, using Unicode codepoints (Python string indices, not UTF-16
 offsets). Split mixed prose semantically; never classify a whole field merely
 because it came from action or composition. Every span has an explicit role.
+The response schema distinguishes physical and non-physical spans: all five
+fields remain required, and every non-physical `rendering` is the literal empty
+string. This guides authored JSON and rejects invalid received candidates; it
+does not provide constrained decoding or guarantee model compliance. Invalid
+rendering is never stripped or coerced into acceptance.
 
 - `physical`: visible action/composition, including negative physical constraints
   such as no readable phone text. Provide faithful rendering preserving all
@@ -37,8 +42,10 @@ package metadata and pinned resources. This finite admission bound is not a mode
 capacity guarantee. Preserve complete evidence; do not truncate it to fit.
 The validator proves structural coverage, not semantic truth.
 
-Validate then derive the inert report with `scripts/native_bridge_presentation.py`.
-Publish the completion template last with actual hashes. Output has no source
+For manual specialist-chat, validate then derive the inert report with `scripts/native_bridge_presentation.py`;
+both must succeed before publishing the completion template last with actual hashes.
+For Codex Exec v4 the CLI authors only candidate JSON; the trusted host performs
+validation, rendering and publication after CLI exit. Output has no source
 replacement, reviewed flag, proposal/canonical fields or approval. The author
 can edit suggestions, explicitly confirm/save presentation, then independently
 confirm production. Late or stale output remains read-only evidence.

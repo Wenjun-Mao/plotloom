@@ -1,6 +1,6 @@
 """Suggestions-only semantic spans bound to exact frozen presentation evidence."""
 from html import escape
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -16,17 +16,26 @@ from .production_presentation import (
 MAX_PRESENTATION_SOURCES = 256
 
 
-class SuggestedPresentationSpan(PresentationSpan):
+class PhysicalPresentationSuggestion(PresentationSpan):
     model_config = ConfigDict(extra="forbid")
-    role: Literal["physical", "visible_text", "runtime_choice", "review_only", "dialogue"]
-    rendering: str = Field(max_length=12_000)
+    role: Literal["physical"]
+    rendering: str = Field(min_length=1, max_length=12_000,
+        description="Faithful physical action/composition only; preserve every frozen source constraint.")
+    reason: str = Field(max_length=2_000)
+
+
+class NonPhysicalPresentationSuggestion(PresentationSpan):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal["visible_text", "runtime_choice", "review_only", "dialogue"]
+    rendering: Literal[""] = Field(description="Exactly empty. Literal words remain in frozen source text, never in rendering.")
     reason: str = Field(max_length=2_000)
 
 
 class PresentationSuggestionEntry(CamelModel):
     model_config = ConfigDict(extra="forbid")
     id: str
-    spans: list[SuggestedPresentationSpan] = Field(min_length=1, max_length=64)
+    spans: list[Annotated[PhysicalPresentationSuggestion | NonPhysicalPresentationSuggestion,
+        Field(discriminator="role")]] = Field(min_length=1, max_length=64)
 
 
 class PresentationSuggestions(CamelModel):

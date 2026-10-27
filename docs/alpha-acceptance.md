@@ -9,6 +9,12 @@ one, restricted to Outline/Characters/Art/Script. Explicit frozen limits includi
 zero remain honored; Script has at most one automatic correction and no manual-extra grant. The source requests `gpt-6.1-sol` with
 `medium` effort; its alias does not establish stronger server weight identity.
 
+Bridge Presentation preserves literal source words: only `physical` spans have
+nonempty rendering; every other role requires `rendering: ""`. Its stage-owned schema
+and frozen assignment encode that existing rule directly. This guides authored files,
+not constrained decoding. The strict binder remains authoritative, invalid output is
+never normalized into acceptance, and Bridge Presentation gains no automatic retry.
+
 This executable replaces the mandatory two-saved-profile Alpha runner. Historical
 18-run/six-review and four-stage 30/36 receipts retain their original meanings.
 They cannot pass this native gate. The original native v1 campaign remains failed;

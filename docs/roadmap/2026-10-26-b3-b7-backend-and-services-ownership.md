@@ -1,12 +1,14 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
-Status: **Explicitly resumed. Reviewed B3–B7 / Script correction v3 source and exact
-H5 grant are integrated at D2. OS-temporary native campaign state is now absent;
-prospective native Alpha v3 durable storage/pause continuation is in implementation
-under closed independent design review. Fresh source/evidence review precedes any
-new admission. Qualification, blind reviews and manager-owned core activation remain
-incomplete; Gateway is already activated**.
-Date: 2026-10-26.
+Status: **Native Alpha v3 source/pause implementation independently reviewed at
+`54726f69`; its real canary proved pause/drain/same-attempt resume and current
+installation. The second cell stopped on a genuine Bridge Presentation content
+rejection: 1 installed, 1 blocked, 7 unadmitted, 14/72 first-pass operations from
+17 attempts. Qualification did NOT pass. Under delegated judgment, the manager
+selected narrowly scoped producer schema/instruction hardening after independent
+causal/method review; no retry or correction-policy expansion. Source/evidence
+review precedes any fresh cohort. Gateway remains activated; core activation held**.
+Date: 2026-10-27.
 Source R: `/Users/wjmao/.codex/worktrees/b30f/plotloom`, retained local main.
 Installed P: `/Users/wjmao/projects/HU/plotloom`, clean detached
 `47ab708f51c2a113ceadda67e2ebcda2ccc7aed9`: qualified installed `0d4a47d4` plus
@@ -30,8 +32,9 @@ them. No blind pack/reviews, core activation or recovery refresh followed.
 The owner delegated judgment and explicitly resumed the combined E2E outcome. Stable
 `338ac39b` source/evidence review is closed; D2 also carries the exact reviewed H5
 grant and documentation, preserving all nine older QA scopes. P remains at47ab with
-nine valued projects. The reviewed prospective recovery below does not change model,
-prompts, validators, correction policy, workloads or qualification thresholds.
+nine valued projects. The durable-storage/pause repair changed no generation instructions or validators.
+The producer method below changes stage assignment/schema/skill guidance only;
+model, correction policy, workloads and qualification thresholds stay fixed.
 
 ## Prospective durable campaign and pause continuation (approved)
 
@@ -97,6 +100,64 @@ launch and foreign targets untouched. Regressions passed 57 controlled cases
 correction/adoption, non-content → block/no replacement and UNKNOWN → refusal.
 The ffb source-bound proof remains actual superseded evidence, not fresh-candidate
 admission authority.
+
+## Bridge Presentation producer hardening (approved method reassessment)
+
+The durable `54726f69` cohort stopped at the second cell's Bridge Presentation.
+The CLI completed normally (exit 0); the first trusted failure was the unchanged
+binder's literal-text rule. The schema-shaped candidate placed nonempty rendering
+on 139 non-physical spans, despite the writing contract explicitly requiring an
+empty string. Exact replay reproduces refusal. This is a genuine generated-content
+failure, not a demonstrated validator/runtime defect. Preserve that cohort and its
+receipt meaning: one installed/one blocked/seven unadmitted, 14 first-pass operations
+from 17 actual text attempts, zero current UNKNOWN/slots/queue/validators and no
+material/Approval work. No later cells, blind publication, full, activation or
+recovery refresh followed. Its durable artifacts remain at
+`/Users/wjmao/.local/share/plotloom/qualification/native-alpha-54726f69-20261027`;
+private classification/idle proofs are the existing `.local/b37/resumed-integration/`
+`native-54726f69-terminal-classification.json` and `...terminal-quiescent-checkpoint.json`.
+
+Under the owner's delegated judgment, the manager selected a prospective producer
+repair after independent causal/method review. The author owns frozen source words,
+IDs, coordinates and runtime choices. The model owns complete semantic span partition,
+roles, faithful PHYSICAL rendering and required reasons within those constraints.
+Trusted code keeps exact literal projection, complete coverage and the strict binder.
+Represent physical versus non-physical spans directly in the response schema; require
+`rendering: ""` for visible_text/dialogue/runtime_choice/review_only, with every
+existing field, strict extras and bounds retained. State the exact same rule and
+mandatory complete contract-reading at the frozen assignment and stage skill. Manual
+specialists validate and render before completion; Codex Exec still writes candidate
+only, and its trusted host must validate/render before publication. File-authoring
+schema guidance is not constrained decoding and cannot guarantee model compliance.
+Do not strip/coerce invalid output, weaken the binder, extend correction allowlists,
+change model/effort/limits/gates or salvage/retry any old identity. Acceptance v3 and
+its numerical policy remain unchanged; new source/package/schema/skill/pins/profile
+identify the materially changed producer information before a fresh nine-cell matrix.
+
+First prove that the exact retained bad bytes227db9b7… remain rejected, valid payloads
+cover all five roles, non-physical nonempty rendering is rejected, and span completeness,
+Unicode/literal ownership, public author review/API, receiving/persistence/reopen
+remain unchanged. Test actual frozen assignment and pin/package changes. Independent
+source/evidence review precedes new generation; refresh source-bound22+2 sandbox
+commands/seven controls/noneditable wheel. Then one genuinely fresh eight-job canary
+before scale; reuse the unchanged real pause proof instead of adding another pause.
+This is a changed producer method, not a cheap reroll of a rejected cohort.
+
+Initial focused proof passed79native/schema/domain/receiving/API/storage cases,
+including all five roles and exact payload preservation. An immutable offline replay
+of bad candidate227db9b7… produces139literal-rendering schema refusals; the retained
+valid canary candidate remains identical and renders byte-identical HTML. Protected
+request/candidate/outcome/pause/resume bytes and original15completed/2failed/zero
+ledger state were unchanged. Evidence remains under the existing ignored
+`.local/b37/resumed-integration/presentation-producer-*` files. These are controlled
+producer/receiving proofs, not new native qualification or outcome promotion. The affected
+selection passed33cases and exposed one stale test expecting text prompt v6 even
+though547alreadyusesv7; its assertion was corrected to the actual unchangedv7
+and existing Script-parameter rule, then the exact case passed. Image promptv6
+is unchanged. A further40assignment/request-bound/validator cases passed. Original
+logs are retained; no failed run is relabeled green and counts overlap.
+
+
 
 ## Outcome and authority
 

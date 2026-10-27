@@ -1,9 +1,9 @@
 # ADR 0222: Qualification, exchange, storage and service ownership
 
-Status: B3–B7 / Script correction source independently reviewed through338;
-D2 adds the reviewed H5 grant. Gateway is activated. Native qualification remains
-incomplete; prospective durable-storage/pause repair follows closed design review,
-with core activation held. 2026-10-26. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
+Status: B3–B7 / Script correction / durable-pause source independently reviewed
+through54726f69. Native qualification did not pass; prospective Bridge Presentation
+producer hardening is selected after causal/method review. Gateway is activated;
+core activation is held. 2026-10-27. Authority: [combined delivery](../roadmap/2026-10-26-b3-b7-backend-and-services-ownership.md).
 
 The exchange, installation store, native process owner and Gateway each mixed
 cohesive capabilities with orchestration. Move those capabilities to explicit
@@ -272,3 +272,26 @@ observed with its strict original identity, then the existing controller may
 reconcile it only after durable resume acknowledgement: typed rejection uses the
 unchanged capped correction, non-content failure blocks, and UNKNOWN still refuses.
 The sample's terminal outcome remains immutable and cannot resume.
+
+
+At54726f69 the durable real canary proved safe pause/drain/exact resume and all
+eight jobs/current installation. The second cell stopped on a genuine Bridge
+Presentation content rejection:139non-physical spans had forbidden rendering,
+with normal CLIexit0 and unchanged strict binder refusal. The frozen failed cohort
+remains oneinstalled/oneblocked/sevenunadmitted,14firstpass/17actualattempts.
+Independent causal/method review found no demonstrated validator/runtime defect.
+
+Under delegated judgment the manager selected prospective stage-owned producer
+hardening. Author source words/IDs/runtime choices stay frozen; model ownership
+remains span partitions/roles, faithful physical rendering and reasons. Encode
+physical/non-physical response variants with required empty Literal rendering for
+non-physical roles, strict fields/bounds, and explicit point-of-assignment/skill
+contract-reading and role rule. The trusted binder/literal projection remain
+unchanged: invalid rendering is rejected, never stripped or coerced. Manual
+specialists validate/render before completion; native CLI remains candidate-only
+and its host validates/renders before publication. This is authored-file schema
+guidance, not a claim of constrained-decoding guarantees. No retry/correction
+expansion, model/effort/limit/gate change or old-outcome promotion. Acceptance v3
+policy is unchanged; new source/schema/package/skill/pins/profile bind the changed
+producer method. Focused immutable replay/all-role/receiving/reopen proofs and
+independent review precede a fresh exact envelope and genuinely fresh nine IDs.
