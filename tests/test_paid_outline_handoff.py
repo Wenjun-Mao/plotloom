@@ -146,6 +146,7 @@ def test_registered_paid_entry_reaches_one_receipt_and_validated_delivery_then_h
     result = run_capsule(case)
     assert not ambient_marker.exists(), "fake CLI selected ambient Python"
     assert_cli_observations(case, sandbox_count=2)
+    assert not list((case["source"] / "src").rglob("*.pyc")), "synthetic CLI mutated copied source"
     assert result["syntheticEvidence"] is True and result["qualification"] is False
     assert result["outcome"]["status"] == "RECEIVER_ACCEPTED", json.dumps(result, indent=2)
     assert result["actualFixtureChildTerminal"]["code"] == 0, json.dumps(result, indent=2)

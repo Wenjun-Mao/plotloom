@@ -12,7 +12,7 @@ from tests.paid_outline_processes import owned_processes
 
 @pytest.mark.parametrize("entrypoint", ["", "relative/python", "/tmp/a b/python",
     "/tmp/a\tpython", "/tmp/a\u2003python", "/tmp/python\nextra", "/tmp/a\0python", "/" + "x" * 124,
-    "/" + "é" * 62])
+    "/" + "é" * 62, "/" + "x" * 121, "/" + "é" * 60 + "x"])
 def test_unsupported_raw_qa_path_refused_before_wrapper_or_allocation(tmp_path, monkeypatch, entrypoint):
     qa = json.loads(current_test_qa()) | {"entrypoint": entrypoint}
     monkeypatch.setattr(paid_outline_fixtures, "current_test_qa", lambda: json.dumps(qa))
@@ -22,11 +22,11 @@ def test_unsupported_raw_qa_path_refused_before_wrapper_or_allocation(tmp_path, 
     assert not (tmp_path / "bundle").exists()
 
 
-@pytest.mark.parametrize("entrypoint", ["/venv/bin/python", "/" + "x" * 123,
-    "/" + "é" * 61 + "x"])
+@pytest.mark.parametrize("entrypoint", ["/venv/bin/python", "/" + "x" * 120,
+    "/" + "é" * 59 + "xx"])
 def test_shebang_preserves_raw_path_and_counts_encoded_delimiters(entrypoint):
     result = cli_shebang(entrypoint)
-    assert result == ("#!" + entrypoint + "\n").encode()
+    assert result == ("#!" + entrypoint + " -B\n").encode()
     assert len(result) <= 127
 
 
@@ -56,6 +56,7 @@ def test_startup_record_survives_later_import_failure(tmp_path):
     assert facts["physicalBasePrefix"] == qa["physicalBasePrefix"]
     assert facts["majorMinor"] == qa["majorMinor"]
     assert facts["implementation"] == qa["implementation"]
+    assert facts["dontWriteBytecode"] is True
     assert facts["invocation"] == "sandbox"
     assert Path(facts["wrapper"]) == executable
     assert not list((tmp_path / "receipts").glob("cli-sandbox-runtime-*.json"))

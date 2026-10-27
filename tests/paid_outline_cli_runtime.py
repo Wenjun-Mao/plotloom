@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-# Include '#!' and the terminating newline in a conservative 127-byte limit.
+# Include '#!', '-B' and the newline in a conservative 127-byte limit.
 # Direct kernel launch avoids a shell exec racing supervisor command identity.
 SHEBANG_MAX_BYTES = 127
 
@@ -14,7 +14,7 @@ def cli_shebang(entrypoint):
             or not Path(entrypoint).is_absolute() or "\0" in entrypoint
             or any(character.isspace() for character in entrypoint)):
         raise ValueError("fake CLI requires an absolute QA path without NUL or whitespace")
-    header = ("#!" + entrypoint + "\n").encode("utf-8")
+    header = ("#!" + entrypoint + " -B\n").encode("utf-8")
     if len(header) > SHEBANG_MAX_BYTES:
         raise ValueError("fake CLI QA shebang exceeds 127 encoded bytes including delimiters")
     return header
@@ -27,10 +27,11 @@ def runtime_facts():
         "basePrefix": sys.base_prefix,
         "physicalBasePrefix": str(Path(sys.base_prefix).resolve(strict=True)),
         "implementation": sys.implementation.name, "majorMinor": list(sys.version_info[:2]),
-        "version": list(sys.version_info[:3])}
+        "version": list(sys.version_info[:3]), "dontWriteBytecode": sys.dont_write_bytecode}
 
 
 def assert_qa_runtime(qa, facts):
+    assert facts.get("dontWriteBytecode") is True, facts
     for field in ("physicalExecutable", "physicalBasePrefix", "implementation", "majorMinor"):
         assert facts[field] == qa[field], (field, facts, qa)
     assert facts["executable"] == qa["entrypoint"], facts

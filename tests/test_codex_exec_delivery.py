@@ -404,7 +404,10 @@ def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
             "bridge-presentation",
             (
                 "exhaustive ordered Unicode-codepoint ownership spans",
-                "faithful rendering and required reasons",
+                "ownership spans and required reasons",
+                "Only physical spans have faithful nonempty rendering",
+                "Every visible_text, dialogue, runtime_choice and review_only span must set rendering to exactly the empty string",
+                "Preserve literal source words by their spans",
                 "Suggestions do not approve presentation or production",
             ),
         ),

@@ -17,7 +17,7 @@ def case_for(tmp_path):
         "physicalExecutable": "/synthetic/venv/bin/python", "physicalBasePrefix": "/synthetic/base",
         "implementation": "cpython", "majorMinor": [3, 12]}
     row = {key: qa[key] for key in ("physicalExecutable", "physicalBasePrefix", "implementation", "majorMinor")}
-    row.update(executable=qa["entrypoint"], physicalPrefix=qa["prefix"], pid=11, invocation="sandbox",
+    row.update(executable=qa["entrypoint"], physicalPrefix=qa["prefix"], dontWriteBytecode=True, pid=11, invocation="sandbox",
         wrapper=str(tmp_path / "fake-codex"), runtimeSupportImport=str(ROOT / "tests/paid_outline_cli_runtime.py"))
     case = {"root": tmp_path, "qa": qa, "executable": tmp_path / "fake-codex", "source": tmp_path / "source"}
     return case, row
@@ -27,6 +27,18 @@ def write_rows(case, startup, sandbox):
     for kind, rows in (("startup", startup), ("sandbox", sandbox)):
         for index, row in enumerate(rows):
             (case["root"] / "receipts" / f"cli-{kind}-runtime-{index}.json").write_text(json.dumps(row))
+
+
+@pytest.mark.parametrize("value", [None, False], ids=["absent", "false"])
+def test_bytecode_writing_or_unproven_runtime_is_refused(tmp_path, value):
+    case, row = case_for(tmp_path)
+    if value is None:
+        row.pop("dontWriteBytecode")
+    else:
+        row["dontWriteBytecode"] = value
+    write_rows(case, [row], [row])
+    with pytest.raises(AssertionError):
+        assert_cli_observations(case, sandbox_count=1)
 
 
 @pytest.mark.parametrize("startup,sandbox", [(0, 0), (2, 0), (1, 0), (1, 1)])

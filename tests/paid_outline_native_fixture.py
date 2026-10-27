@@ -35,6 +35,8 @@ def main():
     install_spawn_journal(case)
     sys.path.insert(0, str(source / "src"))
     sys.path.insert(0, str(source / "scripts/autopilot/handoff" if args.action == "prepare" else case / "bundle"))
+    from tests.paid_outline_runtime_diagnostics import install_runtime_tree_diagnostics
+    install_runtime_tree_diagnostics(case, source)
     from plotloom import codex_exec_profile
     process_support = sys.modules[journal_spawn.__module__]
     qa = json.loads((case / "qa.json").read_bytes())
