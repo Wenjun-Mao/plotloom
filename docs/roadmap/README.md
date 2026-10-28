@@ -1,5 +1,16 @@
 # Plotloom roadmap entrypoint
 
+## Planned project-language consistency
+
+The owner agreed to independent interface/content language, project-language
+standalone reports, and provider-appropriate internal instructions. The
+[language plan](2026-10-28-project-language-consistency.md) scopes the first
+delivery to a consistent Chinese interface with Chinese and English content end
+to end. The owner chose assistant verification of provider translation and
+creator review of project-language intent. Both independent planning reviews are
+complete and the plan is ready for execution approval. Implementation, generation
+and activation have not begun.
+
 ## Completed writing-model comparison and owner-approved cleanup
 
 The [paired comparison](../verification/2026-10-27-writing-model-pilot.md)
