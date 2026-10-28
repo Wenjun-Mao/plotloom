@@ -1,7 +1,8 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
-Status: finalized on 2026-10-28, with owner-agreed scope and both independent
-planning reviews complete. Ready for implementation; execution has not started.
+Status: finalized and explicitly authorized for end-to-end implementation on
+2026-10-28. Both independent planning reviews are complete; coordinator dispatch
+and execution preflight are starting.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
@@ -399,14 +400,19 @@ hashes. Do not substitute a new pin into old packages. Update stale pin instruct
 in the handoff guide as part of this scope. Normal remote publication remains a
 separate user request, and a push that triggers CI needs new explicit CI authority.
 
-The present request authorizes planning and its document/review work. A later
-instruction to implement this plan should cover source and owned-fork changes,
-local commits, focused/full qualification, the two named disposable QA projects,
+The owner's subsequent instruction, "Go and implement the plan E2E with Relay
+Direct," authorizes source and owned-fork changes, local commits, focused/full
+qualification, the two disposable QA projects identified during preflight,
 their exact prospective grants, native text/image and configured H3 work,
 necessary local-only QA transcription dependencies if needed, preservation-checked
 core/bridge reload/activation, single recovery refresh and scoped scratch cleanup.
-These effects should be named in the final handoff so one informed execution
-approval covers them. Existing task/model approvals need no renewal. No GitHub CI,
+The owner explicitly encourages parallel Codex tasks/subagents and separate task
+coordinators so the director remains available. Standing task/model/reasoning
+selection authority under Relay Direct is reaffirmed. Use best judgment on
+in-scope implementation and QA decisions while the owner is unavailable; record
+only consequential decisions in this plan or its existing verification record
+for later review. Routine checkpoints, causal repairs and covered activation
+continue without renewed permission. Existing task/model approvals need no renewal. No GitHub CI,
 main/fork push, new paid provider, current-story translation/deletion, Voice Lab
 reconfiguration, broad startup repair or unrelated quality work is included.
 
@@ -473,10 +479,11 @@ the baseline. No provider, campaign, framework or execution approval was added.
 
 ## Final implementation handoff
 
-The owner has settled the product direction and bounded modularization scope;
-there are no unanswered product-design questions in this plan. A start instruction
-can hand this exact plan to Relay Direct without repeating brainstorming or asking
-again for standing task/model permissions. The execution envelope above includes
+The owner has settled the product direction and bounded modularization scope and
+has explicitly instructed Relay Direct to implement it end to end. There are no
+unanswered product-design questions in this plan. Carry this exact plan into
+execution without repeating brainstorming or asking again for standing task/model
+permissions. The authorized execution envelope above includes
 source/owned-fork changes, the two disposable bilingual QA projects and exact
 grants, configured native/image/H3 generation, local qualification, scoped activation,
 recovery refresh and cleanup. Publication and CI remain outside that envelope.
@@ -487,3 +494,23 @@ and reported honestly against the existing completion criteria. Finalization onl
 records the agreed scope and makes the previously reviewed technical choices
 definite; it changes no outcome, evidence requirement or execution permission and
 therefore needs no additional review round.
+
+## Execution ownership
+
+Director: native chat `01a04525-e907-7630-9640-78790d69e8ae`.
+Retained source and integration checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`
+on `main`. Installed runtime: `/Users/wjmao/projects/HU/plotloom`; do not use its
+startup working directory as an implementation checkout. The coordinator records
+its actual native ID, reporting route and concrete work ownership after dispatch.
+The director releases source writes to the coordinator then performs independent
+checkpoint/final review without concurrent source edits.
+
+Use parallelism where ownership is clear: attended read-only analysis/reviews and
+independent tasks may overlap; implementation workers need explicit nonoverlapping
+ownership or isolated checkouts with coordinator-owned integration. Preserve one
+owner for shared contracts, Git/index operations, qualification and live activation.
+Native subagents follow Relay's attended read-only rule. The coordinator may manage
+ordinary Codex executor tasks and chooses supported explicit settings under Direct.
+Register Relay reporting at each level before work, collect actual results, and
+retire child assignments only after review and quiescence. The director owns final
+coordinator acceptance/archival and reporting-route retirement.

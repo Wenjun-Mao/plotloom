@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Finalized project-language plan
+## Authorized project-language implementation
 
 The owner agreed to independent interface/content language, project-language
 standalone reports, and provider-appropriate internal instructions. The
@@ -12,8 +12,10 @@ keeps creative description authoritative and provider adaptation derived; review
 uses a complete production brief. The plan bounds supporting language-policy,
 presentation and timing extractions to this workflow; the owner accepted that
 bounded scope. The original planning reviews and both focused amendment reviews
-are complete. The plan is finalized and ready for implementation; implementation,
-generation and activation have not begun.
+are complete. The owner has explicitly authorized Relay Direct implementation
+through end-to-end verification, local activation and cleanup, encouraged parallel
+tasks and delegated in-scope decisions. Coordinator dispatch/preflight are starting;
+completion and activation remain to be evidenced in the plan.
 
 ## Completed writing-model comparison and owner-approved cleanup
 
