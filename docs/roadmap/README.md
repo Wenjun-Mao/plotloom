@@ -1,6 +1,6 @@
 # Plotloom roadmap entrypoint
 
-## Planned project-language consistency
+## Finalized project-language plan
 
 The owner agreed to independent interface/content language, project-language
 standalone reports, and provider-appropriate internal instructions. The
@@ -10,9 +10,10 @@ to end. The owner chose assistant verification of provider translation and
 creator review of project-language production intent. The later agreed architecture
 keeps creative description authoritative and provider adaptation derived; review
 uses a complete production brief. The plan bounds supporting language-policy,
-presentation and timing extractions to this workflow. The original planning reviews
-and both focused amendment reviews are complete. The plan is ready for execution
-approval; implementation, generation and activation have not begun.
+presentation and timing extractions to this workflow; the owner accepted that
+bounded scope. The original planning reviews and both focused amendment reviews
+are complete. The plan is finalized and ready for implementation; implementation,
+generation and activation have not begun.
 
 ## Completed writing-model comparison and owner-approved cleanup
 

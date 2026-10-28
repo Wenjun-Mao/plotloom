@@ -1,7 +1,7 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
-Status: reviewed plan, including the owner's architectural refinement; ready for
-execution approval. Implementation and activation have not started.
+Status: finalized on 2026-10-28, with owner-agreed scope and both independent
+planning reviews complete. Ready for implementation; execution has not started.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
@@ -74,9 +74,9 @@ wording/formatting does not create another human approval checkpoint. Provider
 settings with user-visible effects are part of the generation review, not hidden
 inside translation. Technical details expose the exact submitted request.
 
-The following supporting extractions are part of the already planned language
-work. They are implementation choices proposed by the manager, not additional
-features requested by the owner:
+The owner accepted the following three supporting extractions together with the
+creative/provider boundary, and agreed to keep broader refactoring outside this
+iteration. These organize the planned language work without adding new features:
 
 | Boundary | Why it belongs in this iteration | Limit |
 | --- | --- | --- |
@@ -391,8 +391,8 @@ or why further extraction is outside this bounded change.
 
 The owned fork requires local commits, then a committed parent gitlink before
 native packages can freeze the new clean pin. No remote push is required by the
-executable pin check. ADR 0147 currently calls for a published pin: propose a
-narrow amendment allowing local-only qualification/activation from an exact
+executable pin check. ADR 0147 currently calls for a published pin: during this
+implementation, amend it narrowly to allow local-only qualification/activation from an exact
 retained Git pin, while requiring publication or explicit Git transfer before
 another host can depend on it. Keep license/fork notices and reproducible resource
 hashes. Do not substitute a new pin into old packages. Update stale pin instructions
@@ -430,7 +430,7 @@ requires no provider replacement. Real timings from the first bilingual slice
 should refine this forecast. Full English UI and old-story conversion are excluded.
 
 Review direction after the first bilingual text installation, earlier if source
-ownership/timing or translation fidelity makes the proposed workflow infeasible;
+ownership/timing or translation fidelity makes the agreed workflow infeasible;
 then review the stable integrated candidate. Ordinary implementation choices,
 causal repair and truthful QA selections are delegated within the approved run.
 Provider changes, destructive valued-data conversion, a broader feature scope or
@@ -470,3 +470,20 @@ that provider-specific language labels belong to adapters, not core language
 policy. That clarification changes no success criteria and needs no additional
 outcome review. Both actual finals were collected; the original reviews remain
 the baseline. No provider, campaign, framework or execution approval was added.
+
+## Final implementation handoff
+
+The owner has settled the product direction and bounded modularization scope;
+there are no unanswered product-design questions in this plan. A start instruction
+can hand this exact plan to Relay Direct without repeating brainstorming or asking
+again for standing task/model permissions. The execution envelope above includes
+source/owned-fork changes, the two disposable bilingual QA projects and exact
+grants, configured native/image/H3 generation, local qualification, scoped activation,
+recovery refresh and cleanup. Publication and CI remain outside that envelope.
+
+Start with the named capability probes and bilingual vertical slice. Technical
+uncertainty about speech inspection, timing or provider fidelity is resolved there
+and reported honestly against the existing completion criteria. Finalization only
+records the agreed scope and makes the previously reviewed technical choices
+definite; it changes no outcome, evidence requirement or execution permission and
+therefore needs no additional review round.
