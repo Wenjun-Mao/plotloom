@@ -7,9 +7,12 @@ standalone reports, and provider-appropriate internal instructions. The
 [language plan](2026-10-28-project-language-consistency.md) scopes the first
 delivery to a consistent Chinese interface with Chinese and English content end
 to end. The owner chose assistant verification of provider translation and
-creator review of project-language intent. Both independent planning reviews are
-complete and the plan is ready for execution approval. Implementation, generation
-and activation have not begun.
+creator review of project-language production intent. The later agreed architecture
+keeps creative description authoritative and provider adaptation derived; review
+uses a complete production brief. The plan bounds supporting language-policy,
+presentation and timing extractions to this workflow. The original planning reviews
+and both focused amendment reviews are complete. The plan is ready for execution
+approval; implementation, generation and activation have not begun.
 
 ## Completed writing-model comparison and owner-approved cleanup
 

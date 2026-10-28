@@ -1,7 +1,7 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
-Status: reviewed plan, ready for execution approval. Both independent planning
-reviews are complete; implementation and activation have not started.
+Status: reviewed plan, including the owner's architectural refinement; ready for
+execution approval. Implementation and activation have not started.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
@@ -35,6 +35,12 @@ provider directions; the creator reviews project-language intent and authorizes
 generation. The record must attribute the translation check to the assistant,
 without claiming the creator personally reviewed English.
 
+The owner subsequently agreed to make **creative description versus provider
+adaptation** the architectural boundary for this work. The creative description
+is the source of truth; each provider receives derived instructions. The creator
+reviews a complete actionable production brief in the project language, rather
+than a high-level intent summary that omits actual requested effects.
+
 Existing stories and media remain their authored originals. This release does not
 translate existing approved prose in place, rewrite retained reports, regenerate
 old media, or add a bulk story-translation feature. Existing projects benefit from
@@ -42,6 +48,62 @@ localized application labels; new/revised creative work uses the new contract.
 Proper names, deliberate foreign quotations, source excerpts and literal screen
 text can remain in their authored language. This is language consistency, not a
 new dramatic-quality threshold or a claim of improved storytelling.
+
+## Architectural boundary and bounded modularization
+
+The production brief is a coherent read projection of the existing authoritative
+story, shot, dialogue, presentation, reference and timing owners. It covers what
+the audience should see/hear: action and order, performance, camera, continuity,
+exact speech and visible words, material references, sound and relevant constraints.
+It is not a second independently editable story or another persistence authority.
+Edits return to the existing owning field; the brief refreshes from that source.
+
+Provider adapters consume this source-bound brief plus explicit generation settings
+and produce derived requests. Provider vocabulary, prompt format, language and
+capability handling stay at that boundary. Use deterministic compilation for exact
+fields/structure and bounded assistant transformation for prose requiring semantic
+adaptation. Existing image and H3 integrations are the concrete targets; provider
+switching UI, a plugin framework and hypothetical backends are outside scope.
+
+An adapter cannot silently add a creative fact, remove a requirement, substitute
+dialogue, or change the story to fit its capabilities. If it cannot represent a
+requirement faithfully, surface the exact conflict in the project language. A
+necessary creative change goes to the owning creative field for review; approved
+discretion already expressed in the brief remains available. Routine faithful
+wording/formatting does not create another human approval checkpoint. Provider
+settings with user-visible effects are part of the generation review, not hidden
+inside translation. Technical details expose the exact submitted request.
+
+The following supporting extractions are part of the already planned language
+work. They are implementation choices proposed by the manager, not additional
+features requested by the owner:
+
+| Boundary | Why it belongs in this iteration | Limit |
+| --- | --- | --- |
+| Language policy | One owner maps content/report locales and selects applicable timing rules; UI preference is independent and adapters own provider-specific language labels | Two content languages and the current Chinese UI; no general translation service |
+| Presentation labels and creative data | UI/report labels, placeholders and formatted diagnostics cannot become saved story values; readable prose cannot be replaced by raw machine prompts | Feature-owned helpers/read projections around touched consumers, not a renderer or frontend rewrite |
+| Dialogue timing policy and provider limits | Language-sensitive speech estimates belong to trusted timing; provider cut capacity is a separate constraint checked against it | Extract/reconcile the changed timing rules and consumers, preserving route authority; no new pacing engine |
+
+Verification and authorization also keep distinct responsibilities within the
+existing lifecycle: structural validation, semantic adaptation fidelity, creator
+generation authorization and generated-media inspection each establish different
+facts. Reuse existing admission/review/job mechanisms and typed results; do not
+build a new approval engine, queue, event system or universal review framework.
+
+Add focused boundary tests: formatting/adaptation cannot write creative state;
+lossy or unsupported adaptation is reported before dispatch; a creative edit
+invalidates derived requests/checks; changing only UI presentation does not;
+and a valid prompt/translation never labels the generated video accepted. Reuse
+an existing verified adaptation only while its exact source, adapter contract,
+settings and compiled request remain current. No second live provider or extra
+generation campaign is required to test these boundaries.
+
+Stop extraction when each changed responsibility has one clear owner and can be
+tested without unrelated subsystems. Defer unrelated oversized-file cleanup,
+microservices, a general provider registry, a complete renderer replacement, full
+English UI, bulk translation and general story-quality/pacing work. If a broader
+refactor is claimed necessary, first identify the concrete dependency blocking
+the existing bilingual journey and make the smallest justified change.
 
 ## Current findings and ownership
 
@@ -67,8 +129,10 @@ evidence. Source paths in this plan are relative to the repository root.
 ## A. One language contract, with explicit field ownership
 
 Add a small cohesive language-policy owner, rather than a general translation
-service. It maps content locale to report locale (`zh`/`en`), canonical dialogue
-timing profile and provider language label. Keep UI locale separate. New-work
+service. It maps content locale to report locale (`zh`/`en`) and selects the canonical
+dialogue timing profile. Each provider adapter converts the canonical locale to its
+own required language label; core policy contains no provider vocabulary. Keep UI
+locale separate. New-work
 validation gives a Chinese actionable error for unsupported language choices;
 reading an existing project must not silently relabel or rewrite it.
 
@@ -185,8 +249,10 @@ the implementation's existing verification record, not a new tracking subsystem.
 
 ## D. Provider directions and truthful review
 
-For new requests, the creator reviews complete creative intent in the project
-language and explicitly authorizes generation. An assistant drafts English H3
+For new requests, the creator reviews the complete actionable production brief
+defined above, in the project language, and explicitly authorizes generation.
+This includes the provider settings with visible effects; an abbreviated intent
+summary is insufficient. An assistant drafts English H3
 directions and a separate bounded semantic check compares all fields against the
 exact original sources, checking actions, identities, positions, sound roles,
 negation, completeness and preservation of dialogue/visible text. A schema-valid
@@ -199,6 +265,9 @@ same immutable request. Edits to any relevant source, translation or supplement
 invalidate its check and authorization. Show the project-language material as the
 normal review surface; retain exact provider instructions in technical detail.
 An English project also receives a fidelity check of the provider rewrite.
+All creative decisions in that rewrite must be represented by the reviewed brief
+or its explicit permitted discretion. A newly invented decision returns to the
+creative owner; an assistant's translation check cannot authorize it.
 
 Replace new-work `reviewedEnglish=true` / `whole-batch-english.v1` claims with a
 versioned distinction between creator intent authorization and assistant translation
@@ -229,7 +298,8 @@ this workflow does not label an uninspected translation as checked.
    intended scripts alone do not prove spoken language. Do not change Voice Lab
    presets or add voice cloning to solve a separate product problem.
 2. **Language foundation and first vertical slice.** Record the language ADR and
-   add the owning policy. Implement Brief/source → Outline → report/persisted
+   the creative/adaptation boundary; add the owning language policy. Implement
+   Brief/source → Outline → report/persisted
    readback first in both languages. Use two small new original stories with the
    same simple branch shape. Perform the real native operations after focused
    contracts pass, before broad frontend translation or final qualification.
@@ -282,6 +352,7 @@ that is a diagnostic checkpoint, not automatic abandonment or an owner question.
 | Change/currentness safety | Locale change during prepared work refuses stale adoption/dispatch; UI-only display changes never stale creative work; saved draft/reopen retains chosen language; old projects remain readable |
 | English timing is deliberate | Explicit `en-US` rule, upstream/canonical agreement, frozen estimator, short/long/boundary dialogue tests in both languages, actual speech fit in selected windows |
 | Provider translation is trustworthy within stated limits | Complete source/field coverage, independently checked translation, real omission/negation/extra-speech failure fixtures, changed-input invalidation, truthful actors, exact dispatch prompt |
+| Creative/provider responsibilities remain separate | Complete project-language production brief represents requested effects; adapter writes cannot change creative owners; unsupported requirements produce readable conflicts; creative changes return to source review; no media acceptance inferred from translation checks |
 | Chinese UI is consistent | Rendered Creator/Pro and every inventoried normal surface/state at supported desktop sizes; English reports and English creative content remain readable inside Chinese chrome |
 | Playable media is language-consistent | Four actual route plays plus choice/restart, exact window inspection, actual audio language/wording evidence and native-audio limitations; no claim of personal creative approval |
 | Installed release preserves valued work | Qualified package/pins, installed fresh-project readback, current-project/media/settings/grant/uncertainty preservation, recoverable rollback and idle cleanup |
@@ -351,6 +422,8 @@ collects actual worker/reviewer finals before releasing their access.
 Initial estimate: **18–30 hours of active implementation/review**, plus roughly
 **3–8 hours of native generation, media and qualification waiting**, some overlap
 possible. This is about 3–5 working days of combined effort, not a deadline.
+The architectural refinement and supporting extractions organize the same scope;
+they do not add new providers, a second live campaign or another release milestone.
 Assumptions: the owned fork remains locally editable, existing native/H3 services
 are healthy, a local speech-inspection path is usable, and supported English audio
 requires no provider replacement. Real timings from the first bilingual slice
@@ -387,3 +460,13 @@ Both reviewers were independent, read-only native agents with fresh context;
 their actual finals were collected. Requested model/effort selectors are recorded
 above; effective host settings were not independently verified. No implementation
 starts from a planning review pass alone.
+
+The later owner-approved creative/adaptation boundary now explicitly defines the
+complete production brief, adapter write/semantic limits and three bounded
+supporting extractions. The outcome reviewer (requested Sol/xhigh) passed the
+focused amendment review with no findings. The execution-restrictions reviewer
+(requested Sol/medium) also passed with no findings, including the clarification
+that provider-specific language labels belong to adapters, not core language
+policy. That clarification changes no success criteria and needs no additional
+outcome review. Both actual finals were collected; the original reviews remain
+the baseline. No provider, campaign, framework or execution approval was added.
