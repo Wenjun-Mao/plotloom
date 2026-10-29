@@ -20,7 +20,9 @@ export function VideoBatchReview({ projectId, batch, disabled, actor = null, onB
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
   const [replacementBusy, setReplacementBusy] = useState(false);
   const [visual, setVisual] = useState(""); const [audio, setAudio] = useState(""); const [evidence, setEvidence] = useState("");
-  const inspectionReady = !actor || !!(visual.trim() && audio.trim() && evidence.trim());
+  const [quality, setQuality] = useState("");
+  const functional = review?.acceptanceBasis === "functional_workflow_only";
+  const inspectionReady = !actor || !!(visual.trim() && audio.trim() && evidence.trim() && (!functional || quality.trim()));
   useEffect(() => {
     active.current = true; dialog.current?.showModal(); const abort = new AbortController();
     setReview(null); setError("");
@@ -33,11 +35,12 @@ export function VideoBatchReview({ projectId, batch, disabled, actor = null, onB
     return () => { active.current = false; abort.abort(); };
   }, [projectId, batch.id, retry]);
   const working = useReviewEditorDraft(projectId, "video_pack_notes", `${batch.id}:${review?.reviewHash ?? "unverified"}`, text => {
-    const input = JSON.parse(text) as { note: string; visual: string; audio: string; evidence: string };
+    const input = JSON.parse(text) as { note: string; visual: string; audio: string; evidence: string; quality?: string };
     if (![input.note, input.visual, input.audio, input.evidence].every(value => typeof value === "string")) throw new Error("视频审阅文字草稿无法读取。");
     setNote(input.note); setVisual(input.visual); setAudio(input.audio); setEvidence(input.evidence);
+    setQuality(typeof input.quality === "string" ? input.quality : "");
   }, disabled || busy || !review, undefined, batch.id);
-  const remember = (patch: Partial<{ note: string; visual: string; audio: string; evidence: string }>) => working.changed(JSON.stringify({ note, visual, audio, evidence, ...patch }));
+  const remember = (patch: Partial<{ note: string; visual: string; audio: string; evidence: string; quality: string }>) => working.changed(JSON.stringify({ note, visual, audio, evidence, ...(functional ? { quality } : {}), ...patch }));
   async function confirmPack() {
     if (!review?.ready || command.current || disabled || uncertain || !inspectionReady || replacementBusy) return;
     onConfirmStart?.();
@@ -46,19 +49,21 @@ export function VideoBatchReview({ projectId, batch, disabled, actor = null, onB
     try {
       await batchApi.confirmPack(projectId, { expectedRevision: batch.revision, reviewHash: review.reviewHash, basis: "whole-pack-video-native-audio.v1", note,
         ...(actor ? { attribution: actor, inspection: { clips: true, nativeAudio: true, intent: true, windows: true,
-          visualObservation: visual.trim(), audioObservation: audio.trim(), evidenceRefs: evidence.split("\n").map(value => value.trim()).filter(Boolean) } } : {}) });
+          visualObservation: visual.trim(), audioObservation: audio.trim(), evidenceRefs: evidence.split("\n").map(value => value.trim()).filter(Boolean),
+          ...(functional ? { acceptanceBasis: "functional_workflow_only", qualityLimitations: quality.split("\n").map(value => value.trim()).filter(Boolean) } : {}) } } : {}) });
       saved = true; await clearApplied();
       if (active.current) await onSaved();
     } catch (failure) { if (active.current) { setUncertain(!saved); setError(saved ? `已保存全部视频确认；刷新失败：${String(failure)}` : `保存结果待核实：${String(failure)}。请重新读取原批次，不要重复确认。`); } }
     finally { command.current = false; if (active.current) setBusy(false); }
   }
   return <dialog ref={dialog} className="autopilot-review-dialog video-batch-review" aria-labelledby="video-pack-title" onCancel={event => { event.preventDefault(); if (!busy && !replacementBusy) onClose(); }}>
-    <header><div><h2 id="video-pack-title">审阅全部视频</h2><p>查看全部播放片段并聆听原生音频。一次确认所有显示的视频、意图与播放窗口；不会自动替你作出创作判断。</p></div><Button autoFocus disabled={busy || replacementBusy} onClick={onClose}>关闭审阅</Button></header>
+    <header><div><h2 id="video-pack-title">审阅全部视频</h2><p>{functional ? "查看实际播放、原生音频检查证据和保留的生成质量限制；仅确认本次功能流程。" : "查看全部播放片段并聆听原生音频。一次确认所有显示的视频、意图与播放窗口；不会自动替你作出创作判断。"}</p></div><Button autoFocus disabled={busy || replacementBusy} onClick={onClose}>关闭审阅</Button></header>
     {working.notice}{!review && !error && <Spinner label="读取全部视频与逐帧窗口" />}
     {error && <p role="alert">{error}</p>}
     {uncertain && <Button onClick={async () => { const current = await batchApi.current(projectId); if (current?.id === batch.id && current.state === "approved") await onSaved(); else setError("原批次尚未报告已保存确认；保留审阅与原请求，请稍后重新读取，不会重放确认。"); }}>核对原批次保存结果</Button>}
     {!review && error && <Button onClick={() => setRetry(value => value + 1)}>重新读取原批次</Button>}
     {review && <><p>{review.readyCount}/{review.proposals.length} 个播放提案就绪 · {review.kept.length} 个既有选择保持原样 · {review.blockedCount} 项阻碍</p>
+      {functional && <p role="note">本例仅作功能验证。生成质量限制仍保留，不代表画面、文字或媒体创作质量通过。</p>}
       {review.errors.map((item, index) => <p role="alert" key={index}><a href={`#batch-review-${item.shotId}`}>{item.shotId}</a> · {item.message}</p>)}
       <div className="video-batch-gallery">{review.proposals.map(item => <article key={item.shotId} id={`batch-review-${item.shotId}`}>
         <h3>{item.title} · {item.shotId}</h3>
@@ -80,10 +85,11 @@ export function VideoBatchReview({ projectId, batch, disabled, actor = null, onB
         <Field label="实际画面与播放窗口观察"><textarea disabled={busy || disabled || working.stale} value={visual} onChange={event => { setVisual(event.target.value); remember({ visual: event.target.value }); }} /></Field>
         <Field label="实际原生音频检查与限制"><textarea disabled={busy || disabled || working.stale} value={audio} onChange={event => { setAudio(event.target.value); remember({ audio: event.target.value }); }} /></Field>
         <Field label="检查证据（每行一项）"><textarea disabled={busy || disabled || working.stale} value={evidence} onChange={event => { setEvidence(event.target.value); remember({ evidence: event.target.value }); }} /></Field>
+        {functional && <Field label="生成质量限制（仅功能验证，每行一项）"><textarea disabled={busy || disabled || working.stale} value={quality} onChange={event => { setQuality(event.target.value); remember({ quality: event.target.value }); }} /></Field>}
       </section>}
       {Object.values(failedMedia).some(Boolean) && <p role="alert">有视频无法读取，整包确认已暂停。请重新读取并处理原任务。</p>}
-      <footer><p>点击即确认全部显示视频及原生音频符合已显示意图，逐帧播放窗口可用于故事。打开审阅和生成完成均不构成确认。</p>
-        <Button variant="primary" busy={busy} disabled={busy || replacementBusy || disabled || uncertain || !review.ready || !inspectionReady || Object.values(failedMedia).some(Boolean)} onClick={() => void confirmPack()}>{busy ? "正在保存全部视频确认…" : "确认全部视频并用于故事"}</Button></footer>
+      <footer><p>{functional ? "点击只确认功能流程、播放窗口与已记录检查；上述生成质量限制保留，不代表质量通过。" : "点击即确认全部显示视频及原生音频符合已显示意图，逐帧播放窗口可用于故事。打开审阅和生成完成均不构成确认。"}</p>
+        <Button variant="primary" busy={busy} disabled={busy || replacementBusy || disabled || uncertain || !review.ready || !inspectionReady || Object.values(failedMedia).some(Boolean)} onClick={() => void confirmPack()}>{busy ? "正在保存全部视频确认…" : functional ? "确认功能流程并用于故事" : "确认全部视频并用于故事"}</Button></footer>
     </>}
   </dialog>;
 }

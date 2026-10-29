@@ -1,7 +1,6 @@
 """QA-specific fences at the existing batch, dispatch and receipt owners."""
 from sqlalchemy import select
 
-from .provider_budgets import exceeds_budget, budget_within_authority
 from .delegated_qa import (
     attribution_for_reviewer,
     binding_attribution,
@@ -18,6 +17,7 @@ from .persistence.schema import (
     ProjectVideoDispatchRow,
     VideoJobRow,
 )
+from .provider_budgets import budget_within_authority, exceeds_budget
 
 
 def assert_snapshot(scope, snapshot):
@@ -93,7 +93,7 @@ def assert_dispatch(session, project_id, job):
         raise InvalidTransitionError("unsettled QA dispatch blocks another submission")
 
 
-def assert_receipt_actor(project_id, receipt, intent_actor):
+def assert_receipt_actor(project_id, receipt, intent_actor, *, new_confirmation=False):
     actor = receipt.get("attribution")
     if intent_actor is None:
         if actor != {"kind": "unnamed_creator"} or "inspection" in receipt:
@@ -103,5 +103,11 @@ def assert_receipt_actor(project_id, receipt, intent_actor):
         if actor != intent_actor:
             raise InvalidTransitionError("QA final review attribution differs from generation authorization")
         inspection = QaAvInspection.model_validate(receipt.get("inspection"))
+        from .functional_qa import functional_qa_authorized
+        if new_confirmation and functional_qa_authorized(project_id, actor) and not inspection.acceptance_basis:
+            raise InvalidTransitionError("this disposable QA confirmation requires its functional-only basis and quality limits")
+        if inspection.acceptance_basis:
+            from .functional_qa import assert_functional_qa
+            assert_functional_qa(project_id, actor)
         if inspection.model_dump(mode="json", by_alias=True) != receipt["inspection"]:
             raise InvalidTransitionError("QA final inspection is not canonical")

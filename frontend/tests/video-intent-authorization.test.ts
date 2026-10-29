@@ -82,6 +82,33 @@ it("a whole-pack review cannot adopt a different current batch returned during a
   expect(button("确认全部视频并用于故事")).toBeUndefined(); expect(save).not.toHaveBeenCalled();
 });
 
+it("functional QA retains explicit quality limits and cannot present them as a quality pass", async () => {
+  const batch = readyProductionBatch(request);
+  vi.spyOn(batchApi, "review").mockResolvedValue({ batchId: batch.id, reviewHash: "f".repeat(64), ready: true,
+    acceptanceBasis: "functional_workflow_only", readyCount: 0, blockedCount: 0, kept: [], errors: [], proposals: [] });
+  const save = vi.spyOn(batchApi, "confirmPack").mockResolvedValue({ id: "functional-receipt" });
+  const actor = { kind: "agent_operated_qa" as const, scopeId: "synthetic-functional-scope" };
+  await act(async () => root.render(createElement(VideoBatchReview, { projectId: "project", batch, actor,
+    disabled: false, onClose: vi.fn(), onSaved: vi.fn() })));
+  expect(host.textContent).toContain("不代表画面、文字或媒体创作质量通过");
+  expect(button("确认全部视频并用于故事")).toBeUndefined();
+  expect(save).not.toHaveBeenCalled();
+  const fields = host.querySelectorAll<HTMLTextAreaElement>('[aria-label="代理 QA 实际观察"] textarea');
+  async function fill(index: number, text: string) {
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(fields[index], text);
+      fields[index].dispatchEvent(new Event("input", { bubbles: true })); });
+  }
+  await fill(0, "实际片段可播放，画面文字不清晰。");
+  await fill(1, "机器音轨与 ASR 检查；未直接聆听。");
+  await fill(2, "retained-frame-and-asr-evidence");
+  expect(button("确认功能流程并用于故事").disabled).toBe(true);
+  await fill(3, "画面文字无法验证\n姿态保留问题");
+  await act(async () => button("确认功能流程并用于故事").click());
+  expect(save).toHaveBeenCalledExactlyOnceWith("project", expect.objectContaining({ attribution: actor,
+    inspection: expect.objectContaining({ acceptanceBasis: "functional_workflow_only",
+      qualityLimitations: ["画面文字无法验证", "姿态保留问题"] }) }));
+});
+
 
 it("keeps automatic retry authority in the exact single-request identity", () => {
   const batch = readyProductionBatch(request);

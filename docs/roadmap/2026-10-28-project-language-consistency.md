@@ -38,6 +38,17 @@ one current ingested opening through normal final confirmation and actual playba
 before generating the four missing endings. Full/wheel/activation remain required;
 known output-quality limitations alone no longer block functional completion.
 
+The bounded reconsideration implementation passed independent review. New typed
+QA reopen preserves the original rejection and selection revision, checks the
+original current one-shot/runtime/actor and immutable source manifest, and changes
+the final review hash. Linked completed jobs retain their frozen compiler identity;
+undispatched stale preparation still refuses. New functional confirmations require
+explicit quality limitations, also bound and labeled in the Chinese review UI.
+Focused lifecycle checks passed17, final contract checks56, and the UI/runtime
+selection passed with18 Vitest cases (overlapping selections). Both type checks and
+two identical static builds passed. These are implementation checks; actual opening
+selection/playback, four missing endings, full/wheel and activation remain pending.
+
 2026-10-29 endpoint-method reassessment: Chinese v9's checked replacement also
 withdrew its hand before the ending. English v9's checked opening moved its hand
 onto the cup and distorted the source 安. Both actual clips are agent-QA rejected;

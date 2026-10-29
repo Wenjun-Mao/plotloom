@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from plotloom.domain_base import CamelModel
 
@@ -91,17 +91,33 @@ class VideoReviewRequest(CamelModel):
 
 
 class VideoReviewReopenRequest(CamelModel):
-    reviewer: str = Field(min_length=1, max_length=160)
+    attribution: AgentQaAttribution | None = None
+    reviewer: str = Field(default="", max_length=160)
+    acceptance_basis: Literal["functional_workflow_only"] | None = None
     reason: str = Field(min_length=1, max_length=2_000)
     expected_selection_revision: int = Field(ge=0)
 
-    @field_validator("reviewer", "reason")
+    @field_validator("reason")
     @classmethod
     def require_nonblank_annotation(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("reviewer and reason must not be blank")
         return value
+
+    @model_validator(mode="after")
+    def explicit_review_owner(self):
+        if self.attribution:
+            if self.reviewer or self.acceptance_basis != "functional_workflow_only":
+                raise ValueError("QA reconsideration requires its exact functional basis and no human reviewer")
+        elif not self.reviewer or self.acceptance_basis is not None:
+            raise ValueError("human reconsideration requires a reviewer and no QA acceptance basis")
+        return self
+
+    @field_validator("reviewer")
+    @classmethod
+    def trim_reviewer(cls, value: str) -> str:
+        return value.strip()
 
 
 class VideoDiscardRequest(CamelModel):

@@ -299,13 +299,14 @@ class ProjectVideoRepository:
 
     def reopen_video_job_review(
         self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,
-        expected_selection_revision: int,
+        expected_selection_revision: int, acceptance_basis: str | None = None,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         self.store.require_recovery_acknowledged()
         return self._video.reopen_video_job_review(
             project_id, video_job_id, reviewer=reviewer, reason=reason,
             expected_selection_revision=expected_selection_revision,
+            acceptance_basis=acceptance_basis,
         )
 
     def discard_video_candidates(

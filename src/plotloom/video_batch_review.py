@@ -1,11 +1,12 @@
 """Full-scope review projection and one atomic audiovisual selection receipt."""
 from hashlib import sha256
-from sqlalchemy import select
+
 from plotloom.contract_identity import new_id, utc_now
-from .exceptions import InvalidTransitionError, RevisionConflictError, NotFoundError
-from .project_storage.format import ProjectStorageError
+
+from .exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from .persistence.codec import stable_hash
-from .persistence.schema import VideoBatchRow, VideoBatchReceiptRow, VideoSegmentRow
+from .persistence.schema import VideoBatchReceiptRow, VideoBatchRow, VideoSegmentRow
+from .project_storage.format import ProjectStorageError
 from .project_storage.project_video import ProjectVideoRepository
 from .video_batch_inventory import source_binding
 
@@ -88,6 +89,9 @@ def review_projection(store, application, view):
             "segmentId": proposal_id, "segment": proposal, "job": job, "error": reason})
     bundle = {"batchId": view["id"], "manifestHash": view["manifestHash"], "kept": manifest["kept"],
         "proposals": proposals, "errors": errors}
+    from .functional_qa import functional_qa_authorized
+    if functional_qa_authorized(view["projectId"], execution.get("reviewAttribution")):
+        bundle["acceptanceBasis"] = "functional_workflow_only"
     return bundle | {"reviewHash": stable_hash(bundle), "ready": not errors,
         "readyCount": sum(not item["error"] for item in proposals), "blockedCount": len(errors)}
 
@@ -97,8 +101,9 @@ def confirm_pack(store, application, view, request):
     from .delegated_qa_video import assert_receipt_actor
     actor = request.attribution.model_dump(mode="json", by_alias=True) if request.attribution else {"kind": "unnamed_creator"}
     inspection = {"inspection": request.inspection.model_dump(mode="json", by_alias=True)} if request.inspection else {}
-    assert_receipt_actor(view["projectId"], {"attribution": actor, **inspection}, view["execution"].get("reviewAttribution"))
     prior = owner.receipt(view["id"])
+    assert_receipt_actor(view["projectId"], {"attribution": actor, **inspection},
+        view["execution"].get("reviewAttribution"), new_confirmation=prior is None)
     if prior:
         if prior["reviewHash"] != request.review_hash:
             raise InvalidTransitionError("this batch already has a different immutable confirmation")

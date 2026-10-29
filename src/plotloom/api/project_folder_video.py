@@ -188,13 +188,15 @@ def register_project_folder_video_routes(
     def reopen_video_job_review(
         project_id: str, video_job_id: str, body: VideoReviewReopenRequest
     ) -> dict[str, Any]:
-        with opened_project(project_id) as store:
+        from ..project_storage.delegated_qa_grants import qa_command
+        with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return _local_repository(store).reopen_video_job_review(
                 project_id,
                 video_job_id,
-                reviewer=body.reviewer,
+                reviewer=body.attribution or body.reviewer,
                 reason=body.reason,
                 expected_selection_revision=body.expected_selection_revision,
+                acceptance_basis=body.acceptance_basis,
             )
 
     @app.post(

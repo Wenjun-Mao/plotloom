@@ -2,14 +2,15 @@
 from secrets import randbits
 
 from plotloom.stage_contracts import StageName
+
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.project.autopilot_closure import material_closure
+from .production_brief import production_brief
 from .project_storage.project_video import ProjectVideoRepository
 from .provider_budgets import exceeds_budget
 from .video_backends.minimax_h3.catalog import H3_QUALIFIED_DURATION_FRAMES
 from .video_provider import VideoProviderError
-from .production_brief import production_brief
 
 
 def source_binding(store):
@@ -153,12 +154,19 @@ def validate_manifest(store, video, manifest, *, compiled=True, verified=True, l
     from .video_batch_work_inventory import assert_work_inventory
     with store.repository._read() as session:
         assert_work_inventory(session, store.manifest.project_id, manifest, links or {})
+    retained = {job["id"]: job for job in video.jobs(store)} if links or any(
+        target["mode"] in {"observe", "reuse"} for target in manifest["targets"]) else {}
     for target in manifest["targets"]:
-        if target["mode"] in {"observe", "reuse"}:
-            job = next((job for job in video.jobs(store) if job["id"] == target["jobId"]), None)
+        linked = (links or {}).get(target["shotId"])
+        existing = retained.get(linked)
+        if target["mode"] in {"observe", "reuse"} or existing and existing["state"] in {"submitted", "retrieve_needed", "ingested"}:
+            job = existing or retained.get(target["jobId"])
             if not job or not job["current"]:
                 raise InvalidTransitionError("existing observed/reused task is no longer current")
-            frozen = {key: value for key,value in job["snapshot"].items() if key not in {"reviewedDirections", "compiledPrompt"}}
+            excluded = {"reviewedDirections", "compiledPrompt"}
+            if target["mode"] not in {"observe", "reuse"}:
+                excluded.add("executionRetry")
+            frozen = {key: value for key,value in job["snapshot"].items() if key not in excluded}
             current_source_hash = stable_hash(frozen)
         else:
             preview = video.prepare(store, **target["args"], reviewed_directions=None, preview_only=True)

@@ -24,6 +24,7 @@ export type Batch = { id: string; projectId: string; revision: number; controlRe
     replacement?: { batchId: string; rejectedJobIds: string[] }; rejectedHistory?: { jobId: string; shotId: string }[] };
   execution: { error?: string; authorizedManifestHash?: string; reviewAttribution?: HumanReviewAttribution; intentReviewVersion?: string; draft?: { retry?: import("../generation-retry/contracts").GenerationRetryStatus; attempt?: { attemptId: string; state: string; model?: string }; result?: unknown }; fidelity?: { retry?: import("../generation-retry/contracts").GenerationRetryStatus; attempt?: { attemptId: string; state: string }; responseHash?: string; result?: unknown }; jobs?: Record<string, string>; retryHistory?: Record<string, string[]>; failures?: Record<string, { jobId: string; message: string }>;  segments?: Record<string, string> }; progress?: { total: number; ready: number; failed: number; blocked: number } };
 export type Review = { batchId: string; reviewHash: string; ready: boolean; readyCount: number; blockedCount: number;
+  acceptanceBasis?: "functional_workflow_only";
   kept: { shotId: string; jobId: string }[]; errors: { shotId: string; message: string }[];
   proposals: { shotId: string; title: string; jobId: string; segmentId: string; error: string | null;
     segment: { inFrame: number; outFrame: number; authoredDurationUnits: number } | null; job: VideoJob | null }[] };

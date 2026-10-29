@@ -1,7 +1,7 @@
 """Explicit agent decisions under a separately retained, bounded owner grant."""
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from .domain_base import CamelModel
 
@@ -21,6 +21,18 @@ class QaAvInspection(CamelModel):
     visual_observation: str = Field(min_length=1, max_length=2000)
     audio_observation: str = Field(min_length=1, max_length=2000)
     evidence_refs: list[str] = Field(min_length=1, max_length=16)
+    acceptance_basis: Literal["functional_workflow_only"] | None = Field(
+        default=None, exclude_if=lambda value: value is None)
+    quality_limitations: list[str] = Field(default_factory=list, max_length=20,
+        exclude_if=lambda value: not value)
+
+    @model_validator(mode="after")
+    def explicit_functional_limitations(self):
+        if bool(self.acceptance_basis) != bool(self.quality_limitations):
+            raise ValueError("functional-only inspection must explicitly retain its quality limitations")
+        if any(not item.strip() for item in self.quality_limitations):
+            raise ValueError("quality limitations must not be blank")
+        return self
 
     @field_validator("visual_observation", "audio_observation")
     @classmethod

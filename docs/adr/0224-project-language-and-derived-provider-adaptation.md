@@ -21,6 +21,11 @@ without changing selection CAS; its new review event changes the final review ha
 Human reconsideration retains its existing CAS behavior. Final functional-only
 inspection explicitly records failed/unverified quality dimensions and cannot be
 claimed by unrelated projects or actors. Frozen generation manifests are immutable.
+An already submitted/retrievable/ingested linked job is validated against its own
+exact frozen compiler/source rather than a new preparation compiler. Currentness,
+work inventory, source hash, original fidelity and intent still bind it. Prepared
+undispatched work continues to require current preparation identity; this is not
+historical dispatch/replay authority.
 
 ### Prospective reuse of exact opening images as ending guidance — 2026-10-29
 
