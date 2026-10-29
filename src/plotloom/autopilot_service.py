@@ -13,7 +13,7 @@ from .autopilot_exec import suspend_pending_codex_exec
 from .autopilot_image_controller import AutopilotImageController
 from .autopilot_launch import assert_frozen_execution, freeze_launch_policy
 from .autopilot_text_controller import AutopilotTextController
-from .exceptions import InvalidTransitionError
+from .exceptions import InvalidTransitionError, LifecycleContentionError
 from .image_job_contracts import ImageJobError
 from .project_storage import ProjectBusyError, ProjectClosedError, ProjectStorageError
 
@@ -156,6 +156,11 @@ class AutopilotService:
             return
         try:
             self._step(project_id)
+        except LifecycleContentionError:
+            # A foreground lifecycle writer owns this short interval. The next
+            # ordinary step rechecks current authority and the exact persisted
+            # attempt; contention supplies no failure or replay permission.
+            return
         except (OSError, SQLAlchemyError):
             # A fresh session follows any rolled-back owner transaction. Never
             # reconstruct a job or infer that failed I/O means no dispatch.

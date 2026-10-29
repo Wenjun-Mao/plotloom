@@ -11,10 +11,12 @@ from plotloom.image_commands import frozen_references, image_package
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.image_reference_roles import (
     ART_REFERENCE_INSTRUCTION,
+    ART_SUBJECT_INSTRUCTION,
     package_reference_role,
 )
 from plotloom.persistence.project.image_art_references import (
     ART_REFERENCE_CONTRACT,
+    ART_SUBJECT_CONTRACT,
     art_references_current,
     freeze_art_references,
     required_art_subjects,
@@ -53,6 +55,8 @@ def test_automatic_frame_freezes_views_and_packages_actual_selected_scene_bytes(
             assert refs[0]["referenceDecisionId"] == decision["id"]
             assert refs[0]["originalHash"] == decision["assetHash"]
             assert refs[0]["subjectHash"] == decision["subjectHash"]
+            assert snapshot["artReferenceSubjectContract"] == ART_SUBJECT_CONTRACT
+            assert snapshot["artReferenceSubjects"] == [refs[0] | {"subject": decision["subject"]}]
             paths = image_package(store, "image", context["id"])
             package = Path(paths["packagePath"])
             request = json.loads((package / "request.json").read_text())
@@ -60,6 +64,21 @@ def test_automatic_frame_freezes_views_and_packages_actual_selected_scene_bytes(
             for item in request["references"]:
                 assert sha256((package / item["filename"]).read_bytes()).hexdigest() == item["sha256"]
             assert ART_REFERENCE_INSTRUCTION in (package / "COPY_ASSIGNMENT.txt").read_text()
+            assert ART_SUBJECT_INSTRUCTION in (package / "COPY_ASSIGNMENT.txt").read_text()
+            assert ART_SUBJECT_INSTRUCTION in request["deliveryInstruction"]
+            from copy import deepcopy
+            with store.repository._read() as session:
+                for defect in ("changed-source", "missing-source", "missing-discriminator", "missing-role-contract"):
+                    invalid = deepcopy(snapshot)
+                    if defect == "changed-source":
+                        invalid["artReferenceSubjects"][0]["subject"]["summary"] = "Different authored source."
+                    elif defect == "missing-source":
+                        invalid.pop("artReferenceSubjects")
+                    elif defect == "missing-discriminator":
+                        invalid.pop("artReferenceSubjectContract")
+                    else:
+                        invalid.pop("artReferenceContract")
+                    assert not art_references_current(session, view.project_id, invalid, store.repository._media.art_references)
             assert "scene_environment:" + refs[0]["subjectId"] in (package / "COPY_ASSIGNMENT.txt").read_text()
             assert snapshot["shot"]["action"]  # Art does not replace target action.
         assert len(calls) == 2  # Only the character/scene fixtures; no frame host admission.

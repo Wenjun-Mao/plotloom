@@ -134,6 +134,13 @@ identity and dispatch-disabled guards for every unadopted pending checkpoint.
 
 ## Existing attempts and acceptance
 
+A transient SQLite lifecycle writer conflict during an ordinary controller step
+defers that step. It is not an execution failure, a run blocker, a cancellation or
+retry authority. The next ordinary step rechecks current owner/run/attempt identity;
+persisted admission intent and UNKNOWN guards continue to prevent duplicate work.
+Actual storage failures and contract violations keep their existing failure paths.
+This closes an observed foreground-resume race before completed-image adoption.
+
 The two identified old local holds may release only their positively stopped LOCAL
 occupancy. Preserve the 苏棠 project, all media, original UNKNOWN/possible-cost facts
 and every current home/H5 export. Do not retry, resume or drain the old H5 run.

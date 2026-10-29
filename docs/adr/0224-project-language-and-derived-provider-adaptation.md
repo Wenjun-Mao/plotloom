@@ -19,6 +19,24 @@ made without this dependency; original snapshots and failed results stay intact.
 The next live checkpoint is one corrected Chinese opening with the same selected
 C01/S01/P01 images, followed by actual pixel inspection before expansion or H3.
 
+### Selected Art description context — 2026-10-29
+
+Both English table-frame specialists stopped before ImageGen on ambiguous
+`handheld` wording. The accepted Art enum explicitly defines `手持级` as a size
+category; the target action explicitly leaves the cup on the table. The automatic
+adapter had omitted that selected description, including its scale field. New
+packages freeze the complete exact selected subject with a separate
+`automatic-image-art-subjects.v1` discriminator, binding decision, accepted-Art,
+subject and attached asset identities/hashes. Currentness verifies exact source
+bytes. Retained role-only snapshots remain unchanged and acquire no new context.
+
+The instruction distinguishes physical size from holding/placement and requires
+the model to assess all unchanged source owners. It does not silently rewrite
+`handheld`, force a favorable interpretation or waive an explicit contradictory
+pose. A genuine unresolved conflict still stops generation. Both original refusals
+stay failed. This materially changed source-bound package is new work, not another
+dispatch of either refused package; no new F5 editing or feedback API is introduced.
+
 Status: accepted by the owner, 2026-10-28; implementation in progress under the
 [authorized language plan](../roadmap/2026-10-28-project-language-consistency.md).
 

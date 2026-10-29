@@ -12,6 +12,18 @@ returns to the original bilingual outcome. No new providers or creative edits.
 Original homes/evidence remain root-owned. Execution wait/product/coordination
 durations are not fully measured; do not infer them from test totals.
 
+The921a5d92 Chinese one-frame checkpoint preserved selected C01/S01/P01 with all
+three viewed-image/argument hashes in its native receipt. Its remaining two frames
+completed after one retained foreground/controller lifecycle-contention failure
+and an exact current-run resume; run7705a48f now has a complete bundle, with all actual
+pixels inspected. Material handoff/H3 remains pending and wide-frame label/video
+legibility remains an explicit inspection item. The isolated runtime is stopped.
+Next bounded repair supplies omitted exact Art size context to English image
+packages and defers transient controller writer contention without changing jobs
+or receipts. Prove the original English table frame with changed frozen inputs
+before expansion; keep its two earlier pre-ImageGen refusals failed. No Brief,
+F5 prose, historical receipt or QA enrollment changes are authorized by this repair.
+
 Status: finalized and explicitly authorized for end-to-end implementation on
 2026-10-28. Both languages completed all eight native text stages and installation
 at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate

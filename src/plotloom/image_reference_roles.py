@@ -24,3 +24,13 @@ ART_REFERENCE_INSTRUCTION = (
     "If these owners contradict each other, stop with the exact conflict rather than inventing "
     "a replacement object or room. Include all consumed role hashes in referenceUse. "
 )
+
+ART_SUBJECT_INSTRUCTION = (
+    "SELECTED ART SOURCE CONTEXT: artReferenceSubjects contains the exact descriptions "
+    "of the attached selected Art subjects. A subject.scale value classifies physical size "
+    "(for example 手持级 means handheld scale); that field does not prescribe a held pose "
+    "or current placement. Explicit target action and initial state own holding and placement. "
+    "Read size adjectives in their complete unchanged source context; do not silently rewrite "
+    "the composition or disregard an explicit grip/pose requirement. If the complete owners "
+    "still genuinely contradict each other, stop and report the exact conflict. "
+)

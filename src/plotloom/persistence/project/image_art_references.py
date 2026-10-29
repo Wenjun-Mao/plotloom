@@ -1,5 +1,8 @@
 """Exact selected Art dependencies for automatic physical shot images."""
+from copy import deepcopy
+
 from ...image_job_contracts import ImageJobError
+from ..codec import stable_hash
 from ..schema import (
     ArtReferenceDecisionRow,
     ArtReferenceDecisionStateRow,
@@ -8,6 +11,7 @@ from ..schema import (
 from .media_art_reference_proposals import ArtReferenceProposalPersistence
 
 ART_REFERENCE_CONTRACT = "plotloom.automatic-image-art-references.v1"
+ART_SUBJECT_CONTRACT = "plotloom.automatic-image-art-subjects.v1"
 ART_REFERENCE_ROLES = frozenset({"scene_environment", "prop_identity"})
 
 
@@ -43,10 +47,23 @@ def freeze_art_references(session, project_id, subjects, art_references: ArtRefe
     return result
 
 
+def freeze_art_reference_subjects(session, project_id, references):
+    """Preserve selected author-owned descriptions, including size classifications."""
+    result = []
+    for reference in references:
+        decision = session.get(ArtReferenceDecisionRow, reference["referenceDecisionId"])
+        if (decision is None or decision.project_id != project_id
+                or stable_hash(decision.subject) != reference["subjectHash"]):
+            raise ImageJobError("art_reference_subject_changed", "选定美术参考的原始描述或哈希已改变。")
+        result.append(reference | {"subject": deepcopy(decision.subject)})
+    return result
+
+
 def art_references_current(session, project_id, snapshot, art_references):
     """A retained snapshot is never repaired or upgraded during a read."""
     if "artReferenceContract" not in snapshot:
-        return True
+        return (not {"artReferenceSubjects", "artReferenceSubjectContract"}.intersection(snapshot)
+            and not any(item.get("role") in ART_REFERENCE_ROLES for item in snapshot.get("references", [])))
     if snapshot["artReferenceContract"] != ART_REFERENCE_CONTRACT:
         return False
     from types import SimpleNamespace
@@ -56,7 +73,12 @@ def art_references_current(session, project_id, snapshot, art_references):
             snapshot["resolvedContext"])
         expected = freeze_art_references(session, project_id, subjects, art_references)
         actual = [item for item in snapshot["references"] if item.get("role") in ART_REFERENCE_ROLES]
-        return actual == expected
+        if actual != expected:
+            return False
+        if "artReferenceSubjects" in snapshot or "artReferenceSubjectContract" in snapshot:
+            return (snapshot.get("artReferenceSubjectContract") == ART_SUBJECT_CONTRACT
+                and snapshot.get("artReferenceSubjects") == freeze_art_reference_subjects(session, project_id, expected))
+        return True
     except (ImageJobError, KeyError, TypeError, AttributeError):
         return False
 

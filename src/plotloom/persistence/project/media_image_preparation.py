@@ -221,13 +221,17 @@ class ImageJobPreparationPersistence:
             resolved_context = self._currentness.image_job_resolved_context(
                 shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats,
             )
+            art_subjects = None
             if approval.machine_decision_id is not None:
                 from .image_art_references import (
+                    freeze_art_reference_subjects,
                     freeze_art_references,
                     required_art_subjects,
                 )
-                references.extend(freeze_art_references(session, project_id,
-                    required_art_subjects(shot, resolved_context), self._currentness.art_references))
+                art_references = freeze_art_references(session, project_id,
+                    required_art_subjects(shot, resolved_context), self._currentness.art_references)
+                references.extend(art_references)
+                art_subjects = freeze_art_reference_subjects(session, project_id, art_references)
 
             if len(references) > 9:
                 raise ImageJobError(
@@ -267,8 +271,13 @@ class ImageJobPreparationPersistence:
                 snapshot["visibleCharacterIds"] = list(shot.character_ids)
                 snapshot["characterIdentity"] = identity_mappings
             if approval.machine_decision_id is not None:
-                from .image_art_references import ART_REFERENCE_CONTRACT
+                from .image_art_references import (
+                    ART_REFERENCE_CONTRACT,
+                    ART_SUBJECT_CONTRACT,
+                )
                 snapshot["artReferenceContract"] = ART_REFERENCE_CONTRACT
+                snapshot["artReferenceSubjectContract"] = ART_SUBJECT_CONTRACT
+                snapshot["artReferenceSubjects"] = art_subjects
                 snapshot.pop("approvalId")
                 snapshot["canonicalGateSetVersion"] = snapshot.pop("approvalGateSetVersion")
                 snapshot["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": approval.machine_decision_id}

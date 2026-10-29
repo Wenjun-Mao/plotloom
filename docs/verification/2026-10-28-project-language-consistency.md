@@ -1,5 +1,30 @@
 # Project-language implementation evidence
 
+Later selected-subject/context checkpoint2026-10-29: original Chinese Continue
+run7705a48f retained15 exact operations with zero new text/checker attempts. Its
+single-image pilot and remaining two native images completed at921a5d92, each
+with all three exact selected-image view/argument hashes. All actual reference and
+frame pixels were inspected. Complete review bundle hash
+`9ae030d72cc51638511cfd6bc56b7ae4592bcd505f597384239d357c7e74bbc0`
+remains unchanged under the prospective description-context reader. Selected lamp
+and room are preserved; small label/video legibility and cross-clip continuity
+remain downstream inspection items. One lifecycle-contention failure before frame
+adoption was retained and recovered by fresh exact-run resume without image
+readmission. Isolated runtime stopped; no handoff/H3 or scope enrollment yet.
+
+Source audit confirmed Art `手持级` is a size category omitted from English image
+context. The follow-up freezes exact selected descriptions with a prospective
+discriminator, retaining unchanged authored F5 wording and both original refusals.
+Its24-case selection passed45.66s; final5-case source-marker, real SQLite contention
+and background storage-failure controls passed28.06s (overlap). Quick passed13.704s,
+1676frontend cases and both type checks. Normal-home inspection/authority stays14/14
+with zero new regressions. Independent High static review closed without blocker;
+effective reviewer model settings remain unobservable. New-owner Ruff/diff checks
+pass; existing deliberate supervisor BLE001 boundaries are unchanged. Next real
+checkpoint is the original English table frame with materially completed source
+context, not another dispatch of either failed package. Full/wheel/activation and
+media acceptance remain open; CI not requested/not run.
+
 Latest material checkpoint2026-10-29: Chinese native bundle at8ee5901d is
 technically complete but **pixel-rejected** for changed P01 lamp identity and S01
 room/layout continuity. English retained two completed frames; both table-ending
