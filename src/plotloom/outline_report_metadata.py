@@ -16,7 +16,7 @@ class OutlineReportMetadata(BaseModel):
 
 
 def outline_report_metadata_schema() -> dict[str, Any]:
-    return OutlineReportMetadata.model_json_schema()
+    return OutlineReportMetadata.model_json_schema() | {"not": {"required": ["routePlan"]}}
 
 
 def assert_outline_report_schema_current(artifacts: dict[str, Any]) -> None:

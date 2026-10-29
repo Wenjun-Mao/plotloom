@@ -13,7 +13,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     const frozen = await readFile(path.join(prepared.packagePath, "request.json"));
     const admission = JSON.parse(await readFile(path.join(prepared.packagePath, "inputs/storyboard-admission.json"), "utf8"));
     const acceptedScript = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`))).acceptedScript;
-    expect(prepared.binding.dialogueTimingContract.language).toBe("en");
+    expect(prepared.binding.dialogueTimingContract.language).toBe("en-US");
     expect(prepared.binding.scriptRevision).toBe(acceptedScript.revision);
     expect(prepared.binding.scriptContentHash).toBe(acceptedScript.contentHash);
     expect(prepared.binding.dialogueTimingContract.scriptContentHash).toBe(acceptedScript.contentHash);

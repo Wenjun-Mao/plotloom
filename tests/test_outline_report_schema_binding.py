@@ -86,7 +86,9 @@ def test_existing_manual_package_requires_current_schema_after_package_checks(tm
 def test_schema_is_hashed_and_other_stages_keep_their_language_domain():
     request = _request({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()})
     plan = build_text_validation_plan(request, execution_pin=PIN, source_revision=REVISION)
-    assert [item.filename for item in plan.inputs] == ["language-contract.json", OUTLINE_REPORT_SCHEMA_FILENAME]
+    assert [item.filename for item in plan.inputs] == [
+        "creative-field-ownership.json", "language-contract.json", OUTLINE_REPORT_SCHEMA_FILENAME,
+    ]
     assert [(step.step_id, step.program, step.argv[1:]) for step in plan.steps] == [
         ("validate", "node", ("validate", "{candidate}")),
         ("render", "node", ("render", "{candidate}", "--html")),

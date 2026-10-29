@@ -11,7 +11,7 @@ import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const fixtureSpokenLanguage: ProjectBrief["language"] = "en";
+const fixtureSpokenLanguage: ProjectBrief["language"] = "en-US";
 export const fixtureDirectory = path.join(directory, "fixtures/f5a");
 const validator = path.resolve(directory, "../../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
 export type Preparation = { jobId: string; packagePath: string; deliveryPath: string; assignment: string; binding: any; expectedReviewRevision: number };

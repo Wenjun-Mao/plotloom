@@ -33,6 +33,7 @@ def test_metadata_rejects_non_ui_keys_without_conversion(lang):
 
 def test_generated_schema_is_a_permissive_metadata_projection():
     schema = outline_report_metadata_schema()
+    assert schema["not"] == {"required": ["routePlan"]}
     assert schema["additionalProperties"] is True
     assert schema["required"] == ["lang"]
     assert set(schema["properties"]) == {"lang"}
@@ -79,3 +80,10 @@ def test_valid_metadata_renders_through_unchanged_upstream_commands(tmp_path, me
 def test_missing_outline_language_is_a_fresh_contract_failure():
     with pytest.raises(CreativeHandoffError, match="required"):
         assert_outline_report_metadata({"episodes": []})
+
+
+def test_retained_metadata_projection_does_not_apply_new_request_candidate_constraint():
+    candidate = {"lang": "en", "routePlan": {"decision": {"nodeId": "retained-id"}}}
+    before = deepcopy(candidate)
+    assert_outline_report_metadata(candidate)
+    assert candidate == before

@@ -33,14 +33,6 @@ def echo_fixture():
     candidate["sourceMetadata"] = deepcopy(request.source)
     candidate["sourceMetadata"].pop("text")
     candidate["storyTopology"] = deepcopy(topology)
-    path = [topology["startNodeId"]]
-    while True:
-        outgoing = [edge for edge in topology["edges"] if edge["sourceNodeId"] == path[-1]]
-        if not outgoing:
-            break
-        path.append(outgoing[0]["targetNodeId"])
-    candidate["routePlan"] = {"routes": [{"id": "R01", "nodeIds": path, "name": "把灯留下"}],
-                              "description": "Wrong ordinary English route description."}
     return request, candidate
 
 
@@ -51,9 +43,7 @@ def test_exact_echoes_exempt_only_their_bound_machine_or_source_leaves():
     assert roles["$.params.shotCountPolicy"] == "stable_identity"
     assert roles["$.storyTopology.nodes[0].kind"] == "stable_identity"
     assert roles["$.sourceMetadata.title"] == "exact_source"
-    assert roles["$.routePlan.routes[0].id"] == "stable_identity"
-    assert roles["$.routePlan.routes[0].name"] == "authored_prose"
-    assert bind_language_result(request, result_for(request, rejected_path="$.routePlan.description")).verdict == "reject"
+    assert bind_language_result(request, result_for(request)).verdict == "pass"
     # Matching a frozen value at an unregistered location grants nothing.
     candidate["inventedSetting"] = original.input_artifacts["outline-settings.json"]["language"]
     request = checking_request(original, candidate)
@@ -64,7 +54,7 @@ def test_exact_echoes_exempt_only_their_bound_machine_or_source_leaves():
 @pytest.mark.parametrize("change,path", [
     ("enum", "$.params.shotCountPolicy"), ("hash", "$.storyTopology"),
     ("extra", "$.storyTopology"), ("metadata", "$.sourceMetadata.kind"),
-    ("reference", "$.routePlan.routes[0].nodeIds"), ("identity_prose", "$.routePlan.routes[0].id"),
+    ("route_plan", "$.routePlan"),
 ])
 def test_machine_mutations_reject_before_semantic_check_with_typed_primary_feedback(tmp_path, change, path):
     original, candidate = echo_fixture()
@@ -72,8 +62,7 @@ def test_machine_mutations_reject_before_semantic_check_with_typed_primary_feedb
     elif change == "hash": candidate["storyTopology"]["topologyHash"] = "b" * 64
     elif change == "extra": candidate["storyTopology"]["readableEnglish"] = "unreviewed prose"
     elif change == "metadata": candidate["sourceMetadata"]["kind"] = "故事梗概"
-    elif change == "reference": candidate["routePlan"]["routes"][0]["nodeIds"][1] = "invented-node"
-    else: candidate["routePlan"]["routes"][0]["id"] = "Wrong ordinary English story prose."
+    else: candidate["routePlan"] = {"decision": {"nodeId": "opaque-id"}, "sections": [], "routes": [{"edgeIds": ["opaque-edge"]}]}
     with pytest.raises(OutlineEchoError) as error:
         outline_echo_roles(candidate, original)
     assert error.value.path == path
@@ -90,3 +79,38 @@ def test_machine_mutations_reject_before_semantic_check_with_typed_primary_feedb
     issues = [TextContentIssue.model_validate(issue) for issue in packet["issues"]]
     assert len(issues) == 1 and issues[0].code == "candidate_content_invalid"
     assert issues[0].field_paths == ("$",) and path in packet["displayDiagnostics"][0]
+
+
+def test_current_outline_constraints_preserve_authored_content_and_structural_gate(tmp_path):
+    original, candidate = echo_fixture()
+    before = deepcopy(candidate)
+    assert outline_echo_contract() == {"version": "plotloom.outline-input-echoes.v2",
+        "candidateConstraints": {"forbiddenTopLevelFields": ["routePlan"]}}
+    assert "routePlan" not in candidate
+    outline_echo_roles(candidate, original)
+    candidate_file, request_file = tmp_path / "outline.json", tmp_path / "request.json"
+    candidate_file.write_text(json.dumps(candidate, ensure_ascii=False))
+    request_file.write_text(original.model_dump_json(by_alias=True))
+    result = subprocess.run([sys.executable, str(ROOT / "scripts/outline_content_validation.py"),
+        str(candidate_file), "--request", str(request_file), "--node", shutil.which("node")],
+        capture_output=True, check=False)
+    assert result.returncode == 0, result.stderr
+    assert candidate == before
+
+
+def test_prepared_outline_prompt_and_schema_share_current_candidate_constraint():
+    from types import SimpleNamespace
+    from plotloom.outline_preparation import outline_request
+    original, _ = echo_fixture()
+    brief = ProjectBrief(title="小灯", synopsis="她把灯留下。", language="zh-CN")
+    store = SimpleNamespace(
+        manifest=SimpleNamespace(project_id=original.project_id),
+        source_outline_state=lambda: SimpleNamespace(accepted_outline=None,
+            source=SimpleNamespace(material=SimpleNamespace(model_dump=lambda **kwargs: original.source))),
+        project=lambda: SimpleNamespace(require_brief=lambda: brief))
+    request = outline_request(store)
+    assert request.input_artifacts[ECHO_CONTRACT_FILENAME] == outline_echo_contract()
+    assert request.input_artifacts["outline-report-metadata-schema.json"]["not"] == {"required": ["routePlan"]}
+    assert "Omit routePlan entirely" in request.creative_brief
+    assert "existing Outline fields" in request.creative_brief
+    assert "Route-plan prose" not in request.creative_brief

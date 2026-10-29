@@ -685,3 +685,17 @@ disabled and original failed evidence unchanged. The conditional three-file read
 closure has independent review and21 focused passes. Commit the repair and return
 to the original English-through-Art proof; retain the unlaunched Chinese fixture
 for subsequent all-eight qualification.
+
+
+At84cbd706 the actual primary and checker validate/render paths both completed.
+The checker returned genuine uncertainty solely on12 opaque IDs in an unsupported
+routePlan shape encouraged by the parent prompt. An independent source diagnosis
+found no product consumer beyond partial echo classification; Branches already
+owns graph output. ADR0224 now records the smallest repair before implementation:
+retire routePlan from new Outline candidates, align prompt/versioned constraints/
+typed primary receiving, retain existing authored explanations and exact topology
+guidance, and preserve old uncertain proof without reclassification. No blanket
+classifier exemption or topology framework is authorized. Both exact native owners
+are absent and the runtime is stopped. Coordinator owns docs/integration; the same
+worker receives the bounded production repair after freezing the separate reader
+fixture delta. The next product proof remains the original English through Art.

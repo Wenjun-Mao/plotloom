@@ -168,3 +168,14 @@ closure of this policy, including the three exact owned helper files hashed by
 literal_policy_identity. A stage-local source grant alone cannot satisfy that
 cross-helper integrity check. Grant these exact files only where the binder runs;
 retain pin/cleanliness checks and deny unrelated parent directories.
+
+New Outline work omits routePlan. Branches owns installed node, choice, edge and
+join output; the trusted topology remains Outline input guidance and may use only
+its already declared exact source echo. The unused routePlan extension duplicated
+that authority, while the prompt encouraged shapes its partial echo binder did
+not own. Remove the invitation and refuse routePlan in the versioned current
+Outline candidate constraints and typed primary validator before language checking.
+Keep Outline story/choice/ending explanations in its existing authored fields.
+Do not add ID-looking exemptions or a second topology schema. Retained original
+candidate, check, report and native proof bytes remain readable with their original
+verdicts; they gain no current execution or adoption authority.

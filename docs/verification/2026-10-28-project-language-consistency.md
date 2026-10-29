@@ -761,3 +761,96 @@ is current in working_inputs.py. The reported14 pin-blocked reader cases remain
 pending the integrated browser/full qualification; no pass is inferred from the
 current clean fork alone. Existing1675-test/type/build evidence is unchanged by
 these backend resource repairs.
+
+## Current native candidate and forwarded-browser gap
+
+Conditional policy-file read closure is locally committed at
+`84cbd70679896fce252889519778cbba87dfece8`, clean fork35fac266. Fresh checked
+envelope literal-policy-closure-native-envelope.json records profile
+9540df76b609def56a7c0af571d745c552857731c5467b6619b8b256e5e6dbb7 and
+unchanged interpreter identity. Original English fixture
+`c9b4af14-4ef0-4884-bbd4-cbc082225fa2` was created and reopened with its exact
+approved Brief via retained idempotency intent. Native run
+`215b7a12-248a-4010-94d1-a86e24b71138` is active with intended Art stop.
+Keep HEAD and production/fork bytes stable; subsequent notes remain uncommitted.
+
+Root's focused Playwright union at84cbd706 selected story-prototype.spec.ts,
+storyboard-source-review.spec.ts and draft-recovery-presentation.spec.ts. All five
+draft-recovery cases passed, including the originally blocked English blank-title
+Apply case. Fourteen reader cases failed before UI creation because shared
+f5a-fixture.ts submits retired en as project locale, refused correctly by the
+current zh-CN/en-US contract. This is the now-visible current fixture blocker, not
+a missing-pin bypass or reader pass. Initial colon-line selector was refused by
+verify.py before execution and is retained separately. Exact failed selection
+is in integrated-forwarded-readers-browser-selected.log. The existing Luna/Max
+worker owns only supported browser-test fixture inputs and direct affected cases;
+production source remains frozen during native work, no fixture commit may change
+HEAD until native material work finishes. Reuse the five unchanged browser passes.
+
+## Genuine Outline uncertainty and ownership reassessment
+
+At84cbd706 primary jobch_e1e2764433aa4ddfa21b4d050ece278e, attempt
+fb043ba6-4cad-4a55-82bb-2c47aa186f0e, and distinct checker
+ch_79361cfa32d25ccbaa130fe4208f90a1, attempt
+6f44cfbf-9fea-56dd-9ab0-ac79f79d552f, both completed native trusted validation
+and rendering. The checker returned uncertain across121 coverage leaves because
+12 routePlan references are conservatively authored_prose. All readable prose
+passes; the uncertain paths are nested decision/section nodeIds, choice edge/
+target IDs and route edgeIds with no registered owner. No execution retry or
+semantic pass was invented. Run215b7a12-248a-4010-94d1-a86e24b71138 is now
+paused; exact worker/CLI groups and validators are absent and runtime stopped.
+Original candidate/check/report/completion and concise findings/absence proof
+are retained under outline-routeplan-uncertain/.
+
+Independent read-only contract diagnosis found the parent prompt invites routePlan
+prose and frozen references, while upstream schema has no routePlan owner and the
+parent only validates a different partial echo shape. There is no downstream
+product consumer beyond echo classification; Branches owns graph prose. Retire
+this duplicate new-work representation rather than expand ad-hoc ID allowances.
+ADR0224 was amended before the bounded prompt/constraint/primary-validation repair;
+old uncertainty and immutable evidence remain unchanged. Current software and
+provider E2E remain incomplete.
+
+
+The separate two-file locale fixture patch is integrated uncommitted; its exact
+before/after hashes match. The retired shorthand was en, replaced by en-US, and
+the corresponding timing expectation follows that project locale. The worker's
+single test stopped at its old parent gitlink mismatch; root did not emulate or
+weaken that guard. Root native test:e2e selected only story-prototype.spec.ts:12
+under correctly pinned84cbd706. Creation now passes; it stops at the old minimal
+f5a/outline.json lacking required lang metadata, before reader UI. Exact failure
+is f5a-reader-locale-fixture/root-one-case.log. The remaining14 reader cases were
+not rerun. Complete their supported current test-data/proof fixture after the
+product checkpoint; no production rule or assertion is weakened to fit old data.
+
+## Outline retirement review and focused closure
+
+The five-file source/test patch
+22411758dcdb72176d50e61e99664b0b2ff732846eeae917396c1ca3470b62da
+is integrated with all before/after hashes verified. The requested Sol/Medium
+worker (effective host settings unobservable) aligned the prompt, v2 additive
+candidate constraints, response schema and existing typed primary gate. The unused
+routePlan exception machinery is removed from new work; all remaining authored
+fields and exact topology/settings/source echoes retain their owners. Independent
+review found no issue. Offline probes on copies of the exact native artifact
+produce typed primary exit42 with routePlan, structural exit0 after only its
+temporary omission, and preserve the genuine retained checker as uncertain with
+121 original coverage leaves. All original packet/candidate/report/completion
+hashes remain unchanged.
+
+Worker scoped27 cases passed. Its further selection passed35 and failed one
+preexisting exact input-list expectation that omitted request-owned
+creative-field-ownership.json. That single test expectation was repaired in its
+own one-file delta and passed in the failed-only focused rerun; the failed log is
+retained, and production bytes did not change afterward. Coordinator additionally
+ran the two directly affected files test_outline_report_receiving.py and
+test_outline_settings_entry.py:41 passed (focused,8.697 seconds total). These
+selections are reported separately and not summed. Pure read-only normal-home
+checks remain14/16 for inspection and authority, exactly the baseline, with no
+new regression. No normal runtime or data changed.
+
+The locale-only browser fixture correction is also retained in the candidate. It
+closes unsupported project-locale input, not the remaining old minimal Outline
+test-data blocker. The five draft-recovery browser passes remain valid. Complete
+reader fixtures and broad qualification later; return first to the original
+English-through-Art native proof under the new committed contract.

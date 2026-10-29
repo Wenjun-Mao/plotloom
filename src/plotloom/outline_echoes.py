@@ -6,13 +6,17 @@ ECHO_CONTRACT_FILENAME = "outline-input-echoes.json"
 
 
 def outline_echo_contract():
-    return {"version": "plotloom.outline-input-echoes.v1", "routeLocalId": "R{oneBasedIndex:02d}"}
+    return {"version": "plotloom.outline-input-echoes.v2",
+            "candidateConstraints": {"forbiddenTopLevelFields": ["routePlan"]}}
 
 
 class OutlineEchoError(ValueError):
     def __init__(self, path):
         self.path = path
-        super().__init__(f"{path}: omit the optional echo or preserve its frozen input identity exactly")
+        message = ("omit unsupported routePlan; keep authored explanations in existing Outline fields"
+                   if path == "$.routePlan" else
+                   "omit the optional echo or preserve its frozen input identity exactly")
+        super().__init__(f"{path}: {message}")
 
 
 def outline_echo_roles(candidate, original):
@@ -21,6 +25,9 @@ def outline_echo_roles(candidate, original):
         return {}
     from .content_language_classifier import string_leaves
 
+    contract = original.input_artifacts.get(ECHO_CONTRACT_FILENAME, {})
+    if contract.get("version") == "plotloom.outline-input-echoes.v2" and "routePlan" in candidate:
+        raise OutlineEchoError("$.routePlan")
     roles = {}
 
     def exact(path, value, expected, role="stable_identity", source_path=None):
@@ -64,44 +71,4 @@ def outline_echo_roles(candidate, original):
         StoryGraphTopology.model_validate(topology)
         exact("$.storyTopology", candidate["storyTopology"], topology)
 
-    plan = candidate.get("routePlan")
-    if plan is None:
-        return roles
-    if not isinstance(plan, dict) or topology is None:
-        raise OutlineEchoError("$.routePlan")
-    from .generation.story_graph_topology_contracts import StoryGraphTopology
-    parsed = StoryGraphTopology.model_validate(topology)
-    nodes = {node.id: node for node in parsed.nodes}
-    edges = {edge.id: edge for edge in parsed.edges}
-
-    def references(items, field, allowed, prefix):
-        if not isinstance(items, list):
-            raise OutlineEchoError(prefix)
-        for index, item in enumerate(items):
-            path = f"{prefix}[{index}].{field}"
-            if not isinstance(item, dict):
-                raise OutlineEchoError(path)
-            if field in item:
-                if not isinstance(item[field], str) or item[field] not in allowed:
-                    raise OutlineEchoError(path)
-                exact(path, item[field], item[field])
-
-    references(plan.get("nodeBindings", []), "nodeId", nodes, "$.routePlan.nodeBindings")
-    references(plan.get("choices", []), "edgeId", {key for key, edge in edges.items() if edge.kind == "choice"}, "$.routePlan.choices")
-    routes = plan.get("routes", [])
-    if not isinstance(routes, list):
-        raise OutlineEchoError("$.routePlan.routes")
-    pairs = {(edge.source_node_id, edge.target_node_id) for edge in parsed.edges}
-    for index, route in enumerate(routes):
-        path = f"$.routePlan.routes[{index}]"
-        if not isinstance(route, dict):
-            raise OutlineEchoError(path)
-        ids = route.get("nodeIds")
-        if (not isinstance(ids, list) or not ids or any(not isinstance(node, str) or node not in nodes for node in ids)
-                or ids[0] != parsed.start_node_id or nodes[ids[-1]].kind != "ending"
-                or any(pair not in pairs for pair in zip(ids, ids[1:]))):
-            raise OutlineEchoError(path + ".nodeIds")
-        exact(path + ".nodeIds", ids, ids)
-        if "id" in route:
-            exact(path + ".id", route["id"], f"R{index + 1:02d}")
     return roles
