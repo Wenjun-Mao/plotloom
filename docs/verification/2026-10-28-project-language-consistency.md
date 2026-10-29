@@ -9,8 +9,11 @@ Five manual draft-recovery cases and all14affected reader cases passed across
 retained selections. Candidate C8193c3ff full local qualification failed78Python
 cases; downstream browser/wheel stages were not reached. The separately frozen
 fixture repair and R1/R2 source fixes have independent review closure and exact
-root integration. Remaining source work addresses known capacity admission and
-authored-composition bridge ownership before fresh native bridge checking. No
+root integration, followed by the reviewed authored-composition/lifecycle repair.
+D4's real English Continue delivered intent but both independent checker attempts
+failed contradictory discovery metadata. Its child is now cancelled with evidence
+preserved. A reviewed strict schema/instruction follow-up awaits new-pin proof
+using the compatible Chinese home and an ordinary fresh English fixture. No
 exact-wheel qualification, activation, old-slot application or image/H3/media
 acceptance has occurred. Hosted CI is not requested/not run and is not a release
 blocker. Earlier sections retain historical checkpoints/failures; later
@@ -1390,6 +1393,58 @@ Vitest/Playwright, executing no test bodies;7ownership-unit cases pass0.22s. The
 first truncated missing-file failures remain retained. See
 current-R-bridge-terminal-followup/ and current-final-test-inventory/. These
 separate scoped results do not convert candidate C's failed full gate into a pass.
+
+### D4 native English checkpoint: retained failure
+
+Local main d4cb63f846cc7463ff4aadbc5d63e1a620a67397 contains the reviewed77-file
+checkpoint; fork35fac266 stays clean. Quick passed13.343s and the committed source
+identity case passed3.99s (5.590s including selection). Native preflight then
+proved original EN e1894d73 eligible7under that exact Sol/Medium profile.
+
+Supported Continue created child28f5b5a7-d10a-4620-aed7-24b756657cc4. Its7exact
+raw/source operations were inherited, bridge.prepare adopted, and native intent
+primary ch_4fe3ce895e98415397f8bed183df0aff completed/delivered. Root read its
+English prose, including deliberate 安 references; no semantic-check pass or
+adoption is claimed. Checker ch_8fc3f1d69f21564ea9620ec9ab54b945 and automatic
+replacement ch_5d0be0d3bfb25bbfb88657552084149e both failed transiently with CLI
+exit0, positive local stop and no semantic result. The text runner exited2 at
+blockedrev10; no images/H3 occurred. Exact offline validation of both original
+JSON/request pairs reproduces the binder failure. Both contain the impossible
+not_relevant/not_applicable/nonempty-occurrences combination for incidental
+lettering; the generic old error misleadingly called it a required omission.
+No third native attempt was made under unchanged preparation.
+
+Artifacts en-composition-refresh-native.log,
+en-composition-refresh-first-check-failure.json and
+en-composition-check-{1,2}-offline-validation.log retain the actual outcomes.
+Exploratory python3 commands encountered a missing system Xcode path, but Node
+continued producing the full result. The trusted checked-Python validator's
+reproduced metadata failure owns this stop; no system provisioning was attempted.
+
+Before changing source, root used supported explicit cancel on this exact child,
+nowcancelledrev11. Canonical heads, primary attempt/success receipt and persisted
+checkpoint fields remain unchanged. The first cancel-probe assertion was too broad:
+the public retry projection correctly changed readyto stopped on withdrawal.
+That log remains failed; a separate read-only comparison proves the precise
+expected projection-only changes and never repeats cancellation. See
+en-composition-refresh-{before,after}-cancel.json and
+en-composition-refresh-cancel.log. The original25raw-table/7parent-table/payload
+witness also passes after cancellation, permitting only the two typed new bridge
+checker rows; original payload files retain their hashes.
+
+The independently reviewed3-file current-checker-discovery-combinations/ delta
+expresses the existing schema/binder combinations in primary instructions and
+conditional response schema, while retaining mapped provider-claim proof and all
+exact-span checks. Its33discovery,55affected contract/channel and11source-ownership
+fixture cases pass. No external JSON-schema validator/dependency was added; tests
+inspect the emitted branches and exercise the actual binder. Retained bad outputs
+remain rejected. A new exact committed-pin native proof is required.
+
+The roadmap now uses original ZH's compatible cancelled-parent Continue and a
+fresh ordinary English fixture from the same Brief. Existing APIs cannot upgrade
+the successful unadopted English primary across changed source pins. Its old home
+and failed checker history remain preserved; no new continuation/discard layer,
+history rewrite, data reset or uncertainty clearing is introduced.
 
 Three demonstrated runtime defects remain under the bounded source repair:
 paused structural receiving occurs after language checking; cache dependency

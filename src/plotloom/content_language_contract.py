@@ -83,7 +83,17 @@ def language_result_schema(frozen):
     if DISCOVERY in frozen:
         schema["required"] = [*schema.get("required", []), DISCOVERY]
         schema["properties"][DISCOVERY] = {"$ref": "#/$defs/VisibleLiteralDiscovery"}
-        schema["$defs"]["DiscoveredVisibleFact"]["properties"]["sourceSpan"] = deepcopy(source)
+        fact_schema = schema["$defs"]["DiscoveredVisibleFact"]
+        fact_schema["properties"]["sourceSpan"] = deepcopy(source)
+        fact_schema["allOf"] = [
+            {"if": {"properties": {"relevance": {"const": relevance}}, "required": ["relevance"]},
+             "then": {"properties": properties}}
+            for relevance, properties in (
+                ("not_relevant", {"presence": {"const": "not_applicable"}, "candidateOccurrences": {"maxItems": 0}}),
+                ("uncertain", {"presence": {"const": "uncertain"}}),
+                ("required", {"presence": {"enum": ["pass", "reject", "uncertain"]}}),
+            )
+        ]
         from .provider_literals import provider_path
         occurrence_paths = [item["path"] for item in frozen["inventory"] if leaves[item["path"]].strip()
             and (provider_path(frozen["stage"],item["path"],"literal_visible_text") if "providerLiterals" in frozen

@@ -288,3 +288,79 @@ def test_retained_literal_fact_review_keeps_its_original_id_mapping_rule():
     with pytest.raises(ValueError,match='omissions'):bind_literal_review(frozen,review)
     claim['sourceFactId']='old-fact'
     bind_literal_review(frozen,review)
+
+
+@pytest.mark.parametrize('relevance,presence,occurrences,valid', [
+    ('not_relevant', 'not_applicable', False, True),
+    ('not_relevant', 'not_applicable', True, False),
+    ('not_relevant', 'pass', False, False),
+    ('uncertain', 'uncertain', False, True),
+    ('uncertain', 'pass', True, False),
+    ('uncertain', 'not_applicable', False, False),
+    ('required', 'not_applicable', False, False),
+    ('required', 'pass', True, True),
+    ('required', 'reject', False, True),
+])
+def test_discovery_schema_and_binder_agree_on_current_stage_combinations(relevance, presence, occurrences, valid):
+    original = original_request('bridge-intent', locale='en-US')
+    original.source = {'text': 'The cup visibly bears the nonspoken lettering 安.'}
+    candidate = {'lang': 'en', 'entries': [{'id': 'scene:opening',
+        'suggestedText': 'The intent preserves the contrast around 安 without specifying a visible-text channel.'}]}
+    checking = checking_request(original, candidate)
+    result = result_for(checking)
+    fact = discover(checking, result, '安', relevance=relevance, presence=presence,
+        candidate_paths=['$.entries[0].suggestedText'] if occurrences else [])
+    definition = language_result_schema(checking.input_artifacts[CHECK_INPUT])['$defs']['DiscoveredVisibleFact']
+    branch = next(rule for rule in definition['allOf']
+        if rule['if']['properties']['relevance']['const'] == relevance)
+    assert branch['if']['required'] == ['relevance']
+    properties = branch['then']['properties']
+    allowed = properties['presence'].get('enum', [properties['presence'].get('const')])
+    schema_permits = presence in allowed
+    if relevance == 'not_relevant':
+        assert properties['candidateOccurrences']['maxItems'] == 0
+        schema_permits = schema_permits and not fact['candidateOccurrences']
+    assert schema_permits == valid
+    if valid:
+        assert bind_language_result(checking, result).verdict == result['verdict']
+    else:
+        with pytest.raises(ValueError):
+            bind_language_result(checking, result)
+    if relevance == 'not_relevant' and presence == 'not_applicable' and occurrences:
+        with pytest.raises(ValueError, match='stage-irrelevant.*empty candidateOccurrences'):
+            bind_language_result(checking, result)  # The exact malformed native result shape.
+
+
+def test_required_discovery_pass_accepts_mapped_provider_claim_with_empty_occurrences():
+    from plotloom.provider_literals import freeze_provider_context
+    from tests.provider_literal_fixtures import add_fact, claim
+
+    original = original_request('art', locale='en-US')
+    original.source = {'text': 'The cup visibly bears the exact nonspoken lettering Mira.'}
+    freeze_provider_context(original)
+    source_fact = add_fact(original, 'Mira')
+    candidate = {'lang': 'en', 'props': [{'image': {'prompt': 'A cup bearing Mira.'}}]}
+    claim(original, candidate, '$.props[0].image.prompt', 'Mira', fact=source_fact)
+    checking = checking_request(original, candidate)
+    result = result_for(checking)
+    fact = discover(checking, result, 'Mira', relevance='required', presence='pass')
+    assert fact['candidateOccurrences'] == []
+    assert checking.input_artifacts[CHECK_INPUT]['providerLiterals']['claims']
+    schema = language_result_schema(checking.input_artifacts[CHECK_INPUT])
+    definition = schema['$defs']['DiscoveredVisibleFact']
+    assert not definition['properties']['candidateOccurrences'].get('minItems')
+    required = next(rule for rule in definition['allOf'] if rule['if']['properties']['relevance']['const'] == 'required')
+    assert 'candidateOccurrences' not in required['then']['properties']
+    assert bind_language_result(checking, result).verdict == 'pass'
+
+
+def test_checker_primary_instructions_explain_relevance_presence_and_occurrence_ownership():
+    from plotloom.content_language_contract import language_check_instructions
+    original = original_request('bridge-intent', locale='en-US')
+    checking = checking_request(original, {'lang': 'en', 'entries': []})
+    instructions = language_check_instructions(checking.input_artifacts[CHECK_INPUT])
+    assert 'relevance=not_relevant requires presence=not_applicable AND candidateOccurrences=[] exactly' in instructions
+    assert 'incidental mentions' in instructions and 'do not erase source intent' in instructions
+    assert 'relevance=uncertain requires presence=uncertain' in instructions
+    assert 'relevance=required cannot use presence=not_applicable' in instructions
+    assert 'exact candidateOccurrences OR exact mapped providerLiterals claims' in instructions

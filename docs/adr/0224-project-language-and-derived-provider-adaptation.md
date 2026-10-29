@@ -234,3 +234,15 @@ new early-reference discovery so it cannot itself violate rebuild quiescence.
 Keep the frozen early-reference allowance and ordinary initial-launch behavior;
 normal image discovery resumes after the fresh installation. This changes ordering,
 not generation authority or the dependent-material refusal.
+
+The language-check response schema and primary instructions must express the
+existing visible-literal binder combinations: `not_relevant` means
+`not_applicable` presence with no candidate occurrences, `uncertain` relevance
+requires uncertain presence, and required facts cannot claim not-applicable
+presence. Incidental wording is not permission to attach occurrences to an
+irrelevant fact. Preserve source-intent discovery independently of current-stage
+relevance. Required/pass proof still accepts exact candidate occurrences or
+matching registered provider claims as the binder already allows. Do not add a
+stricter occurrence-only rule, normalize malformed outputs or weaken the binder.
+Retained failed native checks remain failed; changed preparation uses new frozen
+identity and supported current authority.

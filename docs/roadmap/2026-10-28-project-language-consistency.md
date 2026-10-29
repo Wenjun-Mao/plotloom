@@ -5,8 +5,10 @@ Status: finalized and explicitly authorized for end-to-end implementation on
 at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate
 C's full local run failed78Python cases. The scoped fixture, native lifecycle,
 capacity and authored-composition bridge repairs have independent review closure
-and exact integration. The next checkpoint is the committed source's real English
-text-only Continue, then Chinese. Full final qualification, activation and
+and exact integration. D4's real English Continue then hit two checker metadata
+failures; the strict schema/instruction follow-up is reviewed and integrated.
+Next prove the original Chinese Continue under the new pin, then regenerate a
+compatible English replacement fixture. Full final qualification, activation and
 image/H3/media acceptance remain open.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
@@ -834,3 +836,37 @@ normal LOCAL releases as part of qualified activation, preserving their UNKNOWN
 evidence. This avoids qualifying an intermediate candidate before its required
 bundle-bound authority exists. It changes no scope, budget, provider or acceptance
 requirement; source repairs invalidate only affected evidence as documented.
+
+### D4 real checker failure and compatible fixture — 2026-10-29
+
+Root committed the reviewed77-file checkpoint asd4cb63f8. Quick passed13.343s;
+the exact source-identity case passed3.99s. The original English home's supported
+Continue inherited exact7raw operations and produced a new native intent candidate.
+Its independent checker and one configured retry both failed trusted validation:
+they labeled lettering not_relevant/not_applicable while attaching nonempty
+incidental occurrences. This is a contradictory metadata combination, not missing
+author text or a semantic rejection. Both failed attempts remain failed. After
+two failures, root stopped and diagnosed the exact frozen packages offline.
+
+The prospective schema/instruction repair expresses the existing binder relation;
+it does not weaken validation, rewrite outputs or increase retry allowance.
+Independent review closed its3-file delta, with33discovery and55affected contract
+cases passing. An unrelated exploratory system-python3/Xcode error is retained;
+it did not cause the checked-Python binder failure and no infrastructure repair is
+needed for this journey.
+
+The successful but unadopted intent primary cannot be silently upgraded to a new
+source pin. Independent lifecycle review found no supported reject/withdraw route
+that would make it eligible for automatic Continue. Root cancelled only this new
+English child underD4, preserving the completed primary, two failed checks, raw
+work, original parent and canonical heads. Do not add discard/replay machinery or
+fake a primary failure to rescue this disposable fixture. Use the still-compatible
+original Chinese parent's7-operation Continue first under the repaired committed
+source. Then create one replacement ORIGINAL disposable English project from the
+same approved Brief through ordinary creation and regenerate its8native stages;
+copy no canon, database rows, grants or prior native proof. Record its exact ID
+before dispatch and use it with the Chinese home for the two eventual exact media
+QA grants. The old English home remains retained failure/preservation evidence.
+This fixture replacement changes no product outcome, story source, provider,
+budget default or acceptance requirement. Both real corrected text installations
+remain prerequisites for images; all final qualification/activation work stays open.

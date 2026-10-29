@@ -100,10 +100,13 @@ def bind_discovery(frozen, discovery, literal_review):
                     raise ValueError('discovered lettering has an invented role or unsupported candidate channel')
             raw = fact.model_dump(mode='json', by_alias=True)
             mapped = [claim for claim in (packet or {}).get('claims', []) if fact_matches(claim, raw)]
-            if ((fact.relevance == 'not_relevant') != (fact.presence == 'not_applicable')
-                    or fact.relevance == 'not_relevant' and fact.candidate_occurrences
-                    or fact.relevance == 'uncertain' and fact.presence != 'uncertain'
-                    or fact.relevance == 'required' and fact.presence == 'pass'
+            if fact.relevance == 'not_relevant' and (fact.presence != 'not_applicable' or fact.candidate_occurrences):
+                raise ValueError('stage-irrelevant discovered lettering requires presence=not_applicable and empty candidateOccurrences')
+            if fact.presence == 'not_applicable' and fact.relevance != 'not_relevant':
+                raise ValueError('not_applicable discovered lettering presence requires relevance=not_relevant')
+            if fact.relevance == 'uncertain' and fact.presence != 'uncertain':
+                raise ValueError('uncertain discovered lettering relevance requires presence=uncertain')
+            if (fact.relevance == 'required' and fact.presence == 'pass'
                     and not (fact.candidate_occurrences or mapped)):
                 raise ValueError('required discovered lettering omission cannot pass')
             if fact.intent == 'pass':
@@ -128,7 +131,14 @@ def discovery_instructions():
         'and writer flags never establish or erase intent. Each visible_literal decision enumerates typed facts: '
         'literal_visible_text role, exact sourceSpan/sourceFieldHash, independent intent pass/reject/uncertain, '
         'current-stage relevance required/not_relevant/uncertain, presence pass/reject/uncertain/not_applicable '
-        'and exact candidateOccurrences with span/fieldHash where present. For provider stages those occurrences '
+        'and exact candidateOccurrences with span/fieldHash where present. '
+        'relevance=not_relevant requires presence=not_applicable AND candidateOccurrences=[] exactly: '
+        'incidental mentions in narrative intent, explanations or names are not current-stage lettering occurrences. '
+        'Keep the discovered source-intent fact and explain its stage irrelevance; do not erase source intent. '
+        'relevance=uncertain requires presence=uncertain. relevance=required cannot use presence=not_applicable. '
+        'A required/pass fact needs exact candidateOccurrences OR exact mapped providerLiterals claims; '
+        'candidateOccurrences may be empty when those mapped claims supply the same source fact. '
+        'For provider stages those occurrences '
         'must be registered visible provider channels; speech and voice-design fields are not visible text. '
         'A required omitted, translated, altered or negated literal must reject, even with all-English instructions '
         'and no writer claims. no_visible_literal is an explicit semantic judgment against that entire source '
