@@ -33,6 +33,14 @@ grants now freeze the actual complete original bundles, as approved; runtime
 binding, material handoff and the first real H3 opening clip are next. No source
 text rewrite, new project, provider fallback, CI or activation occurred.
 
+The real Chinese review UI then exposed an authority bug: autosaved optional
+review notes changed material closure and withdrew the exact QA grant before
+confirmation. The narrow ADR0224 observation-buffer repair is independently
+reviewed and focused-qualified; notes stay recoverable, source/direction edits
+stay fenced, and no grant or retained receipt is rewritten. Original Chinese
+state remains `taken_over`38 after the retained failure; fresh supported material
+handoff is allowed after rereading. No H3 submission has yet occurred.
+
 Status: finalized and explicitly authorized for end-to-end implementation on
 2026-10-28. Both languages completed all eight native text stages and installation
 at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate

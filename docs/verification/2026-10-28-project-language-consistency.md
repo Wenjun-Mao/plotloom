@@ -1,5 +1,23 @@
 # Project-language implementation evidence
 
+Live review-note checkpoint: at87e25dbd both exact scopes were bound only to their
+original runtime homes. The Chinese material-review dialog loaded all references,
+three frames and explicit agent-QA opt-in;1700px capture was inspected. Saving its
+optional note inserted a recoverable `material_review` buffer, incorrectly changed
+the run to `taken_over` and invalidated QA before submission. The first confirm
+click found a remounted stale UI reference; fresh backend read proved no handoff
+and no H3 submission. That failure and the exact original note remain retained.
+
+The narrow observation-buffer closure repair passed44focused cases45.90s, then
+10final cases40.29s explicitly covering note save/discard both before and after
+handoff plus source/direction/unknown-buffer refusal. Quick passed14.110s; scoped
+Ruff/diff passed. Independent High review closed. Original-home read-only proof
+restores exactly bundle9ae030d7 and QA eligibility while preserving its saved
+draft revision1 and `taken_over` revision38; no state reset, grant rewrite or
+provider call. Normal-home inspection/authority stays14/14 with zero new
+regressions. Next use fresh UI state and the supported handoff, then one real
+eight-second H3 opening. Video and final release qualification remain open.
+
 Current bilingual material checkpoint: both complete native review bundles are
 retained and pixel-inspected. English ca8bebe5 completed three image attempts
 without failure at08f77d0f; the table pilot kept exact original shot, composition,

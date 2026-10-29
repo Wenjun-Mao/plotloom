@@ -95,6 +95,10 @@ def _material_payload(session, project_id, tables):
                    for key, value in zip(keys, row, strict=True)} for row in rows]
         encoded = []
         for value in values:
+            if name == "v2_authoring_drafts":
+                from ...review_drafts import is_observation_notes_draft
+                if is_observation_notes_draft(value):
+                    continue
             data = _json_text(value).encode("utf-8")
             encoded.append((sha256(data).hexdigest(), data))
         # Sort by digest alone: equal digests retain the database's row order.

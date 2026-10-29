@@ -53,6 +53,18 @@ unique clips and both routes per language. Lettering, motion, audio and route jo
 remain actual downstream acceptance criteria; material generation alone is not a
 pass for them.
 
+### Unsubmitted audiovisual review notes — 2026-10-29
+
+The real material-review UI saved its optional comment as a recoverable buffer;
+including that row in material authority took over the run, remounted the dialog
+and invalidated the exact QA bundle before confirmation. Correctly identified
+`material_review`, `video_pack_notes` and `video_segment_notes` buffers are
+unsubmitted observations, so they do not participate in material closure. They
+remain persisted, CAS-protected and recoverable. Final confirmation still binds
+the exact current bundle/review and explicit actor. Source, direction, intent and
+other drafts retain existing takeover/currentness effects; unknown or mislabeled
+buffers are not excluded. No material, grant or retained receipt is rewritten.
+
 Status: accepted by the owner, 2026-10-28; implementation in progress under the
 [authorized language plan](../roadmap/2026-10-28-project-language-consistency.md).
 

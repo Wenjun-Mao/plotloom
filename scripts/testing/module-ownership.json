@@ -64,6 +64,7 @@
           "tests/test_autopilot_handoff.py",
           "tests/test_bulk_material_handoff.py",
           "tests/test_native_material_qa.py",
+          "tests/test_review_notes_authority.py",
           "tests/test_workflow_timing.py",
           "tests/test_bulk_material_realistic_pack.py",
           "tests/test_autopilot_handoff_seed.py",

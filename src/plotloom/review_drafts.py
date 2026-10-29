@@ -10,6 +10,18 @@ from plotloom.domain_base import CamelModel
 from plotloom.public_values import contains_secret_setting, contains_secret_value
 
 
+def is_observation_notes_draft(row):
+    """Unsubmitted final-review notes are scratch, never material authority."""
+    payload = row.get("payload")
+    if row.get("editor_scope") != "review_buffer" or not isinstance(payload, dict):
+        return False
+    editor, target = payload.get("editor"), payload.get("targetId", "")
+    if editor not in {"material_review", "video_pack_notes", "video_segment_notes"} or not isinstance(target, str):
+        return False
+    entity = f"{editor}:{target}" if target else editor
+    return row.get("entity_id") == entity
+
+
 class ReviewBufferPayload(CamelModel):
     editor: Literal["source", "cast", "art", "script", "production_intent", "production_presentation", "shot_presentation", "character_reference", "art_reference", "same_person", "cast_settings", "art_settings", "managed_reference", "keyframe_compatibility", "material_review", "text_retry", "video_directions", "take_rejection", "h3_directions", "video_pack_notes", "video_segment_notes", "brief_custom"]
     target_id: str = Field(default="", max_length=160)
