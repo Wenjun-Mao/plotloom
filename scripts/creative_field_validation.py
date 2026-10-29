@@ -21,9 +21,12 @@ def main():
     raw = args.candidate.read_bytes()
     candidate = json.loads(raw)
     request = creative_handoff_request_from_package(json.loads(args.request.read_bytes()))
-    if request.stage != "characters" or request.content_validation_contract != "plotloom.typed-content-result.v1":
-        raise ValueError("primary ownership validation requires the marked typed Cast request")
+    if request.stage not in {"characters", "storyboard"} or request.content_validation_contract != "plotloom.typed-content-result.v1":
+        raise ValueError("primary ownership validation requires a marked typed Cast or Storyboard request")
     assert_ownership_artifact(request)  # Frozen input failures never become correction authority.
+    from plotloom.provider_literals import LITERAL_INPUT, validate_context
+    if LITERAL_INPUT in request.input_artifacts:
+        validate_context(request)
     try:
         creative_field_roles(candidate, request)
     except CreativeFieldError as error:
@@ -31,7 +34,7 @@ def main():
             "issues": [{"code": "candidate_content_invalid", "fieldPaths": ["$"], "repairFacts": {}}],
             "displayDiagnostics": [str(error)]}))
         return 42
-    script = Path(__file__).with_name("text-content-validation.mjs")
+    script = Path(__file__).with_name("storyboard-content-validation.mjs" if request.stage == "storyboard" else "text-content-validation.mjs")
     return subprocess.run([args.node, str(script), str(args.candidate), str(args.request)], check=False).returncode
 
 

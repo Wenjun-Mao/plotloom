@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext } from './provider-literal-context.mjs';
 /** Plotloom's explicit art preset extension; pinned fork structure/gates stay intact. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -28,8 +29,8 @@ export function styleContract(style, authorDirection) {
   };
 }
 
-export function validateStyledArt(art, cast, contract) {
-  const problems = validateArt(art, { cast });
+export function validateStyledArt(art, cast, contract, literalContext = {}) {
+  const problems = validateArt(art, { cast, ...literalContext });
   const expected = styleContract(contract.style, contract.authorDirection);
   if (contract.version !== expected.version || contract.adapterHash !== expected.adapterHash
       || !isDeepStrictEqual(contract.preset, expected.preset)) problems.push('art style contract is stale; prepare a new task');
@@ -63,10 +64,11 @@ function main(args) {
   }
   if (!['validate', 'render'].includes(command) || !path) throw new Error('Use validate|render art.json --cast cast.json --contract art-style-contract.json [--html|--md]');
   const art = read(path), cast = read(flag('--cast')), contract = read(flag('--contract'));
-  const problems = validateStyledArt(art, cast, contract);
+  const context = {cast, ...providerContext(args.includes('--request') ? read(flag('--request')) : null)};
+  const problems = validateStyledArt(art, cast, contract, context);
   if (problems.length) throw new Error(problems.join('\n'));
   if (command === 'validate') process.stdout.write(`Valid art (${contract.preset.label})\n`);
-  else process.stdout.write(args.includes('--md') ? renderMarkdown(art, { cast, lang: 'zh' }) : renderHtml(art, { cast, lang: 'zh' }));
+  else process.stdout.write(args.includes('--md') ? renderMarkdown(art, { ...context, lang: art.lang ?? 'zh' }) : renderHtml(art, { ...context, lang: art.lang ?? 'zh' }));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

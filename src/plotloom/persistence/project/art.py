@@ -63,6 +63,9 @@ class ProjectArtPersistence:
         accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == cast_head.revision)) if cast_head.revision else None
         if cast_head.status != "accepted" or accepted is None or self._cast._stale_against(session, project_id, base, CastBinding.model_validate(accepted.binding)):
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_cast_not_current", owner="characters", technical_message="a current accepted cast is required before preparing art"))
+        from .selected_media_policy import selected_playback_read
+        if selected_playback_read(project_id):
+            base = base.model_copy(update={"language_contract":CastBinding.model_validate(accepted.binding).language_contract})
         binding = ArtBinding(**base.model_dump(), cast_revision=accepted.revision, cast_content_hash=accepted.content_hash)
         return binding, source, outline, mapping, accepted.cast
 
@@ -82,9 +85,11 @@ class ProjectArtPersistence:
             ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"),
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
-        reasons = binding_diagnostics(current, binding, fields + (("language_contract", "project language"),))
+        from .selected_media_policy import selected_playback_read, retained_style_matches
+        retained = selected_playback_read(project_id)
+        reasons = binding_diagnostics(current, binding, fields + (() if retained else (("language_contract", "project language"),)))
         direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
-        if not art_style_current(binding.render_contract, direction):
+        if not (retained_style_matches(binding.render_contract, direction) if retained else art_style_current(binding.render_contract, direction)):
             reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="art render contract is not current; prepare a new art task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
@@ -159,6 +164,8 @@ class ProjectArtPersistence:
                 ),
             )
             freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
+            from ...provider_literal_preparation import prepare_provider_literals
+            prepare_provider_literals(session, request)
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -186,7 +193,7 @@ class ProjectArtPersistence:
                 raise CreativeHandoffError("delivery_stale", "art candidate context is stale")
             cast = self._context(session, project_id)[4]
             assert_candidate_report_language(delivery.candidate, request.input_artifacts)
-            _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding))
+            _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding), row.request)
             row.status, row.delivery_id, row.manifest_hash, row.art, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
                 head.status, head.updated_at = "candidate_ready", row.delivered_at
@@ -209,7 +216,7 @@ class ProjectArtPersistence:
             art = request.art or row.art
             from ...content_language_persistence import require_language_pass
             require_language_pass(session, CreativeHandoffRequest.model_validate(row.request), art)
-            _validate_art(art, self._context(session, project_id)[4], binding)
+            _validate_art(art, self._context(session, project_id)[4], binding, row.request)
             if _art_ids(art) != _art_ids(row.art):
                 raise ValueError("accepted art cannot change frozen scene or prop IDs")
             now = utc_now()
@@ -251,7 +258,9 @@ class ProjectArtPersistence:
             binding = ArtBinding.model_validate(previous.binding)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted art context changed before saving edits")
-            _validate_art(request.art, self._context(session, project_id)[4], binding)
+            source_candidate = session.get(ArtCandidateRow, previous.candidate_job_id)
+            source_request = source_candidate.request if source_candidate is not None else None
+            _validate_art(request.art, self._context(session, project_id)[4], binding, source_request)
             if _art_ids(request.art) != _art_ids(previous.art):
                 raise ValueError("reopened art cannot change stable scene or prop IDs")
             now = utc_now()
@@ -315,13 +324,13 @@ def _art_ids(art: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
 
 
 def _validate_art(
-    art: dict[str, Any], cast: dict[str, Any], binding: ArtBinding
+    art: dict[str, Any], cast: dict[str, Any], binding: ArtBinding, request: dict | None = None
 ) -> None:
     assert_bound_report_language(art, binding)
     if contains_secret_setting(art) or contains_secret_value(art):
         raise ValueError("art must not contain credentials")
     scene_ids, prop_ids = _art_ids(art)
-    validate_art_style(art, cast, binding.render_contract)
+    validate_art_style(art, cast, binding.render_contract, request)
     _validate_section_usage(art, scene_ids, prop_ids, binding.section_ids)
 
 

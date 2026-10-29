@@ -98,6 +98,9 @@ def main(argv=None):
     )
     from plotloom.creative_handoff_contracts import creative_handoff_request_from_package
     original = creative_handoff_request_from_package(_json(request.read_bytes()))
+    from plotloom.provider_literals import LITERAL_INPUT, validate_context
+    if LITERAL_INPUT in original.input_artifacts:
+        validate_context(original)
     if OWNERSHIP_FILENAME in original.input_artifacts:
         assert_ownership_artifact(original)
     if not diagnostics:

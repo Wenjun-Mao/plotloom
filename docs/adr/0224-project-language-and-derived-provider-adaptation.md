@@ -32,6 +32,18 @@ rules. Additive optional rule fields preserve recorded omission on serialization
 Known fixed original package plans remain inspectable without executing recorded
 argv, admitting historical work or granting replay authority. New preparation,
 checking and publication still require current contracts.
+Existing selected playback also validates its original frozen installation,
+selection and source-data integrity without reinterpreting them through newer
+validator files, language artifacts or timing rules. Code-only rule changes do
+not withdraw already ingested, selected media whose underlying story/assets and
+recorded authority are unchanged. Actual source edits, changed selections, stale
+material/approval and integrity failures still withdraw eligibility. This is a
+passive use of existing media, not historical compilation, generation, replay or
+a compatibility execution path; new generation retains current admission rules.
+Public generation currentness remains strict. Existing selected-media/segment
+eligibility is the playback fact; player consumers must not require generation
+currentness as well. Submission, retry, editing and reselection keep their current
+admission requirements.
 
 All eight generated text stages also receive a bounded content-language review
 before adoption. A separate native invocation uses the original creative stage
@@ -92,6 +104,40 @@ quotations with verified spans; they never exempt surrounding prose or become
 invented proper names. New notes should use readable project-language terms rather
 than unnecessary implementation jargon. Existing source/candidate hashes, exact
 Unicode validation, independent semantic checking and correction provenance remain.
+
+Real Art generation demonstrated that an English-only provider gate must preserve
+explicitly intended foreign visible text. Technical directions remain English;
+exact visible lettering and explicitly supported dialogue retain their source
+bytes and roles. A source-bound provider-literal contract records exact candidate
+and original-source paths, Unicode spans, text and visible/spoken role. Trusted code
+checks binding integrity and applies English/name gates to an ephemeral residual
+projection only; candidate, report and submitted provider bytes remain unchanged.
+Quotation marks alone grant no exemption. Voice-design prompts do not gain dialogue
+or visible-text injection authority; spoken dialogue stays in its existing channel.
+
+The existing checker explicitly inventories original-source visible facts in both
+languages, including same-language lettering that needs no language exception.
+Passed literal facts/claims propagate through exact upstream artifacts and native
+receipts. Multiple valid witnesses for the same source fact do not create multiple
+physical lettering requirements. No fact is added retroactively to retained results.
+
+Source equality proves provenance, not author intent or completeness. Reuse existing
+independently established literal facts when available, and use the existing distinct
+native checker to verify proposed occurrences, intended nonspoken/foreign role and
+required literal preservation against the original author facts. Provider-technical
+not_applicable coverage cannot silently accept new literal claims or their omission.
+Missing, translated, altered, stale, overlapping or invented bindings and concealed
+foreign instructions refuse. Retained failed/corrected outputs remain original; an
+old language-only pass does not become provider-fidelity evidence. H3's existing typed
+visible-text and dialogue compilation remains the downstream owner, followed by its
+separate fidelity check and actual media inspection.
+
+The primary prompts, schemas, deterministic binders, owned Cast/Art/F5 gates, render
+checkups, receiving validators and checker evidence share this contract. F5's blanket
+exclusion of arbitrary quoted text is retired for new work; only verified literal
+spans and exact Script-owned dialogue may bypass the English residual gate. Optional
+Art saved-Brief styleAuthority uses the same exact four-field owner as Cast; it is
+never free authored metadata. Existing Art sectionUsage ownership remains intact.
 
 A genuine semantic rejection is a successful checking invocation, not a forged
 failure of the original drafting attempt. Existing typed correction lineage

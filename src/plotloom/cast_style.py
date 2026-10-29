@@ -62,6 +62,9 @@ def validate_cast_style(cast: dict[str, Any], contract: dict[str, Any] | None, r
     if request is not None:
         from .language_policy import assert_candidate_report_language
         assert_candidate_report_language(cast, request.get("inputArtifacts", {}))
+        from .creative_handoff_contracts import CreativeHandoffRequest
+        from .provider_literals import bind_provider_literals
+        bind_provider_literals(CreativeHandoffRequest.model_validate(request), cast)
     if not contract:
         raise ValueError("character render contract is missing; prepare a new task")
     if contract.get("authority") == "saved_brief":

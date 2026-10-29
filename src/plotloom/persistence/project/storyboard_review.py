@@ -115,6 +115,11 @@ class ProjectStoryboardReviewPersistence:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script context is stale"))
         if current != inherited:
             raise ReviewContextError(ReviewContextDiagnostic(code="accepted_script_not_current", owner="script", technical_message="the accepted F4 script binding is stale"))
+        from .selected_media_policy import selected_dialogue_timing
+        language = self._access.rows.project(session, project_id).brief["language"]
+        timing = selected_dialogue_timing(session, project_id, script.script, script.content_hash, language)
+        if timing is None:
+            timing = freeze_f5_dialogue_timing(script.script, script_content_hash=script.content_hash, language=language)
         binding = StoryboardReviewBinding(
             **inherited.model_dump(mode="python"),
             script_revision=script.revision,
@@ -122,10 +127,7 @@ class ProjectStoryboardReviewPersistence:
             review_min_cut_seconds=2,
             review_max_cut_seconds=max_cut_seconds,
             review_max_segment_seconds=15,
-            dialogue_timing_contract=freeze_f5_dialogue_timing(
-                script.script, script_content_hash=script.content_hash,
-                language=self._access.rows.project(session, project_id).brief["language"],
-            ),
+            dialogue_timing_contract=timing,
         )
         return _ResolvedStoryboardContext(
             context=(binding, script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art),
@@ -144,6 +146,22 @@ class ProjectStoryboardReviewPersistence:
             "review_max_cut_seconds": binding.review_max_cut_seconds,
             "storyboard_render_contract": None,
         })
+        from .selected_media_policy import selected_playback_read, retained_timing_matches
+        if selected_playback_read():
+            frozen = binding.dialogue_timing_contract
+            if not retained_timing_matches(frozen, inputs[0], current.script_content_hash, current.dialogue_timing_contract.language):
+                raise ReviewContextError(ReviewContextDiagnostic(code="binding_value_changed", owner="storyboard-review", technical_message="recorded dialogue timing differs from actual source"))
+            contract = binding.storyboard_render_contract
+            if contract is not None:
+                from ...codex_exec_retained_storyboard import _assert_frozen_style
+                try:
+                    _assert_frozen_style(contract)
+                except ValueError as error:
+                    raise ReviewContextError(ReviewContextDiagnostic(code="binding_value_changed", owner="storyboard-review", technical_message="recorded render authority integrity differs")) from error
+                if contract["inheritedArtRenderContract"] != current.render_contract:
+                    raise ReviewContextError(ReviewContextDiagnostic(code="binding_value_changed", owner="storyboard-review", technical_message="recorded Art authority differs from source"))
+            current = current.model_copy(update={"dialogue_timing_contract":frozen,"storyboard_render_contract":contract})
+            return current, *inputs
         if binding.storyboard_render_contract is not None:
             try:
                 contract = freeze_storyboard_brief_style(current.render_contract)
@@ -232,6 +250,8 @@ class ProjectStoryboardReviewPersistence:
                 receiving += " Run the pinned novel-storyboard gates through the Plotloom receiving adapter. From the repository root, run node scripts/storyboard-receiving.mjs validate <absolute-delivery/storyboard.json> --request <absolute-package/request.json>, then the same command with render redirected to report.html."
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", content_validation_contract="plotloom.typed-content-result.v1", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts=artifacts, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support." + receiving)
             freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
+            from ...provider_literal_preparation import prepare_provider_literals
+            prepare_provider_literals(session, request)
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now

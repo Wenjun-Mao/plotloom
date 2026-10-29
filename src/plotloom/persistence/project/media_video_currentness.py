@@ -90,6 +90,14 @@ class VideoJobCurrentness:
         return (self.video_job_input_status_in_session(session, row) == "current"
                 and self._identity_review_authorizes_in_session(session, row))
 
+    def selected_video_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        """Passive eligibility for an ingested selection; generation stays current-only."""
+        if row.state != "ingested" or not row.output_hash or not row.output_uri:
+            return False
+        from .selected_media_policy import selected_playback_policy
+        with selected_playback_policy(row.project_id):
+            return self.video_job_current_in_session(session, row)
+
     def _identity_review_authorizes_in_session(self, session: Session, row: VideoJobRow) -> bool:
         review_id = row.snapshot.get("samePersonReviewId")
         if review_id is None:
@@ -118,7 +126,10 @@ class VideoJobCurrentness:
         if "languageContract" in snapshot:
             from ...language_policy import language_contract
             project = self._access.rows.project(session, row.project_id)
-            if snapshot["languageContract"] != language_contract(project.brief["language"]):
+            from .selected_media_policy import selected_playback_read
+            matches = (snapshot["languageContract"].get("contentLocale") == project.brief["language"]
+                if selected_playback_read(row.project_id) else snapshot["languageContract"] == language_contract(project.brief["language"]))
+            if not matches:
                 return False
         frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
         if not isinstance(frozen_shot, dict) or not isinstance(frozen_shot.get("id"), str) or not self.presentations.matches(

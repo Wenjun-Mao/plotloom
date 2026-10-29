@@ -69,7 +69,7 @@ class ContentLanguageService:
                         **({"manualCommandId":str(manual_command_id)} if manual_command_id else {})} if retry_parent else {})},
             input_artifacts={CHECK_INPUT: frozen, LANGUAGE_CONTRACT_FILENAME: frozen["languageContract"],
                              "content-language-schema.json": language_result_schema(frozen)},
-            creative_brief=language_check_instructions())
+            creative_brief=language_check_instructions(frozen))
         request.assert_secret_free()
         projected, instructions, _template, _members = project_creative_package(
             creative_job_root(exchange.root, request.job_id), request, pin,

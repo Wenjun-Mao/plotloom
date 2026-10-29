@@ -146,7 +146,7 @@ def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revis
 
         expected = retained_outline_package_projection(request, execution_pin, source_revision=source_revision)
         return CodexExecTextValidationPlan.model_validate(expected["validationPlan"])
-    if request.stage == "storyboard" and "storyboard-style-contract.json" in request.input_artifacts:
+    if request.stage == "storyboard" and not is_language_check(request):
         from ...codex_exec_retained_storyboard import retained_storyboard_package_projection
 
         expected = retained_storyboard_package_projection(request, execution_pin, source_revision=source_revision)

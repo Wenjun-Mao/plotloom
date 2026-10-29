@@ -69,13 +69,15 @@ def retained_storyboard_package_projection(request, execution_pin, *, source_rev
     if TIMING_FILENAME not in request.input_artifacts:
         raise ValueError("retained Storyboard requires frozen dialogue timing")
     FrozenF5DialogueTiming.model_validate(request.input_artifacts[TIMING_FILENAME])
-    _assert_frozen_style(request.input_artifacts.get(_STYLE))
+    saved = _STYLE in request.input_artifacts
+    if saved:
+        _assert_frozen_style(request.input_artifacts[_STYLE])
     pin = execution_pin_for_request(request, execution_pin)
     original_hash = request_hash(request)
-    script = "{source}/scripts/brief-storyboard-style.mjs"
+    script = "{source}/scripts/brief-storyboard-style.mjs" if saved else "{source}/scripts/storyboard-receiving.mjs"
     arguments = ["{candidate}", "--request", "{package}/request.json"]
     plan = {
-        "schemaVersion": 1, "stage": "storyboard", "route": "saved_brief",
+        "schemaVersion": 1, "stage": "storyboard", "route": "saved_brief" if saved else "upstream",
         "requestHash": original_hash, "sourceRevision": source_revision,
         "executionPinHash": _digest(pin), "candidateFilename": "storyboard.json",
         "reportFilename": "report.html",
@@ -87,6 +89,9 @@ def retained_storyboard_package_projection(request, execution_pin, *, source_rev
     if request.content_validation_contract is not None:
         plan["steps"][0]["argv"] = [
             "{source}/scripts/storyboard-content-validation.mjs", "{candidate}", "{package}/request.json"]
+    if "provider-literal-contract.json" in request.input_artifacts:
+        plan["steps"][0] = {"stepId":"validate","program":"uv","argv":["run","--project","{source}","--locked","--no-sync","python",
+            "{source}/scripts/creative_field_validation.py","{candidate}","--request","{package}/request.json","--node","{tool:node}"],"stdoutIsReport":False}
     parsed = CodexExecTextValidationPlan.model_validate(plan)
     return request.model_dump(mode="json", by_alias=True) | {
         "packageVersion": 4, "requestHash": original_hash,

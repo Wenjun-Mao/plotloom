@@ -104,7 +104,7 @@ def creative_field_roles(candidate, request):
                             raise CreativeFieldError(prefix + ".present", "use a strict boolean; route-only sections have no filmed presence")
                         if not isinstance(item["context"], str):
                             raise CreativeFieldError(prefix + ".context", "context must be authored project-language prose")
-        if request.stage == "characters" and "styleAuthority" in candidate:
+        if "styleAuthority" in candidate:
             value, expected = candidate["styleAuthority"], _authority(request)
             if expected is None or not isinstance(value, dict) or set(value) != set(expected):
                 raise CreativeFieldError("$.styleAuthority", "omit or copy exactly the four saved-Brief authority fields")
@@ -124,6 +124,14 @@ def creative_field_roles(candidate, request):
                 for fl, flow in enumerate(scene.get("flow", [])):
                     if isinstance(flow.get("delivery"), str) and flow["delivery"] in selectors:
                         roles[f"$.episodes[{ep}].scenes[{sc}].flow[{fl}].delivery"] = {"role": "stable_identity"}
+    from .provider_literals import bind_provider_literals
+    try:
+        claims = bind_provider_literals(request, candidate)
+    except ValueError as error:
+        raise CreativeFieldError("$.providerLiterals", str(error)) from error
+    for index, claim in enumerate(claims):
+        for path,_text in string_leaves(claim, f"$.providerLiterals[{index}]"):
+            roles[path] = {"role": "stable_identity"}
     return roles
 
 
@@ -137,9 +145,9 @@ def ownership_artifact(request):
         if marker is not None:
             subject["required"] = ["image"]
             subject["properties"]["image"] |= {"required": ["style"], "properties": {"style": {"const": marker}}}
+        authority = _authority(request)
+        schema["properties"]["styleAuthority"] = ({"const": authority} if authority is not None else False)
         if request.stage == "characters":
-            authority = _authority(request)
-            schema["properties"]["styleAuthority"] = ({"const": authority} if authority is not None else False)
             sections = _sections(request)
             subject["properties"]["sectionPresence"] = {"type": "array", "minItems": len(sections),
                 "maxItems": len(sections), "prefixItems": [{"type": "object", "additionalProperties": False,
@@ -166,7 +174,7 @@ def freeze_field_ownership(request):
         "or copy only their exact registered fields and frozen values, without translation. Cast image.style "
         "is the exact saved-Brief marker or preset.label; saved-Brief Art scene AND prop image.style is the "
         "exact Saved Brief direction marker. Preset Art image.style remains readable prose if supplied. "
-        "Cast styleAuthority may contain only the four exact saved-Brief fields; direction is the original "
+        "Cast/Art styleAuthority may contain only the four exact saved-Brief fields; direction is the original "
         "author quotation. Optional sectionPresence must cover all section-map sections in source order: "
         "copy sectionId/footageMode, author strict boolean present (false for route_only), and project-language "
         "context. Omit all subject/image sheetImage locators: images belong to the later app-owned phase. "

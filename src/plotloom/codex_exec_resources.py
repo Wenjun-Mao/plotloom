@@ -302,6 +302,10 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
                    and OWNERSHIP_FILENAME in package_request.get("inputArtifacts", {}))
     if marked_cast:
         plan = replace(plan, python_project=True)
+    marked_storyboard_literals = (stage == "storyboard" and not checking_language
+        and "provider-literal-contract.json" in package_request.get("inputArtifacts", {}))
+    if marked_storyboard_literals:
+        plan = replace(plan, python_project=True)
     marked_art = False
     if stage == "art" and not checking_language:
         from .art_structure import marked_art_structure
@@ -310,6 +314,8 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             plan = replace(plan, python_project=True)
     validator_paths = saved_brief_route.source_paths if saved_brief_route else plan.validator_paths
     relative_paths = [plan.upstream_read_path, *validator_paths]
+    if stage in {"characters", "art", "storyboard"} and not checking_language:
+        relative_paths.append("scripts/provider-literal-context.mjs")
     if stage in {"outline", "characters", "art"} and package_request.get("contentValidationContract") is not None:
         relative_paths.append("scripts/text-content-validation.mjs")
     if stage == "script" and package_request.get("contentValidationContract") is not None:
@@ -320,7 +326,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             relative_paths.append("scripts/storyboard-content-validation.mjs")
         if saved_brief_route is None:
             relative_paths.append("scripts/storyboard-receiving.mjs")
-    if marked_cast:
+    if marked_cast or marked_storyboard_literals:
         relative_paths.append("scripts/creative_field_validation.py")
     if marked_art:
         relative_paths.append("scripts/art_content_validation.py")
@@ -337,7 +343,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         _source_parent, source_hash = python_source_identity(root)
         relative_paths.extend(("src", "pyproject.toml", "uv.lock"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
-    tools = _required_tool_paths(plan, environment, include_node=planned_script or marked_art or marked_outline or marked_cast)
+    tools = _required_tool_paths(plan, environment, include_node=planned_script or marked_art or marked_outline or marked_cast or marked_storyboard_literals)
     for name, executable in tools:
         if name == "uv":
             paths.append(executable)

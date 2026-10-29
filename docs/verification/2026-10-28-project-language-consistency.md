@@ -1,15 +1,20 @@
 # Project-language implementation evidence
 
-Status: **in progress**, 2026-10-28. Both languages completed real native
-Outline/check/adoption/reopen and desktop report inspection at `32004ecd`.
-Both subsequent Branches creations delivered, but their checking attempts exhausted
-one automatic retry on a response-coordinate defect. No all-eight installation,
-full local gate, exact-wheel qualification, activation, old-slot application or
-image/H3/media acceptance has occurred. Hosted CI is not requested/not run and is not a
-release blocker. The [approved plan](../roadmap/2026-10-28-project-language-consistency.md)
-owns scope. [ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md)
-owns language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
-owns the latest approved retry/local-capacity policy.
+Status: **in progress**, updated 2026-10-29. The latest real English fixture at
+`0fd56878` passed and adopted Outline, Branches and Cast (3/8). Art's first draft
+preserved required 安 but failed an English-only provider gate; its single correction
+removed 安 and remains delivered, unadopted. Latest Chinese fixture has Outline
+adopted and Branches delivered, unadopted. Both runs are paused and their native
+process groups/validators are absent; the isolated runtime is stopped. The reviewed
+literal/playback candidate and test-only fixtures await the atomic checkpoint.
+No all-eight installation, full local gate, exact-wheel qualification, activation,
+old-slot application or image/H3/media acceptance has occurred. Hosted CI is not
+requested/not run and is not a release blocker. Earlier sections retain historical
+checkpoints and failures; later reassessments own the latest state. The
+[approved plan](../roadmap/2026-10-28-project-language-consistency.md) owns scope.
+[ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md) owns
+language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
+owns the approved retry/local-capacity policy.
 
 ## Source and ownership
 
@@ -20,7 +25,8 @@ QA, qualification, activation and cleanup; Relay reporting to director
 `d2e3c26d`. Coherent implementation checkpoint `708a56b8` follows fork-pin checkpoint
 `965c6d91`; integrated qualification remains pending.
 
-Owned fork: `third_party/shuohao-skills` at local `d905b83e`, following `f3beafdc`.
+Owned fork: `third_party/shuohao-skills` now at local `35fac266`, following the
+retained `d905b83e` and `f3beafdc` checkpoints.
 No push or CI ran. Isolated worker finals were collected before integration;
 exact file manifests and before/after hashes protect coordinator changes. Workers
 never share a writable checkout or own Git/live dispatch. Requested model/effort
@@ -91,7 +97,8 @@ finite grants are unchanged. No aggregate spending cap is invented.
 ## Runtime, speech and preservation envelope
 
 Installed checkout `/Users/wjmao/projects/HU/plotloom` remains clean at reported
-`3f4bdfbf`. Preserve **all 15** current format-11 homes, existing H5 export directory
+`3f4bdfbf`. Preserve **all 16** normal homes (latest read-only inventory), including the two
+preexisting incomplete identities,, existing H5 export directory
 and ZIP, settings, grants/claims and UNKNOWN/cost facts. No V1 runtime paths/data
 were accessed. Current single recovery archive/wheel hashes matched their manifest
 in read-only preflight; fresh preservation checks remain required before activation.
@@ -368,10 +375,159 @@ prefix owner, pausing after Cast adoption. That current run can then resume thro
 all eight stages alongside the new Chinese fixture without rewriting old evidence.
 No native/image/H3 request or installed activation has occurred for this repair.
 
+## First current native Cast pass
+
+Independent static review closed the 32-file repair with no actionable findings;
+all after-hashes and the retained patch hash matched. Local coherent source is
+`0fd5687892813ffc706a787ca77259392be96e95`, profile
+`c421f485b1edb594f90205d48b13e87d208e5f3f1ff7f004d649da61247fe280`.
+Checked Python remains 3.12.13 ARM64 with its original verified environment identity.
+
+Fresh identical English home `ce5e8b3a-23a8-4c65-a2df-7b26862eaad9`, run
+`6dc41a4f-9f9e-45e9-8282-737d567dc9be`, adopted Outline, Branches and Cast, then
+paused under the existing text-prefix owner. Cast `ch_7fcfae9015ab40b9abed3883eeb832ad`
+used actual creation attempt `f9162258-6777-467a-a20b-0b7ce37f0fb4`; independent
+check `ch_3013091049f655d8bc8500531c6826c4`, attempt
+`868ffb28-8656-5d57-a754-7b9e3603e9b5`, passed 56 strings with six source-supported
+exceptions. Creation and checking each used zero retries; no correction was needed.
+The adopted candidate contains the required Saved Brief direction marker, exact
+styleAuthority and all four sectionPresence records with sectionId, footageMode,
+present and context. The route-only record does not invent filmed presence.
+
+API readback and actual browser reopen show accepted Cast r1. The original static
+report was opened and its desktop screenshot inspected: English headings/prose,
+Nora and the intentional visible character 安 remain inside Chinese application
+chrome. This is agent-operated QA evidence, not the owner's personal acceptance.
+Evidence is retained in `en-current-cast-{readback,semantic-check}.json`, the native
+prefix log, paused-run receipt and `en-native-cast-report.png`.
+
+That same unchanged English run resumed through the supported control path.
+Fresh identical Chinese home `673c0804-60db-49d4-8121-1dce56c842ec`, run
+`2d7602bf-abeb-4b43-9c14-e8bd36c26859`, joined one existing text-prefix owner for
+the remaining bilingual all-eight installation. Images remain disabled in this
+prefix. No old frozen run/candidate was rewritten, and the installed normal
+runtime remains unchanged.
+
+## Provider-literal contract conflict
+
+The next English Art creation `ch_fe235769f24a4123872d639f92571f57`, attempt
+`6ae184d5-ca4c-489b-801e-4a2b2155ba01`, received typed primary rejection:
+“质量门未过：出图提示词全部英文（Plain yellow cup bearing 安 on its front）”.
+Its otherwise English prop state/image/sheet directions correctly retained the
+original author's required visible 安. The existing one correction
+`ch_19ae3043fa3f5ee3b57e68653d9e3684`, attempt
+`b0b12a81-ea4b-4d4f-b6ec-d38a83748102`, delivered a structurally valid candidate
+with zero 安 occurrences across its eight provider fields. Independent language
+check `ch_d83826b730225fbd8e34aa56310cce2e` passed under the existing contract,
+which exempts technical fields; that pass does not establish provider fidelity.
+The correction was paused before adoption. Both original candidates, checks and
+receipts remain unchanged.
+
+Read-only all-gate audit confirmed blanket CJK rejection in owned Art, Cast image
+and voice design, and F5 frame gates; F5 H3 validation also strips all double-quoted
+text without source binding. These conflict with explicit source-literal intent.
+H3 parent typed visible-text/dialogue compilation already preserves exact bytes
+and needs no speculative rewrite. ADR 0224 was amended before the bounded repair.
+English stays at 3/8 adopted, Art correction delivered but unadopted. Chinese home
+673c0804 has Outline adopted and Branches delivered but unadopted. Both runs were
+paused with supported revision CAS; all 12 exact host attempts' worker/CLI whole
+process groups were positively absent, no validators remained, then the isolated
+runtime stopped. No images/H3 or installed runtime changes occurred.
+
+## Existing selected-playback preservation blocker
+
+Read-only source/data audit identified a preservation gap beyond passive database
+readability. Normal home `6e70451f-e9fd-4460-a475-bce50fde6503` contains two selected,
+ingested F5-bridge videos. Its accepted Cast/Art validator hashes match the installed
+source `3f4bdfbf`/fork `4f9b2128` exactly, but mismatch current upstream files.
+Accepted bindings omit the new language artifact and retain dialogue.default.v1.
+Valued 苏棠 has the same old binding/timing shape, with zero v2 video jobs; its
+external H5 artifacts remain a distinct preservation target.
+
+The selected-storage path calls video_job_current, sourceTiming.binding_is_current
+and F5 installation.status=current; rebuilding that context applies current
+Cast/Art validator hashes, language and timing rules to old selections. Thus code
+changes alone can make existing story playback unavailable while immutable segment
+preview and database inspection still pass. ADR 0224 now separates frozen playback
+integrity from current new-generation admission. The bounded repair must preserve
+actual data-edit/selection/approval staleness, without historical execution or a
+compatibility engine. Final installed readback must exercise both selected video
+endpoints and original derivative hashes, story playback/choices, 苏棠/report reopen
+and preserved H5 package/clip hashes and playback. No source/data/live mutations
+were performed by this audit; SQLite file identity/size/mtime stayed unchanged.
+
+## Installed playback baseline qualification
+
+Before activation, GET-only checks against the still-running installed service on
+loopback 8841 returned 404 for both selected-playback endpoints: “current selected
+video job not found”. All three ingested jobs report current=false. Thus the source
+hash audit does not establish these endpoints were working at baseline, and no
+previous playback pass is claimed. The original failed GET evidence is retained
+in `old-playback-installed-baseline.json`; no runtime was started or changed and
+no provider/lifecycle mutation was issued.
+
+The installed production-bridge response is outdated because the accepted F5
+storyboard review is stale. Actual Cast, Art and Script responses remain current
+with no stale reasons; F5 reports only storyboard_render_contract changed. A
+read-only comparison of frozen F5 authority with installed source is pending to
+distinguish preexisting code-only drift from actual author/source changes. The
+repair must not manufacture eligibility for genuine stale material, and broader
+startup or unrelated baseline repair is outside scope. The minimal preservation
+witness records exact selected IDs/media hashes and supported GET paths, without
+copying a whole project or changing its bytes.
+
+The targeted follow-up resolved that cause as preexisting source-only F5 drift:
+only adapter and dialogueTiming validator hashes differ from installed source,
+plus their derived contentHash. Other rule hashes, contract/instruction versions,
+original direction, accepted inherited Art and Brief/admission identity match.
+The bounded frozen-media integrity path therefore addresses the same code-only
+coupling. A later successful playback response must be newly verified and must not
+be described as restoring an observed prior pass. Exact sanitized comparisons are
+retained in `old-playback-installed-f5-diagnosis.json`; no original DB bytes changed.
+
+## Provider-literal integration and independent findings
+
+Coordinator verified all 49 parent and ten fork after-hashes before integrating the
+first frozen literal/playback delta. Exact patches are retained: parent
+`38218055665da6eaf7527fc10b8096b641a0bdbbad6a472308cbba8f987847be`, fork
+`b0d5efa98a202b068cb6f9743693a07d8aa5d5335f689faed97b51e3ebe06fdb`.
+The owned fork is locally committed at `f9682e66d8b8c1d59e143e879fda442160869303`;
+parent production changes remain uncommitted pending the review fixes. No push/CI.
+Worker's scoped evidence: 120 literal/ownership cases, 21 final playback/prefix/
+execution-safety cases, 34 retained boundaries; owned Art 158, Cast 323 and F5 252
+selftests. Earlier failed logs remain failed. Broader handoff proof has an incomplete
+F5 fixture and remains open for a test-only follow-up before full qualification.
+
+Coordinator's first integrated selection passed 51 cases. The additional pinned
+integration refused because parent HEAD still records d905 while the newly committed
+fork is f968; this is an expected envelope prerequisite, not a bypassed guard.
+It will be rerun after the atomic parent checkpoint. Exact normal read-only owner
+checks still pass 14/16 inspection and authority, with zero new regressions.
+Three actual retained v3/v4 native checks also pass complete original request,
+result/report/manifest and attempt/receipt hash validation; this grants no current
+execution or adoption authority.
+
+Two independent static reviews found three P1s before another native launch:
+assembled instructions contradicted provider semantic coverage; required visible
+fact discovery missed same-language lettering/downstream literal evidence; and
+two passive Storyboard selectors mistakenly treated content-language-check as a
+primary timed Storyboard. The existing worker owns the precise follow-up. Root
+also confirmed one actual 安 source span had two passing receipt witnesses; the
+new context must canonicalize that fact rather than multiply lettering requirements.
+Original receipts and source spans remain unchanged.
+
+A further consumer review found both players/workflow routing still require
+job.current, which represents generation currentness. The bounded frontend follow-up
+must consume server-selected current segment eligibility while preserving generation,
+editing and reselection controls. No broader UI work is in scope; coordinator owns
+final generated assets, deterministic build and integrated qualification.
+
 ## Remaining product evidence
 
-Finish and review the field-ownership/preservation repair; prove its smallest current native
-Cast creation/check/adoption, then complete both real all-eight installations and canonical readback;
+Finish the test-only handoff fixture repair and atomic literal/playback checkpoint;
+prove the identical English fixture through Art creation, check and adoption with
+exact 安 preserved in submitted prompt bytes, then complete both real all-eight
+installations and canonical readback;
 local candidate full gate/exact wheel/independent review; supported activation and
 exact old LOCAL-slot application; actual image/H3 source fidelity, speech, four route
 plays with choice/restart, export and installed preservation/readback. Distinguish
@@ -380,3 +536,74 @@ all outcomes and do not claim owner personal creative acceptance.
 Usage/cost deltas and active product/infrastructure/coordination totals are
 unavailable. The original 18–30 active-hour plus 3–8 waiting-hour forecast is an
 estimate, not a stopping deadline. No percentages or savings are inferred.
+
+## Literal and playback review closure — 2026-10-29
+
+The follow-up closes the assembled-checker instruction conflict, complete
+original-source discovery (including same-language lettering and zero prior
+facts), duplicate witnesses for one physical source span, and both passive
+Storyboard checker selectors. New work freezes classifier v6 and literal-context
+v2; retained v1–v5 package, result, prompt and receipt bytes remain fixed. The
+actual 安 span now produces one fact with its two genuine receipt witnesses.
+Independent static review closed both literal P1s without further findings.
+
+The 26-file parent/six-file fork follow-up patches are respectively
+`3d3bdcd0ebbd79a62d00145a164188ecfee1f35ab0fb7a73b313c9da19622390` and
+`9b9163069d5d1696cbb99a3a40f577ded52eb7b3978e85902c10d4e9a26adc82`.
+The owned fork is clean at local `35fac2661d70c6c017f1c4a61360d0e74c732497`.
+The 11-file frontend F5-choice follow-up patch is
+`6fc173a1a97c28b11b13e4c2d4aebecab7d963bfd5eff696112076be3c4c02ab`.
+It reads existing bridge metadata followed by fresh no-store selected-video
+evidence, binds every displayed cut to exact installation/source/selection
+identities, and withholds playback/choices on withdrawal or mismatch. A mounted
+F5 decision-to-ending regression exercises both current and source-only outdated
+generation installations. The independent consumer review closed this final P1.
+No new backend endpoint or broader UI behavior was introduced.
+
+Coordinator focused selection passed 48 cases: visible literal discovery, provider
+literal persistence, retained Storyboard checker, selected playback policy, canonical
+span schema and admission ACK. Worker scoped evidence includes 115 contract/
+persistence cases, 63 prefix/safety cases, 70 envelope cases and final 134 frontend
+cases; these overlapping selections are not summed. Current coordinator quick
+passed all 1,675 frontend unit cases and both type checks (13.078 seconds total).
+Two deterministic frontend builds produced the same seven-file SHA-256 tree
+`502dbf94d74790e7a5864b55a9db66f745f1cc2639cd440f5d25701312d4269f`.
+Generated static assets are integrated. Normal read-only current-schema checks
+remain 14/16 inspection and authority, matching baseline with zero new regressions.
+
+The known handoff fixture is now repaired through the current central F5
+composition/language shape and distinct creative/checker receipt classification.
+Production source is frozen. Commit the complete candidate before launching native
+work: Bridge execution pins Git HEAD, so even a later tests-only commit would stale
+an active run. The pinned integration guard will be rerun after the atomic parent
+gitlink checkpoint. No current native Art pass, all-eight completion, full local gate,
+wheel qualification, activation, image/H3 generation or media acceptance is claimed.
+
+## Test-only handoff fixture closure
+
+The separate nine-file patch
+`98e51458cdc6b764902aadc5e82a19e303896db14bd3a40d0b861b4f9a2db330`
+uses the current central F5 candidate and retains compact ten-second/four-beat,
+two/four-cut, three-section, two-route geometry. A cohesive 87-line test helper
+binds eight creative receipts to eight distinct checking envelopes by real
+request/candidate/stage/run/native identities. The completed small pack still
+has six frames, two references and sixteen creative/image execution rows; host
+admission accounting also includes its eight separate checkers. Text-only seeds
+retain zero image calls and zero image/live reservations.
+
+The original retained-proof selector passed without changing its SQL mutation,
+rollback or requested-byte assertions; both exact compact/copy prefix checks
+passed. The affected seven-file selection passed 69 cases and failed two obsolete
+sent/spawn_intent assertions. Those two cases were repaired against the current
+UNKNOWN owner and passed in the failed-only rerun (12.56 seconds), with stronger
+exact attempt identity, one-image reservation, absent receipt/remote observation,
+zero host admission/calls and unchanged delivery-byte checks. Earlier failures
+remain failed; unchanged passing evidence is reused. Lint passed. These are fake
+host/service/persistence checks, not native/provider or creative acceptance.
+
+Coordinator verified all nine before/after hashes, all eleven log hashes and
+2,594 parent/115 fork protected worker files before integrating exact bytes.
+The production delta remains the previously reviewed candidate. Literal/discovery
+logic and selected-media/choice eligibility live in cohesive dedicated modules;
+existing large API/player owners retain localized projection/call-site changes,
+so unrelated splitting would add coupling without improving these owners.

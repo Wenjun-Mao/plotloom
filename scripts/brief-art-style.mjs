@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext } from './provider-literal-context.mjs';
 /** Brief-style path retaining the pinned upstream Art structural gate. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -19,7 +20,7 @@ function main(args) {
   if (!['validate', 'render'].includes(command) || !artPath) throw new Error('Use validate|render art.json --cast cast.json');
   const read = path => JSON.parse(readFileSync(path, 'utf8'));
   const art = read(artPath), cast = read(flag('--cast'));
-  const context = { cast };
+  const context = { cast, ...providerContext(args.includes('--request') ? read(flag('--request')) : null) };
   const issues = validateArt(art, context);
   if (issues.length) throw new Error(issues.join('\n'));
   if (command === 'render') process.stdout.write(renderHtml(art, context));

@@ -8,6 +8,7 @@ import { plotloomApi } from "../src/api";
 import { isCurrentVideoSelection, videoNextAction } from "../src/features/media/video-next-action";
 import { frozenVideoSnapshot } from "../src/features/media/frozen-video-snapshot";
 import { bridgeState, installedProduction } from "./production-bridge-fixture";
+import { bindBridgePlayback } from "./bridge-playback-fixtures";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 import { branchingFixture, deferred, endingJob, job, props, routeContext, selectedJob } from "./video-pilot-fixtures";
 
@@ -236,12 +237,14 @@ it("autoplays only the next current source, holds the final frame, and reports c
 it("shows the source-bound question only after opening completion and closes on stale or failed ownership", async () => {
   const fixture = branchingFixture();
   fixture.graph.startNodeId = "decision";
-  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...frozenVideoSnapshot(item), sourceTiming: { kind: "f5_bridge" } } }));
   const sourceChoice = { choiceId: "decision", sectionId: "decision", prompt: "她今晚应该赴约吗？", outcomes: [
     { outcomeId: "edge-2", endingSectionId: "left", label: "left", consequence: "Left ending" },
     { outcomeId: "edge-3", endingSectionId: "right", label: "right", consequence: "Right ending" },
   ] };
-  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridgeState({ status: "accepted", installation: installedProduction({ runtimeChoice: { choices: [sourceChoice] } }) }));
+  const first = bindBridgePlayback(fixture.selected, fixture.sceneBeats.scenes, [sourceChoice]);
+  fixture.selected = first.jobs;
+  vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async () => ({ jobs: fixture.selected }));
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridgeState({ status: "accepted", installation: first.installation }));
   const renderFixture = () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph }));
   await act(async () => { renderFixture(); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-choice-question"]')).toBeNull();
@@ -250,7 +253,7 @@ it("shows the source-bound question only after opening completion and closes on 
   expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
   const next = deferred<Awaited<ReturnType<typeof plotloomApi.getProductionBridge>>>();
   read.mockReturnValue(next.promise);
-  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...frozenVideoSnapshot(item), sourceTiming: { kind: "f5_bridge", revision: 2 } } }));
+  fixture.selected = bindBridgePlayback(fixture.selected, fixture.sceneBeats.scenes, [sourceChoice], 2).jobs;
   await act(async () => renderFixture());
   expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
   await act(async () => { next.reject(new Error("source ownership unavailable")); await Promise.resolve(); });

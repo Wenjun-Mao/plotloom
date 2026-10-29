@@ -12,6 +12,7 @@ from plotloom.codex_exec_contracts import (
 )
 from plotloom.project_storage.creative_evidence_inventory import creative_evidence_paths
 from tests.autopilot_handoff_seed_fixtures import assert_no_human_facts
+from tests.autopilot_checked_text_fixtures import checked_text_fixture
 from tests.autopilot_seed_fixtures import ClosedAutopilotSeed
 
 
@@ -60,6 +61,7 @@ def installed_text_history(store, view):
     # to their original requests, attempts and receipts. No restored omissions.
     evidence = creative_evidence_paths(store.home, store.database_path, prior_snapshot_omissions={})
     completed_jobs = {path.parts[3] for path in evidence if path.parts[-2:] == ("delivery", "completion.json")}
+    checked_text = checked_text_fixture(store)
     with store.repository.engine.connect() as connection:
         for table in ("v2_image_jobs", "v2_character_reference_proposals", "v2_art_reference_proposals",
                       "v2_autopilot_frames", "v2_production_units", "v2_managed_asset_provenance"):
@@ -86,8 +88,9 @@ def installed_text_history(store, view):
             checkpoint = checkpoints[attempt.operation_key]
             if checkpoint["evidence"]["executorAttemptId"] != identifier:
                 raise ValueError("installed-text prefix text identity differs")
-        if completed_jobs != expected_jobs or len(expected_jobs) != 8:
-            raise ValueError("installed-text prefix requires eight complete retained native jobs")
+        if (expected_jobs != checked_text.creative_jobs or len(expected_jobs) != 8
+                or completed_jobs != checked_text.creative_jobs | checked_text.checker_jobs):
+            raise ValueError("installed-text prefix requires eight creative and eight distinct complete checker jobs")
         decision_ids = set(connection.exec_driver_sql(
             "SELECT checkpoint_id FROM v2_autopilot_decisions").scalars())
         if not {checkpoints[key]["id"] for key in (*CREATIVE_STAGES, "installation")} <= decision_ids:

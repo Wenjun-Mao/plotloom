@@ -7,6 +7,8 @@ import { useBridgeChoiceRead } from "./useBridgeChoiceRead";
 import { shotLabel, storyShotLabel } from "./shot-label";
 import { nodeFootageGaps } from "./node-footage";
 import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
+import { isCurrentVideoSelection } from "./features/media/video-next-action";
+import { bridgePlaybackProof } from "./features/media/selected-bridge-choice";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
@@ -42,7 +44,7 @@ export function branchingPreviewManifest(
   const selectedByShot = new Map<string, VideoJob[]>();
   jobs.forEach((job) => {
     const shot = frozenShot(job);
-    if (job.projectId !== projectId || job.state !== "ingested" || !job.current || !job.selected || !job.playbackSegment?.current || !job.playbackSegment.selected || !shot.id || !shot.sceneId) return;
+    if (job.projectId !== projectId || !isCurrentVideoSelection(job) || !shot.id || !shot.sceneId) return;
     selectedByShot.set(shot.id, [...(selectedByShot.get(shot.id) || []), job]);
   });
   const nodes = new Map<string, BranchingPreviewNode>();
@@ -97,7 +99,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   );
   const playbackJobs = [...manifest.nodes.values()].flatMap(node => node.jobs);
   const bridgeOwned = playbackJobs.some(job => (frozenVideoSnapshot(job)?.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
-  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, frozenVideoSnapshot(job)?.sourceTiming]), scope: manifest.identity, edges: graph.edges });
+  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(bridgePlaybackProof), scope: manifest.identity, edges: graph.edges });
   const player = useRef<HTMLVideoElement>(null);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");
@@ -105,7 +107,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const mediaFailureRef = useRef<string | null>(null);
   const currentMediaIdentityRef = useRef("");
   const [nodeId, setNodeId] = useState(graph.startNodeId);
-  const choiceRead = useBridgeChoiceRead(projectId, choiceIdentity, bridgeOwned, graph.edges, nodeId);
+  const choiceRead = useBridgeChoiceRead(projectId, choiceIdentity, bridgeOwned, graph.edges, nodeId, playbackJobs);
   const runtimeChoice = choiceRead.choice;
   const choiceReady = !bridgeOwned || choiceRead.status === "ready";
   const [episode, setEpisode] = useState(0);
@@ -172,15 +174,15 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
 
   useEffect(() => {
-    if (!node || node.node.footageMode !== "route_only" || node.jobs.length || incompleteShots.length) return;
+    if (!choiceReady || !node || node.node.footageMode !== "route_only" || node.jobs.length || incompleteShots.length) return;
     // An empty structural chain may select the first playable node, but it
     // never manufactures the initial user gesture required to start media.
     finishNode(false);
-  }, [nodeIdentity, node]); // Empty structural nodes may continue; missing media never does.
+  }, [nodeIdentity, node, choiceReady]); // Empty structural nodes may continue; missing media never does.
 
   useEffect(() => {
     const active = player.current;
-    if (!shouldAutoplay || !mediaIdentity || !active || autoplayedMediaRef.current === mediaIdentity) return;
+    if (!choiceReady || !shouldAutoplay || !mediaIdentity || !active || autoplayedMediaRef.current === mediaIdentity) return;
     autoplayedMediaRef.current = mediaIdentity;
     setShouldAutoplay(false);
     setMediaFailure(null);
@@ -190,7 +192,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
       const detail = reason instanceof Error && reason.message ? `：${reason.message}` : "";
       setPlaybackError(`无法自动播放下一镜头${detail}`);
     });
-  }, [mediaIdentity, shouldAutoplay]);
+  }, [mediaIdentity, shouldAutoplay, choiceReady]);
 
   if (!node) {
     return <section className="video-sequence" data-testid="branching-video-preview">
@@ -254,7 +256,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
       {footageGaps.length > 0 && <ul>{footageGaps.map((gap, index) => <li key={index}>{gap}</li>)}</ul>}
       <ul>{returnShotIds.map((shotId) => <li key={shotId}><a href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyShotLabel(shotId, storyboard, sceneBeats, graph)} 审核片段</a></li>)}</ul>
     </div>}
-    {!missingMedia.length && current && <>
+    {!missingMedia.length && choiceReady && current && <>
       {current.playbackSegment?.attribution?.kind === "agent_operated_qa" && <small role="status">{humanReviewLabel({ reviewer: "", attribution: current.playbackSegment.attribution })} · 一次性测试素材</small>}
       <video
         key={mediaIdentity}

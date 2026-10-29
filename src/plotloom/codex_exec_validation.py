@@ -285,6 +285,17 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
             validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
                 f"{source}/scripts/creative_field_validation.py", cand, "--request", request_path,
                 "--node", "{tool:node}"))
+    from .provider_literals import LITERAL_INPUT, validate_context
+    if not checking_language and LITERAL_INPUT in artifacts:
+        validate_context(request)
+        if stage == "storyboard":
+            if request.content_validation_contract is None:
+                raise ValueError("marked Storyboard requires the typed content boundary")
+            validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
+                f"{source}/scripts/creative_field_validation.py", cand, "--request", request_path,
+                "--node", "{tool:node}"))
+        if stage == "art":
+            render = (render[0], render[1] + ("--request", request_path))
     steps = tuple(CodexExecValidationStep(
         stepId=step_id, program=program,
         argv=argv,

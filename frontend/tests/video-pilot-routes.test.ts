@@ -43,7 +43,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 it("orders only current explicitly selected ingested candidates on one explicit route", () => {
   const first = selectedJob("first", 1);
   const second = selectedJob("second", 2);
-  const stale = selectedJob("stale", 3, { current: false });
+  const stale = selectedJob("stale", 3, { current: false, selected: false, inputStatus: "stale" });
   const pending = selectedJob("pending", 4, { state: "submitted" });
   const unselected = selectedJob("unselected", 5, { selected: false });
   const otherScene = selectedJob("other", 1, { snapshot: { shot: { id: "other", sceneId: "other-scene", order: 1 } } });

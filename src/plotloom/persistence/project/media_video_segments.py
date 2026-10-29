@@ -337,7 +337,7 @@ class VideoSegmentPersistence:
     def selected_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
             job = session.get(VideoJobRow, video_job_id)
-            if job is None or job.project_id != project_id or not self._currentness.video_job_current_in_session(session, job):
+            if job is None or job.project_id != project_id or not self._currentness.selected_video_current_in_session(session, job):
                 raise NotFoundError("current selected video job not found")
             shot_id = self._source(job).get("cut", {}).get("shotId") or job.snapshot["shot"]["id"]
             selection = self._selection(session, project_id, shot_id)

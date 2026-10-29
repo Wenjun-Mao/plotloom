@@ -64,7 +64,7 @@ def art_style_current(contract: dict[str, Any] | None, author_direction: str | N
     return bool(contract) and contract == freeze_art_style(contract["style"], author_direction)
 
 
-def validate_art_style(art: dict[str, Any], cast: dict[str, Any], contract: dict[str, Any] | None) -> None:
+def validate_art_style(art: dict[str, Any], cast: dict[str, Any], contract: dict[str, Any] | None, request: dict | None = None) -> None:
     if not contract:
         raise ValueError("art render style was not frozen; prepare a replacement task")
     if contract.get("authority") == "saved_brief":
@@ -77,7 +77,11 @@ def validate_art_style(art: dict[str, Any], cast: dict[str, Any], contract: dict
             art_path.write_text(json.dumps(art, ensure_ascii=False), encoding="utf-8")
             cast_path.write_text(json.dumps(cast, ensure_ascii=False), encoding="utf-8")
             script = PROJECT_ROOT / "scripts" / "brief-art-style.mjs"
-            result = subprocess.run(["node", str(script), "validate", str(art_path), "--cast", str(cast_path)], capture_output=True, text=True, check=False)
+            args = ["node", str(script), "validate", str(art_path), "--cast", str(cast_path)]
+            if request is not None:
+                packet = root / "request.json"; packet.write_text(json.dumps(request, ensure_ascii=False))
+                args.extend(("--request", str(packet)))
+            result = subprocess.run(args, capture_output=True, text=True, check=False)
             if result.returncode:
                 raise ValueError(f"art Brief style/upstream validation failed: {(result.stderr or result.stdout).strip()}")
         return
@@ -85,4 +89,8 @@ def validate_art_style(art: dict[str, Any], cast: dict[str, Any], contract: dict
         root = Path(directory)
         for name, value in (("art", art), ("cast", cast), ("contract", contract)):
             (root / f"{name}.json").write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
-        _run("validate", str(root / "art.json"), "--cast", str(root / "cast.json"), "--contract", str(root / "contract.json"))
+        extra = ()
+        if request is not None:
+            packet = root / "request.json"; packet.write_text(json.dumps(request, ensure_ascii=False))
+            extra = ("--request", str(packet))
+        _run("validate", str(root / "art.json"), "--cast", str(root / "cast.json"), "--contract", str(root / "contract.json"), *extra)

@@ -104,14 +104,26 @@ def test_partial_execution_publication_blocks_initial_or_final_codex_admission(t
         result = current(storage, view)
         assert result.state == "blocked" and result.blocker["code"] == "delivery_conflict"
         retained = next(item for item in result.checkpoints if item["id"] == checkpoint["id"])
-        assert retained["state"] == "sent"
+        assert retained["state"] == "outcome_unknown"
+        assert retained["evidence"]["result"]["dispatchAttempted"] is True
+        assert retained["evidence"]["result"]["dispatchOutcomeUnknown"] is True
         with closing(storage.projects.open(view.project_id)) as store:
-            attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
+            attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(
                 view.id, checkpoint["operationKey"]
             )
-        assert attempt.state == "spawn_intent"
+        assert attempt.state == "outcome_unknown" and receipt is None
+        assert str(attempt.attempt_id) == retained["evidence"]["executorAttemptId"]
+        assert attempt.job_id == checkpoint["evidence"]["jobId"]
+        assert str(attempt.run_id) == view.id and attempt.operation_key == checkpoint["operationKey"]
+        assert attempt.domain == "image" and attempt.image_budget_state == "reserved"
+        assert attempt.reserved_image_outputs == 1
+        # Lost admission acknowledgement supplies no terminal or remote facts.
+        assert attempt.remote_tool_state is None and attempt.terminal_result is None
+        assert attempt.evidence_hash is None
+        host = registry._codex_exec_test_host
+        assert host.admissions == 0 and not host.statuses and not host.pending
         assert (delivery / "executor-pin.json").read_bytes() == b"retained in-progress execution evidence"
-        assert not calls and not registry.view()["busy"]
+        assert not calls and not _text and not registry.view()["busy"]
     finally:
         service.close()
 

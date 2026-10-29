@@ -59,6 +59,10 @@ def freeze_request_language(request, language: str) -> None:
     from .creative_field_ownership import freeze_field_ownership
     if request.stage != "video-directions":
         freeze_field_ownership(request)
+    from .provider_literals import LITERAL_STAGES, freeze_provider_context, provider_literal_instructions
+    if request.stage in LITERAL_STAGES:
+        freeze_provider_context(request)
+        request.creative_brief += provider_literal_instructions()
 
 
 def language_response_schema(schema: dict, language: str) -> dict:
@@ -106,6 +110,10 @@ def assert_new_request_language(request) -> None:
     frozen = ProjectLanguageContract.model_validate(value)
     if value != language_contract(frozen.content_locale):
         raise CreativeHandoffError("project_language_stale", "新生成任务的语言规则已过期，请重新准备。")
+    from .content_language_contract import is_language_check
+    from .provider_literals import LITERAL_STAGES, validate_context
+    if request.stage in LITERAL_STAGES and not is_language_check(request):
+        validate_context(request)
 
 
 def assert_bound_report_language(candidate: dict, binding) -> None:

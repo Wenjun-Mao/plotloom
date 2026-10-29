@@ -54,16 +54,45 @@ def result_for(request, *, rejected_path=None, uncertain_path=None):
     leaves = dict(string_leaves(request.input_artifacts[CHECK_INPUT]["candidate"]))
     coverage = [{key: item[key] for key in ("path", "sha256", "role")} | {
         "verdict": ("reject" if item["path"] == rejected_path else "uncertain" if item["path"] == uncertain_path else
-                    "pass" if item["role"] == "authored_prose" and leaves[item["path"]].strip() else "not_applicable"),
+                    "pass" if (item["role"] == "authored_prose" or "providerLiterals" in request.input_artifacts[CHECK_INPUT] and item["role"] == "provider_technical") and leaves[item["path"]].strip() else "not_applicable"),
         "exceptions": []} for item in inventory]
     findings = []
     for path, code in ((rejected_path, "wrong_language"), (uncertain_path, "uncertain_language")):
         if path:
             findings.append({"code": code, "span": {"path": path, "start": 0, "end": len(leaves[path]), "text": leaves[path]},
                              "explanation": "Synthetic test finding; not an actual model judgment."})
-    return {"contract": "plotloom.content-language-check.v1", "bindingHash": request.source["bindingHash"],
+    packet = {"contract": "plotloom.content-language-check.v1", "bindingHash": request.source["bindingHash"],
             "verdict": "reject" if rejected_path else "uncertain" if uncertain_path else "pass",
             "coverage": coverage, "findings": findings}
+    frozen = request.input_artifacts[CHECK_INPUT]
+    if "providerLiterals" in frozen:
+        literal = frozen["providerLiterals"]
+        packet["literalReview"] = {"claims":[{"index":index,"verdict":"pass","explanation":"Explicit synthetic intent fixture, never model evidence."} for index,_ in enumerate(literal["claims"])],
+            "facts":[{"factId":fact["id"],"relevance":"required","verdict":"pass" if any(claim["sourceFactId"] == fact["id"] for claim in literal["claims"]) else "reject",
+                      "explanation":"Synthetic required literal presence/omission fixture."} for fact in literal["context"]["facts"]]}
+        if any(item["verdict"] == "reject" for item in packet["literalReview"]["facts"]):
+            packet["verdict"] = "reject"
+    from plotloom.provider_literal_discovery import DISCOVERY, fact_matches
+    if DISCOVERY in frozen:
+        packet[DISCOVERY] = {"sources":[{"path":item["path"],"sha256":item["sha256"],
+            "decision":"no_visible_literal","facts":[],"explanation":"Explicit synthetic no-intent fixture; never model evidence."}
+            for item in frozen[DISCOVERY]["sources"]]}
+        owned = {row["path"]:row for row in packet[DISCOVERY]["sources"]}
+        literals = frozen.get("providerLiterals",{})
+        proposed = [*literals.get("claims",[]), *literals.get("context",{}).get("facts",[])]
+        seen=set()
+        for item in proposed:
+            if item["role"] != "literal_visible_text":continue
+            span=item["sourceSpan"];key=(span["path"],span["start"],span["end"])
+            if key in seen:continue
+            seen.add(key);row=owned[span["path"]];row["decision"]="visible_literal"
+            mapped=any(fact_matches(claim,item) for claim in literals.get("claims",[]))
+            row["facts"].append({"role":"literal_visible_text","sourceSpan":span,
+                "sourceFieldHash":item["sourceFieldHash"],"intent":"pass","relevance":"required",
+                "presence":"pass" if mapped else "reject","candidateOccurrences":[],
+                "explanation":"Explicit synthetic source intent and presence fixture."})
+        if any(fact["presence"]=="reject" for row in owned.values() for fact in row["facts"]):packet["verdict"]="reject"
+    return packet
 
 
 def synthetic_text_receipt(attempt, profile, filename, raw, report):

@@ -51,7 +51,7 @@ def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffReques
         "source": {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."},
         "inputArtifacts": ({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()} if stage == "outline" else {}) | (artifacts or {}),
         "creativeBrief": "Create one stage candidate. Preserve the frozen source facts.",
-        "contentValidationContract": "plotloom.typed-content-result.v1" if stage == "characters" else None,
+        "contentValidationContract": "plotloom.typed-content-result.v1" if stage in {"characters", "storyboard"} else None,
     })
     from plotloom.language_policy import freeze_request_language
     freeze_request_language(request, "zh-CN")
@@ -173,7 +173,7 @@ def test_saved_brief_routes_expand_to_source_owned_validation_commands(stage, tm
         job_root=job, candidate_filename=plan.candidate_filename, tool_paths=tools,
     )
 
-    if stage == "characters":
+    if stage in {"characters", "storyboard"}:
         assert argv[0] == str(tools["uv"])
         assert str(source / "scripts/creative_field_validation.py") in argv
         assert argv[-2:] == ("--node", str(tools["node"]))
@@ -265,3 +265,11 @@ def test_plan_contract_rejects_missing_render_or_reordered_step():
         CodexExecTextValidationPlan.model_validate(value | {"steps": value["steps"][:1]})
     with pytest.raises(ValidationError, match="ordered validate and render"):
         CodexExecTextValidationPlan.model_validate(value | {"steps": list(reversed(value["steps"]))})
+
+
+def test_new_f5_literal_packet_cannot_select_an_untyped_primary_boundary():
+    request=_request('storyboard',{'script.json':{'episodes':[]},'outline.json':{'episodes':[]},
+        'cast.json':{'characters':[]},'art.json':{'scenes':[]}})
+    request.content_validation_contract=None
+    with pytest.raises(ValueError,match='typed content boundary'):
+        build_text_validation_plan(request,execution_pin=PIN,source_revision=SOURCE_REVISION)

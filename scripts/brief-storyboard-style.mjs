@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext } from './provider-literal-context.mjs';
 /** F5A receiving gate: inherited Brief authority plus every pinned upstream gate. */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -51,7 +52,7 @@ export function frozenContext(request) {
   const admission = inputs['storyboard-admission.json'];
   assert(admission && inputs['script.json'] && inputs['outline.json'] && inputs['cast.json'], 'Frozen storyboard inputs are required');
   assert(request.source?.acceptedScriptRevision === admission.scriptRevision && request.source?.acceptedScriptContentHash === admission.scriptContentHash, 'Frozen script identity differs from admission');
-  return { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], admission };
+  return { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], ...providerContext(request), admission };
 }
 
 export function briefStoryboardContext(board, request, recipes = null) {

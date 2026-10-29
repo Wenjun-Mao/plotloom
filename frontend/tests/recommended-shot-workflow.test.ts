@@ -53,7 +53,8 @@ it("keeps original, preview, selected shot and complete routes distinct", () => 
   expect(text({ jobs: [{ ...job, segments: [selectedJob("request", 1).playbackSegment!] }] })).toContain("预览片段");
   const selected = selectedJob("selected", 1);
   expect(text({ jobs: [selected] })).toContain("完整路线仍缺少已选片段");
-  expect(text({ jobs: [{ ...selected, inputStatus: "stale", current: false }] })).toContain("旧选择不会进入故事播放");
+  expect(text({ jobs: [{ ...selected, inputStatus: "stale", current: false }] })).toContain("完整路线仍缺少已选片段");
+  expect(text({ jobs: [{ ...selected, inputStatus: "stale", current: false, selected: false }] })).toContain("旧选择不会进入故事播放");
   expect(text({ allRoutesReady: true })).toContain("实际核对问题、选项与每个结局");
   expect(text({ allRoutesReady: true })).toContain("不代表播放已验收");
 });

@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { plotloomApi } from "./api";
-import type { RuntimeChoice, StoryEdge } from "./types";
+import type { RuntimeChoice, StoryEdge, VideoJob } from "./types";
+import { selectedBridgeChoicesEligible } from "./features/media/selected-bridge-choice";
 
 type ChoiceRead = { identity: string; status: "loading" | "ready" | "failed" | "stale"; choice: RuntimeChoice | null; error?: string };
 
 /** Read-only choice admission belongs to the exact playback/source identity. */
-export function useBridgeChoiceRead(projectId: string, identity: string, bridgeOwned: boolean, edges: StoryEdge[], currentNodeId: string) {
+export function useBridgeChoiceRead(projectId: string, identity: string, bridgeOwned: boolean, edges: StoryEdge[], currentNodeId: string, playbackJobs: readonly VideoJob[]) {
   const readIdentity = JSON.stringify([identity, currentNodeId]);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<ChoiceRead>({ identity: "", status: "loading", choice: null });
@@ -20,7 +21,11 @@ export function useBridgeChoiceRead(projectId: string, identity: string, bridgeO
     const controller = new AbortController();
     const current = () => owner.current === captured && !controller.signal.aborted;
     setState({ identity: readIdentity, status: "loading", choice: null });
-    void plotloomApi.getProductionBridge(projectId, controller.signal).then(next => {
+    void plotloomApi.getProductionBridge(projectId, controller.signal).then(async next => {
+      if (!current()) return;
+      // Revalidate selected authority after reading the recorded installation.
+      // A source/approval change during that read must not borrow older media flags.
+      const media = await plotloomApi.getVideoJobs(projectId, controller.signal);
       if (!current()) return;
       const installation = next.installation;
       const raw = installation?.runtimeChoice;
@@ -32,7 +37,7 @@ export function useBridgeChoiceRead(projectId: string, identity: string, bridgeO
         && choice.outcomes.every(outcome => outgoing.some(edge => edge.id === outcome.outcomeId && edge.targetNodeId === outcome.endingSectionId && edge.choiceText === outcome.label));
       });
       const graphChoiceSources = new Set(edges.filter(edge => edge.kind === "choice").map(edge => edge.sourceNodeId));
-      const exact = installation?.status === "current" && installation.staleReasons.length === 0 && admitted
+      const exact = selectedBridgeChoicesEligible(projectId, installation, playbackJobs, media.jobs) && admitted
         && new Set(choices.map(choice => choice.sectionId)).size === choices.length
         && choices.length === graphChoiceSources.size && choices.every(choice => graphChoiceSources.has(choice.sectionId));
 

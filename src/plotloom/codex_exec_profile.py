@@ -45,6 +45,16 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "src/plotloom/persistence/project/selected_media_policy.py",
+    "src/plotloom/provider_literals.py",
+    "src/plotloom/provider_literal_dialogue.py",
+    "src/plotloom/provider_literal_review.py",
+    "src/plotloom/provider_literal_discovery.py",
+    "src/plotloom/provider_literal_preparation.py",
+    "scripts/provider-literal-context.mjs",
+    "third_party/shuohao-skills/skills/novel-art/scripts/provider-literals.mjs",
+    "third_party/shuohao-skills/skills/novel-characters/scripts/provider-literals.mjs",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/provider-literals.mjs",
     "src/plotloom/creative_field_ownership.py",
     "src/plotloom/codex_exec_retained_visual.py",
     "src/plotloom/codex_exec_retained_script.py",

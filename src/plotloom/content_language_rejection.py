@@ -4,6 +4,7 @@ from hashlib import sha256
 from types import SimpleNamespace
 
 from .content_language_contract import CHECK_INPUT, identity
+from .provider_literal_discovery import discovery_verdicts
 from .content_language_persistence import verified_check
 from .creative_handoff_identity import request_hash
 from .text_correction_contracts import (
@@ -17,8 +18,15 @@ def _language_issues(request, result):
     inventory = request.input_artifacts[CHECK_INPUT]["inventory"]
     failures = {item.span.path for item in result.findings if item.code != "uncertain_language"}
     paths = tuple(item["path"] for item in inventory if item["path"] in failures and item["role"] == "authored_prose")
-    return (TextContentIssue(code="content_language_mismatch", field_paths=paths,
-        repair_facts={"contentLocale": request.input_artifacts[CHECK_INPUT]["languageContract"]["contentLocale"]}),)
+    issues = []
+    if paths:
+        issues.append(TextContentIssue(code="content_language_mismatch", field_paths=paths,
+            repair_facts={"contentLocale": request.input_artifacts[CHECK_INPUT]["languageContract"]["contentLocale"]}))
+    if (result.literal_review is not None and any(item.verdict == "reject" for item in (*result.literal_review.claims,*result.literal_review.facts))
+            or "reject" in discovery_verdicts(result.visible_literal_discovery)
+            or any(item["path"] in failures and item["role"] == "provider_technical" for item in inventory)):
+        issues.append(TextContentIssue(code="candidate_content_invalid", field_paths=("$",), repair_facts={}))
+    return tuple(issues)
 
 
 def assert_language_rejection(connection, rejection, parent, attempt):
@@ -65,7 +73,10 @@ def rejection_for_check(store, original, attempt, check_job_id, prior):
                 check_receipt_hash=receipt.evidence_hash, binding_hash=request.source["bindingHash"],
                 result_hash=identity(result.model_dump(mode="json", by_alias=True))),
             issues=_language_issues(request, result), display_diagnostics=tuple(
-                f"{item.span.path}: {item.explanation}"[:1000] for item in result.findings[:32]))
+                f"{item.span.path}: {item.explanation}"[:1000] for item in result.findings[:32]) + tuple(
+                item.explanation[:1000] for item in ((*result.literal_review.claims,*result.literal_review.facts) if result.literal_review else ()) if item.verdict == "reject")[:32] + tuple(
+                fact.explanation[:1000] for row in (result.visible_literal_discovery.sources if result.visible_literal_discovery else ())
+                for fact in row.facts if "reject" in {fact.intent,fact.presence})[:32])
         assert_language_rejection(session.connection().connection.driver_connection, rejection, original, attempt)
         return rejection
 

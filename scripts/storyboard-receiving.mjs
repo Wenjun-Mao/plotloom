@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext } from './provider-literal-context.mjs';
 /** Preset/manual F5 admission retains every upstream gate plus canonical timing. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -9,7 +10,7 @@ import { validateF5ReceivingTiming } from './storyboard-dialogue-timing.mjs';
 export function validateReceivedStoryboard(board, request, recipes = null) {
   const inputs = request?.inputArtifacts;
   if (!inputs?.['script.json'] || !inputs['outline.json'] || !inputs['cast.json']) throw new Error('Frozen storyboard source inputs are required');
-  const ctx = { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], recipes };
+  const ctx = { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], ...providerContext(request), recipes };
   const issues = validateStoryboard(board, ctx);
   if (issues.length) throw new Error(issues.join('\n'));
   validateF5ReceivingTiming(board, request);

@@ -47,10 +47,13 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 it("only recommends playback for current selected segments matching the authored duration", () => {
   const current = selectedJob("current", 1);
   expect(isCurrentVideoSelection(current)).toBe(true);
+  const frozenSelected = { ...current, current: false, inputStatus: "stale" as const };
+  expect(isCurrentVideoSelection(frozenSelected)).toBe(true);
+  expect(videoNextAction([frozenSelected], 6_000)).toContain("检查路径预览");
   expect(videoNextAction([current], 6_000)).toContain("检查路径预览");
   expect(videoNextAction([current], 5_000)).toContain("时长与当前镜头不一致");
   for (const historical of [
-    { ...current, current: false },
+    { ...current, current: false, selected: false, inputStatus: "stale" as const },
     { ...current, playbackSegment: { ...current.playbackSegment!, current: false } },
     { ...current, playbackSegment: { ...current.playbackSegment!, selected: false } },
   ]) {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { castLiteralContext } from './provider-literal-context.mjs';
 /** Saved-Brief character validation retaining the pinned upstream structural gate. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -28,7 +29,7 @@ function main(args) {
   const requestIndex = args.indexOf('--request');
   const request = requestIndex >= 0 ? read(flag('--request')) : null;
   if (request && typeof request.source?.text !== 'string') throw new Error('Frozen source.text is required for verbatim evidence validation');
-  const issues = validateCast(cast.characters, request ? request.source.text : null, cast.lang, cast.style);
+  const issues = validateCast(cast.characters, request ? request.source.text : null, cast.lang, cast.style, castLiteralContext(cast, request));
   if (typeof cast.summary !== 'string' || !cast.summary.trim()) issues.push('summary is required');
   if (needsUiTranslation(cast.lang) && !cast.ui) issues.push('report language requires ui translation');
   if (issues.length) throw new Error(issues.join('\n'));

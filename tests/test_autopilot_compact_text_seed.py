@@ -17,6 +17,7 @@ from tests.autopilot_compact_text_fixtures import (
     copy_compact_two_cut_text_prefix,
 )
 from tests.autopilot_controller_fixtures import candidate as natural_candidate
+from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
 from tests.autopilot_controller_fixtures import (
     default_brief,
     environment,
@@ -114,7 +115,12 @@ def test_valid_other_text_cuts_are_ineligible(tmp_path, monkeypatch, variant):
             limits={"max_images": 79} if variant == "policy" else None)
         assert not images
     try:
-        assert len(calls) == 8 and view.phase == "references"
+        assert view.phase == "references"
+        with closing(storage.projects.open(view.project_id)) as store:
+            facts = checked_text_fixture(store)
+            expected_calls = facts.creative_jobs | facts.checker_jobs if variant == "brief" else facts.creative_jobs
+            assert len(calls) == len(expected_calls) and set(calls) == expected_calls
+            assert_checked_fixture_host(registry._codex_exec_test_host, facts)
         error = {"four-cut": "exactly two5s cuts", "brief": "exact compact30s Brief",
             "policy": "unchanged compact policy"}[variant]
         with closing(storage.projects.open(view.project_id)) as store, pytest.raises(ValueError, match=error):

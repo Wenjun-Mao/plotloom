@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext, castLiteralContext } from './provider-literal-context.mjs';
 /** Normal content API returns are correction authority; thrown failures never are. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -29,7 +30,7 @@ export async function contentIssues(candidate, request) {
       problems = [];
     }
     if (typeof request.source.text !== 'string') throw new Error('Frozen character source unavailable');
-    problems.push(...validateCast(candidate.characters, request.source.text, candidate.lang, candidate.style));
+    problems.push(...validateCast(candidate.characters, request.source.text, candidate.lang, candidate.style, castLiteralContext(candidate, request)));
     if (typeof candidate.summary !== 'string' || !candidate.summary.trim()) problems.push('summary');
     if (needsUiTranslation(candidate.lang) && !candidate.ui) problems.push('ui');
   } else if (request.stage === 'art') {
@@ -40,11 +41,11 @@ export async function contentIssues(candidate, request) {
     if (contract && !contract.authority) {
       const { styleContract, validateStyledArt } = await import('./art-style.mjs');
       if (!isDeepStrictEqual(contract, styleContract(contract.style, contract.authorDirection))) throw new Error('Frozen art contract drift');
-      problems = validateStyledArt(candidate, cast, contract);
+      problems = validateStyledArt(candidate, cast, contract, providerContext(request));
     } else {
       if (contract?.authority !== 'saved_brief') throw new Error('Unsupported art style authority');
       await import('./brief-art-style.mjs');
-      problems = validateArt(candidate, { cast });
+      problems = validateArt(candidate, { cast, ...providerContext(request) });
     }
     if (problems.length) {
       const scaleIssues = (Array.isArray(candidate.props) ? candidate.props : []).flatMap((prop, index) => {

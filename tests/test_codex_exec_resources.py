@@ -142,6 +142,7 @@ def test_node_stage_allowlist_pins_only_its_skill_adapter_and_runtime(tmp_path):
     assert paths == {
         (ROOT / "third_party/shuohao-skills/skills/novel-characters").resolve(),
         (ROOT / "scripts/cast-style.mjs").resolve(),
+        (ROOT / "scripts/provider-literal-context.mjs").resolve(),
         node_executable.parent.parent,
     }
     assert (ROOT / ".venv").resolve() not in paths
@@ -189,6 +190,7 @@ def test_saved_brief_source_allowlist_selects_neutral_adapter_and_exact_policy(
         (ROOT / f"third_party/shuohao-skills/skills/novel-{stage}").resolve(),
         (ROOT / adapter).resolve(),
         (ROOT / policy).resolve(),
+        (ROOT / "scripts/provider-literal-context.mjs").resolve(),
         node_executable.parent.parent,
     }
     if stage == "storyboard":
@@ -242,3 +244,21 @@ def test_outline_echo_wrapper_keeps_checked_python_and_renderer_node_together(ma
     assert (ROOT / "scripts/outline_content_validation.py" in resources.read_paths) is marked
     assert (ROOT / "scripts/text-content-validation.mjs") in resources.read_paths
     assert (resources.python_environment is not None) is marked
+
+
+@pytest.mark.parametrize('saved',[False,True])
+def test_new_f5_literals_bind_checked_python_node_and_context_helper(saved):
+    from tests.test_codex_exec_validation import _request, _saved_brief_artifacts
+    artifacts=_saved_brief_artifacts('storyboard') if saved else {
+        'script.json':{'episodes':[]},'outline.json':{'episodes':[]},
+        'cast.json':{'characters':[]},'art.json':{'scenes':[]}}
+    request=_request('storyboard',artifacts).model_dump(mode='json',by_alias=True)
+    request.update(upstreamSkillPath=upstream_skill_path_for_stage('storyboard'),executionPin=_pin('storyboard'))
+    resources=codex_exec_source_resources(ROOT,request)
+    assert set(dict(resources.tools))=={'uv','python','node'}
+    assert resources.python_environment is not None
+    assert ROOT/'src' in resources.read_paths
+    assert ROOT/'scripts/creative_field_validation.py' in resources.read_paths
+    assert ROOT/'scripts/provider-literal-context.mjs' in resources.read_paths
+    # The literal helper is inside the pinned stage directory, never another stage.
+    assert ROOT/'third_party/shuohao-skills/skills/novel-storyboard' in resources.read_paths

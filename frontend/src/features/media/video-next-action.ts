@@ -1,8 +1,8 @@
 import type { VideoJob } from "../../types";
 
-/** Match playback admission; a retained historical selection is not playable. */
+/** Backend selection and segment currentness own playback; generation policy is separate. */
 export function isCurrentVideoSelection(job: VideoJob): boolean {
-  return job.state === "ingested" && job.lifecycleStatus === "active" && job.inputStatus === "current" && job.current && job.selected
+  return job.state === "ingested" && job.lifecycleStatus === "active" && job.inputStatus !== "invalid" && job.selected
     && Boolean(job.playbackSegment?.current && job.playbackSegment.selected);
 }
 

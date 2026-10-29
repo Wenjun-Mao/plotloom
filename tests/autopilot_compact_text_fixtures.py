@@ -6,6 +6,7 @@ import pytest
 
 from plotloom.autopilot_materials import initial_inventory
 from tests.autopilot_controller_fixtures import default_brief, runtime
+from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
 from tests.autopilot_image_fixtures import handoff_image_environment
 from tests.autopilot_installed_text_core import (
     InstalledTextPrefix,
@@ -94,11 +95,13 @@ def build_compact_two_cut_text_prefix(root):
             with closing(storage.projects.open(view.project_id)) as store:
                 view, policy_text, records = assert_compact_two_cut_text_boundary(store, registry)
                 home_name = store.home.name
+                facts = checked_text_fixture(store)
             host = registry._codex_exec_test_host
             if (len(text) != 8 or len(set(text)) != 8 or images or host.pending
-                    or host.admissions != 8 or len(host.statuses) != 8 or registry.view()["busy"]
+                    or set(text) != facts.creative_jobs or registry.view()["busy"]
                     or any(item.state not in {"completed", "settled"} for item in host.statuses.values())):
                 raise ValueError("compact text prefix requires eight completed natural host deliveries")
+            assert_checked_fixture_host(host, facts)
             _assert_no_image_or_live_reservations(storage)
         finally:
             service.close()

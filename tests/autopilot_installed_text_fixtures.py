@@ -3,6 +3,7 @@ from contextlib import closing
 
 import pytest
 
+from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
 from tests.autopilot_controller_fixtures import (
     default_brief,
     environment,
@@ -43,10 +44,11 @@ def build_installed_text_prefix(root):
             with closing(storage.projects.open(view.project_id)) as store:
                 view, policy_text, records = assert_installed_text_boundary(store, registry)
                 home_name = store.home.name
-            if (len(calls) != 8 or host.image_calls or host.pending or registry.view()["busy"]
-                    or len(host.statuses) != 8
+                facts = checked_text_fixture(store)
+            if (set(calls) != facts.creative_jobs | facts.checker_jobs or host.image_calls or host.pending or registry.view()["busy"]
                     or any(status.state not in {"completed", "settled"} for status in host.statuses.values())):
                 raise ValueError("installed-text prefix still has pending fake host work")
+            assert_checked_fixture_host(host, facts)
         finally:
             service.close()
         assert service._thread is None and service._descriptor is None

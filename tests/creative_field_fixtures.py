@@ -13,6 +13,8 @@ def cast_case(*, saved=True, locale="zh-CN"):
         {"sectionId": "opening", "footageMode": "footage"}, {"sectionId": "choice", "footageMode": "route_only"}]},
         "outline.json": {"characters": [{"id": "C01", "name": "Mara"}]}}
     freeze_field_ownership(request)
+    from plotloom.provider_literals import freeze_provider_context
+    freeze_provider_context(request)
     marker = "Saved Brief direction" if saved else contract["preset"]["label"]
     value = {"lang": "zh" if locale == "zh-CN" else "en", "characters": [{"id": "C01", "image": {"style": marker},
         "sectionPresence": [{"sectionId": "opening", "footageMode": "footage", "present": True, "context": "灯下的抉择。"},

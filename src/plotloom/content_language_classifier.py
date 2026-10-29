@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from hashlib import sha256
 
-CLASSIFIER_VERSION = "plotloom.content-language-classifier.v4"
+CLASSIFIER_VERSION = "plotloom.content-language-classifier.v6"
 STAGES = ("outline", "branches", "characters", "art", "script", "storyboard",
           "bridge-intent", "bridge-presentation")
 
@@ -98,7 +98,7 @@ def string_leaves(value, path="$"):
             yield from string_leaves(item, f"{path}[{index}]")
 
 
-def original_sources(request, *, ownership=True):
+def original_sources(request, *, ownership=True, visible_literals=True):
     """Only actual narrative sources can justify an exception, never schema prose."""
     inputs = {name.replace(".", "_"): value for name, value in request.input_artifacts.items()
               if name in {"outline.json", "cast.json", "art.json", "script.json",
@@ -114,6 +114,10 @@ def original_sources(request, *, ownership=True):
     sections = request.input_artifacts.get("section-map.json", {}).get("sections", [])
     if sections:
         sources["sectionIds"] = [item["sectionId"] for item in sections]
+    if visible_literals:
+        retained = request.input_artifacts.get("provider-literal-contract.json", {}).get("retainedSources", {})
+        if retained:
+            sources["retainedVisibleSources"] = {key: value["text"] for key,value in sorted(retained.items())}
     return sources
 
 

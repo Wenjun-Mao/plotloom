@@ -5,6 +5,18 @@ import { providerSessionKeys } from "../src/session-key";
 describe("PlotloomApiClient", () => {
   beforeEach(() => { window.sessionStorage.clear(); window.localStorage.clear(); });
 
+  it("revalidates video selection without HTTP cache and binds cancellation to its read owner", async () => {
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response(JSON.stringify({ jobs: [] }), { status: 200 }));
+    const client = new PlotloomApiClient(fetcher as typeof fetch);
+    const controller = new AbortController();
+    await client.getVideoJobs("project/one", controller.signal);
+    expect(fetcher.mock.calls[0][0]).toBe("/api/v2/projects/project%2Fone/video-jobs");
+    expect(fetcher.mock.calls[0][1]?.cache).toBe("no-store");
+    expect(fetcher.mock.calls[0][1]?.signal).toBe(controller.signal);
+    await client.getVideoJobs("project/one", controller.signal);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
   it.each([null, {}, { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true },
     { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, apiTextPipeline: "false" },
     { durableProjectDrafts: true, durableMediaDrafts: true, explicitProjectClose: true, portableSnapshots: true, textProviderProfiles: true }])(

@@ -10,6 +10,7 @@ from tests.autopilot_image_fixtures import (
     handoff_image_environment,
     run_pack,
 )
+from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
 from tests.autopilot_seed_fixtures import (
     ClosedAutopilotSeed,
     copy_closed_autopilot_seed,
@@ -56,6 +57,9 @@ def build_awaiting_handoff_seed(root):
             with closing(storage.projects.open(view.project_id)) as store:
                 home_name = store.home.name
                 assert_no_human_facts(store)
+                facts = checked_text_fixture(store)
+                assert set(text) == facts.creative_jobs
+                assert_checked_fixture_host(host, facts, images=calls)
                 with store.repository.engine.connect() as connection:
                     attempts = connection.exec_driver_sql(
                         "SELECT job_id,domain,state,image_budget_state,receipt FROM v2_autopilot_exec_attempts"

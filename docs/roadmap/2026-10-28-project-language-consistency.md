@@ -624,3 +624,34 @@ proof before regenerating the original pair through all eight stages; no frozen
 old run is rewritten or resumed under changed source. Preserve all 16 normal homes,
 including valued 苏棠 and the two preexisting incomplete homes. All remaining
 qualification, activation, media, playback and cleanup criteria remain unchanged.
+
+
+### Provider-literal reassessment — 2026-10-29
+
+At local `0fd56878`, a fresh English run passed and adopted Outline, Branches and
+Cast with the repaired exact metadata owner. Art then exposed an English-provider
+gate that rejects the author's required visible 安. The single correction removed
+that character from all provider fields and passed language checking, but was
+paused before adoption because this is not source fidelity. Both active runs are
+now paused, all 12 exact native attempts have no worker/CLI process group or
+validator, and the isolated runtime is stopped. Failed and corrected evidence
+remains unchanged; normal runtime/data, images and H3 remain untouched.
+
+ADR 0224 records the bounded provider-literal decision before implementation. The
+same Sol/High worker owns parent code and the isolated owned Cast/Art/F5 fork for
+exact source/span roles, English residual gates, complete existing native semantic
+checking including omission, render/receiver parity and Art exact style metadata.
+Coordinator owns docs, integration, independent review, local commits and live QA.
+No new provider, translation engine, stage, checker framework or approval flow is
+in scope. Next smallest real proof is the identical English fixture through Art
+creation/check/adoption, preserving exact lettering in submitted prompt bytes;
+then finish both all-eight installations and the remaining approved sequence.
+
+
+The bounded literal/discovery, retained-proof and selected-playback/choice repairs
+now have independent review closure. Production source and owned fork are frozen;
+the tests-only handoff-fixture update is integrated with verified hashes. Quick,
+deterministic asset checks and the affected fixture evidence passed. Commit the complete candidate before the new English-through-Art
+journey and keep HEAD stable through native stages, since Bridge freezes it. The
+verification record owns exact patches, checks and limits; no activation or media
+completion is implied.

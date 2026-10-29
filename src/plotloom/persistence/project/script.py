@@ -119,8 +119,12 @@ class ProjectScriptPersistence:
     def _context_for_binding(self, session: Any, project_id: str, binding: ScriptBinding):
         # Only the stored selection survives; language/profile are resolved now.
         planned = binding.planned_storyboard_dialogue
-        return self._context(session, project_id,
+        context = self._context(session, project_id,
             planned_storyboard_max_cut_seconds=planned.max_cut_seconds if planned is not None else None)
+        from .selected_media_policy import selected_playback_read
+        if selected_playback_read(project_id):
+            context = (context[0].model_copy(update={"planned_storyboard_dialogue":planned}), *context[1:])
+        return context
 
     def _stale(self, session: Any, project_id: str, binding: ScriptBinding) -> list[ReviewContextDiagnostic]:
         try: current, *_ = self._context_for_binding(session, project_id, binding)

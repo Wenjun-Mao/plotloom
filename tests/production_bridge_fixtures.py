@@ -119,6 +119,8 @@ def _prepare_installable_bridge(
             "bridge-fixture",
         )
     )
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, request, ready.storyboard)
     store.accept_storyboard_review_candidate(
         StoryboardReviewAcceptRequest(
             job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding

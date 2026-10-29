@@ -7,6 +7,7 @@ from plotloom.autopilot_contracts import POLICY_VERSION
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.image_commands import image_context
 from tests import autopilot_controller_fixtures
+from tests.autopilot_checked_text_fixtures import checked_text_fixture
 from tests.autopilot_controller_fixtures import environment, run_text
 
 
@@ -60,11 +61,12 @@ def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geome
             return _compact_handoff_storyboard(
                 [item.episode for item in binding.section_bindings],
                 cuts_per_scene=cuts_per_scene,
+                current_board=original_candidate(store, request),
             )
         return original_candidate(store, request)
 
     monkeypatch.setattr(autopilot_controller_fixtures, "candidate", compact_candidate)
-    return image_environment(
+    result = image_environment(
         tmp_path,
         monkeypatch,
         auto_deliver=auto_deliver,
@@ -72,19 +74,33 @@ def handoff_image_environment(tmp_path, monkeypatch, *, auto_deliver=True, geome
         brief=brief,
         limits=limits,
     )
+    storage, registry, service, view, images, all_text_calls = result
+    with closing(storage.projects.open(view.project_id)) as store:
+        facts = checked_text_fixture(store)
+    assert len(all_text_calls) == len(facts.creative_jobs | facts.checker_jobs)
+    assert set(all_text_calls) == facts.creative_jobs | facts.checker_jobs
+    # This fixture port exposes creative calls only; the host retains every
+    # separate checking admission/status/receipt for exact accounting.
+    creative_calls = [job for job in all_text_calls if job in facts.creative_jobs]
+    return storage, registry, service, view, images, creative_calls
 
 
-def _compact_handoff_storyboard(episodes, *, cuts_per_scene=4):
+def _compact_handoff_storyboard(episodes, *, current_board, cuts_per_scene=4):
     seconds = 10 / cuts_per_scene
     beats_per_cut = 4 // cuts_per_scene
+    value = deepcopy(current_board)
+    assert [episode["ep"] for episode in value["episodes"]] == list(episodes)
+    template = value["episodes"][0]["segments"][0]["cuts"][0]
     cuts = [
         {
+            **deepcopy(template),
             "seconds": seconds,
             "beats": [beats_per_cut * (index - 1) + 1, beats_per_cut * index],
             "size": "medium",
             "camera": "Static Shot",
             "characters": ["keeper"],
             "props": [],
+            "composition": "守灯人站在黎明的航标室，中景，静止构图。",
             "frame": "medium shot of the keeper in the beacon room at dawn, cinematic film still, cool gray palette, 16:9",
         }
         for index in range(1, cuts_per_scene + 1)
@@ -101,29 +117,16 @@ def _compact_handoff_storyboard(episodes, *, cuts_per_scene=4):
         )
         for index in range(1, len(cuts) + 1)
     )
-    return {
-        "source": "Tide Light",
-        "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15},
-        "episodes": [
-            {
-                "ep": episode,
-                "segments": [
-                    {
-                        "id": f"E{episode:02}-01",
-                        "sceneIndex": 1,
-                        "cuts": deepcopy(cuts),
-                        "h3Prompt": (
-                            "How the reference pictures align with the target video — "
-                            f"{alignments}.\n\nintegrated_multimodal_description:\n"
-                            f"{shot_descriptions}\n\noverall_soundscape: Quiet wind around an empty beacon room."
-                            "\n\nnon_diegetic_music: N/A"
-                        ),
-                    }
-                ],
-            }
-            for episode in episodes
-        ],
-    }
+    for episode in value["episodes"]:
+        segment = deepcopy(episode["segments"][0])
+        segment.update(cuts=deepcopy(cuts), h3Prompt=(
+            "How the reference pictures align with the target video — "
+            f"{alignments}.\n\nintegrated_multimodal_description:\n"
+            f"{shot_descriptions}\n\noverall_soundscape: Quiet wind around an empty beacon room."
+            "\n\nnon_diegetic_music: N/A"
+        ))
+        episode["segments"] = [segment]
+    return value
 
 
 def assert_compact_handoff_pack(storage, view, complete, calls, *, expected_frames=12):

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { castLiteralContext } from './provider-literal-context.mjs';
 /** Current Plotloom character render contract; candidate bytes are never translated. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -67,9 +68,10 @@ function main(args) {
   const cast = read(path), contract = read(flag('--contract'));
   const problems = validateStyle(cast, contract);
   if (command !== 'check-style') {
-    const source = read(flag('--request')).source;
+    const request = read(flag('--request'));
+    const source = request.source;
     if (typeof source.text !== 'string') throw new Error('Frozen source.text is required for verbatim evidence validation');
-    problems.push(...validateCast(cast.characters, source.text, cast.lang, cast.style));
+    problems.push(...validateCast(cast.characters, source.text, cast.lang, cast.style, castLiteralContext(cast, request)));
     if (typeof cast.summary !== 'string' || !cast.summary.trim()) problems.push('summary is required');
     if (needsUiTranslation(cast.lang) && !cast.ui) problems.push('report language requires ui translation');
   }

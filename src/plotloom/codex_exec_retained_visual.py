@@ -75,6 +75,8 @@ def retained_visual_package_projection(request, execution_pin, *, source_revisio
     if route == "preset_style":
         render.append("--html")
     render += extra
+    if stage == "art" and "provider-literal-contract.json" in request.input_artifacts:
+        render += ["--request", "{package}/request.json"]
     plan = CodexExecTextValidationPlan.model_validate({
         "schemaVersion": 1, "stage": stage, "route": route, "requestHash": request_hash(request), "sourceRevision": source_revision,
         "executionPinHash": _digest(pin), "candidateFilename": filename, "reportFilename": "report.html",

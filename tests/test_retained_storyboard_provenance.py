@@ -23,6 +23,13 @@ from tests.retained_storyboard_fixtures import PIN, REVISION, STYLE, replace_sty
 @pytest.mark.parametrize("typed", [False, True])
 def test_current_frozen_storyboard_projection_preserves_exact_plan_and_package(tmp_path, typed):
     request = storyboard_request(typed=typed)
+    if not typed:
+        # A newly marked literal packet requires the current typed boundary.
+        # Historical untyped packages remain covered below without the marker.
+        with pytest.raises(ValueError, match="typed content boundary"):
+            project_creative_package(tmp_path / request.job_id, request, PIN,
+                executor_backend="codex_exec", plotloom_code_revision=REVISION)
+        return
     expected, *_ = project_creative_package(tmp_path / request.job_id, request, PIN,
         executor_backend="codex_exec", plotloom_code_revision=REVISION)
     actual = retained_storyboard_package_projection(request, PIN, source_revision=REVISION)

@@ -93,9 +93,9 @@ export function selectedRouteVideos(
 function jobStatus(job: VideoJob): string {
   if (job.cancelRequestedAt) return "取消意图已记录：保留已知远端任务，但不会采用输出";
   if (job.lifecycleStatus === "archived") return "项目已归档 · 保留媒体证据";
+  if (isCurrentVideoSelection(job)) return "已为当前镜头选择播放片段";
   if (job.inputStatus === "invalid") return "冻结输入证据未通过核验";
   if (job.inputStatus === "stale") return "冻结输入与当前内容不一致";
-  if (isCurrentVideoSelection(job)) return "已为当前镜头选择播放片段";
   if (job.selected) return job.current
     ? "已选原片，但尚无当前可用的播放片段；暂不能用于故事播放"
     : "保留先前选择记录，不用于当前故事播放";

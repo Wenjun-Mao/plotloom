@@ -742,7 +742,7 @@ export class PlotloomApiClient {
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(signal?: AbortSignal): Promise<VideoBackend> { return this.request("/video-backend", { signal }); }
-  getVideoJobs(projectId: string): Promise<{ jobs: VideoJob[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`); }
+  getVideoJobs(projectId: string, signal?: AbortSignal): Promise<{ jobs: VideoJob[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { signal, cache: "no-store" }); }
   prepareVideoJob(projectId: string, body: VideoJobPrepareBody): Promise<VideoJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
   }

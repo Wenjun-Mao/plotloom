@@ -7,6 +7,7 @@ import pytest
 
 from plotloom.project_storage import ProjectStorageCorruptionError
 from tests.autopilot_controller_fixtures import default_brief, environment, run_text
+from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
 from tests.autopilot_geometry_fixtures import first_geometry_frame, mismatch
 from tests.autopilot_installed_text_fixtures import (
     assert_installed_text_boundary,
@@ -149,7 +150,11 @@ def test_valid_nondefault_inputs_are_not_prefix_eligible(tmp_path, monkeypatch, 
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch, **options)
     try:
         installed = run_text(service, view)
-        assert installed.state == "running" and installed.phase == "references" and len(calls) == 8
+        assert installed.state == "running" and installed.phase == "references"
+        with closing(storage.projects.open(view.project_id)) as store:
+            facts = checked_text_fixture(store)
+            assert set(calls) == facts.creative_jobs | facts.checker_jobs
+            assert_checked_fixture_host(registry._codex_exec_test_host, facts)
         with closing(storage.projects.open(view.project_id)) as store, pytest.raises(
             ValueError, match="unchanged default Brief|unchanged default policy",
         ):

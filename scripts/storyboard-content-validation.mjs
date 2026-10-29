@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { providerContext } from './provider-literal-context.mjs';
 /** Normal Storyboard API issues only; thrown/frozen/receiving failures stay terminal. */
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -37,7 +38,7 @@ export async function storyboardContentResult(candidate, request) {
     receive = route.validateBriefStoryboard;
   } else {
     const route = await import('./storyboard-receiving.mjs');
-    ctx = { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'] };
+    ctx = { script: inputs['script.json'], outline: inputs['outline.json'], cast: inputs['cast.json'], art: inputs['art.json'], ...providerContext(request) };
     receive = route.validateReceivedStoryboard;
   }
   const problems = validateStoryboard(candidate, ctx);

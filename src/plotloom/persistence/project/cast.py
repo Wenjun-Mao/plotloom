@@ -129,9 +129,11 @@ class ProjectCastPersistence:
     def _stale_against(self, session: Any, project_id: str, current: CastBinding, binding: CastBinding) -> list[ReviewContextDiagnostic]:
         """Compare this operation's inputs; never resolve or retain context."""
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
-        reasons = binding_diagnostics(current, binding, fields + (("language_contract", "project language"),))
+        from .selected_media_policy import selected_playback_read, retained_style_matches
+        retained = selected_playback_read(project_id)
+        reasons = binding_diagnostics(current, binding, fields + (() if retained else (("language_contract", "project language"),)))
         direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
-        if not cast_style_current(binding.render_contract, direction):
+        if not (retained_style_matches(binding.render_contract, direction) if retained else cast_style_current(binding.render_contract, direction)):
             reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="cast render contract is not current; prepare a new cast task"))
         return reasons + ([ReviewContextDiagnostic(code="section_context_changed", owner="source", technical_message="section context changed")] if current.section_ids != binding.section_ids else [])
 
@@ -273,6 +275,8 @@ class ProjectCastPersistence:
             else:
                 request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
             freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
+            from ...provider_literal_preparation import prepare_provider_literals
+            prepare_provider_literals(session, request)
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()

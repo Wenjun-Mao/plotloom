@@ -157,7 +157,7 @@ def _retained_codex_request_projection(
                 )
             except (TypeError, ValueError) as error:
                 raise ProjectStorageCorruptionError("retained Outline package projection is invalid") from error
-        if request.stage == "storyboard" and "storyboard-style-contract.json" in request.input_artifacts:
+        if request.stage == "storyboard" and not is_language_check(request):
             try:
                 return retained_storyboard_package_projection(
                     request, execution_pin, source_revision=plotloom_code_revision)

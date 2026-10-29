@@ -301,6 +301,7 @@
           "tests/test_cross_shot_handoff.py",
           "tests/test_codex_exec_duplicate_reference_roles.py",
           "tests/test_frozen_video_integrity.py",
+          "tests/test_selected_playback_policy.py",
           "tests/test_image_job_exchange_contracts.py",
           "tests/test_image_terminal_settlement.py",
           "tests/test_managed_asset_provenance.py",
@@ -349,6 +350,7 @@
           "frontend/tests/video-pilot-read-state.test.ts",
           "frontend/tests/video-pilot-review.test.ts",
           "frontend/tests/video-pilot-routes.test.ts",
+          "frontend/tests/frozen-selected-playback.test.ts",
           "frontend/tests/video-pilot-timing.test.ts"
         ],
         "playwright": [
@@ -641,6 +643,11 @@
           "tests/test_content_language_admission_ack.py",
           "tests/test_content_language_span_schema.py",
           "tests/test_creative_field_ownership.py",
+          "tests/test_provider_literals.py",
+          "tests/test_provider_literal_channels.py",
+          "tests/test_provider_literal_persistence.py",
+          "tests/test_visible_literal_discovery.py",
+          "tests/test_retained_storyboard_checker.py",
           "tests/test_creative_field_integration.py",
           "tests/test_retained_field_ownership.py",
           "tests/test_h3_execution_retry.py",
@@ -683,6 +690,7 @@
         ],
         "vitest": [
           "frontend/tests/bridge-choice-retry.test.ts",
+          "frontend/tests/frozen-bridge-choices.test.ts",
           "frontend/tests/frozen-profile-guidance.test.ts",
           "frontend/tests/h3-directions-review.test.ts",
           "frontend/tests/manual-task-assignment.test.ts",

@@ -237,7 +237,7 @@ class VideoJobPersistence(VideoJobPreparation):
                 selection = selections.get(shot.get("id")) if isinstance(shot, dict) and isinstance(shot.get("id"), str) else None
                 proposals = self._segments.project_segments(
                     session, row, segments.get(row.id, []), selection,
-                    job_current=job["current"],
+                    job_current=job["current"] or job["selected"],
                 )
                 job["segments"] = proposals
                 job["playbackSegment"] = next((item for item in proposals if item["selected"]), None)
@@ -340,6 +340,6 @@ class VideoJobPersistence(VideoJobPreparation):
         shot = row.snapshot.get("shot") if isinstance(row.snapshot, dict) else None
         selection = selections.get(shot.get("id")) if isinstance(shot, dict) and isinstance(shot.get("id"), str) else None
         return job | {
-            "selected": bool(selection and selection.selected_video_job_id == row.id and job["current"]),
+            "selected": bool(selection and selection.selected_video_job_id == row.id and self._currentness.selected_video_current_in_session(session, row)),
             "selectionRevision": selection.revision if selection is not None else 0,
         }
