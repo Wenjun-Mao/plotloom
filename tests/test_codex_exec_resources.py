@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -244,6 +245,44 @@ def test_outline_echo_wrapper_keeps_checked_python_and_renderer_node_together(ma
     assert (ROOT / "scripts/outline_content_validation.py" in resources.read_paths) is marked
     assert (ROOT / "scripts/text-content-validation.mjs") in resources.read_paths
     assert (resources.python_environment is not None) is marked
+
+
+@pytest.mark.parametrize("stage", ["outline", "characters", "art"])
+def test_typed_text_validator_read_scope_contains_its_transitive_static_import(stage):
+    request = dict(stage=stage, upstreamSkillPath=upstream_skill_path_for_stage(stage),
+        executionPin=_pin(stage), inputArtifacts={},
+        contentValidationContract="plotloom.typed-content-result.v1")
+    resources = codex_exec_source_resources(ROOT, request)
+
+    assert ROOT / "scripts/text-content-validation.mjs" in resources.read_paths
+    assert ROOT / "scripts/provider-literal-context.mjs" in resources.read_paths
+    assert ROOT not in resources.read_paths
+    assert ROOT / "scripts" not in resources.read_paths
+
+
+def test_outline_text_validator_import_succeeds_only_with_exact_sandbox_files():
+    request = dict(stage="outline", upstreamSkillPath=upstream_skill_path_for_stage("outline"),
+        executionPin=_pin("outline"), inputArtifacts={},
+        contentValidationContract="plotloom.typed-content-result.v1")
+    resources = codex_exec_source_resources(ROOT, request)
+    validator = (ROOT / "scripts/text-content-validation.mjs").resolve()
+    context = (ROOT / "scripts/provider-literal-context.mjs").resolve()
+    assert validator in resources.read_paths and context in resources.read_paths
+    node = dict(resources.tools)["node"]
+    code = f"await import({json.dumps(validator.as_uri())})"
+
+    def run(allowed_paths):
+        command = [str(node), "--permission"]
+        command.extend(f"--allow-fs-read={path}" for path in allowed_paths)
+        command.extend(("--input-type=module", "--eval", code))
+        return subprocess.run(command, capture_output=True, text=True, check=False, timeout=15)
+
+    allowed = run((validator, context))
+    assert allowed.returncode == 0, allowed.stderr
+    missing_dependency = run((validator,))
+    assert missing_dependency.returncode != 0
+    assert "ERR_ACCESS_DENIED" in missing_dependency.stderr
+    assert str(context) in missing_dependency.stderr
 
 
 @pytest.mark.parametrize('saved',[False,True])

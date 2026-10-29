@@ -655,3 +655,17 @@ deterministic asset checks and the affected fixture evidence passed. Commit the 
 journey and keep HEAD stable through native stages, since Bridge freezes it. The
 verification record owns exact patches, checks and limits; no activation or media
 completion is implied.
+
+
+At candidate `82a54bdb`, the fresh English Outline and its one automatic retry
+failed on a missing sandbox read permission for the new transitive literal helper.
+After two failures, generation is paused and all exact native owners are absent.
+The next smallest action is a no-provider sandbox dependency proof and bounded
+resource repair, then the English-through-Art journey. Retained failed attempts
+remain original; no activation, image/H3 or expanded generation campaign occurred.
+
+
+The exact resource repair passed independent review, six focused cases and a
+coordinator actual macOS sandbox positive/negative import probe with networking
+disabled. Resume the product path after its local commit; no more supporting
+framework or broad qualification is needed before the next native attempt.

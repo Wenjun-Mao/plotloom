@@ -607,3 +607,77 @@ The production delta remains the previously reviewed candidate. Literal/discover
 logic and selected-media/choice eligibility live in cohesive dedicated modules;
 existing large API/player owners retain localized projection/call-site changes,
 so unrelated splitting would add coupling without improving these owners.
+
+## Reviewed candidate native checkpoint — 2026-10-29
+
+Atomic parent `82a54bdb480f48afe61ba09cfcbcfed02971003c` pins clean local fork
+`35fac2661d70c6c017f1c4a61360d0e74c732497`. Independent review closed the
+nine-file fixture delta. The exact formerly blocked native Cast plan/resource/
+renderer integration now passes after the parent pin commit (one case, focused).
+Native envelope validates unchanged checked Python 3.12.13 ARM64 identity
+`02149676aaa4d2a28ec98b66bd6160f4890be1e9487a3122aa30007ab7e4b2d7`,
+Node 24.18.0 and Sol/Medium exec v8; complete actual identity is retained in
+`literal-native-envelope.json`.
+
+Fresh English original fixture `ddbf2a90-04e2-4f0d-aea2-abb9b5c920e2` was
+created by real HTTP using a persisted idempotency intent and the byte-identical
+original Brief. GET readback preserves its Brief and en-US language. Native run
+`81853a8c-1fca-4b32-a2a1-571d21be2c11` is active under the text-only prefix,
+with the intended stop at Art adoption. No current native success is claimed
+yet. Keep HEAD and production/fork bytes stable through this run; notes remain
+uncommitted. Installed normal runtime/data remain untouched.
+
+## Native sandbox dependency blocker and method reassessment
+
+The fresh English run at `82a54bdb` did not reach Art. Outline job
+`ch_367faad1732541cd9b547ecc23abdce2`, attempt
+`3ede29a5-7b6f-4286-906d-92c8e7393cbd`, wrote its candidate but trusted validation
+failed. Its configured single execution retry used distinct job
+`ch_ccaeb7a56abe5203ab63470f0f269405`, attempt
+`b9eaa4f8-9489-4b06-a0b9-18281c0e13d1`, and failed the same way. The first
+exact package/stream/session/file-change evidence and current plan/resources/profile
+all pass read-only inspection. The validator did run: its temporary process row had
+already been cleaned up. Both retained validate.stderr files identify Node
+ERR_MODULE_NOT_FOUND for scripts/provider-literal-context.mjs imported from
+scripts/text-content-validation.mjs. The file exists but the Outline sandbox
+read scope omits this newly transitive dependency. This is an execution-envelope
+defect blocking the smallest real journey, not a language verdict or creative
+rejection. No candidate or report was adopted.
+
+After these two attempts, stop generation and change the method: repair the
+least-privilege source-resource contract and prove the actual sandbox import
+without another drafting call first. The same worker owns this bounded follow-up,
+requested Luna/Max (effective host settings unobservable); previous production/
+fixture review closure remains valid except for the demonstrated envelope defect.
+Root retained both original failure packages/candidates/stderr, supported pause
+and exact native absence proof. Workers 88687/89887 and CLI groups 88719/89919
+are positively absent, no validators or active specialist tasks remain, and the
+isolated runtime stopped cleanly. Normal runtime/data and all image/H3 state remain
+unchanged. Do not resume old frozen jobs under repaired source.
+
+The native UI also emitted an assignment-preview 409 package_conflict while the
+run was active. This ancillary read is retained for recheck after the blocking
+validator issue; it did not prevent drafting. No UI or package guard was weakened.
+
+## Exact sandbox repair qualification
+
+The two-file patch
+`7f50ef115b20484b65bf2d9de0fb93f56fb6fc65379ae44752141d98d21b1959`
+adds only scripts/provider-literal-context.mjs whenever typed Outline/Cast/Art
+includes scripts/text-content-validation.mjs. The helper has no further imports;
+existing stage-specific lazy imports retain their original grants. No checkout or
+scripts-directory grant was added. The resource owner remains cohesive at 391
+lines. Coordinator verified both before/after hashes and retained logs; independent
+review closed the delta without findings. Six focused resource cases and Ruff pass.
+The worker's import regression uses Node's permission model and is not itself an
+actual Codex/macOS sandbox test.
+
+Coordinator separately ran the existing production sandbox-command/permission
+owners with local Node import only, networking disabled, temporary scratch paths
+and no retained-attempt mutation. Exact repaired resource paths imported cleanly
+(exit 0, 0.072 seconds). Omitting the helper alone failed with the same Node
+ERR_MODULE_NOT_FOUND (exit 1, 0.065 seconds). Actual proof is retained in
+`literal-runtime-blocker/macos-sandbox-import-proof.json`. This establishes the
+causal execution-envelope repair, not a native drafting/checking/provider pass.
+Frontend/build evidence remains unchanged; the next real journey uses the updated
+committed source and fresh frozen job identities. No old failures are relabeled.

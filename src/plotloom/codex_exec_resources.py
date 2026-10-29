@@ -317,7 +317,12 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
     if stage in {"characters", "art", "storyboard"} and not checking_language:
         relative_paths.append("scripts/provider-literal-context.mjs")
     if stage in {"outline", "characters", "art"} and package_request.get("contentValidationContract") is not None:
-        relative_paths.append("scripts/text-content-validation.mjs")
+        # The Node validator resolves its literal-context import eagerly even
+        # when an Outline package never calls the provider-specific helpers.
+        relative_paths.extend((
+            "scripts/text-content-validation.mjs",
+            "scripts/provider-literal-context.mjs",
+        ))
     if stage == "script" and package_request.get("contentValidationContract") is not None:
         relative_paths.append("scripts/script-content-validation.mjs")
     if stage == "storyboard" and not checking_language:
