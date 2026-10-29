@@ -162,3 +162,9 @@ values, and dialogue timing versus provider limits. No general translation
 service, provider registry, full English UI, old-story conversion or new acceptance
 engine is introduced. New persisted defaults follow the project; Chinese UI
 placeholders never become saved creative values.
+
+Sandboxed primary and independent-check validators declare the full concrete read
+closure of this policy, including the three exact owned helper files hashed by
+literal_policy_identity. A stage-local source grant alone cannot satisfy that
+cross-helper integrity check. Grant these exact files only where the binder runs;
+retain pin/cleanliness checks and deny unrelated parent directories.

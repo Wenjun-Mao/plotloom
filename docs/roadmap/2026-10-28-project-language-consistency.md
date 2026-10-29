@@ -669,3 +669,19 @@ The exact resource repair passed independent review, six focused cases and a
 coordinator actual macOS sandbox positive/negative import probe with networking
 disabled. Resume the product path after its local commit; no more supporting
 framework or broad qualification is needed before the next native attempt.
+
+
+At `67f028fb`, English Outline primary validation/render completed. Both checking
+attempts then failed on exact owned helper reads in the policy-hash binder. The
+run is paused and all native owners are absent. Audit and prove the full checker
+validate/render dependency closure under the real sandbox before another drafting
+call; keep this causal repair bounded to resources and focused tests. The created
+Chinese original fixture has no run and can freeze the repaired envelope later.
+
+
+The complete checker validate/render path now passes on exact temporary copies
+of genuine checker output inside the production macOS sandbox, with networking
+disabled and original failed evidence unchanged. The conditional three-file read
+closure has independent review and21 focused passes. Commit the repair and return
+to the original English-through-Art proof; retain the unlaunched Chinese fixture
+for subsequent all-eight qualification.

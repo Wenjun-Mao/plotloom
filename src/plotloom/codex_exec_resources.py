@@ -33,6 +33,12 @@ class CodexExecSourceResources:
     python_source_hash: str | None = None
 
 
+_PROVIDER_LITERAL_POLICY_PATHS = tuple(
+    f"third_party/shuohao-skills/skills/{stage}/scripts/provider-literals.mjs"
+    for stage in ("novel-art", "novel-characters", "novel-storyboard")
+)
+
+
 def _symlink_alias_chain(path: Path) -> tuple[tuple[Path, str], ...]:
     """Return every symlink component without collapsing an intermediate alias."""
     pending = list(Path(os.path.abspath(path)).parts[1:])
@@ -338,6 +344,9 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         if saved_brief_route:
             relative_paths.extend(("scripts/brief-cast-style.mjs",
                 "third_party/shuohao-skills/skills/novel-characters/scripts/novel-characters.mjs"))
+    if (checking_language or ("provider-literal-contract.json" in package_request.get("inputArtifacts", {})
+            and (marked_cast or marked_art or marked_storyboard_literals))):
+        relative_paths.extend(_PROVIDER_LITERAL_POLICY_PATHS)
     environment = None
     source_hash = None
     if plan.python_project:

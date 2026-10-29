@@ -285,6 +285,89 @@ def test_outline_text_validator_import_succeeds_only_with_exact_sandbox_files():
     assert str(context) in missing_dependency.stderr
 
 
+@pytest.mark.parametrize("stage", ["outline", "branches", "characters", "art", "script", "storyboard",
+    "bridge-intent", "bridge-presentation"])
+def test_language_checker_scope_includes_all_policy_hash_inputs_and_denies_unrelated_resources(stage):
+    request = dict(stage=stage, upstreamSkillPath=upstream_skill_path_for_stage(stage),
+        executionPin=_pin(stage), source={"operation": "content-language-check"}, inputArtifacts={})
+    resources = codex_exec_source_resources(ROOT, request)
+    policy_files = tuple(ROOT / f"third_party/shuohao-skills/skills/{skill}/scripts/provider-literals.mjs"
+        for skill in ("novel-art", "novel-characters", "novel-storyboard"))
+
+    assert set(policy_files) <= set(resources.read_paths)
+    assert ROOT / "scripts/content_language.py" in resources.read_paths
+    assert ROOT not in resources.read_paths
+    assert ROOT / "scripts" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills/skills" not in resources.read_paths
+    assert ROOT / "scripts/creative_field_validation.py" not in resources.read_paths
+    assert ROOT / "scripts/art_content_validation.py" not in resources.read_paths
+    upstream_path = upstream_skill_path_for_stage(stage)
+    expected_stage_root = (ROOT / upstream_path).parent.resolve() if upstream_path.startswith(
+        "third_party/shuohao-skills/"
+    ) else None
+    for skill in ("novel-outline", "novel-characters", "novel-art", "novel-script", "novel-storyboard"):
+        stage_root = (ROOT / "third_party/shuohao-skills/skills" / skill).resolve()
+        if stage_root != expected_stage_root:
+            assert stage_root not in resources.read_paths
+
+
+@pytest.mark.parametrize("stage", ["characters", "art", "storyboard"])
+def test_primary_literal_binders_receive_all_policy_hash_inputs_only_when_run(stage):
+    artifacts = {"provider-literal-contract.json": {}}
+    if stage == "characters":
+        from plotloom.creative_field_ownership import OWNERSHIP_FILENAME
+        artifacts[OWNERSHIP_FILENAME] = {}
+    elif stage == "art":
+        from plotloom.art_structure import ART_STRUCTURE_FILENAME, art_structure_artifact
+        artifacts["art-style-contract.json"] = {"style": "frozen-style"}
+        artifacts[ART_STRUCTURE_FILENAME] = art_structure_artifact(preset=True)
+    request = dict(stage=stage, upstreamSkillPath=upstream_skill_path_for_stage(stage),
+        executionPin=_pin(stage), inputArtifacts=artifacts,
+        contentValidationContract="plotloom.typed-content-result.v1")
+    resources = codex_exec_source_resources(ROOT, request)
+    policy_files = tuple(ROOT / f"third_party/shuohao-skills/skills/{skill}/scripts/provider-literals.mjs"
+        for skill in ("novel-art", "novel-characters", "novel-storyboard"))
+
+    assert set(policy_files) <= set(resources.read_paths)
+    assert ROOT / ("scripts/art_content_validation.py" if stage == "art" else "scripts/creative_field_validation.py") in resources.read_paths
+    assert ROOT not in resources.read_paths
+    assert ROOT / "scripts" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills/skills" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills/skills/novel-outline" not in resources.read_paths
+    assert ROOT / "third_party/shuohao-skills/skills/novel-script" not in resources.read_paths
+    upstream_root = (ROOT / upstream_skill_path_for_stage(stage)).parent.resolve()
+    for skill in ("novel-outline", "novel-characters", "novel-art", "novel-script", "novel-storyboard"):
+        stage_root = (ROOT / "third_party/shuohao-skills/skills" / skill).resolve()
+        if stage_root != upstream_root:
+            assert stage_root not in resources.read_paths
+    unrelated_binder = "scripts/creative_field_validation.py" if stage == "art" else "scripts/art_content_validation.py"
+    assert ROOT / unrelated_binder not in resources.read_paths
+
+
+@pytest.mark.parametrize("stage", ["characters", "art"])
+def test_primary_literal_binders_without_literal_context_do_not_grant_policy_hash_files(stage):
+    artifacts = {}
+    if stage == "characters":
+        from plotloom.creative_field_ownership import OWNERSHIP_FILENAME
+        artifacts[OWNERSHIP_FILENAME] = {}
+    else:
+        from plotloom.art_structure import ART_STRUCTURE_FILENAME, art_structure_artifact
+        artifacts["art-style-contract.json"] = {"style": "frozen-style"}
+        artifacts[ART_STRUCTURE_FILENAME] = art_structure_artifact(preset=True)
+    request = dict(stage=stage, upstreamSkillPath=upstream_skill_path_for_stage(stage),
+        executionPin=_pin(stage), inputArtifacts=artifacts,
+        contentValidationContract="plotloom.typed-content-result.v1")
+    resources = codex_exec_source_resources(ROOT, request)
+    policy_files = tuple(ROOT / f"third_party/shuohao-skills/skills/{skill}/scripts/provider-literals.mjs"
+        for skill in ("novel-art", "novel-characters", "novel-storyboard"))
+
+    assert not set(policy_files) & set(resources.read_paths)
+    binder = "scripts/art_content_validation.py" if stage == "art" else "scripts/creative_field_validation.py"
+    assert ROOT / binder in resources.read_paths
+
+
 @pytest.mark.parametrize('saved',[False,True])
 def test_new_f5_literals_bind_checked_python_node_and_context_helper(saved):
     from tests.test_codex_exec_validation import _request, _saved_brief_artifacts

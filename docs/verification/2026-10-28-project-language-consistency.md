@@ -1,19 +1,20 @@
 # Project-language implementation evidence
 
-Status: **in progress**, updated 2026-10-29. The latest real English fixture at
-`0fd56878` passed and adopted Outline, Branches and Cast (3/8). Art's first draft
-preserved required 安 but failed an English-only provider gate; its single correction
-removed 安 and remains delivered, unadopted. Latest Chinese fixture has Outline
-adopted and Branches delivered, unadopted. Both runs are paused and their native
-process groups/validators are absent; the isolated runtime is stopped. The reviewed
-literal/playback candidate and test-only fixtures await the atomic checkpoint.
-No all-eight installation, full local gate, exact-wheel qualification, activation,
-old-slot application or image/H3/media acceptance has occurred. Hosted CI is not
-requested/not run and is not a release blocker. Earlier sections retain historical
-checkpoints and failures; later reassessments own the latest state. The
-[approved plan](../roadmap/2026-10-28-project-language-consistency.md) owns scope.
-[ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md) owns
-language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
+Status: **in progress**, updated 2026-10-29. Latest candidate `67f028fb`
+completed a real native English Outline primary draft and trusted validate/render,
+but both distinct language-check attempts failed on missing sandbox reads needed
+by their literal-policy hash. The candidate remains delivered and unadopted. Its
+run is paused, every exact native group/validator is absent, and the isolated
+runtime is stopped. Earlier `0fd56878` reached English 3/8 before the Art literal
+conflict; those retained outputs are unchanged. A precise checker-resource repair
+and complete no-provider sandbox validate/render proof are next, then the same
+English-through-Art journey. No all-eight installation, full local gate, wheel
+qualification, activation, old-slot application or image/H3/media acceptance has
+occurred. Hosted CI is not requested/not run and is not a release blocker. Earlier
+sections retain historical checkpoints and failures; later reassessments own the
+latest state. The [approved plan](../roadmap/2026-10-28-project-language-consistency.md)
+owns scope. [ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md)
+owns language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
 owns the approved retry/local-capacity policy.
 
 ## Source and ownership
@@ -681,3 +682,82 @@ ERR_MODULE_NOT_FOUND (exit 1, 0.065 seconds). Actual proof is retained in
 causal execution-envelope repair, not a native drafting/checking/provider pass.
 Frontend/build evidence remains unchanged; the next real journey uses the updated
 committed source and fresh frozen job identities. No old failures are relabeled.
+
+
+The resource repair is locally committed at
+`67f028fb99ba4728d7949b5a1b355c613462bad1`; clean fork stays at 35fac266.
+Fresh envelope `literal-resource-native-envelope.json` records profile hash
+`f95f1452043c17644a97236d6e03e49947532f865296ef0fc39b5ca52d307c8c`
+with unchanged checked interpreter/runtime identity. Fresh English original home
+`ef0fbf8a-e22f-4050-90d3-a7a71801ff17` was created via a persisted idempotent
+HTTP intent and reopened with its exact en-US Brief. Run
+`8735556b-aa17-4447-8b3f-5d10163adede` is active through the bounded Art
+checkpoint; no success is implied until actual primary/check/adoption readback.
+
+## Checker policy-hash sandbox read closure
+
+At `67f028fb`, original English Outline job
+`ch_4497fd5cfa5e42a58c3c4f0304093d1d`, attempt
+`61d956b9-8e96-4be1-bb38-c2bb70be3339`, completed actual trusted validate and
+render. Its distinct checks `ch_229302c345d85e74b56e1e0535f355c2` /
+`ch_28505fbf41225dd2977bea30cc11efd8`, attempts
+`5588d98a-ca1e-5cf4-bf9b-ebc27b277c16` /
+`515dfeb6-b3e6-5c06-879c-506b65fe3fbf`, both failed with PermissionError reading
+novel-art/scripts/provider-literals.mjs. The trusted binder's literal_policy_identity
+hashes three exact owned skill helper files for every current checker; its sandbox
+scope omits those reads. This is a second precise envelope dependency, not a
+semantic rejection. Read-only binding of both exact returned checker JSONs outside
+the sandbox passes with verdict pass and 111 coverage leaves; native validation
+remains failed, no current check/adoption authority is inferred.
+
+After two checker failures, the method is expanded only to the full demonstrated
+binder/render call closure. The same Luna/Max worker owns exact resource grants
+and focused least-privilege regressions; root will exercise complete validate and
+render on temporary copies of the genuine failed-check inputs/outputs under the
+actual production macOS sandbox owner before another native drafting call.
+No guard, hash, source ownership, provider or frozen evidence is changed.
+
+Run `8735556b-aa17-4447-8b3f-5d10163adede` is paused; all three exact native
+worker/CLI groups are absent, with no validator rows or active tasks. Runtime
+stopped cleanly. The second original Chinese Brief home
+`2458559c-b6cf-4d98-9921-bd169e2b6769` was created and reopened through HTTP
+and has no run yet; it may launch under the next committed envelope without
+rewriting any frozen job. Exact sanitized causes, copies and absence proofs are
+retained under `literal-checker-runtime-blocker/`. Normal data/runtime and provider
+media remain unchanged.
+
+## Complete checker sandbox proof and resource closure
+
+The new two-file patch
+`9d930599dc7a81a7a8e8c22d2a1c6acc172f0d07bb48bed40fbeda475ae018f2`
+adds only the three exact helper files hashed by literal_policy_identity for all
+eight checker stages and the marked primary Cast/Art/F5 binders when a frozen
+literal context activates them. Existing stage pin/cleanliness guards remain;
+no checkout, scripts or skills parent grant is added. Coordinator verified exact
+before/after hashes; independent review closed it without findings. Twenty-one
+focused resource cases passed. The concise result explicitly comes from the
+successful command transcript; the original stale-fixture failure remains failed.
+The existing fixture owner is unchanged. Its worker fork was aligned to clean
+detached35fac266 only after all115 file bytes matched the committed fork, using
+local object import and a detached mixed metadata reset; every worktree byte
+remained unchanged and no branch/publication/CI was altered.
+
+Coordinator's complete actual macOS sandbox probe used the existing production
+validation command and child-environment owners, exact temporary copies of the
+genuine failed check's package/candidate and networking disabled. Both trusted
+steps passed: validate exit0 in0.568 seconds, render exit0 in0.505 seconds with
+67,481 English-report bytes and empty stderr. Candidate/request originals retain
+SHA-256259251b7ce7679eacef28ea9977ab95de5288f3ef7737aca7964b50b9132e4b5
+and84524209f1e4c1d5ba2999e9757a14de0e1a4af3596495a734ae89bfa4231f0d.
+`literal-checker-runtime-blocker/full-macos-sandbox-proof.json` owns the exact
+source/profile/step hashes. This proves execution closure on genuine inputs; it
+does not relabel either old failed native attempt or grant adoption. No more
+supporting framework is needed before the new native product attempt.
+
+The forwarded original frontend handoff was already integrated with the broader
+implementation. Its retained copy is frontend-worker-evidence.txt; the original
+worker test-results link is no longer present. default_creative_title(self.language)
+is current in working_inputs.py. The reported14 pin-blocked reader cases remain
+pending the integrated browser/full qualification; no pass is inferred from the
+current clean fork alone. Existing1675-test/type/build evidence is unchanged by
+these backend resource repairs.
