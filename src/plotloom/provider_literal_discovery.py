@@ -45,11 +45,20 @@ def discovery_inventory(sources):
         for path, text in string_leaves(sources)]}
 
 
-def discovery_verdicts(discovery):
+def discovery_verdicts(discovery, *, current_intent=False):
     if discovery is None:
         return set()
-    return ({'uncertain'} if any(row.decision == 'uncertain' for row in discovery.sources) else set()) | {
-        verdict for row in discovery.sources for fact in row.facts for verdict in (fact.intent, fact.presence)}
+    judgments = {'uncertain'} if any(row.decision == 'uncertain' for row in discovery.sources) else set()
+    for row in discovery.sources:
+        for fact in row.facts:
+            if current_intent:
+                if fact.intent == 'uncertain':
+                    judgments.add('uncertain')
+                elif fact.intent == 'pass' or fact.presence in {'reject', 'uncertain'}:
+                    judgments.add(fact.presence)
+            else:
+                judgments.update((fact.intent, fact.presence))
+    return judgments
 
 
 def fact_matches(claim, fact):
@@ -63,6 +72,8 @@ def bind_discovery(frozen, discovery, literal_review):
             raise ValueError('retained check has no visible-literal discovery contract')
         return
     from .content_language_classifier import string_leaves
+    from .provider_literal_review import INTENT_REVIEW_CONTRACT
+    current_intent = frozen.get('contract') == INTENT_REVIEW_CONTRACT
     sources = dict(string_leaves(frozen['sources']))
     if frozen[DISCOVERY] != discovery_inventory(frozen['sources']):
         raise ValueError('frozen visible-source inventory differs')
@@ -73,6 +84,7 @@ def bind_discovery(frozen, discovery, literal_review):
     roles = {item['path']: item['role'] for item in frozen['inventory']}
     packet = frozen.get('providerLiterals')
     approved = []
+    discovered = []
     seen = set()
 
     def exact(span, values, expected_hash):
@@ -82,8 +94,10 @@ def bind_discovery(frozen, discovery, literal_review):
             raise ValueError('discovery requires exact canonical Unicode span and complete field hash')
 
     for row in discovery.sources:
-        if ((row.decision == 'no_visible_literal' and row.facts)
-                or row.decision == 'visible_literal' and not row.facts):
+        invalid_empty = (any(fact.intent != 'reject' for fact in row.facts) if current_intent else bool(row.facts))
+        visible = any(fact.intent == 'pass' for fact in row.facts) if current_intent else bool(row.facts)
+        if ((row.decision == 'no_visible_literal' and invalid_empty)
+                or row.decision == 'visible_literal' and not visible):
             raise ValueError('visible discovery decision must explicitly enumerate its facts')
         for fact in row.facts:
             span = fact.source_span
@@ -99,7 +113,16 @@ def bind_discovery(frozen, discovery, literal_review):
                 if occurrence.span.text != span.text or not allowed:
                     raise ValueError('discovered lettering has an invented role or unsupported candidate channel')
             raw = fact.model_dump(mode='json', by_alias=True)
+            discovered.append(raw)
+            if current_intent and fact.intent == 'reject' and fact.presence == 'pass':
+                raise ValueError('rejected source interpretation cannot certify candidate preservation')
+            if current_intent and fact.intent == 'uncertain' and (
+                    fact.relevance != 'uncertain' or fact.presence != 'uncertain'):
+                raise ValueError('uncertain source intent requires visible uncertainty')
             mapped = [claim for claim in (packet or {}).get('claims', []) if fact_matches(claim, raw)]
+            if current_intent and fact.intent == 'reject' and fact.presence == 'reject' and not (
+                    fact.candidate_occurrences or mapped):
+                raise ValueError('rejection of current creative content requires an actual claimed or discovered occurrence')
             if fact.relevance == 'not_relevant' and (fact.presence != 'not_applicable' or fact.candidate_occurrences):
                 raise ValueError('stage-irrelevant discovered lettering requires presence=not_applicable and empty candidateOccurrences')
             if fact.presence == 'not_applicable' and fact.relevance != 'not_relevant':
@@ -117,7 +140,12 @@ def bind_discovery(frozen, discovery, literal_review):
                     and not any(fact_matches(claim, fact) for fact in approved)):
                 raise ValueError('passed visible claim requires independent source-intent discovery')
         for review, fact in zip(literal_review.facts, packet['context']['facts'], strict=True):
-            if review.verdict in {'pass', 'not_applicable'} and not any(fact_matches(fact, item) for item in approved):
+            if current_intent:
+                matches = [item for item in discovered if fact_matches(fact, item)]
+                if (review.intent is None or len(matches) != 1 or matches[0]['intent'] != review.intent
+                        or matches[0]['relevance'] != review.relevance or matches[0]['presence'] != review.verdict):
+                    raise ValueError('every prior interpretation needs matching exact-span current discovery')
+            elif review.verdict in {'pass', 'not_applicable'} and not any(fact_matches(fact, item) for item in approved):
                 raise ValueError('known source-visible fact cannot disappear from discovery')
 
 
@@ -126,6 +154,17 @@ def discovery_instructions():
         ' Complete visibleLiteralDiscovery.sources for EVERY ordered original source string in the frozen '
         'visibleLiteralDiscovery.sources inventory, even with zero writer claims or language exceptions. '
         'Use decision=no_visible_literal/visible_literal/uncertain and a source-grounded explanation. '
+        'Judge the exact occurrence in its complete scalar context; identical words elsewhere do not confer '
+        'their intent. A production imperative is not a label merely because the same phrase names a UI button '
+        'later in that field. Prior receipt-backed interpretations can be wrong. For each inherited fact, retain '
+        'its exact sourceSpan/sourceFieldHash with the current intent judgment, including intent=reject for an '
+        'earlier misclassification. If current content does not use it, a rejected interpretation uses '
+        'not_relevant/not_applicable with no candidate occurrences and does not itself reject creative content. '
+        'If a candidate claims or renders that unauthorized lettering, record its exact occurrence with '
+        'required/reject and reject the current claim/content; never certify it as preserved. A no_visible_literal row may retain '
+        'these explicit negative facts; a visible_literal row needs at least one intent=pass fact. Uncertain '
+        'intent requires uncertain relevance/presence and keeps the overall check uncertain. Never force a '
+        'false intent=pass, omit a known interpretation, or move it to an identical phrase at another offset. '
         'Discover ALL author-intended nonspoken visible lettering in BOTH project languages, including same-language '
         'English labels such as Mira. Language-exception absence, quotation marks, source equality, proper names '
         'and writer flags never establish or erase intent. Each visible_literal decision enumerates typed facts: '

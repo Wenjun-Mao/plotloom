@@ -1,13 +1,15 @@
-"""Receipt-bound upstream visible facts, including same-language semantic discovery."""
+"""Receipt-bound upstream interpretations; current source intent is judged afresh."""
 from .provider_literals import LITERAL_INPUT, digest, freeze_provider_context, text_hash
 
 
 def passed_visible_sources(frozen, result):
     """Retained contracts contribute only the evidence they actually established."""
-    for coverage in result.coverage:
-        for exception in coverage.exceptions:
-            if exception.kind == 'literal_visible_text':
-                yield exception.source_span.model_dump(mode='json', by_alias=True)
+    from .provider_literal_review import INTENT_REVIEW_CONTRACT
+    if result.contract != INTENT_REVIEW_CONTRACT:
+        for coverage in result.coverage:
+            for exception in coverage.exceptions:
+                if exception.kind == 'literal_visible_text':
+                    yield exception.source_span.model_dump(mode='json', by_alias=True)
     if result.visible_literal_discovery is not None:
         for source in result.visible_literal_discovery.sources:
             for fact in source.facts:
@@ -19,7 +21,8 @@ def passed_visible_sources(frozen, result):
             if review.verdict == 'pass' and claim['role'] == 'literal_visible_text':
                 yield claim['sourceSpan']
         for review, fact in zip(result.literal_review.facts, packet['context']['facts'], strict=True):
-            if review.verdict in {'pass', 'not_applicable'} and fact['role'] == 'literal_visible_text':
+            if (review.intent in {None, 'pass'} and review.verdict in {'pass', 'not_applicable'}
+                    and fact['role'] == 'literal_visible_text'):
                 yield fact['sourceSpan']
 
 

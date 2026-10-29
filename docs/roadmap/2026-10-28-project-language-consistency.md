@@ -896,3 +896,43 @@ stages, creation used zero provider requests) through all8native stages. Final
 media scope is original Chinese2458559c plus this replacement English home;
 retained failed English e1894d73 is excluded from media generation. Exact creation
 and procedural scope are retained under.local/project-language-20261028/.
+
+### Exact-occurrence source-intent repair — 2026-10-29
+
+The replacement English run e28b7d73 reached five adopted creative stages, then
+its F5 check and one configured retry both failed. All13 native attempts are
+terminal (11completed/2failed); the run remains blocked at revision47. Retain the
+successful primary F5, accepted upstream work and both failed outputs unchanged.
+No image/H3 submission or third checker dispatch occurred.
+
+The causal audit found one false prior interpretation: generated Cast continuity
+guidance contains `Keep the cup’s single visible character exactly 安`; its
+210:222 imperative prefix was incorrectly classified as the UI-label occurrence
+by Art and Script checks. The genuine label is at624:636 in the same scalar.
+Both F5 checks correctly distinguished them, but could not represent that negative
+source-intent judgment consistently with the inherited fact. This is a promotion/
+review contract defect, not author ambiguity. ADR0224 owns the prospective fix.
+
+Root is the sole source writer. The smallest observable outcome is provider-free
+through the existing real preparation and checker binders: retain that exact
+two-occurrence context and native provenance as test input, explicitly reject the
+wrong prior interpretation at its original span, preserve genuine 安/UI facts,
+pass otherwise valid current content, and continue to reject invented or omitted
+required lettering. Uncertain intent must block adoption. Synthetic controls must
+remain labeled synthetic; no historical result becomes a newer-contract pass.
+Finish focused regression, prompt/schema/binder agreement and independent stable
+review before native work. Do not weaken the F5 binder, remap source occurrences,
+change the QA Brief to avoid the case, or add a checker/dispute/replay framework.
+
+The director authorized a fresh original English home with the same story/intent
+after this causal fix if native lifecycle cannot continue. Read-only High review
+confirmed that F5 cancellation cannot make its delivered-success checkpoint
+discardable; Cast author editing changes closure and cannot preserve automatic
+Continue. Do not mutate the old blocked home to manufacture reuse. Check the
+compatible fixture/authority before new dispatch, record its identity, and stage
+the native journey so prior interpretations are inspected early. Existing Chinese
+installation evidence stays retained; recheck supported inheritance/current pins
+before images rather than assuming it remains executable after policy changes.
+Both complete text installations remain image prerequisites. Final media, local
+qualification, exact wheel, preservation-checked activation and cleanup remain
+required; CI and push stay unrequested.

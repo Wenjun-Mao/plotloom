@@ -246,3 +246,43 @@ matching registered provider claims as the binder already allows. Do not add a
 stricter occurrence-only rule, normalize malformed outputs or weaken the binder.
 Retained failed native checks remain failed; changed preparation uses new frozen
 identity and supported current authority.
+
+### Prospective source-intent correction — 2026-10-29
+
+Native Art and Script checks classified `Keep the cup` at Unicode210:222 in
+`Keep the cup’s single visible character exactly 安` as a player label. The actual
+label occurs separately at624:636 in the same complete Cast guidance field.
+Receipts establish those machine judgments and their exact provenance, not their
+semantic truth. The two later F5 checks correctly distinguished the occurrences
+but could not represent that distinction consistently with the inherited fact.
+Both failures and every original field, result and receipt remain unchanged.
+
+New language-check v2 results distinguish current source-intent judgment from
+current candidate preservation. Every inherited interpretation receives explicit
+`intent=pass/reject/uncertain`, bound to its exact fact ID, full source-field hash
+and source span through matching exhaustive discovery. Rejection of an earlier
+interpretation requires an explicit matching negative discovery; omission,
+not-applicable alone or relocation to an identical phrase cannot discharge it.
+Such rejection is not itself rejection of otherwise valid creative content.
+If current content actually claims or renders the unauthorized lettering, its
+exact candidate occurrence or mapped claim must instead produce candidate rejection.
+Uncertain source intent makes the whole check uncertain and blocks adoption.
+
+For v2, a literal-visible-text language exception also requires exact positive
+current discovery at the same complete source-field hash and Unicode span. Bare
+exception provenance cannot promote a smaller token inside a rejected phrase.
+Do not use overlapping-source-span rejection: genuinely intended 安 can occur
+inside a larger instruction that is not itself intended as visible lettering.
+Positive discovery supplies v2 promotion; retained v1 interpretation stays original.
+
+Original author/source bytes remain authoritative. A prior machine interpretation
+is receipt-backed evidence for fresh contextual review, never immutable positive
+author intent. Evaluate the exact occurrence in its complete scalar; identical
+wording elsewhere cannot confer its intent. Genuine author-intended lettering and
+all current required-occurrence/omission checks stay mandatory. New negative
+interpretations cannot be promoted as positive facts. No new checker, dispute
+store, replay path, source remapping or owner-acceptance claim is introduced.
+Retained v1 results remain readable under their original interpretation; they do
+not execute or acquire v2 authority. New frozen packages and strict schema/binder
+agreement are required. Qualify the real two-occurrence case and genuine 安/UI
+labels before another native journey; do not avoid it by changing the QA Brief.

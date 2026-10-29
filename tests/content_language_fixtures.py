@@ -16,8 +16,8 @@ from plotloom.codex_exec_validation import (
 from plotloom.content_language_contract import (
     CHECK_INPUT,
     CHECK_OPERATION,
-    language_result_schema,
     freeze_language_candidate,
+    language_result_schema,
     render_language_report,
 )
 from plotloom.creative_handoff_contracts import (
@@ -61,14 +61,14 @@ def result_for(request, *, rejected_path=None, uncertain_path=None):
         if path:
             findings.append({"code": code, "span": {"path": path, "start": 0, "end": len(leaves[path]), "text": leaves[path]},
                              "explanation": "Synthetic test finding; not an actual model judgment."})
-    packet = {"contract": "plotloom.content-language-check.v1", "bindingHash": request.source["bindingHash"],
+    packet = {"contract": request.input_artifacts[CHECK_INPUT]["contract"], "bindingHash": request.source["bindingHash"],
             "verdict": "reject" if rejected_path else "uncertain" if uncertain_path else "pass",
             "coverage": coverage, "findings": findings}
     frozen = request.input_artifacts[CHECK_INPUT]
     if "providerLiterals" in frozen:
         literal = frozen["providerLiterals"]
         packet["literalReview"] = {"claims":[{"index":index,"verdict":"pass","explanation":"Explicit synthetic intent fixture, never model evidence."} for index,_ in enumerate(literal["claims"])],
-            "facts":[{"factId":fact["id"],"relevance":"required","verdict":"pass" if any(claim["sourceFactId"] == fact["id"] for claim in literal["claims"]) else "reject",
+            "facts":[{"factId":fact["id"],"intent":"pass","relevance":"required","verdict":"pass" if any(claim["sourceFactId"] == fact["id"] for claim in literal["claims"]) else "reject",
                       "explanation":"Synthetic required literal presence/omission fixture."} for fact in literal["context"]["facts"]]}
         if any(item["verdict"] == "reject" for item in packet["literalReview"]["facts"]):
             packet["verdict"] = "reject"
@@ -166,9 +166,12 @@ def install_synthetic_language_check(store, original, candidate):
 def assert_accepted_text_seed_rows(connection):
     """Creative drafts are adopted; distinct immutable checker proofs stay ready."""
     import json
+
     from plotloom.content_language_contract import is_language_check
     from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
-    from plotloom.persistence.schema.project_source_outline import SourceOutlineCandidateRow
+    from plotloom.persistence.schema.project_source_outline import (
+        SourceOutlineCandidateRow,
+    )
     for model in set(CANDIDATE_ROWS.values()):
         table = model.__table__.name
         if model is not SourceOutlineCandidateRow:

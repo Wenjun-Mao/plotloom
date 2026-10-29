@@ -12,7 +12,11 @@ from plotloom.content_language_contract import (
     language_check_instructions,
     language_result_schema,
 )
-from tests.content_language_fixtures import checking_request, original_request, result_for
+from tests.content_language_fixtures import (
+    checking_request,
+    original_request,
+    result_for,
+)
 from tests.test_content_language_service import check_environment as _check_environment
 
 check_environment = _check_environment
@@ -32,6 +36,9 @@ def nested_check():
         "candidateSpan": {"path": field["path"], "start": 13, "end": 14, "text": "安"},
         "sourceSpan": {"path": "$.source.outline.outline.adaptation.keep[0].evidence",
                        "start": 2, "end": 3, "text": "安"}}]
+    from tests.provider_literal_discovery_fixtures import discover
+    discover(request, result, "安", source_path="$.source.outline.outline.adaptation.keep[0].evidence",
+             candidate_paths=["$.nodes[0].title"])
     return request, result, field
 
 
@@ -148,12 +155,16 @@ def test_provider_technical_literal_exception_is_owned_by_literal_review():
 
 
 def test_actual_check_api_freezes_independent_coordinate_schema_in_package(check_environment, monkeypatch):
-    from contextlib import contextmanager
     import json
+    from contextlib import contextmanager
     from pathlib import Path
+
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from plotloom.api.project_folder_content_language import register_content_language_routes
+
+    from plotloom.api.project_folder_content_language import (
+        register_content_language_routes,
+    )
     from plotloom.codex_exec_contracts import CodexExecHostStatus
     from tests.test_content_language_service import _ready
 

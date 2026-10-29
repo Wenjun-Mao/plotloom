@@ -4,9 +4,10 @@ from hashlib import sha256
 from types import SimpleNamespace
 
 from .content_language_contract import CHECK_INPUT, identity
-from .provider_literal_discovery import discovery_verdicts
 from .content_language_persistence import verified_check
 from .creative_handoff_identity import request_hash
+from .provider_literal_discovery import discovery_verdicts
+from .provider_literal_review import INTENT_REVIEW_CONTRACT
 from .text_correction_contracts import (
     LanguageRejectionProof,
     TextContentIssue,
@@ -23,7 +24,8 @@ def _language_issues(request, result):
         issues.append(TextContentIssue(code="content_language_mismatch", field_paths=paths,
             repair_facts={"contentLocale": request.input_artifacts[CHECK_INPUT]["languageContract"]["contentLocale"]}))
     if (result.literal_review is not None and any(item.verdict == "reject" for item in (*result.literal_review.claims,*result.literal_review.facts))
-            or "reject" in discovery_verdicts(result.visible_literal_discovery)
+            or "reject" in discovery_verdicts(result.visible_literal_discovery,
+                current_intent=result.contract == INTENT_REVIEW_CONTRACT)
             or any(item["path"] in failures and item["role"] == "provider_technical" for item in inventory)):
         issues.append(TextContentIssue(code="candidate_content_invalid", field_paths=("$",), repair_facts={}))
     return tuple(issues)
@@ -76,7 +78,8 @@ def rejection_for_check(store, original, attempt, check_job_id, prior):
                 f"{item.span.path}: {item.explanation}"[:1000] for item in result.findings[:32]) + tuple(
                 item.explanation[:1000] for item in ((*result.literal_review.claims,*result.literal_review.facts) if result.literal_review else ()) if item.verdict == "reject")[:32] + tuple(
                 fact.explanation[:1000] for row in (result.visible_literal_discovery.sources if result.visible_literal_discovery else ())
-                for fact in row.facts if "reject" in {fact.intent,fact.presence})[:32])
+                for fact in row.facts if fact.presence == "reject"
+                or result.contract != INTENT_REVIEW_CONTRACT and fact.intent == "reject")[:32])
         assert_language_rejection(session.connection().connection.driver_connection, rejection, original, attempt)
         return rejection
 

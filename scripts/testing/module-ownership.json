@@ -674,6 +674,7 @@
           "tests/test_provider_literal_channels.py",
           "tests/test_provider_literal_persistence.py",
           "tests/test_visible_literal_discovery.py",
+          "tests/test_source_intent_interpretations.py",
           "tests/test_retained_storyboard_checker.py",
           "tests/test_creative_field_integration.py",
           "tests/test_retained_field_ownership.py",

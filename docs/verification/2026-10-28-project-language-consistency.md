@@ -1549,3 +1549,87 @@ rewriting normal legacy media evidence. Recheck before activation. The single
 qualified recovery, valued Su Tang home, H5 assets and exact two old LOCAL claims
 remain untouched. Aggregate product/infrastructure/coordination timings remain
 unavailable; both measured full-gate elapsed values above are retained.
+
+## Current source-intent interpretation repair — 2026-10-29
+
+Source baseline is local main f80a69612b9a96c972313e59412babb247f65993.
+Replacement English bd36e518 reached five adopted creative stages; run
+e28b7d73-59ee-4a3a-b4b9-d47e5882fa61 remains blocked at revision 47.
+Its 13 native attempts are terminal: 11 completed / 2 failed. The F5 primary remains
+successfully delivered and unadopted. Both checker attempts failed the exact
+`known source-visible fact cannot disappear from discovery` binder condition;
+there was no third dispatch, image or H3 submission.
+
+The compact causal audit is
+`.local/project-language-20261028/en-f5-first-bad-fact-promotion-audit.json`.
+Actual Cast performanceGuidance field SHA256 is
+4ec2c6f579fef819df83d95a63369bfbf413d024e9e455cc3a82deab2fddf1d1.
+Its 210:222 `Keep the cup` is an imperative prefix, distinct from the actual
+624:636 UI-label occurrence. Native Art ch_633b7ab570ce5297acf034d0dee3b5f4
+and Script ch_f10e5be1bde35533a6f3f4b2def5f93c incorrectly classified the
+first occurrence as the label. The actual labels and required 安 were preserved.
+Both later F5 results correctly explained the distinction, but their not-applicable
+review plus omitted discovery violated the closed inherited-fact contract.
+This is a causal promotion/review defect, not ambiguous author intent.
+
+ADR 0224 was amended before the prospective repair. Existing checking/preparation
+owners now separate current source-intent judgment from historical provenance.
+V2 requires explicit matching fact/discovery intent, exact source span/full hash,
+and separate current candidate preservation. A negative earlier interpretation
+alone is not current-content rejection; actual unauthorized use still rejects,
+and uncertainty blocks. Every prior interpretation remains explicitly accounted
+for. Exact positive discovery is also required for v2 literal language exceptions;
+bare exceptions cannot promote smaller tokens inside rejected interpretations.
+Genuine nested 安 remains valid; no overlap or substring-remapping heuristic exists.
+Old v1 default parsing/read semantics and original native bytes remain fixed;
+current frozen schemas require explicit v2 and cannot accept v1 results.
+
+Root remains the sole writer. Frozen schema generation was extracted cohesively
+into content_language_schema.py; the checker-policy hash includes it and existing
+Python source/resource identity covers it. Current source owners remain below 400
+lines. No dependency, lockfile, frontend source or generated-asset change occurred.
+Independent requested Sol/High and Sol/Medium reviews closed the production repair;
+High's concrete partial-exception finding was fixed with exact positive discovery.
+Medium's one affected synthetic persistence fixture now provides that discovery;
+its original receipt/hash/source-mismatch assertions remain unchanged. Effective
+native reviewer settings remain unobservable. No new executor was created.
+
+Executed focused evidence is under.local/project-language-20261028/:
+
+- source-intent-second-focused.log: initial 10 new cases passed.
+- source-intent-contract-regressions.log:121 passed / 1 retained-helper failure;
+  strict legacy marker handling repaired, then the failed case plus 10 new cases
+  passed in source-intent-retained-helper-followup.log. Original failure retained.
+- source-intent-exception-followup.log:21 passed, including 13 new source-intent/
+  marker/partial-span/nested-lettering cases and 8 existing source-span cases.
+- source-intent-final-contract-regressions.log:124 passed / 1 synthetic persistence
+  fixture failure. Its exact discovery setup was repaired; the failed case passed
+  in source-intent-persistence-fixture-followup.log. Reuse the unchanged 124 passes.
+- source-intent-final-runtime-regressions.log:40 service/persistence/retry/runtime/
+  eight-stage-prefix cases passed in 48.71s (55.196s runner). This repeats the earlier
+  40 passes because review fixes changed frozen checker inputs.
+- source-intent-final-quick.log:quick passed in 13.823s, including 1,676 frontend cases
+  and both type checks. Changed runtime/new-owner Ruff and diff checks passed.
+
+The first new selection stopped at an undeclared jsonschema test import; the
+unneeded dependency was removed. Tests use the existing native binder plus direct
+frozen-schema assertions; no dependency was installed or added. Historical
+source-intent-retained-v1-readback.json verifies all 7 real checker records remain
+readable (5 old passes / 2 failed) and failure request/data remain identical. An initial
+whole-view assertion failed only because timing.observedAt is a live projection;
+all other run fields and exact failure data compare unchanged. These are proof-
+integrity facts, not claims that the old semantic interpretation was correct.
+
+Read-only lifecycle preflight rules out a manual same-home shortcut: F5 cancel/
+prepare changes material closure and would take over blocked 47, and ordinary
+manual sending has no configured text-specialist binding. Preserve that home;
+use a fresh ordinary English project only after this causal repair is committed
+and current-source checks pass. Its Brief/story/intent must be unchanged, with no
+avoidance wording or copied canon/proofs. Stage the native run after Art to inspect
+interpretations before broadening. Recheck Chinese inheritance/current authority;
+its successful historical text evidence is not a new v2 native generation claim.
+Native v2 proof, images/H3/audio/routes, final full/exact-wheel qualification,
+normal activation, exact old LOCAL releases and final preservation remain open.
+Hosted CI/push are not requested and are not release blockers. Product, environment
+and coordination time splits and usage/cost deltas are unavailable; executed
+verification durations above are measured, not estimated progress percentages.

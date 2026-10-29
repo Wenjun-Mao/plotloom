@@ -182,7 +182,9 @@ def test_discovery_cannot_invent_roles_source_coordinates_or_lettering(check_env
     elif mutation=='source_hash':fact['sourceFieldHash']='f'*64
     elif mutation=='voice_channel':fact['candidateOccurrences'][0]['span']['path']='$.characters[0].voice.prompt'
     else:
-        fact['intent']='reject';refresh_verdict(result)
+        fact['intent']='reject';fact['presence']='reject'
+        next(row for row in result[DISCOVERY]['sources'] if fact in row['facts'])['decision']='no_visible_literal'
+        refresh_verdict(result)
         assert bind_language_result(checking,result).verdict=='reject'
         return
     with pytest.raises(ValueError):bind_language_result(checking,result)

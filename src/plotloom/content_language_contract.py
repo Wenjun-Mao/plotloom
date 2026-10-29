@@ -17,93 +17,34 @@ from .content_language_classifier import (
 )
 from .creative_handoff_identity import canonical_json, request_hash
 from .domain_base import CamelModel
-from .provider_literal_review import ProviderLiteralReview, bind_literal_review, literal_verdicts
-from .provider_literal_discovery import (DISCOVERY, VisibleLiteralDiscovery, bind_discovery, discovery_inventory, discovery_verdicts)
 from .language_policy import (
     LANGUAGE_CONTRACT_FILENAME,
     ProjectLanguageContract,
     assert_candidate_report_language,
 )
+from .provider_literal_discovery import (
+    DISCOVERY,
+    VisibleLiteralDiscovery,
+    bind_discovery,
+    discovery_inventory,
+    discovery_verdicts,
+)
+from .provider_literal_review import (
+    INTENT_REVIEW_CONTRACT,
+    ProviderLiteralReview,
+    bind_literal_review,
+    literal_verdicts,
+)
 
 CHECK_OPERATION = "content-language-check"
-CHECK_CONTRACT = "plotloom.content-language-check.v1"
+CHECK_CONTRACT = INTENT_REVIEW_CONTRACT
 CHECK_INPUT = "content-language-candidate.json"
 HASH = r"^[a-f0-9]{64}$"
 
 
 def language_result_schema(frozen):
-    """Freeze separate root coordinates; neither span uses the envelope root."""
-    from copy import deepcopy
-
-    schema = ContentLanguageResult.model_json_schema(by_alias=True)
-    leaves = dict(string_leaves(frozen["candidate"]))
-    exception_paths = [item["path"] for item in frozen["inventory"]
-                       if item["role"] == "authored_prose" and leaves[item["path"]].strip()]
-    finding_paths = [item["path"] for item in frozen["inventory"]
-                     if (item["role"] == "authored_prose"
-                         or "providerLiterals" in frozen and item["role"] == "provider_technical")
-                     and leaves[item["path"]].strip()]
-    sources = [path for path, text in string_leaves(frozen["sources"]) if text]
-
-    def span(paths, description):
-        value = deepcopy(schema["$defs"]["LanguageSpan"])
-        value["properties"]["path"] |= ({"enum": paths} if paths else {"not": {}})
-        value["properties"]["path"]["description"] = description
-        return value
-
-    exception_candidate = span(exception_paths,
-        "Copy a nonempty authored_prose candidate path exactly; relative to candidate root, never $.candidate.")
-    finding_candidate = span(finding_paths,
-        "Copy a semantically reviewed candidate path exactly; relative to candidate root, never $.candidate.")
-    source = span(sources, "Copy a canonical source path exactly; relative to sources root, never $.sources.")
-    schema["$defs"]["LanguageException"]["properties"]["candidateSpan"] = exception_candidate
-    schema["$defs"]["LanguageException"]["properties"]["sourceSpan"] = source
-    schema["$defs"]["LanguageFinding"]["properties"]["span"] = finding_candidate
-
-    coverage_conditions = [
-        {"if": {"properties": {"role": {"enum": ["exact_source", "provider_technical", "stable_identity"]}},
-                "required": ["role"]},
-         "then": {"properties": {"exceptions": {"maxItems": 0}}}},
-        {"if": {"properties": {"verdict": {"const": "not_applicable"}}, "required": ["verdict"]},
-         "then": {"properties": {"exceptions": {"maxItems": 0}}}},
-    ]
-    schema["properties"]["coverage"]["items"] = {"allOf": [
-        {"$ref": "#/$defs/LanguageCoverage"}, *coverage_conditions]}
-
-    if "providerLiterals" in frozen:
-        schema["required"] = [*schema.get("required", []), "literalReview"]
-        schema["properties"]["literalReview"] = {"$ref":"#/$defs/ProviderLiteralReview"}
-        technical_paths = [item["path"] for item in frozen["inventory"]
-            if item["role"] == "provider_technical" and leaves[item["path"]].strip()]
-        if technical_paths:
-            schema["properties"]["coverage"]["items"]["allOf"].append(
-                {"if":{"properties":{"path":{"enum":technical_paths}},"required":["path"]},
-                 "then":{"properties":{"verdict":{"enum":["pass","reject","uncertain"]}}}})
-
-    if DISCOVERY in frozen:
-        schema["required"] = [*schema.get("required", []), DISCOVERY]
-        schema["properties"][DISCOVERY] = {"$ref": "#/$defs/VisibleLiteralDiscovery"}
-        fact_schema = schema["$defs"]["DiscoveredVisibleFact"]
-        fact_schema["properties"]["sourceSpan"] = deepcopy(source)
-        fact_schema["allOf"] = [
-            {"if": {"properties": {"relevance": {"const": relevance}}, "required": ["relevance"]},
-             "then": {"properties": properties}}
-            for relevance, properties in (
-                ("not_relevant", {"presence": {"const": "not_applicable"}, "candidateOccurrences": {"maxItems": 0}}),
-                ("uncertain", {"presence": {"const": "uncertain"}}),
-                ("required", {"presence": {"enum": ["pass", "reject", "uncertain"]}}),
-            )
-        ]
-        from .provider_literals import provider_path
-        occurrence_paths = [item["path"] for item in frozen["inventory"] if leaves[item["path"]].strip()
-            and (provider_path(frozen["stage"],item["path"],"literal_visible_text") if "providerLiterals" in frozen
-                 else item["role"] in {"authored_prose","exact_source"})]
-        occurrence = schema["$defs"]["VisibleOccurrence"]["properties"]
-        occurrence["span"] = span(occurrence_paths, "Canonical candidate-root occurrence; never $.candidate.")
-        source_paths = [item["path"] for item in frozen[DISCOVERY]["sources"]]
-        schema["$defs"]["VisibleSourceReview"]["properties"]["path"] = {"type":"string"} | ({"enum":source_paths} if source_paths else {"not":{}})
-        schema["$defs"].pop("LiteralSpan",None)
-    return schema
+    from .content_language_schema import language_result_schema as frozen_schema
+    return frozen_schema(frozen)
 
 
 def identity(value):
@@ -144,7 +85,8 @@ class LanguageFinding(CamelModel):
 
 
 class ContentLanguageResult(CamelModel):
-    contract: Literal["plotloom.content-language-check.v1"] = CHECK_CONTRACT
+    # Omitted markers retain the original v1 meaning; new packages require v2 explicitly.
+    contract: Literal["plotloom.content-language-check.v1", "plotloom.content-language-check.v2"] = "plotloom.content-language-check.v1"
     binding_hash: str = Field(pattern=HASH)
     verdict: Literal["pass", "reject", "uncertain"]
     coverage: tuple[LanguageCoverage, ...] = Field(max_length=20000)
@@ -155,7 +97,7 @@ class ContentLanguageResult(CamelModel):
 
     @model_validator(mode="after")
     def coherent_verdict(self):
-        semantic = literal_verdicts(self.literal_review) | discovery_verdicts(self.visible_literal_discovery)
+        semantic = literal_verdicts(self.literal_review) | discovery_verdicts(self.visible_literal_discovery, current_intent=self.contract == INTENT_REVIEW_CONTRACT)
         verdicts = {item.verdict for item in self.coverage} | semantic
         expected = "reject" if "reject" in verdicts else "uncertain" if "uncertain" in verdicts else "pass"
         if self.verdict != expected or (self.verdict == "pass") != (not self.findings and not ({"reject","uncertain"} & semantic)):
@@ -170,7 +112,7 @@ def freeze_language_candidate(original, candidate):
     language = ProjectLanguageContract.model_validate(original.input_artifacts[LANGUAGE_CONTRACT_FILENAME])
     sources = original_sources(original)
     root = Path(__file__).resolve().parents[2]
-    policy_files = ("content_language_contract.py", "content_language_classifier.py", "language_policy.py",
+    policy_files = ("content_language_contract.py", "content_language_schema.py", "content_language_classifier.py", "language_policy.py",
                     "codex_exec_profile.py", "codex_exec_prompts.py", "outline_echoes.py",
                     "creative_field_ownership.py", "dialogue_timing_policy.py", "art_structure.py",
                     "autopilot_brief_style.py", "provider_literals.py", "provider_literal_dialogue.py",
@@ -230,6 +172,8 @@ def bind_language_result(request, candidate, *, require_current=True):
     if DISCOVERY in frozen and candidate.get(DISCOVERY) is None:
         raise ValueError("complete independent source-visible discovery is required")
     result = ContentLanguageResult.model_validate(candidate)
+    if result.contract != frozen["contract"]:
+        raise ValueError("language result version differs from its frozen checking contract")
     bind_discovery(frozen, result.visible_literal_discovery, result.literal_review)
     bind_literal_review(frozen, result.literal_review, result.visible_literal_discovery)
     if result.binding_hash != frozen["bindingHash"] or len(result.coverage) != len(frozen["inventory"]):
@@ -258,6 +202,12 @@ def bind_language_result(request, candidate, *, require_current=True):
                     or (exception.kind == "intentional_foreign_speech") != (exception.language is not None)
                     or any(a.start < end and start < a.end for start, end in spans)):
                 raise ValueError("language exceptions must be distinct exact source-supported spans")
+            if result.contract == INTENT_REVIEW_CONTRACT and exception.kind == "literal_visible_text" and not any(
+                    fact.intent == "pass" and fact.source_field_hash == sha256(sources[b.path].encode()).hexdigest()
+                    and fact.source_span.model_dump(mode="json", by_alias=True)
+                    == exception.source_span.model_dump(mode="json", by_alias=True)
+                    for row in result.visible_literal_discovery.sources for fact in row.facts):
+                raise ValueError("literal language exception requires exact positive current source-intent discovery")
             spans.append((a.start, a.end))
         by_path[coverage.path] = coverage
     if request.stage == "script":
@@ -293,8 +243,8 @@ def bind_language_result(request, candidate, *, require_current=True):
 
 
 def language_check_instructions(frozen=None):
-    from .provider_literal_review import literal_review_instructions
     from .provider_literal_discovery import discovery_instructions
+    from .provider_literal_review import literal_review_instructions
     provider = frozen is not None and "providerLiterals" in frozen
     semantics = ("Nonempty authored_prose AND provider_technical leaves must receive pass/reject/uncertain; "
         "stable_identity, exact_source and empty strings use not_applicable. " if provider else
@@ -322,6 +272,9 @@ def language_check_instructions(frozen=None):
         "Exceptions require explicit original-source support: proper names, verbatim quotes, intentional foreign "
         "speech and literal visible text only. For each exception supply its exact candidateSpan and matching "
         "sourceSpan under sources, plus kind. Do not infer intentional multilingual prose from the candidate. "
+        "A literal_visible_text exception additionally requires an exact positive current source-intent "
+        "discovery with the identical sourceSpan and complete source-field hash. A partial source span or "
+        "identical words elsewhere never supplies this authority; genuine positively discovered subspans remain valid. "
         + exception_ownership +
         "Copy span paths verbatim from the response schema's canonical enums. candidateSpan and finding "
         "span paths are relative to candidate root (for example $.adaptation.core), never $.candidate. "
@@ -353,5 +306,17 @@ def render_language_report(request, candidate):
     notice = ("Assistant semantic review has limits. This is not creator or media acceptance." if en else
               "助手语义检查有局限，不代表创作者确认或素材验收。")
     body = escape(json.dumps(result.model_dump(mode="json", by_alias=True), ensure_ascii=False, indent=2))
+    intent_section = ""
+    if result.literal_review and result.contract == INTENT_REVIEW_CONTRACT:
+        facts = {fact["id"]: fact for fact in request.input_artifacts[CHECK_INPUT]["providerLiterals"]["context"]["facts"]}
+        labels = ({"pass": "Author intent confirmed", "reject": "Earlier interpretation rejected", "uncertain": "Source intent uncertain"}
+                  if en else {"pass": "已确认原文意图", "reject": "已否定先前解释", "uncertain": "原文意图不确定"})
+        rows = []
+        for review in result.literal_review.facts:
+            span = facts[review.fact_id]["sourceSpan"]
+            rows.append(f'<li><strong>{labels[review.intent]}</strong>: {escape(span["text"])} '
+                        f'({span["start"]}:{span["end"]})<p>{escape(review.explanation)}</p></li>')
+        heading = "Current source-intent review" if en else "当前原文意图检查"
+        intent_section = f'<section><h2>{heading}</h2><ul>{"".join(rows)}</ul></section>'
     return (f'<!doctype html><html lang="{"en" if en else "zh"}"><meta charset="utf-8">'
-            f'<title>{title}</title><h1>{title}</h1><p>{notice}</p><pre>{body}</pre></html>').encode()
+            f'<title>{title}</title><h1>{title}</h1><p>{notice}</p>{intent_section}<pre>{body}</pre></html>').encode()

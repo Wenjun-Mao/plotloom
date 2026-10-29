@@ -29,6 +29,8 @@ def test_only_exact_checked_upstream_artifact_reuses_receipt_bound_visible_fact(
         'kind':'literal_visible_text',
         'candidateSpan':{'path':'$.adaptation.core','start':4,'end':5,'text':'安'},
         'sourceSpan':{'path':'$.source.text','start':4,'end':5,'text':'安'}}]
+    from tests.provider_literal_discovery_fixtures import discover
+    discover(checking, result, '安', candidate_paths=['$.adaptation.core'])
     _done,receipt=completed_check(store,job,result)
     downstream=original_request('art',project_id=original.project_id)
     downstream.source=deepcopy(original.source);downstream.input_artifacts['outline.json']=candidate
