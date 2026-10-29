@@ -1,5 +1,25 @@
 # Project-language implementation evidence
 
+Current bilingual material checkpoint: both complete native review bundles are
+retained and pixel-inspected. English ca8bebe5 completed three image attempts
+without failure at08f77d0f; the table pilot kept exact original shot, composition,
+action and audio fields and consumed three source-bound references plus selected
+Art descriptions. Its two old image refusals remain failed. The task-local exact
+prepare probe initially omitted a controller claim and stopped before creating a
+job/attempt; persisted zero-admission readback and the corrected probe are retained.
+Complete English review bundle:
+`5081cf9b2a2a3aaf13aa4e9f473ede6165ec4eab74559ef3fdb17edba18b79ba`.
+All six current frames have actual pixel observations and exact native receipts;
+motion, audio, final-resolution lettering and route joins remain unqualified.
+
+The two approved static native-material scopes pin those exact original bundles.
+Their focused owner selection passed12cases34.90s; quick passed13.778s with1676
+frontend tests and both type checks. Scoped Ruff/diff passed and independent High
+review found no blocker: all ten earlier grants remain unchanged. Runtime binding,
+material handoff and H3 submission have not yet occurred. Existing H3 transport
+preflight passed using only health GET and local media-tool checks, zero provider
+submissions. First actual video remains one eight-second opening before expansion.
+
 Later selected-subject/context checkpoint2026-10-29: original Chinese Continue
 run7705a48f retained15 exact operations with zero new text/checker attempts. Its
 single-image pilot and remaining two native images completed at921a5d92, each

@@ -160,6 +160,50 @@ SCOPES = (DelegatedQaScope(
         QaMaterial('SH05', '21c30d93-0348-436f-ba90-154455541682', '689ca669fab0295882baaa1a6fe6321050eda403d81e6f3794bc5b78fb2fa448'),
         QaMaterial('SH06', 'c2a157c1-66a9-40b2-addb-86daaae11599', 'f0908ebe85ee97209757260a943bccffbd56658f7f41464434e6334f45035eeb'),
     ), profile_id="minimax_h3_quality8_portrait_576x1024_v2", max_submissions=None, max_requested_seconds=None,
+), NativeMaterialQaScope(
+    id='project-language-zh-native-20261029', project_id='2458559c-b6cf-4d98-9921-bd169e2b6769',
+    storyboard_hash='ed1885ee8940ee18f92b68accada779124e4664f3fac21ee8b61592217d57a80',
+    materials=(
+        QaMaterial('node-1386be18-01df-5912-8dc7-dc0441c84d8f-s1-c1', '17535b3c-a61b-40e4-9b87-df242a8dd7bb', 'a9775ba236e39c1db60ec088506b6f6403d02ba53dd3caa6a049c7f6d75ba198'),
+        QaMaterial('node-bfcba809-1321-5a94-b0d1-1ad2a2a614c0-s1-c1', '2c39b51c-f274-4efa-9f7b-b8e060151726', 'bbaaa546118865e752243982adea2eb6bc9f61add509de2a2463377da0e23c55'),
+        QaMaterial('node-b2387872-5158-519b-9b15-4e2c3ef7d99e-s1-c1', 'cc1c1e2b-b7f8-4c8a-a94f-45d48060cce7', '50d922de363dc457dbee15c515cf76f06b6b1b56fc7fc113d6a0e313c8a0b700'),
+    ), profile_id="minimax_h3_quality8_landscape_832x480_v2",
+    run_id='7705a48f-a00b-4be4-a4ba-1c5d1fa9a0d8',
+    bundle_hash='9ae030d72cc51638511cfd6bc56b7ae4592bcd505f597384239d357c7e74bbc0',
+    material_closure='3f6335cd3da80e7b2052cde71bfaedae6943f1c71f98cacbe9965e37bca2ecc1',
+    references=(
+        QaReference('character-reference', 'C01', 'c7db90a1-5d95-440f-a17f-11813c1b95cc', (
+            ('ba4127aa-8a37-4238-833b-dba1c8d450a1', '97b2c16d7b3aec89bc5480e77447135792f9b6b7db0e6996a14e8e26b1721772'),
+        )),
+        QaReference('art-reference', 'S01', 'a2a9cb4b-5532-4005-bf4b-80435d9ec29f', (
+            ('df6e351f-5efd-43f1-b8c3-56b83dcdc27b', '7cf80aa49e367a2b0a5d529ef05dc85c37176a094ff9c8c82b8450f251ccecda'),
+        )),
+        QaReference('art-reference', 'P01', '25ccc9a7-2193-4dee-8a91-1e54e86a8cfb', (
+            ('f85596e5-522d-4deb-8b89-782a36cc01ed', '4575d7b373e0f8c304a9b662f8205c0ab49485ae86fa807df532a440ef992530'),
+        )),
+    ), max_submissions=None, max_requested_seconds=None,
+), NativeMaterialQaScope(
+    id='project-language-en-native-20261029', project_id='a278ed7d-6244-4775-88cf-97250d0ebb22',
+    storyboard_hash='a840c7472c95976a3ebe470dd07408d4633f0472ce1ae758ca66b1d7d9f6445c',
+    materials=(
+        QaMaterial('node-80ba076b-cc7d-5b86-98ac-2bc998894c69-s1-c1', 'eb8acafa-c246-4721-afb5-054f230a82d0', '328bdd30f60aff2295a0823c142ce3e74498813a8c5a68dfb66f950d539485e0'),
+        QaMaterial('node-559d192d-a305-5a10-adf2-29ad2eedb992-s1-c1', '8ee54ff9-1fcb-4b09-bb04-13b02c365c40', 'e1630d460ca9fc4b0b19372c897fc3c679ba12f80710b69af07841a81491e7ba'),
+        QaMaterial('node-e3b3e606-cdbf-5912-bbf5-ed74a5a84e4c-s1-c1', 'cdb6d9bc-61e6-4d87-a47d-b832f3b07a93', 'c3f5bb60ecf164dade4bdb9b724265fb293a0e444205e3d5759ea16b8d01b44d'),
+    ), profile_id="minimax_h3_quality8_landscape_832x480_v2",
+    run_id='ca8bebe5-15f1-44d5-a4fe-2ec9ae45c9e2',
+    bundle_hash='5081cf9b2a2a3aaf13aa4e9f473ede6165ec4eab74559ef3fdb17edba18b79ba',
+    material_closure='dde33b47e8467dc30ad299bcf498476c180ab970ce10422c312aad231b7a4951',
+    references=(
+        QaReference('character-reference', 'C01', '712d4dcd-d1fd-4a3e-83a4-d0d04b8423b3', (
+            ('8c1c8544-b5af-4e3d-98f5-ba75e7d12ea9', 'e26d085ec9b8329c94400c2a905b34100636f2659f3dd182e812a35107b42095'),
+        )),
+        QaReference('art-reference', 'S01', '1de201ce-8274-4d8b-b1b5-dac49c8892a3', (
+            ('adbf4587-c373-4ae9-89e9-25866735520e', 'd5e70d2354157d27fd96d2f08fd65aaafb2d4fdb695bd07cf26d268c9369dfde'),
+        )),
+        QaReference('art-reference', 'P01', '3b51fa2f-36e1-49ea-b3b0-25cec57d404c', (
+            ('c2cb63b0-bf4d-47f4-82b9-d7abc902ac18', '2c72aab931bdccd0445ddaec5cf266bcbe172bcb539b0d0575043c0e12eb535b'),
+        )),
+    ), max_submissions=None, max_requested_seconds=None,
 ),)
 
 

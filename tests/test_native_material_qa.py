@@ -29,6 +29,24 @@ def test_creator_completion_grant_freezes_only_the_actual_native_successor_mater
     assert len(scope.references) == 3 and len(scope.materials) == 2
 
 
+@pytest.mark.parametrize("project,scope_id,digest", [
+    ("2458559c-b6cf-4d98-9921-bd169e2b6769", "project-language-zh-native-20261029",
+     "153807a815786fae4b5288afb6f842cf6ef6f4bc9df582e2ef020646a793fb18"),
+    ("a278ed7d-6244-4775-88cf-97250d0ebb22", "project-language-en-native-20261029",
+     "cbfb37a5d1c02d69ba0866de55a023d9b7ceb531ad57ec8087e5ea5e8aa0ab08"),
+])
+def test_bilingual_native_grants_pin_exact_observed_materials(project, scope_id, digest):
+    from plotloom.persistence.codec import stable_hash
+    scope = delegated_qa.project_scope(project)
+    assert isinstance(scope, NativeMaterialQaScope) and scope.id == scope_id
+    assert stable_hash(asdict(scope)) == digest
+    assert scope.profile_id == "minimax_h3_quality8_landscape_832x480_v2"
+    assert scope.max_submissions is None and scope.max_requested_seconds is None
+    assert len(scope.materials) == 3 and len(scope.references) == 3
+    assert {(item.owner, item.subject_id) for item in scope.references} == {
+        ("character-reference", "C01"), ("art-reference", "S01"), ("art-reference", "P01")}
+
+
 def native_environment(seed, tmp_path, monkeypatch):
     from plotloom.persistence.project.autopilot_handoff import review_material
     storage, view, _ = copy_awaiting_handoff_seed(seed, tmp_path / "native-qa")

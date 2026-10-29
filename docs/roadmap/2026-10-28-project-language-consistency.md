@@ -24,6 +24,15 @@ or receipts. Prove the original English table frame with changed frozen inputs
 before expansion; keep its two earlier pre-ImageGen refusals failed. No Brief,
 F5 prose, historical receipt or QA enrollment changes are authorized by this repair.
 
+At08f77d0f the original English Continueca8bebe5 retained15 exact operations with
+zero new text/checker attempts. The table pilot succeeded with unchanged shot,
+composition, action and audio fields plus exact selected Art context. All three
+new English native images then completed without failure; all actual pixels and
+receipts were inspected. Both old refusals remain failed. Two exact source QA
+grants now freeze the actual complete original bundles, as approved; runtime
+binding, material handoff and the first real H3 opening clip are next. No source
+text rewrite, new project, provider fallback, CI or activation occurred.
+
 Status: finalized and explicitly authorized for end-to-end implementation on
 2026-10-28. Both languages completed all eight native text stages and installation
 at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate

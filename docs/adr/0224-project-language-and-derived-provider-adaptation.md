@@ -37,6 +37,22 @@ pose. A genuine unresolved conflict still stops generation. Both original refusa
 stay failed. This materially changed source-bound package is new work, not another
 dispatch of either refused package; no new F5 editing or feedback API is introduced.
 
+### Exact bilingual native-material QA grants — 2026-10-29
+
+The approved two prospective native QA scopes now identify original Chinese
+project2458559c/run7705a48f and English projecta278ed7d/runca8bebe5. Each freezes its
+actual complete review bundle/closure/storyboard, three selected references and
+three native first-frame assets/hashes, after actual pixel inspection. The scopes
+use the existing quality8 landscape832x480 native-audio H3 profile, with nullable
+aggregate budgets under the approved prospective policy. Earlier finite grants
+remain unchanged. Authorization permits agent-operated disposable QA, not personal
+owner review or uninspected media acceptance. Runtime binding uses only the exact
+original homes, never a copied or restored home. First prove one eight-second
+opening clip with actual visual and ASR/audio evidence before scaling to remaining
+unique clips and both routes per language. Lettering, motion, audio and route joins
+remain actual downstream acceptance criteria; material generation alone is not a
+pass for them.
+
 Status: accepted by the owner, 2026-10-28; implementation in progress under the
 [authorized language plan](../roadmap/2026-10-28-project-language-consistency.md).
 
