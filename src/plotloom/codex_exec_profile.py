@@ -44,6 +44,9 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "src/plotloom/outline_echoes.py",
+    "src/plotloom/codex_exec_retained_outline.py",
+    "scripts/outline_content_validation.py",
     "src/plotloom/content_language_runtime.py",
     "src/plotloom/api/project_folder_content_language.py",
     "src/plotloom/autopilot_content_language.py",

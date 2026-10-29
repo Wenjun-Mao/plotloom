@@ -595,3 +595,17 @@ slot release; sequential real images/H3 and four route plays; installed language
 playback/preservation readback and closeout. Software qualification, activation,
 slot application, media evidence and final acceptance stay distinct. No routine
 owner approval is required within this now-approved assignment. No push or CI.
+
+### Native checkpoint reassessment
+
+At local `708a56b8`, actual Chinese Outline delivery exposed incomplete classifier
+coverage of upstream-permitted extension fields. Conservative v2 review at
+`f387b87d` then exposed copied machine enums/identities being treated as authored
+prose, and a real spawn_intent ACK being projected as UNKNOWN. Two unsuccessful
+Outline checkpoints triggered method reassessment. ADRs 0224/0225 now bind optional
+machine echoes to exact original sources, preserve semantic checking of authored
+prose, and separate authenticated ACK from claim with safe pending reconciliation.
+All retained native attempts completed, no candidate adopted, no images/H3 sent.
+Use the final reviewed current-contract repair for the next original QA fixture;
+retain failed frozen evidence and do not substitute new policies into old runs.
+The verification record owns exact jobs, results, source revisions and causal tests.

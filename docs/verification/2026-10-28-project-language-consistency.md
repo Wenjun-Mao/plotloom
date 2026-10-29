@@ -190,6 +190,52 @@ home for evidence, and clean up its transient state through the supported lifecy
 at closeout. English has no old run to replace. This is the same two original QA
 stories and provider scope, with no change to valued/current homes or old grants.
 
+## Second native checkpoint and revised method
+
+Replacement Chinese home `ad445b47-3b87-47d8-b190-bf596de7d5ee` retains run
+`7aa32001-5258-43b2-aa5d-646d04e50460` at `f387b87d`. Original Outline
+`ch_2f526962016b463580fe9c2fe622674a` and its checker both completed native
+execution. The controller prematurely blocked because an authenticated admission
+ACK still reported spawn_intent; projection confused the admission claim with a
+lost ACK. Reconciliation under the unchanged frozen source used the same checker,
+whose genuine semantic verdict rejected 16 copied machine enum words and was
+uncertain on 32 ratios/IDs/hashes. The existing one-correction authority then
+produced `ch_1f34adb22f015801b852c863f29d0d62`; its native checker remained
+uncertain on 32 machine values. All four native host attempts completed; original
+records were preserved. No candidate was adopted and no image/H3 job dispatched.
+The corrected output translated copied machine enums, so it is not acceptable.
+After two unsuccessful Outline checkpoints, further launches stopped for method
+reassessment rather than repeating the same assignment.
+
+The revised ADR 0224 contract uses one shared `outline_echoes.py` owner: exact
+frozen settings/source metadata/topology copies and actual topology references,
+with code-owned ordinal route IDs. Unknown creative prose still requires complete
+semantic checking. A primary checked-Python wrapper rejects changed copies using
+existing typed candidate_content_invalid feedback before semantic checking, then
+runs the original pinned Node content validator. New input-marker identity and
+resource/retained-plan representations agree. The original native candidate passes
+this primary validator offline with all 159 strings classified (76 authored,
+9 exact source, 74 stable); the altered correction receives typed rejection at
+`$.params.shotCountPolicy`. This does not retroactively qualify either old result.
+
+ADR 0225 separates monotonic authenticated admission acknowledgment from its CAS
+claim. Remaining repeatable UNKNOWN checks wait/reconcile until positive local
+stop; permission/configuration errors, semantic uncertainty, cancellation and
+exhaustion remain blocked/stopped as applicable. New regressions cover the actual
+ACK shape, no duplicate admission, typed feedback binding and route-prose bypass.
+Independent static review found two concrete defects in the first repair draft
+(typed issue vocabulary and free route IDs); both were fixed before another native
+launch. Coordinator preflight also repaired missing pinned Node in the new Python
+wrapper envelope. Retained focused evidence: 66 affected passes, 59 envelope passes,
+24 final ACK/service/persistence passes; final four-file follow-up: 32 passed in 35.60 seconds (40.465 including selector validation).
+Earlier four prefix failures were caused by the changed current plan diverging
+from retained representation; fixed with explicit new-input marker, without
+weakening the provenance assertion. The original failed results remain retained.
+
+Read-only prequalification preservation baseline covers 15 installed homes,
+681 persistent files (624,952,531 bytes) and 24 existing H5 files. A fresh quiescent
+baseline is still required at activation. Installed source/services remain unchanged.
+
 ## Remaining product evidence
 
 Finish the approved retry implementation and coherent freeze; real bilingual

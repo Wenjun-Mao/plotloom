@@ -43,6 +43,14 @@ def retained_outline_package_projection(request, execution_pin, *, source_revisi
     }
     if request.content_validation_contract is not None:
         plan["steps"][0]["argv"] = ["{source}/scripts/text-content-validation.mjs", "{candidate}", "{package}/request.json"]
+    if "outline-input-echoes.json" in request.input_artifacts:
+        from .outline_echoes import outline_echo_contract
+        if request.input_artifacts["outline-input-echoes.json"] != outline_echo_contract():
+            raise ValueError("retained Outline echo contract is unsupported")
+        plan["steps"][0] = {"stepId": "validate", "program": "uv", "argv": [
+            "run", "--project", "{source}", "--locked", "--no-sync", "python",
+            "{source}/scripts/outline_content_validation.py", "{candidate}", "--request",
+            "{package}/request.json", "--node", "{tool:node}"], "stdoutIsReport": False}
     expected_plan = CodexExecTextValidationPlan.model_validate(plan)
     return request.model_dump(mode="json", by_alias=True) | {
         "packageVersion": 4,

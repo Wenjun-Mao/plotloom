@@ -44,6 +44,20 @@ unknown field cannot use not_applicable or create an exemption. This preserves t
 upstream extensible output shape without trusting model-authored setting echoes.
 Malformed inventory paths and incomplete/forged coverage still refuse.
 
+Real checker/correction evidence further established that machine echoes need
+explicit ownership. Outline may omit optional echoes. If present, `storyTopology`
+must equal its complete frozen input; registered machine settings and source
+metadata must equal their explicit input projections. Only those bound leaves gain
+stable/exact-source roles. Route references must belong to the frozen topology;
+optional route-local IDs are code-owned ordinal labels (`R01`, `R02`, …)
+attached to valid frozen paths, never new graph authority. Readable route prose and all other unowned strings still
+require semantic review. The primary typed validator rejects mismatched echoes
+before checking. New Outline requests freeze `outline-input-echoes.json`; the
+primary plan binds the checked Python wrapper and pinned Node renderer together.
+Retained package verification preserves each original fixed plan representation
+without granting replay authority. Primary/correction prompts require omission or exact copying,
+never translation of machine values. Classification grants no new canon authority.
+
 A genuine semantic rejection is a successful checking invocation, not a forged
 failure of the original drafting attempt. Existing typed correction lineage
 records the exact checker reference and original completed candidate. Corrected

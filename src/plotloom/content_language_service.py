@@ -159,7 +159,7 @@ class ContentLanguageService:
         if allow_admission:
             from .generation_retry_policy import repeatable_failure
             if repeatable_failure(observed) and status.local_execution_stopped:
-                owner.observe(store.manifest.project_id, job_id, attempt=observed, receipt=receipt, local_execution_stopped=status.local_execution_stopped)
+                owner.observe(store.manifest.project_id, job_id, attempt=observed, receipt=receipt, local_execution_stopped=status.local_execution_stopped, admission_acknowledged=True)
                 limit = data.get("retryPolicy", {}).get("automaticRetryLimit", 0)
                 if data.get("retryPolicy", {}).get("automaticRetriesUsed",request.source.get("retryOrdinal",0)) < limit:
                     frozen = request.input_artifacts[CHECK_INPUT]
@@ -184,7 +184,7 @@ class ContentLanguageService:
             result_json = read_confined_regular_file(Path(paths["packagePath"]).parent,
                 "delivery/" + CREATIVE_CANDIDATE_FILENAMES[request.stage], max_bytes=2_000_000).decode()
         owner.observe(store.manifest.project_id, job_id, attempt=observed, receipt=receipt,
-                      delivery=delivery, result_json=result_json, local_execution_stopped=status.local_execution_stopped)
+                      delivery=delivery, result_json=result_json, local_execution_stopped=status.local_execution_stopped, admission_acknowledged=True)
         return self.status(store, job_id)
 
     @staticmethod
@@ -193,20 +193,28 @@ class ContentLanguageService:
         request, data = store.repository.content_language.load(store.manifest.project_id, job_id)
         result = data.get("result")
         state = "completed" if result is not None else data["attempt"]["state"]
-        if state == "spawn_intent" and data.get("admissionAttempted") and not data.get("admissionDeferred"):
+        if (state == "spawn_intent" and data.get("admissionAttempted")
+                and not data.get("admissionDeferred") and not data.get("admissionAcknowledged")):
             state = "outcome_unknown"  # An unacknowledged claim never proves non-dispatch.
         from .content_language_rejection import _language_issues
         issues = (_language_issues(request, ContentLanguageResult.model_validate(result))
                   if result is not None and result["verdict"] == "reject" else ())
-        from .generation_retry_policy import retry_status
+        from .generation_retry_policy import repeatable_failure, retry_status
         policy = data.get("retryPolicy", {})
+        unresolved = state in {"failed", "outcome_unknown"} and not data.get("result")
+        allowance = policy.get("automaticRetriesUsed", 0) < policy.get("automaticRetryLimit", 0)
+        pending = (unresolved and allowance and not data.get("executionCancelled")
+                   and not data.get("localExecutionStopped")
+                   and (repeatable_failure(CodexExecAttempt.model_validate(data["attempt"]))
+                        or data["attempt"]["state"] == "spawn_intent"))
         return {"retry":retry_status(limit=policy.get("automaticRetryLimit"), current_job_id=job_id,
                     current_attempt_id=data["attempt"]["attemptId"], predecessors=policy.get("predecessorJobIds", []),
                     automatic_used=policy.get("automaticRetriesUsed",len(policy.get("predecessorJobIds",[]))),
-                    state="stopped" if data.get("executionCancelled") or data["attempt"].get("executionFailure") in {"cancelled","configuration","permission","authorization"} else
+                    state="retry_pending" if pending else "stopped" if data.get("executionCancelled") or data["attempt"].get("executionFailure") in {"cancelled","configuration","permission","authorization"} else
                           ("stopped" if not data.get("localExecutionStopped") else
                            "retry_pending" if policy.get("automaticRetriesUsed",len(policy.get("predecessorJobIds",[]))) < policy.get("automaticRetryLimit",0) else "exhausted") if state in {"failed","outcome_unknown"} else "running" if state in {"running","validating"} else "ready",
                     possible_cost=state == "outcome_unknown" or bool(policy.get("predecessorJobIds"))),
+            "executionPending": bool(pending),
             "checkJobId": request.source.get("checkAnchorJobId",job_id), "candidateJobId": request.source["candidateJobId"],
             "candidateHash": request.input_artifacts[CHECK_INPUT]["candidateHash"],
             "bindingHash": request.source["bindingHash"], "state": state,

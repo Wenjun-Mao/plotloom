@@ -29,6 +29,8 @@ def ensure_content_language(controller, store, view, claim, request, candidate, 
         controller.publish_prepared_package(store, view, corrective, view.policy.execution_pins[request.stage])
     elif checked["verdict"] == "uncertain":
         raise ImageJobError("text_language_uncertain", "原生语言检查无法确定内容语言；保留原候选与检查，不会自动通过或重复提交。")
+    elif checked.get("executionPending"):
+        raise ImageJobError("content_language_check_pending", "语言检查正在核对原尝试；本地工作未确认停止前不会重试，请等待。")
     elif checked["state"] in {"failed", "settled", "outcome_unknown", "cancel_requested"}:
         raise ImageJobError("content_language_check_blocked", "原生语言检查失败或结果不确定；保留原尝试，不会重发或归为内容拒绝。")
     return False

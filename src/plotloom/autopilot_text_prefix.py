@@ -50,7 +50,7 @@ class AutopilotTextPrefix:
                 try:
                     self.service.controller.advance(store, view, self.service.claim)
                 except ImageJobError as error:
-                    waiting = error.code in {"codex_exec_capacity_deferred", "codex_exec_outcome_unknown"}
+                    waiting = error.code in {"codex_exec_capacity_deferred", "codex_exec_outcome_unknown", "content_language_check_pending"}
                     store.repository.autopilot.blocker(project_id, code=error.code, message=str(error), waiting=waiting)
                 except (InvalidTransitionError, ValueError) as error:
                     store.repository.autopilot.blocker(project_id, code="contract_blocked", message=str(error))

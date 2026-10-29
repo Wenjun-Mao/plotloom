@@ -55,6 +55,13 @@ language checks; run-bound checks retain their run controller. Admission claims 
 atomic under the existing lifecycle transaction. Durable logical cancellation
 fences prepared successors before cancellation RPC; GET/reconcile never dispatch.
 
+Exact authenticated host observations durably acknowledge admission even while an
+attempt remains spawn_intent. A claim alone never establishes acknowledgment.
+Repeatable UNKNOWN checks with remaining retry authority wait for positive local
+stop and reconcile; they do not dispatch a successor while an owner remains alive.
+Checker read projections expose `executionPending` for this waiting condition,
+independently from a semantic verdict or completed-result adoption.
+
 Explicit manual retry uses UUID command identity and exact failed/current job and
 attempt with the owning run/batch CAS. Native run, language-check and video-batch
 owners expose `retry-execution`/`retry` actions; no semantic rejection is invented

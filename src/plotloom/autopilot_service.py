@@ -223,7 +223,7 @@ class AutopilotService:
                         view = store.repository.autopilot.current(project_id)
                     self.controller.advance(store, view, self.claim)
             except ImageJobError as error:
-                waiting = error.code in {"specialist_busy", "image_dispatch_busy", "image_dispatch_outcome_unknown", "specialist_already_sent", "codex_exec_outcome_unknown", "codex_exec_capacity_deferred"}
+                waiting = error.code in {"specialist_busy", "image_dispatch_busy", "image_dispatch_outcome_unknown", "specialist_already_sent", "codex_exec_outcome_unknown", "codex_exec_capacity_deferred", "content_language_check_pending"}
                 store.repository.autopilot.blocker(project_id, code=error.code, message=str(error), waiting=waiting)
             except (InvalidTransitionError, ValueError) as error:
                 store.repository.autopilot.blocker(project_id, code="contract_blocked", message=str(error))

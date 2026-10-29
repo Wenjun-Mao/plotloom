@@ -293,6 +293,10 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             assert_current_planned_dialogue(planned)
             planned_script = True
             plan = replace(plan, python_project=True, validator_paths=("scripts/script_receiving.py",))
+    marked_outline = (stage == "outline" and not checking_language
+                      and "outline-input-echoes.json" in package_request.get("inputArtifacts", {}))
+    if marked_outline:
+        plan = replace(plan, python_project=True, validator_paths=("scripts/outline_content_validation.py",))
     marked_art = False
     if stage == "art" and not checking_language:
         from .art_structure import marked_art_structure
@@ -326,7 +330,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         _source_parent, source_hash = python_source_identity(root)
         relative_paths.extend(("src", "pyproject.toml", "uv.lock"))
     paths = list(dict.fromkeys(_source_path(root, relative) for relative in relative_paths))
-    tools = _required_tool_paths(plan, environment, include_node=planned_script or marked_art)
+    tools = _required_tool_paths(plan, environment, include_node=planned_script or marked_art or marked_outline)
     for name, executable in tools:
         if name == "uv":
             paths.append(executable)

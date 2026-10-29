@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from hashlib import sha256
 
-CLASSIFIER_VERSION = "plotloom.content-language-classifier.v2"
+CLASSIFIER_VERSION = "plotloom.content-language-classifier.v3"
 STAGES = ("outline", "branches", "characters", "art", "script", "storyboard",
           "bridge-intent", "bridge-presentation")
 
@@ -142,11 +142,13 @@ def _owned_source_occurrence(path, text, sources):
     return None
 
 
-def classify_candidate(stage, candidate, sources):
+def classify_candidate(stage, candidate, sources, *, original=None):
     if stage not in STAGES:
         raise ValueError("content-language checking supports exactly eight creative stages")
     rules = [(_PROSE, "authored_prose"), (_IDENTITIES, "stable_identity"),
              (_SOURCES, "exact_source"), (_TECHNICAL, "provider_technical")]
+    from .outline_echoes import outline_echo_roles
+    echoes = outline_echo_roles(candidate, original) if original is not None else {}
     inventory = []
     for path, text in string_leaves(candidate):
         normalized = re.sub(r"\[\d+\]", "[]", path.removeprefix("$."))
@@ -157,7 +159,11 @@ def classify_candidate(stage, candidate, sources):
                 break
         if role is None:
             role = "authored_prose"
-        origin = _owned_source_occurrence(normalized, text, sources) if role == "exact_source" else None
+        echo = echoes.get(path)
+        if echo is not None:
+            role = echo["role"]
+        origin = echo.get("sourceSpan") if echo is not None else (
+            _owned_source_occurrence(normalized, text, sources) if role == "exact_source" else None)
         if role == "exact_source" and origin is None:
             # New names are authored work; they do not receive an automatic
             # exception merely because the model put prose in a name field.

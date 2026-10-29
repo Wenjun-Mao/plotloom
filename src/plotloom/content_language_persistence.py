@@ -49,7 +49,7 @@ def verified_check(row):
     if not is_language_check(request) or request.job_id != row.job_id or request.project_id != row.project_id:
         raise ValueError("content language row identity changed")
     data = row.outline
-    if not isinstance(data, dict) or set(data) - {"profile", "attempt", "receipt", "result", "resultJson", "manifest", "manifestHash", "retryPolicy", "localExecutionStopped", "admissionAttempted", "admissionDeferred", "executionCancelled"}:
+    if not isinstance(data, dict) or set(data) - {"profile", "attempt", "receipt", "result", "resultJson", "manifest", "manifestHash", "retryPolicy", "localExecutionStopped", "admissionAttempted", "admissionDeferred", "admissionAcknowledged", "executionCancelled"}:
         raise ValueError("invalid native language checking envelope")
     policy = data.get("retryPolicy")
     if policy is not None:
@@ -65,7 +65,7 @@ def verified_check(row):
                 or (ordinal and (request.source.get("predecessorCheckJobId") != predecessors[-1]
                                 or request.source.get("checkAnchorJobId") != predecessors[0]))):
             raise ValueError("language retry lineage changed")
-    for field in ("localExecutionStopped", "executionCancelled", "admissionAttempted", "admissionDeferred"):
+    for field in ("localExecutionStopped", "executionCancelled", "admissionAttempted", "admissionDeferred", "admissionAcknowledged"):
         if field in data and type(data[field]) is not bool:
             raise ValueError("language execution control fact changed")
     profile = CodexExecProfile.model_validate(data["profile"])
@@ -232,7 +232,7 @@ class ContentLanguagePersistence:
             row.outline = data | {"admissionAttempted": True, "admissionDeferred": deferred}
             return True
 
-    def observe(self, project_id, job_id, *, attempt, receipt=None, delivery=None, result_json=None, local_execution_stopped=None):
+    def observe(self, project_id, job_id, *, attempt, receipt=None, delivery=None, result_json=None, local_execution_stopped=None, admission_acknowledged=False):
         with self.access.leases.lifecycle_write() as session:
             row = session.get(SourceOutlineCandidateRow, job_id)
             if row is None or row.project_id != project_id or not is_language_check(row.request):
@@ -253,6 +253,8 @@ class ContentLanguagePersistence:
             if result is not None:
                 return
             updated = data | {"attempt": attempt.model_dump(mode="json", by_alias=True)}
+            if admission_acknowledged:
+                updated["admissionAcknowledged"] = True
             if local_execution_stopped is not None:
                 updated["localExecutionStopped"] = bool(local_execution_stopped)
             if receipt is not None:

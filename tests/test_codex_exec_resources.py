@@ -226,3 +226,19 @@ def test_source_allowlist_rejects_a_forged_stage_path_or_pin():
     request["executionPin"] = request["executionPin"] | {"upstreamSkillHash": "0" * 64}
     with pytest.raises(CodexExecResourceError, match="bytes no longer match"):
         codex_exec_source_read_paths(ROOT, request)
+
+
+@pytest.mark.parametrize("marked", [False, True])
+def test_outline_echo_wrapper_keeps_checked_python_and_renderer_node_together(marked):
+    from plotloom.outline_echoes import ECHO_CONTRACT_FILENAME, outline_echo_contract
+    artifacts = {ECHO_CONTRACT_FILENAME: outline_echo_contract()} if marked else {}
+    request = dict(stage="outline", upstreamSkillPath=upstream_skill_path_for_stage("outline"),
+        executionPin=_pin("outline"), inputArtifacts=artifacts,
+        contentValidationContract="plotloom.typed-content-result.v1")
+    resources = codex_exec_source_resources(ROOT, request)
+    tools = dict(resources.tools)
+    assert set(tools) == ({"uv", "python", "node"} if marked else {"node"})
+    assert tools["node"].parent.parent.resolve() in resources.read_paths
+    assert (ROOT / "scripts/outline_content_validation.py" in resources.read_paths) is marked
+    assert (ROOT / "scripts/text-content-validation.mjs") in resources.read_paths
+    assert (resources.python_environment is not None) is marked

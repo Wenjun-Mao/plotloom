@@ -98,7 +98,7 @@ def freeze_language_candidate(original, candidate):
         "originalRequestHash": request_hash(original), "candidate": candidate,
         "candidateHash": identity(candidate), "sources": sources,
         "languageContract": language.model_dump(mode="json", by_alias=True),
-        "inventory": classify_candidate(original.stage, candidate, sources)}
+        "inventory": classify_candidate(original.stage, candidate, sources, original=original)}
     frozen["bindingHash"] = identity(frozen)
     if len(canonical_json(frozen)) > 1_000_000:
         raise ValueError("complete language-check input exceeds one package; nothing was truncated")

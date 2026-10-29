@@ -182,20 +182,15 @@ def test_video_technical_results_do_not_require_creative_candidate_lang(operatio
     assert request.input_artifacts["language-contract.json"]["reportLocale"] == "zh"
 
 
-def test_native_outline_extensions_receive_complete_semantic_coverage():
-    # The real first Outline legitimately included saved settings, a topology
-    # echo and route prose. None of these model-authored echoes is authority.
+def test_unowned_nested_prose_stays_semantically_reviewed():
     candidate = CANDIDATES["outline"] | {
-        "params": {"aspectRatio": "16:9", "language": "zh-CN", "visualStyle": "真人写实"},
-        "sourceConstraints": {"soleDialogue": "把灯留在这里。", "visibleLabel": "Mira"},
-        "storyTopology": {"plannerVersion": "story_graph_topology.v3", "nodes": [{"kind": "start"}]},
-        "routePlan": {"description": "Wrong ordinary English route description.",
-                      "routes": [{"name": "留在桌上"}]},
+        "additionalNotes": {"description": "Wrong ordinary English route description.",
+                            "routes": [{"name": "留在桌上"}]},
     }
     request = checking_request(original_request(), candidate)
     inventory = request.input_artifacts[CHECK_INPUT]["inventory"]
     assert len(inventory) == len(dict(string_leaves(candidate)))
     assert all(item["role"] == "authored_prose" for item in inventory
-               if item["path"].startswith(("$.params.", "$.sourceConstraints.", "$.storyTopology.", "$.routePlan.")))
+               if item["path"].startswith("$.additionalNotes."))
     assert bind_language_result(request, result_for(request,
-        rejected_path="$.routePlan.description")).verdict == "reject"
+        rejected_path="$.additionalNotes.description")).verdict == "reject"

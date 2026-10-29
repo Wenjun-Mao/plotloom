@@ -260,6 +260,14 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
         validate = ("node", (f"{source}/scripts/text-content-validation.mjs", cand, request_path))
     if not checking_language and stage == "storyboard" and request.content_validation_contract is not None:
         validate = ("node", (f"{source}/scripts/storyboard-content-validation.mjs", cand, request_path))
+    if (stage == "outline" and not checking_language and request.content_validation_contract is not None
+            and "outline-input-echoes.json" in artifacts):
+        from .outline_echoes import outline_echo_contract
+        if artifacts["outline-input-echoes.json"] != outline_echo_contract():
+            raise ValueError("Outline input-echo contract is not current")
+        validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
+            f"{source}/scripts/outline_content_validation.py", cand, "--request", request_path,
+            "--node", "{tool:node}"))
     if stage == "art" and not checking_language:
         from .art_structure import marked_art_structure
         if marked_art_structure(artifacts):
