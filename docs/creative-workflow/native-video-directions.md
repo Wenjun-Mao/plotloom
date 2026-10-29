@@ -17,7 +17,7 @@ render every field in concise English. Do not omit requirements or invent action
 identity, position, performance, sound, speech or visible text. Preserve negation.
 Keep exact authored dialogue and visible text out of translated direction fields:
 the trusted compiler preserves their original bytes and sound/nonspoken roles.
-For compiler v8/v9/v10/v11, reviewedSoundscape and reviewedMusic each carry the complete exact
+For compiler v8/v9/v10, reviewedSoundscape and reviewedMusic each carry the complete exact
 authored composition with sourcePath, sourceTextHash and sourceCoordinates. They
 are role-specific views of one source, not additional creative instructions.
 For reviewedSoundscape, adapt only authored ambience/effects and sound/speech
@@ -30,7 +30,7 @@ must fail, never silently override either owner. Raw h3Prompt is technical evide
 not creative authority. The compiler consumes both views alongside explicit events.
 Older frozen reviewedSoundscape fallback permits no new sounds: use N/A when none
 is authored under that frozen contract.
-Compiler v9/v10/v11 additionally exposes reviewedActionSoundscape and reviewedActionMusic
+Compiler v9/v10 additionally exposes reviewedActionSoundscape and reviewedActionMusic
 from exact shot.action. Apply the same independent role judgment to each source.
 Speech actions themselves are not ambience/effects; keep positive speech events
 in the existing dialogue/physical channels, while preserving sound/speech exclusions

@@ -167,13 +167,12 @@ def test_retained_v8_composition_sources_do_not_acquire_new_action_authority():
     assert "non_diegetic_music: No music." in prompt
 
 
-@pytest.mark.parametrize("version", ["plotloom.h3-production-brief.v9", "plotloom.h3-production-brief.v10"])
-def test_retained_action_sources_and_compiled_sound_bytes(version):
+def test_retained_v9_keeps_all_action_sources_and_compiled_sound_bytes():
     snapshot = source()
     current_sources = direction_sources(snapshot)["sources"]
     _, current = package(snapshot)
     current_prompt = compile_i2va_prompt(snapshot, current, draft=True)
-    snapshot["compilerVersion"] = version
+    snapshot["compilerVersion"] = "plotloom.h3-production-brief.v9"
     assert direction_sources(snapshot)["sources"] == current_sources
     _, retained = package(snapshot)
     assert compile_i2va_prompt(snapshot, retained, draft=True) == current_prompt

@@ -1,30 +1,26 @@
 # ADR 0224: Project language and derived provider adaptation
 
-### Prospective native high-resolution QA profile — 2026-10-29
+### Owner amendment: functional-only disposable QA acceptance — 2026-10-29
 
-The first/last Chinese probe sustained its endpoint in the sampled sequence and
-ASR recognized its sole authored line, but the native 832×480 Mira label was about
-13×5 pixels and unreadable. Retain and reject the whole clip. Do not weaken exact
-lettering, add overlays or rewrite the source. One existing 1280×704 quality8 H3
-probe is the next bounded experiment; inspect the owning input transform first.
-Its center crop removes eight pixels at the top/bottom of the original 1280×720
-image without resizing; the observed source pose, label and full body remain.
+The owner explicitly changed this run's acceptance to functional E2E with recorded
+generation-quality limits. Reuse existing successfully generated media through
+normal explicit QA review; generate only missing functional-route media. Retain
+pose/lettering failures and historical rejection events as failed quality evidence.
+No creative/media-quality pass, provider tuning campaign, provenance bypass or
+uncertain-dispatch clearing follows. The unexercised higher-resolution grant and
+v11 preparation contract are retired; no such native request was created. Existing
+v7–v10 native evidence and the exercised exact first/last grant remain unchanged.
 
-Prospective compiler v11 has an additional closed profile grant for the two exact
-project/scope digests and their already granted shot/material identities. Only the
-existing minimax_h3_quality8_landscape_1280x704_v2 profile, eight seconds,192frames,
-24fps, native audio and explicit center crop are added. Existing twelve scopes,
-their hashes, runtime write grants, actors, aggregate caps and provider/account
-constraints stay unchanged. Old snapshots cannot inherit the profile permission;
-v10 ending guidance remains832×480. V11 may reuse only the same two exact opening
-images for ending guidance under their existing endpoint/provenance fences. Every
-batch, preparation and dispatch validates the matching profile; native fidelity
-and explicit intent remain mandatory. Retained v7/v8/v9/v10 evidence stays exact.
-
-Use a fresh ordinary request with the prior seed/images/timing. Run only the
-Chinese probe before English or endings, then reassess if lettering is still
-unreadable. Higher resolution is not proof of fidelity or media acceptance, and
-this does not authorize a renderer feature or a broader quality campaign.
+The identified application blocker is that explicit H3 reconsideration only accepts
+human reviewers, while QA selection requires its exact structured final receipt.
+Add bounded typed QA reconsideration under the two original runtime grants and the
+owner's functional-only decision. It appends an event and preserves original
+rejections, current source/work inventory, exact actor and final-receipt controls.
+An unselected, fully ingested one-shot QA batch may change review observation
+without changing selection CAS; its new review event changes the final review hash.
+Human reconsideration retains its existing CAS behavior. Final functional-only
+inspection explicitly records failed/unverified quality dimensions and cannot be
+claimed by unrelated projects or actors. Frozen generation manifests are immutable.
 
 ### Prospective reuse of exact opening images as ending guidance — 2026-10-29
 

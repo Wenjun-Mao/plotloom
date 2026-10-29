@@ -1,6 +1,7 @@
 """QA-specific fences at the existing batch, dispatch and receipt owners."""
 from sqlalchemy import select
 
+from .provider_budgets import exceeds_budget, budget_within_authority
 from .delegated_qa import (
     attribution_for_reviewer,
     binding_attribution,
@@ -11,17 +12,12 @@ from .delegated_qa import (
 )
 from .delegated_qa_contracts import QaAvInspection
 from .delegated_qa_end_frames import end_frame_within_authority
-from .delegated_qa_video_profiles import (
-    manifest_profile_within_authority,
-    profile_within_authority,
-)
 from .exceptions import InvalidTransitionError
 from .persistence.schema import (
     ApprovalDecisionRow,
     ProjectVideoDispatchRow,
     VideoJobRow,
 )
-from .provider_budgets import budget_within_authority, exceeds_budget
 
 
 def assert_snapshot(scope, snapshot):
@@ -31,7 +27,7 @@ def assert_snapshot(scope, snapshot):
     material = next((item for item in scope.materials if item.shot_id == snapshot["shot"]["id"]), None)
     frame, request, provider = snapshot["keyframe"], snapshot["request"], snapshot["provider"]
     if (material is None or frame["assetId"] != material.asset_id or frame["originalHash"] != material.original_hash
-            or not profile_within_authority(scope, snapshot) or request.get("audio") is not True
+            or request.get("profileId") != scope.profile_id or request.get("audio") is not True
             or request.get("aspectPolicy") != "cover_center_crop" or not end_frame_within_authority(scope, snapshot)
             or provider.get("adapterId") != "minimax_h3_gateway" or provider.get("costPolicy") != "local_capacity_v1"):
         raise InvalidTransitionError("video request exceeds the exact QA material, profile or provider scope")
@@ -63,7 +59,7 @@ def assert_manifest_actor(store, manifest, attribution):
                 raise InvalidTransitionError("Generation authorization must state the material review's actual attribution")
         if actor:
             scope = require_qa_write(session, store.manifest.project_id, actor)
-            if (not manifest_profile_within_authority(scope, manifest)
+            if (manifest["setup"]["profileId"] != scope.profile_id
                     or not budget_within_authority(manifest["setup"]["maxJobs"], scope.max_submissions)
                     or not budget_within_authority(manifest["setup"]["maxRequestedSeconds"], scope.max_requested_seconds)
                     or not set(manifest["scopeShotIds"]).issubset({item.shot_id for item in scope.materials})):

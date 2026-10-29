@@ -1,33 +1,42 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
-2026-10-29 lettering checkpoint: v10's first/last Chinese clip ingested8.0s/192frames
-and sustained the held beside-lamp pose in the sampled sequence. ASR auto zh0.993137
-recognized the sole authored clause0.53–2.19s. Its actual 832×480 label was only
-roughly13×5pixels and cannot establish readable Mira. Agent QA rejected the whole
-clip; batch is cancelled14. All four actual clips remain retained, unselected.
-The genuine native checker report was inspected outside the workbench through an
-exact-byte read-only loopback view (file navigation was blocked); Chinese headings,
-brief and closed technical disclosure rendered, then that view/server were stopped.
+## Owner amendment: functional acceptance with quality limits — 2026-10-29
 
-Independent review approved one existing quality8 1280×704 H3 Chinese probe as the
-next bounded test, under the same prospective-grant authority. ADR0224/compiler v11
-adds only that profile for the two exact existing scope digests/material sets,
-with8s/192frames/24fps/native audio/crop constraints. Existing12scope hashes and
-runtime write grants stay unchanged; v10 cannot acquire the new profile. Ending
-reuse remains limited to the exact two opening images and original provenance/
-approval/currentness fences. No source/story/image edit or new provider follows.
-The existing gateway transform's local preview removes8px top/bottom without
-resizing the1280×720 source; actual preview retains full body, pose and label.
+The owner inspected the generation-quality work and explicitly decided:
+“Yes—finish functional E2E and record quality limits.” This changes acceptance for
+these disposable bilingual examples. Stop generation/experiments whose sole purpose
+is pose, lettering, sharpness, resolution or other output quality. The proposed
+higher-resolution Mira experiment was never prepared or dispatched; retire its
+unused profile grant. Keep all existing media, actual states and quality evidence.
 
-The stable reviewed candidate passes120 focused cases95.26s, quick20.537s and native
-owner discovery4999Python cases (no test bodies in discovery). Normal read-only
-validation remains14/14, zero new regressions; Ruff/whitespace pass. Retained v10
-prompt bytes and all old scope hashes reproduce. New owners remain below100lines.
-Next: fresh ordinary single request, same previous seed/first/end images and8s,
-fresh native check/intent, then one higher-resolution Chinese clip. English and all
-endings stay held pending that result. Reassess if lettering remains unreadable;
-do not turn this into an open quality campaign or waive the exact-text criterion.
-Full/wheel, four route plays, activation and final acceptance remain unqualified.
+Normal explicit agent-QA selection may use these outputs for functional E2E despite
+recorded quality shortcomings. This is not creative/media-quality acceptance and
+does not upgrade historical verdicts. Chinese v8/v9 withdrew the held hand; English
+v9 touched the cup and distorted 安; Chinese v10 maintained the sampled held pose
+but its roughly13×5pixel Mira label was unreadable. All four clips remain retained
+with their original rejection events; ASR recognized each authored zh/en clause
+once, with no direct-listening claim. V10's third Chinese probe used the supported
+first/last path and its actual endpoint decision stays retained. Its genuine native
+checker report was rendered outside the workbench; the temporary read-only report
+view/server are stopped.
+
+Finish source/canonical language, derived requests, reports, installation/reopen,
+actual two-choice playback in each language including pause/restart, export,
+preservation, required local qualification/activation and cleanup. Generate only
+missing media needed for uncovered functional routes, using existing approved
+profiles/grants; do not tune provider settings for quality. No push/CI, source
+evidence rewrite, uncertain-dispatch clearing or guard bypass is authorized.
+
+The smallest current functional blocker is lifecycle parity: the human H3 review
+reopen endpoint rejects QA-attributed jobs, and QA selection correctly requires a
+structured final audiovisual receipt. Root owns a bounded explicit QA reconsideration
+path for these two examples, preserving rejected events, exact current source/
+runtime/actor and selection/work-inventory fences. Preserve frozen generation
+manifests and source hashes; do not manufacture authority or advanced CAS counters.
+Functional-only final receipts must state their quality limitations. Prove reuse of
+one current ingested opening through normal final confirmation and actual playback
+before generating the four missing endings. Full/wheel/activation remain required;
+known output-quality limitations alone no longer block functional completion.
 
 2026-10-29 endpoint-method reassessment: Chinese v9's checked replacement also
 withdrew its hand before the ending. English v9's checked opening moved its hand
