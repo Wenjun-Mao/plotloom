@@ -194,6 +194,44 @@ def test_reference_hold_refuses_cyclic_foreign_or_stale_ancestry(links):
         discover_early_references(store, view)
 
 
+def test_current_composition_two_ancestor_continue_pauses_corrected_cast_without_host_calls(tmp_path, monkeypatch):
+    storage, registry, service, root, calls = installed(tmp_path, monkeypatch, frame_bound=False, corrected_cast=True)
+    try:
+        stopped = service.control(root.project_id, RunControlRequest(expected_revision=root.revision, action="cancel"))
+        with closing(storage.projects.open(root.project_id)) as store:
+            root_before = origin_rows(store, root.id)
+            child = service.continue_material(root.project_id, request_for(store, stopped))
+        assert len(child.checkpoints) == 11
+        stopped_child = service.control(root.project_id, RunControlRequest(expected_revision=child.revision, action="cancel"))
+        with closing(storage.projects.open(root.project_id)) as store:
+            child_before = origin_rows(store, child.id)
+            grandchild = service.continue_material(root.project_id, request_for(store, stopped_child))
+            installation = store.production_bridge_state().installation
+            assert installation is not None and installation.status == "current"
+        assert len(grandchild.checkpoints) == 11 and all(row["state"] == "adopted" for row in grandchild.checkpoints)
+        assert any(row["operationKey"] == "characters:correction:1" for row in grandchild.checkpoints)
+        original_calls = list(calls)
+        for method in ("codex_exec_admit", "codex_exec_status", "codex_exec_suspend", "codex_exec_resume", "codex_exec_cancel"):
+            monkeypatch.setattr(registry, method, lambda *_args: pytest.fail("pause touched an adopted ancestor host receipt"))
+        paused = service.control(root.project_id, RunControlRequest(expected_revision=grandchild.revision, action="pause"))
+        assert paused.state == "paused" and calls == original_calls
+        with closing(storage.projects.open(root.project_id)) as store:
+            assert store.repository.autopilot.current(root.project_id).id == grandchild.id
+            assert origin_rows(store, root.id) == root_before
+            assert origin_rows(store, child.id) == child_before
+            assert origin_rows(store, grandchild.id)["v2_autopilot_exec_attempts"] == []
+            assert store.production_bridge_state().installation == installation
+        service.close()
+        with closing(storage.projects.open(root.project_id)) as store:
+            reopened = store.repository.autopilot.current(root.project_id)
+            assert reopened.state == "paused" and reopened.predecessor_run_id == child.id
+            assert {row["operationKey"]: row["evidence"] for row in reopened.checkpoints} == {
+                row["operationKey"]: row["evidence"] for row in grandchild.checkpoints}
+        assert not registry._codex_exec_test_host.image_calls
+    finally:
+        service.close()
+
+
 def test_exact_inventory_refuses_mixed_missing_hash_text_and_coordinates(tmp_path, monkeypatch):
     storage, _registry, service, current, _calls = installed(tmp_path, monkeypatch, frame_bound=True)
     try:

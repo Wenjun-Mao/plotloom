@@ -1446,6 +1446,55 @@ the successful unadopted English primary across changed source pins. Its old hom
 and failed checker history remain preserved; no new continuation/discard layer,
 history rewrite, data reset or uncertainty clearing is introduced.
 
+### Real Chinese bridge installation and inherited pause failure
+
+The bfa521cc checker-preparation checkpoint passed root quick14.353s and the
+exact committed-source case4.30s. Original Chinese2458559c-b6cf-4d98-9921-bd169e2b6769
+continued as4eba29e8-66d5-4d36-af56-4a65ac78f7fb with exact7inherited operations,
+including characters:correction:1. New native intent ch_40188fa1e99e4111bfa06fefec59949b
+and native presentation ch_4ca39347fc834573a4ca66afd711733b each passed their
+distinct independent checks and were adopted. Installation7c995340-5209-4c9d-8e3f-1a22eedc64ea
+is current: Bible/scene-beats/storyboard revision2, graph revision1. All11operations
+were adopted atrev19. No image attempt exists.
+
+The actual frozen native presentation request has3composition sources matching
+exact authored Chinese cut text, full-cut hash and coordinates.field=composition.
+Fresh app8endpoint readback passes; canonical Chinese composition excludes the
+provider frame prefix, while visibleTexts retains exact Mira with source hashes
+and F4/F5 coordinates. Root inspected this output and its preserved source-bound
+speech/choice constraints. This establishes native text output, not image/video
+generation or human creative acceptance.
+
+The text runner still exits1: its final pause incorrectly requires a current-run
+attempt for adopted inherited evidence. Its cleanup repeats the same failed pause;
+the nested shutdown does stop the ordinary server before releasing its lease, so
+no image discovery occurred. The run remained runningrev19 after transactional
+rollback. Root then used supported explicit cancel, nowrev20; exact checkpoint,
+attempt and decision rows plus installed-text readback remain unchanged. The
+original raw25-table/parent7-table/payload witness passes, permitting only the new
+typed bridge checker rows. Preserve the pause failure as failed evidence.
+
+Artifacts: zh-composition-refresh-native.log,
+zh-composition-refresh-native-source-binding.json,
+zh-composition-refresh-installed-with-pause-failure.json,
+zh-composition-refresh-after-quiescence-cancel.json,
+zh-composition-refresh-quiescence-cancel.log and
+zh-composition-refresh-fresh-app-readback.{json,log}. The readback's optional
+literalTreatment probe label is not a canonical field; complete retained payloads
+correctly expose the source-bound visibleTexts owner. A Starlette/httpx
+deprecation warning is unrelated; the APIs passed and no dependency change was made.
+
+The separate3-file current-pause-inherited-adopted/ artifact has exact root
+integration and High review closure. Its2source lines skip adopted terminal
+checkpoints before current pending-attempt lookup; it adds no None fallback or
+historical process query. Eleven focused cases pass16.47s with adopted-ancestor
+host methods forbidden and pending identity/suspend refusal intact. Real
+new-checkpoint Continue11/pause still needs execution; no prior failed pause is
+relabeled. Fresh English bd36e518-62be-4aa9-8423-ca2e437b3e39 was created ordinarily
+from the identical approved Brief with0provider calls and four missing canonical
+stages; no canon/grants/native proof were copied. See replacement-english-creation.json
+and active-media-qa-scope.json, whose exact two identities have independent closure.
+
 Three demonstrated runtime defects remain under the bounded source repair:
 paused structural receiving occurs after language checking; cache dependency
 tuples omit actual Node imports; and a global blocker incorrectly owns capacity

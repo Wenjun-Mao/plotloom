@@ -36,6 +36,8 @@ def suspend_pending_codex_exec(store, registry, view):
     from .content_language_service import suspend_language_checks
     suspend_language_checks(store, registry, view.id)
     for checkpoint in view.checkpoints:
+        if checkpoint["state"] == "adopted":
+            continue
         if checkpoint["evidence"].get("executorAttemptId") is None:
             continue
         attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])

@@ -125,6 +125,13 @@ grant generation authority. Keep first-pass defined as accepted with exactly one
 attempt and preserve the existing qualification metric. Policy and validated
 lineage continue to enforce generation limits independently of this receipt view.
 
+Pause fences pending execution owned by the current run. Adopted checkpoints are
+already terminal publication evidence; inherited adopted checkpoints retain their
+validated ancestor provenance and do not acquire new current-run attempt rows.
+Skip adopted checkpoints during pending-execution suspension rather than looking
+up or contacting historical process identities. Keep the exact missing-attempt,
+identity and dispatch-disabled guards for every unadopted pending checkpoint.
+
 ## Existing attempts and acceptance
 
 The two identified old local holds may release only their positively stopped LOCAL

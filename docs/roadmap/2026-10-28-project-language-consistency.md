@@ -870,3 +870,29 @@ QA grants. The old English home remains retained failure/preservation evidence.
 This fixture replacement changes no product outcome, story source, provider,
 budget default or acceptance requirement. Both real corrected text installations
 remain prerequisites for images; all final qualification/activation work stays open.
+
+### Chinese installed outcome and pause ownership — 2026-10-29
+
+Atbfa521cc the original Chinese home's successor4eba29e8 completed native intent,
+independent intent checking, native authored-composition presentation and its
+independent checking, then installed all11operations. Raw6/source work and the
+original corrected Cast were inherited unchanged. All3actual presentation sources
+bind exact Chinese composition text/cut hashes/coordinates. Fresh application
+readbacks pass8endpoints; canonical composition is Chinese and the exact Mira
+lettering retains source coordinates. No images/H3 were admitted.
+
+The final required pause exposed a separate owner bug: it looked for an inherited
+adopted checkpoint's attempt in the new run. The failed pause is retained as a
+failure. Root safely cancelled this fully adopted successor underbfa, preserving
+all native/checkpoint/decision records and installation. The reviewed2-line fix
+skips adopted terminal evidence while keeping every pending current-attempt fence;
+11focused cases pass, including two-ancestor corrected Cast and missing-current-
+attempt refusal. After its source checkpoint, use supported ordinary11-operation
+Continue from4eba29e8 and prove durable pause/reopen with zero new native jobs.
+This reuses the successful bfa text/installation evidence without upgrading it to
+a new generation claim. Then launch the ordinary fresh English fixture
+bd36e518-62be-4aa9-8423-ca2e437b3e39 (same Brief, four initially missing canonical
+stages, creation used zero provider requests) through all8native stages. Final
+media scope is original Chinese2458559c plus this replacement English home;
+retained failed English e1894d73 is excluded from media generation. Exact creation
+and procedural scope are retained under.local/project-language-20261028/.

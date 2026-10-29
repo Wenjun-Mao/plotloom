@@ -83,3 +83,23 @@ def test_pause_unknown_unacknowledged_fence_rolls_back_project_control(tmp_path,
         retained = store.repository.autopilot.current(view.project_id)
         assert run_facts(retained) == run_facts(view) and requests == [unknown] and not calls
         assert store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, "outline") == (unknown, None)
+
+
+def test_pause_current_unadopted_checkpoint_missing_attempt_still_refuses(tmp_path, monkeypatch):
+    from plotloom.persistence.project.autopilot_exec_attempts import AutopilotExecPersistence
+
+    with prepared(tmp_path, monkeypatch) as (_storage, registry, service, store, view, checkpoint, _attempt, _kwargs, calls):
+        assert checkpoint["state"] == "prepared" and checkpoint["evidence"]["executorAttemptId"]
+        original = AutopilotExecPersistence.exec_attempt_evidence_for_operation
+
+        def missing(owner, run_id, operation_key):
+            if str(run_id) == view.id and operation_key == checkpoint["operationKey"]:
+                return None, None
+            return original(owner, run_id, operation_key)
+
+        monkeypatch.setattr(AutopilotExecPersistence, "exec_attempt_evidence_for_operation", missing)
+        monkeypatch.setattr(registry, "codex_exec_suspend", lambda *_args: pytest.fail("missing current attempt reached the host"))
+        with pytest.raises(InvalidTransitionError, match="no retained Codex Exec identity"):
+            service.control(view.project_id, RunControlRequest(expected_revision=view.revision, action="pause"))
+        assert run_facts(store.repository.autopilot.current(view.project_id)) == run_facts(view)
+        assert not calls
