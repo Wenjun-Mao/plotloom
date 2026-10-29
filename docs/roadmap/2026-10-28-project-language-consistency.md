@@ -936,3 +936,35 @@ before images rather than assuming it remains executable after policy changes.
 Both complete text installations remain image prerequisites. Final media, local
 qualification, exact wheel, preservation-checked activation and cleanup remain
 required; CI and push stay unrequested.
+
+### Presentation preservation checkpoint — 2026-10-29
+
+At88b7069e fresh original English7b85292b completed eight creative native attempts;
+seven independent checks passed and seven stages were adopted. Presentation check
+ch_609c0f53243d54cf9c4addd948982a39 completed uncertain; the run remains blocked64.
+Its61uncertain source facts identify a representation gap: ten valid visible_text
+source slices have empty rendering, while generic checking cannot reference their
+trusted canonical projection. Preserve the candidate, uncertain receipt, old failed
+homes and Chinese installation. No images/H3 were admitted.
+
+Root owns the narrow ADR0224 projection-witness repair. The smallest outcome is
+provider-free equality between checker witnesses and actual canonical visibleTexts,
+using the exact retained candidate plus omission, reassignment, misbinding and
+uncertainty controls. Check prompt/schema/binder agreement and obtain independent
+stable review before new native work. Existing execution pins refuse upgrading the
+old job. Recheck supported lifecycle/fixture eligibility; do not add replay machinery,
+copy old candidates into fresh provenance or configure a fake specialist binding.
+Both installed text outcomes still precede the first one-reference image probe.
+
+The reviewed repair now binds every source-slice witness and preserves raw
+candidate/prose coverage. The exact retained533-source/10-assignment causal probe
+passes with synthetic prospective judgments; original uncertain receipt and blocked64
+are unchanged. Focused54runtime cases,85fixture/control cases and33final schema
+cases pass (overlap); quick passes14.014s. Earlier failures remain recorded.
+Current pins prohibit upgrading the old job, manual sending has no specialist
+binding, and automatic Continue refuses its completed unadopted presentation.
+After the coherent source checkpoint, refresh Chinese11-operation authority through
+its supported zero-generation Continue and create one fresh original English home
+with the exact unchanged Brief. This tests the repaired planned-output channel
+through genuine checking/install/reopen; do not dispatch an old package or copy
+old candidate/proof bytes. No more supporting-tool expansion is needed.

@@ -1633,3 +1633,61 @@ normal activation, exact old LOCAL releases and final preservation remain open.
 Hosted CI/push are not requested and are not release blockers. Product, environment
 and coordination time splits and usage/cost deltas are unavailable; executed
 verification durations above are measured, not estimated progress percentages.
+
+### Native v2 progress and presentation projection repair — 2026-10-29
+
+At88b7069e original English7b85292b-dee8-4be8-825d-6f613f2da460 ran all eight
+creative stages with eight completed primary attempts and eight completed distinct
+checks. Seven checks passed/adopted; final presentation returned uncertain. Run
+d05bbb62-6742-4d23-81da-6335a5c220d5 remains blocked64. Native F5 passed all223source
+rows,43prior facts and7provider claims; root read all three authored compositions
+and directions. All37Art facts were inspected at the deliberate paused/reopened
+Art checkpoint. Actual1280/1700desktop pixels show English Art prose, Chinese app
+controls, exact 安 and separate technical disclosures. This is text/UI evidence,
+not installation or media acceptance. The observed run interval was36m17s,
+including queueing, the Art pause and inspection; model-active time is unavailable.
+
+The exact final uncertain pack is source-intent-english-presentation-uncertain.json
+(SHA25696b5bd6f6bba60888f24b802ccc49ce417ca3a49e068ff467fe0a8353328f269).
+It has533source decisions and61uncertain 安 facts. All ten source-slice assignments
+are structurally valid with empty rendering. The generic checker lacked the
+canonical projection channel. ADR0224 owns the narrow prospective witness repair;
+it changes neither candidate bytes/prose coverage nor primary presentation shape.
+Independent production review and final schema rereview closed without blockers.
+
+Focused evidence under.local/project-language-20261028/:
+
+- presentation-projection-first-focused.log:23pass/1synthetic uncertainty-row
+  label failure; corrected that fixture to use an uncertain source decision.
+- presentation-projection-contract-regressions.log:169pass/3fail. The three old
+  generic presentation fixtures lacked a valid source package. Supply that package;
+  retain unknown-field authored classification and assert the closed primary schema
+  refuses the extra field before witness derivation. No assertion or case removed.
+- presentation-projection-fixture-followup.log:85pass in23.81s, closing those3
+  failures with the new25controls and22native-presentation consumers. Counts overlap.
+- presentation-projection-runtime-regressions.log:54pass in60.88s, covering prefix,
+  retries, persistence, service, runtime, edited bridges and canonical integration.
+- presentation-projection-schema-final.log:33pass after final schema tightening
+  expressed existing binder requirements for nonempty/exact owning occurrences.
+- presentation-projection-quick.log:quick passed14.014s, including1676frontend
+  unit cases and both type checks. Scoped Ruff and whitespace checks pass.
+
+presentation-projection-native-causal-final.log and its JSON record preserve the
+original uncertain report/receipt hash and blocked64. The prospective synthetic
+probe keeps all533source rows, raw candidate hash and inventory unchanged; ten
+witnesses equal all ten canonical visibleTexts, and a wrong owning witness is
+refused. Its61synthetic pass judgments are causal controls, never a native upgrade.
+Probe setup errors (current-only report regeneration and missing repository test
+import path) were corrected without product guard changes or new dependencies.
+
+Current execution pins refuse a new check of the old original job after this source
+repair; completed UNCERTAIN is not retry authority. Ordinary manual replacement
+also needs a configured specialist binding, absent here, and automatic Continue
+refuses completed-but-unadopted presentation. Preserve this home. A fresh original
+English automatic journey with the exact unchanged Brief is the supported fixture;
+copy no old candidate/canon/proof and add no replay or fake binding workaround.
+Recheck Chinese installed inheritance/current authority after the source checkpoint.
+Both complete installations still gate images. Final media/audio/routes, full local
+and exact-wheel qualification, activation and preservation remain open. No CI/push,
+normal-home mutation, images or H3 occurred in this repair. Work/coordination time
+splits and usage/cost deltas remain unavailable.

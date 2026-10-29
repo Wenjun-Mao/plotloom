@@ -116,12 +116,40 @@ def language_result_schema(frozen):
                 ("required", {"presence": {"enum": ["pass", "reject", "uncertain"]}}),
             )
         ]
-        from .provider_literals import provider_path
+        from .provider_literals import provider_path, text_hash
         occurrence_paths = [item["path"] for item in frozen["inventory"] if leaves[item["path"]].strip()
             and (provider_path(frozen["stage"],item["path"],"literal_visible_text") if "providerLiterals" in frozen
                  else item["role"] in {"authored_prose","exact_source"})]
+        from .content_language_presentation import (
+            PRESENTATION_VIEW,
+            presentation_witnesses,
+        )
+        witnesses = presentation_witnesses(frozen)
+        occurrence_paths += list(witnesses)
+        if PRESENTATION_VIEW in frozen:
+            projected_span = span(list(witnesses), "Exact trusted presentationVisibleTexts output path.")
+            fact_schema["allOf"].append({
+                "if": {"properties": {"presence": {"const": "pass"}}, "required": ["presence"]},
+                "then": {"properties": {"candidateOccurrences": {"minItems": 1, "items": {"properties": {
+                    "span": projected_span}}}}},
+            })
+            for path, witness in witnesses.items():
+                own_occurrence = {"properties": {
+                    "fieldHash": {"const": text_hash(witness["text"])},
+                    "span": {"properties": {"path": {"const": path}, "start": {"const": 0},
+                        "end": {"const": len(witness["text"])}, "text": {"const": witness["text"]}}}}}
+                own_fact = {"properties": {"sourceSpan": {"const": witness["sourceSpan"]},
+                    "sourceFieldHash": {"const": witness["sourceFieldHash"]},
+                    "relevance": {"enum": ["required", "uncertain"]},
+                    "presence": {"enum": ["pass", "reject", "uncertain"]},
+                    "candidateOccurrences": {"minItems": 1, "items": own_occurrence}}}
+                schema.setdefault("allOf", []).append({"properties": {DISCOVERY: {"properties": {
+                    "sources": {"contains": {"properties": {
+                        "path": {"const": witness["sourceSpan"]["path"]},
+                        "facts": {"contains": own_fact}}}}}}}})
         occurrence = schema["$defs"]["VisibleOccurrence"]["properties"]
-        occurrence["span"] = span(occurrence_paths, "Canonical candidate-root occurrence; never $.candidate.")
+        occurrence["span"] = span(occurrence_paths,
+            "Canonical candidate-root occurrence or explicitly frozen presentationVisibleTexts path; never $.candidate.")
         source_paths = [item["path"] for item in frozen[DISCOVERY]["sources"]]
         schema["$defs"]["VisibleSourceReview"]["properties"]["path"] = {"type":"string"} | ({"enum":source_paths} if source_paths else {"not":{}})
         schema["$defs"].pop("LiteralSpan",None)

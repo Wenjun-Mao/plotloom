@@ -286,3 +286,25 @@ Retained v1 results remain readable under their original interpretation; they do
 not execute or acquire v2 authority. New frozen packages and strict schema/binder
 agreement are required. Qualify the real two-occurrence case and genuine 安/UI
 labels before another native journey; do not avoid it by changing the QA Brief.
+
+### Presentation source-slice preservation — 2026-10-29
+
+The fresh English v2 journey adopted seven creative stages, then its presentation
+check returned uncertain. All eight creative attempts completed. The presentation
+correctly uses empty rendering for ten visible-text spans; canonical projection
+preserves their exact frozen source slices. Generic discovery could only address
+candidate strings or provider claims, so it could not certify these assignments.
+Retain the original uncertain result and blocked run unchanged.
+
+Prospective presentation checks expose a trusted visible-text projection derived
+from the existing exhaustive presentation binder and shared canonical projection
+helper. Witnesses bind candidate entry/span identity, complete source-text hash,
+raw source hash, coordinates and exact slice. They are evidence of planned output,
+not author intent or semantic approval. Every witness needs an explicit exact-source
+discovery judgment. A required/pass presentation occurrence must reference this
+projection; copying lettering into a reason or physical rendering cannot substitute.
+Owning-source facts must resolve to their own source/range. Contextual source facts
+still require explicit semantic mapping and complete source coverage. Missing or
+reassigned spans supply no witness, nonempty literal rendering remains invalid,
+and uncertainty blocks adoption. Raw candidate bytes/hash and prose coverage remain
+unchanged. No historical result is upgraded and no new retry/replay path is added.

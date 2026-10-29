@@ -81,6 +81,14 @@ def bind_discovery(frozen, discovery, literal_review):
             (item['path'], item['sha256']) for item in frozen[DISCOVERY]['sources']]:
         raise ValueError('discovery must cover every ordered original source leaf')
     leaves = dict(string_leaves(frozen['candidate']))
+    from .content_language_presentation import (
+        PRESENTATION_VIEW,
+        bind_presentation_discovery,
+        presentation_witnesses,
+        require_owning_occurrence,
+    )
+    witnesses = presentation_witnesses(frozen)
+    leaves.update({path: witness['text'] for path, witness in witnesses.items()})
     roles = {item['path']: item['role'] for item in frozen['inventory']}
     packet = frozen.get('providerLiterals')
     approved = []
@@ -108,10 +116,15 @@ def bind_discovery(frozen, discovery, literal_review):
             seen.add(key)
             for occurrence in fact.candidate_occurrences:
                 exact(occurrence.span, leaves, occurrence.field_hash)
-                allowed = (provider_path(frozen['stage'], occurrence.span.path, fact.role) if packet else
-                           roles.get(occurrence.span.path) in {'authored_prose', 'exact_source'})
+                witness = witnesses.get(occurrence.span.path)
+                allowed = bool(witness) or (provider_path(frozen['stage'], occurrence.span.path, fact.role) if packet else
+                                          roles.get(occurrence.span.path) in {'authored_prose', 'exact_source'})
                 if occurrence.span.text != span.text or not allowed:
                     raise ValueError('discovered lettering has an invented role or unsupported candidate channel')
+                if PRESENTATION_VIEW in frozen and fact.presence == 'pass' and witness is None:
+                    raise ValueError('presentation visible presence requires an exact projected occurrence')
+                if witness is not None:
+                    require_owning_occurrence(frozen, fact, witness)
             raw = fact.model_dump(mode='json', by_alias=True)
             discovered.append(raw)
             if current_intent and fact.intent == 'reject' and fact.presence == 'pass':
@@ -134,6 +147,8 @@ def bind_discovery(frozen, discovery, literal_review):
                 raise ValueError('required discovered lettering omission cannot pass')
             if fact.intent == 'pass':
                 approved.append(raw)
+    if PRESENTATION_VIEW in frozen:
+        bind_presentation_discovery(discovery, witnesses)
     if packet and literal_review:
         for review, claim in zip(literal_review.claims, packet['claims'], strict=True):
             if (review.verdict == 'pass' and claim['role'] == 'literal_visible_text'

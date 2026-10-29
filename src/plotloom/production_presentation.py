@@ -7,10 +7,11 @@ from typing import Any, Literal
 
 from pydantic import Field, StrictInt, model_validator
 
-from .creative_handoff_identity import canonical_json
 from plotloom.domain_base import CamelModel
-from .machine_adoption import MachineAdoption
+
+from .creative_handoff_identity import canonical_json
 from .exceptions import InvalidTransitionError
+from .machine_adoption import MachineAdoption
 
 
 class PresentationSourceConflict(InvalidTransitionError):
@@ -161,6 +162,12 @@ def physical_text(source: PresentationSource) -> str:
     return "\n".join(span.rendering.strip() for span in source.spans if span.role == "physical")
 
 
+def visible_text_spans(source: PresentationSource):
+    """The canonical visible output is an exact frozen slice, never rendering."""
+    return [(index, span, source.source_text[span.start:span.end])
+            for index, span in enumerate(source.spans) if span.role == "visible_text"]
+
+
 def project_presentation(payload: dict, package: ProductionPresentation) -> dict:
     """Only reviewed media facts enter canonical presentation fields."""
     if not package.reviewed and package.machine_adoption is None:
@@ -180,9 +187,9 @@ def project_presentation(payload: dict, package: ProductionPresentation) -> dict
         shot["action"] = "\n".join(beats[beat]["visibleEvent"] for beat in covered if beats[beat]["visibleEvent"])
         shot["composition"] = physical_text(source)
         shot["visibleTexts"] = [
-            {"text": entry.source_text[span.start:span.end], "sourceCoordinates": entry.coordinates,
+            {"text": text, "sourceCoordinates": entry.coordinates,
              "sourceContentHash": entry.source_hash}
             for entry in [*[by_target[beat] for beat in covered], source]
-            for span in entry.spans if span.role == "visible_text"
+            for _index, _span, text in visible_text_spans(entry)
         ]
     return projected

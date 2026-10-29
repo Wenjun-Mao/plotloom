@@ -90,7 +90,21 @@ def test_incomplete_or_forged_semantic_results_fail_closed(tamper):
 @pytest.mark.parametrize("stage", STAGES)
 def test_unknown_nonempty_field_is_never_silently_exempt(stage):
     candidate = deepcopy(CANDIDATES[stage]) | {"plausibleEnglishMetadata": "But this is actually creative prose."}
-    request = checking_request(original_request(stage), candidate)
+    original = original_request(stage)
+    if stage == "bridge-presentation":
+        from plotloom.content_language_classifier import (
+            classify_candidate,
+            original_sources,
+        )
+        field = next(item for item in classify_candidate(stage, candidate, original_sources(original), original=original)
+                     if item["path"] == "$.plausibleEnglishMetadata")
+        assert field["role"] == "authored_prose"
+        # The current closed presentation schema refuses this field before
+        # deriving any source-slice witness; it never receives an exemption.
+        with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+            checking_request(original, candidate)
+        return
+    request = checking_request(original, candidate)
     field = next(item for item in request.input_artifacts[CHECK_INPUT]["inventory"]
                  if item["path"] == "$.plausibleEnglishMetadata")
     assert field["role"] == "authored_prose"

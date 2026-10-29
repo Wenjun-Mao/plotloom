@@ -35,6 +35,17 @@ def original_request(stage="outline", *, locale="zh-CN", project_id=None):
                 "adaptationIntent": "Preserve Mara as a proper name and the exact quoted English words."},
         creative_brief="Write the requested stage from the complete sources.")
     freeze_request_language(request, locale)
+    if stage == "bridge-presentation":
+        from plotloom.production_presentation import (
+            PresentationSource,
+            ProductionPresentation,
+            stable_hash,
+        )
+        source = PresentationSource(id="action:opening", kind="action", target_id="opening",
+            coordinates={"field": "action"}, source_hash=stable_hash({"action": "原文。"}), source_text="原文。")
+        request.input_artifacts["presentation-source.json"] = ProductionPresentation(
+            sources=[source], runtime_choice={"choices": []}, frozen_evidence={},
+            source_hash=stable_hash({})).model_dump(mode="json", by_alias=True)
     return request
 
 
@@ -92,6 +103,16 @@ def result_for(request, *, rejected_path=None, uncertain_path=None):
                 "presence":"pass" if mapped else "reject","candidateOccurrences":[],
                 "explanation":"Explicit synthetic source intent and presence fixture."})
         if any(fact["presence"]=="reject" for row in owned.values() for fact in row["facts"]):packet["verdict"]="reject"
+        from plotloom.content_language_presentation import presentation_witnesses
+        from plotloom.provider_literals import text_hash
+        for path, witness in presentation_witnesses(frozen).items():
+            row = owned[witness["sourceSpan"]["path"]]
+            row["decision"] = "visible_literal"
+            row["facts"].append({"role":"literal_visible_text", "sourceSpan":witness["sourceSpan"],
+                "sourceFieldHash":witness["sourceFieldHash"], "intent":"pass", "relevance":"required", "presence":"pass",
+                "candidateOccurrences":[{"span":{"path":path, "start":0, "end":len(witness["text"]),
+                    "text":witness["text"]}, "fieldHash":text_hash(witness["text"])}],
+                "explanation":"Explicit synthetic presentation source intent; never native judgment."})
     return packet
 
 
