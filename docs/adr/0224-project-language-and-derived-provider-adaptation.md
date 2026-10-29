@@ -1,5 +1,26 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Authored soundtrack preservation in H3 adaptation — 2026-10-29
+
+The first real Chinese H3 draft/check pair rejected an omitted room-tone clause:
+physical presentation omitted sound by design, and an empty canonical audio-event
+list incorrectly became a claim that no sound was authored. The raw installed F5
+composition remains the creative owner; its technical h3Prompt is not authority.
+Preserve that rejection and all existing presentation, material and native receipts.
+
+Prospective compiler v8 supplies two role-specific adaptation sources from the
+complete exact frozen composition: reviewedSoundscape for ambience/effects and
+sound/speech exclusions, and reviewedMusic for nondiegetic music. Each retains its
+owning source path, text hash and coordinates. Canonical work uses shot.composition;
+installed F5 work uses sourceTiming.cut.composition. The model owns semantic
+classification/English wording; trusted code transports the unchanged scalar and
+compiles both fields alongside explicit canonical audio events. Empty events do
+not establish N/A. Each role requires its own checked judgment; conflicts,
+omissions and unsupported assignments reject before dispatch. Dialogue and visible
+words retain their existing exact channels. No presentation/canon rewrite, raw
+technical-prompt promotion or historical proof upgrade is introduced. Existing
+frozen v7 packages retain their source fields and compiled bytes.
+
 ### Automatic image Art-reference consumption — 2026-10-29
 
 Actual bilingual material inspection exposed a missing adapter dependency: automatic

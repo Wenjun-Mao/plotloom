@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
 import json
+from typing import Any
 
-from .directions import bind_reviewed_directions, validate_direction_fields
 from ...shot_presentation import message_direction
+from .authored_audio_sources import authored_audio_sources
+from .directions import bind_reviewed_directions, validate_direction_fields
 
 _FIRST_FRAME = (
     "For the target video, at 0.00 seconds into the target video, "
@@ -111,13 +112,20 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         for index, event in enumerate(events)
         if event.get("kind") in {"ambience", "sound_effect"} and event.get("description")
     )
-    if not soundscape:
+    authored_audio = authored_audio_sources(snapshot)
+    if authored_audio:
+        soundscape = _audio_supplement(soundscape, rendered["reviewedSoundscape"])
+    elif not soundscape:
         soundscape = rendered["reviewedSoundscape"]
     music = " ".join(
         _timed_event(snapshot, index, rendered)
         for index, event in enumerate(events)
         if event.get("kind") == "score" and event.get("description")
-    ) or "N/A"
+    )
+    if authored_audio:
+        music = _audio_supplement(music, rendered["reviewedMusic"])
+    else:
+        music = music or "N/A"
     if snapshot.get("endFrame", {}).get("assetId"):
         request = snapshot["request"]
         seconds = request["frameCount"] / request["fps"]
@@ -134,6 +142,13 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         f"overall_soundscape: {soundscape}\n\n"
         f"non_diegetic_music: {music}"
     )
+
+
+def _audio_supplement(events, supplement):
+    # N/A means no additional prose-owned requirement, never cancel an event.
+    if events and supplement == "N/A":
+        return events
+    return " ".join(filter(None, (events, supplement)))
 
 
 def _timed_event(snapshot, index, rendered):

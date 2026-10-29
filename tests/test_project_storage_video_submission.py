@@ -185,6 +185,8 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
                     if source["path"] == "shot.action"
                     else "A small metallic contact sound accompanies the visible movement."
                     if source["path"] == "reviewedSoundscape"
+                    else "N/A"
+                    if source["path"] == "reviewedMusic"
                     else source["text"]
                 ),
             }
@@ -233,7 +235,7 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
     job = prepared.json()
     assert (
         job["snapshot"]["compilerVersion"]
-        == "plotloom.h3-production-brief.v7"
+        == "plotloom.h3-production-brief.v8"
     )
     assert job["snapshot"]["shot"]["action"] == "沈岚把铜质熔断器放在两条并列插槽之间。"
     assert job["snapshot"]["compiledPrompt"] == prompt

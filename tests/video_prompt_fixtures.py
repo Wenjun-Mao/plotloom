@@ -26,6 +26,8 @@ def reviewed_h3_body(client: TestClient, project_id: str, body: dict, *, directi
         path, text = source["path"], source["text"]
         if path == "reviewedSoundscape":
             english = "A soft paper rustle accompanies the visible hand movement."
+        elif path == "reviewedMusic":
+            english = "N/A"
         elif text in _FIXTURE_ENGLISH:
             english = _FIXTURE_ENGLISH[text]
         else:

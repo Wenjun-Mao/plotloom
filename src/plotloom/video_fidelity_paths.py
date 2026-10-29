@@ -1,5 +1,6 @@
 """Resolve checking findings to actual frozen sources or derived prompt fields."""
 from .production_brief_display import source_owner
+from .video_backends.minimax_h3.directions import direction_sources
 
 
 def known_paths(value, prefix=""):
@@ -17,10 +18,12 @@ def bind_finding_paths(snapshot, directions, findings):
     paths = known_paths(snapshot) | known_paths(directions, "directions")
     paths |= {"compiledPrompt", "compiledPrompt.integrated_multimodal_description",
         "compiledPrompt.overall_soundscape", "compiledPrompt.non_diegetic_music"}
-    translations = {item["path"]: item["path"] for item in directions["fields"]}
+    owners = {item["path"]: item.get("sourcePath", item["path"])
+        for item in direction_sources(snapshot)["sources"]}
+    translations = {item["path"]: owners[item["path"]] for item in directions["fields"]}
     for index, item in enumerate(directions["fields"]):
-        translations[f"directions.fields.{index}.english"] = item["path"]
-        translations[f"directions.fields.{index}"] = item["path"]
+        translations[f"directions.fields.{index}.english"] = owners[item["path"]]
+        translations[f"directions.fields.{index}"] = owners[item["path"]]
     paths |= set(translations)
     english = snapshot["languageContract"]["contentLocale"] == "en-US"
     bound = []

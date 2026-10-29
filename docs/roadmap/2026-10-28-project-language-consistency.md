@@ -1,5 +1,31 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+2026-10-29 soundtrack checkpoint: both original bilingual homes completed their
+three references and three first frames, actual pixel inspection and UI material
+handoff with explicit agent-QA attribution. The Chinese opening's real native
+draft and separate fidelity checker completed; the checker rejected lost room
+tone. No H3 video was submitted. The rejected v7 prompt still reproduces exact
+SHA-256 d9bdffc805d8b6fb75aadb82c56e1d37c615d7fdbaeed46268dc980a47220ed8.
+
+The independently reviewed ADR0224 v8 repair transports exact authored composition
+into role-specific soundscape/music adaptations without changing presentation,
+canon, material grants or retained receipts. Root remains sole execution owner.
+Focused evidence: 84 passed with one new timestamp-test failure retained, then
+11 affected passes after its correction; final sound/compiler selection 27 passed
+after repairing the review's N/A/event edge (counts overlap). Quick passed in
+13.832s; normal read-only validation remains14 inspection/14 authority passes,
+zero new regressions. New owners pass Ruff and whitespace checks. Existing
+directions validation's two baseline TRY004 findings remain unchanged. Runtime
+source owners are below400 lines; no extraction of unrelated code was warranted.
+
+Next smallest outcome: freeze the reviewed source, prepare a fresh one-shot v8
+draft and distinct check for the same Chinese opening, inspect production intent,
+then submit one eight-second native-audio H3 clip only after exact checking passes.
+Retain the old rejection; no presentation rerun or technical-prompt promotion.
+Real video/audio, four route playbacks, final full/wheel qualification and quiet
+activation remain unqualified. Hosted CI/push are not requested. Product/runtime
+work and wait timings are not separately measured; do not infer them from totals.
+
 2026-10-29 material checkpoint: source8ee5901d completed all six Chinese images;
 actual pixel review rejected changed lamp identity and room layout. English has
 three references and two frames, while its table-ending image exhausted two native

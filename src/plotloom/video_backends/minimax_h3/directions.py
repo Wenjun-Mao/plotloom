@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from ...persistence.codec import stable_hash
-
+from .authored_audio_sources import authored_audio_sources
 
 _STRUCTURAL_MARKER = re.compile(
     r"<\s*/?\s*(?:d|Picture)\b|\[\s*Shot\s+\d+\s*\]|"
@@ -18,7 +18,7 @@ _STRUCTURAL_MARKER = re.compile(
 def direction_sources(snapshot: dict[str, Any]) -> dict[str, Any]:
     shot = snapshot["shot"]
     context = snapshot["resolvedContext"]
-    sources: list[dict[str, str]] = []
+    sources: list[dict[str, Any]] = []
     seen_paths: set[str] = set()
 
     def add(path: str, text: object, label: str) -> None:
@@ -60,7 +60,10 @@ def direction_sources(snapshot: dict[str, Any]) -> dict[str, Any]:
         for field, label in (("delivery", "对白表达方式"), ("performanceNotes", "对白表演说明")):
             add(f"resolvedContext.dialogueCues.{index}.{field}", cue.get(field), f"对白 {index + 1} {label}")
 
-    if not any(event.get("kind") in {"ambience", "sound_effect"} and event.get("description") for event in events):
+    authored_audio = authored_audio_sources(snapshot)
+    if authored_audio:
+        sources.extend(authored_audio)
+    elif not any(event.get("kind") in {"ambience", "sound_effect"} and event.get("description") for event in events):
         # The author can describe a physically grounded sound without
         # changing canonical audio events. Its provenance is a supplement.
         sources.append({
@@ -117,8 +120,8 @@ def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] |
     rendered = validate_direction_fields(snapshot, package)
     from ...video_batch_basis import valid_direction_endorsement
     if package is not None and package.get("fidelityCheck"):
-        from ...video_fidelity_contracts import FidelityReference, IntentAuthorization
         from ...production_brief import production_brief
+        from ...video_fidelity_contracts import FidelityReference, IntentAuthorization
         FidelityReference.model_validate(package["fidelityCheck"])
         authorization = IntentAuthorization.model_validate(package.get("intentAuthorization"))
         if authorization.brief_hash != production_brief(snapshot)["briefHash"] or not valid_direction_endorsement(package):

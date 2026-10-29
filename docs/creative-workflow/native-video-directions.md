@@ -17,7 +17,19 @@ render every field in concise English. Do not omit requirements or invent action
 identity, position, performance, sound, speech or visible text. Preserve negation.
 Keep exact authored dialogue and visible text out of translated direction fields:
 the trusted compiler preserves their original bytes and sound/nonspoken roles.
-The reviewedSoundscape fallback permits no new sounds: use N/A when none is authored.
+For compiler v8, reviewedSoundscape and reviewedMusic each carry the complete exact
+authored composition with sourcePath, sourceTextHash and sourceCoordinates. They
+are role-specific views of one source, not additional creative instructions.
+For reviewedSoundscape, adapt only authored ambience/effects and sound/speech
+exclusions. For reviewedMusic, adapt only nondiegetic music and music exclusions.
+Preserve all restrictions, including silence and prohibitions. Do not repeat exact
+dialogue or visible words. Judge N/A independently for each role only when that
+source has no applicable requirement. Empty canonical audio events prove nothing
+about prose-authored sound. Compare explicit events too; unresolved contradictions
+must fail, never silently override either owner. Raw h3Prompt is technical evidence,
+not creative authority. The compiler consumes both views alongside explicit events.
+Older frozen reviewedSoundscape fallback permits no new sounds: use N/A when none
+is authored under that frozen contract.
 No prompt sections, reserved markup, multiline fields, more than 2,000 characters
 per field or more than 100 fields per shot. An unsupported/lossy requirement is a
 failure to correct at its owning source, not permission to adapt the story silently.

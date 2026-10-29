@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from plotloom.stage_contracts import StageName
 from plotloom.contract_identity import utc_now
+from ...video_backends.minimax_h3.authored_audio_sources import COMPILER_VERSION
 from ...exceptions import (
     IdempotencyConflictError,
     InvalidTransitionError,
@@ -46,7 +47,7 @@ class VideoJobPreparation:
         resolution = production_contract.resolution
         audio = production_contract.audio
         compiler_version = (
-            "plotloom.h3-production-brief.v7" if production_contract.profile_id is not None
+            COMPILER_VERSION if production_contract.profile_id is not None
             else "p2-video-adapters-v1"
         )
         provider_snapshot = production_contract.provider_snapshot()
