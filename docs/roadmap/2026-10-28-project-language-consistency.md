@@ -1,5 +1,17 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+2026-10-29 material checkpoint: source8ee5901d completed all six Chinese images;
+actual pixel review rejected changed lamp identity and room layout. English has
+three references and two frames, while its table-ending image exhausted two native
+attempts; it is paused, with no third dispatch. Both execution owners are stopped
+after all attempts settled. No H3 or material acceptance occurred. Root owns the
+bounded missing Art-reference adapter repair described in ADR0224; the smallest
+next journey reuses the original Chinese installation and reference images, proves
+one corrected opening frame with actual pixels and retained native receipts, then
+returns to the original bilingual outcome. No new providers or creative edits.
+Original homes/evidence remain root-owned. Execution wait/product/coordination
+durations are not fully measured; do not infer them from test totals.
+
 Status: finalized and explicitly authorized for end-to-end implementation on
 2026-10-28. Both languages completed all eight native text stages and installation
 at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate

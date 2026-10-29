@@ -1,9 +1,11 @@
 """Repository-bound image transport/admission shared by the native controller."""
 from hashlib import sha256
 from pathlib import Path
-from .image_job_contracts import ImageJobError, NativeTaskBinding
+
 from .codex_exec_contracts import CodexExecAttempt, CodexExecProfile, CodexExecReceipt
 from .image_exchange_references import PackageReference
+from .image_job_contracts import ImageJobError, NativeTaskBinding
+from .image_reference_roles import REVIEWED_REFERENCE_ROLES, package_reference_role
 from .managed_media import publish_import
 
 IMAGE_METHODS = {
@@ -21,9 +23,7 @@ def image_context(store, owner, job_id):
 def frozen_references(context):
     values = []
     for index, reference in enumerate(context["request"]["frozenSnapshot"].get("references", [])):
-        role = reference["role"]
-        if role == "character_identity":
-            role += ":" + reference["characterId"]
+        role = package_reference_role(reference)
         suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
         values.append((role, f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}", reference["originalHash"]))
     return values
@@ -38,9 +38,7 @@ def image_package(store, owner, job_id, *, native_task_binding: NativeTaskBindin
         content = store.artifacts.get(source["originalUri"])
         if sha256(content).hexdigest() != source["contentHash"]:
             raise ImageJobError("reference_integrity", "frozen reference bytes changed")
-        role = source["role"]
-        if role == "character_identity":
-            role += ":" + source["characterId"]
+        role = package_reference_role(source)
         suffix = ".png" if source["mimeType"] == "image/png" else ".jpg"
         references.append(PackageReference(role=role, filename=f"reference-{index + 1}-{source['contentHash'][:16]}{suffix}",
             content_hash=source["contentHash"], content=content))
@@ -94,9 +92,6 @@ def read_image(
     if is_codex_exec:
         if executor_attempt is None or executor_profile is None or executor_receipt is None:
             raise ImageJobError("delivery_executor_evidence_missing", "Codex Exec delivery requires its exact project attempt and receipt")
-        all_reference_hashes = tuple(
-            item["originalHash"] for item in request.get("frozenSnapshot", {}).get("references", [])
-        )
         output_role = (
             "art_reference" if request.get("target") == "art_reference_proposal"
             else "keyframe_adaptation" if request.get("kind") == "keyframe_adaptation"
@@ -109,7 +104,7 @@ def read_image(
             require_executor_provenance=True,
             expected_executor_contract="codex_exec.v1",
             required_reference_hashes=[item["originalHash"] for item in request.get("frozenSnapshot", {}).get("references", [])
-                if item["role"] in {"character_identity", "scene_continuity"}],
+                if item["role"] in REVIEWED_REFERENCE_ROLES],
             expected_codex_attempt=executor_attempt,
             expected_codex_profile=executor_profile,
             expected_codex_receipt=executor_receipt,
@@ -118,7 +113,7 @@ def read_image(
             expected_codex_output_role=output_role,
         )
     return exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], require_executor_provenance=True,
-        required_reference_hashes=[item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] in {"character_identity", "scene_continuity"}],
+        required_reference_hashes=[item["originalHash"] for item in request["frozenSnapshot"].get("references", []) if item["role"] in REVIEWED_REFERENCE_ROLES],
         require_executor_pin=True, expected_executor_skill_version=preflight["skillVersion"],
         expected_executor_contract=preflight["executionContract"],
         expected_native_task_binding=native_task_binding)

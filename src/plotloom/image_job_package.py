@@ -203,6 +203,10 @@ def project_image_package(
             "or character_identity. The output is a new unselected target candidate; continuity fidelity needs review. "
             if request.get("frozenSnapshot", {}).get("sceneContinuity") is not None else ""
         )
+        from .image_reference_roles import ART_REFERENCE_INSTRUCTION
+        art_instruction = (ART_REFERENCE_INSTRUCTION if any(
+            item["role"].startswith(("scene_environment:", "prop_identity:")) for item in reference_entries
+        ) else "")
         adaptation_contract = request.get("frozenSnapshot", {}).get("keyframeAdaptation", {}).get("outputContract", {})
         adaptation_instruction = (
             f" Adapt the supplied source_keyframe into one complete {adaptation_contract.get('width')}x{adaptation_contract.get('height')} "
@@ -227,6 +231,7 @@ def project_image_package(
             )
             + adaptation_instruction
             + continuity_instruction
+            + art_instruction
             + (f"Produce one unchanged original with aspect {request['frozenSnapshot']['requestedGeometry']['aspectRatio']}, "
                f"targeting {request['frozenSnapshot']['requestedGeometry']['width']}x{request['frozenSnapshot']['requestedGeometry']['height']}. "
                "Disclose actual geometry; do not crop or pad outputs. This is an AI provisional material, without human visual or identity approval. "
@@ -290,6 +295,7 @@ def project_image_package(
             )
             + adaptation_instruction
             + continuity_instruction
+            + art_instruction
             + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
                "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
                + presentation_amendment_instruction(request)
@@ -349,7 +355,8 @@ def project_image_package(
             },
             "limitations": [],
         }
-        if any(item["role"].startswith("character_identity") or item["role"] == "scene_continuity" for item in reference_entries):
+        if any(item["role"].startswith(("character_identity:", "scene_environment:", "prop_identity:"))
+               or item["role"] == "scene_continuity" for item in reference_entries):
             template_payload["referenceUse"] = {
                 "viewedReferenceHashes": ["replace-with-every-character-identity-and-scene-continuity-hash"
                     if continuity_instruction else "replace-with-every-character-identity-hash"],

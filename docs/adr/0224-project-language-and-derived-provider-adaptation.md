@@ -1,5 +1,24 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Automatic image Art-reference consumption — 2026-10-29
+
+Actual bilingual material inspection exposed a missing adapter dependency: automatic
+frame requests carried character images but omitted the selected scene and prop
+images. Chinese frames consequently changed the lamp design and room geometry.
+New automatic original frames must freeze and consume current selected Art images
+for their canonical physical locations and props, using existing explicit IDs.
+Scene images own environment appearance/layout; prop images own object appearance;
+the target shot continues to own action, state, framing and visible words. A study
+sheet's panels are not footage. These roles do not supply creative acceptance.
+
+Exact active decision, accepted-Art/subject hashes and asset bytes are dependencies
+through preparation, dispatch, delivery and currentness. Missing, stale, replaced,
+foreign or excessive references block work rather than silently dropping images.
+Continue retains original text and reference evidence, but does not inherit frames
+made without this dependency; original snapshots and failed results stay intact.
+The next live checkpoint is one corrected Chinese opening with the same selected
+C01/S01/P01 images, followed by actual pixel inspection before expansion or H3.
+
 Status: accepted by the owner, 2026-10-28; implementation in progress under the
 [authorized language plan](../roadmap/2026-10-28-project-language-consistency.md).
 

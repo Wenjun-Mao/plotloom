@@ -1,14 +1,18 @@
 """Exact source inventory selects the one supported text-only bridge rebuild."""
+from types import SimpleNamespace
+
 from sqlalchemy import select
 
-from ...exceptions import InvalidTransitionError
 from ...autopilot_contracts import CheckpointEvidence
-from ...text_correction_contracts import logical_checkpoint
+from ...exceptions import InvalidTransitionError
 from ...production_presentation import (
-    ProductionPresentation, PresentationUpdate, bind_presentation_spans, prepare_presentation,
+    PresentationUpdate,
+    ProductionPresentation,
+    bind_presentation_spans,
+    prepare_presentation,
 )
-from ..schema import Base, AutopilotRunRow
-from types import SimpleNamespace
+from ...text_correction_contracts import logical_checkpoint
+from ..schema import AutopilotRunRow, Base
 
 RAW_OPERATIONS = {"source", "outline", "branches", "characters", "art", "script", "storyboard"}
 BRIDGE_OPERATIONS = {"bridge.prepare", "bridge-intent", "bridge-presentation", "installation"}
@@ -97,7 +101,8 @@ def select_inherited_checkpoints(owner, session, run, checkpoints):
                 key: value for key, value in wanted.items() if key != "spans"}:
             raise InvalidTransitionError("Continue presentation source identity, text or coordinates changed")
     if fields == {"composition"}:
-        return adopted
+        from .image_art_references import reusable_image_checkpoints
+        return reusable_image_checkpoints(session, adopted)
     if fields != {"frame"}:
         raise InvalidTransitionError("Continue refuses mixed presentation sources or incomplete text installation")
     _assert_no_dependent_material(session, run.project_id)

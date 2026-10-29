@@ -1,7 +1,6 @@
 """Serial native initial images and separately authorized local geometry."""
 from sqlalchemy import select
 
-from .provider_budgets import exceeds_budget
 from .autopilot_brief_style import image_style_guidance
 from .autopilot_contracts import (
     POLICY_VERSION,
@@ -29,6 +28,7 @@ from .image_commands import (
 )
 from .image_job_contracts import ImageJobError, NativeTaskBinding
 from .persistence.schema import AutopilotCheckpointRow
+from .provider_budgets import exceeds_budget
 
 
 class AutopilotImageController:
@@ -105,7 +105,28 @@ class AutopilotImageController:
         decisions = store.media.list_character_reference_decisions(view.project_id)["decisions"]
         ready = {item["characterId"] for item in decisions
             if item["current"] and item["characterContext"].get("authority") == "story_bible"}
-        return set(subject.character_ids) <= ready
+        if not set(subject.character_ids) <= ready:
+            return False
+        from .persistence.project.image_art_references import (
+            freeze_art_references,
+            required_art_subjects,
+        )
+        from .stage_contracts import StageName
+        repository = store.repository
+        with repository._read() as session:
+            load = lambda stage: repository._canonical._load_stage_payload(session, view.project_id, stage)
+            board, bible, beats = (load(stage) for stage in (
+                StageName.STORYBOARD, StageName.STORY_BIBLE, StageName.SCENE_BEATS))
+            shot = next(item for item in board.shots if item.id == subject.id)
+            currentness = repository._media.image_currentness
+            context = currentness.image_job_resolved_context(shot=shot, storyboard=board,
+                story_bible=bible, scene_beats=beats)
+            try:
+                freeze_art_references(session, view.project_id, required_art_subjects(shot, context),
+                    currentness.art_references)
+            except ImageJobError:
+                return False
+        return True
 
     def prepare(self, store, view, claim, subject, inventory, key, *, initial_result=None):
         require_job_capacity(view)

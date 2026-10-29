@@ -1,5 +1,30 @@
 # Project-language implementation evidence
 
+Latest material checkpoint2026-10-29: Chinese native bundle at8ee5901d is
+technically complete but **pixel-rejected** for changed P01 lamp identity and S01
+room/layout continuity. English retained two completed frames; both table-ending
+attempts explicitly refused the same authored `handheld`/table-state contradiction
+before ImageGen. English is paused; all current attempts are terminal, isolated
+runtime stopped, queue/slots empty. No material handoff, QA grant extension or H3
+dispatch occurred. Exact originals and refusals remain task-local evidence.
+
+The prospective repair binds automatic frames to selected Art image roles, exact
+decisions/hashes, currentness and reference-use evidence. Continue excludes missing
+Art-dependency frames and their derivatives without rewriting predecessor rows.
+Independent High static review closed with no blocker; effective host model
+settings remain unverified. Focused contract selection:43passed84.89s; lifecycle,
+Continue, geometry and manual identity selection:19passed130.06s (one overlap).
+First6-case run retained5passes/1incorrect test expectation; replacing a decision
+with the same bytes correctly yields a valid new reference while staling the old
+job, and the repaired regression passed. Quick passed13.631s:1676frontend cases and
+both type checks. Scoped Ruff/diff passed; unchanged synchronous callback B023
+baseline findings remain outside this repair. Original-home read-only resolution
+proved S01/P01 for all six shots with zero preparation/admission/provider calls.
+Normal-home inspection/authority remains14/14, with zero new regressions and two
+previously invalid homes unchanged. These are scoped checks, not final full,
+wheel, activation or media acceptance. Next: committed identity, exact original
+Chinese Continue and one corrected opening frame with actual pixel inspection.
+
 Status: **in progress**, updated2026-10-29. Both original QA projects completed
 all eight native text stages and installation at389bf861, with Chinese chrome,
 project-language readers and deliberate literals inspected after reopen. Their

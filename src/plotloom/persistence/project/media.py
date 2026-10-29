@@ -8,24 +8,24 @@ from .canonical import ProjectCanonicalPersistence
 from .cast import ProjectCastPersistence
 from .drafts import ProjectDraftPersistence
 from .media_admission import KeyframeAdmission
+from .media_art_reference_proposals import ArtReferenceProposalPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_character_references import CharacterReferencePersistence
+from .media_direct_video import DirectVideoJobPersistence
 from .media_image_currentness import ImageJobCurrentness
 from .media_image_delivery import ImageJobDeliveryPersistence
 from .media_image_preparation import ImageJobPreparationPersistence
 from .media_keyframes import ReviewedKeyframePersistence
 from .media_reference_proposals import CharacterReferenceProposalPersistence
-from .media_art_reference_proposals import ArtReferenceProposalPersistence
 from .media_same_person_reviews import SamePersonReviewPersistence
+from .media_shot_presentations import ShotPresentations
 from .media_tasks import GenericMediaTaskPersistence
-from .media_direct_video import DirectVideoJobPersistence
 from .media_video import VideoJobPersistence, VideoPilotAccountingPort
 from .media_video_currentness import VideoJobCurrentness
-from .media_video_source import VideoSourceTiming
 from .media_video_end_frames import VideoEndFrames
 from .media_video_segments import VideoSegmentPersistence
+from .media_video_source import VideoSourceTiming
 from .media_visual_intents import VisualIntentPersistence
-from .media_shot_presentations import ShotPresentations
 
 
 class ProjectMediaPersistence:
@@ -47,7 +47,8 @@ class ProjectMediaPersistence:
         presentations = ShotPresentations(access, canonical, admission)
         self.shot_presentations = presentations
         references = CharacterReferencePersistence(access, canonical, cast)
-        image_currentness = ImageJobCurrentness(access, canonical, admission, references)
+        art_references = ArtReferenceProposalPersistence(access, art)
+        image_currentness = ImageJobCurrentness(access, canonical, admission, references, art_references)
         same_person = SamePersonReviewPersistence(access, canonical, admission, references)
         source_timing = VideoSourceTiming(access, bridge)
         end_frames = VideoEndFrames(access, canonical, admission, source_timing)
@@ -90,7 +91,7 @@ class ProjectMediaPersistence:
         self.proposals: CharacterReferenceProposalPersistence = (
             CharacterReferenceProposalPersistence(access, canonical, references)
         )
-        self.art_references: ArtReferenceProposalPersistence = ArtReferenceProposalPersistence(access, art)
+        self.art_references: ArtReferenceProposalPersistence = art_references
         self.same_person: SamePersonReviewPersistence = same_person
         self.video_currentness: VideoJobCurrentness = video_currentness
         self.video_segments: VideoSegmentPersistence = video_segments

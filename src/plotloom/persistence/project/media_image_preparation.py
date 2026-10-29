@@ -6,9 +6,10 @@ from typing import Any
 
 from sqlalchemy import select
 
+from plotloom.contract_identity import new_id, utc_now
 from plotloom.stage_contracts import StageName
-from plotloom.contract_identity import utc_now, new_id
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+
+from ...exceptions import InvalidTransitionError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
 from ..codec import stable_hash
 from ..schema import (
@@ -20,10 +21,10 @@ from ..schema import (
     VisualIntentRow,
 )
 from .access import ProjectPersistenceAccess
-from .image_preflight import image_preflight
-from .image_adaptation_source import prepare_adaptation_source
 from .canonical import ProjectCanonicalPersistence
 from .drafts import ProjectDraftPersistence
+from .image_adaptation_source import prepare_adaptation_source
+from .image_preflight import image_preflight
 from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_image_currentness import ImageJobCurrentness
@@ -217,15 +218,23 @@ class ImageJobPreparationPersistence:
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,
                     "byteSize": asset.byte_size, "width": asset.width, "height": asset.height})
 
-            if len(references) > 9:
-                raise ImageJobError(
-                    "identity_reference_excessive",
-                    "identity-aware job has more than nine frozen reference attachments; reduce the authored visible cast or reference views",
-                )
-
             resolved_context = self._currentness.image_job_resolved_context(
                 shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats,
             )
+            if approval.machine_decision_id is not None:
+                from .image_art_references import (
+                    freeze_art_references,
+                    required_art_subjects,
+                )
+                references.extend(freeze_art_references(session, project_id,
+                    required_art_subjects(shot, resolved_context), self._currentness.art_references))
+
+            if len(references) > 9:
+                raise ImageJobError(
+                    "identity_reference_excessive",
+                    "image job has more than nine frozen reference attachments; reduce the authored subjects or reference views",
+                )
+
             shot, resolved_context, presentation = self._currentness.presentations.project(
                 session, project_id, shot, resolved_context
             )
@@ -258,10 +267,12 @@ class ImageJobPreparationPersistence:
                 snapshot["visibleCharacterIds"] = list(shot.character_ids)
                 snapshot["characterIdentity"] = identity_mappings
             if approval.machine_decision_id is not None:
+                from .image_art_references import ART_REFERENCE_CONTRACT
+                snapshot["artReferenceContract"] = ART_REFERENCE_CONTRACT
                 snapshot.pop("approvalId")
                 snapshot["canonicalGateSetVersion"] = snapshot.pop("approvalGateSetVersion")
                 snapshot["authority"] = {"actor": "machine", "scope": "image_generation", "decisionId": approval.machine_decision_id}
-                from ..schema import AutopilotRunRow, AutopilotDecisionRow
+                from ..schema import AutopilotDecisionRow, AutopilotRunRow
                 decision = session.get(AutopilotDecisionRow, approval.machine_decision_id)
                 policy = session.get(AutopilotRunRow, decision.run_id).policy
                 snapshot["requestedGeometry"] = {"width": policy["imageWidth"], "height": policy["imageHeight"], "aspectRatio": policy["brief"]["aspect_ratio"]}

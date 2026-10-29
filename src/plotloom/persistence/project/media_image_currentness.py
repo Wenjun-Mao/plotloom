@@ -10,9 +10,20 @@ from sqlalchemy.orm import Session
 
 from plotloom.project_contracts import ProjectLifecycleStatus
 from plotloom.stage_contracts import StageName
-from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
+
+from ...exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    SchemaResetRequiredError,
+)
 from ..codec import _stored_utc
-from ..schema import ImageJobRow, ProductionUnitRow, ProjectRow, ReviewedShotBindingRow, ManagedAssetRow
+from ..schema import (
+    ImageJobRow,
+    ManagedAssetRow,
+    ProductionUnitRow,
+    ProjectRow,
+    ReviewedShotBindingRow,
+)
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
@@ -30,11 +41,13 @@ class ImageJobCurrentness:
         canonical: ProjectCanonicalPersistence,
         admission: KeyframeAdmission,
         references: CharacterReferencePersistence,
+        art_references,
     ) -> None:
         self._access = access
         self._canonical = canonical
         self._admission = admission
         self._references = references
+        self.art_references = art_references
         self.presentations = ShotPresentations(access, canonical, admission)
 
     @staticmethod
@@ -102,10 +115,18 @@ class ImageJobCurrentness:
         if not self.presentations.matches(session, job.project_id, unit.shot_id, unit.snapshot.get("shotPresentation")):
             return False
 
+        from .image_art_references import art_references_current
+        if not art_references_current(session, job.project_id, unit.snapshot, self.art_references):
+            return False
+
         continuity = unit.snapshot.get("sceneContinuity")
         if continuity is not None:
-            from .image_reviewed_use import connection_for, validate_reviewed_source, require_use_current
             from ..schema import VisualIntentRow
+            from .image_reviewed_use import (
+                connection_for,
+                require_use_current,
+                validate_reviewed_source,
+            )
             try:
                 source = validate_reviewed_source(connection_for(session), job.project_id, continuity)
                 binding = session.get(ReviewedShotBindingRow, continuity["bindingId"])
@@ -140,8 +161,8 @@ class ImageJobCurrentness:
                     or asset.original_hash != adaptation.get("sourceOriginalHash")
                     or not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval)):
                 return False
-            from .image_reviewed_use import require_use_current, use_in_session
             from ..schema import VisualIntentRow
+            from .image_reviewed_use import require_use_current, use_in_session
             try:
                 source = use_in_session(session, binding)
                 require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
@@ -178,8 +199,8 @@ class ImageJobCurrentness:
                 return False
             if not self._admission.reviewed_binding_context_current_in_session(session, job.project_id, binding, approval=approval):
                 return False
-            from .image_reviewed_use import require_use_current
             from ..schema import VisualIntentRow
+            from .image_reviewed_use import require_use_current
             try:
                 require_use_current(session, job.project_id, session.get(VisualIntentRow, binding.visual_intent_id).intent, self)
             except (ValueError, InvalidTransitionError, NotFoundError):

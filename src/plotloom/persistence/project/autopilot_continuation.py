@@ -1,10 +1,11 @@
 """New future authority with exact, validated historical material origins."""
 from sqlalchemy import select
 
-from ...provider_budgets import exceeds_budget
-from ...autopilot_contracts import POLICY_VERSION, CheckpointEvidence, LaunchPolicy
 from plotloom.contract_identity import new_id, utc_now
+
+from ...autopilot_contracts import POLICY_VERSION, CheckpointEvidence, LaunchPolicy
 from ...exceptions import InvalidTransitionError, RevisionConflictError
+from ...provider_budgets import exceeds_budget
 from ..codec import stable_hash
 from ..schema import (
     AutopilotCheckpointRow,
@@ -110,7 +111,8 @@ class AutopilotContinuationPersistence:
             from .autopilot_bindings import assert_retained_checkpoint_provenance
             checkpoints = session.scalars(select(AutopilotCheckpointRow).where(
                 AutopilotCheckpointRow.run_id == parent.id)).all()
-            for original in select_inherited_checkpoints(self, session, parent, checkpoints):
+            inherited = select_inherited_checkpoints(self, session, parent, checkpoints)
+            for original in inherited:
                 assert_retained_checkpoint_provenance(session.connection().connection.driver_connection,
                     project_id, original.state, CheckpointEvidence.model_validate(original.evidence),
                     run_id=parent.id, operation_key=original.operation_key)
@@ -121,6 +123,8 @@ class AutopilotContinuationPersistence:
                     operation_key=original.operation_key, revision=1, state="adopted", evidence=original.evidence,
                     created_at=now, updated_at=now))
             for original in session.scalars(select(AutopilotFrameRow).where(AutopilotFrameRow.run_id == parent.id)).all():
+                if original.job_id not in {row.evidence.get("jobId") for row in inherited if row.evidence["owner"] == "image"}:
+                    continue
                 session.add(AutopilotFrameRow(id=new_id(), run_id=child.id, project_id=project_id,
                     shot_id=original.shot_id, job_id=original.job_id, asset_id=original.asset_id,
                     decision_id=original.decision_id, frame=original.frame, created_at=now))

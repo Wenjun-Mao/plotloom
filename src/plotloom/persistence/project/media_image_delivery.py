@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from plotloom.contract_identity import new_id, utc_now
+
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ...image_job_contracts import ImageJobError
 from ..codec import _stored_utc
@@ -42,7 +43,8 @@ class ImageJobDeliveryPersistence:
             sources: list[dict[str, Any]] = []
             for reference in job.request["frozenSnapshot"].get("references", []):
                 if reference.get("role") not in {
-                    "parent_output", "source_keyframe", "character_identity", "scene_continuity"
+                    "parent_output", "source_keyframe", "character_identity", "scene_continuity",
+                    "scene_environment", "prop_identity",
                 }:
                     continue
                 asset = session.get(ManagedAssetRow, reference.get("assetId"))
@@ -55,6 +57,7 @@ class ImageJobDeliveryPersistence:
                     "role": reference["role"], "contentHash": asset.original_hash,
                     "mimeType": asset.mime_type, "originalUri": asset.original_uri,
                     "characterId": reference.get("characterId"),
+                    "subjectId": reference.get("subjectId"),
                 })
             return {"job": self._currentness.image_job_dict(job, current=True), "references": sources}
 
