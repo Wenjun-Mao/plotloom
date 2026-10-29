@@ -137,6 +137,19 @@ def _retained_codex_request_projection(
     """Project only the package request shapes admitted by retained launch profiles."""
     if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
         from ..content_language_contract import is_language_check
+        if (request.stage == "script" and not is_language_check(request)
+                and request.input_artifacts.get("script-admission.json", {}).get("plannedStoryboardDialogue") is not None):
+            from ..codex_exec_retained_script import retained_script_package_projection
+            try:
+                return retained_script_package_projection(request, execution_pin, source_revision=plotloom_code_revision)
+            except (TypeError, ValueError) as error:
+                raise ProjectStorageCorruptionError("retained Script package projection is invalid") from error
+        if request.stage in {"characters", "art"} and not is_language_check(request):
+            from ..codex_exec_retained_visual import retained_visual_package_projection
+            try:
+                return retained_visual_package_projection(request, execution_pin, source_revision=plotloom_code_revision)
+            except (TypeError, ValueError) as error:
+                raise ProjectStorageCorruptionError("retained visual package projection is invalid") from error
         if request.stage == "outline" and not is_language_check(request):
             try:
                 return retained_outline_package_projection(

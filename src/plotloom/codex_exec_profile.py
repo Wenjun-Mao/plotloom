@@ -32,6 +32,7 @@ DISABLED_CLI_FEATURES = (
     "tool_call_mcp_elicitation",
 )
 INSTRUCTION_FILES = (
+    "src/plotloom/creative_field_ownership.py",
     "src/plotloom/content_language_contract.py",
     "src/plotloom/autopilot_image_guidance.py",
     ".agents/skills/plotloom-video-directions-specialist/SKILL.md",
@@ -44,6 +45,10 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "src/plotloom/creative_field_ownership.py",
+    "src/plotloom/codex_exec_retained_visual.py",
+    "src/plotloom/codex_exec_retained_script.py",
+    "scripts/creative_field_validation.py",
     "src/plotloom/outline_echoes.py",
     "src/plotloom/codex_exec_retained_outline.py",
     "scripts/outline_content_validation.py",

@@ -583,8 +583,7 @@ The existing Sol/High worker `01a18518-a761-7db1-a5c7-daf04dc3d484`, worktree `8
 now owns the bounded retry/local-capacity/root-cause implementation against a seeded
 integrated A/D source. Coordinator owns docs, integration, Git, qualification and
 live application; frontend and offline-fixture workers retain separate ownership.
-Do not add a generic retry engine or deployment framework. Preserve all 15 normal
-homes and current H5 exports. Release only positively stopped LOCAL occupancy of the
+Do not add a generic retry engine or deployment framework. Preserve every normal home (16 at the latest read-only inventory) and current H5 exports. Release only positively stopped LOCAL occupancy of the
 two old holds; never automatically retry/resume the old H5 run or resolve its remote
 outcomes without facts.
 
@@ -609,3 +608,19 @@ All retained native attempts completed, no candidate adopted, no images/H3 sent.
 Use the final reviewed current-contract repair for the next original QA fixture;
 retain failed frozen evidence and do not substitute new policies into old runs.
 The verification record owns exact jobs, results, source revisions and causal tests.
+
+
+### Cast and preservation reassessment — 2026-10-29
+
+Real bilingual Outline and Branches adoption reached 2/8 in each latest original
+QA fixture at `4bda2275`. Cast exposed disagreement between primary receiving and
+semantic ownership of frozen machine markers/metadata. After preserving failures
+and proving exact native processes absent, the existing Sol/High checking worker
+was reseeded from the coordinator candidate for one request-aware ownership repair
+and retained-proof corrections. Coordinator remains the only integration/live owner.
+The verification record retains the actual standalone canonical-span pass, Cast
+failures and three read-only installed-data regressions. Finish the smallest Cast
+proof before regenerating the original pair through all eight stages; no frozen
+old run is rewritten or resumed under changed source. Preserve all 16 normal homes,
+including valued 苏棠 and the two preexisting incomplete homes. All remaining
+qualification, activation, media, playback and cleanup criteria remain unchanged.

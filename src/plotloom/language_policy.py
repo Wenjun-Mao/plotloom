@@ -56,6 +56,9 @@ def freeze_request_language(request, language: str) -> None:
     """Preparation only: existing immutable request/currentness hashing owns bytes."""
     request.input_artifacts[LANGUAGE_CONTRACT_FILENAME] = language_contract(language)
     request.creative_brief += language_instructions(language)
+    from .creative_field_ownership import freeze_field_ownership
+    if request.stage != "video-directions":
+        freeze_field_ownership(request)
 
 
 def language_response_schema(schema: dict, language: str) -> dict:

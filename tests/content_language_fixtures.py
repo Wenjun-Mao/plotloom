@@ -132,3 +132,19 @@ def install_synthetic_language_check(store, original, candidate):
     if data.get("result") is None:
         completed_check(store, job, result_for(request))
     return job
+
+
+def assert_accepted_text_seed_rows(connection):
+    """Creative drafts are adopted; distinct immutable checker proofs stay ready."""
+    import json
+    from plotloom.content_language_contract import is_language_check
+    from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
+    from plotloom.persistence.schema.project_source_outline import SourceOutlineCandidateRow
+    for model in set(CANDIDATE_ROWS.values()):
+        table = model.__table__.name
+        if model is not SourceOutlineCandidateRow:
+            assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}" WHERE status != \'accepted\'').scalar() == 0
+            continue
+        for status, raw in connection.exec_driver_sql(f'SELECT status,request FROM "{table}"'):
+            request = CreativeHandoffRequest.model_validate(json.loads(raw))
+            assert status == ("ready" if is_language_check(request) else "accepted")

@@ -36,6 +36,7 @@ from plotloom.source_structures import planned_structure
 from tests.art_delivery_fixtures import _deliver
 from tests.cast_style_fixtures import style_fixture
 from tests.graph_draft_fixtures import graph_draft_revision, graph_map_save_request
+from tests.content_language_fixtures import install_synthetic_language_check
 
 
 def _deliver_stage(
@@ -192,6 +193,8 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
         },
         creative_brief="fixture",
     )  # type: ignore[attr-defined]
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(outline_request, store.project().brief.language)
     store.prepare_outline_candidate(outline_request)  # type: ignore[attr-defined]
     store.admit_outline_delivery(
         _deliver_stage(
@@ -202,6 +205,7 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
             "outline-fixture",
         )
     )  # type: ignore[attr-defined]
+    install_synthetic_language_check(store, outline_request, store.source_outline_state().candidate.outline)
     state = store.accept_outline_candidate(
         OutlineAcceptRequest(
             job_id=outline_request.job_id,
@@ -346,6 +350,7 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
     ready_cast = store.admit_cast_delivery(
         _deliver_stage(store, cast_request, "cast.json", cast, "cast-fixture")
     )  # type: ignore[attr-defined]
+    install_synthetic_language_check(store, cast_request, ready_cast.cast)
     store.accept_cast_candidate(
         CastAcceptRequest(
             job_id=cast_request.job_id,
@@ -414,6 +419,7 @@ def _accepted_f4_script(store: object, structure_factory=None, *, render_style="
     )  # type: ignore[attr-defined]
     binding = art_candidate.binding
     art_ready = store.admit_art_delivery(_deliver(store, art_request))  # type: ignore[attr-defined]
+    install_synthetic_language_check(store, art_request, art_ready.art)
     store.accept_art_candidate(
         ArtAcceptRequest(
             job_id=art_candidate.job_id,
@@ -439,6 +445,7 @@ def _accepted_f4_script(store: object, structure_factory=None, *, render_style="
     ready = store.admit_script_delivery(
         _deliver_stage(store, request, "script.json", script, "script-for-storyboard")
     )  # type: ignore[attr-defined]
+    install_synthetic_language_check(store, request, ready.script)
     store.accept_script_candidate(
         ScriptAcceptRequest(
             job_id=candidate.job_id,

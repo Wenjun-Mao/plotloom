@@ -36,7 +36,11 @@ def storyboard_request(*, typed=False, historical=False):
         "inputArtifacts": inputs, "creativeBrief": "Preserve all frozen source facts."}
     if typed:
         data["contentValidationContract"] = "plotloom.typed-content-result.v1"
-    return CreativeHandoffRequest.model_validate(data)
+    request = CreativeHandoffRequest.model_validate(data)
+    if not historical:
+        from plotloom.language_policy import freeze_request_language
+        freeze_request_language(request, "zh-CN")
+    return request
 
 
 def replace_style(request, style):

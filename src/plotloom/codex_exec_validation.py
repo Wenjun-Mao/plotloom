@@ -276,6 +276,15 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
             validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
                 f"{source}/scripts/art_content_validation.py", cand, "--request", request_path,
                 "--node", "{tool:node}"))
+    from .creative_field_ownership import OWNERSHIP_FILENAME, assert_ownership_artifact
+    if not checking_language and OWNERSHIP_FILENAME in artifacts:
+        assert_ownership_artifact(request)
+        if stage == "characters":
+            if request.content_validation_contract is None:
+                raise ValueError("marked Cast requires the typed content boundary")
+            validate = ("uv", ("run", "--project", source, "--locked", "--no-sync", "python",
+                f"{source}/scripts/creative_field_validation.py", cand, "--request", request_path,
+                "--node", "{tool:node}"))
     steps = tuple(CodexExecValidationStep(
         stepId=step_id, program=program,
         argv=argv,

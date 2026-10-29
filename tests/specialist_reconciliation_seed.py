@@ -6,7 +6,6 @@ from pathlib import Path
 import shutil
 
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
-from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers
 from tests.autopilot_seed_fixtures import seed_files
@@ -43,9 +42,8 @@ def build_accepted_script_seed(root):
             assert state.accepted_review_state.status == "current" and not state.stale_reasons
         assert not close_blockers(store)
         with store.repository.engine.connect() as connection:
-            for model in set(CANDIDATE_ROWS.values()):
-                table = model.__table__.name
-                assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}" WHERE status != \'accepted\'').scalar() == 0
+            from tests.content_language_fixtures import assert_accepted_text_seed_rows
+            assert_accepted_text_seed_rows(connection)
             for table in (
                 "v2_autopilot_runs", "v2_autopilot_exec_attempts", "v2_generation_runs",
                 "v2_media_tasks", "v2_video_jobs", "v2_image_jobs",

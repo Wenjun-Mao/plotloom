@@ -146,12 +146,12 @@ def test_marked_art_plan_binds_python_node_and_refuses_manual_preflight_substitu
         preflight_plan_identity(Path(ordinary["packagePath"]))
 
 
-def test_saved_optional_extension_items_keep_existing_tolerance(tmp_path):
+def test_optional_cross_array_items_require_the_current_state_shape(tmp_path):
     request, doc = art_case(tmp_path, saved=True)
     doc["scenes"][0]["states"] = [None, 17, "extension"]
-    assert not art_structure_issues(doc, preset=False)
+    assert art_structure_issues(doc, preset=False)
     assert art_structure_issues(doc, preset=True)
-    assert run_art(tmp_path, request, doc).returncode == 0
+    assert run_art(tmp_path, request, doc).returncode == 42
     result = subprocess.run([NODE, str(ROOT / 'scripts/brief-art-style.mjs'), 'render',
         str(tmp_path/'art.json'), '--cast', str(tmp_path/'package/inputs/cast.json')], capture_output=True)
     assert result.returncode == 0 and b'<html' in result.stdout.lower()

@@ -25,6 +25,14 @@ def art_case(tmp_path, *, saved=False):
         value = candidate(contract)
     request = request.model_copy(update={"content_validation_contract": "plotloom.typed-content-result.v1",
         "input_artifacts": request.input_artifacts | {ART_STRUCTURE_FILENAME: art_structure_artifact(preset=not saved)}})
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "zh-CN")
+    value["lang"] = "zh"
+    for key in ("scenes", "props"):
+        for item in value.get(key, []):
+            for field in ("lighting", "states"):
+                for state in item.get(field, []):
+                    state.setdefault("description", "光影照出表面细节。")
     inputs = tmp_path / "package/inputs"
     inputs.mkdir(parents=True)
     for name, content in request.input_artifacts.items():

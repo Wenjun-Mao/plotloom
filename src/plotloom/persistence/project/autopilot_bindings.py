@@ -129,6 +129,18 @@ def _current_checkpoint_validation_plan(request, *, execution_pin, source_revisi
 def _retained_checkpoint_validation_plan(request, *, execution_pin, source_revision):
     from ...codex_exec_validation import CodexExecTextValidationPlan
 
+    from ...content_language_contract import is_language_check
+    if not is_language_check(request):
+        projection = None
+        if request.stage in {"characters", "art"}:
+            from ...codex_exec_retained_visual import retained_visual_package_projection
+            projection = retained_visual_package_projection
+        elif request.stage == "script" and request.input_artifacts.get("script-admission.json", {}).get("plannedStoryboardDialogue") is not None:
+            from ...codex_exec_retained_script import retained_script_package_projection
+            projection = retained_script_package_projection
+        if projection is not None:
+            expected = projection(request, execution_pin, source_revision=source_revision)
+            return CodexExecTextValidationPlan.model_validate(expected["validationPlan"])
     if request.stage == "outline":
         from ...codex_exec_retained_outline import retained_outline_package_projection
 

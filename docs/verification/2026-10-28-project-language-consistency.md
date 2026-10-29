@@ -284,10 +284,94 @@ of the retained ready Chinese branch candidate. That probe uses zero automatic
 retries to isolate the changed contract; it does not resume old frozen runs or
 claim all-eight completion.
 
+## Canonical-span probe and Cast ownership checkpoint
+
+At `4bda2275`, the single standalone Chinese Branches check
+`ch_0ddef29c9fc55fddba7ffc5949e020cf`, attempt
+`3280dcf7-2b81-547e-bcc0-cc0d51171535`, passed all 24 inventoried strings.
+Its automatic retry limit was zero and no successor was created. The unchanged
+retained candidate was checked through the existing service; its old frozen run
+and failed checks remain unchanged.
+
+Fresh instances of the same original QA stories then adopted Outline and Branches
+through actual creation/checking at `4bda2275`:
+
+| Locale | Home / run | Real outcome |
+| --- | --- | --- |
+| zh-CN | `24b2239d-ef9f-426f-b243-e16f67694bd9` / `a1c00877-0c78-430f-b4b9-0f63d19af57b` | 2/8 stages adopted; blocked at Cast |
+| en-US | `af8a81fa-ff7d-40b2-bd12-27d0f20c1c99` / `e83e891c-289f-4c48-a5c2-c1a70a59c261` | 2/8 stages adopted; blocked at Cast |
+
+Canonical Branches readback preserves both original button pairs and the
+route-only choice. Chinese Cast's checker rejected the receiving contract's exact
+English `Saved Brief direction` marker as prose; its one semantic correction
+translated that marker and the primary receiver correctly refused it. Both Cast
+checks also exposed unowned optional style/section echoes. Chinese source notes
+contained the ordinary English word Brief, which still requires real correction.
+These are failed/uncertain outputs, not accepted material. All 13 exact host
+worker/CLI PIDs for this cohort were absent before source changes; the isolated
+runtime stopped. No images or H3 requests were made.
+
+A read-only all-eight ownership audit identified the shared cause and bounded
+related gaps: request-bound style markers, strict optional frozen metadata,
+Art state/lighting provider prompts and state descriptions, Script timing
+selectors, exact technical-ID source spans inside otherwise authored prose, and
+text-only locator refusal. ADR 0224 was amended before implementation. The existing
+Sol/High checking worker owns this isolated repair and offline regression evidence;
+the coordinator retains source integration, native execution and qualification.
+New current contracts must not rewrite old candidates, verdicts or frozen plans.
+
+## Installed-data preservation preflight
+
+The current installed inventory contains 16 homes, including two incomplete homes
+that already fail identity checks. Pure read-only SQLite owner validation at the
+unchanged installed `3f4bdfbf` passes inspection and authority for the other 14.
+Candidate `4bda2275` passes 12 inspections and 11 authority checks: three regressions
+must be fixed before activation. Two retained Script bindings, including valued
+苏棠, incorrectly reinterpret frozen dialogue-profile identities with current rules.
+One other retained saved-Brief authority incorrectly requires current routing/source
+hashes. No normal project, settings, grant, media, database or H5 export was changed.
+
+The repair must preserve immutable historical proof/readability while keeping new
+execution/publication subject to current authority. No migration, reset, replay or
+blanket acceptance is authorized. The two baseline incomplete homes are preserved
+and excluded from repair. Exact sanitized before/baseline evidence is retained in
+`normal-readability-before-field-repair.json`,
+`normal-readability-installed-baseline.json` and the two causal regression files.
+Repeat these exact read-only owner checks after integration; take a fresh quiescent
+preservation baseline before activation.
+
+## Integrated ownership repair checkpoint
+
+The existing worker froze 23 modified and nine added files, with no deletions.
+Coordinator verified every before/after hash and integrated only that delta;
+retained patch SHA-256 is
+`72df0010f48a9097e3e6438a53a314346b33041cacff26ea0341cd4808373bf5`.
+Worker evidence covers 310 distinct focused cases through passing selections and
+targeted repairs. Initial timing fixture setup errors and seven subsequent stale
+assertions remain recorded; current metadata/targets and stronger typed upstream
+plus independent canonical minimum checks repaired them. Lint/module-manifest
+validation passed. Coordinator's integrated ownership/retained/ACK/span selection
+passed 68 cases in 4.15 seconds (9.434 including selector validation).
+
+Exact read-only installed-home checks now pass 14/16 inspections and 14/16 authority
+checks, matching the unchanged installed baseline with zero new regressions. The
+two preexisting incomplete identity homes remain unchanged. This establishes scoped
+read-validation preservation, not activation or complete playback acceptance.
+
+The unchanged retained English Cast candidate `ch_ec91481be5724181a9695b875fd8f5cb`
+cannot be used for a new native proof: its optional sectionPresence entries omit
+footageMode and therefore fail the newly explicit four-key contract. Offline
+preflight refused it before dispatch. Independent review agreed that refusing this
+candidate is correct; no normalization or relaxation was applied. After review,
+use a fresh instance of the identical original English Brief and the existing text
+prefix owner, pausing after Cast adoption. That current run can then resume through
+all eight stages alongside the new Chinese fixture without rewriting old evidence.
+No native/image/H3 request or installed activation has occurred for this repair.
+
 ## Remaining product evidence
 
-Finish the approved retry implementation and coherent freeze; real bilingual
-Outline/report/adoption/reopen, then all eight operations and canonical installation;
+Finish and review the field-ownership/preservation repair; prove its smallest current native
+Cast creation/check/adoption, then complete both real all-eight installations and canonical readback;
 local candidate full gate/exact wheel/independent review; supported activation and
 exact old LOCAL-slot application; actual image/H3 source fidelity, speech, four route
 plays with choice/restart, export and installed preservation/readback. Distinguish

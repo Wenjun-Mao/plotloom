@@ -114,7 +114,9 @@ def freeze_language_candidate(original, candidate):
     sources = original_sources(original)
     root = Path(__file__).resolve().parents[2]
     policy_files = ("content_language_contract.py", "content_language_classifier.py", "language_policy.py",
-                    "codex_exec_profile.py", "codex_exec_prompts.py")
+                    "codex_exec_profile.py", "codex_exec_prompts.py", "outline_echoes.py",
+                    "creative_field_ownership.py", "dialogue_timing_policy.py", "art_structure.py",
+                    "autopilot_brief_style.py")
     policy_hash = identity({name: sha256((root / "src/plotloom" / name).read_bytes()).hexdigest()
                             for name in policy_files})
     frozen = {"contract": CHECK_CONTRACT, "classifierVersion": CLASSIFIER_VERSION, "checkerPolicyHash": policy_hash,
@@ -142,11 +144,15 @@ def bind_language_result(request, candidate, *, require_current=True):
         raise ValueError("not a content language checking operation")
     frozen = request.input_artifacts[CHECK_INPUT]
     original = CreativeHandoffRequest.model_validate(frozen["originalRequest"])
+    if not require_current and frozen.get("classifierVersion") not in {
+            "plotloom.content-language-classifier.v1", "plotloom.content-language-classifier.v2",
+            "plotloom.content-language-classifier.v3", CLASSIFIER_VERSION}:
+        raise ValueError("unsupported retained language source projection")
     expected = freeze_language_candidate(original, frozen["candidate"]) if require_current else frozen
     if (frozen != expected or identity({key: value for key, value in frozen.items() if key != "bindingHash"}) != frozen["bindingHash"]
             or frozen["originalRequestHash"] != request_hash(original)
             or frozen["candidateHash"] != identity(frozen["candidate"])
-            or frozen["sources"] != original_sources(original)
+            or frozen["sources"] != original_sources(original, ownership=require_current or frozen["classifierVersion"] == CLASSIFIER_VERSION)
             or frozen["languageContract"] != original.input_artifacts[LANGUAGE_CONTRACT_FILENAME]
             or original.stage != request.stage
             or original.project_id != request.project_id or original.job_id == request.job_id
@@ -237,6 +243,9 @@ def language_check_instructions():
         "original author direction or source fact; this direction need not equal the newly written spoken line. "
         "A Script flow.language different from project locale needs an intentional_foreign_speech exception "
         "covering the complete line and matching that supported language, or reject/uncertain coverage. "
+        "An exact known source ID embedded in readable notes may use source_quote with exact canonical "
+        "candidate/source leaf paths and spans; it is not an invented proper_name and never exempts the "
+        "surrounding note. Ordinary product words or field names in wrong-language prose remain rejectable. "
         "Provider technical English and stable IDs/enums are exempt only where inventory classifies them so. "
         "Unfamiliar fields are conservatively authored_prose: review them fully, never infer a technical or "
         "identity exemption from their key, nesting, copied setting or topology-like value. "

@@ -54,7 +54,7 @@ def _context(
             ]
         },
         {
-            "lang": request.input_artifacts.get("language-contract.json", {}).get("reportLocale", "zh"),
+            "lang": "zh",
             "source": "Tide Light",
             "summary": "Shared cast",
             "characters": [{"id": "C01", "name": "Lin"}],
@@ -75,6 +75,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
         render = "Muted watercolor collage environment study"
     art = canonical_json(
         {
+            "lang": request.input_artifacts["language-contract.json"]["reportLocale"],
             "source": "Tide Light",
             "style": "saved-brief" if brief_style else "realistic",
             "scenes": [

@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.autopilot_brief_style import freeze_brief_style
+from plotloom.cast_style import freeze_cast_style
 from plotloom.codex_exec_validation import (
     CodexExecTextValidationPlan,
     build_text_validation_plan,
@@ -50,6 +51,7 @@ def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffReques
         "source": {"kind": "synopsis", "text": "A ferryman faces one irreversible choice."},
         "inputArtifacts": ({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()} if stage == "outline" else {}) | (artifacts or {}),
         "creativeBrief": "Create one stage candidate. Preserve the frozen source facts.",
+        "contentValidationContract": "plotloom.typed-content-result.v1" if stage == "characters" else None,
     })
     from plotloom.language_policy import freeze_request_language
     freeze_request_language(request, "zh-CN")
@@ -79,7 +81,7 @@ def _saved_brief_artifacts(stage: str) -> dict:
     [
         ("outline", {}, "upstream", "outline.json"),
         ("branches", {}, "plotloom_native", "branches.json"),
-        ("characters", {"cast-style-contract.json": {"style": "live-action"}}, "preset_style", "cast.json"),
+        ("characters", {"cast-style-contract.json": freeze_cast_style("live-action", None)}, "preset_style", "cast.json"),
         ("art", {"art-style-contract.json": {"style": "live-action"}, "cast.json": {"characters": []}}, "preset_style", "art.json"),
         ("script", {"outline.json": {"episodes": []}, "art.json": {"scenes": []}, "cast.json": {"characters": []}}, "upstream", "script.json"),
         ("storyboard", {"script.json": {"episodes": []}, "outline.json": {"episodes": []}, "cast.json": {"characters": []}, "art.json": {"scenes": []}}, "upstream", "storyboard.json"),
@@ -159,7 +161,7 @@ def test_plan_serializes_each_sorted_artifact_once_with_exact_canonical_bytes(mo
 
 
 @pytest.mark.parametrize("stage", ["characters", "art", "storyboard"])
-def test_saved_brief_routes_expand_to_exact_single_node_command(stage, tmp_path):
+def test_saved_brief_routes_expand_to_source_owned_validation_commands(stage, tmp_path):
     request = _request(stage, _saved_brief_artifacts(stage))
     plan = build_text_validation_plan(request, execution_pin=PIN, source_revision=SOURCE_REVISION)
     source = tmp_path / "source"
@@ -171,6 +173,12 @@ def test_saved_brief_routes_expand_to_exact_single_node_command(stage, tmp_path)
         job_root=job, candidate_filename=plan.candidate_filename, tool_paths=tools,
     )
 
+    if stage == "characters":
+        assert argv[0] == str(tools["uv"])
+        assert str(source / "scripts/creative_field_validation.py") in argv
+        assert argv[-2:] == ("--node", str(tools["node"]))
+        assert plan.steps[1].program == "node"
+        return
     assert argv[0] == str(tools["node"])
     expected_adapter = {
         "characters": "brief-cast-style.mjs",

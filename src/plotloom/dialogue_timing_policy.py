@@ -4,7 +4,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Any
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_serializer, model_validator
 
 from .domain_base import CamelModel
 from .language_policy import TIMING_POLICY_VERSION
@@ -25,6 +25,17 @@ class DialogueTimingRule(CamelModel):
     delivery: DialogueDeliveryPace
     units_per_character: Annotated[int, Field(ge=1)]
     units_per_word: Annotated[int, Field(ge=0)] = 0
+
+
+    @model_serializer(mode="wrap")
+    def preserve_frozen_optional_rule_field(self, handler):
+        # unitsPerWord is additive. Retained hashes bind the original omission;
+        # reading a rule must not invent a field in its recorded wire identity.
+        value = handler(self)
+        if "units_per_word" not in self.model_fields_set:
+            value.pop("unitsPerWord", None)
+            value.pop("units_per_word", None)
+        return value
 
 
 class DialogueTimingProfile(CamelModel):

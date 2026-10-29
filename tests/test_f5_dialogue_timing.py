@@ -39,6 +39,7 @@ from tests.f5_dialogue_timing_fixtures import (
     NOTES,
     open_f5_script_copy,
     variant_for,
+    canonical_receiving_result,
 )
 from tests.f5_dialogue_timing_fixtures import f5_script_seeds as f5_script_seeds
 from tests.production_bridge_fixtures import (
@@ -104,7 +105,7 @@ def invoke(tmp_path, frozen, board, *, render=False):
 
 
 @pytest.mark.parametrize("prepared", ["realistic", "brief"], indirect=True)
-def test_fresh_prompt_plan_and_both_validators_refuse_upstream_only_fit(prepared, tmp_path):
+def test_fresh_prompt_plan_and_both_validators_enforce_current_minimum(prepared, tmp_path):
     _storage, store, candidate, frozen = prepared
     saved = candidate.binding.storyboard_render_contract is not None
     adapter = "brief-storyboard-style.mjs" if saved else "storyboard-receiving.mjs"
@@ -116,21 +117,28 @@ def test_fresh_prompt_plan_and_both_validators_refuse_upstream_only_fit(prepared
     assert plan.steps[1].argv[0].endswith(adapter)
     board = narrated_board(6.5, style="brief" if saved else "realistic")
     inputs = frozen.input_artifacts
-    # Original upstream validation accepts these exact bytes. Receiving must
-    # additionally reject them on the unchanged canonical minimum.
+    # Current bilingual upstream and the independent canonical owner both reject
+    # this undersized cut; report metadata no longer selects a faster rate.
     program = "import {validateStoryboard,STYLE_PRESETS} from './third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs'; import {readFileSync} from 'node:fs'; STYLE_PRESETS['saved-brief']={phrase:'saved brief direction'}; let [b,r]=process.argv.slice(1).map(p=>JSON.parse(readFileSync(p,'utf8'))); let a=r.inputArtifacts; console.log(JSON.stringify(validateStoryboard(b,{script:a['script.json'],outline:a['outline.json'],cast:a['cast.json']})));"
     result = invoke(tmp_path, frozen, board)
     upstream = subprocess.run(["node", "--input-type=module", "--eval", program, str(tmp_path / "board.json"), str(tmp_path / "request.json")], cwd=ROOT, capture_output=True, text=True, check=True)
-    assert json.loads(upstream.stdout) == []
-    assert result.returncode != 0 and b"Canonical dialogue minima" in result.stderr
+    issues = json.loads(upstream.stdout)
+    assert len(issues) == 1 and "认领节拍的台词装得进分镜秒数" in issues[0]
+    assert result.returncode != 0 and "认领节拍的台词装得进分镜秒数" in result.stderr.decode()
+    canonical = canonical_receiving_result(tmp_path, frozen, board)
+    assert canonical.returncode != 0 and b"Canonical dialogue minima" in canonical.stderr
     inputs_path = tmp_path / 'inputs'
     inputs_path.mkdir()
     for name, value in frozen.input_artifacts.items():
         (inputs_path / name).write_bytes(canonical_json(value))
     typed = subprocess.run(['node', str(ROOT / 'scripts/storyboard-content-validation.mjs'),
         str(tmp_path / 'board.json'), str(tmp_path / 'request.json')], capture_output=True, check=False)
-    assert typed.returncode == 1 and typed.stdout == b'' and b'Canonical dialogue minima' in typed.stderr
-    with pytest.raises(ValueError, match="Canonical dialogue minima"):
+    assert typed.returncode == 42 and typed.stderr == b''
+    packet = json.loads(typed.stdout)
+    assert packet['candidateHash'] == sha256((tmp_path / 'board.json').read_bytes()).hexdigest()
+    assert packet['issues'] == [{'code': 'candidate_content_invalid', 'fieldPaths': ['$'], 'repairFacts': {}}]
+    assert any('认领节拍的台词装得进分镜秒数' in item for item in packet['displayDiagnostics'])
+    with pytest.raises(ValueError, match="认领节拍的台词装得进分镜秒数"):
         ProjectStoryboardReviewPersistence._validate(board, candidate.binding, inputs["script.json"], inputs["outline.json"], inputs["cast.json"], frozen)
 
 
@@ -152,6 +160,8 @@ def adopt_rendered_board(store, candidate, frozen, board, tmp_path):
     manifest["limitations"] = ["provider-free prospective fixture; no retained evidence changed"]
     (delivery / "completion.json").write_text(json.dumps(manifest))
     ready = store.admit_storyboard_review_delivery(exchange.read_delivery(frozen, pin))
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, frozen, board)
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
 
 
@@ -230,7 +240,9 @@ def test_multiline_beat_range_uses_sum_and_exact_single_shot_ownership(prepared,
     assert [item.minimum_duration_units for item in candidate.binding.dialogue_timing_contract.lines] == [3960, 3960]
     segment["cuts"][3]["seconds"] = 7.919
     rejected = invoke(tmp_path, frozen, board)
-    assert rejected.returncode != 0 and b"Canonical dialogue minima" in rejected.stderr
+    assert rejected.returncode != 0 and "认领节拍的台词装得进分镜秒数" in rejected.stderr.decode()
+    canonical = canonical_receiving_result(tmp_path, frozen, board)
+    assert canonical.returncode != 0 and b"Canonical dialogue minima" in canonical.stderr
     segment["cuts"][3]["seconds"] = 7.92
     for beats in ([4, 4], [4, 6]):
         broken = deepcopy(board)
@@ -296,7 +308,9 @@ def test_raw_precision_compares_exactly_against_canonical_minimum(prepared, tmp_
         if accepted:
             assert result.returncode == 0, result.stderr.decode()
         else:
-            assert result.returncode != 0 and b"Canonical dialogue minima" in result.stderr
+            assert result.returncode != 0 and "认领节拍的台词装得进分镜秒数" in result.stderr.decode()
+            canonical = canonical_receiving_result(tmp_path, frozen, board)
+            assert canonical.returncode != 0 and b"Canonical dialogue minima" in canonical.stderr
 
 
 @pytest.mark.parametrize("prepared", [

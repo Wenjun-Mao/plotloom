@@ -7,7 +7,6 @@ import pytest
 from plotloom.art_style import freeze_art_style
 from plotloom.cast_style import freeze_cast_style
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
-from plotloom.persistence.project.creative_terminal import CANDIDATE_ROWS
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers
 from tests import creative_delivery_fixtures
@@ -44,7 +43,11 @@ def variant_for(configuration):
 def variant_script(variant):
     _style, mode = VARIANTS[variant]
     source = creative_delivery_fixtures._pilot_script()
-    source["lang"] = "en"
+    source["lang"] = "zh"
+    # Current report locale is fixed to zh; it no longer acts as a timing-rate
+    # override. The voiced episode has nine 2.5s actions + 7.92s dialogue (single)
+    # or eight actions + the same two-line sum (split).
+    source["episodes"][0]["targetSeconds"] = {"single": 31, "split": 28, "action": 25}[mode]
     flow = source["episodes"][0]["scenes"][0]["flow"]
     if mode != "action":
         flow[3] = {"speaker": "VO", "line": LINE, "delivery": NOTES}
@@ -92,9 +95,8 @@ def build_f5_script_seed(root, variant):
             creative_delivery_fixtures._accepted_f4_script(store, render_style=VARIANTS[variant][0])
         assert_f5_script_variant(store, variant)
         with store.repository.engine.connect() as connection:
-            for model in set(CANDIDATE_ROWS.values()):
-                table = model.__table__.name
-                assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}" WHERE status != \'accepted\'').scalar() == 0
+            from tests.content_language_fixtures import assert_accepted_text_seed_rows
+            assert_accepted_text_seed_rows(connection)
             for table in (
                 "v2_autopilot_runs", "v2_autopilot_exec_attempts", "v2_generation_runs",
                 "v2_media_tasks", "v2_video_jobs", "v2_image_jobs",
@@ -116,3 +118,18 @@ def f5_script_seeds(tmp_path_factory):
 def open_f5_script_copy(root, seed):
     storage = ProjectFolderStorage(outputs_root=root / "outputs", application_data_root=root / "application")
     return storage, open_accepted_script_copy(storage, seed)
+
+
+def canonical_receiving_result(root, request, board):
+    """Exercise the exact frozen minimum independently of an earlier upstream gate."""
+    import json
+    from pathlib import Path
+    import subprocess
+    from plotloom.creative_handoff_identity import canonical_json
+    candidate, packet = root / "canonical-board.json", root / "canonical-request.json"
+    candidate.write_bytes(canonical_json(board)); packet.write_bytes(canonical_json(request.model_dump(mode="json", by_alias=True)))
+    owner = Path(__file__).resolve().parents[1] / "scripts/storyboard-dialogue-timing.mjs"
+    program = (f"import {{validateF5ReceivingTiming}} from {json.dumps(owner.as_uri())}; "
+        "import {readFileSync} from 'node:fs'; const [b,r]=process.argv.slice(1).map(p=>JSON.parse(readFileSync(p,'utf8'))); "
+        "validateF5ReceivingTiming(b,r);")
+    return subprocess.run(["node", "--input-type=module", "--eval", program, str(candidate), str(packet)], capture_output=True)

@@ -158,6 +158,16 @@ class CreativeHandoffExchange:
             assert_outline_report_metadata(candidate)
         if not checking_language and request.stage != "video-directions":
             assert_candidate_report_language(candidate, request.input_artifacts)
+            from .creative_field_ownership import OWNERSHIP_FILENAME, assert_ownership_artifact, creative_field_roles
+            if OWNERSHIP_FILENAME in request.input_artifacts:
+                assert_ownership_artifact(request)
+                creative_field_roles(candidate, request)
+                if request.stage == "art":
+                    from .art_structure import art_structure_issues, marked_art_structure
+                    if marked_art_structure(request.input_artifacts):
+                        issues = art_structure_issues(candidate, preset="authority" not in request.input_artifacts["art-style-contract.json"])
+                        if issues:
+                            raise CreativeHandoffError("delivery_candidate_invalid", "; ".join(issues))
         return ValidatedCreativeDelivery(
             request=request, manifest=manifest,
             manifest_hash=sha256(canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),

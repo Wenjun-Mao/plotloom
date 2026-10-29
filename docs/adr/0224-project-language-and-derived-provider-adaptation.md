@@ -26,6 +26,12 @@ settings, checking provenance and compiled request identities bind new authority
 changed inputs invalidate it. Assistant review never claims the creator personally
 reviewed English, and neither check nor authorization accepts generated media.
 Historical frozen jobs keep their original stated authority.
+Passive retained-proof reading validates the original frozen representation and
+its hashes; it does not recompute old identities from current timing or style
+rules. Additive optional rule fields preserve recorded omission on serialization.
+Known fixed original package plans remain inspectable without executing recorded
+argv, admitting historical work or granting replay authority. New preparation,
+checking and publication still require current contracts.
 
 All eight generated text stages also receive a bounded content-language review
 before adoption. A separate native invocation uses the original creative stage
@@ -65,6 +71,27 @@ without an envelope `$.sources` prefix. Candidate paths are relative to the
 candidate object. The model owns semantic choices and spans; trusted code owns
 path vocabulary, byte hashes and exact Unicode validation. No automatic path or
 offset correction is permitted, and malformed retained replies remain failed.
+
+The real Cast checkpoint required a full remaining-stage ownership audit. A small
+request-aware field owner now governs mode-specific fixed image-style labels,
+source-bound optional style/section echoes, and the three exact Script timing
+selectors; it grants no exemption to whole notes or arbitrary ID-looking values.
+Provider prompts across both Art lighting/state arrays remain technical, while
+associated state labels and descriptions remain readable project-language prose.
+New text-only candidates omit embedded sheetImage resource locators; generated
+media retains its existing app-owned phase. Original direction metadata is an exact
+source quotation, not translated creative prose. Registered echoes must be exact
+before gaining roles; additional readable members cannot hide in metadata.
+
+Primary prompts, frozen response shapes, trusted validators, classifier and final
+receivers share these owners. New Art shapes require nonblank lighting/state
+descriptions, including optional cross-array entries when supplied; retained
+original package/plan bytes remain readable without granting historical execution.
+Stable IDs embedded in otherwise readable notes may be exact source-literal
+quotations with verified spans; they never exempt surrounding prose or become
+invented proper names. New notes should use readable project-language terms rather
+than unnecessary implementation jargon. Existing source/candidate hashes, exact
+Unicode validation, independent semantic checking and correction provenance remain.
 
 A genuine semantic rejection is a successful checking invocation, not a forged
 failure of the original drafting attempt. Existing typed correction lineage

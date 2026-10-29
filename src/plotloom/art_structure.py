@@ -4,18 +4,12 @@ from typing import Annotated, Any
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, ValidationError, WithJsonSchema
 
 ART_STRUCTURE_FILENAME = "art-structure-schema.json"
-ART_STRUCTURE_CONTRACT = "plotloom.art-structural-result.v1"
+ART_STRUCTURE_CONTRACT = "plotloom.art-structural-result.v2"
 
 
 def _nonblank(value: str) -> str:
     if not value.strip("\u0009\u000a\u000b\u000c\u000d\u0020\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"):
         raise ValueError("required nonblank text")
-    return value
-
-
-def _nonnull(value):
-    if value is None:
-        raise ValueError("preset prompt access requires a non-null item")
     return value
 
 
@@ -25,8 +19,8 @@ def _omitted():
     return None
 
 
-_Text = Annotated[str, AfterValidator(_nonblank)]
-_NonNull = Annotated[Any, AfterValidator(_nonnull), WithJsonSchema({"not": {"type": "null"}})]
+_Text = Annotated[str, AfterValidator(_nonblank), WithJsonSchema({"type": "string", "minLength": 1,
+    "pattern": r"[^\u0009\u000a\u000b\u000c\u000d\u0020\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]"})]
 
 
 class _Object(BaseModel):
@@ -40,6 +34,7 @@ class _Anchor(_Object):
 
 class _State(_Object):
     state: _Text
+    description: _Text
     prompt: _Text
 
 
@@ -65,8 +60,8 @@ class _Scene(_Object):
     lighting: Annotated[list[_State], Field(min_length=1)]
     image: _Image
     usage: _Usage = Field(default_factory=_omitted)
-    # gateReport also reads this optional extension; it must be mappable.
-    states: list[Any] | None = None
+    # Optional cross-arrays share the actual state description/prompt owner.
+    states: list[_State] = Field(default_factory=_omitted)
 
 
 class _Prop(_Object):
@@ -79,7 +74,7 @@ class _Prop(_Object):
     image: _Image
     relatedScenes: list[Any] | None = None
     usage: _Usage = Field(default_factory=_omitted)
-    lighting: list[Any] | None = None
+    lighting: list[_State] = Field(default_factory=_omitted)
 
 
 class _Art(_Object):
@@ -89,22 +84,8 @@ class _Art(_Object):
     props: list[_Prop] = Field(default_factory=_omitted)
 
 
-class _PresetScene(_Scene):
-    # The preset extension uses item.prompt (not item?.prompt) on this optional list.
-    states: list[_NonNull] | None = None
-
-
-class _PresetProp(_Prop):
-    lighting: list[_NonNull] | None = None
-
-
-class _PresetArt(_Art):
-    scenes: Annotated[list[_PresetScene], Field(min_length=1)]
-    props: list[_PresetProp] = Field(default_factory=_omitted)
-
-
 def art_structure_artifact(*, preset: bool) -> dict:
-    model = _PresetArt if preset else _Art
+    model = _Art
     return {"contract": ART_STRUCTURE_CONTRACT, "route": "preset_style" if preset else "saved_brief",
         "schema": model.model_json_schema()}
 
@@ -118,7 +99,7 @@ def require_art_structure_artifact(value, *, preset: bool) -> None:
 
 def art_structure_issues(candidate, *, preset: bool) -> tuple[str, ...]:
     """Return every applicable shape error without candidate values or error context."""
-    model = _PresetArt if preset else _Art
+    model = _Art
     try:
         model.model_validate(candidate, strict=True)  # Discard; original bytes remain authoritative.
     except ValidationError as error:

@@ -93,6 +93,18 @@ def main(argv=None):
     candidate = _json(raw.decode("utf-8", "strict"))  # Parser failures never grant correction.
     preset = frozen_context(request, node)
     diagnostics = art_structure_issues(candidate, preset=preset)
+    from plotloom.creative_field_ownership import (
+        OWNERSHIP_FILENAME, CreativeFieldError, assert_ownership_artifact, creative_field_roles,
+    )
+    from plotloom.creative_handoff_contracts import creative_handoff_request_from_package
+    original = creative_handoff_request_from_package(_json(request.read_bytes()))
+    if OWNERSHIP_FILENAME in original.input_artifacts:
+        assert_ownership_artifact(original)
+    if not diagnostics:
+        try:
+            creative_field_roles(candidate, original)
+        except CreativeFieldError as error:
+            diagnostics = (str(error),)
     if diagnostics:
         if len(diagnostics) > CONTENT_DIAGNOSTIC_COUNT or any(len(d) > CONTENT_DIAGNOSTIC_LENGTH for d in diagnostics):
             raise ValueError("complete Art structural feedback exceeds existing typed bounds")

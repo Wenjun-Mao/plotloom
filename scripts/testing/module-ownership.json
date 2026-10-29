@@ -640,6 +640,9 @@
           "tests/test_content_language_runtime.py",
           "tests/test_content_language_admission_ack.py",
           "tests/test_content_language_span_schema.py",
+          "tests/test_creative_field_ownership.py",
+          "tests/test_creative_field_integration.py",
+          "tests/test_retained_field_ownership.py",
           "tests/test_h3_execution_retry.py",
           "tests/test_video_directions_execution_retry.py",
           "tests/test_codex_exec_validation.py",
@@ -871,6 +874,18 @@
       "consumers": [
         "shared-provider-dispatch"
       ]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/content_language_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["creative-production", "graph", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+    },
+    {
+      "suite": "pytest",
+      "path": "tests/creative_field_fixtures.py",
+      "kind": "shared-fixture-or-helper",
+      "consumers": ["shared-provider-dispatch"]
     },
     {
       "suite": "pytest",
