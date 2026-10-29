@@ -1,12 +1,12 @@
 """Transport authored soundtrack context without classifying its prose."""
 from hashlib import sha256
 
-COMPILER_VERSION = "plotloom.h3-production-brief.v9"
+COMPILER_VERSION = "plotloom.h3-production-brief.v10"
 
 
 def authored_audio_sources(snapshot):
     version = snapshot.get("compilerVersion")
-    if version not in {"plotloom.h3-production-brief.v8", COMPILER_VERSION}:
+    if version not in {"plotloom.h3-production-brief.v8", "plotloom.h3-production-brief.v9", COMPILER_VERSION}:
         return []
     timing = snapshot["sourceTiming"]
     if timing["kind"] == "f5_bridge":
@@ -21,7 +21,7 @@ def authored_audio_sources(snapshot):
         path = "shot.composition"
         coordinates = {"shotId": snapshot["shot"]["id"]}
     sources = _role_views(text, path, coordinates)
-    if version == COMPILER_VERSION:
+    if version in {"plotloom.h3-production-brief.v9", COMPILER_VERSION}:
         sources.extend(_role_views(snapshot["shot"].get("action", ""), "shot.action",
             {"shotId": snapshot["shot"]["id"]}, prefix="reviewedAction"))
     return sources

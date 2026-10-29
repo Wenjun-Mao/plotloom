@@ -1,5 +1,35 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+2026-10-29 endpoint-method reassessment: Chinese v9's checked replacement also
+withdrew its hand before the ending. English v9's checked opening moved its hand
+onto the cup and distorted the source 安. Both actual clips are agent-QA rejected;
+all three opening clips remain retained and unselected. ASR recognized each intended
+line once (Chinese second0.56–2.18s, English5.14–6.20s); no listening/naturalness
+claim follows. The current Chinese/English batches are cancelled13/14, native
+slots/queue zero, no UNKNOWN clearing, no accepted videos or ending submissions.
+
+After two failures of the held endpoint, stop text-only repeats. Independent method
+review found the existing first/last-image path suitable for a different experiment,
+but current QA explicitly forbids endings and changed endpoints invalidate rejected
+replacement currentness. Under the recorded in-scope prospective-grant authority,
+ADR0224/compiler v10 adds only the two exact opening images as optional ending
+guidance. All12 old SCOPES hashes/runtime write grants remain unchanged. No new image,
+story, provider, duration or aggregate cap is introduced. Old compiler snapshots and
+other scopes still refuse selected endings; new source needs fresh ordinary
+single-shot request, native fidelity and explicit intent. Do not bypass stale or
+rejected-replacement guards. Both identical endpoint poses are guidance, not proof
+of approach/hold, looping, exact words or acceptance.
+
+Independent stable review closed;103 focused QA/sound/end-frame/storage cases pass
+in90.18s, quick17.021s and all native suite-owner discovery pass without executing
+test bodies. Normal read-only validation remains14/14 with zero new regressions;
+Ruff/whitespace checks pass. New owners stay below100 lines; existing large owners
+received narrow plumbing only. Next smallest experiment: select the original
+Chinese opening image as its ending through the existing owner, preserve the prior
+seed and eight-second profile in a fresh single request, check/authorize exact
+sources, then inspect one real output. Keep English and all endings held until that
+method is observed. Full/wheel/activation remain unqualified; no CI/push requested.
+
 2026-10-29 first actual video checkpoint: v8's Chinese native draft and independent
 check passed; UI agent-QA production authorization dispatched one eight-second H3 job
 vj_4b79ba8e3c1d46a0a1d1913ef51f6acf. Retrieval first reported a recoverable failure;

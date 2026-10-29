@@ -11,6 +11,7 @@ from .delegated_qa import (
     require_scope,
 )
 from .delegated_qa_contracts import QaAvInspection
+from .delegated_qa_end_frames import end_frame_within_authority
 from .exceptions import InvalidTransitionError
 from .persistence.schema import (
     ApprovalDecisionRow,
@@ -27,7 +28,7 @@ def assert_snapshot(scope, snapshot):
     frame, request, provider = snapshot["keyframe"], snapshot["request"], snapshot["provider"]
     if (material is None or frame["assetId"] != material.asset_id or frame["originalHash"] != material.original_hash
             or request.get("profileId") != scope.profile_id or request.get("audio") is not True
-            or request.get("aspectPolicy") != "cover_center_crop" or snapshot.get("endFrame") not in (None, {"revision": 0, "assetId": None})
+            or request.get("aspectPolicy") != "cover_center_crop" or not end_frame_within_authority(scope, snapshot)
             or provider.get("adapterId") != "minimax_h3_gateway" or provider.get("costPolicy") != "local_capacity_v1"):
         raise InvalidTransitionError("video request exceeds the exact QA material, profile or provider scope")
 

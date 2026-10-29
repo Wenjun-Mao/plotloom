@@ -1,5 +1,32 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Prospective reuse of exact opening images as ending guidance — 2026-10-29
+
+Two actual Chinese clips withdrew the required held hand despite exact checked
+directions; one English clip touched the cup and distorted its lettering. All
+three are explicitly agent-QA rejected and retained, unselected. ASR recognized
+the intended Chinese/English lines once; this is not direct listening. After two
+failures, stop text-only repetition and reassess the provider method.
+
+The approved two-project E2E scope includes exact prospective QA grants and
+in-scope QA decisions while the owner is unavailable. Independently reviewed
+compiler v10 permits an additional closed grant: only each original opening's
+already reviewed first image may also guide its ending, at the same eight-second
+profile. Exact project/scope/shot/asset/hash, MIME/dimensions, current approval,
+storyboard/source timing, positive ending-decision revision, provenance and crop
+policy must agree. All existing SCOPES, their hashes, runtime write grants,
+actors, provider/caps and uncertain-dispatch fences remain unchanged. Old compiler
+snapshots and other scopes still refuse selected end frames. No enrollment API,
+new image, source/story rewrite, new provider or aggregate budget is introduced.
+
+Use the existing ending-image decision owner and a fresh ordinary single-shot
+request with a new stable identity. Changed guidance cannot enter unchanged-source
+rejected-replacement lineage. Fresh native fidelity and explicit production intent
+remain mandatory. Reusing a still is guidance, never proof of an approach, hold,
+correct lettering or a loop; actual output must satisfy the unchanged authored
+motion/visible-text requirements. Retain v7/v8/v9 source views, prompts and native
+verdicts under their original contracts.
+
 ### Action-owned soundtrack context — 2026-10-29
 
 The real English v8 checker rejected speech misassigned to soundscape. Its complete
