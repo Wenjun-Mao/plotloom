@@ -149,8 +149,8 @@ def test_serial_sql_transition_preserves_exact_terminal_attempt_receipt_and_nati
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch)
     try:
         assert service.acquire_controller()
-        for _ in range(5):
-            service.step(view.project_id)
+        from tests.test_autopilot_text_controller import adopt_outline
+        adopt_outline(service, view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
             attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, "outline")
@@ -170,7 +170,9 @@ def test_serial_sql_transition_preserves_exact_terminal_attempt_receipt_and_nati
             after_attempt, after_receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, "outline")
             assert after_attempt == attempt and after_receipt == receipt
             assert store.source_outline_state().accepted_outline is not None
-        assert len(calls) == 1
+        with closing(storage.projects.open(view.project_id)) as store:
+            from tests.test_autopilot_text_controller import assert_outline_calls
+            assert_outline_calls(store, calls, attempt.job_id)
     finally:
         service.close()
 

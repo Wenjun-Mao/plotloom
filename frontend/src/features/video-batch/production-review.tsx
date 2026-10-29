@@ -8,7 +8,7 @@ export const batchStateLabels: Record<string, string> = {
 };
 const sectionIds = ["shot", "context", "presentation", "references", "timing", "settings"];
 export function reviewableBrief(brief: ProductionBrief | null | undefined): boolean {
-  return !!brief && brief.version === "plotloom.production-brief.v2" && brief.displayVersion === "plotloom.production-brief-display.v1" && ["zh-CN", "en-US"].includes(brief.contentLocale)
+  return !!brief && brief.version === "plotloom.production-brief.v2" && brief.displayVersion === "plotloom.production-brief-display.v2" && ["zh-CN", "en-US"].includes(brief.contentLocale)
     && /^[a-f0-9]{64}$/.test(brief.briefHash) && /^[a-f0-9]{64}$/.test(brief.sourceHash)
     && sectionIds.every(id => brief.sections.some(section => section.id === id && !!section.items?.length))
     && brief.conflicts.length === 0;

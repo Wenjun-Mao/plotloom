@@ -116,6 +116,8 @@ def test_old_semantic_rejection_is_readable_without_reclassifying_or_new_authori
     frozen = check.input_artifacts[CHECK_INPUT]
     frozen["classifierVersion"] = "plotloom.content-language-classifier.v3"
     frozen["sources"] = original_sources(original, ownership=False)
+    from plotloom.provider_literal_discovery import DISCOVERY, discovery_inventory
+    frozen[DISCOVERY] = discovery_inventory(frozen["sources"])
     frozen["bindingHash"] = identity({key:value for key,value in frozen.items() if key != "bindingHash"})
     check.source["bindingHash"] = frozen["bindingHash"]
     result = result_for(check, uncertain_path="$.notes")

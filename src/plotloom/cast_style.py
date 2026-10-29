@@ -16,6 +16,9 @@ CONTRACT_FILENAME = "cast-style-contract.json"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 STYLE_OWNER = PROJECT_ROOT / "scripts" / "cast-style.mjs"
 STYLE_RULE_DEPENDENCIES = (
+    PROJECT_ROOT / "scripts" / "provider-literal-context.mjs",
+    PROJECT_ROOT / "third_party" / "shuohao-skills" / "skills" / "novel-characters" / "scripts" / "provider-literals.mjs",
+    PROJECT_ROOT / "third_party" / "shuohao-skills" / "skills" / "novel-characters" / "scripts" / "report-language.mjs",
     PROJECT_ROOT
     / "third_party"
     / "shuohao-skills"

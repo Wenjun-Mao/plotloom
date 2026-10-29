@@ -26,10 +26,12 @@ def presentation_case():
         source={"proposal": {"revision": 3, "contentHash": "b" * 64}},
         input_artifacts={"presentation-source.json": package.model_dump(mode="json", by_alias=True),
             "presentation-schema.json": presentation_response_schema(ids)}, creative_brief="Frozen source only")
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "en-US")
     entries = _updates(package)
     for entry in entries:
         entry["spans"] = [{"rendering": "", "reason": "", **span} for span in entry["spans"]]
-    return package, request, {"entries": entries}
+    return package, request, {"lang": "en", "entries": entries}
 
 
 def test_all_five_roles_keep_valid_native_and_author_review_payloads_identical():

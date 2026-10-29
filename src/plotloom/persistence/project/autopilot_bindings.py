@@ -94,6 +94,11 @@ def _assert_exec_attempt_binding(connection, project_id, run_id, state, evidence
             f"Codex Exec attempt state {attempt.state!r} is not valid for {state!r} checkpoint"
         )
     receipt = CodexExecReceipt.model_validate(json.loads(row["receipt"])) if row["receipt"] is not None else None
+    if evidence.executor_admission_deferral is not None:
+        from ...autopilot_exec_capacity import assert_admission_deferral
+        assert_admission_deferral(attempt, evidence.executor_admission_deferral)
+        if receipt is not None:
+            raise ValueError("acknowledged attempt cannot retain a capacity admission grant")
     terminal = attempt.state in {"completed", "failed", "settled"}
     if evidence.executor_receipt_hash != (attempt.evidence_hash if terminal else None):
         raise ValueError("checkpoint receipt hash differs from its exact terminal project attempt")

@@ -128,6 +128,13 @@ class LaunchRequest(CamelModel):
     max_jobs: int | None = Field(default=None, strict=True, ge=9)
 
 
+class ExecutorAdmissionDeferral(CamelModel):
+    attempt_id: UUID
+    identity_hash: str = Field(pattern=HASH)
+    state: Literal["not_found"] = "not_found"
+    capacity_deferred: Literal[True] = True
+
+
 class CheckpointEvidence(CamelModel):
     geometry_preparation: GeometryPreparation | None = Field(default=None, exclude_if=lambda value: value is None)
     owner: str
@@ -138,12 +145,16 @@ class CheckpointEvidence(CamelModel):
     delivery_hash: str | None = Field(default=None, pattern=HASH)
     executor_attempt_id: UUID | None = Field(default=None, exclude_if=lambda value: value is None)
     executor_receipt_hash: str | None = Field(default=None, pattern=HASH, exclude_if=lambda value: value is None)
+    executor_admission_deferral: ExecutorAdmissionDeferral | None = Field(default=None, exclude_if=lambda value: value is None)
     result: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def executor_receipt_requires_attempt(self):
         if self.executor_receipt_hash is not None and self.executor_attempt_id is None:
             raise ValueError("CLI receipt evidence requires its exact project attempt")
+        if (self.executor_admission_deferral is not None
+                and self.executor_admission_deferral.attempt_id != self.executor_attempt_id):
+            raise ValueError("CLI capacity deferral requires its exact project attempt")
         return self
 
 

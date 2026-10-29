@@ -13,7 +13,7 @@ from ..persistence.project.autopilot_bindings import _row, assert_checkpoint_bin
 
 def assert_adoption(connection, project, adoption: MachineAdoption, owner, *, checkpoint_validator=assert_checkpoint_binding):
     run = _row(connection, "SELECT project_id,policy_hash FROM v2_autopilot_runs WHERE id=?", (adoption.run_id,))
-    decision = _row(connection, "SELECT run_id,project_id,scope,decision FROM v2_autopilot_decisions WHERE id=?", (adoption.decision_id,))
+    decision = _row(connection, "SELECT run_id,project_id,scope,decision,checkpoint_id FROM v2_autopilot_decisions WHERE id=?", (adoption.decision_id,))
     facts = MachineDecision.model_validate_json(decision["decision"])
     expected = {"proposalRevision": adoption.proposal_revision, "proposalHash": adoption.proposal_hash}
     evidence = facts.evidence
@@ -23,8 +23,10 @@ def assert_adoption(connection, project, adoption: MachineAdoption, owner, *, ch
             or evidence.owner != owner or evidence.job_id != adoption.job_id or evidence.request_hash != adoption.request_hash
             or evidence.delivery_hash != adoption.delivery_hash):
         raise ValueError("machine bridge native decision binding changed")
+    checkpoint = _row(connection, "SELECT operation_key FROM v2_autopilot_checkpoints WHERE id=? AND run_id=? AND project_id=?",
+        (decision["checkpoint_id"], adoption.run_id, project))
     checkpoint_validator(connection, project, "delivered", evidence, run_id=adoption.run_id,
-        operation_key=owner)
+        operation_key=checkpoint["operation_key"])
     source = _row(connection, "SELECT content_hash,proposal FROM v2_production_bridge_revisions WHERE project_id=? AND revision=?",
         (project, adoption.proposal_revision))
     job = _row(connection, "SELECT * FROM v2_production_bridge_intent_jobs WHERE id=?", (adoption.job_id,))

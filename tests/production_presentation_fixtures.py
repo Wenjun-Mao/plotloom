@@ -40,7 +40,7 @@ def _package():
             {
                 "ep": 1,
                 "segments": [
-                    {"sceneIndex": 1, "cuts": [{"frame": "门廊画面。预留选择区域。"}]}
+                    {"sceneIndex": 1, "cuts": [{"composition": "门廊画面。预留选择区域。", "frame": "Porch, empty choice area, cinematic film still"}]}
                 ],
             }
         ]

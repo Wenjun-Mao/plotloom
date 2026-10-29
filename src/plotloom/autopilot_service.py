@@ -66,7 +66,7 @@ class AutopilotService:
                 if request.action == "pause":
                     suspend_pending_codex_exec(store, self.registry, view)
                 if request.action in {"cancel", "takeover"}:
-                    self.controller.cancel_pending(store, view)
+                    self.controller.cancel_pending(store, view, settle_known_failures=request.action == "cancel")
                     self.image_controller.cancel_pending(store, view)
             result = store.repository.autopilot.current(project_id)
         self._wake.set()

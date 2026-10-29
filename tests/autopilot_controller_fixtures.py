@@ -82,7 +82,9 @@ def deliver(store, request, value=None, *, host=None):
     attempt, _receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, request.stage)
     if attempt is None:
         raise AssertionError("Codex Exec delivery fixture requires its persisted project attempt")
-    return host.complete(store, request, attempt, value=value)
+    completed = host.complete(store, request, attempt, value=value)
+    host.pending.discard(str(attempt.attempt_id))
+    return completed
 
 
 

@@ -75,9 +75,10 @@ def _project_retry_status(checkpoints, attempts, policy, run_state):
 
 
 class AutopilotPersistence(AutopilotExecutionRetryPersistence, AutopilotContinuationPersistence, AutopilotExecPersistence, AutopilotTextCorrectionPersistence):
-    def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]]):
+    def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]], continuation_source_context):
         self.access = access
         self._claim_write = claim_write
+        self.continuation_source_context = continuation_source_context
         self.recovered_run_ids = lambda: set()
 
     @staticmethod

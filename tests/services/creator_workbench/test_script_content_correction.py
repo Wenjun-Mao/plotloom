@@ -36,7 +36,7 @@ if len(sys.argv)>1 and sys.argv[1]=="sandbox":
     os.execv(args[0],args)
 sys.stdin.read()
 request=json.loads((Path.cwd().parent/"package/request.json").read_bytes())
-doc={_pilot_script()!r};doc["lang"]="en"
+doc={_pilot_script()!r};doc["lang"]=request["inputArtifacts"]["language-contract.json"]["reportLocale"]
 from copy import deepcopy
 doc["sectionBindings"]=request["inputArtifacts"]["script-admission.json"]["sectionBindings"]
 template=doc["episodes"][0]
@@ -74,7 +74,7 @@ def environment(supervisor, tmp_path, monkeypatch, *, exhaust, limit):
     registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state='ready')
     registry.require_codex_exec_readiness = lambda: CodexExecReadiness(state='ready')
     host = FakeCodexExecHost(storage, registry, candidate_factory=candidate)
-    registry.codex_exec_admit = lambda att: supervisor.admit(att) if att.operation_key.startswith('script') else host.admit(att)
+    registry.codex_exec_admit = lambda att: supervisor.admit(att) if att.operation_key.startswith('script') and ':content-language-check:' not in att.operation_key else host.admit(att)
     registry.codex_exec_status = lambda aid: host.status(aid) if str(aid) in host.statuses else supervisor.status(aid)
     registry.codex_exec_cancel = supervisor.cancel
     registry.codex_exec_suspend = supervisor.suspend
@@ -109,7 +109,7 @@ def test_script_real_host_one_correction_adoption_or_terminal_exhaustion(supervi
             assert len(rows)==(2 if limit else 1), current.blocker
             from plotloom.autopilot_text_failures import failure_context, retry_text
             context=failure_context(store,registry,stage='script')
-            assert context and context['canRetry'] is False
+            assert context and context['canRetry'] is exhaust
             assert context['automaticLimit']==min(limit,1)
             from contextlib import contextmanager
             from fastapi import FastAPI
@@ -122,15 +122,15 @@ def test_script_real_host_one_correction_adoption_or_terminal_exhaustion(supervi
             register_autopilot_routes(app,opened,service)
             with TestClient(app) as client:
                 public=client.get(f'/api/v2/projects/{run.project_id}/autopilot/text-failure?stage=script')
-                assert public.status_code==200 and public.json()['canRetry'] is False
+                assert public.status_code==200 and public.json()['canRetry'] is exhaust
             if exhaust:
                 assert current.state=='blocked' and cp['state']=='failed'
                 assert store.script_state().accepted_script is None
                 from uuid import uuid4
-                with pytest.raises(InvalidTransitionError,match='identity is unavailable'):
+                with pytest.raises(InvalidTransitionError):
                     retry_text(store,registry,TextRetryGrant(command_id=uuid4(),expected_run_id=run.id,
                         expected_revision=current.revision,failed_attempt_id=failed.attempt_id,
-                        rejection_hash=failed.content_rejection.rejection_hash))
+                        rejection_hash="0"*64))
             else:
                 assert cp['state']=='adopted', current.blocker
                 corrective,receipt=store.repository.autopilot.exec_attempt_evidence_for_operation(run.id,'script:correction:1')

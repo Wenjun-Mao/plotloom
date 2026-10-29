@@ -178,6 +178,8 @@ def test_preflight_identity_recomputes_retained_production_plan_and_rejects_tamp
         section_id="test", stage="branches", expected_stage_revision=0,
         source={"kind": "test-owned"}, input_artifacts={}, creative_brief="provider-free plan identity test")
     pin = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "zh-CN")
     paths = CreativeHandoffExchange(tmp_path / "exchange").write_package(request, pin,
         executor_backend="codex_exec", plotloom_code_revision="d" * 40)
     package = paths["packagePath"]

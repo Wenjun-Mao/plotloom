@@ -66,7 +66,9 @@ def test_early_review_and_handoff_refuse_across_real_text_stages_without_mutatio
     observed = set()
     try:
         assert service.acquire_controller()
-        for _ in range(40):
+        # Eight independent checker journeys accompany the creative owners.
+        from plotloom.autopilot_launch import CREATIVE_STAGES
+        for _ in range(8 * len(CREATIVE_STAGES)):
             service.step(view.project_id)
             with closing(storage.projects.open(view.project_id)) as store:
                 current = store.repository.autopilot.current(view.project_id)

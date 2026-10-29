@@ -2,6 +2,7 @@
 from typing import Literal
 
 from pydantic import Field
+from sqlalchemy import select
 
 from .provider_budgets import exceeds_budget
 from .autopilot_contracts import POLICY_VERSION
@@ -11,6 +12,7 @@ from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .source_structures import complete_routes
+from .persistence.schema import AutopilotCheckpointRow, AutopilotRunRow
 
 
 class EarlyReferenceDiscovery(CamelModel):
@@ -25,6 +27,27 @@ class EarlyReferenceDiscovery(CamelModel):
 def discover_early_references(store, view):
     if view.policy.version != POLICY_VERSION or not view.policy.early_reference_limit:
         return None
+    if view.predecessor_run_id and not any(item["operationKey"] == "installation" for item in view.checkpoints):
+        with store.repository._read() as session:
+            from .persistence.project.autopilot_lineage import current_run_id
+            rows = session.scalars(select(AutopilotRunRow).where(AutopilotRunRow.project_id == view.project_id)).all()
+            try:
+                if current_run_id((row.id, row.predecessor_run_id) for row in rows) != view.id:
+                    raise ValueError("reference discovery does not own the current run")
+            except ValueError as error:
+                raise InvalidTransitionError("reference discovery requires valid current same-project ancestry") from error
+            ancestors, by_id, identifier = [], {row.id: row for row in rows}, view.predecessor_run_id
+            while identifier is not None:
+                ancestors.append(identifier)
+                identifier = by_id[identifier].predecessor_run_id
+            prior_installation = session.scalar(select(AutopilotCheckpointRow.id).where(
+                AutopilotCheckpointRow.run_id.in_(ancestors),
+                AutopilotCheckpointRow.operation_key == "installation",
+                AutopilotCheckpointRow.state == "adopted").limit(1))
+        if prior_installation is not None:
+            # This successor must rebuild its omitted bridge before creating
+            # material that would correctly fence production replacement.
+            return None
     adopted = {item["evidence"]["owner"] for item in view.checkpoints if item["state"] == "adopted"}
     if "characters" not in adopted:
         return None

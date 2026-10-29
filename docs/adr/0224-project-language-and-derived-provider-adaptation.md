@@ -196,3 +196,41 @@ Language preparation owns this separator; stage factories retain their exact
 validator/renderer commands. Tests execute the explicit command block and keep
 later readable instructions outside the shell. Retained frozen requests and
 failed command evidence are never rewritten by this formatting repair.
+
+F5 `cut.composition` is the presentation model's creative source, with its exact
+text, cut hash and coordinates naming `composition`. `cut.frame` remains derived
+English provider direction and cannot supply creative composition. New preparation
+requires nonempty authored composition and reports its owning-source conflict
+when absent. Existing frozen frame-based proposals remain readable history.
+The exhaustive span schema/binder stays unchanged; primary instructions name the
+authored field explicitly. Validated retained delivery must be structurally
+received before independent language checking on resume, without adopting canon,
+changing its identity or dispatching while paused.
+
+Production-brief display v2 represents source-timing cut composition and accepted
+Cast appearance/image descriptions explicitly. `promptLocal` is labeled derived
+translation; exact technical prompts, styles and hashes remain technical evidence.
+Identity asset `view` means primary/complementary reference role, never an inferred
+camera angle. Preserve every ordered role entry. Unknown nested fields and role
+values still block. Normal read-only inventory found52 job snapshots and44targets
+in15v1batches, with no new language/display contracts, productionBrief targets or
+corresponding directions markers. Thus the unactivated v1 display data is disposable;
+this does not authorize rewriting any retained normal evidence.
+
+For prospective Continue, one shared preview/write selector may recognize the
+demonstrated complete frame-bound installed representation against its exact
+admission, unchanged current raw F5 and full source inventory. With no dependent
+image/frame/handoff authority, inherit the seven source/raw checkpoints and omit
+only `bridge.prepare`, `bridge-intent`, `bridge-presentation` and `installation`
+from the new successor. Existing controller operations rebuild those four with
+fresh native intent/presentation checks and exact replacement-target installation.
+Keep parent policies, checkpoints, proposals and receipts immutable; malformed,
+mixed, incomplete or materially dependent cases refuse. Already-current authored
+composition retains ordinary inheritance. Existing CAS, material closure,
+historical provenance, style/geometry and budget guards remain mandatory. This is
+bounded source-currentness enforcement, not historical execution or a reset API.
+Until that successor replaces the intentionally omitted parent installation, defer
+new early-reference discovery so it cannot itself violate rebuild quiescence.
+Keep the frozen early-reference allowance and ordinary initial-launch behavior;
+normal image discovery resumes after the fresh installation. This changes ordering,
+not generation authority or the dependent-material refusal.

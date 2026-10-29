@@ -46,18 +46,31 @@ def accepted_outline(storage):
         return store.manifest.project_id, store.home
 
 
+
+def accepted_outline_check_jobs(storage, project_id):
+    from plotloom.content_language_persistence import check_rows, verified_check
+    with closing(storage.projects.open(project_id)) as store, store.repository._read() as session:
+        checks = [verified_check(row) for row in check_rows(session, project_id)]
+    assert len(checks) == 1
+    request, _data, _attempt, _profile, receipt, result = checks[0]
+    assert request.source["candidateJobId"] == "ch_" + "a" * 32
+    assert receipt and result and result.verdict == "pass"
+    return {request.job_id}
+
+
 def test_snapshot_and_closed_folder_restore_preserve_all_retained_creative_files(tmp_path):
     storage = storage_at(tmp_path / "source")
     project_id, home = accepted_outline(storage)
     original = {path.relative_to(home).as_posix(): sha256(path.read_bytes()).hexdigest()
         for path in (home / "outputs" / "creative-handoff").rglob("*") if path.is_file()}
     jobs = list((home / "outputs/creative-handoff/jobs").iterdir())
-    assert {job.name for job in jobs} == {"ch_" + "a" * 32}
-    job = jobs[0]
+    assert {job.name for job in jobs} == {"ch_" + "a" * 32} | accepted_outline_check_jobs(storage, project_id)
+    job = next(job for job in jobs if job.name == "ch_" + "a" * 32)
     inventory = {path.relative_to(job).as_posix() for path in job.rglob("*") if path.is_file()}
     assert inventory - {PUBLICATION_LOCK} == {
         "package/request.json", "package/COPY_ASSIGNMENT.txt",
         "package/completion-manifest.example.json",
+        "package/inputs/language-contract.json", "package/inputs/creative-field-ownership.json",
         "package/inputs/outline-report-metadata-schema.json",
         "package/inputs/outline-settings.json", "package/inputs/story-topology.json",
         "delivery/outline.json", "delivery/report.html", "delivery/completion.json",
@@ -219,7 +232,7 @@ def test_prior_snapshot_package_omission_is_explicit_and_not_a_current_snapshot_
     restored = storage_at(tmp_path / "restored")
     destination = restored.recovery.restore(root, upgrade_previous=True)
     transition = json.loads((destination / "schema-transition.json").read_text())
-    assert len(transition["omittedCreativeManifests"]) == 1
+    assert set(transition["omittedCreativeManifests"]) == {"ch_" + "a" * 32} | accepted_outline_check_jobs(storage, project_id)
     restored.recovery.acknowledge_recovery(project_id)
     retained = restored.recovery.create_snapshot(project_id)
     assert any(item.relative_path == "schema-transition.json" for item in retained.manifest.files)

@@ -70,6 +70,22 @@ class ProductionBridgeInstallation:
             self._head(session, project_id)
             return self.installation_in_session(session, project_id)
 
+    def continuation_source_context(self, session, project_id):
+        """Resolve current installed evidence and accepted raw sources read-only."""
+        installed = self.installation_in_session(session, project_id)
+        if installed is None or installed.status != "current":
+            raise InvalidTransitionError("Continue requires the exact current installed production")
+        head = self._head(session, project_id)
+        proposal = session.scalar(select(ProductionBridgeRevisionRow).where(
+            ProductionBridgeRevisionRow.project_id == project_id,
+            ProductionBridgeRevisionRow.revision == installed.proposal_revision))
+        if head.status != "accepted" or head.revision != installed.proposal_revision or proposal is None:
+            raise InvalidTransitionError("Continue installed proposal head changed")
+        inputs, storyboard, script, cast_art = self._context(session, project_id)
+        if inputs != installed.inputs:
+            raise InvalidTransitionError("Continue accepted source inputs changed")
+        return installed, proposal, inputs, script, storyboard, cast_art["__section_map__"]
+
     def installation_in_session(self, session, project_id):
         return self._installation_state(session, project_id, lambda inputs: self._current(session, project_id, inputs))
 

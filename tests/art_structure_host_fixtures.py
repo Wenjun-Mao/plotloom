@@ -66,7 +66,7 @@ def environment(supervisor, tmp_path, monkeypatch, *, exhaust, limit):
     registry.host_client.codex_exec_readiness = lambda:CodexExecReadiness(state='ready')
     registry.require_codex_exec_readiness = lambda:CodexExecReadiness(state='ready')
     host = FakeCodexExecHost(storage,registry,candidate_factory=candidate)
-    registry.codex_exec_admit = lambda att:supervisor.admit(att) if att.operation_key.startswith('art') else host.admit(att)
+    registry.codex_exec_admit = lambda att:supervisor.admit(att) if att.operation_key.startswith('art') and ':content-language-check:' not in att.operation_key else host.admit(att)
     registry.codex_exec_status = lambda aid:host.status(aid) if str(aid) in host.statuses else supervisor.status(aid)
     registry.codex_exec_cancel = supervisor.cancel
     registry.codex_exec_suspend = supervisor.suspend

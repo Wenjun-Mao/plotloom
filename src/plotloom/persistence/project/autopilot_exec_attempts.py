@@ -173,7 +173,7 @@ class AutopilotExecPersistence:
                     raise InvalidTransitionError("strict CLI reservation changed or was already spent")
             expected_scope = (
                 OperationScope.IMAGE if attempt.domain == "image"
-                else OperationScope.INSTALL if attempt.operation_key in {"bridge-intent", "bridge-presentation"}
+                else OperationScope.INSTALL if attempt.operation_key.split(":", 1)[0] in {"bridge-intent", "bridge-presentation"}
                 else OperationScope.TEXT
             )
             if authority.scope != expected_scope:
@@ -257,6 +257,8 @@ class AutopilotExecPersistence:
             elif checkpoint_state == "sent" and updated.state == "outcome_unknown":
                 checkpoint_state = "outcome_unknown"
             evidence_update = {"executor_receipt_hash": receipt_hash}
+            if updated.state != "spawn_intent":
+                evidence_update["executor_admission_deferral"] = None
             if updated.state == "outcome_unknown":
                 evidence_update["result"] = evidence.result | {"dispatchOutcomeUnknown": True}
             next_evidence = CheckpointEvidence.model_validate(

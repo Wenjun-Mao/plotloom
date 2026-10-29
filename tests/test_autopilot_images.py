@@ -18,7 +18,11 @@ def test_complete_pack_selects_all_subjects_and_unique_route_frames_without_huma
         complete = run_pack(storage, service, view)
         assert complete.state == "awaiting_review" and complete.bundle_hash and complete.handoff is None
         assert len(calls) == len(set(calls)) == len(inventory.subjects)
-        assert len(text_calls) == 8
+        from tests.autopilot_checked_text_fixtures import checked_text_fixture
+        with closing(storage.projects.open(view.project_id)) as store:
+            facts = checked_text_fixture(store)
+        assert len(text_calls) == len(set(text_calls)) == 16
+        assert set(text_calls) == facts.creative_jobs | facts.checker_jobs
         assert inventory.route_count == 2
         assert len(complete.frames) == 27 and len(calls) == 29
         assert {frame.shot_id for frame in complete.frames} == {item.id for item in inventory.subjects if item.owner == "image"}
@@ -46,7 +50,7 @@ def sent_reference(storage, service, view):
     return retained, checkpoint
 
 
-@pytest.mark.parametrize("limits", [{"max_images": 1}, {"max_jobs": 9}])
+@pytest.mark.parametrize("limits", [{"max_images": 1}, {"max_jobs": 17}])
 def test_complete_inventory_ceiling_blocks_before_any_image_job(tmp_path, monkeypatch, limits):
     storage, registry, service, view, calls, _text = image_environment(tmp_path, monkeypatch, limits=limits)
     try:
@@ -131,7 +135,10 @@ def test_extra_output_is_disclosed_blocker_and_never_competing_selection(tmp_pat
         service.step(view.project_id)
         service.step(view.project_id)
         result = current(storage, view)
-        assert result.state == "blocked" and not result.frames
+        failed = next(item for item in result.checkpoints if item["id"] == checkpoint["id"])
+        assert failed["state"] == "failed" and failed["retry"]["state"] == "retry_pending"
+        assert next(a for a in result.activities if a.job_id == failed["evidence"]["jobId"]).state == "failed"
+        assert not result.frames
         assert not registry.view()["busy"]
         with closing(storage.projects.open(view.project_id)) as store:
             assert not store.media.list_character_reference_decisions(view.project_id)["decisions"]

@@ -30,6 +30,7 @@ def review_binding(tmp_path_factory):
 
 def board():
     return {
+        "lang": "zh",
         "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15},
         "episodes": [
             {"ep": ep, "segments": [{"cuts": [{"seconds": 3}]}]} for ep in (1, 2, 3)

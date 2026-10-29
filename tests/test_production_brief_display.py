@@ -84,7 +84,7 @@ def test_readable_projection_preserves_current_audience_effects_and_exact_litera
     brief = production_brief(snapshot)
     assert not brief["conflicts"], brief["conflicts"]
     assert brief["version"] == "plotloom.production-brief.v2"
-    assert brief["displayVersion"] == "plotloom.production-brief-display.v1"
+    assert brief["displayVersion"] == "plotloom.production-brief-display.v2"
     items = [item for section in brief["sections"] for item in section["items"]]
     values = [item["value"] for item in items]
     for exact in (snapshot["shot"]["action"], snapshot["shot"]["visibleTexts"][0]["text"], snapshot["resolvedContext"]["dialogueCues"][0]["text"]):
@@ -158,3 +158,64 @@ def test_f5_provider_source_is_technical_while_voiceover_effect_is_readable(loca
     assert not any("TECHNICAL ENGLISH" in value for value in values)
     assert any(("lips completely closed" if locale == "en-US" else "双唇完全闭合") in value for value in values)
     assert brief["sections"][4]["content"]["sourceTiming"]["cut"]["frame"] == "TECHNICAL ENGLISH IMAGE PROMPT"
+
+
+@pytest.mark.parametrize("locale", ["zh-CN", "en-US"])
+def test_nested_identity_direction_and_ordered_reference_roles_are_readable(locale):
+    snapshot = snapshot_for(locale)
+    snapshot["identityLineage"] = [{"characterId": "C01", "referenceDecisionId": "decision",
+        "referenceRevision": 1, "characterContextHash": "c" * 64,
+        "acceptedCast": {"revision": 1, "contentHash": "a" * 64, "castCharacterId": "cast1",
+            "appearance": "Exact authored appearance", "image": {"description": "Exact image description",
+                "promptLocal": "Exact derived translation", "style": "TECHNICAL STYLE", "prompt": "TECHNICAL PROMPT",
+                "negativePrompt": "TECHNICAL NEGATIVE", "sheet": "TECHNICAL SHEET", "tags": ["TECHNICAL TAG"]}},
+        "assets": [{"assetId": "same", "originalHash": "b" * 64, "view": role}
+                   for role in ("primary", "complementary", "complementary")]}]
+    snapshot["sourceTiming"] |= {"kind": "f5_bridge", "cut": {"composition": "Exact authored composition"}}
+    brief = production_brief(snapshot)
+    assert not brief["conflicts"]
+    items = [item for section in brief["sections"] for item in section["items"]]
+    assert {"Exact authored appearance", "Exact image description", "Exact derived translation", "Exact authored composition"} <= {item["value"] for item in items}
+    assert not any("TECHNICAL" in item["value"] for item in items)
+    roles = [item for item in items if item["path"].endswith(".view")]
+    assert [item["value"] for item in roles] == (["Primary identity reference", "Complementary identity reference", "Complementary identity reference"]
+        if locale == "en-US" else ["主要身份参考", "补充身份参考", "补充身份参考"])
+    assert [item["path"] for item in roles] == [f"identityLineage.0.assets.{index}.view" for index in range(3)]
+    snapshot["identityLineage"][0]["acceptedCast"] = None
+    brief = production_brief(snapshot)
+    assert not brief["conflicts"]
+    assert any(item["path"] == "identityLineage.0.acceptedCast" and item["value"] == ("Not specified" if locale == "en-US" else "未指定")
+        for section in brief["sections"] for item in section["items"])
+
+
+@pytest.mark.parametrize("field", ["unknownAccepted", "unknownImage", "unknownView"])
+def test_unknown_nested_identity_values_block_adaptation(field):
+    snapshot = snapshot_for("en-US")
+    identity = {"characterId": "C01", "acceptedCast": {"appearance": "Appearance", "image": {"promptLocal": "Translation"}},
+        "assets": [{"assetId": "a", "view": "primary"}]}
+    snapshot["identityLineage"] = [identity]
+    if field == "unknownAccepted":
+        identity["acceptedCast"]["newMeaning"] = "No silent omission"
+    elif field == "unknownImage":
+        identity["acceptedCast"]["image"]["newMeaning"] = "No silent omission"
+    else:
+        identity["assets"][0]["view"] = "invented-angle"
+    with pytest.raises(ValueError, match="identityLineage"):
+        assert_adaptable(snapshot)
+
+
+@pytest.mark.parametrize("view", [None, "", [], ["primary"], {}])
+def test_malformed_reference_role_is_not_an_absence_or_a_list_of_roles(view):
+    snapshot = snapshot_for("en-US")
+    snapshot["identityLineage"] = [{"characterId": "C01", "acceptedCast": None,
+        "assets": [{"assetId": "a", "view": view}]}]
+    with pytest.raises(ValueError, match="identityLineage.0.assets.0.view"):
+        assert_adaptable(snapshot)
+
+
+@pytest.mark.parametrize("accepted", [[], "appearance", {"image": []}, {"appearance": []}, {"image": {"promptLocal": []}}])
+def test_malformed_nested_character_direction_is_not_silently_flattened(accepted):
+    snapshot = snapshot_for("en-US")
+    snapshot["identityLineage"] = [{"characterId": "C01", "acceptedCast": accepted, "assets": []}]
+    with pytest.raises(ValueError, match="identityLineage.0.acceptedCast"):
+        assert_adaptable(snapshot)

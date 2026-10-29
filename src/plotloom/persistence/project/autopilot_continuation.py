@@ -14,6 +14,7 @@ from ..schema import (
     AutopilotRunRow,
 )
 from .autopilot_closure import material_closure
+from .autopilot_continuation_selection import select_inherited_checkpoints
 
 
 def project_job_counts(session, project_id):
@@ -41,7 +42,11 @@ def continuation_preview(owner, session, project_id):
         blockers.append("当前素材与原运行不一致；请先检查手动修改，不能自动覆盖。")
     checkpoints = session.scalars(select(AutopilotCheckpointRow).where(
         AutopilotCheckpointRow.run_id == run.id)).all()
-    reusable = [row for row in checkpoints if row.state == "adopted"]
+    try:
+        reusable = select_inherited_checkpoints(owner, session, run, checkpoints)
+    except (InvalidTransitionError, KeyError, TypeError, ValueError) as error:
+        reusable = []
+        blockers.append(str(error))
     for checkpoint in checkpoints:
         if checkpoint.state == "adopted":
             continue
@@ -103,8 +108,9 @@ class AutopilotContinuationPersistence:
             session.add(child)
             session.flush()
             from .autopilot_bindings import assert_retained_checkpoint_provenance
-            for original in session.scalars(select(AutopilotCheckpointRow).where(
-                    AutopilotCheckpointRow.run_id == parent.id, AutopilotCheckpointRow.state == "adopted")).all():
+            checkpoints = session.scalars(select(AutopilotCheckpointRow).where(
+                AutopilotCheckpointRow.run_id == parent.id)).all()
+            for original in select_inherited_checkpoints(self, session, parent, checkpoints):
                 assert_retained_checkpoint_provenance(session.connection().connection.driver_connection,
                     project_id, original.state, CheckpointEvidence.model_validate(original.evidence),
                     run_id=parent.id, operation_key=original.operation_key)

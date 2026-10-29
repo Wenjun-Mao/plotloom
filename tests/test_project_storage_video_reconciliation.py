@@ -105,6 +105,8 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
         ).json()["state"]
         == "submitted"
     )
+    batch = client.app.state.video_batch_service.current(project_id)
+    fidelity_id = batch["execution"]["fidelity"]["attempt"]["attemptId"]
     snapshot = storage.recovery.create_snapshot(project_id)
 
     restored = ProjectFolderStorage(
@@ -117,7 +119,8 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
         assert {
             (item.kind, item.operation_id, item.provider_state)
             for item in recovered.recovery_control().operations
-        } == {("video_job", prepared["id"], "known")}
+        } == {("video_job", prepared["id"], "known"),
+              ("codex_exec_attempt", fidelity_id, "known"), ("video_batch", batch["id"], "unknown")}
     finally:
         recovered.close()
     restored_provider = FakeH3()
@@ -135,10 +138,11 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
             ),
         )
     )
+    restored.recovery.acknowledge_recovery(project_id)
     reconciled = restored_client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/reconcile"
     )
-    assert reconciled.status_code == 200 and reconciled.json()["state"] == "ingested"
+    assert reconciled.status_code == 200 and reconciled.json()["state"] == "ingested", reconciled.text
     assert restored_provider.downloads == 1 and restored_provider.submits == []
 
     # A recorded unknown never becomes a new submit after a portable restore.
@@ -223,7 +227,7 @@ def test_h3_uncertain_submit_is_terminal_and_never_replays_the_post(
     store.close()
     approval, context = _approved_keyframe(client, storage, project_id)
     prepared = _prepare_video(
-        client, project_id, approval, context, key="uncertain-submit"
+        client, project_id, approval, context, key="uncertain-submit", automatic_retry_limit=0
     )
 
     unknown = client.post(

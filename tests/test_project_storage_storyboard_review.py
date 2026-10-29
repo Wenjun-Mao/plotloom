@@ -1,5 +1,6 @@
 """F5A source storyboard review lifecycle and admission contracts."""
 
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,8 @@ def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_deliv
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "s" * 32)
         assert candidate.binding.script_revision == 1
         assert candidate.binding.script_content_hash == store.script_state().accepted_script.content_hash  # type: ignore[union-attr]
-        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json", TIMING_FILENAME}
+        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json", TIMING_FILENAME,
+            "language-contract.json", "creative-field-ownership.json", "provider-literal-contract.json"}
         timing = candidate.binding.dialogue_timing_contract
         assert timing is not None
         assert request.input_artifacts[TIMING_FILENAME] == timing.model_dump(mode="json", by_alias=True)
@@ -80,7 +82,7 @@ def test_f5a_rejects_delivery_timing_that_raises_frozen_limits_before_upstream_v
             called = True
             return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
         monkeypatch.setattr("plotloom.persistence.project.storyboard_review.subprocess.run", upstream)
-        board = {"params": {"maxCutSeconds": 9, "maxSegmentSeconds": 15}, "episodes": [
+        board = {"lang": "zh", "params": {"maxCutSeconds": 9, "maxSegmentSeconds": 15}, "episodes": [
             {"ep": 1, "segments": [{"cuts": [{"seconds": 3}]}]},
             {"ep": 2, "segments": [{"cuts": [{"seconds": 3}]}]},
             {"ep": 3, "segments": [{"cuts": [{"seconds": 3}]}]},
@@ -166,6 +168,9 @@ def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_polic
         store.close()
     refreshed = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/candidates/{job_id}/refresh")
     assert refreshed.status_code == 200, refreshed.text
+    with closing(storage.projects.open(project_id)) as checked:
+        frozen = checked.storyboard_review_candidate_request(job_id)
+        install_synthetic_language_check(checked, frozen, checked.storyboard_review_state().candidate.storyboard)
     chosen = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/accept", json={
         "jobId": job_id, "expectedReviewRevision": 1, "binding": refreshed.json()["binding"],
     })

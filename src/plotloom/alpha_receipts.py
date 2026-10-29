@@ -11,6 +11,7 @@ from .domain_base import CamelModel
 from .generation.prompts import canonical_json
 from .stage_contracts import STAGE_ORDER, StageStatus
 from .text_correction_contracts import logical_checkpoint
+from .autopilot_execution_retry import retry_root
 
 HASH = r"^[a-f0-9]{64}$"
 
@@ -26,8 +27,6 @@ class NativeOperationReceipt(CamelModel):
     def exact_accounting(self):
         if self.first_pass != (self.accepted and self.attempt_count == 1):
             raise ValueError("first pass must represent one accepted actual native attempt")
-        if self.attempt_count > (2 if self.stage in {"outline", "characters", "art", "script", "storyboard"} else 1):
-            raise ValueError("native Alpha cannot expand the production correction policy")
         return self
 
 
@@ -103,8 +102,8 @@ def collect_native_evidence(store, view, *, snapshot, contract_hash, sample_id, 
     private = {"run": view.model_dump(mode="json", by_alias=True), "operations": {}}
     operations = []
     for stage in NATIVE_OPERATIONS:
-        checkpoints = [c for c in view.checkpoints if c["operationKey"] == stage
-            or c["operationKey"].startswith(stage + ":correction:")]
+        checkpoints = [c for c in view.checkpoints if retry_root(c["operationKey"]) == stage
+            or retry_root(c["operationKey"]).startswith(stage + ":correction:")]
         bindings = []
         for checkpoint in checkpoints:
             attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, checkpoint["operationKey"])

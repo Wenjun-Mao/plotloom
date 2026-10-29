@@ -183,7 +183,7 @@ def test_upgrade_refuses_unsafe_or_corrupt_retained_files_before_ddl(tmp_path, m
         (home / "outputs").symlink_to(outside, target_is_directory=True)
     else:
         import shutil
-        job = next((home / "outputs/creative-handoff/jobs").iterdir())
+        job = home / "outputs/creative-handoff/jobs" / ("ch_" + "a" * 32)
         if mutation == "missing_package":
             shutil.rmtree(job / "package")
         else:

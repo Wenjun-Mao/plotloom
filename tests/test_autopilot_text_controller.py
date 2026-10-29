@@ -9,14 +9,38 @@ from plotloom.exceptions import InvalidTransitionError
 from tests.autopilot_controller_fixtures import environment, run_text, deliver
 
 
+
+def adopt_outline(service, project_id):
+    service.registry._codex_exec_test_host.auto_deliver = True
+    for _ in range(8):
+        service.step(project_id)
+        with closing(service.storage.projects.open(project_id)) as store:
+            if store.source_outline_state().accepted_outline is not None:
+                return
+    raise AssertionError("Outline did not finish its independent checker journey")
+
+
+def assert_outline_calls(store, calls, job):
+    from plotloom.content_language_persistence import check_rows, verified_check
+    with store.repository._read() as session:
+        checks = [verified_check(row) for row in check_rows(session, store.manifest.project_id)]
+    assert len(checks) == 1
+    request, _data, _attempt, _profile, receipt, result = checks[0]
+    assert request.source["candidateJobId"] == job and receipt and result.verdict == "pass"
+    assert len(calls) == len(set(calls)) == 2 and set(calls) == {job, request.job_id}
+
+
 def test_one_start_installs_complete_text_without_human_flags_or_video(tmp_path, monkeypatch):
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch)
     try:
         completed = run_text(service, view)
-        assert len(calls) == len(set(calls)) == 8
+        assert len(calls) == len(set(calls)) == 16
         assert len(completed.checkpoints) == 11
         assert completed.phase == "references" and completed.state == "running"
         with closing(storage.projects.open(view.project_id)) as store:
+            from tests.autopilot_checked_text_fixtures import checked_text_fixture
+            facts = checked_text_fixture(store)
+            assert set(calls) == facts.creative_jobs | facts.checker_jobs
             bridge = store.production_bridge_state()
             assert bridge.installation.status == "current"
             assert bridge.proposal.intent_package.review_state == "ai_adopted"
@@ -82,10 +106,10 @@ def test_pause_retains_receipt_then_resume_adopts_original_outline_without_resen
             assert paused.state == "paused" and store.source_outline_state().accepted_outline is None
         assert not registry.view()["busy"]
         service.control(view.project_id, RunControlRequest(expected_revision=paused.revision, action="resume"))
-        service.step(view.project_id)
+        adopt_outline(service, view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             assert store.source_outline_state().accepted_outline is not None
-        assert calls == [job]
+            assert_outline_calls(store, calls, job)
     finally:
         service.close()
 
@@ -118,14 +142,14 @@ def test_unknown_ack_restart_checks_original_job_and_never_resends(tmp_path, mon
             assert checkpoint["state"] == "outcome_unknown"
             assert checkpoint["evidence"]["result"]["dispatchOutcomeUnknown"] is True
             deliver(store, request, host=registry._codex_exec_test_host)
-        resumed.step(view.project_id)
-        resumed.step(view.project_id)
+        adopt_outline(resumed, view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
             checkpoint = next(item for item in current.checkpoints if item["operationKey"] == "outline")
             assert checkpoint["state"] == "adopted"
             assert checkpoint["evidence"]["result"]["dispatchOutcomeUnknown"] is True
-        assert calls == [request.job_id]
+        with closing(storage.projects.open(view.project_id)) as store:
+            assert_outline_calls(store, calls, request.job_id)
         assert not registry.view()["busy"]
     finally:
         resumed.close()
@@ -160,12 +184,12 @@ def test_late_stopped_delivery_retains_proof_without_adoption(tmp_path, monkeypa
 
 def test_occupied_native_role_waits_then_dispatches_same_prepared_job(tmp_path, monkeypatch):
     storage, registry, service, view, calls = environment(tmp_path, monkeypatch, auto_deliver=False)
-    from plotloom.image_job_contracts import ImageJobError
+    from plotloom.codex_exec_contracts import CodexExecHostStatus
     original = registry.codex_exec_admit
     occupied = [True]
     def admission(attempt):
         if occupied[0]:
-            raise ImageJobError("codex_exec_outcome_unknown", "fixture Mac process slot is occupied")
+            return CodexExecHostStatus(state="not_found", capacityDeferred=True)
         return original(attempt)
     monkeypatch.setattr(registry, "codex_exec_admit", admission)
     try:
@@ -270,7 +294,8 @@ def test_atomic_text_adoption_crash_keeps_delivery_but_rolls_back_heads_and_deci
             return original(owner, key, **values)
         monkeypatch.setattr(AutopilotPersistence, "checkpoint", crash)
         with pytest.raises(RuntimeError, match="before checkpoint"):
-            service.step(view.project_id)
+            for _ in range(8):
+                service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             current = store.repository.autopilot.current(view.project_id)
             checkpoint = next(item for item in current.checkpoints if item["operationKey"] == "outline")
@@ -280,7 +305,8 @@ def test_atomic_text_adoption_crash_keeps_delivery_but_rolls_back_heads_and_deci
         service.step(view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             assert store.source_outline_state().accepted_outline is not None
-        assert len(calls) == 1
+        with closing(storage.projects.open(view.project_id)) as store:
+            assert_outline_calls(store, calls, checkpoint["evidence"]["jobId"])
     finally:
         service.close()
 
@@ -306,13 +332,12 @@ def test_interrupted_export_reuses_original_prepared_job_without_partial_package
             assert not (store.home / "outputs/creative-handoff/jobs" / job / "package").exists()
         assert not calls
         monkeypatch.setattr(exchange_owner, "_write_once", original)
-        service.step(view.project_id)
-        service.step(view.project_id)
-        service.step(view.project_id)
+        adopt_outline(service, view.project_id)
         with closing(storage.projects.open(view.project_id)) as store:
             assert store.source_outline_state().accepted_outline is not None
             assert next(item for item in store.repository.autopilot.current(view.project_id).checkpoints if item["operationKey"] == "outline")["evidence"]["jobId"] == job
-        assert calls == [job]
+        with closing(storage.projects.open(view.project_id)) as store:
+            assert_outline_calls(store, calls, job)
     finally:
         service.close()
 
@@ -325,8 +350,11 @@ def test_general_routes_install_all_66_intent_targets_in_one_bounded_native_job(
         brief=FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
     try:
         completed = run_text(service, view)
-        assert len(calls) == len(set(calls)) == 8
+        assert len(calls) == len(set(calls)) == 16
         with closing(storage.projects.open(view.project_id)) as store:
+            from tests.autopilot_checked_text_fixtures import checked_text_fixture
+            facts = checked_text_fixture(store)
+            assert set(calls) == facts.creative_jobs | facts.checker_jobs
             bridge = store.production_bridge_state()
             assert len(bridge.proposal.intent_package.entries) == 66
             graph = store.authoring.get_stage_payload(view.project_id, StageName.STORY_GRAPH)

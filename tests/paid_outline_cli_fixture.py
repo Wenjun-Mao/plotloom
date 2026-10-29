@@ -1,7 +1,9 @@
-"""Fake provider IO with real frozen Node validation and rendering.
+"""Fake provider IO with real frozen primary validation and Node rendering.
 
 This does not emulate the Mac sandbox. It compares its full production command,
-then runs the real Node tail in the existing owned validator process group.
+then runs its real receiver in the existing owned validator process group.
+The copied checked Python is metadata-only; its exact frozen uv/Python receiver
+is executed with the already-proven QA interpreter, never native-envelope proof.
 """
 import json
 import os
@@ -45,8 +47,8 @@ def sandbox(case, executable, arguments):
         _permission_filesystem_config=CodexExecSupervisorEnvironmentMixin._permission_filesystem_config)
     allowed = []
     for step in plan.steps:
-        if step.program != "node":
-            raise ValueError("Outline fixture only permits the frozen Node stage")
+        if step.program not in {"node", "uv"}:
+            raise ValueError("Outline fixture only permits its frozen primary/renderer steps")
         tail = expand_validation_argv(step, source_root=source,
             submodule_root=source / "third_party/shuohao-skills", job_root=job,
             candidate_filename=plan.candidate_filename, tool_paths=dict(resources.tools))
@@ -57,8 +59,15 @@ def sandbox(case, executable, arguments):
     if len(matches) != 1 or Path.cwd() != validation:
         raise ValueError("fixture refused non-frozen sandbox argv or working directory")
     # Keep this wrapper's birth/command identity stable for the real host owner.
-    # Node inherits its private process group and the actual report streams.
-    child = subprocess.Popen(matches[0])
+    # Receiver children inherit the owned process group and actual report streams.
+    tail = matches[0]
+    if Path(tail[0]).name == "uv":
+        expected = ("run", "--project", str(source), "--locked", "--no-sync", "python",
+                    str(source / "scripts/outline_content_validation.py"))
+        if tuple(tail[1:8]) != expected:
+            raise ValueError("fixture refused a different Python receiver")
+        tail = [sys.executable, "-B", *tail[7:]]
+    child = subprocess.Popen(tail)
     return child.wait()
 
 
@@ -80,6 +89,7 @@ def main(executable, arguments, version):
     request = json.loads(Path("../package/request.json").read_text())
     candidate = json.loads((case / "provider-output.json").read_bytes())
     candidate["source"] = request["source"]["title"]
+    candidate["lang"] = request["inputArtifacts"]["language-contract.json"]["reportLocale"]
     Path("outline.json").write_text(json.dumps(candidate, ensure_ascii=False))
     session, now = uuid4(), datetime.now(UTC)
     day = now.date()

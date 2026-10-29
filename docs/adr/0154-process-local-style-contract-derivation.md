@@ -42,6 +42,12 @@ startup options can add unbounded execution inputs. No environment values are
 logged. Preserve Node stdout, frozen JSON shapes and hashes, and existing
 nonzero-exit/JSON parse failures.
 
+The current explicit Cast/Art dependency tuples include their actual transitive
+local imports: the parent provider-literal context helper and each skill's literal
+and report-language helpers. Update these known closed lists when imports change;
+do not introduce a general resolver. This repairs cache invalidation only, without
+changing derived contract values or upgrading retained evidence.
+
 ## Alternatives and consequences
 
 Request-scoped derivation would require threading cache context through nested

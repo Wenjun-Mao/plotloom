@@ -32,6 +32,7 @@ from tests.source_outline_fixtures import (
 
 def proposal(topology):
     return {
+        "lang": "zh",
         "nodes": [
             {
                 "id": node["id"],
@@ -119,6 +120,8 @@ def test_existing_outline_gets_complete_general_draft_without_mutating_canon(sto
             store, request, "branches.json", proposal(topology), "branches-ready"
         )
     )
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, request, proposal(request.source["topology"]))
     draft = store.branch_draft(request.job_id)
     assert draft.topology_origin == "planner"
     assert len(draft.sections) == 9
@@ -342,6 +345,8 @@ def test_capacity_search_finds_a_larger_feasible_shape_without_rewriting_author_
             store, request, "branches.json", proposal(topology), "within-capacity"
         )
     )
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, request, proposal(request.source["topology"]))
     assert (
         store.branch_draft(request.job_id).seed_topology.structural_parameters[
             "maxOutDegree"
@@ -428,6 +433,8 @@ def test_branch_query_boundaries_use_read_admission_without_creating_heads(store
 
     request = prepare(store)
     store.admit_branch_delivery(_deliver_stage(store, request, "branches.json", proposal(request.source["topology"]), "query-only-branches"))
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, request, proposal(request.source["topology"]))
     expected_state = store.branch_state()
     expected_draft = store.branch_draft(request.job_id)
     expected_report = store.branch_candidate_report(request.job_id)

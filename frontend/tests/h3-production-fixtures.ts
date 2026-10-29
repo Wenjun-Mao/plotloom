@@ -8,7 +8,7 @@ export function productionTarget(request: VideoJobPrepareBody): Target {
     args: { seed: request.seed!, profile_id: request.profileId!, aspect_policy: request.aspectPolicy! },
     sources: [{ path: "shot.action", label: "动作", text: "守灯人把保险丝放回原处。" }],
     directions: null, compiledPrompt: null, authoredDurationUnits: 3000, requestedSeconds: 15, requestedFrames: 362, selectionRevision: 1,
-    productionBrief: { version: "plotloom.production-brief.v2", displayVersion: "plotloom.production-brief-display.v1", contentLocale: "zh-CN", sourceHash, briefHash,
+    productionBrief: { version: "plotloom.production-brief.v2", displayVersion: "plotloom.production-brief-display.v2", contentLocale: "zh-CN", sourceHash, briefHash,
       sections: ["shot", "context", "presentation", "references", "timing", "settings"].map(id => ({ id, label: ({ shot: "画面、动作与连续性", context: "人物与对白原文", presentation: "画面文字与呈现方式", references: "已审阅参考素材", timing: "时长与播放窗口", settings: "生成设置与可见效果" } as Record<string, string>)[id], content: {}, items: [{ path: `${id}.meaning`, label: "创作要求", value: "守灯人把保险丝放回原处，不新增对白。" }] })),
       adapterConstraints: ["不得新增对白或画面文字。"], discretion: "仅可忠实调整表述。", conflicts: [] },
   };

@@ -10,11 +10,13 @@ import sys
 
 import pytest
 
-# Reviewed pre-extraction schemas: class names, aliases, defaults and validators.
+# Reviewed schemas: class names, aliases, defaults and validators.
+# ADR 0224 timing extraction changes only DialogueDeliveryPace.description in
+# StageEnvelope/ProjectCreation; the regression below binds that exact delta.
 SCHEMAS = {
     "project_contracts:Project": "64166a788f2fa56c6058a4128f81e7eb48fe0ff5e11614727993aa5f8ef8fca9",
-    "project_contracts:ProjectCreation": "81171a55ac6e950c18b325da4f82c23d6fbd9e79334b21fcdaa0936e1f1e1728",
-    "stage_contracts:StageEnvelope": "4a9679dec80748e9a8a9303d3b7beac1a0ec8888c23fa855ffb649e779c62170",
+    "project_contracts:ProjectCreation": "7b7a5641b813991cbc9c373afce4421571ed32ea2de178919fe5f9ce7858f624",
+    "stage_contracts:StageEnvelope": "f031f2e9fc33e053bc2e3405cbd8d6e5f9f05c3b2c97490a162b242c1138a427",
     "run_contracts:GenerationRun": "c1c24bd43dcfb622eaf13c43c02d8ac038080196c58127a63e7956ac4a5f7c41",
     "run_contracts:RepairSource": "28ea0f29833f911b712387a694bccd9e00b94a7ab144837d00d2fa2768499031",
     "repair_contracts:WorkUnitRepairScope": "9420d67211255ad574e2ca1c6e0e2e1a6b28b9114a43fc4921e03f27fe26d7e7",
@@ -59,3 +61,17 @@ assert validate_public_api_root is leaf
     subprocess.run(
         [sys.executable, "-c", code], check=True, capture_output=True, text=True
     )
+
+
+@pytest.mark.parametrize("module,name,previous", [
+    ("project_contracts", "ProjectCreation", "81171a55ac6e950c18b325da4f82c23d6fbd9e79334b21fcdaa0936e1f1e1728"),
+    ("stage_contracts", "StageEnvelope", "4a9679dec80748e9a8a9303d3b7beac1a0ec8888c23fa855ffb649e779c62170"),
+])
+def test_timing_owner_extraction_changes_only_enum_description(module, name, previous):
+    model = getattr(importlib.import_module("plotloom." + module), name)
+    schema = model.model_json_schema()
+    pace = schema["$defs"]["DialogueDeliveryPace"]
+    assert pace["description"] == "Only explicit bounded pace changes timing; free-form notes do not."
+    pace["description"] = "The bounded timing input; expressive direction belongs in notes."
+    encoded = json.dumps(schema, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    assert hashlib.sha256(encoded.encode()).hexdigest() == previous

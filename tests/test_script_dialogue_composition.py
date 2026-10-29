@@ -82,11 +82,12 @@ def compatible_board(script):
             f"A static shot of the empty doorway in <Picture 1>. An off-screen narrator VO says <d>[Chinese] {line}</d>.\n\n"
             "overall_soundscape: Quiet wind.\n\nnon_diegetic_music: N/A"
         )
-        cut = {"seconds": 4.5, "beats": [1, 2], "size": "medium", "camera": "Static Shot", "characters": [], "props": [],
+        cut = {"seconds": episode["targetSeconds"], "beats": [1, 2], "size": "medium", "camera": "Static Shot", "characters": [], "props": [],
+            "composition": episode["scenes"][0]["flow"][0]["action"],
             "frame": "medium shot of an empty doorway at dawn, cinematic film still, cool gray palette, 16:9"}
         episodes.append({"ep": episode["ep"], "segments": [{"id": f"E{episode['ep']:02}-01", "sceneIndex": 1,
             "cuts": [cut], "h3Prompt": prompt}]})
-    return {"source": script["source"], "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": episodes}
+    return {"source": script["source"], "lang": script["lang"], "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": episodes}
 
 
 def test_twenty_second_opted_in_script_flows_through_real_f5_receiving(script_store, tmp_path, monkeypatch):  # noqa: F811
@@ -97,6 +98,8 @@ def test_twenty_second_opted_in_script_flows_through_real_f5_receiving(script_st
     candidate, request = script_store.prepare_script_candidate("ch_" + "6" * 32, planned_storyboard_max_cut_seconds=8)
     script = dialogue_script(request)
     ready = script_store.admit_script_delivery(publish_rendered_fixture(script_store, request, script, tmp_path))
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(script_store, request, script)
     accepted = script_store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0,
         binding=ready.binding)).accepted_script
     board, frozen = script_store.prepare_storyboard_review_candidate("ch_" + "7" * 32, max_cut_seconds=8)
@@ -104,11 +107,12 @@ def test_twenty_second_opted_in_script_flows_through_real_f5_receiving(script_st
     assert board.binding.target_playthrough_seconds == accepted.binding.target_playthrough_seconds == 20
     ready_board = script_store.admit_storyboard_review_delivery(
         publish_rendered_fixture(script_store, frozen, compatible_board(script), tmp_path))
+    install_synthetic_language_check(script_store, frozen, compatible_board(script))
     review = script_store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=board.job_id,
         expected_review_revision=0, binding=ready_board.binding))
     assert review.status == "accepted" and review.stale_reasons == []
     assert script_store.script_state().accepted_script == accepted
-    for stage, program in (("script", "uv"), ("storyboard", "node")):
+    for stage, program in (("script", "uv"), ("storyboard", "uv")):
         facts = json.loads((tmp_path / stage / "runtime-observations.json").read_bytes())
         assert facts["python"]["executable"] == sys.executable
         assert facts["python"]["physicalExecutable"] == str(Path(sys.executable).resolve())
@@ -118,6 +122,7 @@ def test_twenty_second_opted_in_script_flows_through_real_f5_receiving(script_st
         assert facts["node"]["executable"] == facts["tools"]["node"]
         assert [item["stepId"] for item in facts["results"]] == ["validate", "render"]
         assert len(facts["validationArgv"]) == 2
-        assert all(argv[0] == facts["tools"][program] for argv in facts["validationArgv"])
+        assert [argv[0] for argv in facts["validationArgv"]] == [
+            facts["tools"][program], facts["tools"]["node" if stage == "storyboard" else "uv"]]
         assert facts["parentEnvironmentUnchanged"] and facts["sourceConfigurationUnchanged"]
         assert facts["operatorReceiptPresentBefore"] == facts["operatorReceiptPresentAfter"]

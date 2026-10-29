@@ -1,16 +1,18 @@
 # Project-language implementation evidence
 
-Status: **in progress**, updated2026-10-29. Latest native English run at
-54105858 passed and adopted Outline and Branches (2/8), then delivered Cast.
-Both distinct Cast-check attempts failed an existing coverage-exception ownership
-rule. The run is paused, every exact native group/validator is absent, and the
-isolated runtime is stopped. The reviewed response-schema/prompt repair expresses
-that existing rule without changing the binder; its next real native proof is
-pending. English Outline/report and deliberate 安 were inspected inside Chinese
-chrome. No all-eight installation, full local gate, exact-wheel qualification,
-activation, old-slot application or image/H3/media acceptance has occurred. Five
-manual draft-recovery browser cases pass, while fourteen readers retain a separate
-outdated test-data blocker. Hosted CI is not requested/not run and is not a release
+Status: **in progress**, updated2026-10-29. Both original QA projects completed
+all eight native text stages and installation at389bf861, with Chinese chrome,
+project-language readers and deliberate literals inspected after reopen. Their
+paused runs were subsequently cancelled under the original source for supported
+continuation. All35native attempts are terminal; the isolated runtime is stopped.
+Five manual draft-recovery cases and all14affected reader cases passed across
+retained selections. Candidate C8193c3ff full local qualification failed78Python
+cases; downstream browser/wheel stages were not reached. The separately frozen
+fixture repair and R1/R2 source fixes have independent review closure and exact
+root integration. Remaining source work addresses known capacity admission and
+authored-composition bridge ownership before fresh native bridge checking. No
+exact-wheel qualification, activation, old-slot application or image/H3/media
+acceptance has occurred. Hosted CI is not requested/not run and is not a release
 blocker. Earlier sections retain historical checkpoints/failures; later
 reassessments own the latest state. The
 [approved plan](../roadmap/2026-10-28-project-language-consistency.md) owns scope.
@@ -1269,3 +1271,177 @@ Already-adopted389bf861 text remains retained under its original proof and
 Continue verifies historical provenance; it does not silently upgrade those
 checks. New or edited candidate adoption still requires a check bound to the
 current policy. No old request, receipt or verdict is rewritten.
+
+### Candidate C full result and causal follow-ups
+
+Root committed the integrated123-file candidate as
+`8193c3ff1486f0ff75d263903f07da4e33865052`, fork35fac266, with clean executable
+inputs. The exact source-identity qualification case passed in4.16s. The final
+full local attempt then failed, exit1 after2447.696s: frontend1675pass and both
+type checks passed; the native4806-case Python suite reported worker2
+44failed/2359passed and worker1 34failed/2369passed, zero setup errors. The
+bundle/parity/browser/wheel stages were not reached. Retained artifacts are
+candidate-C-full.log, candidate-C-full-input-envelope.json,
+candidate-C-full-result.json and candidate-C-full-first-failure-index.txt under
+.local/project-language-20261028/. The earlier389bf861 full attempt remains failed.
+
+The same worker froze34test/helper files against exact C in
+f4b3/plotloom/.local/candidate-C-fixture-repair/manifest.json, patch SHA256
+6ccd4191ac4e0588abf6de9b0e00990c9fb70b83d9abec26de8877151c51ad70.
+Its original-case disposition records67focused-verified/11production-follow-up.
+The27frame complete pack passed in79.27s; the42frame replay is held until its
+actual production-brief composition blocker is repaired. Mixed exploratory
+focused logs retain their failures. This is development evidence, not another full
+qualification, native generation or media acceptance. Independent Sol/Medium
+review closed the frozen fixture delta without findings. Root verified every
+before/after hash during integration; quick then passed in14.122s. See the
+copied candidate-C-fixture-repair/root-integration.json and
+candidate-C-fixture-root-quick.log. Separate production-group review remains open.
+
+R1 structural receiving and R2 style-cache closure then passed separate independent
+Sol/Medium source reviews without findings and were integrated at exact before/
+after hashes. Artifacts current-R1-structural-receive/ and
+current-R2-style-closure/ retain each immutable patch, manifest, focused logs and
+root-integration.json. R1 covers the5small paused/resume journeys plus4exact
+receipt mismatch/first-resume regressions; invalid new test job IDs were corrected
+without changing stable source, with original failures retained. Its482-line
+controller consolidates the existing structural receipt responsibility; the
+320-line persistence owner remains cohesive. R2 passed22focused cache cases,
+including same-size/mtime edits and changes during derivation, and changes only
+the explicit Cast/Art import closure identity. Derived contract outputs and Brief
+style format remain unchanged. These source fixes still require real native and
+integrated qualification.
+
+R3 capacity admission is independently reviewed by Sol/High and integrated at all
+8exact manifest hashes; its new cohesive43-line helper owns only consumable
+admission evidence. The execution owner remains203lines; the larger binding owner
+receives a narrow check of its existing attempt-binding responsibility. The
+28focused cases include the repaired image-phase expectation and6new independent
+SQLite commit-boundary cases. The earlier image-focused log remains failed1/
+passed1, not a clean run. Typed authenticated admission refusal alone records the
+marker; polling/global blockers cannot. Current authority/CAS consumes it durably
+before external retry; lost acknowledgement/UNKNOWN/found attempts cannot reuse
+it. Append-only result facts remain unchanged. See current-R3-capacity-owner/.
+An initially suspected VALIDATOR_FILES omission was withdrawn after tracing the
+complete Python source-tree hash included in validator_hash. The optional tuple
+follow-up is exploratory and excluded from the candidate; no hashing safety gap
+was demonstrated. Real native/media and integrated final qualification remain open.
+
+D's20-file source/display/frontend candidate and separate3-file logical-owner
+follow-up now have independent closure and exact root integration. The display/
+presentation source review found no issue; High review caught literal key filtering
+that rejected the actual corrected Chinese Cast and an early-reference hold that
+covered only one successor. The follow-up resolves existing validated logical
+correction/retry lineage while preserving exact physical keys/evidence, and holds
+references across validated same-project ancestors until replacement installation.
+Its9focused cases pass in101.21s, including pre-dispatch child cancellation and
+second Continue, malformed/extra lineage refusal and restored ordinary discovery.
+The earlier failed permission/publication and bridge-retry probes remain failed,
+separately scoped to a prospective native lifecycle repair; they are not evidence
+of this ancestry acceptance.
+
+Retained D evidence reports94source/display/producer cases,28existing native
+presentation/integration consumers and24frontend control cases, both type checks,
+and identical7-file static SHA-256 trees from two builds. Only workbench.js changes.
+The new74-line selector grew to a cohesive logical-installation owner in the
+follow-up; the repository's410to412line change only wires its named source-context
+dependency. Other touched D source owners remain below400lines. Artifacts
+current-D-source-presentation/ and current-D-logical-owner-followup/ retain the
+original patches, before/after trees, failures and root integration records.
+
+Before native dispatch, supported read-only authority inspection of both ORIGINAL
+homes now proves eligible Continue contexts with7inherited operations, EN17/ZH18
+lifetime jobs and0images each. This exercises the real retained correction and
+native provenance, rather than only synthetic fixtures. Both raw25-table,
+parent7-table and original payload-file witnesses remain exact afterward. See
+composition-refresh-original-home-readonly-contexts.json and the preserved
+*-composition-refresh-preservation-before.json witnesses. The ignored execution
+runner separately closed four High review findings: startup/shutdown lease
+ownership, exact inherited evidence comparison, nonzero incomplete outcome and
+precisely allowed successor bridge-check row additions. It has not been executed.
+No claim of fresh native presentation or media acceptance follows from preflight.
+
+The separate8-file prospective bridge lifecycle follow-up and1-file local test
+inventory now have High/Medium review closure and exact root integration. It aligns
+reservation/spawn bridge scope, binds adopted proof to the decision's exact
+same-project/run physical checkpoint, and settles only already-persisted positively
+stopped failed native publication during explicit cancel. UNKNOWN/lost-ack/
+unproven-stop/mismatch/takeover holds remain; enqueue/quiescence and retry authority
+are unchanged. The cohesive32-line cancellation helper keeps the controller's
+narrow delegation at484lines. This prevents a new known-failure cancellation from
+manufacturing an unresolved publication hold; no retained historical record was
+backfilled and no real permission refusal resumed.
+
+After two failed positive retry probes, root requested a bounded physical-key
+dependency audit before another replay. It confirmed the two runtime identity
+defects and a separate receipt observer omission. The already-started test process
+finished before a targeted SIGINT could land (no-such-process), so its actual
+7pass/3fail result remains FAILED. The7passing cases are reused; the3incorrect
+repeat-cancel test assumptions were corrected to assert the stronger existing
+refusal, then those3passed in18.75s. Collector/qualification-contract15cases
+passed in0.07s without another execution replay. Receipt collection now includes
+direct and corrected retry families with exact physical lookups; observed counts
+do not authorize generation and the first-pass metric remains unchanged.
+
+The local inventory delta adds31exact file owners (17previously unowned pytest,
+8Vitest,2Playwright and4new pytest files), with no prior owner moved/removed or
+gate weakened. Complete native discovery passes4869pytest cases/390files plus
+Vitest/Playwright, executing no test bodies;7ownership-unit cases pass0.22s. The
+first truncated missing-file failures remain retained. See
+current-R-bridge-terminal-followup/ and current-final-test-inventory/. These
+separate scoped results do not convert candidate C's failed full gate into a pass.
+
+Three demonstrated runtime defects remain under the bounded source repair:
+paused structural receiving occurs after language checking; cache dependency
+tuples omit actual Node imports; and a global blocker incorrectly owns capacity
+deferral redispatch. Separately, exact live project readbacks show native bridge
+presentation sourced from provider frame rather than authored composition, while
+the production brief rejects supported composition/accepted Cast/reference-role
+fields. ADR0224/0225/0154 now record the causal contracts before source edits.
+The roadmap records the shared guarded7-inherit/4-rebuild Continue repair and the
+first English native text-only validation. No normal activation, new image/H3,
+old-slot retirement, push or CI has occurred.
+
+### Disposable recovery and normal-data boundaries
+
+The original cancelled English QA home was snapshotted through supported recovery:
+snapshot0ef5707f-8de9-4a1f-b51a-43b85f4b4b04 contains180files; original run and
+canonical heads remained unchanged (rollback-qa-snapshot-receipt.json). All
+following writes affect only separate restored disposable homes.
+
+The old installed wheel0fdc19ca refuses this new-authority snapshot with exit2,
+persisted autopilot authority invalid. Its first exact model error is
+automaticRetryLimit extra_forbidden. This is a retained compatibility refusal,
+not corruption or a proven nullable-budget/profile failure. No authority field
+was removed or rewritten. A separate tiny old-wheel-created project
+262b1621-5600-4db7-85af-b10377231319 passed old-wheel snapshot/restore/API read,
+draft save, freeze/unfreeze and fresh-runtime reopen. See
+rollback-old-wheel/functional-readback.json; the earlier wrong-response-shape
+probe failure remains retained.
+
+Candidate-C wheel SHA256
+36ee9542e3ff6b734a096f3e97a40d1dadce0712d7654954ecde91a61a50c365
+is retained outside the checkout at
+/Users/wjmao/.codex/artifacts/plotloom-language-20261028/8193c3ff-wheel/.
+It is unqualified and will be superseded by the source repair. Its installed
+runtime restored the unchanged180-file snapshot successfully without an upgrade.
+Standalone Cast API reading then failed because that envelope lacks external
+brief-art-style.mjs source rules. After reassessment, the supported candidate-C
+source runtime read all8restored stages, saved a harmless draft, froze/unfroze and
+reopened. The first comparison was too broad: explicit manual editing changed
+only cancelled-run revision70to71, updatedAt and manual_takeover blocker.
+The causal read-only comparison proves all frozen policies, attempts, checkpoints,
+canon/entity/bridge rows and payload files unchanged, with all8fresh API reads200.
+See rollback-candidate-C-wheel/{source-runtime-readback.log,
+source-runtime-frozen-readback.log,functional-readback.json} and retained probe
+scripts. The failed broad assertion remains failed; the later proof closes only
+its diagnosed metadata comparison. No provider or submission endpoint was used.
+
+normal-production-brief-version-readonly-inventory.json covers16normal homes,
+52job snapshots,15legacy video-batch.manifest.v1 batches and44targets. It found
+zero languageContract/productionBrief/new execution or direction-request markers.
+This supports changing the unactivated new display contract to version2 without
+rewriting normal legacy media evidence. Recheck before activation. The single
+qualified recovery, valued Su Tang home, H5 assets and exact two old LOCAL claims
+remain untouched. Aggregate product/infrastructure/coordination timings remain
+unavailable; both measured full-gate elapsed values above are retained.

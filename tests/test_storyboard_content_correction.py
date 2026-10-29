@@ -117,13 +117,16 @@ def test_typed_storyboard_plan_and_real_read_paths_bind_the_actual_adapter(tmp_p
     paths = exchange.write_package(request, pin, executor_backend='codex_exec', plotloom_code_revision='a' * 40)
     raw = json.loads((Path(paths['packagePath']) / 'request.json').read_bytes())
     plan = validation_plan_from_package(raw)
-    assert plan.steps[0].argv == ('{source}/scripts/storyboard-content-validation.mjs', '{candidate}', '{package}/request.json')
+    assert plan.steps[0].program == 'uv'
+    assert plan.steps[0].argv == ('run', '--project', '{source}', '--locked', '--no-sync', 'python',
+        '{source}/scripts/creative_field_validation.py', '{candidate}', '--request', '{package}/request.json',
+        '--node', '{tool:node}')
     old = 'brief-storyboard-style.mjs' if saved else 'storyboard-receiving.mjs'
     assert plan.steps[1].argv[0] == '{source}/scripts/' + old
     assert (ROOT / 'scripts/storyboard-content-validation.mjs').resolve() in codex_exec_source_resources(ROOT, raw).read_paths
     from plotloom.alpha_provenance import preflight_plan_identity
     assert preflight_plan_identity(Path(paths['packagePath']))[2] == plan.plan_hash
     ordinary = request.model_copy(update={'job_id': 'ch_' + 's' * 32, 'content_validation_contract': None})
-    manual = exchange.write_package(ordinary, pin, executor_backend='codex_exec', plotloom_code_revision='a' * 40)
     with pytest.raises(ValueError, match='typed content boundary'):
-        preflight_plan_identity(Path(manual['packagePath']))
+        exchange.write_package(ordinary, pin, executor_backend='codex_exec', plotloom_code_revision='a' * 40)
+    assert not (exchange.root / 'jobs' / ordinary.job_id / 'package').exists()

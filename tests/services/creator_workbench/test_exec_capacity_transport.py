@@ -55,7 +55,7 @@ def packet():
 def preview(request):
     return CapacityRetirementPreview(project_id=request.project_id, attempt_id=request.attempt_id,
         preview_hash="a" * 64, eligible=True, blockers=[], local_capacity_state="held",
-        image_budget_state="reserved", reserved_image_outputs=1)
+        image_budget_state="reserved", reserved_image_outputs=1, remote_outcome="preserved_unknown")
 
 
 @pytest.mark.parametrize("command", ["exec-capacity-retirement-preview", "exec-capacity-retire"])

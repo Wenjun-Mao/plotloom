@@ -256,13 +256,22 @@ class AutopilotTextController:
         if delivery is None:
             return
         with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.EVIDENCE):
-            if bridge:
-                store.repository.production_bridge_intent.retain_native_candidate(view.project_id, delivery)
-            else:
-                getattr(store, CREATIVE_METHODS[stage][2])(delivery)
+            self.retain_structural_delivery(store, view, stage, delivery)
             store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered",
                 expected_revision=current_checkpoint["revision"],
                 evidence=current_evidence.model_copy(update={"delivery_hash": delivery.manifest_hash}))
+
+    @staticmethod
+    def retain_structural_delivery(store, view, stage, delivery):
+        """Make the exact completed candidate available to independent checking."""
+        if stage.startswith("bridge-"):
+            store.repository.production_bridge_intent.retain_native_candidate(view.project_id, delivery)
+        else:
+            candidate = current_creative_candidate(store, stage, delivery.request.job_id, require_fresh=True)
+            if candidate.status == "prepared":
+                getattr(store, CREATIVE_METHODS[stage][2])(delivery)
+            elif candidate.status != "ready":
+                raise InvalidTransitionError("retained native candidate is no longer available")
 
     def adopt_delivered(self, store, view, claim, stage, checkpoint, evidence):
         bridge = stage in self.bridge_services
@@ -272,6 +281,8 @@ class AutopilotTextController:
         delivery = self.validated_delivery(store, view, stage, request, expected_hash=evidence.delivery_hash)
         if delivery is None:
             raise InvalidTransitionError("retained native delivery is unavailable")
+        with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.EVIDENCE):
+            self.retain_structural_delivery(store, view, stage, delivery)
         from .autopilot_content_language import ensure_content_language
         if not ensure_content_language(self, store, view, claim, request, delivery.candidate, checkpoint):
             return
@@ -295,8 +306,6 @@ class AutopilotTextController:
                 candidate = getattr(store, CREATIVE_METHODS[stage][0])().candidate
                 if candidate is None or candidate.job_id != evidence.job_id:
                     raise InvalidTransitionError("retained native candidate is no longer current")
-                if candidate.status == "prepared":
-                    getattr(store, CREATIVE_METHODS[stage][2])(delivery)
                 result_facts = adopt_text(store, stage, evidence.job_id)
             recorded = store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="adopted", expected_revision=checkpoint["revision"],
                 evidence=evidence.model_copy(update={"result": evidence.result | result_facts}))
@@ -313,7 +322,7 @@ class AutopilotTextController:
                 if self.registry.status(evidence.job_id)["state"] != "completed":
                     self.registry.complete_creative_task(evidence.job_id, project_id=view.project_id, stage=evidence.owner)
 
-    def cancel_pending(self, store, view):
+    def cancel_pending(self, store, view, *, settle_known_failures=False):
         from .content_language_service import reconcile_language_checks
         reconcile_language_checks(store, self.registry, view.id, cancel=True)
         methods = {"outline": store.cancel_outline_candidate, "branches": store.cancel_branch_candidate,
@@ -330,8 +339,11 @@ class AutopilotTextController:
                 if attempt is not None and attempt.content_rejection is not None:
                     continue
             if evidence.executor_attempt_id is not None:
-                cancel_codex_exec(store, self.registry, view.id, checkpoint)
+                status = cancel_codex_exec(store, self.registry, view.id, checkpoint)
                 if evidence.owner in self.bridge_services:
+                    from .autopilot_text_cancellation import settle_stopped_bridge_publication
+                    if settle_known_failures and settle_stopped_bridge_publication(store, view, checkpoint, evidence, status):
+                        continue
                     store.repository.production_bridge_intent.cancel(view.project_id, evidence.job_id)
                 elif evidence.owner in methods:
                     methods[evidence.owner](evidence.job_id)

@@ -1,5 +1,6 @@
 """Project-owned reservation and receipt-only reconciliation for serial CLI jobs."""
 from .autopilot_contracts import OperationScope
+from .autopilot_exec_capacity import change_admission_deferral
 from .autopilot_exec_reservation import (
     assert_prepared_attempt,
     new_reserved_attempt,
@@ -73,6 +74,7 @@ def reconcile_codex_exec(
     operation_key = checkpoint["operationKey"]
     machine_scope = operation_scope or (OperationScope.IMAGE if domain == "image" else OperationScope.TEXT)
     attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(view.id, operation_key)
+    admitted_rpc = False
 
     if attempt is None:
         if not allow_admission:
@@ -92,6 +94,7 @@ def reconcile_codex_exec(
                 attempt.attempt_id, expected_checkpoint_revision=current_checkpoint["revision"]
             )
         try:
+            admitted_rpc = True
             host_status = registry.codex_exec_admit(attempt)
         except Exception:
             with command_factory(store,view,claim,OperationScope.EVIDENCE):
@@ -111,6 +114,7 @@ def reconcile_codex_exec(
                     attempt.attempt_id, expected_checkpoint_revision=current_checkpoint["revision"]
                 )
             try:
+                admitted_rpc = True
                 host_status = registry.codex_exec_admit(attempt)
             except Exception:
                 with command_factory(store, view, claim, OperationScope.EVIDENCE):
@@ -130,12 +134,24 @@ def reconcile_codex_exec(
             # A missing acknowledgment is not an unspent intent. Never resend
             # a used ID; only typed known-capacity deferral leaves it unadmitted.
             if allow_admission and host_status.state == "not_found" and attempt.state == "spawn_intent":
-                if view.blocker and view.blocker.get("code") == "codex_exec_capacity_deferred":
-                    host_status = registry.codex_exec_admit(attempt)
+                with command_factory(store, view, claim, machine_scope):
+                    may_admit = change_admission_deferral(store, view, attempt, consume=True)
+                if may_admit:
+                    try:
+                        admitted_rpc = True
+                        host_status = registry.codex_exec_admit(attempt)
+                    except Exception:
+                        with command_factory(store, view, claim, OperationScope.EVIDENCE):
+                            store.repository.autopilot.update_exec_attempt(attempt.attempt_id, state="outcome_unknown")
+                        raise
                 else:
                     with command_factory(store,view,claim,OperationScope.EVIDENCE):
                         attempt = store.repository.autopilot.update_exec_attempt(attempt.attempt_id,state="outcome_unknown")
 
+    if (admitted_rpc and host_status.state == "not_found" and host_status.capacity_deferred
+            and attempt.state == "spawn_intent"):
+        with command_factory(store, view, claim, OperationScope.EVIDENCE):
+            change_admission_deferral(store, view, attempt, consume=False)
     if host_status.state == "not_found" and not host_status.capacity_deferred and attempt.state == "spawn_intent":
         with command_factory(store,view,claim,OperationScope.EVIDENCE):
             attempt = store.repository.autopilot.update_exec_attempt(attempt.attempt_id,state="outcome_unknown")
@@ -155,6 +171,11 @@ def settle_exec_status(store, view, claim, attempt, receipt, profile, host_statu
         return attempt, receipt, profile
     if host_attempt is None:
         raise InvalidTransitionError("Mac supervisor status omitted its typed attempt snapshot")
+    if attempt.state == "spawn_intent":
+        # Any found response retires the unadmitted grant, even when the host
+        # has only acknowledged the same unstarted spawn intent so far.
+        with command_factory(store, view, claim, OperationScope.EVIDENCE):
+            change_admission_deferral(store, view, attempt, consume=True)
     if _identity(host_attempt) != _identity(attempt):
         raise InvalidTransitionError("Mac supervisor returned a different frozen CLI attempt")
     if host_status.capacity_deferred:

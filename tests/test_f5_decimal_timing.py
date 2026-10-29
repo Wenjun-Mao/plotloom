@@ -125,7 +125,7 @@ def test_multiline_minimum_uses_exact_sum_before_fractional_comparison(tmp_path,
     result = receiving_result(tmp_path, board, request)
     assert (result.returncode == 0) is valid, result.stderr.decode()
     if not valid:
-        assert "认领节拍的台词装得进分镜秒数" in result.stderr.decode()
+        assert b"Canonical dialogue minima" in result.stderr
 
 
 @pytest.mark.parametrize("minimum", [0, -1, True, 9007199254740992])

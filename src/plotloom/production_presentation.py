@@ -10,6 +10,15 @@ from pydantic import Field, StrictInt, model_validator
 from .creative_handoff_identity import canonical_json
 from plotloom.domain_base import CamelModel
 from .machine_adoption import MachineAdoption
+from .exceptions import InvalidTransitionError
+
+
+class PresentationSourceConflict(InvalidTransitionError):
+    code = "presentation_source_conflict"
+
+    def __init__(self, coordinates):
+        self.coordinates = coordinates
+        super().__init__(f"F5 authored composition is missing or blank; correct its storyboard source: {coordinates}")
 
 
 def stable_hash(value: Any) -> str:
@@ -92,7 +101,10 @@ def prepare_presentation(*, inputs: dict, script: dict, storyboard: dict, mappin
             scene_index = segment["sceneIndex"]
             for cut_index, cut in enumerate(segment["cuts"], 1):
                 counters[scene_index] = counters.get(scene_index, 0) + 1
-                add("composition", f"{section}-s{scene_index}-c{counters[scene_index]}", {"stage": "F5", "sectionId": section, "episode": episode["ep"], "sceneIndex": scene_index, "segmentIndex": segment_index, "cutIndex": cut_index}, cut, "frame")
+                coordinates = {"stage": "F5", "sectionId": section, "episode": episode["ep"], "sceneIndex": scene_index, "segmentIndex": segment_index, "cutIndex": cut_index}
+                if not isinstance(cut.get("composition"), str) or not cut["composition"].strip():
+                    raise PresentationSourceConflict(coordinates | {"field": "composition"})
+                add("composition", f"{section}-s{scene_index}-c{counters[scene_index]}", coordinates, cut, "composition")
     evidence = {"inputs": inputs, "script": script, "storyboard": storyboard, "sectionMap": mapping}
     choices = {"choices": mapping["choices"]}
     return ProductionPresentation(sources=sources, runtime_choice=choices, frozen_evidence=evidence,

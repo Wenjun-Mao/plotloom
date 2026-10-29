@@ -1,7 +1,7 @@
 """Explicit current-DTO display projection; unknown requirements fail visibly."""
 from .production_brief_labels import ENUMS, LABELS, SOUND_ROLES
 
-DISPLAY_VERSION = "plotloom.production-brief-display.v1"
+DISPLAY_VERSION = "plotloom.production-brief-display.v2"
 ENTITY = "id name description visualAnchors soundAnchors allowedStates continuityRules"
 SHAPES = {
     "shot": "id sceneId order title shotSize durationUnits cameraAngle cameraMovement composition visualIntent motionIntent action visibleTexts transition cueIds audioPlan characterIds locationId propIds requiredEntityStates entryState exitState",
@@ -18,9 +18,10 @@ SHAPES = {
     "presented": "messagePresentation reason", "references": "keyframe endFrame identityLineage",
     "frame": "assetId width height intent aspectPolicy", "intent": "role identityIntent compositionIntent styleIntent sourceRefs targetUse",
     "targetUse": "kind targetShotId source", "frameSource": "assetId sourceShotId originShotId",
-    "identity": "characterId assets", "asset": "assetId",
+    "identity": "characterId acceptedCast assets", "asset": "assetId view",
+    "acceptedCast": "appearance image", "imageContext": "description promptLocal",
     "timing": "sourceTiming playbackIntent", "sourceTiming": "kind durationUnits cut",
-    "cut": "sectionId episode sceneIndex cutIndex shotId seconds beats",
+    "cut": "sectionId episode sceneIndex cutIndex shotId seconds beats composition",
     "settings": "provider request", "provider": "provider model",
     "request": "durationSeconds resolution audio aspectPolicy seed profileId width height fps frameCount allowLetterbox allowCenterCrop quality automaticRetryLimit",
 }
@@ -34,7 +35,8 @@ CHILDREN = {
     "review": {"physical": "physical", "literalSources": "literal"},
     "references": {"keyframe": "frame", "endFrame": "frame", "identityLineage": "identity"},
     "frame": {"intent": "intent"}, "intent": {"targetUse": "targetUse"},
-    "targetUse": {"source": "frameSource"}, "identity": {"assets": "asset"},
+    "targetUse": {"source": "frameSource"}, "identity": {"assets": "asset", "acceptedCast": "acceptedCast"},
+    "acceptedCast": {"image": "imageContext"},
     "timing": {"sourceTiming": "sourceTiming"}, "sourceTiming": {"cut": "cut"},
     "settings": {"provider": "provider", "request": "request"},
 }
@@ -49,6 +51,8 @@ TECHNICAL = {
     "intent": "attribution sourceEndorsement sourceBindingId retainedVisualIntentId",
     "targetUse": "targetContext", "frameSource": "bindingId bindingHash visualIntentId visualIntentRevision intentHash originalHash originJobId originCandidateId originRequestHash originDeliveryHash",
     "identity": "referenceDecisionId referenceRevision characterContextHash", "asset": "originalHash",
+    "acceptedCast": "revision contentHash castCharacterId",
+    "imageContext": "style prompt negativePrompt sheet tags",
     "sourceTiming": "admissionId proposalRevision proposalContentHash cutHash installedStageRevisions shotId storyboardRevision",
     "cut": "source frame h3Prompt", "provider": "adapterId adapterVersion capabilityVersion costPolicy backendBinding",
     "request": "profileVersion",
@@ -90,6 +94,13 @@ def readable_sections(snapshot, sections):
             table = SOUND_ROLES if shape == "event" else ({"canonical": ("已审阅分镜", "Reviewed storyboard"), "f5_bridge": ("已安装分镜切段", "Installed storyboard cut")} if shape == "sourceTiming" else {"cross_shot_initial_keyframe": ("沿用已审阅的跨镜头首帧", "Reuse the reviewed cross-shot opening frame")})
         if key == "role" and shape == "intent":
             table = {"shot_keyframe": ("镜头首帧", "Shot opening frame"), "protagonist_reference": ("人物参考", "Character reference"), "location_reference": ("场景参考", "Location reference")}
+        if key == "view" and shape == "asset":
+            table = {"primary": ("主要身份参考", "Primary identity reference"),
+                     "complementary": ("补充身份参考", "Complementary identity reference")}
+            if not isinstance(value, str) or value not in table:
+                conflict(path)
+                return "Unsupported source value" if english else "来源值尚不受支持"
+            return table[value][int(english)]
         if table and value not in (None, ""):
             if not isinstance(value, str) or value not in table:
                 conflict(path)
@@ -145,6 +156,19 @@ def readable_sections(snapshot, sections):
             label = LABELS[key][int(english)]
             label = f"{prefix} · {label}" if prefix else label
             nested = CHILDREN.get(shape, {}).get(key)
+            if (shape, key) in {("identity", "acceptedCast"), ("acceptedCast", "image")}:
+                if value is not None and not isinstance(value, dict):
+                    conflict(source_path)
+                    continue
+            if (shape, key) in {("acceptedCast", "appearance"), ("imageContext", "description"),
+                               ("imageContext", "promptLocal"), ("cut", "composition")}:
+                if value is not None and not isinstance(value, str):
+                    conflict(source_path)
+                    continue
+            if shape == "asset" and key == "view":
+                items.append({"path": source_path, "label": label,
+                    "value": value_text(value, key, shape, source_path), "kind": "text"})
+                continue
             values = value if isinstance(value, list) else [value]
             if not values:
                 items.append({"path": source_path, "label": label, "value": "None" if english else "无"})

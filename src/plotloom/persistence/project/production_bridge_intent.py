@@ -171,14 +171,18 @@ class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePer
             else:
                 from ...native_bridge_presentation_contract import native_presentation_suggestions
                 native_presentation_suggestions(request, delivery.candidate)
+            response_evidence = {"manifest": delivery.manifest.model_dump(mode="json", by_alias=True),
+                                 "manifestHash": delivery.manifest_hash}
+            response_hash = delivery.manifest.candidate.sha256
             if job.response_evidence is not None:
-                if job.response_evidence.get("manifestHash") != delivery.manifest_hash or job.candidate != delivery.candidate:
+                if (job.response_evidence != response_evidence or job.response_hash != response_hash
+                        or job.candidate is not None and job.candidate != delivery.candidate):
                     raise InvalidTransitionError("native candidate evidence cannot be replaced")
-                return
+                if job.candidate is not None:
+                    return
             job.candidate = delivery.candidate
-            job.response_hash = delivery.manifest.candidate.sha256
-            job.response_evidence = {"manifest": delivery.manifest.model_dump(mode="json", by_alias=True),
-                                     "manifestHash": delivery.manifest_hash}
+            job.response_hash = response_hash
+            job.response_evidence = response_evidence
             job.updated_at = utc_now()
 
     def expected_entries(self, project_id: str, job_id: str) -> list[dict[str, Any]]:

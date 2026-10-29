@@ -227,7 +227,12 @@ def test_declined_exact_owner_release_does_not_mark_receipt_completed(runtime, m
 
 def test_current_invalid_script_retains_reservation(runtime):
     _candidate, request = dispatched(runtime, "script")
-    delivery(runtime.store, request)
+    from copy import deepcopy
+    from tests.creative_delivery_fixtures import _deliver_stage
+    from tests.specialist_reconciliation_support import _candidate_content
+    invalid = deepcopy(_candidate_content(runtime.store, request))
+    invalid["episodes"] = []
+    _deliver_stage(runtime.store, request, "script.json", invalid, "invalid-script-fixture")
     before = snapshot_files(runtime.dispatch_root())
     frozen = snapshot_files(job_files(runtime, request.job_id))
     with runtime.client() as client:

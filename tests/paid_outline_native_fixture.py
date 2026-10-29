@@ -176,7 +176,33 @@ def receive(case, source, action, mode):
         sys.argv=['pair_receiver.py','--phase-root',str(root),'--phase-sha',phase_sha]
         return pair_receiver.main()
     import paid_receiver
-    return paid_receiver.main(["--phase-root", str(root), "--phase-sha", phase_sha])
+    result = paid_receiver.main(["--phase-root", str(root), "--phase-sha", phase_sha])
+    if action == "inner" and mode == "invalid-candidate":
+        observe_failed_fixture_owner(case)
+    return result
+
+
+def observe_failed_fixture_owner(case):
+    """Observe natural worker exit through its exact existing supervisor owner."""
+    from paid_outline_contracts import PaidOutlineAllocation
+    from paid_outline_composition import compose_registry
+    from tests.cli_handoff_fixtures import exclusive
+    allocation = PaidOutlineAllocation.model_validate_json((case / "bundle/paid-allocation.json").read_bytes())
+    ns = allocation.namespace
+    registry = compose_registry(ns.source_root.path, ns.executable.path, ns.application_root.path,
+        ns.outputs_root.path, ns.private_root.path, limits=ns.limits,
+        namespace_pin=allocation.namespace_binding_sha256)
+    host = registry.bridge.exec_supervisor()
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        status = host.status(ns.attempt.attempt_id)
+        assert status.attempt.attempt_id == ns.attempt.attempt_id
+        assert status.state == "failed" and status.receipt is None
+        if status.local_execution_stopped:
+            exclusive(case / "receipts/observed-failed-owner.json", status.model_dump_json(by_alias=True).encode())
+            return
+        time.sleep(0.05)
+    raise AssertionError("failed fixture worker did not naturally stop")
 
 
 if __name__ == "__main__":

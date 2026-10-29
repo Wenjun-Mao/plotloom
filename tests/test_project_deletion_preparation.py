@@ -31,13 +31,24 @@ def test_cancellation_dispatches_once_per_text_bridge_or_image_attempt_and_never
     checkpoints = [{"state": "sent", "operationKey": owner, "evidence": {"owner": owner,
         "subjectId": owner, "jobId": f"job-{owner}", "executorAttemptId": str(uuid4())}} for owner in owners]
     view = SimpleNamespace(id="exact-run", project_id="exact-project", policy=SimpleNamespace(version=POLICY_VERSION), checkpoints=checkpoints)
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from plotloom.persistence.schema import SourceOutlineCandidateRow
+    # This routing fixture owns no language checks; let the real read query prove it.
+    engine = create_engine("sqlite://")
+    SourceOutlineCandidateRow.__table__.create(engine)
+    store.manifest = SimpleNamespace(project_id="exact-project")
+    store.repository._read = lambda: Session(engine)
     calls = []
     def cancel(_store, _registry, _run_id, checkpoint):
         calls.append(checkpoint["evidence"]["executorAttemptId"])
     monkeypatch.setattr("plotloom.autopilot_text_controller.cancel_codex_exec", cancel)
     monkeypatch.setattr("plotloom.autopilot_image_controller.cancel_codex_exec", cancel)
-    text.cancel_pending(store, view)
-    AutopilotImageController(object()).cancel_pending(store, view)
+    try:
+        text.cancel_pending(store, view)
+        AutopilotImageController(object()).cancel_pending(store, view)
+    finally:
+        engine.dispose()
     assert len(calls) == len(owners) - 1 and len(set(calls)) == len(calls)
     assert checkpoints[-1]["evidence"]["executorAttemptId"] not in calls
     assert store.cancel_outline_candidate.call_count == 1

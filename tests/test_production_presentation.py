@@ -7,6 +7,34 @@ from plotloom.production_timing import source_seconds_to_milliseconds
 from tests.production_presentation_fixtures import _package, _request, _updates
 
 
+def test_composition_binds_exact_authored_text_coordinates_and_full_cut_hash():
+    from plotloom.production_presentation import stable_hash
+    package = _package()
+    source = next(item for item in package.sources if item.kind == "composition")
+    cut = package.frozen_evidence["storyboard"]["episodes"][0]["segments"][0]["cuts"][0]
+    assert source.source_text == cut["composition"]
+    assert source.source_text != cut["frame"]
+    assert source.coordinates == {"stage": "F5", "sectionId": "opening", "episode": 1,
+        "sceneIndex": 1, "segmentIndex": 1, "cutIndex": 1, "field": "composition"}
+    assert source.source_hash == stable_hash(cut)
+
+
+@pytest.mark.parametrize("missing", [None, "", "  ", 17])
+def test_missing_authored_composition_refuses_technical_frame_fallback(missing):
+    from plotloom.production_presentation import PresentationSourceConflict, prepare_presentation
+    evidence = _package().frozen_evidence
+    cut = evidence["storyboard"]["episodes"][0]["segments"][0]["cuts"][0]
+    if missing is None:
+        del cut["composition"]
+    else:
+        cut["composition"] = missing
+    with pytest.raises(PresentationSourceConflict) as raised:
+        prepare_presentation(inputs=evidence["inputs"], script=evidence["script"],
+            storyboard=evidence["storyboard"], mapping=evidence["sectionMap"])
+    assert raised.value.code == "presentation_source_conflict"
+    assert raised.value.coordinates["field"] == "composition"
+
+
 @pytest.mark.parametrize(
     "seconds,units",
     [

@@ -15,6 +15,9 @@ CandidateArtRenderStyle = Literal["live-action", "realistic", "ghibli", "brief"]
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADAPTER = PROJECT_ROOT / "scripts" / "art-style.mjs"
 STYLE_RULE_DEPENDENCIES = (
+    PROJECT_ROOT / "scripts" / "provider-literal-context.mjs",
+    PROJECT_ROOT / "third_party" / "shuohao-skills" / "skills" / "novel-art" / "scripts" / "provider-literals.mjs",
+    PROJECT_ROOT / "third_party" / "shuohao-skills" / "skills" / "novel-art" / "scripts" / "report-language.mjs",
     PROJECT_ROOT
     / "third_party"
     / "shuohao-skills"

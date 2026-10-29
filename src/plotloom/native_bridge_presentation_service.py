@@ -44,13 +44,13 @@ class NativeBridgePresentationService(NativeBridgeCandidateService):
         request = CreativeHandoffRequest(job_id="ch_" + new_id().replace("-", ""), project_id=project_id,
             section_id="production-bridge", stage=self.stage, expected_stage_revision=expected_revision,
             source=context, input_artifacts={"presentation-source.json": package, "presentation-schema.json": schema},
-            creative_brief="为全部冻结来源提出呈现归属与忠实画面描述，保留每字与限制；仅提供可编辑建议，等待作者确认。")
+            creative_brief="为全部冻结来源提出呈现归属与忠实画面描述，保留每字与限制。构图来源必须是冻结 F5 cut.composition 作者原文，不得用技术出图 frame 提示词替代；仅提供可编辑建议，等待作者确认。")
         freeze_request_language(request, language)
         assert_native_bridge_request_size(request)
         exchange = store.creative_handoff_exchange()
         pin = exchange.current_execution_pin(self.stage)
         job = owner.enqueue(project_id, expected_revision=expected_revision, expected_hash=expected_hash,
-            profile_snapshot={}, prompt_trace={"prompt_version": "native-presentation.v1", "rendered_hash": request_hash(request)},
+            profile_snapshot={}, prompt_trace={"prompt_version": "native-presentation.v2", "rendered_hash": request_hash(request)},
             prompt_messages=[], response_schema=schema, native_request=request, execution_pin=pin)
         return job
 

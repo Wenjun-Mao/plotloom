@@ -77,6 +77,16 @@ are derived technical content. The complete production brief is a read projectio
 of existing sources, never a second editable/persisted story. Unsupported/lossy
 requirements produce source-owned actionable conflicts before dispatch.
 
+Native bridge presentation binds the authored `composition` text, its exact cut
+hash and composition coordinates. Missing composition blocks new preparation;
+provider `frame` cannot supply a fallback. Production-brief display version2
+renders authored accepted-Cast appearance/image descriptions and primary or
+complementary reference roles, retaining provider details separately and refusing
+unknown nested fields. A guarded Continue may rebuild the four derived bridge
+operations for a complete old frame-bound presentation only when accepted raw
+sources/current installation match and no dependent media authority exists.
+Preview and write share that predicate; parent receipts stay immutable.
+
 Generated adoption requires a current assistant language check over the complete
 classified field inventory; technical/source exceptions are explicit. A distinct
 native checking operation uses the original creative stage and binds exact
@@ -84,6 +94,11 @@ candidate/source/projection/policy/profile plus real attempt and receipt evidenc
 Semantic rejection extends existing typed correction lineage without changing
 the original drafting attempt into an invented execution failure. Failure/UNKNOWN
 never implies checking success. Configured execution retries use distinct job/attempt identities under ADR 0225; they cannot manufacture a passing check.
+
+Exact structural receiving precedes independent semantic checking, including a
+paused receipt-only delivery. Retaining validated raw candidate evidence does not
+adopt canon, prefill or a proposal. Every retained request/transport/manifest/hash
+must match before receipt-only candidate data can be completed.
 
 H3 draft/check invocations and production-intent authorization remain separate.
 The final compiled request, all source/translated fields, checking provenance and
@@ -108,3 +123,8 @@ remote settlement. Stop cancellation/nonretryable authorization/configuration
 failures immediately. Exhaustion fails the affected job with a manual retry action
 under remaining authority, while unrelated eligible work continues. Late old
 results cannot overwrite the current attempt or revive cancelled work.
+
+Typed host `not_found` plus `capacityDeferred` may establish exact durable
+known-unadmitted evidence for the current attempt. Consume that fact before
+another admission RPC. A global blocker is never resend authority, and a later
+lost acknowledgement restores uncertainty rather than reusing the consumed fact.

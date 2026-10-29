@@ -70,6 +70,15 @@ it("refuses an unrelated active batch without changing its setup or request iden
   expect(batchApi.command).not.toHaveBeenCalled();
 });
 
+it("shows retained obsolete display evidence without granting new generation authority", async () => {
+  await render(); await ready();
+  Object.assign(current!.manifest.targets[0].productionBrief!, { displayVersion: "plotloom.production-brief-display.v1" });
+  await load();
+  expect(button("授权本镜头制作意图并开始生成").disabled).toBe(true);
+  expect(host.textContent).toContain(current!.manifest.targets[0].title);
+  expect(batchApi.command).not.toHaveBeenCalledWith("project", "start", expect.anything());
+});
+
 it("preserves the exact request key through safe rereads and changes it only for an explicit changed seed", async () => {
   await render(); await input(seedInput(), "00042"); await load(); const first = vi.mocked(plotloomApi.previewH3Prompt).mock.calls[0][1];
   await load(); expect(vi.mocked(plotloomApi.previewH3Prompt).mock.calls[1][1]).toEqual(first);

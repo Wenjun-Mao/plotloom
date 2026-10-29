@@ -21,7 +21,7 @@ def test_repository_contains_all_current_versioned_prompts() -> None:
     )
     for prompt_id in repository.list_ids():
         spec, spec_hash, source = repository.load(prompt_id)
-        expected_major = "1." if prompt_id == "production_bridge_intent" else "3." if prompt_id in {
+        expected_major = "2." if prompt_id == "production_bridge_intent" else "3." if prompt_id in {
             "story_bible",
             "story_graph",
             "scene_beats",

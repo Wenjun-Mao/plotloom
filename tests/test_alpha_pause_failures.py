@@ -38,15 +38,15 @@ def fail_original(storage, host, *, kind, stage='outline'):
         changes = {"state": "outcome_unknown"}
     failed = transition_exec_attempt(attempt, **changes)
     host.pending.discard(str(attempt.attempt_id))
-    host.statuses[str(attempt.attempt_id)] = CodexExecHostStatus(state=failed.state, attempt=failed)
+    host.statuses[str(attempt.attempt_id)] = CodexExecHostStatus(state=failed.state, attempt=failed, localExecutionStopped=kind != "unknown")
     return failed
 
 
 @pytest.mark.parametrize("kind", ["content", "noncontent", "unknown"])
 @pytest.mark.parametrize('stage', ['outline', 'storyboard'])
 def test_paused_host_failure_keeps_production_correction_policy_and_original_identity(tmp_path, monkeypatch, kind, stage):
-    storage, _, original, prefix, host, run, evidence, pause, request, identity, snapshot = sent_pause(tmp_path, monkeypatch, stage=stage)
-    before_admissions = 1 if stage == 'outline' else 6
+    storage, _, original, prefix, host, run, evidence, pause, request, identity, snapshot = sent_pause(tmp_path, monkeypatch, stage=stage, limits={"automatic_retry_limit": 0})
+    before_admissions = 1 if stage == 'outline' else 11
     try:
         original_bytes = {p.name: p.read_bytes() for p in pause.iterdir()}
         failed = fail_original(storage, host, kind=kind, stage=stage)
@@ -70,7 +70,7 @@ def test_paused_host_failure_keeps_production_correction_policy_and_original_ide
             corrected, _ = store.repository.autopilot.exec_attempt_evidence_for_operation(run.id, stage + ':correction:1')
             if kind == "content":
                 assert view.state == "running" and current["state"] == "adopted"
-                assert host.admissions == before_admissions + 1 and corrected is not None
+                assert host.admissions == before_admissions + 2 and corrected is not None
                 assert corrected.attempt_id != failed.attempt_id and corrected.job_id != failed.job_id
                 assert original_attempt.content_rejection is not None
                 receipt, _ = collect_native_evidence(store, view, snapshot=snapshot,
@@ -80,7 +80,8 @@ def test_paused_host_failure_keeps_production_correction_policy_and_original_ide
                 # No third attempt or manual retry is authorized by resume.
                 assert not any(c['operationKey'] == stage + ':correction:2' for c in view.checkpoints)
             else:
-                assert view.state == "blocked" and host.admissions == before_admissions and corrected is None
+                assert current["state"] == "failed" and current["retry"]["state"] == "exhausted"
+                assert host.admissions == before_admissions and corrected is None
                 assert original_attempt.content_rejection is None
         assert {p.name: p.read_bytes() for p in pause.iterdir()} == original_bytes
         assert not host.image_calls

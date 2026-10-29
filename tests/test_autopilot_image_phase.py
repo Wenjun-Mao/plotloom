@@ -86,7 +86,7 @@ def test_first_frame_prepared_sent_restart_delivery_and_pause_keep_exact_phase_i
 def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
     tmp_path, monkeypatch, installed_text_prefix
 ):
-    from plotloom.image_job_contracts import ImageJobError
+    from plotloom.codex_exec_contracts import CodexExecHostStatus
 
     storage, registry, service, view, calls, _text = installed_text_image_environment(
         tmp_path, monkeypatch, installed_text_prefix
@@ -106,7 +106,7 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
 
         def occupied(attempt):
             if attempt.domain == "image":
-                raise ImageJobError("image_dispatch_busy", "fixture occupied image role")
+                return CodexExecHostStatus(state="not_found", capacityDeferred=True)
             return admit(attempt)
 
         with monkeypatch.context() as busy:
@@ -114,7 +114,8 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
             service.step(view.project_id)
             waiting = current(storage, view)
             assert (
-                waiting.state == "waiting"
+                waiting.state == "running"
+                and waiting.blocker is None
                 and waiting.phase == "first-frames"
                 and not waiting.frames
             )
@@ -123,18 +124,20 @@ def test_waiting_first_frame_restart_keeps_prepared_identity_without_resend(
             )
             assert waiting_checkpoint["state"] == "sent"
             attempt_id = waiting_checkpoint["evidence"]["executorAttemptId"]
+            assert waiting_checkpoint["evidence"]["executorAdmissionDeferral"]["attemptId"] == attempt_id
             service.close()
             resumed = AutopilotService(storage, registry)
             assert resumed.acquire_controller()
             resumed.step(view.project_id)
             retained = current(storage, view)
-            assert retained.state == "waiting" and retained.phase == "first-frames"
+            assert retained.state == "running" and retained.blocker is None and retained.phase == "first-frames"
             retained_checkpoint = next(
                 item for item in retained.checkpoints if item["id"] == checkpoint["id"]
             )
             assert retained_checkpoint["state"] == "sent"
             assert retained_checkpoint["evidence"]["jobId"] == checkpoint["evidence"]["jobId"]
             assert retained_checkpoint["evidence"]["executorAttemptId"] == attempt_id
+            assert retained_checkpoint["evidence"]["executorAdmissionDeferral"]["attemptId"] == attempt_id
             assert len(calls) == 2
         resumed.step(view.project_id)
         sent = current(storage, view)

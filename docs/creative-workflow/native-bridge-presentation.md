@@ -49,3 +49,5 @@ validation, rendering and publication after CLI exit. Output has no source
 replacement, reviewed flag, proposal/canonical fields or approval. The author
 can edit suggestions, explicitly confirm/save presentation, then independently
 confirm production. Late or stale output remains read-only evidence.
+
+New F5 composition sources bind the exact authored `cut.composition` text and its cut hash/coordinates. The English technical `cut.frame` image prompt is not a presentation source. Preserve every authored constraint in the frozen source text; do not substitute or translate a technical frame prompt. Missing or blank authored composition blocks preparation at the F5 source owner. Retained frame-bound packages remain readable historical evidence.

@@ -1,9 +1,13 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
 Status: finalized and explicitly authorized for end-to-end implementation on
-2026-10-28. Both independent planning reviews are complete; coordinator dispatch
-and execution preflight are in progress. Implementation is not yet qualified or
-activated.
+2026-10-28. Both languages completed all eight native text stages and installation
+at389bf861; Chinese UI and the affected manual/browser regressions passed. Candidate
+C's full local run failed78Python cases. The scoped fixture, native lifecycle,
+capacity and authored-composition bridge repairs have independent review closure
+and exact integration. The next checkpoint is the committed source's real English
+text-only Continue, then Chinese. Full final qualification, activation and
+image/H3/media acceptance remain open.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
@@ -756,3 +760,77 @@ small batch boundary does not change the prospective aggregate budget. Then
 complete sequential real images/H3, four route plays, export,
 preservation/recovery and closeout. CI/push are not requested; hosted CI is not a
 release blocker.
+
+### Candidate C failures and derived-presentation repair — 2026-10-29
+
+Candidate C is local main `8193c3ff1486f0ff75d263903f07da4e33865052`, fork
+`35fac2661d70c6c017f1c4a61360d0e74c732497`. Its root-owned full local gate
+finished failed after2447.696s: frontend1675 and both type checks passed; Python
+reported78failed/4728passed with no setup errors. Bundle parity, browser and exact
+wheel qualification were not reached. The original full failures remain retained.
+The same sole source worker has a separately frozen34-file fixture follow-up;
+67of the78 original cases pass focused selections, while11 retain demonstrated
+production blockers. Independent review owns that stable test patch.
+
+The authorized causal repairs are: structurally retain exact raw/bridge deliveries
+before independent language checking, including paused receipt-only continuation;
+include the actual transitive local rule imports in style-cache identities without
+changing derived contract output; and persist exact typed known-unadmitted capacity
+evidence per attempt, consuming it before another admission RPC. Global run blockers
+cannot authorize redispatch, and UNKNOWN/lost acknowledgements remain protected.
+ADR0224/0225/0154 were amended before source edits.
+
+The small provider-brief preview also exposed a real ownership error: presentation
+preparation binds English provider `cut.frame` instead of authored
+`cut.composition`. Correct that source, its exact coordinates and primary prompt;
+display version2 must render composition and accepted Cast/reference-role prose
+without hiding appearance or treating primary/complementary as camera angles.
+Unknown fields still block. A read-only normal-data inventory found no new-contract
+production briefs in52job snapshots or44targets across15legacy-v1 batches, so this
+unactivated display change requires no persisted normal-data rewrite.
+
+The preceding promise to inherit all11operations is superseded only for the
+demonstrated complete frame-bound presentation in these two disposable homes.
+Use one shared Continue preview/write predicate: require the unchanged accepted
+raw F5, exact complete source inventory/current installation and zero dependent
+media/reference/frame/bundle/handoff authority. The new child inherits7source/raw
+operations and rebuilds exactly bridge.prepare, bridge-intent,
+bridge-presentation and installation. Preserve every parent checkpoint/proof and
+all original raw content. Already composition-bound proposals keep ordinary11
+inheritance; mixed/malformed/replaced bindings refuse. No reset or generic replay
+layer is authorized.
+
+After focused contracts and independent stable-source review, commit the coherent
+repair locally before native execution. First continue the original English home
+under current Sol/Medium with prospective null aggregate budgets, run only the
+existing text prefix, and pause after fresh installation. Prove new composition
+coordinates, faithful canonical content, unchanged raw6/source hashes, unchanged
+parent proofs and fresh-runtime readback; then repeat Chinese. This smallest real
+repair journey precedes another broad qualification. It admits no images. Freeze
+the resulting source/fork through the later image bundle. Final full local checks,
+exact shipping wheel, normal activation, two exact old LOCAL-slot releases, real
+images/H3/route/export evidence and final preservation/cleanup remain required.
+
+Disposable recovery checks have established old-format save/restore/reopen with
+the old installed wheel and current-format restore with the candidate-C wheel plus
+the supported source runtime. The old wheel correctly refuses new retry authority;
+do not erase that field or claim backward execution support. The current-format
+save causes only expected manual-takeover operational metadata in the restored
+cancelled run; frozen authorities/canon/receipts remain exact. Standalone wheel
+Cast reading lacks source rule files and is not qualified. Keep the original one
+qualified recovery unchanged until its qualified replacement is proven.
+
+Qualification sequencing follows the original small-real-media-before-final-gate
+order above. The two exact native QA grants require observed image bundle hashes,
+so their source entries cannot be completed before image generation. After the
+corrected native text checkpoint, freeze its source through the two original
+isolated image bundles, then record the two exact new grants and finish the small
+H3/audio/routes/export journey under focused safety checks. Qualify the resulting
+stable final source/wheel once and activate normal8841 only after that gate and
+preservation checks pass. The earlier checkpoint's normal-activation-before-image
+ordering is superseded; the isolated private ledger has zero slots and does not
+require touching normal's two old holds to prove its first image. Apply those exact
+normal LOCAL releases as part of qualified activation, preserving their UNKNOWN
+evidence. This avoids qualifying an intermediate candidate before its required
+bundle-bound authority exists. It changes no scope, budget, provider or acceptance
+requirement; source repairs invalidate only affected evidence as documented.

@@ -89,6 +89,42 @@ successor, and changed ownership, cancellation, nonretryable errors, stale sourc
 or exhausted generation authority refuse. UI re-reads ambiguous results before
 another action and never posts retry merely because a page opens.
 
+Known capacity deferral belongs to the exact unacknowledged attempt, not the
+run-wide blocker. Persist the authenticated typed `not_found + capacity_deferred`
+fact in existing owner evidence; unrelated image work may leave the global blocker
+empty. Re-admission of that same original identity requires this exact fact and
+current execution authority. Consume the fact durably before another admission
+RPC, so a lost acknowledgement cannot reuse it. A found/acknowledged attempt,
+transport ambiguity or UNKNOWN never gains resend authority from an old marker
+or UI blocker. No stop proof, terminal settlement, budget refund or new attempt
+is inferred. Pause/cancel and namespace/provenance guards remain mandatory.
+
+For native run checkpoints, this consumable control evidence is the optional typed
+`executorAdmissionDeferral` member of `CheckpointEvidence`, excluded when absent.
+It binds the exact executor attempt and immutable identity digest. It does not
+alter append-only result facts. Recording, consuming and clearing use the existing
+checkpoint CAS/command owner; consumption commits before the external RPC. No new
+table, host request field, attempt identity or generation allowance is introduced.
+
+Native bridge retry/correction keys retain the bridge installation scope at both
+reservation and spawn-intent consumption; these owners use the same logical-stage
+classification. During an explicit run cancellation, an exact already-persisted
+terminal failed native bridge attempt may settle its publication owner through
+the existing failure operation only after an authenticated matching host response
+positively proves local stop. Preserve attempt/receipt facts, failure/refusal
+classification, costs and checkpoints. This grants no retry or new dispatch and
+does not weaken cancelled/UNKNOWN publication holds. Ambiguous, mismatched or
+unproven-stop work keeps its hold; retained historical cancelled records are not
+rewritten. Real permission/safety refusals are not automatically resumed.
+Bridge adoption validation follows the existing decision's exact checkpoint ID
+to the same-project, same-run physical operation key. A logical stage/owner name
+cannot replace a correction/retry checkpoint identity on adoption or reopen.
+Native evidence collection includes every exact physical retry/correction attempt
+of each logical stage. Observed bridge attempt counts may exceed one; they do not
+grant generation authority. Keep first-pass defined as accepted with exactly one
+attempt and preserve the existing qualification metric. Policy and validated
+lineage continue to enforce generation limits independently of this receipt view.
+
 ## Existing attempts and acceptance
 
 The two identified old local holds may release only their positively stopped LOCAL

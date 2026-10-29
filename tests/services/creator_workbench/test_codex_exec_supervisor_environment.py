@@ -203,7 +203,8 @@ def test_runtime_drift_after_a_successful_renderer_cannot_create_validation_evid
     package_request = json.loads((job / "package/request.json").read_bytes())
     resources = codex_exec_source_resources(supervisor.source_root, package_request)
     (job / "delivery").mkdir()
-    (job / "delivery/outline.json").write_text("{\"candidate\": true}")
+    (job / "delivery/outline.json").write_text(json.dumps({
+        "candidate": True, "lang": _request.input_artifacts["language-contract.json"]["reportLocale"]}))
     private = tmp_path / "private-attempt"
     private.mkdir()
     calls = []

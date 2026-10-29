@@ -1,11 +1,16 @@
 """Unknown Codex Exec outcomes retain late proof without bypassing stage owners."""
 from contextlib import closing
+from copy import deepcopy
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
 from plotloom.autopilot_contracts import RunControlRequest
+from plotloom.exceptions import InvalidTransitionError
+from plotloom.persistence.schema import ProductionBridgeIntentJobRow
 from tests.autopilot_controller_fixtures import environment
 
 
@@ -67,6 +72,7 @@ def test_uncertain_bridge_late_receipt_settles_without_proposal_or_human_edits(
         with closing(storage.projects.open(view.project_id)) as store:
             request = host.request(store, unknown)
             host.complete(store, request, unknown)
+            host.pending.discard(str(unknown.attempt_id))
         service.step(view.project_id)
 
         with closing(storage.projects.open(view.project_id)) as store:
@@ -81,6 +87,27 @@ def test_uncertain_bridge_late_receipt_settles_without_proposal_or_human_edits(
             assert store.production_bridge_state().proposal.content_hash == original
             with store.repository.engine.connect() as connection:
                 assert connection.exec_driver_sql("SELECT count(*) FROM v2_approval_decisions").scalar() == 0
+            with store.repository._read() as session:
+                retained_job = session.get(ProductionBridgeIntentJobRow, request.job_id)
+                assert retained_job.candidate is None
+                retained_evidence = deepcopy(retained_job.response_evidence)
+                retained_hash = retained_job.response_hash
+            delivery = service.controller.validated_delivery(store, current, stage, request)
+            owner = store.repository.production_bridge_intent
+            # Refuse every mismatch even when this receipt has no candidate yet.
+            for field, value in (("response_hash", "0" * 64),
+                                 ("response_evidence", {**retained_evidence, "extra": "foreign"}),
+                                 ("candidate", {"foreign": True}),
+                                 ("transport", "text_api"),
+                                 ("native_request", request.model_copy(update={"job_id": "ch_000000000000000000000001"}).model_dump(mode="json", by_alias=True))):
+                row = SimpleNamespace(native_request=request.model_dump(mode="json", by_alias=True),
+                    transport="codex_native", response_evidence=retained_evidence,
+                    response_hash=retained_hash, candidate=None)
+                setattr(row, field, value)
+                with patch.object(owner, "_job", return_value=row):
+                    with pytest.raises(InvalidTransitionError):
+                        owner.retain_native_candidate(current.project_id, delivery)
+                assert getattr(row, field) == value
         assert not registry.view()["busy"]
 
         original_calls = list(host.calls)
@@ -88,11 +115,25 @@ def test_uncertain_bridge_late_receipt_settles_without_proposal_or_human_edits(
             view.project_id,
             RunControlRequest(expected_revision=current.revision, action="resume"),
         )
-        service.step(view.project_id)
-        with closing(storage.projects.open(view.project_id)) as store:
-            current = store.repository.autopilot.current(view.project_id)
-            assert next(item for item in current.checkpoints if item["operationKey"] == stage)["state"] == "adopted"
-        assert host.calls == original_calls
+        host.auto_deliver = True
+        for index in range(8):
+            service.step(view.project_id)
+            with closing(storage.projects.open(view.project_id)) as store:
+                current = store.repository.autopilot.current(view.project_id)
+                if index == 0:
+                    assert store.production_bridge_state().proposal.content_hash == original
+                    with store.repository._read() as session:
+                        retained_job = session.get(ProductionBridgeIntentJobRow, request.job_id)
+                        assert retained_job.candidate == delivery.candidate
+                        assert retained_job.response_evidence == retained_evidence
+                        assert retained_job.response_hash == retained_hash
+            if next(item for item in current.checkpoints if item["operationKey"] == stage)["state"] == "adopted":
+                break
+        else:
+            raise AssertionError("Late bridge candidate did not complete independent checking")
+        assert host.calls[:len(original_calls)] == original_calls
+        assert host.calls.count(request.job_id) == 1
+        assert len(host.calls) == len(set(host.calls)) == len(original_calls) + 1
     finally:
         service.close()
 

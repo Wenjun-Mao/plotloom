@@ -138,10 +138,11 @@ def test_video_candidates_dispose_only_named_unselected_shared_bytes(
     store.close()
     approval, context = _approved_keyframe(client, storage, project_id)
 
-    first = _prepare_video(client, project_id, approval, context, key="candidate-one")
-    second = _prepare_video(client, project_id, approval, context, key="candidate-two")
-    assert first["id"] != second["id"]
-    for candidate in (first, second):
+    candidates = []
+    for key in ('candidate-one', 'candidate-two'):
+        # Complete each fixture-owned authorization before preparing its successor.
+        candidate = _prepare_video(client, project_id, approval, context, key=key)
+        candidates.append(candidate)
         assert (
             client.post(
                 f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit"
@@ -154,6 +155,9 @@ def test_video_candidates_dispose_only_named_unselected_shared_bytes(
             ).status_code
             == 200
         )
+
+    first, second = candidates
+    assert first["id"] != second["id"]
 
     discarded = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/discard",
@@ -370,13 +374,11 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
     )
     store.close()
     approval, context = _approved_keyframe(client, storage, project_id)
-    first = _prepare_video(
-        client, project_id, approval, context, key="cross-kind-first"
-    )
-    second = _prepare_video(
-        client, project_id, approval, context, key="cross-kind-second"
-    )
-    for candidate in (first, second):
+    candidates = []
+    for key in ('cross-kind-first', 'cross-kind-second'):
+        # Complete each fixture-owned authorization before preparing its successor.
+        candidate = _prepare_video(client, project_id, approval, context, key=key)
+        candidates.append(candidate)
         assert (
             client.post(
                 f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit"
@@ -389,6 +391,9 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
             ).status_code
             == 200
         )
+    first, second = candidates
+    assert first["id"] != second["id"]
+
     opened = storage.projects.open(project_id)
     retained = opened.media.direct_video.get_video_output_storage(
         project_id, first["id"]

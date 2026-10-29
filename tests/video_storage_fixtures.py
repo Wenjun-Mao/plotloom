@@ -287,6 +287,7 @@ def _prepare_video(
     *,
     key: str,
     requested_duration_seconds: int | None = None,
+    automatic_retry_limit: int | None = None,
 ) -> dict:
     body = {
         "approvalId": approval["id"],
@@ -296,6 +297,7 @@ def _prepare_video(
         "idempotencyKey": key,
         "aspectPolicy": "reject_mismatch",
         "seed": 31,
+        **({"automaticRetryLimit": automatic_retry_limit} if automatic_retry_limit is not None else {}),
         **(
             {"requestedDurationSeconds": requested_duration_seconds}
             if requested_duration_seconds is not None

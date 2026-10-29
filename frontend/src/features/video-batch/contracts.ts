@@ -3,7 +3,7 @@ import type { VideoJob } from "../../types";
 import type { HumanReviewAttribution } from "../../human-review-attribution";
 export type Direction = { path: string; english: string };
 export type ProductionBrief = {
-  version: "plotloom.production-brief.v2"; displayVersion: "plotloom.production-brief-display.v1"; contentLocale: string; sourceHash: string; briefHash: string;
+  version: "plotloom.production-brief.v2"; displayVersion: "plotloom.production-brief-display.v2"; contentLocale: string; sourceHash: string; briefHash: string;
   sections: { id: string; label: string; content: unknown; items?: { path: string; label: string; value: string; kind?: string }[] }[];
   adapterConstraints: string[]; discretion: string; conflicts: { path: string; message: string; owner?: string }[];
 };

@@ -69,10 +69,10 @@ def _derive(
 def _copied_cast_rules(tmp_path: Path) -> tuple[Path, Path]:
     script = tmp_path / "scripts" / "cast-style.mjs"
     upstream = tmp_path / "third_party" / "shuohao-skills" / "skills" / "novel-characters" / "scripts" / "novel-characters.mjs"
-    script.parent.mkdir(parents=True)
-    upstream.parent.mkdir(parents=True)
-    script.write_bytes(STYLE_OWNER.read_bytes())
-    upstream.write_bytes(CAST_UPSTREAM.read_bytes())
+    for source in _dependency_closure(STYLE_OWNER):
+        copied = tmp_path / source.relative_to(PROJECT_ROOT)
+        copied.parent.mkdir(parents=True, exist_ok=True)
+        copied.write_bytes(source.read_bytes())
     return script, upstream
 
 
@@ -119,14 +119,15 @@ def _dependency_closure(entrypoint: Path) -> set[Path]:
 
 
 def test_fingerprints_cover_complete_local_rule_import_closures():
-    assert _dependency_closure(STYLE_OWNER) == {STYLE_OWNER.resolve(), CAST_UPSTREAM.resolve()}
-    assert _dependency_closure(ADAPTER) == {
-        ADAPTER.resolve(),
-        ART_UPSTREAM.resolve(),
-        ART_GATE_SUMMARY.resolve(),
-    }
-    assert set(CAST_RULES) == {CAST_UPSTREAM}
-    assert set(ART_RULES) == {ART_UPSTREAM, ART_GATE_SUMMARY}
+    shared = PROJECT_ROOT / "scripts" / "provider-literal-context.mjs"
+    cast = {CAST_UPSTREAM, shared, CAST_UPSTREAM.with_name("provider-literals.mjs"),
+            CAST_UPSTREAM.with_name("report-language.mjs")}
+    art = {ART_UPSTREAM, ART_GATE_SUMMARY, shared, ART_UPSTREAM.with_name("provider-literals.mjs"),
+           ART_UPSTREAM.with_name("report-language.mjs")}
+    assert _dependency_closure(STYLE_OWNER) == {STYLE_OWNER.resolve(), *cast}
+    assert _dependency_closure(ADAPTER) == {ADAPTER.resolve(), *art}
+    assert set(CAST_RULES) == cast
+    assert set(ART_RULES) == art
 
 
 def test_cache_hit_returns_independent_json_and_currentness_stays_a_comparison():
@@ -280,3 +281,44 @@ def test_concurrent_derivation_and_lru_eviction_preserve_results():
         calls_before_evicted_lookup = run.call_count
         assert _derive(owner="bounded-lru", direction=first_direction) == first
         assert run.call_count == calls_before_evicted_lookup + 1
+
+
+@pytest.mark.parametrize("owner,entrypoint,rules", [("cast", STYLE_OWNER, CAST_RULES), ("art", ADAPTER, ART_RULES)])
+@pytest.mark.parametrize("filename", ["provider-literal-context.mjs", "provider-literals.mjs", "report-language.mjs"])
+@pytest.mark.parametrize("during_derivation", [False, True])
+def test_transitive_dependency_bytes_invalidate_cache(tmp_path, owner, entrypoint, rules, filename, during_derivation):
+    _clear_cache()
+    for source in _dependency_closure(entrypoint):
+        copied = tmp_path / source.relative_to(PROJECT_ROOT)
+        copied.parent.mkdir(parents=True, exist_ok=True)
+        copied.write_bytes(source.read_bytes())
+    script = tmp_path / entrypoint.relative_to(PROJECT_ROOT)
+    dependencies = tuple(tmp_path / source.relative_to(PROJECT_ROOT) for source in rules)
+    target = next(source for source in dependencies if source.name == filename)
+    target.write_bytes(target.read_bytes() + b"\n// cache rule revision a\n")
+    real_run = subprocess.run
+    calls = 0
+
+    def edit():
+        stat = target.stat()
+        target.write_bytes(target.read_bytes().replace(b"cache rule revision a", b"cache rule revision b"))
+        os.utime(target, ns=(stat.st_atime_ns, stat.st_mtime_ns))
+        assert target.stat().st_size == stat.st_size
+        assert target.stat().st_mtime_ns == stat.st_mtime_ns
+
+    def run(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        result = real_run(*args, **kwargs)
+        if during_derivation and calls == 1:
+            edit()
+        return result
+
+    with patch.object(style_contract_cache.subprocess, "run", side_effect=run):
+        first = _derive(owner=owner, script=script, dependencies=dependencies, direction=None)
+        if not during_derivation:
+            edit()
+        second = _derive(owner=owner, script=script, dependencies=dependencies, direction=None)
+        third = _derive(owner=owner, script=script, dependencies=dependencies, direction=None)
+    assert calls == 2
+    assert first == second == third
