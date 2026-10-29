@@ -106,6 +106,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
+            "plotloom.h3-production-brief.v11",
             "plotloom.h3-production-brief.v10",
             "plotloom.h3-production-brief.v9",
             "plotloom.h3-production-brief.v8",

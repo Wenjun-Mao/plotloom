@@ -344,6 +344,7 @@
           "tests/test_video_batch_realistic_pack.py",
           "tests/test_delegated_qa.py",
           "tests/test_qa_original_frame_end.py",
+          "tests/test_qa_video_high_resolution.py",
           "tests/test_finished_example_qa_scopes.py",
           "tests/test_provider_budgets.py",
           "tests/test_minute_example_qa_scope.py",

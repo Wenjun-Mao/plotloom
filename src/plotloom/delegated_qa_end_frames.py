@@ -1,6 +1,8 @@
 """Closed prospective grants for reusing two observed opening images at the end."""
 from dataclasses import dataclass
 
+from .delegated_qa_video_profiles import high_resolution_request
+
 
 @dataclass(frozen=True)
 class OriginalFrameEndGrant:
@@ -29,7 +31,7 @@ def end_frame_within_authority(scope, snapshot):
     ending = snapshot.get("endFrame")
     if ending in (None, {"revision": 0, "assetId": None}):
         return True
-    if snapshot.get("compilerVersion") != "plotloom.h3-production-brief.v10" or not isinstance(ending, dict):
+    if snapshot.get("compilerVersion") not in {"plotloom.h3-production-brief.v10", "plotloom.h3-production-brief.v11"} or not isinstance(ending, dict):
         return False
     grant = next((item for item in ORIGINAL_FRAME_END_GRANTS
         if item.scope_id == scope.id and item.project_id == scope.project_id
@@ -58,5 +60,6 @@ def end_frame_within_authority(scope, snapshot):
         and request.get("durationSeconds") == 8 and request.get("frameCount") == 192
         and request.get("fps") == 24
         and request.get("profileVersion") == 2 and request.get("quality") == 8
-        and request.get("width") == 832 and request.get("height") == 480
+        and (request.get("width") == 832 and request.get("height") == 480
+            or high_resolution_request(scope, snapshot))
     )

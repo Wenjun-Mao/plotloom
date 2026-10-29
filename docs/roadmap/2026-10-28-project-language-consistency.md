@@ -1,5 +1,34 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+2026-10-29 lettering checkpoint: v10's first/last Chinese clip ingested8.0s/192frames
+and sustained the held beside-lamp pose in the sampled sequence. ASR auto zh0.993137
+recognized the sole authored clause0.53–2.19s. Its actual 832×480 label was only
+roughly13×5pixels and cannot establish readable Mira. Agent QA rejected the whole
+clip; batch is cancelled14. All four actual clips remain retained, unselected.
+The genuine native checker report was inspected outside the workbench through an
+exact-byte read-only loopback view (file navigation was blocked); Chinese headings,
+brief and closed technical disclosure rendered, then that view/server were stopped.
+
+Independent review approved one existing quality8 1280×704 H3 Chinese probe as the
+next bounded test, under the same prospective-grant authority. ADR0224/compiler v11
+adds only that profile for the two exact existing scope digests/material sets,
+with8s/192frames/24fps/native audio/crop constraints. Existing12scope hashes and
+runtime write grants stay unchanged; v10 cannot acquire the new profile. Ending
+reuse remains limited to the exact two opening images and original provenance/
+approval/currentness fences. No source/story/image edit or new provider follows.
+The existing gateway transform's local preview removes8px top/bottom without
+resizing the1280×720 source; actual preview retains full body, pose and label.
+
+The stable reviewed candidate passes120 focused cases95.26s, quick20.537s and native
+owner discovery4999Python cases (no test bodies in discovery). Normal read-only
+validation remains14/14, zero new regressions; Ruff/whitespace pass. Retained v10
+prompt bytes and all old scope hashes reproduce. New owners remain below100lines.
+Next: fresh ordinary single request, same previous seed/first/end images and8s,
+fresh native check/intent, then one higher-resolution Chinese clip. English and all
+endings stay held pending that result. Reassess if lettering remains unreadable;
+do not turn this into an open quality campaign or waive the exact-text criterion.
+Full/wheel, four route plays, activation and final acceptance remain unqualified.
+
 2026-10-29 endpoint-method reassessment: Chinese v9's checked replacement also
 withdrew its hand before the ending. English v9's checked opening moved its hand
 onto the cup and distorted the source 安. Both actual clips are agent-QA rejected;
