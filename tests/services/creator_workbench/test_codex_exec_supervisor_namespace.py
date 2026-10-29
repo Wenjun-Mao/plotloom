@@ -104,6 +104,10 @@ def test_foreign_control_cannot_insert_or_change_namespace_rows(bounded, control
 def test_exact_pre_admission_cancel_tombstone_survives_reconstruction(bounded, monkeypatch):
     cancelled = bounded.host.cancel(bounded.reserved)
     assert cancelled.state == "settled" and cancelled.attempt.terminal_result == "not_started"
+    observed = bounded.host.status(bounded.attempt.attempt_id)
+    assert observed.attempt == cancelled.attempt and observed.receipt == cancelled.receipt
+    assert observed.local_execution_stopped is True
+    cancelled = observed
     other = CodexExecSupervisor(bounded.host.executable, **bounded.kwargs)
     monkeypatch.setattr(other, "_start_worker", lambda _value: pytest.fail("cancelled attempt started"))
     assert other.admit(bounded.attempt) == cancelled

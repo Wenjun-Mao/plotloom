@@ -113,7 +113,11 @@ def test_fresh_prompt_plan_and_both_validators_enforce_current_minimum(prepared,
     assert TIMING_FILENAME in frozen.creative_brief and "sum of minima" in frozen.creative_brief
     assert f"scripts/{adapter}" in frozen.creative_brief and f"scripts/{other}" not in frozen.creative_brief
     plan = build_text_validation_plan(frozen, execution_pin=store.creative_handoff_execution_pin(frozen), source_revision="a" * 40)
-    assert plan.steps[0].argv[0].endswith('scripts/storyboard-content-validation.mjs')
+    assert plan.steps[0].program == 'uv'
+    assert '{source}/scripts/creative_field_validation.py' in plan.steps[0].argv
+    assert plan.steps[0].argv == ('run', '--project', '{source}', '--locked', '--no-sync', 'python',
+        '{source}/scripts/creative_field_validation.py', '{candidate}', '--request',
+        '{package}/request.json', '--node', '{tool:node}')
     assert plan.steps[1].argv[0].endswith(adapter)
     board = narrated_board(6.5, style="brief" if saved else "realistic")
     inputs = frozen.input_artifacts

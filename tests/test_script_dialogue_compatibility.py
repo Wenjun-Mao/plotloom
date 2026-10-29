@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
@@ -23,6 +24,7 @@ def script_store(tmp_path):
         _prepare_art_context(store)
         candidate, request = store.prepare_art_candidate("ch_" + "p" * 32, render_style="realistic")
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         store.accept_art_candidate(ArtAcceptRequest(job_id=candidate.job_id, expected_art_revision=0,
             binding=candidate.binding, art=ready.art))
         yield store
@@ -138,7 +140,7 @@ def test_public_optional_prepare_body_uses_shared_owner(script_store, value):
 
 
 def test_currentness_retains_selected_limit_and_detects_profile_drift(script_store, monkeypatch):
-    import plotloom.canonical_schema as schema
+    import plotloom.dialogue_timing_policy as schema
     candidate, _request = script_store.prepare_script_candidate("ch_" + "t" * 32, planned_storyboard_max_cut_seconds=15)
     assert script_store.script_state().status == "prepared"
     assert script_store.script_state().candidate.binding == candidate.binding
@@ -150,11 +152,11 @@ def test_currentness_retains_selected_limit_and_detects_profile_drift(script_sto
 
 def dialogue_script(request, *, opening_line="灯亮了，沿这边走。"):
     script = _pilot_script()
-    script["lang"] = "en"
+    script["lang"] = request.input_artifacts["language-contract.json"]["reportLocale"]
     script["sectionBindings"] = request.input_artifacts["script-admission.json"]["sectionBindings"]
     for episode in script["episodes"]:
         line = opening_line if episode["ep"] == 1 else "灯亮了，沿这边走。"
-        episode["targetSeconds"] = 2.5 + round(len(line) / 4.5, 1)
+        episode["targetSeconds"] = 2.5 + round(len(line) * 0.33, 1)
         episode["scenes"][0]["flow"] = [{"action": "Lin checks the doorway."},
             {"speaker": "VO", "line": line, "delivery": "quiet performance note"}]
     return script
@@ -165,6 +167,7 @@ def ready_script(store, maximum=8):
     candidate, request = store.prepare_script_candidate("ch_" + "u" * 32, **kwargs)
     delivery = _deliver_stage(store, request, "script.json", dialogue_script(request), "planned-script-fixture")
     ready = store.admit_script_delivery(delivery)
+    install_synthetic_language_check(store, request, ready.script)
     return candidate, request, delivery, ready
 
 
@@ -198,11 +201,11 @@ def test_accept_cannot_rebind_exact_stored_optional_selection(script_store, orig
 
 @pytest.mark.parametrize("drift", ["language", "profile-rules"])
 def test_ready_read_and_repeat_admit_recompute_current_language_and_rules(script_store, monkeypatch, drift):
-    import plotloom.canonical_schema as schema
+    import plotloom.dialogue_timing_policy as schema
     _candidate, _request, delivery, _ready = ready_script(script_store)
     if drift == "language":
         project = script_store.project()
-        script_store.update_brief(project.brief.model_copy(update={"language": "en"}), expected_revision=project.revision)
+        script_store.update_brief(project.brief.model_copy(update={"language": "en-US"}), expected_revision=project.revision)
     else:
         profile = schema.DEFAULT_DIALOGUE_TIMING_PROFILE.model_copy(deep=True)
         profile.rules[1] = profile.rules[1].model_copy(update={"units_per_character": 331})
@@ -220,7 +223,7 @@ def test_bound_edit_retains_requirement_and_rejects_new_unfit_line(script_store)
     script_store.reopen_script(ScriptReopenRequest(expected_script_revision=1))
     episode = deepcopy(accepted.script["episodes"][0])
     episode["scenes"][0]["flow"][1]["line"] = json.loads(RETAINED.read_bytes())["episodes"][0]["scenes"][0]["flow"][1]["line"]
-    episode["targetSeconds"] = 8.5
+    episode["targetSeconds"] = 11.4
     with pytest.raises(ValueError, match="planned storyboard maximum"):
         script_store.save_script_section(ScriptSectionSaveRequest(expected_script_revision=1,
             binding=accepted.binding, section_id="opening", episode=episode))
@@ -233,6 +236,7 @@ def test_f5_keeps_inherited_selection_separate_from_actual_public_choice(script_
     line = json.loads(RETAINED.read_bytes())["episodes"][0]["scenes"][0]["flow"][1]["line"]
     ready = script_store.admit_script_delivery(_deliver_stage(script_store, request, "script.json",
         dialogue_script(request, opening_line=line), "fifteen-second-intent"))
+    install_synthetic_language_check(script_store, request, ready.script)
     script_store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0, binding=ready.binding))
     with pytest.raises(ValueError, match="chosen F5 maximum"):
         script_store.prepare_storyboard_review_candidate("ch_" + "y" * 32, max_cut_seconds=8)
@@ -245,7 +249,7 @@ def test_f5_keeps_inherited_selection_separate_from_actual_public_choice(script_
 
 @pytest.mark.parametrize("boundary", ["accept", "reopen", "save"])
 def test_profile_drift_refuses_every_mutating_review_boundary(script_store, monkeypatch, boundary):
-    import plotloom.canonical_schema as schema
+    import plotloom.dialogue_timing_policy as schema
     from plotloom.review_context_diagnostics import ReviewContextError
     from plotloom.script_contracts import ScriptAcceptRequest, ScriptReopenRequest, ScriptSectionSaveRequest
     _candidate, _request, _delivery, ready = ready_script(script_store)

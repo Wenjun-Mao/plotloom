@@ -40,7 +40,7 @@ async function invalidate(request: APIRequestContext, origin: string, id: string
 }
 
 test("pending Cast publication blocks source-map changes until explicitly cancelled", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "pending-cast-revision", {}, []);
+  const id = await createScriptProject(request, workbench, "pending-cast-revision", {}, []);
   const project = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const prepared = await json(request.post(`${project}/cast/candidates`, { data: { renderStyle: "realistic" } }));
   const sends = await availableSpecialistWithoutSend(page, id, "characters", prepared.jobId);
@@ -65,7 +65,7 @@ test("pending Cast publication blocks source-map changes until explicitly cancel
 
 for (const stage of ["cast", "script"] as const) {
   for (const ready of stage === "cast" ? [true] : [false, true]) test(`first stale ${stage} ${ready ? "ready" : "prepared"} candidate has no acceptance authority`, async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, `first-${stage}-${ready}`, {}, stage === "cast" ? [] : ["cast", "art"]);
+    const id = await createScriptProject(request, workbench, `first-${stage}-${ready}`, {}, stage === "cast" ? [] : ["cast", "art"]);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}/${stage}`;
     const prepared = await json(request.post(`${url}/candidates`, stage === "cast" ? { data: { renderStyle: "realistic" } } : undefined));
     const sends = await availableSpecialistWithoutSend(page, id, stage === "cast" ? "characters" : stage, prepared.jobId);
@@ -113,7 +113,7 @@ for (const stage of ["cast", "script"] as const) {
   });
 
   test(`current ${stage} replacement remains dispatchable and acceptable over stale retained evidence`, async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, `replacement-${stage}`);
+    const id = await createScriptProject(request, workbench, `replacement-${stage}`);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}/${stage}`;
     const acceptedKey = stage === "cast" ? "acceptedCast" : "acceptedScript";
     const retained = (await json(request.get(url)))[acceptedKey];

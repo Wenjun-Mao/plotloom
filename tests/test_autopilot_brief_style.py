@@ -19,6 +19,17 @@ from plotloom.autopilot_contracts import LaunchPolicy, LaunchRequest
 from plotloom.cast_style import CastPrepareRequest, validate_cast_style
 
 
+def _cast_request(contract, text):
+    from tests.content_language_fixtures import original_request
+    from plotloom.language_policy import freeze_request_language
+    request = original_request("characters", locale="zh-CN")
+    request.source = {"text": text}
+    request.input_artifacts["cast-style-contract.json"] = contract
+    request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
+    return request.model_dump(mode="json", by_alias=True)
+
+
 def _policy(*, version="plotloom.pre-video.v3", authority="brief", direction=None):
     return LaunchPolicy.model_validate({
         "version": version, "styleAuthority": authority,
@@ -120,7 +131,7 @@ def test_brief_cast_keeps_upstream_source_and_structure_validation(tmp_path):
             "tags": [],
         }}],
     }
-    request = {"source": {"text": "A woman enters."}}
+    request = _cast_request(contract, "A woman enters.")
     with pytest.raises(ValueError, match="character Brief style/upstream validation failed") as error:
         validate_cast_style(cast, contract, request)
     assert "缺少 name" in str(error.value)
@@ -146,10 +157,10 @@ def test_real_upstream_cast_and_art_examples_validate_and_render_brief_reports(t
                 subject["image"]["style"] = BRIEF_STYLE_LABEL
 
     contract = freeze_brief_style(direction)
-    request = {"source": {"text": "\n".join(source_quotes)}}
+    request = _cast_request(contract, "\n".join(source_quotes))
     validate_cast_style(cast, contract, request)
     with pytest.raises(ValueError, match="引文不是原文逐字片段"):
-        validate_cast_style(cast, contract, {"source": {"text": "unrelated text"}})
+        validate_cast_style(cast, contract, _cast_request(contract, "unrelated text"))
     validate_art_style(art, cast, contract)
 
     cast_path, art_path, request_path = (tmp_path / name for name in ("cast.json", "art.json", "request.json"))

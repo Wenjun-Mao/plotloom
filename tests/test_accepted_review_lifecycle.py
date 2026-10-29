@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import ArtAcceptRequest, ArtReopenRequest
 from plotloom.cast_contracts import CastReopenRequest, CastSaveRequest
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
@@ -39,7 +40,10 @@ def test_retained_read_diagnostics_do_not_block_current_replacement(
             prepare = lambda job: store.prepare_art_candidate(
                 job, render_style="realistic"
             )
-            deliver = lambda request: store.admit_art_delivery(_deliver(store, request))
+            def deliver(request):
+                ready = store.admit_art_delivery(_deliver(store, request))
+                install_synthetic_language_check(store, request, ready.art)
+                return ready
             accept = lambda candidate: store.accept_art_candidate(
                 ArtAcceptRequest(
                     job_id=candidate.job_id,
@@ -52,17 +56,13 @@ def test_retained_read_diagnostics_do_not_block_current_replacement(
             accepted = lambda value: value.accepted_art
         else:
             _accepted_f4_script(store)
-            # Lifecycle/read projection qualification, not upstream content validation.
-            monkeypatch.setattr(
-                "plotloom.persistence.project.storyboard_review.ProjectStoryboardReviewPersistence._validate",
-                staticmethod(lambda *_: None),
-            )
             prepare = store.prepare_storyboard_review_candidate
-            deliver = lambda request: store.admit_storyboard_review_delivery(
-                _deliver_stage(
-                    store, request, "storyboard.json", {"episodes": []}, request.job_id
-                )
-            )
+            def deliver(request):
+                from tests.production_bridge_fixtures import _source_shaped_review_board
+                ready = store.admit_storyboard_review_delivery(_deliver_stage(
+                    store, request, "storyboard.json", _source_shaped_review_board(), request.job_id))
+                install_synthetic_language_check(store, request, ready.storyboard)
+                return ready
             accept = lambda candidate: store.accept_storyboard_review_candidate(
                 StoryboardReviewAcceptRequest(
                     job_id=candidate.job_id,

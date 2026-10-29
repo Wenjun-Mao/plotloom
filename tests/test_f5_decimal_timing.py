@@ -27,12 +27,12 @@ def test_both_real_receiving_routes_preserve_exact_raw_minimum(prepared, tmp_pat
         result = invoke(tmp_path, frozen, board, render=render)
         assert (result.returncode == 0) is valid, result.stderr.decode()
         if not valid:
-            assert b"Canonical dialogue minima" in result.stderr
+            assert "认领节拍的台词装得进分镜秒数" in result.stderr.decode()
     args = (board, candidate.binding, inputs["script.json"], inputs["outline.json"], inputs["cast.json"], frozen)
     if valid:
         ProjectStoryboardReviewPersistence._validate(*args)
     else:
-        with pytest.raises(ValueError, match="Canonical dialogue minima"):
+        with pytest.raises(ValueError, match="认领节拍的台词装得进分镜秒数"):
             ProjectStoryboardReviewPersistence._validate(*args)
 
 
@@ -125,7 +125,7 @@ def test_multiline_minimum_uses_exact_sum_before_fractional_comparison(tmp_path,
     result = receiving_result(tmp_path, board, request)
     assert (result.returncode == 0) is valid, result.stderr.decode()
     if not valid:
-        assert b"Canonical dialogue minima" in result.stderr
+        assert "认领节拍的台词装得进分镜秒数" in result.stderr.decode()
 
 
 @pytest.mark.parametrize("minimum", [0, -1, True, 9007199254740992])

@@ -188,3 +188,11 @@ known inventory role, and the checker prompt must name the separate channels.
 Do not normalize, drop or relocate an untrusted exception to manufacture a pass.
 A prior malformed check remains failed even if a temporary diagnostic copy would
 bind after removing a duplicate exception.
+
+Request assembly separates appended language-policy prose from any preceding
+executable example with an explicit paragraph boundary. Request validation strips
+trailing whitespace, so a factory's final newline cannot own that boundary.
+Language preparation owns this separator; stage factories retain their exact
+validator/renderer commands. Tests execute the explicit command block and keep
+later readable instructions outside the shell. Retained frozen requests and
+failed command evidence are never rewritten by this formatting repair.

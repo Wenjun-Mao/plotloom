@@ -1,5 +1,5 @@
 import { expect, test } from "./fixture";
-import { createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 
 test.use({ actionTimeout: 10_000 });
 
@@ -8,7 +8,7 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   const script = await fixture("script.json");
   const first = script.episodes[0].scenes[0];
   script.episodes[0].scenes = [{ ...first, flow: first.flow.slice(0, 10) }, { ...first, flow: first.flow.slice(10) }];
-  const id = await createScriptProject(request, workbench.apiOrigin, "creator-story", { script });
+  const id = await createScriptProject(request, workbench, "creator-story", { script });
   const url = `${workbench.apiOrigin}/api/v2/projects/${id}/script`;
   const retained = (await json(request.get(url))).acceptedScript;
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
@@ -80,7 +80,7 @@ test("node Story retains every scene and losslessly saves the original dirty sec
 });
 
 test("creator Story retries reads and reuses explicit whole-package prepare, check, report, accept and cancel", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "creator-script-task", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "creator-script-task", {}, ["cast", "art"]);
   const url = `${workbench.apiOrigin}/api/v2/projects/${id}/script`;
   let failed = true;
   await page.route(`**/api/v2/projects/${id}/script`, route => failed ? route.fulfill({ status: 503, json: { detail: "read fixture unavailable" } }) : route.continue());
@@ -103,6 +103,7 @@ test("creator Story retries reads and reuses explicit whole-package prepare, che
   const prepared = await json(request.get(`${url}/candidates/${candidate.jobId}/handoff`));
   await writeDelivery(prepared, "script", await fixture("script.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
+  await checkCurrentCandidateLanguage(page, panel, id, "script", prepared.jobId);
   await expect(panel.getByRole("button", { name: "确认使用此剧本", exact: true })).toBeEnabled();
   await panel.getByText("阅读原始剧本报告（只读）", { exact: true }).click();
   await expect(page.frameLocator('iframe[title="原始剧本交付报告（只读）"]').locator("body")).toContainText("Deterministic upstream-context fixture report");
@@ -112,7 +113,7 @@ test("creator Story retries reads and reuses explicit whole-package prepare, che
 });
 
 test("creator observes automatic result checking without another send or automatic acceptance", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "creator-auto-check", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "creator-auto-check", {}, ["cast", "art"]);
   const url = `${workbench.apiOrigin}/api/v2/projects/${id}/script`;
   const prepared = await json(request.post(`${url}/candidates`));
   const taskUrl = `**/api/v2/projects/${id}/specialist-tasks/script/${prepared.jobId}`;

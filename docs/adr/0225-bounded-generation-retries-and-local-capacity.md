@@ -25,6 +25,12 @@ retried. Dead local occupancy can be released while remote outcome remains UNKNO
 that uncertainty and possible spending stay truthful. No forensic settlement,
 project revocation/deletion or invented refund is required to free shared capacity.
 
+Deleted-project garbage collection keeps its separate permanent-revocation and
+positive original-home absence requirements. Its owner retains the absence
+helper even though local-capacity retirement no longer uses it. Missing or
+replaced installation paths, symlinks and inaccessible homes fail closed before
+collection; local-slot release never grants project deletion or history erasure.
+
 Every attempt still consumes the applicable original generation authority and
 finite job/image/requested-second budgets. Possible prior spending is not credited
 back merely because local work stopped. The owner accepts bounded possible duplicate
@@ -49,6 +55,19 @@ Read projections expose current physical job/attempt, retained predecessors,
 used/frozen counts, pending/exhausted/stopped state and possible prior cost. The
 language-check API keeps its logical check anchor stable while each successor's
 request/receipt remains bound to its own real identity. Observation admits no work.
+
+Native checkpoint retry projections use persisted physical-attempt classification
+and current successor lineage. A repeatable failed/UNKNOWN current attempt still
+awaiting local-stop reconciliation is `retry_pending`, never `ready`; a semantic
+rejection, nonretryable stop, ungranted retry or superseded attempt is `stopped`.
+The existing exhaustion marker remains `exhausted`. Projection performs no host
+polling and grants no dispatch authority. The run may remain active for unrelated
+work and explicit manual retry; exact checkpoint/activity/retry evidence owns the
+failed job's visible outcome rather than an unconditional global run-state change.
+Cancelled, taken-over, stale and handed-off runs have withdrawn automatic retry
+authority: their read projection is `stopped` even when the retained physical
+attempt remains failed/UNKNOWN or has an exhaustion marker. Preserve that attempt,
+allowance usage, possible cost and history rather than rewriting its classification.
 
 The existing project controller process lease also advances authorized standalone
 language checks; run-bound checks retain their run controller. Admission claims are

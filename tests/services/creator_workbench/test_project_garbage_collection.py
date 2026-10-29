@@ -141,7 +141,10 @@ def test_unknown_collection_uses_existing_immutable_retirement_without_new_pid_c
     assert not supervisor.project_gc_preview(gc).eligible
     supervisor.retire_local_capacity(consent(supervisor, retirement))
     monkeypatch.setattr(supervisor, "_prove_group_absent", lambda *_a: pytest.fail("old PID reuse must not be reprobed"))
-    assert supervisor._load(supervisor._row(original.attempt_id)).attempt == unknown
+    # Inspect retained UNKNOWN evidence without asking the live status observer
+    # to establish a fresh local-stop fact about historical process IDs.
+    from plotloom.codex_exec_contracts import CodexExecAttempt
+    assert CodexExecAttempt.model_validate_json(supervisor._row(original.attempt_id)["status_json"]) == unknown
     assert supervisor.collect_deleted_project(allow(supervisor, gc)).applied
     assert supervisor._row(original.attempt_id) is None and supervisor._publication_revoked(original.project_id)
 

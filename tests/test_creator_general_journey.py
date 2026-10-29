@@ -1,9 +1,12 @@
 """General Source topology reaches every existing downstream contract."""
 
 import json
+import pytest
+from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from copy import deepcopy
 from pathlib import Path
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.production_bridge_contracts import (
@@ -25,6 +28,7 @@ from tests.test_creator_branch_suggestions import store as store
 FIXTURES = Path(__file__).parents[1] / "frontend/e2e/fixtures/f5a"
 
 
+@pytest.mark.parametrize("store", [FIXED_CHINESE_BRIEF.model_copy(update={"language": "en-US"})], indirect=True)
 def test_general_structure_reaches_script_storyboard_and_installed_production(store):
     project = store.project()
     store.update_brief(
@@ -32,15 +36,10 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
         expected_revision=project.revision,
     )
     branch = prepare(store)
-    store.admit_branch_delivery(
-        _deliver_stage(
-            store,
-            branch,
-            "branches.json",
-            proposal(branch.source["topology"]),
-            "general-branches",
-        )
-    )
+    branch_delivery = _deliver_stage(
+        store, branch, "branches.json", {**proposal(branch.source["topology"]), "lang": "en"}, "general-branches")
+    store.admit_branch_delivery(branch_delivery)
+    install_synthetic_language_check(store, branch, branch_delivery.candidate)
     saved = save_map(store, store.branch_draft(branch.job_id))
     source, outline, mapping = (
         saved.source,
@@ -71,6 +70,7 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     ready = store.admit_cast_delivery(
         _deliver_stage(store, request, "cast.json", cast, "general-cast")
     )
+    install_synthetic_language_check(store, request, ready.cast)
     store.accept_cast_candidate(
         CastAcceptRequest(
             job_id=candidate.job_id,
@@ -95,6 +95,7 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     ready = store.admit_art_delivery(
         _deliver_stage(store, request, "art.json", art, "general-art")
     )
+    install_synthetic_language_check(store, request, ready.art)
     store.accept_art_candidate(
         ArtAcceptRequest(
             job_id=candidate.job_id,
@@ -111,6 +112,7 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     )
     assert len(request.input_artifacts["outline.json"]["episodes"]) == 6
     script = _pilot_script()
+    script["lang"] = "en"  # This journey authors English fixtures from preparation onward.
     script["sectionBindings"] = [
         item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings
     ]
@@ -121,6 +123,7 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     ready = store.admit_script_delivery(
         _deliver_stage(store, request, "script.json", script, "general-script")
     )
+    install_synthetic_language_check(store, request, ready.script)
     store.accept_script_candidate(
         ScriptAcceptRequest(
             job_id=candidate.job_id,
@@ -131,16 +134,22 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
     )
     candidate, request = store.prepare_storyboard_review_candidate("ch_" + "b" * 32)
     board = _source_shaped_review_board()
+    board["lang"] = "en"
     episode = deepcopy(board["episodes"][0])
     board["episodes"] = []
     for item in binding.section_bindings:
         current = dict(deepcopy(episode), ep=item.episode)
         for index, segment in enumerate(current["segments"], 1):
             segment["id"] = f"E{item.episode:02}-{index:02}"
+            flow = script["episodes"][item.episode - 1]["scenes"][0]["flow"]
+            for cut in segment["cuts"]:
+                start, end = cut["beats"]
+                cut["composition"] = " ".join(beat["action"] for beat in flow[start - 1:end])
         board["episodes"].append(current)
     ready = store.admit_storyboard_review_delivery(
         _deliver_stage(store, request, "storyboard.json", board, "general-storyboard")
     )
+    install_synthetic_language_check(store, request, ready.storyboard)
     store.accept_storyboard_review_candidate(
         StoryboardReviewAcceptRequest(
             job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding
@@ -174,3 +183,15 @@ def test_general_structure_reaches_script_storyboard_and_installed_production(st
         len(choice["outcomes"])
         for choice in accepted.installation.runtime_choice["choices"]
     ) == [2, 3]
+
+    # Every generated fixture has a distinct immutable checker receipt, retained
+    # independently from the adopted creative row; installation never merges it.
+    from plotloom.content_language_persistence import check_rows, verified_check
+    with store.repository._read() as session:
+        proofs = [verified_check(row) for row in check_rows(session, store.manifest.project_id)]
+    assert len(proofs) == 6
+    assert len({check.source["candidateJobId"] for check, *_ in proofs}) == 6
+    for check, _data, _attempt, _profile, receipt, result in proofs:
+        assert check.job_id != check.source["candidateJobId"]
+        assert receipt and result.verdict == "pass"
+        assert check.input_artifacts["content-language-candidate.json"]["candidate"]["lang"] == "en"

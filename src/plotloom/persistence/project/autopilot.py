@@ -24,7 +24,7 @@ from ..schema import (
     AutopilotRunRow,
     AutopilotHandoffRow,
 )
-from .autopilot_activity import _project_checkpoints, run_activities, run_timing
+from .autopilot_activity import _project_checkpoints, load_run_attempts, run_activities, run_timing
 from .autopilot_closure import material_closure
 from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
 from .autopilot_exec_attempts import AutopilotExecPersistence
@@ -32,6 +32,46 @@ from .autopilot_execution_retry import AutopilotExecutionRetryPersistence
 from .autopilot_freshness import assert_fresh
 from .autopilot_lineage import current_run_row
 from .autopilot_text_correction import AutopilotTextCorrectionPersistence
+
+
+def _project_retry_status(checkpoints, attempts, policy, run_state):
+    """Read persisted physical owners once; pending local stop never means ready."""
+    from ...autopilot_execution_retry import retry_root, retry_ordinal
+    from ...generation_retry_policy import repeatable_failure, retry_status
+
+    by_key = {item["operationKey"]: item for item in checkpoints}
+    current = {}
+    for item in checkpoints:
+        root = retry_root(item["operationKey"])
+        if root not in current or retry_ordinal(item) > retry_ordinal(current[root]):
+            current[root] = item
+    for item in checkpoints:
+        evidence = item["evidence"]
+        if not evidence.get("jobId"):
+            continue
+        lineage = evidence["result"].get("executionRetry", {})
+        predecessors = []
+        cursor = item
+        while cursor["evidence"]["result"].get("executionRetry"):
+            link = cursor["evidence"]["result"]["executionRetry"]
+            predecessors.insert(0, link["predecessorJobId"])
+            cursor = by_key[link["parentOperationKey"]]
+        attempt = attempts.get(item["operationKey"])
+        state = "running" if item["state"] == "sent" else "ready"
+        if run_state in {"cancelled", "taken_over", "stale", "handed_off"}:
+            state = "stopped"
+        elif current[retry_root(item["operationKey"])] is not item:
+            state = "stopped"
+        elif evidence["result"].get("executionRetryExhausted", False):
+            state = "exhausted"
+        elif (item["state"] in {"failed", "outcome_unknown"}
+              or attempt is not None and attempt.state in {"failed", "outcome_unknown"}):
+            state = ("retry_pending" if attempt is not None and repeatable_failure(attempt)
+                     and policy.automatic_retry_limit is not None else "stopped")
+        item["retry"] = retry_status(limit=policy.automatic_retry_limit, current_job_id=evidence["jobId"],
+            current_attempt_id=evidence.get("executorAttemptId"), predecessors=predecessors,
+            automatic_used=lineage.get("automaticRetriesUsed", len(predecessors)), state=state,
+            possible_cost=item["state"] == "outcome_unknown" or bool(predecessors))
 
 
 class AutopilotPersistence(AutopilotExecutionRetryPersistence, AutopilotContinuationPersistence, AutopilotExecPersistence, AutopilotTextCorrectionPersistence):
@@ -88,35 +128,21 @@ class AutopilotPersistence(AutopilotExecutionRetryPersistence, AutopilotContinua
         effective_state = "stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state
         policy = LaunchPolicy.model_validate(row.policy)
         projected_checkpoints = _project_checkpoints(checkpoints)
-        from ...generation_retry_policy import retry_status
-        for item in projected_checkpoints.public:
-            evidence = item["evidence"]
-            if not evidence.get("jobId"):
-                continue
-            lineage = evidence["result"].get("executionRetry", {})
-            predecessors = []
-            cursor = item
-            while cursor["evidence"]["result"].get("executionRetry"):
-                link = cursor["evidence"]["result"]["executionRetry"]
-                predecessors.insert(0, link["predecessorJobId"])
-                cursor = next(c for c in projected_checkpoints.public if c["operationKey"] == link["parentOperationKey"])
-            failed = evidence["result"].get("executionRetryExhausted", False)
-            item["retry"] = retry_status(limit=policy.automatic_retry_limit, current_job_id=evidence["jobId"],
-                current_attempt_id=evidence.get("executorAttemptId"), predecessors=predecessors,
-                automatic_used=lineage.get("automaticRetriesUsed",len(predecessors)),
-                state="exhausted" if failed else "running" if item["state"] == "sent" else "ready",
-                possible_cost=item["state"] == "outcome_unknown" or bool(predecessors))
         lifetime_jobs, lifetime_images = project_job_counts(session, row.project_id)
         handoff = session.get(AutopilotHandoffRow, row.handoff["receiptId"]) if row.handoff else None
+        timing = run_timing(session, row, state=effective_state)
+        attempts = load_run_attempts(session, row.id)
+        activities = run_activities(session, row.id, projected_checkpoints, attempts)
+        _project_retry_status(projected_checkpoints.public, attempts, policy, effective_state)
         return RunView(id=row.id, project_id=row.project_id, revision=row.revision,
             predecessor_run_id=row.predecessor_run_id, lifetime_jobs=lifetime_jobs,
-            lifetime_images=lifetime_images, timing=run_timing(session, row, state=effective_state),
+            lifetime_images=lifetime_images, timing=timing,
             handoff_attribution=handoff.receipt.get("attribution") if handoff else None,
             state=effective_state,
             phase=row.phase, policy=policy,
             blocker={"code": "material_changed", "message": "项目素材已改变，请接管并继续手动编辑。"} if stale else row.blocker,
             checkpoints=projected_checkpoints.public,
-            activities=run_activities(session, row.id, projected_checkpoints), material_current=not stale,
+            activities=activities, material_current=not stale,
             frames=[ProvisionalFrame.model_validate(item.frame) for item in frames],
             bundle=row.bundle, bundle_hash=row.bundle_hash, handoff=row.handoff, created_at=row.created_at, updated_at=row.updated_at)
 

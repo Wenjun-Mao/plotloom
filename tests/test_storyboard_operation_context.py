@@ -6,6 +6,7 @@ from types import MethodType, SimpleNamespace
 import pytest
 from sqlalchemy import select
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.contract_identity import utc_now
@@ -211,6 +212,7 @@ def test_dual_review_resolves_once_and_separate_reads_and_writes_stay_fresh(tmp_
         ready = store.admit_storyboard_review_delivery(
             _deliver_stage(store, request, "storyboard.json", {"episodes": []}, "first"),
         )
+        install_synthetic_language_check(store, request, ready.storyboard)
         store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(
             job_id=first.job_id, expected_review_revision=0, binding=ready.binding,
         ))

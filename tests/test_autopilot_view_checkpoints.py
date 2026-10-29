@@ -25,6 +25,7 @@ from plotloom.persistence.schema import (
     AutopilotExecAttemptRow,
     AutopilotFrameRow,
     AutopilotHandoffRow,
+    SourceOutlineCandidateRow,
 )
 from tests.codex_exec_fixtures import PROFILE
 from tests.autopilot_seed_fixtures import run_facts
@@ -53,11 +54,12 @@ def geometry_payload():
 
 @pytest.fixture
 def view_context(monkeypatch):
-    # Activity/timing query these five tables; real storage/authority owners
+    # Activity/timing also inspects independent language-check candidate rows; real storage/authority owners
     # below this boundary are covered by the separately selected integration files.
     engine = create_engine("sqlite://")
     for model in (AutopilotCheckpointRow, AutopilotExecAttemptRow, AutopilotFrameRow,
-                  AutopilotDecisionRow, AutopilotHandoffRow):
+                  AutopilotDecisionRow, AutopilotHandoffRow,
+                  SourceOutlineCandidateRow):
         model.__table__.create(engine)
     policy = LaunchPolicy(version="plotloom.pre-video.v4", max_images=None, max_jobs=None, render_style="live-action",
         art_render_style="live-action", image_width=1280, image_height=720,
@@ -151,22 +153,28 @@ def render(context):
 PREFIX = ["select:v2_autopilot_checkpoints", "select:v2_autopilot_frames", "closure", "policy"]
 # SQL orders by created_at and operation_key, rather than fixture insertion order.
 PROJECTION = ["parse:geometry", "dump:geometry", "parse:outline", "dump:outline", "parse:no-job", "dump:no-job"]
-SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_checkpoints", "select:v2_autopilot_decisions",
-    "select:v2_autopilot_exec_attempts", "attempt", "activities", "frame"]
+SUCCESS = PREFIX + PROJECTION + ["select:v2_autopilot_checkpoints", "select:v2_source_outline_candidates", "select:v2_autopilot_decisions",
+    "select:v2_autopilot_exec_attempts", "attempt", "select:v2_source_outline_candidates", "activities", "frame"]
 
 
 def test_each_loaded_checkpoint_parses_once_and_keeps_canonical_output(view_context, monkeypatch):
     context = view_context
     expected = [{"id": row.id, "operationKey": row.operation_key, "revision": 1, "state": "sent",
-        "evidence": evidence.model_dump(mode="json", by_alias=True)}
+        "evidence": evidence.model_dump(mode="json", by_alias=True)} | ({"retry": {
+            "automaticRetriesUsed": 0, "retryCount": 0, "automaticRetryLimit": 0,
+            "currentJobId": evidence.job_id, "currentAttemptId": str(evidence.executor_attempt_id) if evidence.executor_attempt_id else None,
+            "predecessorJobIds": [], "state": "running", "possiblePriorCost": False}} if evidence.job_id else {})
         for row, evidence in sorted(zip(context.checkpoints, context.evidence), key=lambda pair: pair[0].operation_key)]
     observe(context, monkeypatch)
     view = render(context)
     assert context.events == SUCCESS
-    assert len(context.queries) == 5
+    assert len(context.queries) == 7
     assert [query[1] for query in context.queries] == [
         {"run_id_1": RUN}, {"run_id_1": RUN}, {"project_id_1": PROJECT},
-        {"run_id_1": RUN, "state_1": "adopted"}, {"run_id_1": RUN}]
+        {"project_id_1": PROJECT, "request_1": "source", "param_1": "operation", "param_2": "content-language-check"},
+        {"run_id_1": RUN, "state_1": "adopted"}, {"run_id_1": RUN},
+        {"project_id_1": PROJECT, "request_1": "source", "param_1": "operation", "param_2": "content-language-check"}]
+
     assert view.predecessor_run_id is None and view.lifetime_jobs == 2 and view.lifetime_images == 0
     canonical = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     assert canonical(view.checkpoints) == canonical(expected)
@@ -227,7 +235,7 @@ def test_successive_views_reparse_changed_evidence_and_fresh_attempt_status(view
     context.events.clear()
     second = render(context)
     assert context.events == [event.replace(":outline", ":changed") for event in SUCCESS]
-    assert context.queries[5:] == first_queries
+    assert context.queries[7:] == first_queries
     assert first.activities[0].state == "queued" and first.activities[0].subject_id == "outline"
     assert second.activities[0].state == "generating" and second.activities[0].subject_id == "changed"
     assert first.checkpoints[1]["evidence"]["subjectId"] == "outline"
@@ -252,4 +260,22 @@ def test_reentrant_view_has_independent_derivations(view_context, monkeypatch):
     assert outer is not nested[0]
     assert context.events.count("parse:geometry") == context.events.count("parse:outline") == 2
     assert context.events.count("parse:no-job") == context.events.count("attempt") == 2
-    assert len(context.queries) == 10
+    assert len(context.queries) == 14
+
+
+def test_retained_ungranted_unknown_is_stopped_without_replenishing_authority(view_context):
+    from plotloom.codex_exec_contracts import transition_exec_attempt
+    context = view_context
+    context.row.policy = {key: value for key, value in context.row.policy.items() if key != "automaticRetryLimit"}
+    context.row.policy_hash = stable_hash(context.row.policy)
+    failed = transition_exec_attempt(CodexExecAttempt.model_validate(context.attempt.snapshot),
+        state="outcome_unknown", execution_failure="transient")
+    context.attempt.state = "outcome_unknown"
+    context.attempt.snapshot = failed.model_dump(mode="json", by_alias=True)
+    context.checkpoints[0].state = "outcome_unknown"
+    view = render(context)
+    checkpoint = next(c for c in view.checkpoints if c["operationKey"] == "outline")
+    assert view.policy.automatic_retry_limit is None
+    assert checkpoint["retry"]["state"] == "stopped"
+    assert checkpoint["retry"]["predecessorJobIds"] == []
+    assert not checkpoint["evidence"]["result"].get("executionRetryExhausted")

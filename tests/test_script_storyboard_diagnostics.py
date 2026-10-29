@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtReopenRequest
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
@@ -103,6 +104,7 @@ def test_reopened_prerequisite_has_same_typed_read_and_refusal_without_mutation(
                     "diagnostic-board",
                 )
             )
+            install_synthetic_language_check(store, request, ready.storyboard)
             store.accept_storyboard_review_candidate(
                 StoryboardReviewAcceptRequest(
                     job_id=candidate.job_id,

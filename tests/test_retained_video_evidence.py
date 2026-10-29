@@ -100,6 +100,14 @@ def evidence(tmp_path: Path):
         ).status_code
         == 201
     )
+    # Settle the fixture-owned authorization before testing retained evidence.
+    batch = client.app.state.video_batch_service.current(project_id)
+    settled = client.post(f"{base}/video-batch/control", json={
+        "batchId": batch["id"], "expectedControlRevision": batch["controlRevision"],
+        "action": "cancel",
+    })
+    assert settled.status_code == 200, settled.text
+    assert settled.json()["state"] == "cancelled"
     return (
         storage,
         client,
@@ -239,7 +247,7 @@ def test_rejection_and_changed_canon_retain_preview_without_restoring_playback(
 def test_corrupt_frozen_identity_refuses_preview_and_preserves_raw_diagnostics(
     evidence,
 ) -> None:
-    storage, client, _, project_id, _, job_url, segment_url, job, _ = evidence
+    storage, client, _, project_id, base, job_url, segment_url, job, _ = evidence
     store = storage.projects.open(project_id)
     path = store.database_path
     store.close()
@@ -263,6 +271,21 @@ def test_corrupt_frozen_identity_refuses_preview_and_preserves_raw_diagnostics(
                     job["id"],
                 ),
             )
+        if not isinstance(malformed, dict):
+            # Missing job lineage invalidates its retained batch at project open.
+            for response in (
+                client.get(f"{base}/video-jobs"),
+                client.get(f"{segment_url}/preview"),
+                client.post(f"{job_url}/discard", json={"expectedSelectionRevision": 1}),
+            ):
+                assert response.status_code == 422, response.text
+                assert response.json()["code"] == "project_storage_error"
+                assert "video batch contract" in response.json()["message"]
+            with sqlite3.connect(path) as connection:
+                raw, digest = connection.execute(
+                    "SELECT snapshot,snapshot_hash FROM v2_video_jobs WHERE id=?", (job["id"],)).fetchone()
+            assert json.loads(raw) == malformed and digest == stable_hash(malformed)
+            continue
         invalid = _current(evidence)
         assert invalid["snapshot"] == malformed and invalid["inputStatus"] == "invalid"
         assert (

@@ -37,12 +37,18 @@ def test_late_completion_reuses_pause_bytes_and_adopts_exact_attempt_without_dup
         view = prefix.step(run.project_id)
         assert next(c for c in view.checkpoints if c["operationKey"] == "outline")["state"] == "delivered"
         assert host.admissions == 1
-        view = prefix.step(run.project_id)
-        assert next(c for c in view.checkpoints if c["operationKey"] == "outline")["state"] == "adopted"
+        host.auto_deliver = True
+        for _ in range(8):
+            view = prefix.step(run.project_id)
+            if next(c for c in view.checkpoints if c["operationKey"] == "outline")["state"] == "adopted":
+                break
+        else:
+            raise AssertionError("independent checker did not permit Outline adoption")
         with closing(storage.projects.open(run.project_id)) as reopened:
             bound, receipt = reopened.repository.autopilot.exec_attempt_evidence_for_operation(run.id, "outline")
             assert bound.attempt_id == attempt.attempt_id and bound.state == "completed" and receipt is not None
-        assert host.admissions == 1
+        assert host.admissions == 2
+        assert host.calls.count(attempt.job_id) == 1
         # Re-observing an acknowledged intent never repeats the control CAS.
         def no_control(*_args, **_kwargs): pytest.fail("acknowledged intent repeated CAS")
         with monkeypatch.context() as repeat:
@@ -52,13 +58,16 @@ def test_late_completion_reuses_pause_bytes_and_adopts_exact_attempt_without_dup
         for _ in range(60):
             view = prefix.step(run.project_id)
             if any(c["operationKey"] == "installation" for c in view.checkpoints): break
-        assert host.admissions == 8 and not host.image_calls
+        assert host.admissions == 16 and not host.image_calls
         with closing(storage.projects.open(run.project_id)) as store:
             final, _ = collect_native_evidence(store, view, snapshot=snapshot, contract_hash="b" * 64,
                 sample_id=evidence.name, duration_ms=recorded_duration(evidence) + 75)
             assert final.status == "installed" and final.duration_milliseconds == 200
             assert sum(op.attempt_count for op in final.operations) == 8
             assert sum(op.first_pass for op in final.operations) == 8
+            from tests.autopilot_checked_text_fixtures import checked_text_fixture, assert_checked_fixture_host
+            proof = checked_text_fixture(store)
+            assert_checked_fixture_host(host, proof)
             readback = installed_text_readback(store)
         with closing(storage.projects.open(run.project_id)) as reopened:
             assert installed_text_readback(reopened) == readback

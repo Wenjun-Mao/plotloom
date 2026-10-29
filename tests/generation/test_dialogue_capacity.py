@@ -80,7 +80,7 @@ def test_capacity_plan_is_deterministic_and_projects_each_timing_rule() -> None:
     }
     assert limits[("zh-CN", "measured")] == 2
     assert limits[("zh-CN", "natural")] == 3
-    assert limits[("en", "natural")] == 16
+    assert limits[("en", "natural")] == 14
     assert limits[("*", "brisk")] == 18
 
 

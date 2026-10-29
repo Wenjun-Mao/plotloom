@@ -14,6 +14,11 @@ from tests.native_bridge_seed_fixtures import pending_bridge_project
 from tests.test_specialist_settings import configured
 
 
+def _closed_language_profile(registry):
+    from tests.codex_exec_fixtures import install_completed_language_profile
+    return install_completed_language_profile(registry)
+
+
 def _fake_native_transport(monkeypatch, stage):
     checkout = Path(__file__).resolve().parents[1]
     specialist = "intent" if stage == "bridge-intent" else "presentation"
@@ -43,6 +48,7 @@ def _fake_native_transport(monkeypatch, stage):
 def create_native_intent_runtime(root, monkeypatch, seed=None):
     storage, project, revision, digest = pending_bridge_project(root, seed)
     registry, _settings = configured(storage.application.root)
+    _closed_language_profile(registry)
     service = NativeBridgeIntentService(storage, registry)
     calls = _fake_native_transport(monkeypatch, "bridge-intent")
     job = service.create(project, expected_revision=revision, expected_hash=digest)
@@ -58,6 +64,7 @@ def create_native_presentation_runtime(root, monkeypatch, seed=None):
             entries=[{"id": entry.id, "text": "作者已保存的戏剧目的"} for entry in proposal.intent_package.entries],
         )).proposal
     registry, _ = configured(storage.application.root)
+    _closed_language_profile(registry)
     service = NativeBridgePresentationService(storage, registry)
     calls = _fake_native_transport(monkeypatch, "bridge-presentation")
     job = service.create(project, expected_revision=proposal.revision, expected_hash=proposal.content_hash)

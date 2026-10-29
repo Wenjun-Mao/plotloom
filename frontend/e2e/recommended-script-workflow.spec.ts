@@ -1,8 +1,8 @@
 import { expect, test } from "./fixture";
-import { createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
 
 test("Script guide follows native preparation, delivery, confirmation and chapter drafts", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "script-guide", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "script-guide", {}, ["cast", "art"]);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const guide = page.getByTestId("recommended-workflow"), panel = page.getByTestId("script-review");
@@ -28,6 +28,7 @@ test("Script guide follows native preparation, delivery, confirmation and chapte
   const candidateReader = panel.getByLabel("待审阅候选剧本 · 未确认", { exact: true });
   await expect(candidateReader).toBeVisible();
   await expect(candidateReader).toContainText("章节 opening");
+  await checkCurrentCandidateLanguage(page, panel, id, "script", prepared.jobId);
   await panel.getByRole("button", { name: "确认使用此剧本", exact: true }).click();
   await expect(guide).toContainText("完整剧本已确认。点击「继续：分镜评审」");
   await expect(panel.getByRole("button", { name: "继续：分镜评审", exact: true })).toBeEnabled();
@@ -41,6 +42,7 @@ test("Script guide follows native preparation, delivery, confirmation and chapte
   await expect(guide).toContainText("已在本页按候选自身冻结绑定显示完整分支与结局");
   await expect(guide).not.toContainText("剧本依据已变化");
   await expect(panel.getByLabel("待审阅候选剧本 · 未确认", { exact: true })).toBeVisible();
+  await checkCurrentCandidateLanguage(page, panel, id, "script", replacementPrepared.jobId);
   await panel.getByRole("button", { name: "确认使用此剧本", exact: true }).click();
   await expect(guide).toContainText("完整剧本已确认");
   await panel.getByRole("button", { name: "重新打开剧本", exact: true }).click();
@@ -57,7 +59,7 @@ test("Script guide follows native preparation, delivery, confirmation and chapte
 });
 
 test("Script guide stays unknown on held or failed reads and names the real retry", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "script-guide-retry", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "script-guide-retry", {}, ["cast", "art"]);
   let mode: "held" | "failed" | "native" = "held", release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
   await page.route(`**/api/v2/projects/${id}/script`, async route => {

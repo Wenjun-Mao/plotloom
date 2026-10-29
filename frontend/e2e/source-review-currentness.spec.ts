@@ -21,7 +21,7 @@ async function navigate(page: Page, name: string) {
 for (const width of [1280, 1700]) test(`expanded accepted Script JSON remains inside the ${width}px desktop`, async ({ page, request, workbench }) => {
   const longScript = await fixture("script.json");
   longScript.episodes[0].cliff += ` Layout regression source token ${"ContinuousSourceToken".repeat(120)}`;
-  const id = await createScriptProject(request, workbench.apiOrigin, `script-json-layout-${width}`, { script: longScript });
+  const id = await createScriptProject(request, workbench, `script-json-layout-${width}`, { script: longScript });
   await page.setViewportSize({ width, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
@@ -63,7 +63,7 @@ async function changeCast(request: APIRequestContext, origin: string, id: string
 }
 
 test("opening-only UI save revalidates the retained sibling review without a page reload", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "sibling-ui-save");
+  const id = await createScriptProject(request, workbench, "sibling-ui-save");
   const retained = await acceptedReview(request, workbench.apiOrigin, id);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   const storyboard = page.getByTestId("storyboard-review");
@@ -88,7 +88,7 @@ test("opening-only UI save revalidates the retained sibling review without a pag
 });
 
 test("same-project server refresh revalidates source-review panels", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "same-project-refresh");
+  const id = await createScriptProject(request, workbench, "same-project-refresh");
   await acceptedReview(request, workbench.apiOrigin, id);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   const storyboard = page.getByTestId("storyboard-review");
@@ -101,7 +101,7 @@ test("same-project server refresh revalidates source-review panels", async ({ pa
 });
 
 test("pending or failed activation reads retain evidence but cannot enable stale actions", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "held-currentness-read");
+  const id = await createScriptProject(request, workbench, "held-currentness-read");
   await acceptedReview(request, workbench.apiOrigin, id);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   const storyboard = page.getByTestId("storyboard-review");
@@ -133,7 +133,7 @@ test("pending or failed activation reads retain evidence but cannot enable stale
 });
 
 test("navigation revalidation preserves a same-project unsaved scoped Script draft", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "retained-scoped-draft");
+  const id = await createScriptProject(request, workbench, "retained-scoped-draft");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const script = page.getByTestId("script-review");
   await script.getByRole("button", { name: "重新打开剧本" }).click();
@@ -150,7 +150,7 @@ test("navigation revalidation preserves a same-project unsaved scoped Script dra
 });
 
 for (const authority of ["head", "status"] as const) test(`dirty Script retains original text after an accepted ${authority} change`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, `dirty-script-${authority}`);
+  const id = await createScriptProject(request, workbench, `dirty-script-${authority}`);
   const initial = await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/script`));
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
@@ -194,7 +194,7 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
 });
 
 test("dirty Art survives reopened-to-stale status with the same accepted revision", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "dirty-art-stale");
+  const id = await createScriptProject(request, workbench, "dirty-art-stale");
   const prior = (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/art`))).acceptedArt;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#art`);
   const panel = page.getByTestId("art-review");
@@ -230,7 +230,7 @@ test("dirty Art survives reopened-to-stale status with the same accepted revisio
 
 for (const stage of ["script", "storyboard"] as const) for (const ready of [false, true]) {
   test(`stale ${stage} ${ready ? "ready" : "prepared"} candidate blocks acceptance/dispatch but permits cancellation`, async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, `stale-${stage}-${ready}`);
+    const id = await createScriptProject(request, workbench, `stale-${stage}-${ready}`);
     const url = stage === "script" ? `${workbench.apiOrigin}/api/v2/projects/${id}/script` : endpoint(workbench.apiOrigin, id);
     const prepared = await json(request.post(`${url}/candidates`));
     const sends = await availableSpecialistWithoutSend(page, id, stage, prepared.jobId);
@@ -261,7 +261,7 @@ for (const stage of ["script", "storyboard"] as const) for (const ready of [fals
 }
 
 test("failed post-mutation refresh disables old successful authority until explicit retry", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "post-mutation-failure");
+  const id = await createScriptProject(request, workbench, "post-mutation-failure");
   const url = endpoint(workbench.apiOrigin, id);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
   const panel = page.getByTestId("storyboard-review");

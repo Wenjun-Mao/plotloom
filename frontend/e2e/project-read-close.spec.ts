@@ -16,7 +16,7 @@ async function freeze(page: Page, id: string) {
 }
 
 for (const kind of ["JSON", "HTML"] as const) test(`Optional Freeze settles an owned ${kind} read and resumes projections after the exclusive response`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, `held-close-${kind}`);
+  const id = await createScriptProject(request, workbench, `held-close-${kind}`);
   const held = gate(); let closes = 0, reports = 0;
   const pattern = kind === "JSON" ? "**/api/v2/projects/*/script" : "**/api/v2/projects/*/script/candidates/*/report?presentation=static";
   await page.route(pattern, async route => {
@@ -50,7 +50,7 @@ for (const kind of ["JSON", "HTML"] as const) test(`Optional Freeze settles an o
 });
 
 test("busy Freeze fails truthfully and resumes owned report and JSON reads for an explicit retry", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "busy-close-resume");
+  const id = await createScriptProject(request, workbench, "busy-close-resume");
   let closes = 0;
   await page.route("**/api/v2/projects/*/freeze", async route => {
     closes += 1;

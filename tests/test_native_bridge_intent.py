@@ -47,6 +47,7 @@ def deliver(native, *, candidate=None, mutation=None, partial=False):
     output.mkdir()
     targets = request.input_artifacts["targets.json"]["entries"]
     value = candidate or {"entries": [{"id": entry["id"], "suggestedText": f"推动角色直面本场矛盾，建立第 {index + 1} 项选择的压力。"} for index, entry in enumerate(targets)]}
+    value.setdefault("lang", request.input_artifacts["language-contract.json"]["reportLocale"])
     candidate_bytes = canonical_json(value)
     report = render_native_intent_report(request, value) if candidate is None else b"<!doctype html><html>invalid candidate fixture</html>"
     (output / "intent.json").write_bytes(candidate_bytes)
@@ -61,6 +62,10 @@ def deliver(native, *, candidate=None, mutation=None, partial=False):
     if mutation:
         mutation(manifest)
     (output / "completion.json").write_bytes(canonical_json(manifest))
+    if not mutation:
+        from tests.content_language_fixtures import install_synthetic_language_check
+        with closing(storage.projects.open(project)) as store:
+            install_synthetic_language_check(store, request, value)
     return request, output
 
 
@@ -221,7 +226,7 @@ def test_suggestions_only_complete_binder_and_deterministic_report(native):
     with closing(storage.projects.open(project)) as store:
         request, _data = service._request(store, project, job)
     targets = request.input_artifacts["targets.json"]["entries"]
-    complete = {"entries": [{"id": entry["id"], "suggestedText": "推进角色争取信任"} for entry in targets]}
+    complete = {"lang": "zh", "entries": [{"id": entry["id"], "suggestedText": "推进角色争取信任"} for entry in targets]}
     for candidate in (
         {"entries": complete["entries"][:-1]},
         {"entries": [complete["entries"][0], *complete["entries"]]},
@@ -336,6 +341,8 @@ def test_context_ceiling_measures_utf8_bytes_before_any_enqueue(native, monkeypa
 def test_runtime_routes_configure_native_independently_and_reopen_inert_report(native):
     storage, project, revision, digest, service, job, calls = native
     app = create_project_folder_authoring_app(storage)
+    from tests.codex_exec_fixtures import install_completed_language_profile
+    install_completed_language_profile(app.state.specialists)
     with TestClient(app) as client:
         base = f"/api/v2/projects/{project}/production-bridge"
         state = client.get(base).json()

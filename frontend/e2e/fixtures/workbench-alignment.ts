@@ -22,7 +22,7 @@ export async function retainWorkbenchEvidence(info: TestInfo, name: string, valu
 
 export async function noncurrentOutlineActions({ page, request, workbench }: Journey, info: TestInfo) {
   for (const scenario of ["reopened", "source-changed"] as const) {
-    const id = await createScriptProject(request, workbench.apiOrigin, `action-${scenario}`, {}, []);
+    const id = await createScriptProject(request, workbench, `action-${scenario}`, {}, []);
     const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
     const accepted = await json(request.get(`${base}/source-outline`));
     await acknowledgeGraphMapping(request, base, accepted.acceptedSectionMap.mapping);
@@ -51,7 +51,7 @@ export async function noncurrentOutlineActions({ page, request, workbench }: Jou
   }
 }
 export async function actionReadUncertainty({ page, request, workbench }: Journey, info: TestInfo) {
-  const id = await createScriptProject(request, workbench.apiOrigin, "shared-action-uncertainty", {}, []);
+  const id = await createScriptProject(request, workbench, "shared-action-uncertainty", {}, []);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`);
   const save = page.getByRole("button", { name: "保存图草稿", exact: true }); await save.click(); await expect(save).toBeEnabled();
@@ -162,7 +162,7 @@ export async function canonicalProNavigation(page: Page, editable = false) {
 }
 
 export async function longEditableLabel({ page, request, workbench }: Journey, info: TestInfo) {
-  const id = await createScriptProject(request, workbench.apiOrigin, "long-editable-choice", {}, []);
+  const id = await createScriptProject(request, workbench, "long-editable-choice", {}, []);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const initial = await json(request.get(`${base}/graph-workbench`));
   const mapping = initial.initialPayload.mapping;
@@ -205,8 +205,8 @@ export async function longEditableLabel({ page, request, workbench }: Journey, i
 }
 
 export async function professionalLifecycle({ page, request, workbench }: Journey, info: TestInfo) {
-  const id = await createScriptProject(request, workbench.apiOrigin, "pro-lifecycle-a", {}, []);
-  const other = await createScriptProject(request, workbench.apiOrigin, "pro-lifecycle-b", {}, []);
+  const id = await createScriptProject(request, workbench, "pro-lifecycle-a", {}, []);
+  const other = await createScriptProject(request, workbench, "pro-lifecycle-b", {}, []);
   await page.setViewportSize({ width: 1700, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
   const save = page.getByRole("button", { name: "保存图草稿", exact: true }); await save.click(); await expect(save).toBeEnabled();

@@ -1,1 +1,451 @@
-{"source": "Beacon choice \u2014 current F4 proof", "lang": "en", "sectionBindings": [{"sectionId": "opening", "episode": 1}, {"sectionId": "beacon", "episode": 2}, {"sectionId": "dock", "episode": 3}], "episodes": [{"ep": 1, "targetSeconds": 90, "hook": "Route entry: Mira must send one cable to the beacon or the dock.", "cliff": "Route terminal status: the choice remains pending; neither route has been chosen.", "beatsClaimed": [], "hookBeat": [1, 1], "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": ["keeper"], "props": [], "flow": [{"action": "Mira hurries to the desk as rain taps the salted window."}, {"action": "She lifts the loose cable from the worn wood."}, {"speaker": "keeper", "line": "One cable. Two places need it.", "delivery": "steady, counting the cost"}, {"action": "She turns toward the brass lamp and then toward the dock chart."}, {"speaker": "keeper", "line": "The beacon guides sailors home.", "delivery": "quietly, with resolve"}, {"action": "Mira checks the dark dock mark on the chart."}, {"speaker": "keeper", "line": "The dock keeps the boats together.", "delivery": "measured, refusing an easy answer"}, {"action": "She lays the cable between the lamp and the chart."}, {"action": "A gust presses rain against the window."}, {"speaker": "keeper", "line": "I cannot power both.", "delivery": "plainly"}, {"action": "Mira opens the beacon switch cover but does not connect it."}, {"speaker": "keeper", "line": "If I light the beacon, the dock goes dark.", "delivery": "testing the consequence aloud"}, {"action": "She closes the beacon cover and reaches for the dock switch."}, {"speaker": "keeper", "line": "If I light the dock, the beacon goes dark.", "delivery": "equally clear"}, {"action": "Mira withdraws her hand from the dock switch."}, {"action": "She looks from the lamp to the chart again."}, {"speaker": "keeper", "line": "The storm will not wait for me.", "delivery": "controlled urgency"}, {"action": "She coils the cable once and holds both ends apart."}, {"speaker": "keeper", "line": "I have to choose where the power goes.", "delivery": "to herself, ready to decide"}, {"action": "The unconnected cable rests across the desk between both switches."}]}]}, {"ep": 2, "targetSeconds": 90, "hook": "Route entry: Mira has chosen the beacon, and the dock will lose power.", "cliff": "Route terminal status: the beacon is lit for sailors; the dock is dark.", "beatsClaimed": [], "hookBeat": [1, 1], "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": ["keeper"], "props": [], "flow": [{"action": "Mira connects the cable to the beacon switch as rain strikes the window."}, {"speaker": "keeper", "line": "Beacon first.", "delivery": "firm, without ceremony"}, {"action": "She presses the switch and the brass lamp comes alive."}, {"action": "Mira watches the light fill the salted glass."}, {"speaker": "keeper", "line": "Sailors can see the channel now.", "delivery": "relieved but watchful"}, {"action": "She checks the dock mark on the chart again."}, {"speaker": "keeper", "line": "The dock has no power tonight.", "delivery": "accepting the cost"}, {"action": "Mira folds the unused dock lead away from the switch."}, {"action": "The beacon lamp holds steady through another gust."}, {"speaker": "keeper", "line": "Keep shining. They need the way home.", "delivery": "low, protective"}, {"action": "She stands beside the window and follows the channel below."}, {"speaker": "keeper", "line": "The choice is made.", "delivery": "plain, no celebration"}, {"action": "Mira steadies the brass lamp with one hand."}, {"action": "She leaves the dock switch covered and unpowered."}, {"speaker": "keeper", "line": "The beacon stays on.", "delivery": "certain"}, {"action": "A distant boat light moves toward the beacon through the rain."}, {"action": "Mira keeps watch at the window."}, {"speaker": "keeper", "line": "Come through the channel.", "delivery": "calling softly toward the water"}, {"action": "She checks that the beacon cable is seated in its switch."}, {"action": "Mira smooths the chart flat on the desk."}, {"action": "She listens as rain passes across the roof."}, {"action": "Mira looks once more toward the dark dock mark."}, {"action": "She turns back to the steady beacon lamp."}, {"action": "Mira remains at the window as the boat light moves on."}, {"action": "The beacon continues to shine while the dock remains dark."}]}]}, {"ep": 3, "targetSeconds": 90, "hook": "Route entry: Mira has chosen the dock, and the beacon will go dark.", "cliff": "Route terminal status: the dock is powered for arriving boats; the beacon is dark.", "beatsClaimed": [], "hookBeat": [1, 1], "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": ["keeper"], "props": [], "flow": [{"action": "Mira connects the cable to the dock switch as rain strikes the window."}, {"speaker": "keeper", "line": "Dock first.", "delivery": "firm, without ceremony"}, {"action": "She presses the switch and checks the dock mark on the chart."}, {"action": "Mira watches the dock lights answer below."}, {"speaker": "keeper", "line": "The boats have a place to come in.", "delivery": "relieved but watchful"}, {"action": "She turns back to the brass beacon lamp."}, {"speaker": "keeper", "line": "The beacon has no power tonight.", "delivery": "accepting the cost"}, {"action": "Mira covers the unused beacon switch."}, {"action": "The dark brass lamp reflects the cold dawn."}, {"speaker": "keeper", "line": "Stay together at the dock.", "delivery": "low, protective"}, {"action": "She stands beside the window and follows the dock line below."}, {"speaker": "keeper", "line": "The choice is made.", "delivery": "plain, no celebration"}, {"action": "Mira keeps her hand near the dock switch."}, {"action": "She leaves the beacon lamp unlit."}, {"speaker": "keeper", "line": "The dock stays on.", "delivery": "certain"}, {"action": "Several boat lights gather near the dock through the rain."}, {"action": "Mira keeps watch from the window."}, {"speaker": "keeper", "line": "Come in safely.", "delivery": "calling softly toward the water"}, {"action": "She checks that the dock cable is seated in its switch."}, {"action": "Mira smooths the chart flat on the desk."}, {"action": "She listens as rain passes across the roof."}, {"action": "Mira looks once more at the dark beacon lamp."}, {"action": "She turns back toward the lit dock line."}, {"action": "Mira stays at the window while the boats draw closer."}, {"action": "She keeps the beacon switch cover closed."}, {"action": "Mira rests her hand beside the powered dock switch."}, {"action": "The dock remains powered while the beacon stays dark."}]}]}]}
+{
+  "source": "Beacon choice — current F4 proof",
+  "lang": "en",
+  "sectionBindings": [
+    {
+      "sectionId": "opening",
+      "episode": 1
+    },
+    {
+      "sectionId": "beacon",
+      "episode": 2
+    },
+    {
+      "sectionId": "dock",
+      "episode": 3
+    }
+  ],
+  "episodes": [
+    {
+      "ep": 1,
+      "targetSeconds": 90,
+      "hook": "Route entry: Mira must send one cable to the beacon or the dock.",
+      "cliff": "Route terminal status: the choice remains pending; neither route has been chosen.",
+      "beatsClaimed": [],
+      "hookBeat": [
+        1,
+        1
+      ],
+      "scenes": [
+        {
+          "sceneId": "S01",
+          "lighting": "dawn",
+          "characters": [
+            "keeper"
+          ],
+          "props": [],
+          "flow": [
+            {
+              "action": "Mira hurries to the desk as rain taps the salted window."
+            },
+            {
+              "action": "She lifts the loose cable from the worn wood."
+            },
+            {
+              "speaker": "keeper",
+              "line": "One cable. Two places need it.",
+              "delivery": "steady, counting the cost"
+            },
+            {
+              "action": "She turns toward the brass lamp and then toward the dock chart."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The beacon guides sailors home.",
+              "delivery": "quietly, with resolve"
+            },
+            {
+              "action": "Mira checks the dark dock mark on the chart."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The dock keeps the boats together.",
+              "delivery": "measured, refusing an easy answer"
+            },
+            {
+              "action": "She lays the cable between the lamp and the chart."
+            },
+            {
+              "action": "A gust presses rain against the window."
+            },
+            {
+              "speaker": "keeper",
+              "line": "I cannot power both.",
+              "delivery": "plainly"
+            },
+            {
+              "action": "Mira opens the beacon switch cover but does not connect it."
+            },
+            {
+              "speaker": "keeper",
+              "line": "If I light the beacon, the dock goes dark.",
+              "delivery": "testing the consequence aloud"
+            },
+            {
+              "action": "She closes the beacon cover and reaches for the dock switch."
+            },
+            {
+              "speaker": "keeper",
+              "line": "If I light the dock, the beacon goes dark.",
+              "delivery": "equally clear"
+            },
+            {
+              "action": "Mira withdraws her hand from the dock switch."
+            },
+            {
+              "action": "She looks from the lamp to the chart again."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The storm will not wait for me.",
+              "delivery": "controlled urgency"
+            },
+            {
+              "action": "She coils the cable once and holds both ends apart."
+            },
+            {
+              "speaker": "keeper",
+              "line": "I have to choose where the power goes.",
+              "delivery": "to herself, ready to decide"
+            },
+            {
+              "action": "The unconnected cable rests across the desk between both switches."
+            },
+            {
+              "action": "Water seeps beneath the window onto the chart."
+            },
+            {
+              "action": "Mira lifts the chart clear of the spreading water."
+            },
+            {
+              "action": "She pins its corners beneath two dry switch covers."
+            },
+            {
+              "action": "A drawn harbor channel disappears beneath a wet fold."
+            },
+            {
+              "action": "She smooths the fold to expose the narrow approach."
+            },
+            {
+              "action": "Mira traces the channel from the open water to the dock."
+            },
+            {
+              "action": "She follows the alternate line past the beacon rocks."
+            },
+            {
+              "action": "A flash reveals a boat outside the marked channel."
+            },
+            {
+              "action": "Mira wipes the glass with her sleeve to find it again."
+            },
+            {
+              "action": "She compares its position with the two routes on the chart."
+            },
+            {
+              "action": "The boat light vanishes behind a sheet of rain."
+            },
+            {
+              "action": "Mira separates the wet cable from the dry switch contacts."
+            },
+            {
+              "action": "She dries the cable grip against the inside of her coat."
+            },
+            {
+              "action": "Her hands return above the two switches without connecting either."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ep": 2,
+      "targetSeconds": 90,
+      "hook": "Route entry: Mira has chosen the beacon, and the dock will lose power.",
+      "cliff": "Route terminal status: the beacon is lit for sailors; the dock is dark.",
+      "beatsClaimed": [],
+      "hookBeat": [
+        1,
+        1
+      ],
+      "scenes": [
+        {
+          "sceneId": "S01",
+          "lighting": "dawn",
+          "characters": [
+            "keeper"
+          ],
+          "props": [],
+          "flow": [
+            {
+              "action": "Mira connects the cable to the beacon switch as rain strikes the window."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Beacon first.",
+              "delivery": "firm, without ceremony"
+            },
+            {
+              "action": "She presses the switch and the brass lamp comes alive."
+            },
+            {
+              "action": "Mira watches the light fill the salted glass."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Sailors can see the channel now.",
+              "delivery": "relieved but watchful"
+            },
+            {
+              "action": "She checks the dock mark on the chart again."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The dock has no power tonight.",
+              "delivery": "accepting the cost"
+            },
+            {
+              "action": "Mira folds the unused dock lead away from the switch."
+            },
+            {
+              "action": "The beacon lamp holds steady through another gust."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Keep shining. They need the way home.",
+              "delivery": "low, protective"
+            },
+            {
+              "action": "She stands beside the window and follows the channel below."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The choice is made.",
+              "delivery": "plain, no celebration"
+            },
+            {
+              "action": "Mira steadies the brass lamp with one hand."
+            },
+            {
+              "action": "She leaves the dock switch covered and unpowered."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The beacon stays on.",
+              "delivery": "certain"
+            },
+            {
+              "action": "A distant boat light moves toward the beacon through the rain."
+            },
+            {
+              "action": "Mira keeps watch at the window."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Come through the channel.",
+              "delivery": "calling softly toward the water"
+            },
+            {
+              "action": "She checks that the beacon cable is seated in its switch."
+            },
+            {
+              "action": "Mira smooths the chart flat on the desk."
+            },
+            {
+              "action": "She listens as rain passes across the roof."
+            },
+            {
+              "action": "Mira looks once more toward the dark dock mark."
+            },
+            {
+              "action": "She turns back to the steady beacon lamp."
+            },
+            {
+              "action": "Mira remains at the window as the boat light moves on."
+            },
+            {
+              "action": "The beacon continues to shine while the dock remains dark."
+            },
+            {
+              "action": "A wave breaks against the rocks below the beacon."
+            },
+            {
+              "action": "Mira tracks the boat light as it approaches the illuminated channel."
+            },
+            {
+              "action": "The light hesitates near the outer rocks."
+            },
+            {
+              "action": "She shields the window from the room lamp with her coat."
+            },
+            {
+              "action": "The clearer reflection reveals the boat turning toward open water."
+            },
+            {
+              "action": "Mira checks that the beacon cable remains firmly seated."
+            },
+            {
+              "action": "A loose shutter bangs against the window frame."
+            },
+            {
+              "action": "She catches the shutter before it strikes the glass."
+            },
+            {
+              "action": "Mira secures its latch and checks the channel again."
+            },
+            {
+              "action": "The boat light passes beyond the rocks into the beacon path."
+            },
+            {
+              "action": "She returns to the powered lamp while the dock switch remains empty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "ep": 3,
+      "targetSeconds": 90,
+      "hook": "Route entry: Mira has chosen the dock, and the beacon will go dark.",
+      "cliff": "Route terminal status: the dock is powered for arriving boats; the beacon is dark.",
+      "beatsClaimed": [],
+      "hookBeat": [
+        1,
+        1
+      ],
+      "scenes": [
+        {
+          "sceneId": "S01",
+          "lighting": "dawn",
+          "characters": [
+            "keeper"
+          ],
+          "props": [],
+          "flow": [
+            {
+              "action": "Mira connects the cable to the dock switch as rain strikes the window."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Dock first.",
+              "delivery": "firm, without ceremony"
+            },
+            {
+              "action": "She presses the switch and checks the dock mark on the chart."
+            },
+            {
+              "action": "Mira watches the dock lights answer below."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The boats have a place to come in.",
+              "delivery": "relieved but watchful"
+            },
+            {
+              "action": "She turns back to the brass beacon lamp."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The beacon has no power tonight.",
+              "delivery": "accepting the cost"
+            },
+            {
+              "action": "Mira covers the unused beacon switch."
+            },
+            {
+              "action": "The dark brass lamp reflects the cold dawn."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Stay together at the dock.",
+              "delivery": "low, protective"
+            },
+            {
+              "action": "She stands beside the window and follows the dock line below."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The choice is made.",
+              "delivery": "plain, no celebration"
+            },
+            {
+              "action": "Mira keeps her hand near the dock switch."
+            },
+            {
+              "action": "She leaves the beacon lamp unlit."
+            },
+            {
+              "speaker": "keeper",
+              "line": "The dock stays on.",
+              "delivery": "certain"
+            },
+            {
+              "action": "Several boat lights gather near the dock through the rain."
+            },
+            {
+              "action": "Mira keeps watch from the window."
+            },
+            {
+              "speaker": "keeper",
+              "line": "Come in safely.",
+              "delivery": "calling softly toward the water"
+            },
+            {
+              "action": "She checks that the dock cable is seated in its switch."
+            },
+            {
+              "action": "Mira smooths the chart flat on the desk."
+            },
+            {
+              "action": "She listens as rain passes across the roof."
+            },
+            {
+              "action": "Mira looks once more at the dark beacon lamp."
+            },
+            {
+              "action": "She turns back toward the lit dock line."
+            },
+            {
+              "action": "Mira stays at the window while the boats draw closer."
+            },
+            {
+              "action": "She keeps the beacon switch cover closed."
+            },
+            {
+              "action": "Mira rests her hand beside the powered dock switch."
+            },
+            {
+              "action": "The dock remains powered while the beacon stays dark."
+            },
+            {
+              "action": "A boat light drifts past the outer dock post."
+            },
+            {
+              "action": "Mira follows its movement along the illuminated landing."
+            },
+            {
+              "action": "Rainwater spills across the sill toward the dock cable."
+            },
+            {
+              "action": "She lifts the cable onto the dry edge of the desk."
+            },
+            {
+              "action": "Mira folds her coat beneath it to keep the connection clear."
+            },
+            {
+              "action": "Outside, the boat light turns toward the sheltered landing."
+            },
+            {
+              "action": "She watches it pass between the visible dock posts."
+            },
+            {
+              "action": "Mira checks the empty beacon socket without touching its switch."
+            },
+            {
+              "action": "She returns to the window as the boat settles beside the powered dock."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

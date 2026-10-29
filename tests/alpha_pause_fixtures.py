@@ -49,4 +49,5 @@ def complete_original(storage, host):
     attempt = next(iter(host.statuses.values())).attempt
     with closing(storage.projects.open(str(attempt.project_id))) as store:
         host.complete(store, host.request(store, attempt), attempt)
+    host.pending.discard(str(attempt.attempt_id))
     return attempt

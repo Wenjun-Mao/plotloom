@@ -21,7 +21,7 @@ from plotloom.outline_report_metadata import (
 
 
 def _request(*, revision: int = 3) -> CreativeHandoffRequest:
-    return CreativeHandoffRequest.model_validate({
+    request = CreativeHandoffRequest.model_validate({
         "jobId": "ch_" + "a" * 20,
         "projectId": "project-demo",
         "sectionId": "section-opening",
@@ -31,6 +31,9 @@ def _request(*, revision: int = 3) -> CreativeHandoffRequest:
         "inputArtifacts": {OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
         "creativeBrief": "Create a one-episode outline candidate; do not claim approval.",
     })
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "en-US")
+    return request
 
 
 def _complete(exchange: CreativeHandoffExchange, request: CreativeHandoffRequest) -> None:
@@ -38,7 +41,7 @@ def _complete(exchange: CreativeHandoffExchange, request: CreativeHandoffRequest
     package_request = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
-    candidate = canonical_json({"source": "Ferry", "params": {"episodes": 1}})
+    candidate = canonical_json({"source": "Ferry", "lang": "en", "params": {"episodes": 1}})
     report = b"<!doctype html><html><body>derived report</body></html>"
     (delivery / "outline.json").write_bytes(candidate)
     (delivery / "report.html").write_bytes(report)

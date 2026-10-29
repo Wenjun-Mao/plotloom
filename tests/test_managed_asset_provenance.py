@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 from pydantic import ValidationError
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
@@ -116,6 +117,7 @@ def test_art_delivery_writer_records_complete_common_provenance(tmp_path: Path) 
             "ch_" + "p" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,

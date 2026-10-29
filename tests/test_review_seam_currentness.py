@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastBinding, CastConsumerMapping
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
@@ -62,6 +63,7 @@ def seam(request, tmp_path: Path):
             "ch_" + "u" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(deliver_art(store, package))
+        install_synthetic_language_check(store, package, ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,
@@ -82,13 +84,16 @@ def seam(request, tmp_path: Path):
             )
 
     def deliver(package):
-        return (
+        result = (
             deliver_cast(store, package)
             if stage == "cast"
             else _deliver_stage(
                 store, package, "script.json", _pilot_script(), package.job_id
             )
         )
+
+        install_synthetic_language_check(store, package, result.candidate)
+        return result
 
     def accept(candidate):
         if stage == "cast":

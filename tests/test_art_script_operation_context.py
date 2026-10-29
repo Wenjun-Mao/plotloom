@@ -50,8 +50,8 @@ def comparison(request, monkeypatch):
 
 
 def _different_bindings(name):
-    frozen = SimpleNamespace(**dict.fromkeys(FIELDS[name], "before"), section_ids=["before"], render_contract=None)
-    current = SimpleNamespace(**dict.fromkeys(FIELDS[name], "after"), section_ids=["after"])
+    frozen = SimpleNamespace(**dict.fromkeys(FIELDS[name], "before"), section_ids=["before"], render_contract=None, language_contract=None)
+    current = SimpleNamespace(**dict.fromkeys(FIELDS[name], "after"), section_ids=["after"], language_contract=None)
     return current, frozen
 
 

@@ -30,6 +30,7 @@ def candidate(contract):
     preset = contract["preset"]
     return {
         "source": "Tide Light",
+        "lang": "zh",
         "style": contract["style"],
         "scenes": [
             {
@@ -45,7 +46,7 @@ def candidate(contract):
                         ("桌", "worn wood"),
                     ]
                 ],
-                "lighting": [{"state": "dawn", "prompt": "cold dawn through a window"}],
+                "lighting": [{"state": "dawn", "description": "黎明冷光从窗边照入。", "prompt": "cold dawn through a window"}],
                 "image": {
                     "prompt": preset["render"]
                     + ", "
@@ -195,7 +196,7 @@ def test_live_action_props_keep_style_scale_and_white_background_gates():
                     ("边缘", "rounded edge"),
                 ]
             ],
-            "states": [{"state": "idle", "prompt": "dark idle screen"}],
+            "states": [{"state": "idle", "description": "屏幕保持熄灭。", "prompt": "dark idle screen"}],
             "image": {
                 "prompt": contract["preset"]["render"] + ", handheld scale",
                 "sheet": contract["preset"]["render"]
@@ -322,6 +323,8 @@ def test_live_action_api_delivery_accept_save_and_staleness(tmp_path: Path):
         with pytest.raises(ValueError, match="conflict"):
             store.admit_art_delivery(replace(delivery, candidate=invalid))
         ready = store.admit_art_delivery(delivery)
+        from tests.content_language_fixtures import install_synthetic_language_check
+        install_synthetic_language_check(store, request, invalid)
         with pytest.raises(ValueError, match="conflict"):
             store.accept_art_candidate(
                 ArtAcceptRequest(
@@ -331,6 +334,8 @@ def test_live_action_api_delivery_accept_save_and_staleness(tmp_path: Path):
                     art=invalid,
                 )
             )
+        from tests.content_language_fixtures import install_synthetic_language_check
+        install_synthetic_language_check(store, request, ready.art)
         accepted = store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=job_id, expected_art_revision=0, binding=ready.binding

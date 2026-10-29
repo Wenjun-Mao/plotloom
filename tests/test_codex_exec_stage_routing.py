@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -62,6 +63,10 @@ def _saved_brief_example(stage: str) -> tuple[CreativeHandoffRequest, dict, str]
             "inputArtifacts": input_artifacts,
             "creativeBrief": brief_stage_instructions("cast" if stage == "characters" else "art"),
         })
+        from plotloom.language_policy import freeze_request_language
+        if stage == "characters":
+            request.content_validation_contract = "plotloom.typed-content-result.v1"
+        freeze_request_language(request, "zh-CN")
         return request, cast if stage == "characters" else art, "cast.json" if stage == "characters" else "art.json"
 
     request, board, _binding = real_example_request(BRIEF_DIRECTION)
@@ -103,6 +108,10 @@ def _run_frozen_plan(tmp_path: Path, stage: str) -> str:
         (EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(),
         (ROOT / policy).resolve(), tools["node"].parent.parent,
     }
+    expected_paths.add((ROOT / "scripts/provider-literal-context.mjs").resolve())
+    if stage in {"characters", "storyboard"}:
+        expected_paths.update({ROOT / "scripts/creative_field_validation.py", ROOT / ("scripts/text-content-validation.mjs" if stage == "characters" else "scripts/storyboard-content-validation.mjs"), ROOT / "src", ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / ".local/codex-exec/python-env", tools["uv"], Path(sys.base_prefix).resolve(),
+            *(ROOT / f"third_party/shuohao-skills/skills/novel-{owner}/scripts/provider-literals.mjs" for owner in ("art", "characters", "storyboard"))})
     if stage == "storyboard":
         expected_paths.add((ROOT / "scripts/storyboard-dialogue-timing.mjs").resolve())
     assert set(resources.read_paths) == expected_paths
@@ -115,7 +124,10 @@ def _run_frozen_plan(tmp_path: Path, stage: str) -> str:
             step, source_root=ROOT, submodule_root=ROOT / "third_party/shuohao-skills",
             job_root=package.parent, candidate_filename=plan.candidate_filename, tool_paths=tools,
         )
-        assert argv[:2] == (str(tools["node"]), str(ROOT / adapter))
+        if step.step_id == "validate" and stage in {"characters", "storyboard"}:
+            assert step.program == "uv" and str(ROOT / "scripts/creative_field_validation.py") in argv
+        else:
+            assert argv[:2] == (str(tools["node"]), str(ROOT / adapter))
         result = subprocess.run(argv, cwd=delivery, capture_output=True, check=True, timeout=30)
         if step.stdout_is_report:
             assert not report_path.exists()
@@ -160,6 +172,10 @@ def test_preset_control_keeps_existing_adapter_and_allowlist(
         "inputArtifacts": artifacts,
         "creativeBrief": "Keep the frozen preset authority.",
     })
+    from plotloom.language_policy import freeze_request_language
+    if stage == "characters":
+        request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
     exchange = CreativeHandoffExchange(tmp_path / "creative-handoff")
     paths = exchange.write_package(
         request, exchange.current_execution_pin(stage), executor_backend="codex_exec",
@@ -175,9 +191,15 @@ def test_preset_control_keeps_existing_adapter_and_allowlist(
 
     assert plan.route == "preset_style"
     assert plan.source_revision == PLOTLOOM_CODE_REVISION
-    assert all(step.program == "node" and step.argv[0] == f"{{source}}/{adapter}" for step in plan.steps)
+    assert plan.steps[-1].program == "node" and plan.steps[-1].argv[0] == f"{{source}}/{adapter}"
+    assert plan.steps[0].program == ("uv" if stage == "characters" else "node")
     assert neutral_adapter not in instructions
-    assert set(resources.read_paths) == {
-        (EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(), tools["node"].parent.parent,
-    }
+    expected = {(EXAMPLES / f"novel-{stage}").resolve(), (ROOT / adapter).resolve(),
+        ROOT / "scripts/provider-literal-context.mjs", tools["node"].parent.parent}
+    if stage == "characters":
+        expected.update({ROOT / "scripts/creative_field_validation.py", ROOT / "scripts/text-content-validation.mjs",
+            ROOT / "src", ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / ".local/codex-exec/python-env",
+            tools["uv"], Path(sys.base_prefix).resolve(),
+            *(ROOT / f"third_party/shuohao-skills/skills/novel-{owner}/scripts/provider-literals.mjs" for owner in ("art", "characters", "storyboard"))})
+    assert set(resources.read_paths) == expected
     assert (ROOT / neutral_adapter).resolve() not in resources.read_paths

@@ -241,8 +241,15 @@ def test_dispatch_rechecks_exact_history_and_only_one_successor(tmp_path, native
                 session.get(VideoJobRow, identifier).error = "changed after fresh Start"
         else:
             new = next(job for job in service.video.jobs(store) if job["id"] == new_id)
-            service.video.prepare(store, **(target["args"] | {"idempotency_key": "late-duplicate-successor"}),
-                reviewed_directions=new["snapshot"]["reviewedDirections"])
+            before = service.video.jobs(store)
+            links = deepcopy(current["execution"]["jobs"])
+            with pytest.raises(InvalidTransitionError):
+                service.video.prepare(store, **(target["args"] | {"idempotency_key": "late-duplicate-successor"}),
+                    reviewed_directions=new["snapshot"]["reviewedDirections"])
+            assert service.video.jobs(store) == before
+            assert service.current(project_id)["execution"]["jobs"] == links
+            assert next(job for job in before if job["id"] == new_id)["state"] == "prepared"
+            return
         from plotloom.video_batch_basis import assert_batch_dispatch_scope
         with store.repository._read() as session, pytest.raises(InvalidTransitionError):
             assert_batch_dispatch_scope(session, project_id, new_id)

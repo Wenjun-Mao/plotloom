@@ -33,9 +33,8 @@ def assert_pending_bridge(store):
     assert all(not entry.text for entry in proposal.intent_package.entries)
     assert not close_blockers(store)
     with store.repository.engine.connect() as connection:
-        for model in set(CANDIDATE_ROWS.values()):
-            table = model.__table__.name
-            assert connection.exec_driver_sql(f'SELECT count(*) FROM "{table}" WHERE status != \'accepted\'').scalar() == 0
+        from tests.content_language_fixtures import assert_accepted_text_seed_rows
+        assert_accepted_text_seed_rows(connection)
         for table in (
             "v2_autopilot_runs", "v2_autopilot_exec_attempts", "v2_generation_runs",
             "v2_media_tasks", "v2_video_jobs", "v2_image_jobs",

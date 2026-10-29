@@ -80,7 +80,7 @@ for (const viewport of desktopViewports) {
     await help.press("Escape"); await expect(tip).toHaveCount(0);
 
     // Accepted fixture content is installed through real API contracts, never sent to a provider.
-    const id = await createScriptProject(request, workbench.apiOrigin, `sketch-${width}`);
+    const id = await createScriptProject(request, workbench, `sketch-${width}`);
     const prepared = await json(request.post(`${endpoint(workbench.apiOrigin, id)}/candidates`));
     await writeDelivery(prepared);
     await json(request.post(`${endpoint(workbench.apiOrigin, id)}/candidates/${prepared.jobId}/refresh`));

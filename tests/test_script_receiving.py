@@ -26,6 +26,12 @@ def make_case(tmp_path, maximum=15):
     artifacts = {name: json.loads((DATA / f"retained-{name.removesuffix('.json')}.json").read_bytes())
         for name in ("outline.json", "art.json", "cast.json")}
     admission = json.loads((DATA / "retained-admission.json").read_bytes())
+    # Prospective Chinese fixture uses current spoken timing; retained bytes stay untouched.
+    from plotloom.authored_route_timing import route_budget_hash
+    admission["targetPlaythroughSeconds"] = 24
+    admission["routeBudgetHash"] = route_budget_hash(target_seconds=24,
+        section_bindings=admission["sectionBindings"], routes=admission["completeRouteSectionIds"],
+        route_only_ids=admission["routeOnlySectionIds"])
     admission["plannedStoryboardDialogue"] = freeze_planned_storyboard_dialogue(
         max_cut_seconds=maximum, language="zh-CN").model_dump(mode="json", by_alias=True)
     artifacts["script-admission.json"] = admission
@@ -38,7 +44,13 @@ def make_case(tmp_path, maximum=15):
     (package / "request.json").write_text(json.dumps(payload, ensure_ascii=False))
     for name, value in artifacts.items():
         (package / "inputs" / name).write_text(json.dumps(value, ensure_ascii=False))
-    (delivery / "script.json").write_bytes((DATA / "retained-overlong-vo.json").read_bytes())
+    candidate = json.loads((DATA / "retained-overlong-vo.json").read_bytes())
+    candidate["lang"] = "zh"
+    for episode in candidate["episodes"]:
+        dialogue = [entry["line"] for scene in episode["scenes"] for entry in scene["flow"] if "line" in entry]
+        actions = sum("action" in entry for scene in episode["scenes"] for entry in scene["flow"])
+        episode["targetSeconds"] = 2.5 * actions + round(sum(len(line) * 0.33 for line in dialogue), 1)
+    (delivery / "script.json").write_text(json.dumps(candidate, ensure_ascii=False))
     return package, delivery, private, payload, plan
 
 

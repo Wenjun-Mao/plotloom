@@ -69,12 +69,13 @@ def proposal(topology):
 
 
 @pytest.fixture
-def store(tmp_path):
+def store(tmp_path, request):
     storage = _storage(tmp_path)
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    selected_brief = getattr(request, "param", FIXED_CHINESE_BRIEF)
+    store = storage.projects.create(selected_brief)
     material = _material()
     store.save_source_material(expected_source_revision=0, material=material)
-    request = _request(store.manifest.project_id, material)
+    request = _request(store.manifest.project_id, material, brief=selected_brief)
     store.prepare_outline_candidate(request)
     store.admit_outline_delivery(_deliver(store, request))
     store.accept_outline_candidate(

@@ -51,12 +51,16 @@ def main() -> None:
                     executable="/usr/bin/true",
                 ),
             )
+        from fixtures.content_language_exec import install as install_language_check_host, explicit_check_scope
+        install_language_check_host(app)
+
         @app.middleware("http")
         async def synthetic_video_directions(request, call_next):
             if request.method == "POST" and request.url.path.endswith("/video-batch/draft"):
                 from fixtures.video_directions_exec import install
                 install(app)
-            return await call_next(request)
+            with explicit_check_scope(request.method, request.url.path):
+                return await call_next(request)
 
         if os.environ.get("PLOTLOOM_E2E_PRIOR_ABANDONMENT") == "1":
             from fixtures.prior_abandonment_runtime import install

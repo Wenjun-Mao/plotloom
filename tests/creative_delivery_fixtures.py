@@ -109,7 +109,7 @@ def run_brief_instruction_delivery(
     (delivery / candidate_filename).write_bytes(candidate_bytes)
 
     command_marker = "From the Plotloom repository root, run exactly:\n"
-    command_block = request.creative_brief.split(command_marker, 1)[1]
+    command_block = request.creative_brief.split(command_marker, 1)[1].split("\n\n", 1)[0]
     commands = [line for line in command_block.splitlines() if line.startswith("node scripts/")]
     assert len(commands) == 2
     environment = os.environ.copy()

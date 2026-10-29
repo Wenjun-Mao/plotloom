@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import (
     ArtAcceptRequest,
 )
@@ -40,6 +41,7 @@ def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_d
             "ch_" + "q" * 32, render_style="realistic"
         )
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        install_synthetic_language_check(store, art_request, art_ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=art_candidate.job_id,
@@ -55,6 +57,7 @@ def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_d
                 store, request, "script.json", _pilot_script(), "script-fixture"
             )
         )
+        install_synthetic_language_check(store, request, ready.script)
         accepted = store.accept_script_candidate(
             ScriptAcceptRequest(
                 job_id=candidate.job_id,
@@ -127,6 +130,7 @@ def test_f4_script_admission_freezes_exact_mapping_route_budget_and_target_curre
             "ch_" + "t" * 32, render_style="realistic"
         )
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        install_synthetic_language_check(store, art_request, art_ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=art_candidate.job_id,
@@ -189,6 +193,7 @@ def test_f4_script_target_change_stales_prepared_delivery(tmp_path: Path) -> Non
             "ch_" + "n" * 32, render_style="realistic"
         )
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        install_synthetic_language_check(store, art_request, art_ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=art_candidate.job_id,
@@ -229,6 +234,7 @@ def test_f4_script_target_change_stales_ready_candidate_acceptance(
             "ch_" + "g" * 32, render_style="realistic"
         )
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        install_synthetic_language_check(store, art_request, art_ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=art_candidate.job_id,
@@ -247,6 +253,7 @@ def test_f4_script_target_change_stales_ready_candidate_acceptance(
                 "ready-before-target-change",
             )
         )
+        install_synthetic_language_check(store, script_request, ready.script)
         current = store.project()
         store.update_brief(
             current.brief.model_copy(update={"target_playthrough_seconds": 181}),
@@ -280,6 +287,7 @@ def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays
             "ch_" + "p" * 32, render_style="realistic"
         )
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        install_synthetic_language_check(store, art_request, art_ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=art_candidate.job_id,

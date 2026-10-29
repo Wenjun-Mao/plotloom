@@ -1,8 +1,8 @@
 import { expect, test } from "./fixture";
-import { createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
 
 test("Role guide follows style, preparation, candidate review and Art continuation", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "cast-guide", {}, []);
+  const id = await createScriptProject(request, workbench, "cast-guide", {}, []);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
   const guide = page.getByTestId("recommended-workflow"), panel = page.getByTestId("cast-review");
   await expect(guide).toContainText("当前没有角色候选。先选择「角色图像风格」");
@@ -22,6 +22,7 @@ test("Role guide follows style, preparation, candidate review and Art continuati
   await writeDelivery(prepared, "characters", await fixture("cast.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
   await expect(guide).toContainText("确认使用此角色设定");
+  await checkCurrentCandidateLanguage(page, panel, id, "characters", prepared.jobId);
   await panel.getByRole("button", { name: "确认使用此角色设定", exact: true }).click();
   await expect(guide).toContainText("角色文字已确认。点击「继续：美术参考」");
   await page.getByRole("button", { name: "继续：美术参考", exact: true }).click();
@@ -30,7 +31,7 @@ test("Role guide follows style, preparation, candidate review and Art continuati
 });
 
 test("Role read failure names its actual retry instead of reviewing retained state", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "cast-guide-retry", {}, []);
+  const id = await createScriptProject(request, workbench, "cast-guide-retry", {}, []);
   let failed = true;
   await page.route(`**/api/v2/projects/${id}/cast`, async route => failed ? route.fulfill({ status: 503, json: { detail: "Temporary Cast read failure" } }) : route.continue());
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
@@ -42,7 +43,7 @@ test("Role read failure names its actual retry instead of reviewing retained sta
 });
 
 test("workspace refresh rechecks accepted Role authority before allowing continuation", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "cast-refresh", {}, ["cast"]);
+  const id = await createScriptProject(request, workbench, "cast-refresh", {}, ["cast"]);
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
   const guide = page.getByTestId("recommended-workflow"), panel = page.getByTestId("cast-review");
   await expect(guide).toContainText("角色文字已确认");

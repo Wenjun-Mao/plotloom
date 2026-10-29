@@ -56,8 +56,28 @@ def require_committed_profile_sources(root):
     """The production profile remains the owner of its validator/source list."""
     from plotloom.codex_exec_profile import INSTRUCTION_FILES, VALIDATOR_FILES
     paths = sorted(set(INSTRUCTION_FILES) | set(VALIDATOR_FILES))
-    # The profile additionally binds the entire current Python source tree.
-    paths.extend(str(path.relative_to(root)) for path in (root / "src/plotloom").rglob("*.py"))
-    git_value(root, "ls-files", "--error-unmatch", "--", *paths)
-    subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD", "--", *paths],
+    # Shuohao is the one registered fork boundary, bound by the parent's gitlink.
+    fork_path = "third_party/shuohao-skills"
+    fork_prefix = fork_path + "/"
+    fork_paths = [path[len(fork_prefix):] for path in paths if path.startswith(fork_prefix)]
+    parent_paths = [path for path in paths if not path.startswith(fork_prefix)]
+    parent_paths.extend(str(path.relative_to(root)) for path in (root / "src/plotloom").rglob("*.py"))
+    git_value(root, "ls-files", "--error-unmatch", "--", *parent_paths)
+    subprocess.run(["git", "-C", str(root), "diff", "--quiet", "HEAD", "--", *parent_paths],
         capture_output=True, check=True, timeout=10)
+    if not fork_paths:
+        return
+    committed = git_value(root, "ls-tree", "HEAD", "--", fork_path).split()
+    if len(committed) != 4 or committed[0:2] != ["160000", "commit"] or committed[3] != fork_path:
+        raise ValueError("Shuohao resource owner must be a committed parent gitlink")
+    indexed = git_value(root, "ls-files", "--stage", "--", fork_path).split()
+    if indexed != ["160000", committed[2], "0", fork_path]:
+        raise ValueError("Shuohao staged gitlink differs from committed parent identity")
+    fork = root / fork_path
+    if fork.is_symlink() or Path(git_value(fork, "rev-parse", "--show-toplevel")).resolve() != fork.resolve():
+        raise ValueError("Shuohao resources must belong to the registered fork checkout")
+    if git_value(fork, "rev-parse", "HEAD") != committed[2]:
+        raise ValueError("Shuohao HEAD differs from committed parent gitlink")
+    git_value(fork, "ls-files", "--error-unmatch", "--", *fork_paths)
+    if git_value(fork, "status", "--porcelain", "--untracked-files=all"):
+        raise ValueError("Shuohao resource owner has dirty or untracked files")

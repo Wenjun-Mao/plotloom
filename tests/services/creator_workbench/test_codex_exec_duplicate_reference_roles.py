@@ -1,5 +1,6 @@
 """Host completion preserves distinct role/path identities with identical pixels."""
 from contextlib import closing
+import os
 
 import pytest
 from codex_exec_supervisor_image import CodexExecSupervisorImageMixin
@@ -25,6 +26,22 @@ def test_real_host_completion_consumes_one_image_and_retains_both_role_views(sup
     hashes = result.receipt.image_evidence[0].reference_hashes
     assert len(hashes) == 2 and hashes[0] == hashes[1]
     assert len({item.package_relative_path for item in result.receipt.reference_views}) == 2
+    # Completion is evidence of the remote result, while local occupancy waits
+    # for the injected synchronous worker/CLI OS owners to be positively gone.
+    row = supervisor._row(attempt.attempt_id)
+    owners = {row['worker_pid'], result.attempt.process_id}
+    real_kill, real_killpg = os.kill, os.killpg
+    def absent(probe):
+        def call(pid, signal):
+            if signal == 0 and pid in owners:
+                raise ProcessLookupError("completed synthetic OS owner")
+            return probe(pid, signal)
+        return call
+    monkeypatch.setattr(os, 'kill', absent(real_kill))
+    monkeypatch.setattr(os, 'killpg', absent(real_killpg))
+    observed = supervisor.status(attempt.attempt_id)
+    assert observed.attempt == result.attempt and observed.receipt == result.receipt
+    assert observed.local_execution_stopped is True
     with closing(supervisor._connect()) as connection:
         assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is None
         row = supervisor._row(attempt.attempt_id)

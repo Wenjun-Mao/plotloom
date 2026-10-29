@@ -18,8 +18,8 @@ for (const transition of ["A-B-A", "unmount"] as const) {
     for (const responseKind of ["success", "error"] as const) {
       test(`F5A ${transition} contains held ${operation} ${responseKind} after response settlement`, async ({ page, request, workbench }) => {
         test.setTimeout(90_000);
-        const id = await createScriptProject(request, workbench.apiOrigin, `${transition}-${operation}-${responseKind}`);
-        const other = transition === "A-B-A" ? await createScriptProject(request, workbench.apiOrigin, "other") : "";
+        const id = await createScriptProject(request, workbench, `${transition}-${operation}-${responseKind}`);
+        const other = transition === "A-B-A" ? await createScriptProject(request, workbench, "other") : "";
         const root = endpoint(workbench.apiOrigin, id);
         const prepared = await json(request.post(`${root}/candidates`));
         if (operation === "refresh") await writeDelivery(prepared);

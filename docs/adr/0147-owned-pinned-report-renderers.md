@@ -80,3 +80,10 @@ must bind that exact commit. Another host may depend on it only after publicatio
 or an explicit Git object transfer. Preserve license/fork notices and reproducible
 resource hashes. This is not push/CI authority, and never replaces a pin inside
 an older immutable package or report.
+
+Committed-source verification follows each resource's owning Git tree. Parent
+resources must be tracked and unchanged in the parent; owned Shuohao resources
+must be tracked and unchanged in the clean fork whose HEAD matches the committed
+parent gitlink. A materialized file alone is insufficient. Missing ownership,
+dirty resources or a mismatched fork/gitlink must refuse qualification; checking
+fork files against the parent's file index cannot establish their provenance.

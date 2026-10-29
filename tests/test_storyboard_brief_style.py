@@ -5,6 +5,7 @@ from copy import deepcopy
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.persistence.project.storyboard_review import (
@@ -124,6 +125,7 @@ def test_saved_brief_f5_admission_acceptance_install_and_image_snapshot(tmp_path
         exchange = store.creative_handoff_exchange()
         delivery = exchange.read_delivery(request, store.creative_handoff_execution_pin(request))
         ready = store.admit_storyboard_review_delivery(delivery)
+        install_synthetic_language_check(store, request, ready.storyboard)
         altered_binding = ready.binding.model_copy(update={"storyboard_render_contract": None})
         with pytest.raises(Exception, match="changed"):
             store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=altered_binding))
@@ -185,6 +187,7 @@ def test_manual_binding_keeps_omitted_visual_contract_and_uses_receiving_path(tm
         assert "storyboardRenderContract" not in candidate.binding.model_dump(mode="json", by_alias=True)
         assert CONTRACT_FILENAME not in request.input_artifacts and "scripts/storyboard-receiving.mjs" in request.creative_brief
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(), "manual"))
+        install_synthetic_language_check(store, request, ready.storyboard)
         state = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
         assert state.status == "accepted" and not state.stale_reasons
     finally:

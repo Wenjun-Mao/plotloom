@@ -16,7 +16,7 @@ checkedStaticTest("retained reopened or source-mismatched outlines cannot enable
 const preview = (page: Page) => page.getByRole("dialog", { name: "确认结构修改" });
 checkedStaticTest("Pro native page navigation, shared selection and active-session view survive mode switches", async ({ page, request, workbench }, info) => {
   await page.setViewportSize({ width: 1280, height: 460 });
-  const id = await createScriptProject(request, workbench.apiOrigin, "pro-native-slice", {}, []);
+  const id = await createScriptProject(request, workbench, "pro-native-slice", {}, []);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const initial = await json(request.get(`${base}/graph-workbench`));
   const source = await json(request.get(`${base}/source-outline`));

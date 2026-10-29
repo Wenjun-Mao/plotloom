@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.production_dialogue_timing import TIMING_FILENAME
@@ -142,6 +143,7 @@ def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_polic
         _accepted_f4_script(store)
         old, old_request = store.prepare_storyboard_review_candidate("ch_trialoldpolicy20260925aaaaaaaaaaaa")
         old_ready = store.admit_storyboard_review_delivery(_deliver_stage(store, old_request, "storyboard.json", {"episodes": []}, "old-eight"))
+        install_synthetic_language_check(store, old_request, old_ready.storyboard)
         accepted = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=old.job_id, expected_review_revision=0, binding=old_ready.binding))
         assert accepted.status == "accepted"
         assert accepted.accepted_review.binding.review_max_cut_seconds == 8  # type: ignore[union-attr]
@@ -182,6 +184,7 @@ def test_f5a_accepted_review_stales_when_accepted_f4_script_changes(tmp_path: Pa
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "u" * 32)
         board = {"episodes": [{"ep": 1}, {"ep": 2}, {"ep": 3}]}
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "storyboard-fixture"))
+        install_synthetic_language_check(store, request, ready.storyboard)
         # Client input cannot replace the admitted raw JSON that the report describes.
         with pytest.raises(ValueError, match="storyboard"):
             StoryboardReviewAcceptRequest.model_validate({

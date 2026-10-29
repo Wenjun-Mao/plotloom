@@ -2,12 +2,12 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, checkedStaticTest } from "./fixture";
-import { createScriptProject, fixture, hash, json, writeDelivery } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, fixture, hash, json, writeDelivery } from "./f5a-fixture";
 import { captureReportFramePoint, captureReportParagraphEnd, captureReportPoint, reportDesktopViewports } from "./static-report-audit";
 
 for (const [width, height] of reportDesktopViewports) {
 test(`pinned multi-character static reader retains all roles, relations, long synopsis, prompts and images ${width}x${height}`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "static-cast-report", {}, []);
+  const id = await createScriptProject(request, workbench, "static-cast-report", {}, []);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/cast`;
   const prepared = await json(request.post(`${root}/candidates`, { data: { renderStyle: "realistic" } }));
   // Actual pinned example + renderer, report-only fixture; not a live multi-role
@@ -100,7 +100,7 @@ test(`pinned multi-character static reader retains all roles, relations, long sy
 });
 
 checkedStaticTest(`accepted Cast keeps its original report through reopen and edit, with a divergence notice ${width}x${height}`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "accepted-static-cast-report", {}, []);
+  const id = await createScriptProject(request, workbench, "accepted-static-cast-report", {}, []);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/cast`;
   const prepared = await json(request.post(`${root}/candidates`, { data: { renderStyle: "realistic" } }));
   const deliveredCast = await fixture("cast.json");
@@ -115,6 +115,7 @@ checkedStaticTest(`accepted Cast keeps its original report through reopen and ed
   await page.setViewportSize({ width, height });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`);
   const panel = page.getByTestId("cast-review");
+  await checkCurrentCandidateLanguage(page, panel, id, "characters", prepared.jobId);
   await panel.getByRole("button", { name: "确认使用此角色设定" }).click();
   await expect(panel).toContainText("已确认角色设定 r1");
   const acceptedState = await json(request.get(root));

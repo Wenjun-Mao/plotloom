@@ -4,7 +4,7 @@ import { createScriptProject, json } from "./f5a-fixture";
 test.describe("current shared graph authoring", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
   test("cancels, commits and undoes one exact draft transaction, then recovers unfinished prose", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "graph-commands", {}, []);
+    const id = await createScriptProject(request, workbench, "graph-commands", {}, []);
     const url = `${workbench.apiOrigin}/api/v2/projects/${id}`;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`);
     await expect(page.getByRole("heading", { name: "剧情图与结构规则" })).toBeVisible();

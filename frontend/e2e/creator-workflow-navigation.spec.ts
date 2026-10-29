@@ -9,8 +9,8 @@ async function acceptStoryboardReview(request: import("@playwright/test").APIReq
 }
 
 test("keeps source-owned workflow targets project-scoped and separate from legacy shot media", async ({ page, request, workbench }) => {
-  const firstProject = await createScriptProject(request, workbench.apiOrigin, "workflow-navigation-a");
-  const secondProject = await createScriptProject(request, workbench.apiOrigin, "workflow-navigation-b");
+  const firstProject = await createScriptProject(request, workbench, "workflow-navigation-a");
+  const secondProject = await createScriptProject(request, workbench, "workflow-navigation-b");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProject}&stage=source#art`);
@@ -95,7 +95,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
 });
 
 test("keeps missing and stale F5A review explanations at their source-bound owner", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-f5a-state");
+  const projectId = await createScriptProject(request, workbench, "workflow-f5a-state");
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#storyboard-review`);
   const review = page.getByTestId("storyboard-review");
@@ -121,7 +121,7 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
 });
 
 test("keeps an independent owner usable when the aggregate source read fails", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-independent-owner");
+  const projectId = await createScriptProject(request, workbench, "workflow-independent-owner");
   await page.route(`**/api/v2/projects/${projectId}/source-outline`, async (route) => {
     if (route.request().method() === "GET") return route.abort("failed");
     await route.continue();
@@ -135,7 +135,7 @@ test("keeps an independent owner usable when the aggregate source read fails", a
 });
 
 test("clears an owner-local load error after its retry succeeds", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-owner-retry");
+  const projectId = await createScriptProject(request, workbench, "workflow-owner-retry");
   let failScriptReads = true;
   await page.route(`**/api/v2/projects/${projectId}/script`, async (route) => {
     if (route.request().method() === "GET" && failScriptReads) {
@@ -154,7 +154,7 @@ test("clears an owner-local load error after its retry succeeds", async ({ page,
 });
 
 test("returns from the secondary workbench after an awaited offline project load and retries canonically", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-offline-return");
+  const projectId = await createScriptProject(request, workbench, "workflow-offline-return");
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
   const workflow = page.getByRole("navigation", { name: "创作流程" });
   await expect(page.getByTestId("art-review")).toBeVisible();
@@ -217,7 +217,7 @@ test("returns from the secondary workbench after an awaited offline project load
 });
 
 test("returns from the read-only reader to its existing script owner", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-reader-return");
+  const projectId = await createScriptProject(request, workbench, "workflow-reader-return");
 
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${projectId}`);
   const returnNavigation = page.getByRole("navigation", { name: "创作流程返回" });

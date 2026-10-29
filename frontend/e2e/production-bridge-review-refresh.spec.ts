@@ -4,7 +4,7 @@ import { expect, test } from "./fixture";
 import { changeScript, createScriptProject, endpoint, json, prepare, refresh, writeDelivery } from "./f5a-fixture";
 
 test("reentering Storyboard refreshes external-work admission with an unchanged accepted review", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "bridge-publication-reentry");
+  const id = await createScriptProject(request, workbench, "bridge-publication-reentry");
   const reviewUrl = endpoint(workbench.apiOrigin, id);
   const first = await json(request.post(`${reviewUrl}/candidates`));
   await writeDelivery(first);
@@ -35,7 +35,7 @@ test("reentering Storyboard refreshes external-work admission with an unchanged 
 });
 
 test("mounted Storyboard replacement requalifies the production bridge without reloading", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "mounted-bridge-review");
+  const id = await createScriptProject(request, workbench, "mounted-bridge-review");
   const reviewUrl = endpoint(workbench.apiOrigin, id);
   const first = await json(request.post(`${reviewUrl}/candidates`));
   await writeDelivery(first);

@@ -126,6 +126,18 @@ def _erase_private_tree(path):
 
 
 class CodexExecSupervisorGarbageCollectionMixin:
+    @staticmethod
+    def _retired_home_absent(home):
+        # Restored from the former capacity owner: only positive ENOENT proves
+        # absence. Symlinks, replacement paths and access uncertainty do not.
+        try:
+            Path(home).lstat()
+        except FileNotFoundError:
+            return True
+        except OSError:
+            return False
+        return False
+
     def _project_gc_context(self, connection, request):
         project_id = str(request.project_id)
         if self._namespace is not None:

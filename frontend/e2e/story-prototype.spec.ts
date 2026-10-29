@@ -10,7 +10,7 @@ async function acceptStoryboardReview(request: Parameters<typeof createScriptPro
 }
 
 test("reads ordered multi-scene canonical screenplay without a storyboard review", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-f4", await multiSceneCandidates());
+  const id = await createScriptProject(request, workbench, "story-prototype-f4", await multiSceneCandidates());
   const writes: string[] = [];
   page.on("request", (pending) => { if (pending.url().includes("/api/v2/") && pending.method() !== "GET") writes.push(`${pending.method()} ${pending.url()}`); });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -45,7 +45,7 @@ test("reads ordered multi-scene canonical screenplay without a storyboard review
 });
 
 test("switches route-focused screenplay and matching storyboard without appending either reader", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-f5");
+  const id = await createScriptProject(request, workbench, "story-prototype-f5");
   await acceptStoryboardReview(request, workbench.apiOrigin, id);
   const writes: string[] = [];
   page.on("request", (pending) => { if (pending.url().includes("/api/v2/") && pending.method() !== "GET") writes.push(`${pending.method()} ${pending.url()}`); });
@@ -59,7 +59,8 @@ test("switches route-focused screenplay and matching storyboard without appendin
   await prototype.getByRole("button", { name: "分镜" }).click();
   const storyboard = prototype.getByTestId("storyboard-reader");
   await expect(storyboard).toContainText("按路径查看章节、段落与镜头");
-  await expect(storyboard).toContainText("上游画面提示（原样）");
+  await expect(storyboard).toContainText("画面描述");
+  await expect(storyboard).toContainText("图像生成指令（技术详情，原文）");
   await expect(storyboard).not.toContainText("画面 / 动作");
   await expect(storyboard).toContainText("The dock stays on.");
   await expect(storyboard).not.toContainText("Sailors can see the channel now.");
@@ -91,7 +92,7 @@ test("switches route-focused screenplay and matching storyboard without appendin
 });
 
 test("refuses a stale storyboard locally while retaining the current screenplay", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-stale");
+  const id = await createScriptProject(request, workbench, "story-prototype-stale");
   await acceptStoryboardReview(request, workbench.apiOrigin, id);
   await changeScript(request, workbench.apiOrigin, id);
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
@@ -104,7 +105,7 @@ test("refuses a stale storyboard locally while retaining the current screenplay"
 });
 
 test("shows pending storyboard reads distinctly and retries fatal reader errors without writes", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "story-prototype-read-recovery");
+  const id = await createScriptProject(request, workbench, "story-prototype-read-recovery");
   let rejectScriptRead = true;
   await page.route(`**/api/v2/projects/${id}/script`, async route => {
     if (rejectScriptRead) { await route.fulfill({ status: 503, json: { message: "暂时无法读取剧本" } }); }
@@ -143,7 +144,7 @@ test("missing or reopened screenplay offers its preparation owner rather than a 
   await expect(noProject).not.toContainText("已有已确认");
   await expect(noProject.getByRole("link", { name: "返回项目首页" })).toHaveAttribute("href", "/v2/");
   await inspectReaderState(page, testInfo, "reader-no-project", noProject);
-  const id = await createScriptProject(request, workbench.apiOrigin, "reader-prerequisites", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "reader-prerequisites", {}, ["cast", "art"]);
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
   const prerequisites = page.getByTestId("reader-prerequisites");
   await expect(prerequisites).toContainText("当前尚无已确认剧本");
@@ -151,7 +152,7 @@ test("missing or reopened screenplay offers its preparation owner rather than a 
   await expect(page.getByRole("button", { name: "重新读取故事" })).toHaveCount(0);
   await inspectReaderState(page, testInfo, "reader-missing-script", prerequisites);
 
-  const reopenedId = await createScriptProject(request, workbench.apiOrigin, "reader-reopened-script");
+  const reopenedId = await createScriptProject(request, workbench, "reader-reopened-script");
   await json(request.post(`${workbench.apiOrigin}/api/v2/projects/${reopenedId}/script/reopen`, { data: { expectedScriptRevision: 1 } }));
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${reopenedId}`);
   await expect(prerequisites).toContainText("当前剧本尚未确认，或已有新的修改");
@@ -162,7 +163,7 @@ test("missing or reopened screenplay offers its preparation owner rather than a 
 });
 
 test("optional storyboard read failure preserves route and retries only that read", async ({ page, request, workbench }, testInfo) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "reader-storyboard-read-failure");
+  const id = await createScriptProject(request, workbench, "reader-storyboard-read-failure");
   await acceptStoryboardReview(request, workbench.apiOrigin, id);
   let failRead = true;
   await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, async route => {
@@ -213,18 +214,18 @@ async function inspectReaderState(page: Page, testInfo: TestInfo, name: string, 
 async function multiSceneCandidates() {
   const [cast, art, script] = await Promise.all([fixture("cast.json"), fixture("art.json"), fixture("script.json")]);
   cast.characters.push({ id: "watcher", name: "Ilan", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  appearance: "Oilskin coat and a harbor lantern", arc: "Keeps the dock visible", motivation: "Bring boats in safely" }, voice: { timbre: "Low and careful" } });
-  art.scenes.push({ id: "S02", name: "Dock platform", primary: false, summary: "The harbor watcher protects the landing.", anchors: [{ name: "wet planks", desc: "rain-slick wood" }, { name: "mooring post", desc: "black iron" }, { name: "rope coil", desc: "salt-stiff hemp" }], lighting: [{ state: "lantern", prompt: "amber lantern glow across wet planks" }], image: { prompt: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, empty harbor dock platform", negativePrompt: "people, human figures", sheet: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth", tags: [] } });
-  art.props.push({ id: "P01", name: "Signal lamp", summary: "Marks the safe dock approach.", anchors: [{ name: "brass hood", desc: "dented brass" }, { name: "green lens", desc: "ribbed glass" }, { name: "wire handle", desc: "looped steel" }], states: [{ state: "lit", prompt: "green lens glowing" }], scale: "手持级", relatedScenes: ["S02"], usage: { episodes: [1], beats: [] }, image: { prompt: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, a brass signal lamp at handheld scale on a pure white background", negativePrompt: "people, human hands, fingers", sheet: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, handheld scale, pure white background", tags: [] } });
+  art.scenes.push({ id: "S02", name: "Dock platform", primary: false, summary: "The harbor watcher protects the landing.", anchors: [{ name: "wet planks", desc: "rain-slick wood" }, { name: "mooring post", desc: "black iron" }, { name: "rope coil", desc: "salt-stiff hemp" }], lighting: [{ state: "lantern", description: "Amber lantern light spreads across the wet planks.", prompt: "amber lantern glow across wet planks" }], image: { prompt: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, empty harbor dock platform", negativePrompt: "people, human figures", sheet: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth", tags: [] } });
+  art.props.push({ id: "P01", name: "Signal lamp", summary: "Marks the safe dock approach.", anchors: [{ name: "brass hood", desc: "dented brass" }, { name: "green lens", desc: "ribbed glass" }, { name: "wire handle", desc: "looped steel" }], states: [{ state: "lit", description: "The green lens glows through the rain.", prompt: "green lens glowing" }], scale: "手持级", relatedScenes: ["S02"], usage: { episodes: [1], beats: [] }, image: { prompt: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, a brass signal lamp at handheld scale on a pure white background", negativePrompt: "people, human hands, fingers", sheet: "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth, handheld scale, pure white background", tags: [] } });
   art.sectionUsage[0] = { sectionId: "opening", sceneIds: ["S01", "S02"], propIds: ["P01"] };
   const opening = script.episodes[0];
-  const [firstScene, secondScene] = [opening.scenes[0], { ...opening.scenes[0], sceneId: "S02", lighting: "lantern", characters: ["watcher"], props: ["P01"], flow: opening.scenes[0].flow.slice(6).map((item: Record<string, unknown>) => item.speaker === "keeper" ? { ...item, speaker: "watcher" } : item) }];
+  const [firstScene, secondScene] = [opening.scenes[0], { ...opening.scenes[0], sceneId: "S02", lighting: "lantern", characters: ["watcher"], props: ["P01"], flow: opening.scenes[0].flow.slice(6).map((item: Record<string, unknown>) => item.speaker === "keeper" ? { ...item, speaker: "watcher" } : typeof item.action === "string" ? { ...item, action: item.action.replaceAll("Mira", "Ilan") } : item) }];
   firstScene.flow = firstScene.flow.slice(0, 6);
   opening.scenes = [firstScene, secondScene];
   return { cast, art, script };
 }
 
 test("keeps all nine explicit routes through shared joins and endings in both readers", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "shared-ending-reader");
+  const id = await createScriptProject(request, workbench, "shared-ending-reader");
   await acceptStoryboardReview(request, workbench.apiOrigin, id);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const stages = await json(request.get(`${root}/stages`));
@@ -240,7 +241,7 @@ test("keeps all nine explicit routes through shared joins and endings in both re
   accepted.binding.sectionBindings = bindings;
   accepted.script = { ...accepted.script, sectionBindings: bindings, episodes: bindings.map(({ sectionId, episode }) => ({ ep: episode, scenes: [{ sceneId: "S01", flow: [{ action: `SCRIPT ${sectionId}` }] }] })) };
   reviewState.acceptedReview.binding.sectionBindings = bindings;
-  reviewState.acceptedReview.storyboard = { episodes: bindings.map(({ sectionId, episode }) => ({ ep: episode, segments: [{ sceneIndex: 1, cuts: [{ frame: `FRAME ${sectionId}`, seconds: 5 }] }] })) };
+  reviewState.acceptedReview.storyboard = { episodes: bindings.map(({ sectionId, episode }) => ({ ep: episode, segments: [{ sceneIndex: 1, cuts: [{ composition: `FRAME ${sectionId}`, frame: `FRAME ${sectionId}`, seconds: 5 }] }] })) };
   // Read-only transport fixture: exercise the production reader's exact current bindings.
   await page.route(`**/api/v2/projects/${id}/stages`, route => route.fulfill({ json: stages }));
   await page.route(`**/api/v2/projects/${id}/script`, route => route.fulfill({ json: scriptState }));

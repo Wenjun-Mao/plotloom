@@ -6,7 +6,7 @@ import { changeScript, createScriptProject, fixture, hash, json, writeDelivery }
 import { auditStaticReport } from "./static-report-audit";
 
 test("Script content review stays readable and its original static report remains isolated", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "static-script-report", {}, ["cast", "art"]);
+  const id = await createScriptProject(request, workbench, "static-script-report", {}, ["cast", "art"]);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/script`;
   const prepared = await json(request.post(`${root}/candidates`));
   const script = await fixture("script.json");

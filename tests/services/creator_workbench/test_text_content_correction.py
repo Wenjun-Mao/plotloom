@@ -13,6 +13,7 @@ from plotloom.autopilot_service import AutopilotService
 from plotloom.project_storage import ProjectFolderStorage
 from plotloom.text_correction_contracts import CORRECTION_CONTRACT, TextContentIssue, logical_checkpoint
 from tests.autopilot_controller_fixtures import candidate, default_brief
+from tests.autopilot_checked_text_fixtures import assert_text_fixture_job_counts
 from tests.autopilot_fake_exec_host import FakeCodexExecHost
 from tests.test_specialist_settings import configured
 
@@ -21,9 +22,10 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def _art_candidate():
     art = json.loads((ROOT / "frontend/e2e/fixtures/f5a/art.json").read_bytes())
+    art["lang"] = "zh"
     art["props"] = [{"id": "P01", "name": "Brass key", "summary": "Opens the beacon control box.",
         "anchors": [{"name": "brass", "desc": "old brass"}, {"name": "teeth", "desc": "three teeth"}, {"name": "ring", "desc": "round ring"}],
-        "states": [{"state": "idle", "prompt": "a brass key lying flat"}], "scale": "手持级",
+        "states": [{"state": "idle", "description": "黄铜钥匙平放在桌面上。", "prompt": "a brass key lying flat"}], "scale": "手持级",
         "image": {"prompt": art["scenes"][0]["image"]["prompt"] + ", brass key",
             "sheet": art["scenes"][0]["image"]["sheet"] + ", brass key on white background",
             "negativePrompt": "people, human figures, hands, fingers", "tags": []}}]
@@ -88,7 +90,7 @@ def _journey_environment(supervisor, tmp_path, monkeypatch, *, exhaust=False, co
     registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
     registry.require_codex_exec_readiness = lambda: CodexExecReadiness(state='ready')
     host = FakeCodexExecHost(storage, registry, candidate_factory=candidate)
-    registry.codex_exec_admit = lambda attempt: supervisor.admit(attempt) if attempt.operation_key.startswith("art") else host.admit(attempt)
+    registry.codex_exec_admit = lambda attempt: supervisor.admit(attempt) if attempt.operation_key.startswith("art") and ":content-language-check:" not in attempt.operation_key else host.admit(attempt)
     registry.codex_exec_status = lambda identifier: host.status(identifier) if str(identifier) in host.statuses else supervisor.status(identifier)
     registry.codex_exec_cancel = supervisor.cancel
     registry.codex_exec_suspend = supervisor.suspend
@@ -131,7 +133,7 @@ def test_real_host_content_rejection_has_one_frozen_correction_and_real_report(s
                 "repairFacts": {"requiredPhrase": "handheld scale"}}
             assert source_attempt.attempt_id != corrective_attempt.attempt_id
             assert source_attempt.job_id != corrective_attempt.job_id
-            assert current.lifetime_jobs == 5
+            assert_text_fixture_job_counts(store, current, creative_count=5, checker_count=3 if exhaust else 4)
             if exhaust:
                 assert current.state == "blocked" and correction["state"] == "failed"
                 assert receipt is None and store.art_state().accepted_art is None
@@ -186,7 +188,7 @@ def test_content_feedback_has_no_arbitrary_prose_authority():
         TextContentIssue.model_validate({"code": "validator_crashed", "fieldPaths": ["$"], "repairFacts": {}})
 
 
-def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=None, stage="outline"):
+def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=None, stage="outline", local_stopped=False):
     """Host-fact fixture for unsafe races; real validator journey is above."""
     from hashlib import sha256
     from uuid import uuid4
@@ -207,7 +209,9 @@ def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=Non
         return admit(attempt)
     monkeypatch.setattr(registry, "codex_exec_admit", hold_target)
     assert service.acquire_controller()
-    for _ in range(24):
+    # Each creative stage now has a separate checker progression.
+    from plotloom.autopilot_launch import CREATIVE_STAGES
+    for _ in range(8 * len(CREATIVE_STAGES)):
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             attempt = store.repository.autopilot.exec_attempt_for_operation(run.id, stage)
@@ -232,31 +236,70 @@ def _failed_outline_fixture(tmp_path, monkeypatch, *, kind="content", limits=Non
             source_revision=attempt.plotloom_code_revision,
             issues=(TextContentIssue(code="candidate_content_invalid", field_paths=("$",)),))
     elif kind == "unknown":
-        changes = {"state": "outcome_unknown"}
+        changes = {"state": "outcome_unknown", "execution_failure": "transient"}
     elif kind == "runtime":
-        changes["process_exit_code"] = 1
+        changes.update(process_exit_code=1, execution_failure="transient")
+    elif kind == "refusal":
+        changes["execution_failure"] = "permission"
     status = transition_exec_attempt(attempt, **changes)
     host.pending.discard(str(attempt.attempt_id))
-    host.statuses[str(attempt.attempt_id)] = CodexExecHostStatus(state=status.state, attempt=status)
+    host.statuses[str(attempt.attempt_id)] = CodexExecHostStatus(
+        state=status.state, attempt=status, localExecutionStopped=local_stopped)
     return storage, registry, service, run, calls
 
 
 @pytest.mark.parametrize("kind", ["runtime", "refusal", "unknown"])
 @pytest.mark.parametrize("stage", ["outline", "script"])
 def test_noncontent_host_outcomes_never_authorize_correction(tmp_path, monkeypatch, kind, stage):
-    storage, _registry, service, run, calls = _failed_outline_fixture(tmp_path, monkeypatch, kind=kind, stage=stage)
+    storage, registry, service, run, calls = _failed_outline_fixture(
+        tmp_path, monkeypatch, kind=kind, stage=stage, limits={"automatic_retry_limit": 0},
+        local_stopped=kind != "unknown")
+    host = registry._codex_exec_test_host
     try:
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
+            checkpoints = [c for c in current.checkpoints if c["evidence"]["owner"] == stage]
+            assert len(checkpoints) == 1
+            checkpoint = checkpoints[0]
+            attempt = store.repository.autopilot.exec_attempt_for_operation(run.id, stage)
+            assert attempt.state == ("outcome_unknown" if kind == "unknown" else "failed")
+            assert checkpoint["state"] == attempt.state
+            assert host.statuses[str(attempt.attempt_id)].local_execution_stopped is (kind != "unknown")
+            assert attempt.content_rejection is None
+            assert attempt.execution_failure == ("permission" if kind == "refusal" else "transient")
+            assert checkpoint["retry"]["state"] == {
+                "runtime": "exhausted", "refusal": "stopped", "unknown": "retry_pending"}[kind]
+            assert checkpoint["retry"]["automaticRetryLimit"] == 0
+            assert checkpoint["retry"]["currentJobId"] == attempt.job_id
+            assert checkpoint["retry"]["currentAttemptId"] == str(attempt.attempt_id)
+            assert checkpoint["retry"]["predecessorJobIds"] == []
+            activity = next(a for a in current.activities if a.operation_key == stage)
+            assert activity.job_id == attempt.job_id
+            assert activity.state == ("unknown" if kind == "unknown" else "failed")
+            from plotloom.autopilot_text_failures import failure_context
+            context = failure_context(store, registry, stage=stage)
+            if kind == "unknown":
+                assert context is None
+            else:
+                assert context is not None and not context["canRetry"] and not context["terminalContentFailure"]
+            hold = "source_outline_publication_active" if stage == "outline" else "script_publication_active"
+            assert hold in storage.projects.specialist_blockers(store)
+        original_ids = set(host.statuses)
+        admissions = host.admissions
+        for _ in range(2):
+            service.step(run.project_id)
+        assert set(host.statuses) == original_ids and host.admissions == admissions
+        assert len(calls) == len(set(calls)) == (1 if stage == "outline" else 9)
+        with closing(storage.projects.open(run.project_id)) as store:
+            current = store.repository.autopilot.current(run.project_id)
             assert len([c for c in current.checkpoints if c["evidence"]["owner"] == stage]) == 1
-            assert current.state in {"waiting", "blocked"}
-            assert ("source_outline_publication_active" if stage == "outline" else "script_publication_active") in storage.projects.specialist_blockers(store)
-        assert len(calls) == (1 if stage == "outline" else 5)
         if kind != "unknown":
             service.control(run.project_id, RunControlRequest(expected_revision=current.revision, action="cancel"))
             with closing(storage.projects.open(run.project_id)) as store:
-                assert ("source_outline_publication_active" if stage == "outline" else "script_publication_active") not in storage.projects.specialist_blockers(store)
+                assert store.repository.autopilot.current(run.project_id).state == "cancelled"
+                assert hold not in storage.projects.specialist_blockers(store)
+            assert set(host.statuses) == original_ids and host.admissions == admissions
     finally:
         service.close()
 
@@ -301,13 +344,13 @@ def test_correction_creation_crash_rolls_back_job_head_and_checkpoint(tmp_path, 
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(current, stage)["operationKey"] == stage
-            assert current.lifetime_jobs == {"outline": 1, "script": 5, "storyboard": 6}[stage]
+            assert_text_fixture_job_counts(store, current, creative_count={"outline": 1, "script": 5, "storyboard": 6}[stage], checker_count={"outline": 0, "script": 4, "storyboard": 5}[stage])
         service.step(run.project_id)
         with closing(storage.projects.open(run.project_id)) as store:
             current = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(current, stage)["operationKey"] == f"{stage}:correction:1"
-            assert current.lifetime_jobs == {"outline": 2, "script": 6, "storyboard": 7}[stage]
-        assert len(calls) == {"outline": 1, "script": 5, "storyboard": 6}[stage]
+            assert_text_fixture_job_counts(store, current, creative_count={"outline": 2, "script": 6, "storyboard": 7}[stage], checker_count={"outline": 0, "script": 4, "storyboard": 5}[stage])
+        assert len(calls) == {"outline": 1, "script": 9, "storyboard": 11}[stage]
     finally:
         service.close()
 
@@ -327,8 +370,8 @@ def test_duplicate_correction_preparation_reuses_exact_job_and_immutable_feedbac
             service.controller.prepare_correction(store, current, service.claim, request, source)
             after = store.repository.autopilot.current(run.project_id)
             assert logical_checkpoint(after, stage) == original_correction
-            assert after.lifetime_jobs == {"outline": 2, "script": 6, "storyboard": 7}[stage]
-        assert len(calls) == {"outline": 1, "script": 5, "storyboard": 6}[stage]
+            assert_text_fixture_job_counts(store, after, creative_count={"outline": 2, "script": 6, "storyboard": 7}[stage], checker_count={"outline": 0, "script": 4, "storyboard": 5}[stage])
+        assert len(calls) == {"outline": 1, "script": 9, "storyboard": 11}[stage]
     finally:
         service.close()
 
@@ -362,8 +405,14 @@ def test_corrected_stage_can_prepare_a_later_manual_candidate_without_rewriting_
     try:
         service.step(run.project_id)
         host.auto_deliver = True
-        for _ in range(3):
+        for _ in range(8):
             service.step(run.project_id)
+            with closing(storage.projects.open(run.project_id)) as store:
+                observed = store.repository.autopilot.current(run.project_id)
+                if logical_checkpoint(observed, stage)["state"] == "adopted":
+                    break
+        else:
+            raise AssertionError("corrected candidate did not complete its independent language check")
         with closing(storage.projects.open(run.project_id)) as store:
             revision = store.repository.autopilot.current(run.project_id).revision
         service.control(run.project_id, RunControlRequest(expected_revision=revision, action="takeover"))
@@ -393,5 +442,20 @@ def test_corrected_stage_can_prepare_a_later_manual_candidate_without_rewriting_
             assert fresh.job_id == fresh_id
             assert next(c for c in store.repository.autopilot.current(run.project_id).checkpoints if c["operationKey"] == stage) == source
             assert ("cast_publication_active" if stage == "characters" else "art_publication_active") in storage.projects.specialist_blockers(store)
+    finally:
+        service.close()
+
+
+def test_semantic_failure_projects_stopped(tmp_path, monkeypatch):
+    storage, registry, service, run, _calls = _failed_outline_fixture(tmp_path, monkeypatch,
+        kind="content", limits={"automatic_retry_limit": 1, "text_correction_limit": 0}, local_stopped=True)
+    try:
+        service.step(run.project_id)
+        with closing(storage.projects.open(run.project_id)) as store:
+            view = store.repository.autopilot.current(run.project_id)
+        checkpoint = next(c for c in view.checkpoints if c["operationKey"] == "outline")
+        assert checkpoint["retry"]["state"] == "stopped"
+        assert checkpoint["retry"]["predecessorJobIds"] == []
+        assert not checkpoint["evidence"]["result"].get("executionRetryExhausted")
     finally:
         service.close()

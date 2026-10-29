@@ -36,6 +36,7 @@ def realistic_pack_environment(tmp_path, monkeypatch):
                     segment["id"] = f"E{episode['ep']:02}-{slot + 1:02}"
                     count = 4 if slot == 2 else 5
                     segment["cuts"] = [{"seconds": 2.5, "beats": [slot * 5 + index, slot * 5 + index],
+                        "composition": request.input_artifacts["script.json"]["episodes"][episode["ep"] - 1]["scenes"][0]["flow"][slot * 5 + index - 1]["action"],
                         "size": "medium", "camera": "Static Shot", "characters": [] if index == 1 else ["keeper", "observer"], "props": [],
                         "frame": "medium shot of the beacon room at dawn, cinematic film still, cool gray palette, 16:9"}
                         for index in range(1, count + 1)]

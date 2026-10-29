@@ -40,7 +40,7 @@ PLOTLOOM_CODE_REVISION = "e" * 40
 
 
 def _request() -> CreativeHandoffRequest:
-    return CreativeHandoffRequest.model_validate({
+    request = CreativeHandoffRequest.model_validate({
         "jobId": "ch_" + "a" * 20,
         "projectId": "project-demo",
         "sectionId": "section-opening",
@@ -50,11 +50,17 @@ def _request() -> CreativeHandoffRequest:
         "inputArtifacts": {OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
         "creativeBrief": "Create a one-episode outline candidate; do not claim approval.",
     })
+    from plotloom.language_policy import freeze_request_language
+    if request.stage in {"characters", "storyboard"}:
+        request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 def _request_for_stage(stage: str) -> CreativeHandoffRequest:
+    from plotloom.cast_style import freeze_cast_style
     artifacts = {
-        "characters": {"cast-style-contract.json": {"style": "live-action"}},
+        "characters": {"cast-style-contract.json": freeze_cast_style("live-action", None)},
         "art": {"cast.json": {"characters": []}, "art-style-contract.json": {"style": "live-action"}},
         "script": {
             "outline.json": {"episodes": []},
@@ -75,7 +81,12 @@ def _request_for_stage(stage: str) -> CreativeHandoffRequest:
         )
         artifacts[TIMING_FILENAME] = freeze_f5_dialogue_timing(artifacts["script.json"],
             script_content_hash="a" * 64, language="zh-CN").model_dump(mode="json", by_alias=True)
-    return _request().model_copy(update={"stage": stage, "input_artifacts": artifacts})
+    request = _request().model_copy(update={"stage": stage, "input_artifacts": artifacts})
+    from plotloom.language_policy import freeze_request_language
+    if request.stage in {"characters", "storyboard"}:
+        request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 def _profile() -> CodexExecProfile:
@@ -106,7 +117,7 @@ def _profile() -> CodexExecProfile:
 def _text_receipt(job_root: Path, request: CreativeHandoffRequest, profile: CodexExecProfile):
     delivery = job_root / "delivery"
     delivery.mkdir()
-    candidate = canonical_json({"source": "Ferry", "params": {"episodes": 1}})
+    candidate = canonical_json({"source": "Ferry", "lang": "zh", "params": {"episodes": 1}})
     report = b"<!doctype html><html><body>derived report</body></html>"
     (delivery / "outline.json").write_bytes(candidate)
     (delivery / "report.html").write_bytes(report)
@@ -341,7 +352,12 @@ def _saved_brief_request(stage: str) -> CreativeHandoffRequest:
         "inputArtifacts": input_artifacts,
         "creativeBrief": creative_brief,
     }
-    return CreativeHandoffRequest.model_validate(value)
+    request = CreativeHandoffRequest.model_validate(value)
+    from plotloom.language_policy import freeze_request_language
+    if stage in {"characters", "storyboard"}:
+        request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 @pytest.mark.parametrize(
@@ -374,8 +390,11 @@ def test_cli_saved_brief_package_routes_neutral_validator_from_delivery(
     assert package_request["inputArtifacts"][contract_filename] == request.input_artifacts[contract_filename]
     assert (package / "inputs" / contract_filename).is_file()
     assert plan.route == "saved_brief"
-    assert plan.steps[0].program == "node"
-    assert plan.steps[0].argv[0] == f"{{source}}/scripts/{adapter}"
+    assert plan.steps[0].program == ("uv" if stage in {"characters", "storyboard"} else "node")
+    if stage in {"characters", "storyboard"}:
+        assert "{source}/scripts/creative_field_validation.py" in plan.steps[0].argv
+    else:
+        assert plan.steps[0].argv[0] == f"{{source}}/scripts/{adapter}"
     assert "neutral Plotloom adapter" in instructions
     assert "do not invoke the adapter or write the report yourself" in instructions
     assert "request.creativeBrief supplies creative, style, source and candidate requirements" in instructions
@@ -417,6 +436,8 @@ def test_codex_assignments_preserve_native_bridge_stage_contracts(
     tmp_path: Path, stage: str, required_instructions: tuple[str, ...]
 ):
     request = _request().model_copy(update={"stage": stage})
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "zh-CN")
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
     # This covers package text only; current_execution_pin correctly rejects
     # uncommitted native bridge sources in a developer worktree.

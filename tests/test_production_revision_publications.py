@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
@@ -33,6 +34,7 @@ def _storage_with_art(tmp_path):
             "ch_" + "u" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,
@@ -77,6 +79,7 @@ def test_script_publication_blocks_revision_until_explicit_resolution(
             store.cancel_script_candidate(candidate.job_id)
         else:
             ready = store.admit_script_delivery(delivery)
+            install_synthetic_language_check(store, request, ready.script)
         store.save_source_material(
             expected_source_revision=1, material=_revised_source()
         )

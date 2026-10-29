@@ -49,7 +49,7 @@ def test_source_modes_persist_candidate_and_explicit_acceptance(tmp_path: Path, 
         prepared = store.prepare_outline_candidate(request)
         assert prepared.status == "prepared"
         ready = store.admit_outline_delivery(_deliver(store, request))
-        assert ready.status == "ready" and ready.outline == {"source": "渡口的信", "params": {"episodes": 1}, "episodes": []}
+        assert ready.status == "ready" and ready.outline == {"source": "渡口的信", "lang": "zh", "params": {"episodes": 1}, "episodes": []}
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0,
         ))

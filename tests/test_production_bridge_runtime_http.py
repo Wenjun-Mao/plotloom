@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.config import PlotloomSettings
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.runtime import build_runtime_app
@@ -61,6 +62,7 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(
                     "http-fake",
                 )
             )
+            install_synthetic_language_check(store, request, ready.storyboard)
             store.accept_storyboard_review_candidate(
                 StoryboardReviewAcceptRequest(
                     job_id=candidate.job_id,

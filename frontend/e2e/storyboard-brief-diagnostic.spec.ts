@@ -2,7 +2,7 @@ import { expect, test } from "./fixture";
 import { createScriptProject, endpoint } from "./f5a-fixture";
 
 test("changed F5A Brief authority has a readable protected diagnostic at desktop and narrow widths", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "brief-style-diagnostic");
+  const id = await createScriptProject(request, workbench, "brief-style-diagnostic");
   const diagnostic = { code: "binding_value_changed", owner: "storyboard-review", field: "storyboard_render_contract", technicalMessage: "storyboard render contract changed" };
   await page.route(`**${new URL(endpoint(workbench.apiOrigin, id)).pathname}`, route => route.fulfill({ contentType: "application/json", body: JSON.stringify({
     status: "stale", candidate: null, acceptedReview: null, staleReasons: [diagnostic], acceptedReviewState: { status: "missing", staleReasons: [] },

@@ -1,8 +1,8 @@
 import { expect, test } from "./fixture";
-import { createScriptProject, writeDelivery, prepare } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, writeDelivery, prepare } from "./f5a-fixture";
 
 test("Storyboard guide follows current native review and independent production preparation", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "storyboard-guide");
+  const id = await createScriptProject(request, workbench, "storyboard-guide");
   let boardReads = 0, bridgeReads = 0;
   for (const [endpoint, count] of [["storyboard-source-review", () => boardReads++], ["production-bridge", () => bridgeReads++]] as const) {
     await page.route(`**/api/v2/projects/${id}/${endpoint}`, async route => { if (route.request().method() === "GET") count(); await route.continue(); });
@@ -26,6 +26,7 @@ test("Storyboard guide follows current native review and independent production 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(size.width);
     await page.screenshot({ path: info.outputPath(`storyboard-confirm-${size.width}x${size.height}.png`) });
   }
+  await checkCurrentCandidateLanguage(page, panel, id, "storyboard", prepared.jobId);
   await panel.getByRole("button", { name: "确认此分镜评审方案", exact: true }).click();
   await expect(guide).toContainText("点击下方「准备投产提案」");
   // The bridge's layout-effect replay aborts before the first request reaches the server.
@@ -38,7 +39,7 @@ test("Storyboard guide follows current native review and independent production 
 });
 
 test("Storyboard guide stays unknown on held or failed reads and names the actual retry", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "storyboard-guide-retry");
+  const id = await createScriptProject(request, workbench, "storyboard-guide-retry");
   let mode: "held" | "failed" | "native" = "held", release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
   await page.route(`**/api/v2/projects/${id}/storyboard-source-review`, async route => {

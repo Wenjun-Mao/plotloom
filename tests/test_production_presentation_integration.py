@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
@@ -143,6 +144,7 @@ def test_raw_f5_accepts_submillisecond_time_but_production_conflicts_explicitly(
                 "submillisecond",
             )
         )
+        install_synthetic_language_check(store, request, ready.storyboard)
         accepted = store.accept_storyboard_review_candidate(
             StoryboardReviewAcceptRequest(
                 job_id=candidate.job_id,
@@ -185,6 +187,7 @@ def test_fresh_prepare_retains_the_accepted_longer_cut_review_policy(tmp_path: P
         ready = store.admit_storyboard_review_delivery(
             _deliver_stage(store, request, "storyboard.json", board, "longer-policy")
         )
+        install_synthetic_language_check(store, request, ready.storyboard)
         accepted = store.accept_storyboard_review_candidate(
             StoryboardReviewAcceptRequest(
                 job_id=candidate.job_id,

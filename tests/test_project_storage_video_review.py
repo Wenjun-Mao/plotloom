@@ -184,5 +184,7 @@ def test_h3_end_frame_decision_freezes_prompt_bytes_and_stales_after_clear(
         ),
     )
     failed = client.post(f"{base}/video-jobs/{second.json()['id']}/submit")
-    assert failed.status_code == 200 and failed.json()["state"] != "submitted"
+    assert failed.status_code == 409, failed.text
+    retained = client.get(f"{base}/video-jobs").json()["jobs"]
+    assert next(job for job in retained if job["id"] == second.json()["id"])["state"] == "prepared"
     assert len(provider.submits) == 1

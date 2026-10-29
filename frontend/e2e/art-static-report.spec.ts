@@ -7,7 +7,7 @@ import { captureReportFramePoint, captureReportPoint, reportDesktopViewports } f
 
 for (const [width, height] of reportDesktopViewports) {
 test(`pinned Art static reading preserves prompts, images and native disclosures ${width}x${height}`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "static-art-report", {}, ["cast"]);
+  const id = await createScriptProject(request, workbench, "static-art-report", {}, ["cast"]);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}/art`;
   const art = await fixture("art.json");
   const prepared = await json(request.post(`${root}/candidates`, { data: { renderStyle: art.style } }));

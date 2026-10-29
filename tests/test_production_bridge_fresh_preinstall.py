@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.runtime_secrets import RunSecretBroker
@@ -49,6 +50,7 @@ def test_stale_preinstall_preparation_retains_history_and_resets_whole_review(tm
                 "renewed-source-fixture",
             )
         )
+        install_synthetic_language_check(store, request, ready.storyboard)
         store.accept_storyboard_review_candidate(
             StoryboardReviewAcceptRequest(
                 job_id=candidate.job_id,

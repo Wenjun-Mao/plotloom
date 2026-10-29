@@ -130,6 +130,9 @@ def real_example_request(direction):
         route_budget_hash=timing_hash, section_bindings=mapping, complete_route_section_ids=routes,
         route_only_section_ids=[], review_min_cut_seconds=2, review_max_cut_seconds=8, review_max_segment_seconds=15,
         dialogue_timing_contract=dialogue_timing)
+    from plotloom.language_policy import freeze_request_language
+    request.content_validation_contract = "plotloom.typed-content-result.v1"
+    freeze_request_language(request, "zh-CN")
     return request, board, binding
 
 
@@ -141,7 +144,7 @@ def execute_example_package(tmp_path, request, board):
     delivery.mkdir()
     candidate = canonical_json(board)
     (delivery / "storyboard.json").write_bytes(candidate)
-    commands = request.creative_brief.split("From the Plotloom repository root, run exactly:\n", 1)[1].splitlines()
+    commands = request.creative_brief.split("From the Plotloom repository root, run exactly:\n", 1)[1].split("\n\n", 1)[0].splitlines()
     assert len(commands) == 2 and all(command.startswith("node scripts/brief-storyboard-style.mjs") for command in commands)
     for command in commands:
         subprocess.run(["bash", "-e", "-c", command], cwd=ROOT,

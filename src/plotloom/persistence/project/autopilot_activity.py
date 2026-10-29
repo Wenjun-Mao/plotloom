@@ -59,13 +59,16 @@ def _project_checkpoints(checkpoints: list[AutopilotCheckpointRow]) -> _RunViewC
     return _RunViewCheckpoints(public, typed)
 
 
-def run_activities(session, run_id, checkpoints: _RunViewCheckpoints):
-    attempts = {
+def load_run_attempts(session, run_id):
+    return {
         row.operation_key: CodexExecAttempt.model_validate(row.snapshot)
         for row in session.scalars(select(AutopilotExecAttemptRow).where(
             AutopilotExecAttemptRow.run_id == run_id,
         )).all()
     }
+
+
+def run_activities(session, run_id, checkpoints: _RunViewCheckpoints, attempts):
     activities = []
     for checkpoint, evidence in checkpoints.typed:
         if evidence.job_id is None or evidence.owner == "geometry-preparation":

@@ -6,7 +6,7 @@ import { createScriptProject, endpoint, fixture, hash, json, writeDelivery } fro
 import { auditStaticReport, captureReportFramePoint, reportDesktopViewports } from "./static-report-audit";
 
 test("pinned Storyboard static reader reveals long segments/prompts without permissions or archive rewrites", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "static-storyboard-report");
+  const id = await createScriptProject(request, workbench, "static-storyboard-report");
   const root = endpoint(workbench.apiOrigin, id);
   const prepared = await json(request.post(`${root}/candidates`));
   const board = await fixture("storyboard.json");

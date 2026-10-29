@@ -16,7 +16,7 @@ def test_text_prompt_assigns_candidate_files_and_leaves_completion_to_host(tmp_p
         domain="text",
     )
 
-    assert PROMPT_VERSION == "plotloom.codex-exec-assignment.v7"
+    assert PROMPT_VERSION == "plotloom.codex-exec-assignment.v8"
     assert prompt.startswith(PROMPT_VERSION)
     assert "Write only the requested candidate JSON" in prompt
     assert "trusted host runs its exact frozen validation plan" in prompt

@@ -6,7 +6,7 @@ import { changeScript, createScriptProject, endpoint, fixture, hash, json, prepa
 test.describe("F5A production FastAPI/file-SQLite review", () => {
   test("freezes/reloads/re-copies, validates real upstream content, accepts read-only review and persists restart", async ({ page, request, workbench }) => {
     test.setTimeout(90_000);
-    const id = await createScriptProject(request, workbench.apiOrigin, "accept");
+    const id = await createScriptProject(request, workbench, "accept");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
     const prepared = await prepare(page, panel, id);
@@ -38,14 +38,14 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     expect(await readFile(path.join(prepared.packagePath, "request.json"))).toEqual(frozen);
     await expect(panel.getByLabel("分镜完整任务")).toHaveValue(prepared.assignment);
     await writeDelivery(prepared);
-    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("c3961f73e063aeb361ec44c8a86d8215d6b0f118bd608e867a2b60d60923eb63");
+    expect(hash(await readFile(path.join(prepared.deliveryPath, "storyboard.json")))).toBe("6442f75ecc7adf8d8bbdc01aaf1230a97531a742ac997eaa7b639b0940aef869");
     await refresh(page, panel, id, prepared.jobId);
     await panel.getByText("查看待审阅分镜", { exact: true }).click();
     await expect(panel.getByTestId("storyboard-cut").first()).toContainText("wide shot of a lone beacon keeper");
     await expect(panel.getByTestId("storyboard-cut").first()).toBeVisible();
-    await expect(panel).toContainText("Characters: keeper");
-    await expect(panel).toContainText("Props: none");
-    await expect(panel).toContainText("Beats 1–1");
+    await expect(panel.getByTestId("storyboard-cut").first()).toContainText("人物： keeper");
+    await expect(panel.getByTestId("storyboard-cut").first()).toContainText("道具： 无");
+    await expect(panel.getByTestId("storyboard-cut").first()).toContainText("节拍 1–1");
     const script = await fixture("script.json");
     const lines = script.episodes.flatMap((episode: any) => episode.scenes.flatMap((scene: any) => scene.flow.filter((beat: any) => beat.line).map((beat: any) => ({ ...beat, ep: episode.ep }))));
     expect(lines).toHaveLength(22);
@@ -73,7 +73,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("rejects ready review, replaces it, blocks snapshots until cancellation, and refuses late delivery", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "cancel");
+    const id = await createScriptProject(request, workbench, "cancel");
     const root = endpoint(workbench.apiOrigin, id);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
@@ -103,7 +103,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("upstream edits refuse prepared re-copy; cancellation permits a source-current replacement", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "stale-prepared");
+    const id = await createScriptProject(request, workbench, "stale-prepared");
     const root = endpoint(workbench.apiOrigin, id);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
     const panel = page.getByTestId("storyboard-review");
@@ -120,7 +120,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("upstream edits refuse ready replay/acceptance and invalidate accepted review; stale review can be replaced", async ({ page, request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "stale-ready-accepted");
+    const id = await createScriptProject(request, workbench, "stale-ready-accepted");
     const root = endpoint(workbench.apiOrigin, id);
     // Begin at the same r2 source as the prepared-replacement journey, while
     // keeping its repeated hydration work outside this distinct ready-state case.
@@ -148,7 +148,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("ready replay rechecks current upstream binding before idempotent return", async ({ request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "ready-replay");
+    const id = await createScriptProject(request, workbench, "ready-replay");
     const root = endpoint(workbench.apiOrigin, id);
     const prepared = await json(request.post(`${root}/candidates`));
     await writeDelivery(prepared);
@@ -160,7 +160,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("receiving gate rejects tampered params with a valid manifest and real validator rejects removed dialogue", async ({ request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "tamper");
+    const id = await createScriptProject(request, workbench, "tamper");
     const root = endpoint(workbench.apiOrigin, id);
     const prepared = await json(request.post(`${root}/candidates`));
     await writeDelivery(prepared);
@@ -200,7 +200,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
   });
 
   test("re-copy refuses changed frozen admission bytes without rewriting the package", async ({ request, workbench }) => {
-    const id = await createScriptProject(request, workbench.apiOrigin, "recopy-tamper");
+    const id = await createScriptProject(request, workbench, "recopy-tamper");
     const root = endpoint(workbench.apiOrigin, id);
     const prepared = await json(request.post(`${root}/candidates`));
     const admissionFile = path.join(prepared.packagePath, "inputs/storyboard-admission.json");

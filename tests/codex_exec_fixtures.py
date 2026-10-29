@@ -35,3 +35,14 @@ def install_profile(registry):
     registry.codex_exec_profile = lambda: PROFILE
     registry.host_client.codex_exec_readiness = lambda: CodexExecReadiness(state="ready")
     return registry
+
+
+def install_completed_language_profile(registry):
+    """Read exact seeded synthetic proofs; never launch missing checker work."""
+    from plotloom.exceptions import InvalidTransitionError
+    install_profile(registry)
+    def closed(*_args, **_kwargs):
+        raise InvalidTransitionError("offline fixture requires an explicitly seeded completed language proof")
+    registry.require_codex_exec_readiness = closed
+    registry.codex_exec_admit = registry.codex_exec_status = closed
+    return registry

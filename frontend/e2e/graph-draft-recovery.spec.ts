@@ -12,7 +12,7 @@ async function selectBeacon(page: Page, url: string) {
 }
 
 test("typed graph conflict explicitly recovers the exact retained tab prose on current authority", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "typed-graph-recovery", {}, []);
+  const id = await createScriptProject(request, workbench, "typed-graph-recovery", {}, []);
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const draftPath = `/api/v2/projects/${id}/authoring-drafts`;
   const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=graph`;

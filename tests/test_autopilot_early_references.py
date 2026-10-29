@@ -191,9 +191,13 @@ def test_complete_early_pack_reuses_original_jobs_and_budgets_once(tmp_path, mon
                 assert len(images) == len(inventory.subjects)
                 assert sum(item.reserved_image_outputs for item in images) == len(images)
                 assert all(item.image_budget_state == "consumed" for item in images)
+            from tests.autopilot_checked_text_fixtures import checked_text_fixture
+            proof = checked_text_fixture(store)
         assert frozen_early_jobs and len(frozen_early_jobs) <= 4
         assert len(host.image_calls) == len(set(host.image_calls)) == len(inventory.subjects)
-        assert len(host.calls) == 8 and view.handoff is None
+        assert len(host.calls) == len(set(host.calls)) == 16
+        assert set(host.calls) == proof.creative_jobs | proof.checker_jobs
+        assert view.handoff is None
         assert view.bundle and len(view.frames) == sum(item.owner == "image" for item in inventory.subjects)
     finally:
         service.close()

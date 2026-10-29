@@ -1,8 +1,8 @@
 import { expect, test } from "./fixture";
-import { createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, createScriptProject, fixture, json, writeDelivery, type Preparation } from "./f5a-fixture";
 
 test("blocked Script preparation names Art, then Art guide follows its real controls", async ({ page, request, workbench }, info) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "art-guide-prerequisite", {}, ["cast"]);
+  const id = await createScriptProject(request, workbench, "art-guide-prerequisite", {}, ["cast"]);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const guide = page.getByTestId("recommended-workflow");
@@ -27,6 +27,7 @@ test("blocked Script preparation names Art, then Art guide follows its real cont
   await writeDelivery(prepared, "art", await fixture("art.json"));
   await panel.getByRole("button", { name: "立即检查", exact: true }).click();
   await expect(guide).toContainText("确认使用此美术提案");
+  await checkCurrentCandidateLanguage(page, panel, id, "art", prepared.jobId);
   await panel.getByRole("button", { name: "确认使用此美术提案", exact: true }).click();
   await expect(guide).toContainText("地点与道具设定已确认。点击「继续：剧本」");
   await panel.getByRole("button", { name: "继续：剧本", exact: true }).click();
@@ -36,7 +37,7 @@ test("blocked Script preparation names Art, then Art guide follows its real cont
 });
 
 test("Art read failure and retry supersede missing-candidate advice", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "art-guide-retry", {}, ["cast"]);
+  const id = await createScriptProject(request, workbench, "art-guide-retry", {}, ["cast"]);
   let failed = true;
   await page.route(`**/api/v2/projects/${id}/art`, async route => {
     if (failed) await route.fulfill({ status: 503, json: { detail: "Temporary Art read failure" } });

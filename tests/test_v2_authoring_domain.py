@@ -176,12 +176,14 @@ def test_default_timing_profile_supports_non_chinese_dialogue_explicitly() -> No
     english_cue = plan.dialogue_cues[0].model_copy(
         update={
             "text": "Go",
-            "language": "en",
+            "language": "en-US",
             "delivery": DialogueDeliveryPace.NATURAL,
-            "estimated_duration_units": 120,
+            "estimated_duration_units": 400,
         }
     )
-    english_plan = plan.model_copy(update={"dialogue_cues": [english_cue]})
+    english_plan = plan.model_copy(update={"dialogue_cues": [english_cue],
+        "scenes": [plan.scenes[0].model_copy(update={"duration_budget_units": 400})]})
+    board = board.model_copy(update={"shots": [board.shots[0].model_copy(update={"duration_units": 400})]})
     brief = ProjectBrief(
         title="x",
         synopsis="y",
@@ -205,7 +207,7 @@ def test_default_timing_profile_supports_non_chinese_dialogue_explicitly() -> No
     understated = english_plan.model_copy(
         update={
             "dialogue_cues": [
-                english_cue.model_copy(update={"estimated_duration_units": 119})
+                english_cue.model_copy(update={"estimated_duration_units": 399})
             ]
         }
     )

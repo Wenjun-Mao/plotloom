@@ -38,6 +38,9 @@ def test_failed_native_jobs_get_exact_frozen_allowance_and_manual_keeps_auto_cou
         view = current(storage,run.project_id)
         checkpoint = current_checkpoint(view,"outline")
         assert checkpoint["evidence"]["result"]["executionRetryExhausted"]
+        assert checkpoint["retry"]["state"] == "exhausted"
+        assert all(c["retry"]["state"] == "stopped" for c in view.checkpoints
+            if c["operationKey"].startswith("outline") and c is not checkpoint)
         assert len(ids) == len(set(ids)) == limit+1
         assert len(calls) == limit+1
         assert checkpoint["retry"]["automaticRetriesUsed"] == limit
@@ -55,11 +58,15 @@ def test_failed_native_jobs_get_exact_frozen_allowance_and_manual_keeps_auto_cou
         assert duplicate.revision == successor.revision and duplicate.checkpoints == successor.checkpoints
         for _ in range(3): service.step(run.project_id)
         assert len(ids) == limit+2 and len(set(ids)) == limit+2
+        final = current(storage, run.project_id)
+        assert current_checkpoint(final, "outline")["retry"]["state"] == "exhausted"
+        assert all(c["retry"]["state"] == "stopped" for c in final.checkpoints
+            if c["operationKey"].startswith("outline") and c["operationKey"] != current_checkpoint(final, "outline")["operationKey"])
     finally:
         service.close()
 
 
-@pytest.mark.parametrize("stopped,failure", [(False,"transient"),(True,"cancelled"),(True,"permission"),(True,"configuration")])
+@pytest.mark.parametrize("stopped,failure", [(False,"transient"),(True,"cancelled"),(True,"permission"),(True,"configuration"),(True,"authorization")])
 def test_running_local_owner_and_nonretryable_stops_never_create_successor(tmp_path,monkeypatch,stopped,failure):
     storage,registry,service,run,_calls = environment(tmp_path,monkeypatch,auto_deliver=False)
     host=registry._codex_exec_test_host
@@ -78,7 +85,18 @@ def test_running_local_owner_and_nonretryable_stops_never_create_successor(tmp_p
         assert service.acquire_controller()
         for _ in range(6):service.step(run.project_id)
         assert len(ids)==1
-        assert current_checkpoint(current(storage,run.project_id),"outline:retry:1")["operationKey"]=="outline"
+        view = current(storage,run.project_id)
+        checkpoint = current_checkpoint(view,"outline:retry:1")
+        assert checkpoint["operationKey"]=="outline"
+        assert checkpoint["retry"]["state"] == ("retry_pending" if failure == "transient" else "stopped")
+        before = (view.revision, view.checkpoints, host.admissions, tuple(host.statuses))
+        def no_host(*_args): pytest.fail("retry projection polled or admitted host work")
+        with monkeypatch.context() as reads:
+            reads.setattr(registry, "codex_exec_status", no_host)
+            reads.setattr(registry, "codex_exec_admit", no_host)
+            for _ in range(2):
+                observed = current(storage, run.project_id)
+                assert (observed.revision, observed.checkpoints, host.admissions, tuple(host.statuses)) == before
     finally:service.close()
 
 
@@ -132,6 +150,7 @@ def test_missing_native_admission_ack_never_resends_used_identity(tmp_path,monke
         for _ in range(7):service.step(run.project_id)
         view=current(storage,run.project_id)
         assert len(calls)==1 and not any(c["evidence"]["result"].get("executionRetry") for c in view.checkpoints)
+        assert current_checkpoint(view, "outline")["retry"]["state"] == "retry_pending"
         with closing(storage.projects.open(run.project_id)) as store:
             attempt=store.repository.autopilot.exec_attempt_for_operation(run.id,"outline")
             assert attempt.state=="outcome_unknown"
@@ -172,6 +191,8 @@ def test_late_parent_completion_is_retained_without_replacing_adopted_child(tmp_
         reopened=current(storage,run.project_id)
         assert current_checkpoint(reopened,"outline")["evidence"]["jobId"]==child["evidence"]["jobId"]
         assert current_checkpoint(reopened,"outline")["state"]=="adopted"
+        assert next(c for c in reopened.checkpoints if c["operationKey"] == "outline")["retry"]["state"] == "stopped"
+        assert current_checkpoint(reopened,"outline")["retry"]["state"] == "ready"
         with closing(storage.projects.open(run.project_id)) as store:
             parent=store.repository.autopilot.exec_attempt_for_operation(run.id,"outline")
             assert parent.state=="completed" and parent.attempt_id==retained.attempt.attempt_id

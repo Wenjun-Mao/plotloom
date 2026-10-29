@@ -5,7 +5,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
   test.describe(`read recovery ${viewport.width}x${viewport.height}`, () => {
     test.use({ viewport });
     test("initial graph failure and GET retry preserve canonical content in both modes", async ({ page, request, workbench }, testInfo) => {
-      const id = await createScriptProject(request, workbench.apiOrigin, "read-recovery", {}, []);
+      const id = await createScriptProject(request, workbench, "read-recovery", {}, []);
       const url = `${workbench.apiOrigin}/api/v2/projects/${id}`;
       const before = await json(request.get(url));
       const writes: string[] = [];
@@ -71,7 +71,7 @@ for (const viewport of [{ width: 1700, height: 900 }, { width: 1280, height: 768
     });
 
     test("both graph modes retry Source failures using only GET and preserve graph content", async ({ page, request, workbench }, testInfo) => {
-      const id = await createScriptProject(request, workbench.apiOrigin, "source-read-retry", {}, []);
+      const id = await createScriptProject(request, workbench, "source-read-retry", {}, []);
       const graphUrl = `${workbench.apiOrigin}/api/v2/projects/${id}/graph-workbench`;
       const before = await json(request.get(graphUrl));
       let fail = true;

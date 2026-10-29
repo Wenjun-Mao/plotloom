@@ -8,6 +8,7 @@ from pathlib import Path
 from threading import Event
 from typing import Any
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
 from plotloom.generation.exceptions import (
@@ -71,6 +72,7 @@ def _pending_project(tmp_path: Path) -> tuple[ProjectFolderStorage, str, int, st
                 "bridge-intent-fixture",
             )
         )
+        install_synthetic_language_check(store, request, ready.storyboard)
         store.accept_storyboard_review_candidate(
             StoryboardReviewAcceptRequest(
                 job_id=candidate.job_id,

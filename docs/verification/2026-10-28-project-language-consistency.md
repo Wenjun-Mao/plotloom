@@ -932,3 +932,340 @@ pass. The existing continuation contract refuses a completed but unadopted prima
 Cast after a changed execution freeze; no guard change is warranted for this
 disposable qualification fixture. Preserve source/receipt evidence and use fresh
 current authority.
+
+## Coverage-channel native checkpoint at 389bf861
+
+Current English home e1894d73-7c75-4481-9f4a-84ab9f0a4c0b, run
+69b90776-3c67-4262-a6aa-8f42b7b43e79 has adopted Outline, Branches and
+Characters with zero automatic retries at this checkpoint. Art is sent.
+The source/fork and committed revision remain frozen. Exact API readbacks are
+retained under .local/project-language-20261028/en-coverage-channel-*.json.
+This is three native text adoptions, not Art acceptance or media E2E.
+
+A local blind audio calibration was forwarded as an audio content block and the
+model tool explicitly returned “audio content omitted because you do not support
+audio input”. Native listening is therefore unavailable in this session. The
+randomized calibration truth remains unread; no hearing result is claimed.
+ASR/frame/timing inspection can continue, but does not establish listening or
+native-audio naturalness acceptance. Actual H3 clips do not yet exist; obtain
+listening evidence on concrete clips before claiming that acceptance.
+
+The existing backend worker was assigned the bounded current-contract repair of
+existing F5A browser fixture data and explicitly synthetic checking receipts,
+requested GPT-6 Luna / Max (effective settings not observable). Root retains
+actual browser verification against the correct gitlink. No production changes,
+pin waivers, providers, CI or commits are authorized by this fixture assignment.
+
+### Real English Art checkpoint passed
+
+At the same committed 389bf861 candidate, the English run adopted all four
+Outline/Branches/Characters/Art operations without automatic retries. Art
+primary ch_538e65661c704f4b82cd178d24be5972 and distinct checker
+ch_fd9984353a995c3296e57e7066434a69 completed native validation. The
+checker passed 121 candidate coverage leaves, reviewed 170 original source
+strings, and passed all three exact provider-visible 安 spans. Its source
+judgments correctly keep the two player button labels irrelevant to Art image
+fields, rather than requiring those labels to appear in film. Root read the
+original delivered Art JSON and visually inspected the actual Cast and Art UI:
+English creative prose, Chinese chrome, and exact prompt disclosures. Screenshots
+are output/playwright/project-language-20261028/en-{cast,art}-coverage-channel-*.png.
+
+Exact API adoption/check readbacks and all eight native attempt terminal states
+are retained in en-coverage-channel-{autopilot,art}-adopted.json,
+en-coverage-channel-art-check.json and en-coverage-channel-art-quiescence.json.
+Every recorded worker/CLI PID and group was absent, no validators remained, and
+all eight attempts were completed before stopping the paused runtime. No media
+requests or image selection occurred.
+
+Root resumed this same EN run and launched the existing original ZH home
+2458559c-b6cf-4d98-9921-bd169e2b6769 under the same source/profile and existing
+text-prefix lease, targeting all eight text stages and persisted installation.
+The text-only owner prevents image dispatch, and H3 remains disabled. Execution
+log: bilingual-coverage-channel-all-eight-native.log. Native listening remains
+unavailable; the approved roadmap permits calibrated local ASR for language and
+wording evidence with explicit perceptual limits. No later listening/naturalness
+claim can be inferred from it.
+
+### Bilingual continuation checkpoint
+
+Chinese run 0e4df9ca-93ce-498a-a54c-e84443a7b625 adopted Outline after a
+distinct native checker pass (94 leaves); Branches delivered next. Root inspected
+the actual Chinese Outline reader and its retained Mira source-label explanation,
+with Chinese headings/prose; screenshots zh-outline-coverage-channel-{report,literal}.png
+and exact zh-coverage-channel-outline-{readback,check}.json are retained.
+English adopted Script (five of eight); root read the exact delivered candidate:
+three 8-second filmed sections, one opening line Save this place., no ending
+dialogue, exact visible 安, and interface-only route choices. Native Storyboard
+is sent. Exact Script API readback is en-coverage-channel-script-adopted.json.
+
+Root applied the eight-file synthetic F5A fixture candidate without changing HEAD.
+A single existing story-prototype.spec.ts:12 run now passed Outline setup but
+failed Art refresh for required missing lighting/state descriptions. Log:
+f5a-language-proof-fixture/root-one-reader.log. Independent review also found
+legacy string callers conditionally skip required synthetic proof. Both are
+current-contract test-fixture defects. Before another browser attempt the same
+worker is checking the complete affected fixture shape, adding source-consistent
+authored descriptions/composition as required and converting shared callers to
+the mandatory fixture environment. No production relaxation or browser assertion
+weakening is permitted; root retains execution in the correctly pinned checkout.
+
+### Native progress and the genuine ZH correction
+
+English has adopted Storyboard and Bridge Intent (seven of eight), with Bridge
+Presentation delivered for its distinct check. Root inspected the delivered F5:
+exactly three eight-second cuts, separate authored English composition and
+provider frame fields, exact visible 安 and one opening speech line. This remains
+text/provider-direction evidence, not generated-media acceptance.
+
+Chinese Cast original ch_9dcff209b23841ab9c27c76d53d9de35 was genuinely rejected
+by ch_85d99e26c7515b09801213610fa37bd0: eleven raw English technical field
+references occurred inside its authored Chinese source notes. The supported first
+semantic correction ch_c5e3edbee5c45d919f613e73580273c4 passed distinct check
+ch_927826c69cd95e8aaffb5e5b47cd86a0 (57 leaves) and was adopted. Original
+failed evidence remains failed and unchanged. Root retained both exact check
+readbacks and compared delivered string leaves; the exact changed paths are in
+zh-coverage-channel-cast-correction-delta.json. Source label/name Mira and its
+nonspoken/in-film requirements remain present. Chinese Art is sent. Automatic
+execution retry and semantic correction are distinct; do not report zero total
+corrections for this ZH run.
+
+### English all-eight installation and complete attempt audit
+
+English run 69b90776-3c67-4262-a6aa-8f42b7b43e79 adopted all eight stages and
+installed canon at revision68, then paused under the text-only lease. Installation
+admission 83c97e3f-16a9-4478-aaeb-ee36b7329d64 is current with all four canonical
+heads ready at revision1, three eight-second cuts and the two exact English UI
+choices. Fresh API reads match the persisted installation. Original full readback
+is e1894d73-7c75-4481-9f4a-84ab9f0a4c0b-text-installed.json; independent API
+readbacks are en-all-eight-fresh-{stages,production-bridge}-readback.json.
+Root reopened the actual story reader, switched Script/Storyboard and both route
+selections, and inspected 1700/1280 screenshots. The opening plus selected ending
+are distinct; authored English compositions are the readable text and exact frame
+prompts remain technical disclosures. Screenshots en-installed-*.png are retained.
+The single browser console error is the expected static report sandbox blocking
+script execution; do not enable scripts or classify that guard as a provider fault.
+
+The complete supervisor audit corrects an earlier commentary statement that the
+whole EN run used zero execution retries: there are eight successful primary
+attempts, eight successful distinct checking attempts, and one earlier failed
+Script-checker attempt. Primary drafts had zero retries and no semantic correction.
+Failed checker ch_54b4d5c54424590292fd1834fa4dee40 / attempt
+4e484378-84e1-534c-b857-6910f430072a returned an internally inconsistent discovery
+packet; trusted validation refused it with required discovered lettering omission
+cannot pass. The existing single automatic execution retry produced new checker
+ch_76c6b69a482853e3aa6a0ee34a2fb270 / attempt
+5b8e87cb-f85e-56a8-9fe9-6992ce38ad91, which passed on the unchanged Script
+candidate. Original failure remains failed. The exact17-attempt audit, committed
+389bf861 identity/profile, successful validator/render exit codes, candidate/report
+hashes, eight final pass verdicts and failure are retained in
+en-all-eight-native-receipt-proof.json. No images/H3/media acceptance is implied.
+
+### Browser fixture causal repair: first real reader pass
+
+The shared F5A fixture closure now includes mandatory test environment for all
+58 direct old-form callers, authored Art descriptions, and explicitly synthetic
+byte-bound proof for later external Cast/Art/Script delivery before UI checking.
+Only terminal/cancelled/replaced late deliveries may skip synthetic installation;
+required setup still demands a pass. Independent review closed those concrete
+findings without production changes or assertion dilution.
+
+The prior one-reader failure reached Script and exposed old English fixture
+timing: estimates51.6/58.2/62.8 against unchanged90-second section targets. The
+coordinator stopped browser retries and reassessed the coupled Script/F5 fixtures.
+The Sol/Medium worker preserved all original flow items and22utterances, added
+source-consistent storm/navigation/cable actions, and regenerated106cuts with
+authored composition and complete source coverage. Targets/rates/cut limits and
+180-second route budget stayed unchanged. Script estimates86.6/85.7/85.3; F5
+section durations87.0/88.1/88.1. Both upstream validators, four existing Script
+variants, typed ownership and E2E typechecking passed offline. Root checked
+all7 before/after hashes and original flow subsequences before applying the
+test-only delta, retaining failures in the earlier artifact directories.
+
+Correct-pin root test:e2e story-prototype.spec.ts:12 then passed (one case9.5s).
+Evidence: f5a-coupled-fixture/root-one-reader.log. This is the first repaired
+reader case, not the full14. Independent review found the new first medium-shot
+fixture disagrees with two existing wide-establishing-shot assertions; keep the
+purposeful authored framing and matching technical instructions, then revalidate
+F5 before broader browser execution. Source/HEAD389 remains frozen. Chinese has
+now adopted Script (five of eight) and sent Storyboard.
+
+### Both native text installations and browser closure
+
+ZH completed all8 and persisted current installation at run revision70. Full audit
+is zh-all-eight-native-receipt-proof.json:9native primary,9completed checker
+attempts (8pass,1genuine original Cast reject),1semantic correction and no failed
+execution attempts. Every candidate/report byte hash matches its original native
+receipt at389bf861/profile7a36372e. EN complete audit retains1failed Script checker
+and16successful primary/checking receipts. All35recorded worker/CLI process groups
+are absent and no validators remain (bilingual-all-eight-quiescence.json).
+
+The text-prefix runtime stopped after both installed outcomes. Before restarting
+the ordinary isolated runtime, a read-only query checked all14installation runs
+were nonrunnable. H3 remains disabled. Fresh API readbacks preserve exact installation
+admissions, all4canonical head hashes/revisions,3cuts each and paused run states.
+The first task-local probe incorrectly demanded unchanged operational run revision;
+the new ordinary controller claims each paused run and increments it by1. Root
+confirmed only revision/updatedAt/timing differ, and native attempt count stays35;
+no story inputs/checkpoints, canon or media changed. Exact en/zh-after-restart-readback.json
+and the diagnostic run observations remain retained. Root inspected Chinese Script
+and Storyboard at1700/1280px with the sole original line and exact Mira label;
+zh-installed-*.png retain the actual UI. English standalone Art report endpoint
+also renders English headings/Handheld scale and exact 安 (en-standalone-art-*.png).
+Direct file: browser navigation was blocked; portable-file rendering is not claimed.
+Existing sandbox keeps report scripts inactive; do not weaken it for screenshots.
+
+Focused all14 initially gave11pass/3fail: explicit specialist check asked the
+unconfigured test Mac host for a profile before finding completed synthetic proof.
+A request-context-only offline profile seam reuses the exact test PROFILE and closes
+all host admission/observation/control. Independent review and causal tests passed.
+The next3failed at the unchanged confirm-enabled assertion because current UI
+requires explicit current-snapshot checking, not just original-proof reading.
+Tests now click the real current-language control and await actual bound pass response.
+The seam includes only the two exact POST paths; GET/unrelated profiles are original.
+Edited candidates cannot borrow proof or dispatch. The3targeted rerun then gave2pass;
+lastcase advanced to three obsolete English metadata labels. Root kept its exact
+keeper/no-props/beat1–1 checks with Chinese labels on the first cut, and that sole
+case passed with report byte equality and actual restart persistence (16.3s).
+The14case coverage is11+2+1, not one all-green run; earlier failures remain failed.
+Logs: f5a-establishing-cut/root-fourteen-readers.log,
+f5a-offline-check-host/root-three-ui-checks.log,
+f5a-current-language-post/{root-three-ui-checks,root-last-reader}.log. Root also
+moved the new creator current-language action before its preexisting enabled
+assertion; exact hashes/order reason are retained. No assertions were removed.
+
+The first final-candidate local full gate finished failed, root-owned: scripts/verify.py full at389bf861
+with fork35fac266 and test-only diff22b079c0fa4186fa82fefdb88459e16f15ec400b611b9861b3a9dc867a24f64b,
+plus the2explicit untracked test modules in local-full-input-envelope.json. It has
+passed dependencies, API import check, archived prompt reader,1675frontend unit
+tests and frontend type contracts;4775Python cases ran in2balanced whole-file
+processes. Worker2 reported170failed/2159passed/58errors in1622.99s; worker1
+reported153failed/2162passed/73errors in2050.80s. Full exited1 after2093.664s.
+local-full-language-candidate.log retains the complete output;
+local-full-first-failure-index.txt retains the bounded summary and454failure/error
+entries. Shared fixture prerequisites and the demonstrated parent-vs-fork source
+ownership check are under focused causal repair. Remaining full steps did not run.
+No full pass, wheel, activation or media acceptance is claimed. Hosted CI not
+requested/not run.
+
+Supported continuation previews under389bf861 show11reusable operations per
+original home, with cancellation the sole eligibility blocker. Independent
+source review confirms terminal checks/adopted creative checkpoints remain
+preserved, including the superseded rejected Chinese Cast ancestor. The next
+source checkpoint will use native cancel under the original identity, eligible
+closure readback, then same-home Continue after qualification/activation with fresh
+CAS, current execution settings and explicit prospective budgets.
+
+Root then revalidated exact unchanged installation/head readbacks and paused run
+identities before native cancellation under389bf861. EN is cancelled revision70;
+ZH is cancelled revision72. Both fresh continuation contexts are eligible with
+zero blockers and11inherited operations. Canon and installation remain exactly
+unchanged. Retained en/zh-before-native-cancel-readback.json,
+en/zh-native-cancel-response.json and en/zh-after-native-cancel-readback.json bind
+these observations. The ordinary isolated runtime then stopped via its owning
+terminal; ports8851/8852 are closed and its exact process absent
+(native-cancel-runtime-stop.json). No continuation, normal activation, LOCAL
+retirement, image or H3 dispatch has occurred.
+
+Normal-installation read-only activation preflight inventories all16existing
+homes without storage constructors or host status calls. The14valid project
+rows remain active/open; the2preexisting invalid identity homes remain unchanged.
+All3autopilot ancestry leaves are handed_off or taken_over; no standalone
+language-check rows exist. The protected H5 identifier0d2fa73a-ed5d-42ae-8a15-dae9cb8656c9
+is the run inside valued苏棠 projectd3a3b6b9-92dc-4c41-9e47-19c0ea4ea65d,
+not a separate home. It remains taken_over/first-frames/revision313. Evidence:
+normal-preactivation-readonly-project-states.json. Recheck immediately before
+activation; do not resume this run. Normal source/service/data are untouched.
+
+The reviewed owning-Git verifier delta is integrated with exact after hashes
+from handoff-source-ownership/manifest.json. Its11disposable Git topology tests
+and qualification-pair reproduction passed in the worker; independent review
+closed the stable patch. Root quick feedback then passed in13.318s:1675frontend
+tests, both type checks, dependency lock and API F401 check. This does not close
+the failed Python/full qualification. The separate paragraph-boundary and
+missing GC helper repairs are awaiting stable review/integration.
+
+Both remaining production patches subsequently passed independent review.
+GC restores its prior positive-ENOENT home check in the GC owner, with existing
+physical/preview/process guards unchanged; retained UNKNOWN is asserted directly
+from status_json so collection's no-old-PID-reprobe trap stays active. The
+renderer repair inserts an explicit paragraph boundary after validated request
+text, leaving stage-owned shell commands intact. Root integrated the GC patch
+and language-policy line with exact after hashes. The renderer fixture helpers
+and shell regression await the combined fixture handoff because their baseline
+contains current-language fixture setup. Retained folders:
+gc-retired-home-restoration/ and renderer-language-boundary/. Initial failed
+checks remain failed; the repaired UNKNOWN case and renderer regression rechecks
+passed. No live GC operation occurred.
+
+After three failed narrow creator-fixture attempts, the worker explicitly
+reassessed the mixed-language setup rather than repeating the broad selection.
+The smallest complete disposable fixture journey now passes preparation,
+delivery, six distinct byte-bound synthetic checker receipts, adoption and
+production installation (worker backend-fixture-contract-repair/creator-small-journey.log).
+Its English Cast/Art had been mixed with Chinese shared Script/F5; the new
+fixture now consistently prepares English and authors each outgoing locale,
+deriving local composition from exact Script actions. Existing scenario, budget
+and negative assertions remain. This is offline fixture evidence, not new native
+or provider output. Remaining fake-host/proof-context/timing fixture families
+remain under repair; the package is not yet fully verified.
+
+### Frozen backend fixture integration and remaining retry projection
+
+The worker froze73test/helper files at389bf861/fork35fac266. Root verified70exact
+before hashes and3already-integrated after hashes, then applied the combined
+patch excluding those3. All73after hashes match; the3reviewed production fixes
+also match their separate manifests. backend-fixture-contract-repair/ retains
+the original/after trees, combined test patch, separate source patch,39log hashes,
+HANDOFF.md and root integration observations. Independent Sol/Medium review
+closed the stable test delta without findings. UNKNOWN/publication/cancellation,
+byte-bound checking proof, separate creative/checker accounting and corruption
+refusal assertions remain. The42frame/five-reference pack passed in395.50s;
+its evidence was reused. Other exact pass/failure/recheck selections are in the
+retained handoff; the first full result stays failed.
+
+Large test files retain their existing domain ownership:1003-line
+test_v2_authoring_domain.py and807-line generation/test_m12a_contracts.py have
+narrow current-contract expectation edits; test_codex_exec_delivery.py grows459
+to480lines around its existing delivery/validation responsibility. Unrelated
+restructuring was unwarranted. The three production files remain83/256/126lines.
+
+Six noncontent-correction fixtures still fail their old global run-state
+assertion. Independent source diagnosis found their fake host omits positive
+localExecutionStopped and leaves refusal unclassified, so the current retry
+owner correctly keeps the exact attempt without a successor. Exhaustion can
+leave the run active for unrelated work/manual retry; checkpoint retry evidence
+owns the job outcome. A separate demonstrated read defect projects failed/UNKNOWN
+native jobs as retry ready while they await stop proof. ADR0225 now records
+truthful pending/stopped/exhausted projections without polling or execution
+changes. The same worker has the bounded projection/explicit-fixture follow-up;
+no guard relaxation or new native dispatch is authorized by that fix. Full
+qualification and coherent source checkpoint remain pending.
+
+Protected H5 preactivation readback verifies all24original file hashes, including
+the ZIP, unchanged (h5-protected-files-preactivation-readback.json). The stopped
+isolated ledger retains16completed+1failed EN text attempts and18completed ZH
+text attempts, zero slots, zero enabled queue and no image attempts
+(after-native-cancel-readonly-attempt-counts.json). Measured first-full execution
+is2093.664s and root quick13.318s; separate cumulative product/infrastructure/
+coordination timings are unavailable.
+
+The retry follow-up is now integrated at exact reviewed hashes. It shares the
+persisted attempt map with activity projection and preserves7queries/one parse
+per attempt. Thirty distinct focused cases pass across its retained logs,
+including the six explicit retry/stop/refusal fixtures and limits0/1/3, manual
+accounting, duplicate command, lost acknowledgement, nonretryable and late-parent
+cases. Independent review then caught withdrawn run authority still displaying
+pending/exhausted. A separate2-file delta prioritizes stopped for cancelled,
+taken_over, stale and handed_off effective states;12focused cancellation/view
+cases pass with host calls forbidden and original attempt/history/count/cost
+unchanged. That delta has independent closure and exact root before/after hashes.
+Artifacts: native-retry-projection-followup/ and native-retry-withdrawn-disposition/.
+The earlier six failures and exploratory fixture failures remain retained. No
+known scoped failure remains; original full qualification is still failed and
+will be requalified after the coherent committed source checkpoint.
+
+The paragraph-format repair changes the prospective checker-policy byte hash.
+Already-adopted389bf861 text remains retained under its original proof and
+Continue verifies historical provenance; it does not silently upgrade those
+checks. New or edited candidate adoption still requires a check bound to the
+current policy. No old request, receipt or verdict is rewritten.

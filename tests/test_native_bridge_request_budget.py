@@ -24,9 +24,12 @@ from tests.production_bridge_intent_fixtures import FakeAdapter, FakeResolver, _
 
 
 def _request(stage):
-    return CreativeHandoffRequest(job_id="ch_" + "b" * 32, project_id="project", section_id="bridge",
+    request = CreativeHandoffRequest(job_id="ch_" + "b" * 32, project_id="project", section_id="bridge",
         stage=stage, expected_stage_revision=1, source={"evidence": ""},
         input_artifacts={"schema.json": {"required": ["entries"]}}, creative_brief="完整冻结证据")
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 @pytest.mark.parametrize("stage", ["bridge-intent", "bridge-presentation"])

@@ -11,9 +11,13 @@ import { styledCastFixture } from "./fixtures/cast-style";
 import { expect } from "./fixture";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
+const repositoryRoot = path.resolve(directory, "../..");
 const fixtureSpokenLanguage: ProjectBrief["language"] = "en-US";
 export const fixtureDirectory = path.join(directory, "fixtures/f5a");
 const validator = path.resolve(directory, "../../third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs");
+const syntheticLanguageCheck = path.join(fixtureDirectory, "synthetic_language_check.py");
+export type FixtureProofEnvironment = { apiOrigin: string; outputsRoot: string; applicationDataRoot: string };
+const proofEnvironments = new Map<string, FixtureProofEnvironment>();
 export type Preparation = { jobId: string; packagePath: string; deliveryPath: string; assignment: string; binding: any; expectedReviewRevision: number };
 export type ScriptProjectOptions = {
   briefOverrides?: Partial<ProjectBrief>;
@@ -45,10 +49,12 @@ export async function availableSpecialistWithoutSend(page: Page, id: string, sta
 export function endpoint(origin: string, projectId: string): string {
   return `${origin}/api/v2/projects/${projectId}/storyboard-source-review`;
 }
-export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"], options: ScriptProjectOptions = {}): Promise<string> {
+export async function createScriptProject(request: APIRequestContext, environment: FixtureProofEnvironment, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"], options: ScriptProjectOptions = {}): Promise<string> {
+  const origin = environment.apiOrigin;
   const root = `${origin}/api/v2/projects`;
   const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, language: fixtureSpokenLanguage, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F5A ${label}`, targetPlaythroughSeconds: 180, ...options.briefOverrides }, initialStages: options.initialStages ?? [] } }));
   const id = created.id;
+  proofEnvironments.set(id, environment);
   const url = `${root}/${id}`;
   const source = await json(request.put(`${url}/source-outline/source`, { data: { expectedSourceRevision: 0, material: {
     kind: "synopsis", title: "Beacon choice — current F4 proof", text: "A keeper must power the beacon or dock before the storm closes the channel.",
@@ -57,6 +63,7 @@ export async function createScriptProject(request: APIRequestContext, origin: st
   const outline = await json(request.post(`${url}/source-outline/candidates`));
   await writeDelivery(outline, "outline", await fixture("outline.json"));
   await json(request.post(`${url}/source-outline/candidates/${outline.jobId}/refresh`));
+  await installSyntheticLanguageProof(environment, id, "outline", outline.jobId);
   const accepted = await json(request.post(`${url}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: source.source.revision, expectedOutlineRevision: 0 } }));
   const mapping = await currentFixtureMapping(request, url, beaconMap());
   const draftRevision = await acknowledgeGraphMapping(request, url, mapping);
@@ -71,6 +78,8 @@ export async function createScriptProject(request: APIRequestContext, origin: st
     const prepared = await json(request.post(`${url}/${stage}/candidates`, preparation));
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidate);
     const ready = await json(request.post(`${url}/${stage}/candidates/${prepared.jobId}/refresh`));
+    await installSyntheticLanguageProof(environment, id,
+      stage === "cast" ? "characters" : stage, prepared.jobId);
     const body: Record<string, unknown> = { jobId: prepared.jobId, binding: prepared.binding, [`expected${stage[0].toUpperCase()}${stage.slice(1)}Revision`]: 0 };
     if (stage === "cast") body.consumerMappings = ready.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id }));
     await json(request.post(`${url}/${stage}/accept`, { data: body }));
@@ -101,6 +110,13 @@ export async function writeDelivery(prepared: Preparation, stage = "storyboard",
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "deterministic-fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "deterministic-fixture", reasoningEffort: "high" },
     limitations: ["Portable deterministic integration fixture; no specialist execution or creative approval."],
   }));
+  if (["outline", "characters", "art", "script", "storyboard"].includes(stage)
+      && (stage === "storyboard" || proofEnvironments.has(request.projectId))) {
+    const proofEnvironment = proofEnvironments.get(request.projectId);
+    if (!proofEnvironment) throw new Error(`Missing F5A proof environment for ${request.projectId}`);
+    await installSyntheticLanguageProof(proofEnvironment, request.projectId,
+      stage === "storyboard" ? "storyboard-review" : stage as "outline" | "characters" | "art" | "script", prepared.jobId, true);
+  }
 }
 export async function prepare(page: Page, panel: Locator, id: string): Promise<Preparation> {
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates`);
@@ -111,7 +127,17 @@ export async function refresh(page: Page, panel: Locator, id: string, jobId: str
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/specialist-tasks/storyboard/${jobId}/check`);
   await panel.getByRole("button", { name: "立即检查" }).click();
   await json(await response);
+  await checkCurrentCandidateLanguage(page, panel, id, "storyboard", jobId);
   await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();
+}
+export async function checkCurrentCandidateLanguage(page: Page, panel: Locator, projectId: string,
+  stage: "characters" | "art" | "script" | "storyboard", jobId: string): Promise<void> {
+  const response = page.waitForResponse(r => r.request().method() === "POST"
+    && new URL(r.url()).pathname === `/api/v2/projects/${projectId}/content-language/${stage}/${jobId}/check`);
+  await panel.getByRole("button", { name: "检查当前完整候选语言", exact: true }).click();
+  const checked = await json(await response);
+  expect(checked.candidateJobId).toBe(jobId);
+  expect(checked.verdict).toBe("pass");
 }
 export async function changeScript(request: APIRequestContext, origin: string, id: string): Promise<void> {
   const url = `${origin}/api/v2/projects/${id}/script`;
@@ -121,3 +147,23 @@ export async function changeScript(request: APIRequestContext, origin: string, i
   await json(request.post(`${url}/sections/save`, { data: { sectionId: "opening", expectedScriptRevision: state.acceptedScript.revision, binding: state.acceptedScript.binding, episode } }));
 }
 export function hash(content: Buffer): string { return createHash("sha256").update(content).digest("hex"); }
+
+async function installSyntheticLanguageProof(environment: FixtureProofEnvironment, projectId: string,
+  stage: "outline" | "characters" | "art" | "script" | "storyboard-review", candidateJobId: string, allowTerminalDelivery = false): Promise<void> {
+  const output = execFileSync("uv", ["run", "--locked", "--no-sync", "python", syntheticLanguageCheck,
+    "--outputs-root", environment.outputsRoot,
+    "--application-data-root", environment.applicationDataRoot,
+    "--project-id", projectId,
+    "--candidate-job-id", candidateJobId,
+    "--stage", stage], { cwd: repositoryRoot, encoding: "utf8" });
+  const proof = JSON.parse(output) as Record<string, unknown>;
+  if (allowTerminalDelivery && proof.candidateJobId === candidateJobId
+      && proof.proofKind === "synthetic-test-skip" && proof.dispatchPerformed === false
+      && proof.reason === "terminal-or-replaced") return;
+  if (proof.candidateJobId !== candidateJobId || proof.proofKind !== "synthetic-test-receipt"
+      || proof.dispatchPerformed !== false || proof.verdict !== "pass"
+      || typeof proof.candidateHash !== "string" || typeof proof.bindingHash !== "string"
+      || typeof proof.receiptHash !== "string") {
+    throw new Error(`F5A synthetic language proof did not bind the current candidate: ${output}`);
+  }
+}

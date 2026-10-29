@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest, ArtReviewState
 from plotloom.art_style import freeze_art_style
@@ -79,6 +80,7 @@ def test_art_stale_read_names_the_actual_owner_and_preserves_evidence(
             "ch_" + "t" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         accepted = store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,

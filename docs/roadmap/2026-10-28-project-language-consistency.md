@@ -709,3 +709,50 @@ Their literalReview already owns those facts. After two failures the run is paus
 and every native owner is absent. Align the frozen response schema and prompt
 with that existing restriction before another native run; do not normalize old
 results or weaken binding. ADR0224 records the channel owner before implementation.
+
+### Current native text checkpoint at 389bf861
+
+Both original fixtures have completed all eight native stages and persisted current
+canon: EN e1894d73-7c75-4481-9f4a-84ab9f0a4c0b and ZH
+2458559c-b6cf-4d98-9921-bd169e2b6769. Root inspected both reopened Script/Storyboard
+readers, route selections and retained literals, then restarted the isolated runtime
+and verified exact installation/head hashes unchanged and both runs paused. All35
+native attempts are terminal: EN has8primary/8passed checks plus1failed Script
+checker and its bounded successful replacement; ZH has9primary/9completed checks
+including1genuine Cast reject followed by a correction confined to source notes.
+No images/H3 requests occurred. The original failed/rejected evidence stays original.
+
+Current-contract browser fixture closure now has all14 affected reader cases
+covered by11unchanged passes and targeted2+1passes, with real explicit current-snapshot
+language checking before UI confirmation. Test-only synthetic proof is byte-bound;
+its request-scoped profile closes host dispatch and preserves unrelated paths.
+The first full local gate against389bf861/fork35fac266 plus the retained
+test-only delta fingerprint22b079c0fa4186fa82fefdb88459e16f15ec400b611b9861b3a9dc867a24f64b
+failed after2093.664s. Frontend1675 and both type checks passed; Python workers
+reported170failed/2159passed/58errors and153failed/2162passed/73errors. These are
+retained failures, not qualification. Close shared current-contract fixture
+prerequisites and the demonstrated owning-Git verifier defect with focused checks
+before qualifying the stable repaired candidate. The frozen73-file backend
+fixture delta and three bounded production repairs now have independent review
+closure and exact root integration hashes. A further native retry read-projection
+defect must expose pending local-stop/stopped states truthfully; its bounded
+ADR0225 follow-up preserves all execution guards and the original attempt.
+
+Before changing the native source identity, cancel the two fully adopted paused
+runs under389bf861 and require their supported continuation contexts to be eligible.
+Read-only previews and independent source review found11reusable operations in
+each original home; cancellation was their sole blocker. Preserve all original
+receipts, the rejected Cast ancestor and failed English checker. After the stable
+source checkpoint, full qualification, exact shipping wheel, normal activation
+and exact old LOCAL-slot release, use supported Continue in those same homes with
+fresh exact CAS identities, current Sol/Medium execution and explicit prospective
+null aggregate budgets. It must inherit the adopted text rather than repeat it.
+Freeze that successor source/fork/HEAD through native image bundle completion.
+Use the existing controller process lease and supported step/control operations
+to admit the first required reference only, then pause new admission while that
+exact attempt finishes. Inspect the actual image and persisted delivery before
+advancing the remaining inventory; keep any UNKNOWN reservation intact. This
+small batch boundary does not change the prospective aggregate budget. Then
+complete sequential real images/H3, four route plays, export,
+preservation/recovery and closeout. CI/push are not requested; hosted CI is not a
+release blocker.

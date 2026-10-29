@@ -106,7 +106,13 @@ def test_no_manual_retry_for_noncontent_outcome(tmp_path, monkeypatch, kind):
             )
             with store.repository._read() as session, pytest.raises(InvalidTransitionError):
                 assert_production_quiescent(store.repository._project_access, session, run.project_id)
-        assert not context["canRetry"] and not context["terminalContentFailure"]
+        if kind == "unknown":
+            assert context is None
+            with closing(storage.projects.open(run.project_id)) as store:
+                attempt = store.repository.autopilot.exec_attempt_for_operation(run.id, "outline")
+                assert attempt.state == "outcome_unknown" and attempt.content_rejection is None
+        else:
+            assert not context["canRetry"] and not context["terminalContentFailure"]
         grant = TextRetryGrant(command_id=uuid4(), expected_run_id=run.id, expected_revision=current(storage, run).revision,
             failed_attempt_id=uuid4(), rejection_hash="a" * 64)
         with pytest.raises(InvalidTransitionError):

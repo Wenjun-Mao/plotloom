@@ -28,7 +28,7 @@ if len(sys.argv)>1 and sys.argv[1]=="sandbox":
         raise SystemExit(1)
     raise SystemExit(0)
 sys.stdin.read()
-(Path.cwd()/"outline.json").write_text(json.dumps({{"source":"synthetic","invalid":{not valid!r}}}))
+(Path.cwd()/"outline.json").write_text(json.dumps({{"source":"synthetic","lang":"zh","invalid":{not valid!r}}}))
 session=str(uuid4());day=date.today()
 folder=Path(os.environ["CODEX_HOME"])/"sessions"/day.strftime("%Y/%m/%d")
 folder.mkdir(parents=True,exist_ok=True)
@@ -58,6 +58,16 @@ def test_text_catalogs_do_not_replace_exit_or_content_validation(supervisor, tmp
     calls = [json.loads(line) for line in capture.read_text().splitlines()] if capture.exists() else []
     assert len(calls) == validations
     assert all("validate" in call or "render" in call for call in calls)
+    # Terminal result can precede the owned worker's local stop acknowledgement.
+    # Observe through status so the production guard performs slot settlement.
+    while time.monotonic() < deadline:
+        status = supervisor.status(attempt.attempt_id)
+        with closing(supervisor._connect()) as connection:
+            occupied = connection.execute("SELECT 1 FROM exec_slot").fetchone()
+            validating = connection.execute("SELECT 1 FROM exec_validation_process").fetchone()
+        if occupied is None and validating is None:
+            break
+        time.sleep(0.05)
     with closing(supervisor._connect()) as connection:
         assert not connection.execute("SELECT * FROM exec_slot").fetchall()
         assert not connection.execute("SELECT * FROM exec_validation_process").fetchall()

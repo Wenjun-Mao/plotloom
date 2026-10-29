@@ -170,6 +170,15 @@ def test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay(
     )
     assert restarted_provider.preflight_calls == restarted_provider.upload_calls == 0
 
+    # The first namespace deliberately retains an uncertain dispatch lease.
+    # Exercise the separate pre-claim cancellation race in a fresh namespace.
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path / "cancel-race", provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
     raced = _prepare_video(client, project_id, approval, context, key="cancel-race")
     original_reserve = storage.application.reserve_video_dispatch
 

@@ -4,7 +4,7 @@ import { createAcceptedArtProject } from "./art-review-fixture";
 import { fixtureRun } from "../tests/autopilot-fixture";
 
 test("cancelled partial work requires fresh explicit continuation consent and shows exact unknown blockers", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "explicit-continuation");
+  const id = await createScriptProject(request, workbench, "explicit-continuation");
   const stopped = { ...fixtureRun, projectId: id, state: "cancelled", bundle: null };
   await page.route(`**/api/v2/projects/${id}/autopilot`, route => route.fulfill({ json: stopped }));
   let eligible = false;
@@ -40,7 +40,7 @@ test("cancelled partial work requires fresh explicit continuation consent and sh
 });
 
 test("actual stage workspaces distinguish automatic ownership while keeping manual controls and read-only reports", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "automatic-guidance");
+  const id = await createScriptProject(request, workbench, "automatic-guidance");
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const [source, cast, art, script] = await Promise.all([json(request.get(`${root}/source-outline`)), json(request.get(`${root}/cast`)), json(request.get(`${root}/art`)), json(request.get(`${root}/script`))]);
   // Presentation-only actor fixture: real retained stage reads/report routes,

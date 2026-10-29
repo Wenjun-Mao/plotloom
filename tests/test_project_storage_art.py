@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
 from plotloom.art_structure import ART_STRUCTURE_FILENAME, art_structure_artifact
@@ -45,6 +46,7 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
             "ch_" + "a" * 32, render_style="realistic"
         )
         assert request.input_artifacts.keys() == {
+            "language-contract.json", "creative-field-ownership.json", "provider-literal-contract.json",
             "outline.json",
             "section-map.json",
             "cast.json",
@@ -65,6 +67,7 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
         assert recovered.json()["jobId"] == candidate.job_id
         assert request.job_id in recovered.json()["assignment"]
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         assert ready.art and ready.art["scenes"][0]["id"] == "S01"
         accepted = store.accept_art_candidate(
             ArtAcceptRequest(
@@ -170,6 +173,7 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(
             "ch_" + "r" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         accepted = store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,
@@ -274,6 +278,7 @@ def test_art_reference_decisions_are_explicit_cas_bound_historical_and_stale(
             "ch_" + "d" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         accepted = store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,

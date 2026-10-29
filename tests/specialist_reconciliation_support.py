@@ -50,6 +50,8 @@ def prepare(store, stage, job=None):
             },
             creative_brief="Terminal reconciliation fixture, never creative acceptance.",
         )
+        from plotloom.language_policy import freeze_request_language
+        freeze_request_language(request, store.project().require_brief().language)
         candidate = store.prepare_outline_candidate(request)
     else:
         method = {
@@ -90,29 +92,32 @@ def delivery(store, request):
         "script": "script.json",
         "storyboard": "storyboard.json",
     }[request.stage]
-    # Exchange-valid placeholder content. Terminal handling must discard it
-    # rather than revive currentness or execute stage validators.
-    _deliver_stage(store, request, filename, {}, "cancelled-fixture")
+    _deliver_stage(store, request, filename, _candidate_content(store, request), "cancelled-fixture")
 
 
-def ready_delivery(store, request):
+def _candidate_content(store, request):
+    if request.stage == "branches":
+        from tests.test_creator_branch_suggestions import proposal
+        return proposal(request.source["topology"])
+    if request.stage == "storyboard":
+        from tests.production_bridge_fixtures import _source_shaped_review_board
+        return _source_shaped_review_board()
     state_method, accepted_field, payload_field = {
         "outline": (store.source_outline_state, "accepted_outline", "outline"),
         "characters": (store.cast_state, "accepted_cast", "cast"),
         "art": (store.art_state, "accepted_art", "art"),
         "script": (store.script_state, "accepted_script", "script"),
     }[request.stage]
-    content = getattr(getattr(state_method(), accepted_field), payload_field)
-    filename = {
-        "branches": "branches.json",
-        "outline": "outline.json",
-        "characters": "cast.json",
-        "art": "art.json",
-        "script": "script.json",
-    }[request.stage]
-    return _deliver_stage(
-        store, request, filename, content, "ready-replacement-fixture"
-    )
+    return getattr(getattr(state_method(), accepted_field), payload_field)
+
+
+def ready_delivery(store, request):
+    from plotloom.creative_handoff_contracts import CREATIVE_CANDIDATE_FILENAMES
+    from tests.content_language_fixtures import install_synthetic_language_check
+    result = _deliver_stage(store, request, CREATIVE_CANDIDATE_FILENAMES[request.stage],
+        _candidate_content(store, request), "ready-replacement-fixture")
+    install_synthetic_language_check(store, request, result.candidate)
+    return result
 
 
 def snapshot_files(root):
@@ -167,6 +172,8 @@ class ReconciliationRuntime:
     def client(self, registry=None, *, raise_server_exceptions=False):
         app = create_project_folder_authoring_app(self.storage)
         assert app.state.specialists.path == (registry or self.registry).path
+        from tests.codex_exec_fixtures import install_completed_language_profile
+        install_completed_language_profile(app.state.specialists)
         return TestClient(app, raise_server_exceptions=raise_server_exceptions)
 
     def url(self, stage, job, project=None):

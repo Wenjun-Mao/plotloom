@@ -22,6 +22,8 @@ def test_outline_queue_validated_delivery_and_restart_without_acceptance(tmp_pat
     monkeypatch.setattr(subprocess, "run", run)
     settings = _settings(tmp_path)
     app = build_runtime_app(settings)
+    from tests.codex_exec_fixtures import install_completed_language_profile
+    install_completed_language_profile(app.state.specialists)
     with TestClient(app) as client:
         roles = {role: {"name": role, "taskId": str(uuid4())} for role in ["text", "image"]}
         assert client.put("/api/v2/specialists", json=roles).status_code == 200

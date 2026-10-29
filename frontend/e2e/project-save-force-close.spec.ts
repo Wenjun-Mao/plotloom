@@ -54,7 +54,7 @@ test("ordinary Home preserves a prepared task without Freeze or dispatch changes
 });
 
 test("one shared Root graph draft autosaves across leave and restart without confirmation", async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, "autosave-shared-graph"), endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
+  const id = await createScriptProject(request, workbench, "autosave-shared-graph"), endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/source-outline`;
   const before = await json(request.get(endpoint)), text = "共享图正文保存为草稿，尚未确认。";
   const url = `${workbench.frontendOrigin}/v2/?project=${id}&stage=creator`;
   await page.goto(url); await page.getByRole("textbox", { name: "剧情摘要", exact: true }).fill(text);
@@ -69,7 +69,7 @@ test("one shared Root graph draft autosaves across leave and restart without con
 });
 
 for (const editor of ["cast", "art", "script"] as const) test(`Autosave resumes ${editor} input without changing accepted content`, async ({ page, request, workbench }) => {
-  const id = await createScriptProject(request, workbench.apiOrigin, `autosave-${editor}`);
+  const id = await createScriptProject(request, workbench, `autosave-${editor}`);
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${id}/${editor}`;
   const before = await json(request.get(endpoint));
   const url = editor === "cast" ? `${workbench.frontendOrigin}/v2/?project=${id}&stage=characters`

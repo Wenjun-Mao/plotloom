@@ -85,3 +85,23 @@ def assert_checked_fixture_host(host, facts, *, images=()):
         observed_jobs.add(attempt.job_id)
     if observed_jobs != expected_jobs:
         raise ValueError('fixture host native jobs differ from retained proof owners')
+
+
+def assert_text_fixture_job_counts(store, run, *, creative_count, checker_count):
+    """Partial offline prefixes account for creative and independent checker jobs."""
+    with store.repository.engine.connect() as connection:
+        dispatched = connection.exec_driver_sql(
+            "SELECT job_id FROM v2_autopilot_exec_attempts WHERE run_id=? AND domain='text'",
+            (str(run.id),)).scalars().all()
+    with store.repository._read() as session:
+        checks = [verified_check(row) for row in check_rows(session, store.manifest.project_id)]
+    creative = [item['evidence']['jobId'] for item in run.checkpoints
+        if item['evidence']['owner'] in CREATIVE_STAGES and item['evidence'].get('jobId')]
+    assert len(creative) == len(set(creative)) == creative_count
+    assert len(dispatched) == len(set(dispatched)) and set(dispatched).issubset(creative)
+    assert len(checks) == checker_count
+    for request, _data, attempt, _profile, receipt, result in checks:
+        assert str(attempt.run_id) == str(run.id)
+        assert request.job_id not in creative and request.source['candidateJobId'] in creative
+        assert receipt and result and result.verdict == 'pass'
+    assert run.lifetime_jobs == creative_count + checker_count

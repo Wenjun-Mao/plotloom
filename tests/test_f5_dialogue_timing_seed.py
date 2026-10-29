@@ -32,7 +32,7 @@ def test_exact_variant_and_fresh_f5_authority_are_isolated_from_seed_and_sibling
     tmp_path, f5_script_seeds, variant, style, lines,
 ):
     seed = f5_script_seeds[variant]
-    assert "lang" not in creative_delivery_fixtures._pilot_script()  # Scoped patch restored.
+    assert creative_delivery_fixtures._pilot_script()["lang"] == "zh"  # Current fixture remains restored.
     left_storage, left = open_f5_script_copy(tmp_path / "left", seed)
     with closing(left):
         right_storage, right = open_f5_script_copy(tmp_path / "right", seed)
@@ -41,7 +41,7 @@ def test_exact_variant_and_fresh_f5_authority_are_isolated_from_seed_and_sibling
                 assert_f5_script_variant(store, variant)
                 assert store.project().brief == F5_BRIEF
                 script = store.script_state().accepted_script.script
-                assert script["lang"] == "en"
+                assert script["lang"] == "zh"
                 dialogue = [item for episode in script["episodes"] for scene in episode["scenes"]
                             for item in scene["flow"] if "line" in item]
                 assert dialogue == [{"speaker": "VO", "line": text, "delivery": NOTES} for text in lines]

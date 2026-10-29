@@ -26,7 +26,7 @@ if len(sys.argv)>1 and sys.argv[1]=="sandbox":
             raise SystemExit(1)
     raise SystemExit(0)
 sys.stdin.read()
-(Path.cwd()/"outline.json").write_text(json.dumps({{"source":"synthetic", "invalid":{not valid!r}}}))
+(Path.cwd()/"outline.json").write_text(json.dumps({{"source":"synthetic","lang":"zh", "invalid":{not valid!r}}}))
 session=str(uuid4());day=date.today()
 folder=Path(os.environ["CODEX_HOME"])/"sessions"/day.strftime("%Y/%m/%d")
 folder.mkdir(parents=True,exist_ok=True)

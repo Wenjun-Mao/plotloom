@@ -45,7 +45,7 @@ def test_storyboard_real_child_head_correction_adoption_or_exhaustion(supervisor
             rows = [c for c in current.checkpoints if c['evidence']['owner']=='storyboard']
             assert len(rows)==(2 if limit else 1),current.blocker
             context = failure_context(store,registry,stage='storyboard')
-            assert context and context['canRetry'] is False and context['automaticLimit']==min(limit,1)
+            assert context and context['canRetry'] is exhaust and context['automaticLimit']==min(limit,1)
             app=FastAPI()
             @contextmanager
             def opened(project_id):
@@ -53,11 +53,11 @@ def test_storyboard_real_child_head_correction_adoption_or_exhaustion(supervisor
             register_autopilot_routes(app,opened,service)
             with TestClient(app) as client:
                 public=client.get(f'/api/v2/projects/{run.project_id}/autopilot/text-failure?stage=storyboard')
-                assert public.status_code==200 and public.json()['canRetry'] is False
+                assert public.status_code==200 and public.json()['canRetry'] is exhaust
             with pytest.raises(InvalidTransitionError):
                 retry_text(store,registry,TextRetryGrant(command_id=uuid4(),expected_run_id=run.id,
                     expected_revision=current.revision,failed_attempt_id=failed.attempt_id,
-                    rejection_hash=failed.content_rejection.rejection_hash))
+                    rejection_hash="0"*64))
             if exhaust:
                 assert current.state=='blocked' and cp['state']=='failed'
                 assert store.storyboard_review_state().accepted_review is None

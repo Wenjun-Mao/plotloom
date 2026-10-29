@@ -1,4 +1,4 @@
-# Explicit local image-capacity recovery
+# Explicit local execution-capacity recovery
 
 UNKNOWN means Plotloom lacks supported terminal evidence for the exact attempt.
 It does not mean the process is still alive, that ImageGen ran, or that it did
@@ -44,20 +44,22 @@ occupancy and leaves remote uncertainty/reservations intact.
 
 ## Eligibility and guarantees
 
-This is an explicit administrator operation for one exact UNKNOWN image attempt
-on an already permanently revoked and deleted project. The source owner checks
-the original home is positively absent (not replaced, symlinked or inaccessible),
-and every recorded worker, CLI and separate validator PID and whole process group
-is positively absent. Missing identities, present/reused PIDs, permission failure
-or unresolved spawn ownership refuse. A rejected preview explains its blockers.
-No user-entered process-proof claim can grant authority.
+This is an explicit administrator operation for one exact terminal or UNKNOWN
+text/image attempt. Its project may still exist; project revocation or deletion
+is not a prerequisite and must not be performed merely to release local capacity.
+The source owner checks the exact installation, confined home identity and held
+slot. Every recorded worker, CLI and separate validator PID and whole process
+group must be positively absent. Missing identities, present/reused PIDs,
+permission failure or unresolved spawn ownership refuse. A rejected preview
+explains its blockers. No user-entered process-proof claim can grant authority.
 
-The commit rechecks exact installation, project, attempt/status, revocation, slot,
-queue and process/home facts under the existing publication fence and SQLite
+The commit rechecks exact installation, project, attempt/status, any existing
+revocation, slot, queue and process facts under the existing publication fence and SQLite
 transaction. It atomically appends an immutable hashed receipt and removes only
 that attempt's local slot. It does not change UNKNOWN/status bytes, reserved image
 outputs, image budget/spending holds, original process/session/terminal evidence,
-receipts/manifests, permanent revocation or disabled queue. It does not drain a
+receipts/manifests or any existing permanent revocation. It disables only the
+exact attempt's queue entry. It does not drain a
 queue, publish an output or raise the 4-total/2-image default limits. Reduced
 persisted installations keep their own exact limits.
 
@@ -81,7 +83,7 @@ docker ps --filter label=com.docker.compose.project=plotloom-creator --filter la
 ```
 
 Replace `<container-id>`, `<project-uuid>` and `<attempt-uuid>` with one exact
-retained revoked/absent project and UNKNOWN image attempt:
+retained project and terminal or UNKNOWN text/image attempt:
 
 ```sh
 docker exec -i <container-id> codex exec-capacity-retirement-preview --packet-json '{"projectId":"<project-uuid>","attemptId":"<attempt-uuid>"}'
@@ -95,11 +97,17 @@ that fresh hash and the operator's explicit reason:
 docker exec -i <container-id> codex exec-capacity-retire --packet-json '{"projectId":"<project-uuid>","attemptId":"<attempt-uuid>","expectedPreviewHash":"<fresh-preview-hash>","reason":"Explicit local-only retirement; preserve remote uncertainty."}'
 ```
 
+Do not use `exec-status` as a read-only preflight: status reconciliation can
+release stopped local occupancy and drain enabled queued work. At a quiet
+checkpoint, inspect the host ledger read-only for enabled queued or unresolved
+spawn work, then use the dedicated retirement preview for each exact target.
+
 The CLI sends once and never retries a lost acknowledgement. Read the same
 preview first: a committed retirement returns its original immutable receipt,
 without probing historical numeric PIDs again. Changed facts/reason or a restored
-slot refuse. Retirement retains UNKNOWN and spending reservations until explicit
-project garbage collection; it grants no new remote-outcome or refund claim.
+slot refuse. Retirement preserves UNKNOWN and spending reservations; it grants
+no new remote-outcome or refund claim. Project garbage collection is a separate
+operation with its own prerequisites and authority.
 
 ## Continuing the current project after a source change
 

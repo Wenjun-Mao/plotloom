@@ -343,6 +343,7 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
         "allowLetterbox": False,
         "allowCenterCrop": True,
         "quality": 8,
+        "automaticRetryLimit": 1,
     }
 
     # Restart only the application composition; the frozen project database

@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.art_contracts import ArtAcceptRequest
 from plotloom.authored_route_timing import (
     longest_authored_route_units,
@@ -120,6 +121,7 @@ def prepared_uneven_script(tmp_path):
             "ch_" + "k" * 32, render_style="realistic"
         )
         ready = store.admit_art_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready.art)
         store.accept_art_candidate(
             ArtAcceptRequest(
                 job_id=candidate.job_id,
@@ -146,6 +148,7 @@ def test_unequal_timing_installs_without_relaxing_upstream_validation(
     ready = store.admit_script_delivery(
         _deliver_stage(store, request, "script.json", script, "uneven-script")
     )
+    install_synthetic_language_check(store, request, ready.script)
     store.accept_script_candidate(
         ScriptAcceptRequest(
             job_id=candidate.job_id,
@@ -168,6 +171,7 @@ def test_unequal_timing_installs_without_relaxing_upstream_validation(
             store, board_request, "storyboard.json", _uneven_board(), "uneven-board"
         )
     )
+    install_synthetic_language_check(store, board_request, board_ready.storyboard)
     store.accept_storyboard_review_candidate(
         StoryboardReviewAcceptRequest(
             job_id=board_candidate.job_id,

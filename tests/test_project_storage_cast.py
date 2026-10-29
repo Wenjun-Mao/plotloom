@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.cast_contracts import (
     CastAcceptRequest,
     CastBinding,
@@ -168,16 +169,20 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
             store.admit_cast_delivery(replace(delivery, candidate=mismatched_style))
         assert store.cast_state().candidate.status == "prepared"
         ready = store.admit_cast_delivery(delivery)
+        install_synthetic_language_check(store, request, ready.cast)
         invalid = json.loads(json.dumps(ready.cast))
         invalid["characters"][0]["persona"]["personality"] = []
+        install_synthetic_language_check(store, request, invalid)
         with pytest.raises(ValueError, match="性格特点"):
             store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=invalid, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert store.cast_state().candidate.status == "ready"
         stripped = dict(ready.cast or {})
         stripped["characters"] = [{key: value for key, value in stripped["characters"][0].items() if key != "reviewNotes"}]
+        install_synthetic_language_check(store, request, stripped)
         with pytest.raises(ValueError, match="reviewNotes"):
             store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=stripped, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"personality": ["Careful"], "motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
+        install_synthetic_language_check(store, request, edited)
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"
         with store.repository._read() as session:  # type: ignore[attr-defined]
@@ -234,7 +239,8 @@ def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path:
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "k" * 32, render_style="realistic")
-        store.admit_cast_delivery(_deliver(store, request))
+        ready_cast = store.admit_cast_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready_cast.cast)
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         original_hash = accepted.accepted_cast.content_hash if accepted.accepted_cast else ""
 
@@ -282,7 +288,8 @@ def test_accepted_cast_report_keeps_delivery_and_tracks_current_divergence(tmp_p
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "m" * 32, render_style="realistic")
-        store.admit_cast_delivery(_deliver(store, request))
+        ready_cast = store.admit_cast_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready_cast.cast)
         original_report = store.cast_candidate_report(request.job_id)
         accepted = store.accept_cast_candidate(CastAcceptRequest(
             job_id=request.job_id,
@@ -340,7 +347,8 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "e" * 32, render_style="realistic")
-        store.admit_cast_delivery(_deliver(store, request))
+        ready_cast = store.admit_cast_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready_cast.cast)
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         proposal = store.media.prepare_character_reference_proposal(
             store.manifest.project_id,
@@ -395,7 +403,8 @@ def test_imported_appearance_is_cast_bound_and_requires_explicit_selection(tmp_p
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "i" * 32, render_style="realistic")
-        store.admit_cast_delivery(_deliver(store, request))
+        ready_cast = store.admit_cast_delivery(_deliver(store, request))
+        install_synthetic_language_check(store, request, ready_cast.cast)
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         content = b"retained imported appearance"
         uri = store.artifacts.put(content)

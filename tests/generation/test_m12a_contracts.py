@@ -177,7 +177,7 @@ def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None
     assert "estimatedDurationUnits" not in cue_schema["required"]
     assert "durationBudgetUnits" not in scene_schema["properties"]
     assert "durationWeight" in scene_schema["required"]
-    assert compiled.contract.dialogue_timing_profile_version == "dialogue.default.v1"
+    assert compiled.contract.dialogue_timing_profile_version == "dialogue.bilingual.v2"
     assert compiled.contract.dialogue_timing_profile_hash
     assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v2"
     assert compiled.contract.scene_timing_allocation_hash

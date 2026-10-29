@@ -13,7 +13,7 @@ const reviewedStill = path.join(repositoryRoot, "docs/verification/supporting/p0
 
 test("a saved aspect-ratio change withdraws dependent review and clip eligibility without altering retained bytes", async ({ page, request, workbench }, info) => {
   test.setTimeout(240_000);
-  const projectId = await createFixtureProject(request, workbench.apiOrigin);
+  const projectId = await createFixtureProject(request, workbench);
   const root = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
 
   // Accept the upstream storyboard review from a deterministic checked-in
@@ -238,9 +238,10 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   console.info(`ASPECT_RATIO_EVIDENCE ${JSON.stringify(evidenceSummary)}`);
 });
 
-async function createFixtureProject(request: Parameters<typeof createScriptProject>[0], origin: string): Promise<string> {
+async function createFixtureProject(request: Parameters<typeof createScriptProject>[0], environment: Parameters<typeof createScriptProject>[1]): Promise<string> {
+  const origin = environment.apiOrigin;
   const storyBible = structuredClone(demoProject.storyBible);
-  const projectId = await createScriptProject(request, origin, "aspect-ratio-currentness-20261011", {}, ["cast", "art", "script"], {
+  const projectId = await createScriptProject(request, environment, "aspect-ratio-currentness-20261011", {}, ["cast", "art", "script"], {
     briefOverrides: { aspectRatio: "9:16" },
     initialStages: [{ stage: "story_bible", payload: storyBible }],
   });

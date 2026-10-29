@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.content_language_fixtures import install_synthetic_language_check
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange
@@ -33,7 +34,7 @@ def seeded_presentation(tmp_path, monkeypatch, pending_native_bridge_seed):
 
 
 def candidate_for(request):
-    return {"entries": [{"id": source["id"], "spans": [{"start": 0, "end": len(source["sourceText"]),
+    return {"lang": request.input_artifacts["language-contract.json"]["reportLocale"], "entries": [{"id": source["id"], "spans": [{"start": 0, "end": len(source["sourceText"]),
         "role": "dialogue" if source["kind"] == "dialogue" else "physical",
         "rendering": "" if source["kind"] == "dialogue" else source["sourceText"], "reason": ""}]}
         for source in request.input_artifacts["presentation-source.json"]["sources"]]}
@@ -63,6 +64,12 @@ def deliver(fixture, *, mutate_candidate=None, mutate_manifest=None, different_r
     if mutate_manifest:
         mutate_manifest(manifest)
     (output / "completion.json").write_bytes(canonical_json(manifest))
+    if not mutate_candidate and not mutate_manifest and not different_report:
+        from tests.codex_exec_fixtures import install_profile
+        from tests.content_language_fixtures import install_synthetic_language_check
+        install_profile(service.registry)
+        with closing(storage.projects.open(project)) as store:
+            install_synthetic_language_check(store, request, value)
     return request, output
 
 
@@ -107,7 +114,7 @@ def test_delivery_prefills_advice_without_changing_proposal_then_explicit_save(p
         assert persisted.proposal.presentation.model_dump(mode="json", by_alias=True) == current["proposal"]["presentation"]
         assert persisted.proposal.presentation.reviewed and persisted.presentation_candidate is None
         assert persisted.installation is None
-    validated = subprocess.run(["uv", "run", "--locked", "python", "scripts/native_bridge_presentation.py", "validate",
+    validated = subprocess.run(["uv", "run", "--locked", "--no-sync", "python", "scripts/native_bridge_presentation.py", "validate",
         str(output / "presentation.json"), "--request", str(output.parent / "package" / "request.json")], capture_output=True, check=True)
     assert b"validated" in validated.stdout
     assert len(calls) == 1
