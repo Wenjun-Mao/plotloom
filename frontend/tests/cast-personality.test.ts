@@ -1,3 +1,5 @@
+import { contentLanguageApi } from "../src/features/content-language/api";
+import { languagePass, languageRequired } from "./content-language-fixture";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -22,7 +24,10 @@ async function change(element: HTMLInputElement | HTMLTextAreaElement, value: st
   Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value);
   await act(async () => element.dispatchEvent(new Event("input", { bubbles: true })));
 }
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => {
+  vi.spyOn(contentLanguageApi, "status").mockImplementation(async (_project, _stage, job) => languageRequired(job));
+  vi.spyOn(contentLanguageApi, "check").mockImplementation(async (_project, _stage, job) => languagePass(job));
+ host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
 it("edits real personality and temperament while preserving motivation and unrelated candidate fields", async () => {
@@ -31,10 +36,11 @@ it("edits real personality and temperament while preserving motivation and unrel
   expect(host.querySelector("legend")?.textContent).toBe("林遥");
   expect(host.textContent).toContain("性格特点");
   expect(Array.from(host.querySelectorAll("label")).some((label) => label.textContent?.startsWith("动机"))).toBe(false);
-  expect(host.querySelector("input")!.value).toBe("审慎");
+  expect(host.querySelector<HTMLInputElement>(".cast-forms input")!.value).toBe("审慎");
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("审慎（推断）");
-  await change(host.querySelector("input")!, "内敛、审慎");
+  await change(host.querySelector<HTMLInputElement>(".cast-forms input")!, "内敛、审慎");
   await change(host.querySelector("textarea")!, "动作克制");
+  if (button("检查当前完整候选语言")) await act(async () => button("检查当前完整候选语言").click());
   await act(async () => button("确认使用此角色设定").click());
   const expected = structuredClone(cast);
   expected.characters[0].persona.personality[0] = "内敛、审慎（推断）";
@@ -46,7 +52,7 @@ it("preserves array entries on add/delete and saves reopened edits without chang
   const save = vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue({} as any);
   await render("reopened");
   await act(async () => button("添加性格特点").click());
-  await change(host.querySelectorAll("input")[2], "自主");
+  await change(host.querySelectorAll<HTMLInputElement>(".cast-forms input")[2], "自主");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="删除性格特点 1"]')!.click());
   await act(async () => button("保存角色修改").click());
   const result = save.mock.calls[0][1].cast as typeof cast;
@@ -56,7 +62,7 @@ it("preserves array entries on add/delete and saves reopened edits without chang
 
 it("does not use motivation as fallback for missing personality, and respects read-only", async () => {
   await render("ready", { characters: [{ id: "C01", persona: { motivation: "not personality" } }] }, true);
-  expect(host.querySelectorAll("input")).toHaveLength(0);
+  expect(host.querySelectorAll<HTMLInputElement>(".cast-forms input")).toHaveLength(0);
   expect(host.querySelector("textarea")?.value).toBe("");
   expect(button("添加性格特点").disabled).toBe(true);
   expect(Array.from(host.querySelectorAll("textarea")).every((element) => element.disabled)).toBe(true);
@@ -99,6 +105,7 @@ it("associates separate selectable labels with unique controls across characters
 it("keeps the complete original cast when accepting without edits", async () => {
   const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
   await render();
+  if (button("检查当前完整候选语言")) await act(async () => button("检查当前完整候选语言").click());
   await act(async () => button("确认使用此角色设定").click());
   expect(accept.mock.calls[0][1].cast).toEqual(cast);
 });
@@ -123,7 +130,7 @@ it("preserves selected label text without suppressing ordinary label activation"
 
 it("allows clearing an annotated value without returning the marker to the input", async () => {
   await render();
-  const input = host.querySelector("input")!;
+  const input = host.querySelector<HTMLInputElement>(".cast-forms input")!;
   await change(input, "");
   expect(input.value).toBe("");
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("（推断）");
@@ -144,6 +151,7 @@ it("edits separate notes without rewriting descriptions or losing either note", 
   const control = (text: string) => Array.from(host.querySelectorAll("label")).find((label) => label.textContent === text)!.control as HTMLTextAreaElement;
   await change(control("设定依据与补充说明"), "外观为创作补充。");
   await change(control("表演提示"), "两个选择都不演成错误。");
+  if (button("检查当前完整候选语言")) await act(async () => button("检查当前完整候选语言").click());
   await act(async () => button("确认使用此角色设定").click());
   const result = accept.mock.calls[0][1].cast as any;
   expect(result.characters[0].reviewNotes).toEqual({ sourceNotes: "外观为创作补充。", performanceGuidance: "两个选择都不演成错误。" });
@@ -167,9 +175,10 @@ it("blocks confirmation until required design is repaired in both edit modes", a
     expect(submit.disabled).toBe(true);
     expect(host.textContent).toContain("请至少填写一个性格特点。");
     expect(host.textContent).toContain("请填写角色外观");
-    await change(host.querySelector("input")!, "审慎");
+    await change(host.querySelector<HTMLInputElement>(".cast-forms input")!, "审慎");
     expect(submit.disabled).toBe(true);
     await change(host.querySelector<HTMLTextAreaElement>("textarea[required]")!, "深蓝外套");
+    if (button("检查当前完整候选语言")) await act(async () => button("检查当前完整候选语言").click());
     expect(submit.disabled).toBe(false);
     expect(host.querySelectorAll('[role="alert"]')).toHaveLength(0);
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="删除性格特点 1"]')!.click());

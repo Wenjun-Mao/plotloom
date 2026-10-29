@@ -1,3 +1,4 @@
+import { useContentLanguageCheck } from "../content-language/useContentLanguageCheck";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { plotloomApi } from "../../api";
 import type { BranchTaskState, SectionMap } from "../../types";
@@ -26,6 +27,8 @@ export function useBranchSuggestions(projectId: string, basis: string, dirty: bo
   // Authority changes during render, before the passive refresh effect runs.
   const acceptedRead = read && matches(read.identity, identity) ? read : undefined;
   const state = acceptedRead?.value;
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "branches", jobId: state?.candidate?.status === "ready" ? state.candidate.jobId : undefined,
+    candidate: state?.candidate?.suggestion as unknown as Record<string, unknown>, original: state?.candidate?.suggestion as unknown as Record<string, unknown>, basis, disabled: operation.pending || operation.unconfirmed || dirty || !!state?.staleReasons.length });
   const readError = acceptedRead?.error ?? "";
   useEffect(() => {
     const ticket = ++epoch.current;
@@ -42,7 +45,7 @@ export function useBranchSuggestions(projectId: string, basis: string, dirty: bo
   const busy = operation.pending || operation.unconfirmed || !state && !readError || adopting;
   const refresh = () => setRetry(value => value + 1);
   const adopt = async () => {
-    if (busy || dirty || !state?.candidate || !acceptedRead || !matches(acceptedRead.identity, currentIdentity.current)
+    if (!languageCheck.ready || busy || dirty || !state?.candidate || !acceptedRead || !matches(acceptedRead.identity, currentIdentity.current)
       || owner.snapshot(projectId).version !== acceptedRead.identity.version || owner.snapshot(projectId).pending) return;
     const ticket = epoch.current;
     const identity = acceptedRead.identity;
@@ -57,7 +60,7 @@ export function useBranchSuggestions(projectId: string, basis: string, dirty: bo
     } catch (reason) { if (current()) setRead({ identity, value: state, error: message(reason) }); }
     finally { if (current()) setAdopting(false); }
   };
-  return { state, busy, mutationPending: operation.pending, error: readError || operation.error, refresh, adopt,
+  return { state, languageCheck, busy, mutationPending: operation.pending, error: readError || operation.error, refresh, adopt,
     retryDisabled: operation.pending || adopting || !state && !readError,
     mutate: (command: () => Promise<BranchTaskState>) => {
       if (busy || !acceptedRead?.value || !matches(acceptedRead.identity, currentIdentity.current)

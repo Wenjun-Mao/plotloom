@@ -9,6 +9,7 @@ from pydantic import Field, field_validator
 from .accepted_review_state import AcceptedReviewState
 from plotloom.domain_base import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
+from .language_policy import ProjectLanguageContract
 
 
 CastStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -28,6 +29,7 @@ class CastBinding(CamelModel):
     section_ids: list[str] = Field(min_length=1, max_length=128)
     # Missing evidence remains readable, but is never current generation authority.
     render_contract: dict[str, Any] | None = None
+    language_contract: ProjectLanguageContract | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("section_ids")
     @classmethod

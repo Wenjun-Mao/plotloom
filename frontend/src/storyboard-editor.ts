@@ -1,3 +1,4 @@
+import { creativeDefaults } from "./creative-language";
 import type {
   AudioEvent,
   Beat,
@@ -75,21 +76,23 @@ export function createShot(
   sceneId: string,
   order: number,
   defaults: Pick<Shot, "characterIds" | "locationId" | "entryState" | "exitState">,
+  language = "zh-CN",
 ): Shot {
+  const creative = creativeDefaults(language);
   return {
     id,
     sceneId,
     order,
-    title: "新镜头",
+    title: creative.shot,
     shotSize: "medium",
     durationUnits: 1000,
-    cameraAngle: "平视",
-    cameraMovement: "固定",
+    cameraAngle: creative.cameraAngle,
+    cameraMovement: creative.cameraMovement,
     composition: "",
     visualIntent: "",
     motionIntent: "",
     action: "",
-    transition: "硬切",
+    transition: creative.transition,
     characterIds: [...defaults.characterIds],
     locationId: defaults.locationId,
     propIds: [],
@@ -103,7 +106,7 @@ export function createShot(
 
 export function addShot(storyboard: Storyboard, shot: Shot): Storyboard {
   if (storyboard.shots.some((candidate) => candidate.id === shot.id)) {
-    throw new Error(`duplicate shot id: ${shot.id}`);
+    throw new Error(`镜头标识重复： ${shot.id}`);
   }
   return { ...storyboard, shots: [...storyboard.shots, shot] };
 }
@@ -116,13 +119,13 @@ export function patchShot(
   const protectedFields = patch as Partial<Shot>;
   const current = storyboard.shots.find((shot) => shot.id === shotId);
   if (protectedFields.id !== undefined && protectedFields.id !== shotId) {
-    throw new Error("shot identity is immutable");
+    throw new Error("镜头标识不可修改");
   }
   if (protectedFields.sceneId !== undefined && protectedFields.sceneId !== current?.sceneId) {
-    throw new Error("use migrateShotToScene to change a shot scene");
+    throw new Error("请使用迁移操作更改镜头所属场景");
   }
   if (protectedFields.order !== undefined && protectedFields.order !== current?.order) {
-    throw new Error("use moveShot to change a shot order");
+    throw new Error("请使用排序操作更改镜头顺序");
   }
   const { id: _id, sceneId: _sceneId, order: _order, ...editable } = protectedFields;
   return {
@@ -140,9 +143,9 @@ export function shotSceneMigrationImpact(
   targetSceneId: string,
 ): ShotSceneMigrationImpact {
   const shot = storyboard.shots.find((candidate) => candidate.id === shotId);
-  if (!shot) throw new Error(`unknown shot: ${shotId}`);
+  if (!shot) throw new Error(`未找到镜头： ${shotId}`);
   if (!plan.scenes.some((scene) => scene.id === targetSceneId)) {
-    throw new Error(`unknown target scene: ${targetSceneId}`);
+    throw new Error(`未找到目标场景： ${targetSceneId}`);
   }
   const beatSceneById = new Map(plan.beats.map((beat) => [beat.id, beat.sceneId]));
   const cueSceneById = new Map(plan.dialogueCues.map((cue) => [cue.id, beatSceneById.get(cue.beatId)]));
@@ -165,8 +168,8 @@ export function migrateShotToScene(
   targetSceneId: string,
 ): Storyboard {
   const shot = storyboard.shots.find((candidate) => candidate.id === shotId);
-  if (!shot) throw new Error(`unknown shot: ${shotId}`);
-  if (!targetSceneId) throw new Error("target scene ID must not be blank");
+  if (!shot) throw new Error(`未找到镜头： ${shotId}`);
+  if (!targetSceneId) throw new Error("目标场景标识不能为空");
   if (shot.sceneId === targetSceneId) return normalizeShotOrders(storyboard);
   const nextOrder = storyboard.shots.filter((candidate) => candidate.sceneId === targetSceneId).length + 1;
   return normalizeShotOrders({
@@ -265,7 +268,7 @@ export function assignCue(
 ): Storyboard {
   const scheduledBy = cueSchedule(storyboard).get(cueId) ?? [];
   if (scheduledBy.some((candidate) => candidate !== shotId)) {
-    throw new Error(`cue ${cueId} is already scheduled by ${scheduledBy.join(", ")}`);
+    throw new Error(`cue ${cueId} 已由以下镜头安排：${scheduledBy.join(", ")}`);
   }
   const shot = storyboard.shots.find((candidate) => candidate.id === shotId);
   if (!shot || shot.cueIds.includes(cueId)) return storyboard;
@@ -294,7 +297,7 @@ export function addShotBeatLink(
         candidate.shotId === link.shotId && candidate.beatId === link.beatId,
     )
   ) {
-    throw new Error("this shot-to-beat relationship already exists");
+    throw new Error("此镜头与节拍的对应关系已存在");
   }
   if (
     link.role === "primary" &&
@@ -302,7 +305,7 @@ export function addShotBeatLink(
       (candidate) => candidate.beatId === link.beatId && candidate.role === "primary",
     )
   ) {
-    throw new Error(`beat ${link.beatId} already has a PRIMARY shot`);
+    throw new Error(`beat ${link.beatId} 已有主要覆盖镜头`);
   }
   return {
     ...storyboard,
@@ -325,7 +328,7 @@ export function patchShotBeatLink(
         candidate.shotId !== shotId,
     )
   ) {
-    throw new Error(`beat ${beatId} already has a PRIMARY shot`);
+    throw new Error(`beat ${beatId} 已有主要覆盖镜头`);
   }
   return {
     ...storyboard,
@@ -366,7 +369,7 @@ export function beatCoverage(
 
 export function addAudioEvent(shot: Shot, event: AudioEvent): Shot {
   if (shot.audioPlan.events.some((candidate) => candidate.id === event.id)) {
-    throw new Error(`duplicate audio event id: ${event.id}`);
+    throw new Error(`声音事件标识重复： ${event.id}`);
   }
   return {
     ...shot,
@@ -380,7 +383,7 @@ export function patchAudioEvent(
   patch: Partial<AudioEvent>,
 ): Shot {
   if (patch.id !== undefined && patch.id !== eventId) {
-    throw new Error("audio event identity is immutable");
+    throw new Error("声音事件标识不可修改");
   }
   return {
     ...shot,

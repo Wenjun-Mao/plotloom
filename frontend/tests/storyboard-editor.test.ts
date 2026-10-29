@@ -47,14 +47,14 @@ describe("storyboard editor contract", () => {
   it("keeps dialogue authoritative and refuses hidden reassignment or duplicate PRIMARY coverage", () => {
     const first = demoProject.storyboard.shots[0];
     const second = demoProject.storyboard.shots[1];
-    expect(() => assignCue(demoProject.storyboard, second.id, first.cueIds[0])).toThrow(/already scheduled/);
+    expect(() => assignCue(demoProject.storyboard, second.id, first.cueIds[0])).toThrow(/已由以下镜头安排/);
 
     expect(() => addShotBeatLink(demoProject.storyboard, {
       shotId: second.id,
       beatId: "b1",
       role: "primary",
       coverageWeight: 1,
-    })).toThrow(/already has a PRIMARY/);
+    })).toThrow(/已有主要覆盖镜头/);
   });
 
   it("migrates a stable shot without silently rewriting cue schedules or coverage", () => {

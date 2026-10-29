@@ -72,8 +72,8 @@ def test_preview_is_read_only_and_atomic_retirement_lost_ack_restart_preserve_un
         assert connection.execute("SELECT COUNT(*) FROM exec_capacity_retirements").fetchone()[0] == 1
 
 
-@pytest.mark.parametrize("defect", ["worker", "cli", "validator", "validator_spawn", "missing_worker", "missing_cli", "worker_group", "enabled_queue", "slot", "home", "symlink", "home_permission"])
-def test_ambiguous_ownership_or_deleted_home_never_releases_a_slot(supervisor, monkeypatch, defect):
+@pytest.mark.parametrize("defect", ["worker", "cli", "validator", "validator_spawn", "missing_worker", "missing_cli", "worker_group", "slot"])
+def test_ambiguous_process_ownership_never_releases_a_slot(supervisor, monkeypatch, defect):
     original, current, request = revoked_unknown(supervisor, monkeypatch)
     with closing(supervisor._connect()) as connection:
         if defect in {"validator", "validator_spawn"}:
@@ -261,3 +261,47 @@ def test_process_absence_is_rechecked_at_mutation_not_just_preview(supervisor, m
     with pytest.raises(CodexExecSupervisorError, match="positively absent"):
         supervisor.retire_local_capacity(request)
     assert ledger(supervisor) == before and len(calls) == 4
+
+
+def test_valued_existing_home_and_unrevoked_unknown_release_only_dead_local_slot(supervisor, monkeypatch):
+    original, unknown, request = revoked_unknown(supervisor, monkeypatch)
+    home = supervisor.outputs_root / ("deleted-qa__" + str(original.project_id))
+    home.mkdir()
+    valued = home / "valued-story.txt"
+    valued.write_text("Current authored story and media remain owned by the creator")
+    with closing(supervisor._connect()) as connection:
+        connection.execute("DELETE FROM exec_project_revocations WHERE project_id=?", (str(original.project_id),))
+        connection.execute("UPDATE exec_queue SET enabled=1 WHERE attempt_id=?", (str(original.attempt_id),))
+    before = valued.read_bytes()
+    monkeypatch.setattr(supervisor, "_drain_queue", lambda: pytest.fail("release must not drain any old run"))
+    result = supervisor.retire_local_capacity(consent(supervisor, request))
+    assert result.local_capacity_state == "retired"
+    assert valued.read_bytes() == before
+    assert supervisor._load(supervisor._row(original.attempt_id)).attempt == unknown
+    with closing(supervisor._connect()) as connection:
+        assert connection.execute("SELECT enabled FROM exec_queue WHERE attempt_id=?", (str(original.attempt_id),)).fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM exec_project_revocations").fetchone()[0] == 0
+
+
+def test_stopped_text_capacity_releases_without_image_accounting_or_home_deletion(supervisor,monkeypatch):
+    original=_attempt()
+    current=transition_exec_attempt(transition_exec_attempt(original,state="running",process_id=900001,
+        process_group_id=900001,process_birth_identity="original-cli"),state="failed",terminal_result="failure",
+        process_exit_code=1,remote_tool_state="not_applicable",evidence_hash="a"*64)
+    _insert_attempt_row(supervisor,original,current)
+    home=supervisor.outputs_root/("valued__"+str(original.project_id))
+    home.mkdir()
+    valued=home/"retained.txt"
+    valued.write_text("retained work")
+    with closing(supervisor._connect()) as connection:
+        connection.execute("UPDATE exec_attempts SET project_home=?,worker_pid=900002,worker_group_id=900002,worker_birth_identity='original-worker' WHERE attempt_id=?",(str(home),str(original.attempt_id)))
+        connection.execute("INSERT INTO exec_slot VALUES (?, 'text')",(str(original.attempt_id),))
+    monkeypatch.setattr(supervisor,"_prove_group_absent",lambda *_args:True)
+    monkeypatch.setattr(supervisor,"_drain_queue",lambda *_args:pytest.fail("release must not drain"))
+    assert supervisor._release_stopped_local_slot(supervisor._row(original.attempt_id))
+    status=supervisor._load(supervisor._row(original.attempt_id))
+    assert status.attempt==current and status.local_execution_stopped
+    assert valued.read_text()=="retained work"
+    with closing(supervisor._connect()) as connection:
+        assert not connection.execute("SELECT 1 FROM exec_slot").fetchone()
+        assert not connection.execute("SELECT 1 FROM exec_project_revocations").fetchone()

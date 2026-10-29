@@ -32,6 +32,8 @@ def suspend_pending_codex_exec(store, registry, view):
     """Acknowledge pause only after every retained unstarted identity is fenced."""
     if view.policy.executor_binding is None or view.policy.executor_binding.contract_version != "plotloom.codex-exec.v8":
         return
+    from .content_language_service import suspend_language_checks
+    suspend_language_checks(store, registry, view.id)
     for checkpoint in view.checkpoints:
         if checkpoint["evidence"].get("executorAttemptId") is None:
             continue
@@ -89,7 +91,12 @@ def reconcile_codex_exec(
             attempt = store.repository.autopilot.mark_exec_spawn_intent(
                 attempt.attempt_id, expected_checkpoint_revision=current_checkpoint["revision"]
             )
-        host_status = registry.codex_exec_admit(attempt)
+        try:
+            host_status = registry.codex_exec_admit(attempt)
+        except Exception:
+            with command_factory(store,view,claim,OperationScope.EVIDENCE):
+                store.repository.autopilot.update_exec_attempt(attempt.attempt_id,state="outcome_unknown")
+            raise
     else:
         assert_prepared_attempt(attempt, view, checkpoint, domain, inputs)
         if attempt.state == "reserved":
@@ -103,7 +110,12 @@ def reconcile_codex_exec(
                 attempt = store.repository.autopilot.mark_exec_spawn_intent(
                     attempt.attempt_id, expected_checkpoint_revision=current_checkpoint["revision"]
                 )
-            host_status = registry.codex_exec_admit(attempt)
+            try:
+                host_status = registry.codex_exec_admit(attempt)
+            except Exception:
+                with command_factory(store, view, claim, OperationScope.EVIDENCE):
+                    store.repository.autopilot.update_exec_attempt(attempt.attempt_id, state="outcome_unknown")
+                raise
         else:
             if not allow_admission and attempt.state in {"queued", "spawn_intent"} and profile.contract_version == "plotloom.codex-exec.v8":
                 host_status = registry.codex_exec_suspend(attempt)
@@ -115,12 +127,18 @@ def reconcile_codex_exec(
                 # then lose to an already stale controller authorization.
                 with command_factory(store, view, claim, machine_scope):
                     host_status = registry.codex_exec_resume(attempt)
-            # A host admission is durable before process start and idempotent by
-            # attempt ID. Reconcile an absent record only with the same frozen
-            # spawn-intent snapshot; never construct a replacement attempt.
+            # A missing acknowledgment is not an unspent intent. Never resend
+            # a used ID; only typed known-capacity deferral leaves it unadmitted.
             if allow_admission and host_status.state == "not_found" and attempt.state == "spawn_intent":
-                host_status = registry.codex_exec_admit(attempt)
+                if view.blocker and view.blocker.get("code") == "codex_exec_capacity_deferred":
+                    host_status = registry.codex_exec_admit(attempt)
+                else:
+                    with command_factory(store,view,claim,OperationScope.EVIDENCE):
+                        attempt = store.repository.autopilot.update_exec_attempt(attempt.attempt_id,state="outcome_unknown")
 
+    if host_status.state == "not_found" and not host_status.capacity_deferred and attempt.state == "spawn_intent":
+        with command_factory(store,view,claim,OperationScope.EVIDENCE):
+            attempt = store.repository.autopilot.update_exec_attempt(attempt.attempt_id,state="outcome_unknown")
     return settle_exec_status(store, view, claim, attempt, receipt, profile, host_status,
         command_factory=command_factory, allow_admission=allow_admission,
         machine_scope=machine_scope, on_settlement=on_settlement)

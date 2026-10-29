@@ -41,3 +41,11 @@ The [older architecture readers](../architecture/README.md) retain frozen V1/V2
 comparison provenance. They are not this view's source-of-truth for current files
 and are not rewritten during consolidation. Broader service ownership remains in
 [0216](../adr/0216-media-services-monorepo-boundaries.md) and service-owned runbooks.
+
+
+[ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md) separates
+local process occupancy from remote outcome/cost uncertainty. Existing job and
+controller owners manage bounded distinct retries and current-attempt lineage;
+no generic retry engine or dedicated forensic recovery subsystem is introduced.
+Original generation grants/budgets, positive stop proof and cancellation fences
+remain authoritative.

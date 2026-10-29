@@ -35,12 +35,8 @@ class CodexExecSupervisorProcessMixin(
                     self._store(unknown)
                 except Exception:
                     pass
-        finally:
-            # The launching parent reaps this helper. This process owns only
-            # its durable attempt finalization and one FIFO continuation.
-            current = self._load(self._row(attempt.attempt_id)).attempt
-            if current is not None and current.state in {"completed", "failed", "settled"}:
-                self._drain_queue()
+        # The registered parent reaper, after actual worker exit, owns local
+        # occupancy release and the next FIFO continuation.
 
     def _execute(self, attempt, profile, package_request, job_root, private_dir, source_resources=None):
         from plotloom.codex_exec_contracts import (

@@ -28,7 +28,7 @@ it("names each missing prerequisite and never equates installed shots with video
   expect(text({ backendEnabled: undefined })).toContain("尚未核实");
   expect(text({ availableShots: 0, shot: undefined })).toContain("当前分镜没有镜头");
   expect(text({ availableShots: 0, shot: undefined })).not.toContain("下拉框选择");
-  expect(text()).toContain("审阅英文生成说明");
+  expect(text()).toContain("审阅制作简报与授权生成");
   expect(text({ h3: false })).toContain("准备新视频任务（冻结当前审核关键帧）");
 });
 it("requires a matching ready review and subject revision, not a retained approval ID", () => {

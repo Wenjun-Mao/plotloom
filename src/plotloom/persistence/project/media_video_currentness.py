@@ -62,6 +62,7 @@ class VideoJobCurrentness:
         production_eligible = input_status == "current" and self._identity_review_authorizes_in_session(session, row)
         admitted = lifecycle == ProjectLifecycleStatus.ACTIVE and production_eligible
         return {
+            "retry": video_retry_projection(row),
             "id": row.id, "projectId": row.project_id, "state": row.state,
             "requestHash": row.request_hash, "snapshot": row.snapshot,
             "snapshotHash": row.snapshot_hash, "requestedSeconds": row.requested_seconds,
@@ -114,6 +115,11 @@ class VideoJobCurrentness:
         if not video_eligible(session, row.project_id):
             return False
         snapshot = row.snapshot
+        if "languageContract" in snapshot:
+            from ...language_policy import language_contract
+            project = self._access.rows.project(session, row.project_id)
+            if snapshot["languageContract"] != language_contract(project.brief["language"]):
+                return False
         frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
         if not isinstance(frozen_shot, dict) or not isinstance(frozen_shot.get("id"), str) or not self.presentations.matches(
             session, row.project_id, frozen_shot["id"], snapshot.get("shotPresentation")
@@ -197,3 +203,17 @@ class VideoJobCurrentness:
             and asset.original_hash == snapshot.get("keyframe", {}).get("originalHash")
             and self._admission.reviewed_binding_admission_eligible_in_session(session, row.project_id, binding, approval=approval)
         )
+
+
+def video_retry_projection(row):
+    from ...generation_retry_policy import retry_status
+    lineage = row.snapshot.get("executionRetry", {})
+    failed = row.state in {"failed", "outcome_unknown"}
+    return retry_status(limit=row.snapshot.get("request", {}).get("automaticRetryLimit"),
+        current_job_id=row.id, predecessors=lineage.get("predecessorJobIds", []),
+        automatic_used=lineage.get("automaticRetriesUsed",lineage.get("ordinal",0)),
+        state="stopped" if row.cancel_requested_at or row.state == "cancelled" or any(code in (row.error or "").lower() for code in ("permission","unauthorized","authorization","configuration","invalid_config","status_401","status_403","credential_unavailable","profile_unavailable","local_precondition_failed")) else
+              ("stopped" if not (row.observed or {}).get("localExecutionStopped") else
+               "retry_pending" if lineage.get("automaticRetriesUsed",lineage.get("ordinal",0)) < row.snapshot.get("request", {}).get("automaticRetryLimit",0) else "exhausted") if failed else
+              "running" if row.state in {"dispatching","submitted","retrieve_needed"} else "ready",
+        possible_cost=row.state == "outcome_unknown" or bool(lineage.get("predecessorJobIds")))

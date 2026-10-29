@@ -16,7 +16,8 @@ CONTENT_DIAGNOSTIC_LENGTH = 1000
 CORRECTION_CONTRACT = "plotloom.text-correction.v4"
 SCRIPT_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v3", CORRECTION_CONTRACT})
 MANUAL_CORRECTION_CONTRACTS = frozenset({"plotloom.text-correction.v2", *SCRIPT_CORRECTION_CONTRACTS})
-MANUAL_CORRECTION_STAGES = frozenset({"outline", "characters", "art"})
+MANUAL_CORRECTION_STAGES = frozenset({"outline", "branches", "characters", "art", "script", "storyboard",
+                                      "bridge-intent", "bridge-presentation"})
 
 
 def content_correction_capability(binding, stage):
@@ -26,13 +27,15 @@ def content_correction_capability(binding, stage):
         return binding.text_correction_contract in SCRIPT_CORRECTION_CONTRACTS
     if stage == "storyboard":
         return binding.text_correction_contract == CORRECTION_CONTRACT
+    if stage in {"branches", "bridge-intent", "bridge-presentation"}:
+        return binding.text_correction_contract == CORRECTION_CONTRACT
     return stage in MANUAL_CORRECTION_STAGES and (
         binding.text_correction_contract in MANUAL_CORRECTION_CONTRACTS or binding.text_correction_limit == 1)
 
 
 def automatic_correction_limit(policy, stage):
     limit = policy.text_correction_limit or 0
-    if stage in {"script", "storyboard"}:
+    if stage in {"script", "storyboard", "branches", "bridge-intent", "bridge-presentation"}:
         if not content_correction_capability(policy.executor_binding, stage):
             return 0
         return min(1, limit)
@@ -41,7 +44,7 @@ def automatic_correction_limit(policy, stage):
 
 class TextContentIssue(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
-    code: Literal["candidate_content_invalid", "art_prop_scale"]
+    code: Literal["candidate_content_invalid", "art_prop_scale", "content_language_mismatch"]
     field_paths: tuple[str, ...] = Field(max_length=128)
     repair_facts: dict[str, str] = Field(default_factory=dict)
 
@@ -50,6 +53,14 @@ class TextContentIssue(CamelModel):
         if self.code == "candidate_content_invalid":
             if self.repair_facts or self.field_paths != ("$",):
                 raise ValueError("generic content feedback cannot contain untrusted prose")
+        elif self.code == "content_language_mismatch":
+            import re
+            if (not self.field_paths or len(set(self.field_paths)) != len(self.field_paths)
+                    or any(re.fullmatch(r"\$\.[A-Za-z][A-Za-z0-9_]*(?:(?:\[[0-9]+\])|(?:\.[A-Za-z][A-Za-z0-9_]*))*", path) is None
+                           for path in self.field_paths)
+                    or set(self.repair_facts) != {"contentLocale"}
+                    or self.repair_facts["contentLocale"] not in {"zh-CN", "en-US"}):
+                raise ValueError("language correction requires trusted exact paths and supported locale only")
         else:
             import re
             if (not self.field_paths or any(re.fullmatch(r"props\[[0-9]+\]\.(scale|image\.(prompt|sheet))", p) is None for p in self.field_paths)
@@ -59,12 +70,20 @@ class TextContentIssue(CamelModel):
         return self
 
 
+class LanguageRejectionProof(CamelModel):
+    check_job_id: str = Field(pattern=r"^ch_[a-z0-9]{20,64}$")
+    check_attempt_id: UUID
+    check_receipt_hash: str = Field(pattern=HASH)
+    binding_hash: str = Field(pattern=HASH)
+    result_hash: str = Field(pattern=HASH)
+
+
 class TextContentRejection(CamelModel):
     model_config = CamelModel.model_config | {"frozen": True}
     contract: Literal["plotloom.text-content-rejection.v1"] = "plotloom.text-content-rejection.v1"
     source_attempt_id: UUID
     run_id: UUID
-    stage: Literal["outline", "characters", "art", "script", "storyboard"]
+    stage: Literal["outline", "branches", "characters", "art", "script", "storyboard", "bridge-intent", "bridge-presentation"]
     job_id: str
     candidate_hash: str = Field(pattern=HASH)
     validation_evidence_hash: str = Field(pattern=HASH)
@@ -73,6 +92,7 @@ class TextContentRejection(CamelModel):
     plan_hash: str = Field(pattern=HASH)
     profile_hash: str = Field(pattern=HASH)
     source_revision: str
+    language_check: LanguageRejectionProof | None = Field(default=None, exclude_if=lambda value: value is None)
     issues: tuple[TextContentIssue, ...] = Field(min_length=1, max_length=128)
     display_diagnostics: tuple[Annotated[str, Field(max_length=CONTENT_DIAGNOSTIC_LENGTH)], ...] = Field(default=(), max_length=CONTENT_DIAGNOSTIC_COUNT, exclude_if=lambda value: not value)
 
@@ -81,8 +101,9 @@ class TextContentRejection(CamelModel):
         return sha256(json.dumps(self.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
 
     def assert_attempt(self, attempt):
-        if (attempt.domain != "text" or attempt.state not in {"failed", "settled"}
-                or attempt.terminal_result != "failure" or attempt.process_exit_code != 0
+        states, terminal = ({"completed", "settled"}, "success") if self.language_check else ({"failed", "settled"}, "failure")
+        if (attempt.domain != "text" or attempt.state not in states
+                or attempt.terminal_result != terminal or attempt.process_exit_code != 0
                 or attempt.session_id is None or attempt.process_id is None
                 or any(getattr(self, own) != getattr(attempt, other) for own, other in (
                     ("source_attempt_id", "attempt_id"), ("run_id", "run_id"), ("job_id", "job_id"),
@@ -90,6 +111,9 @@ class TextContentRejection(CamelModel):
                     ("plan_hash", "validation_plan_hash"), ("profile_hash", "profile_hash"),
                     ("source_revision", "plotloom_code_revision")))):
             raise ValueError("content rejection differs from its exact completed CLI failure")
+        if self.language_check is not None and (self.language_check.check_attempt_id == attempt.attempt_id
+                or any(issue.code != "content_language_mismatch" for issue in self.issues)):
+            raise ValueError("semantic rejection requires a distinct checking attempt and constrained language issues")
 
 
 class TextRetryGrant(CamelModel):
@@ -131,12 +155,13 @@ def correction_key(stage, ordinal=1):
 
 def logical_checkpoint(view, stage):
     """Resolve the latest immutable physical attempt of one logical stage."""
-    candidates = [c for c in view.checkpoints if c["operationKey"] == stage
-        or c["operationKey"].startswith(f"{stage}:correction:")]
+    from .autopilot_execution_retry import retry_root, retry_ordinal
+    candidates = [c for c in view.checkpoints if retry_root(c["operationKey"]) == stage
+        or retry_root(c["operationKey"]).startswith(f"{stage}:correction:")]
     for candidate in candidates:
-        if candidate["operationKey"] == stage:
+        if retry_root(candidate["operationKey"]) == stage:
             continue
         ordinal = candidate["evidence"]["result"].get("correctionOrdinal")
-        if type(ordinal) is not int or ordinal < 1 or candidate["operationKey"] != correction_key(stage, ordinal):
+        if type(ordinal) is not int or ordinal < 1 or retry_root(candidate["operationKey"]) != correction_key(stage, ordinal):
             raise ValueError("malformed correction checkpoint identity")
-    return max(candidates, key=lambda c: c["evidence"]["result"].get("correctionOrdinal", 0), default=None)
+    return max(candidates, key=lambda c: (c["evidence"]["result"].get("correctionOrdinal", 0), retry_ordinal(c)), default=None)

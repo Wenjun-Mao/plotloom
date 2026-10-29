@@ -7,8 +7,8 @@ test("known QA context unavailable after copy or stale material never falls back
     reason: "原始运行时授权或当前素材尚未核实；不能改为创作者确认。" } }));
   await page.route("**/video-batch/start", async route => { starts++; await route.continue(); });
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${project}`);
-  await page.getByRole("button", { name: "用助手准备全部英文方向", exact: true }).click();
-  await expect(page.getByRole("button", { name: "开始批量制作", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "用助手起草并独立检查全部指令", exact: true }).click();
+  await expect(page.getByRole("button", { name: "授权全部制作意图并开始生成", exact: true })).toBeDisabled();
   await expect(page.getByText(/不能改为创作者确认/)).toBeVisible();
   expect(starts).toBe(0);
   expect((await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json()).jobs).toHaveLength(0);
@@ -20,8 +20,8 @@ for (const boundary of ["cancel-failed", "cancel-response-lost", "successor-resp
     const project = (await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects[0].id;
     const api = `${workbench.apiOrigin}/api/v2/projects/${project}/video-batch`;
     await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${project}`);
-    await page.getByRole("button", { name: "用助手准备全部英文方向", exact: true }).click();
-    await page.getByRole("button", { name: "开始批量制作", exact: true }).click();
+    await page.getByRole("button", { name: "用助手起草并独立检查全部指令", exact: true }).click();
+    await page.getByRole("button", { name: "授权全部制作意图并开始生成", exact: true }).click();
     await page.getByRole("button", { name: "审阅全部视频", exact: true }).click({ timeout: 30000 });
     const before = await (await page.request.get(api)).json();
     const original = await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json();
@@ -64,7 +64,7 @@ for (const boundary of ["cancel-failed", "cancel-response-lost", "successor-resp
     expect(after.jobs).toHaveLength(original.jobs.length);
     await page.reload();
     expect((await (await page.request.get(api)).json()).id).toBe(successor.id);
-    await expect(page.getByRole("button", { name: "用助手准备全部英文方向", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "用助手起草并独立检查全部指令", exact: true })).toBeVisible();
     await page.screenshot({ path: info.outputPath(`selective-${boundary}-1280.png`) });
   });
 }
@@ -74,12 +74,12 @@ test("native batch survives reload and awaits one atomic audiovisual decision", 
   const projectId = projects.projects[0].id as string;
   await page.setViewportSize({width:1280,height:768});
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${projectId}`);
-  await page.getByRole("button",{name:"用助手准备全部英文方向"}).click();
-  const start=page.getByRole("button",{name:"开始批量制作",exact:true});
+  await page.getByRole("button",{name:"用助手起草并独立检查全部指令"}).click();
+  const start=page.getByRole("button",{name:"授权全部制作意图并开始生成",exact:true});
   await expect(start).toBeVisible({timeout:20000});
   const jobsBefore=await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`)).json();
   expect(jobsBefore.jobs).toHaveLength(0);
-  await page.getByText("审阅全部英文方向、源时长与编译提示词",{exact:true}).click();
+  await page.getByText("供应商英文候选编辑与完整指令（技术详情）",{exact:true}).click();
   await expect(page.locator("pre").first()).toContainText("integrated_multimodal_description");
   await start.click();
   await page.reload();
@@ -124,8 +124,8 @@ test("native batch survives reload and awaits one atomic audiovisual decision", 
 test("storyboard batch refreshes the existing player after whole-pack approval", async ({page,workbench})=>{
   const projectId=(await(await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects[0].id;
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${projectId}&page=storyboard`);
-  await page.getByRole("button",{name:"用助手准备全部英文方向",exact:true}).click();
-  await page.getByRole("button",{name:"开始批量制作",exact:true}).click();
+  await page.getByRole("button",{name:"用助手起草并独立检查全部指令",exact:true}).click();
+  await page.getByRole("button",{name:"授权全部制作意图并开始生成",exact:true}).click();
   await expect(page.getByRole("button",{name:"审阅全部视频",exact:true})).toBeVisible({timeout:30000});
   await page.getByRole("button",{name:"审阅全部视频",exact:true}).click();
   await page.getByRole("button",{name:"确认全部视频并用于故事",exact:true}).click();
@@ -154,8 +154,8 @@ test("storyboard batch refreshes the existing player after whole-pack approval",
 test("pause survives process restart and resumed completion preserves an unrelated edit",async({page,workbench})=>{
   const projectId=(await(await page.request.get(`${workbench.apiOrigin}/api/v2/projects`)).json()).projects[0].id;
   await page.goto(`${workbench.frontendOrigin}/v2/e2e/video-batch-runtime.html?project=${projectId}`);
-  await page.getByRole("button",{name:"用助手准备全部英文方向",exact:true}).click();
-  await page.getByRole("button",{name:"开始批量制作",exact:true}).click();
+  await page.getByRole("button",{name:"用助手起草并独立检查全部指令",exact:true}).click();
+  await page.getByRole("button",{name:"授权全部制作意图并开始生成",exact:true}).click();
   await page.getByRole("button",{name:"暂停新派发",exact:true}).click();
   await expect(page.getByRole("button",{name:"继续原批次",exact:true})).toBeVisible();
   await workbench.restartBackend();
@@ -212,7 +212,7 @@ test("aggregate budgets roundtrip through the local UI API and persistence witho
   view = await (await page.request.get(api)).json();
   expect(view.manifest.setup).toMatchObject({ maxJobs: 1, maxRequestedSeconds: 5 });
   expect(view.manifest.blockers.length).toBeGreaterThan(0);
-  await expect(page.getByRole("button", { name: "用助手准备全部英文方向", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "用助手起草并独立检查全部指令", exact: true })).toBeDisabled();
   const finiteHash = view.manifestHash;
   await page.reload();
   await expect(page.getByText("任务上限 1 项 / 源秒上限 5 秒", { exact: false })).toBeVisible();

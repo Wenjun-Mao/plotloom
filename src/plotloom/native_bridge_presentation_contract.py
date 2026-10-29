@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import ConfigDict, Field
 
 from .creative_handoff_contracts import CreativeHandoffRequest
+from .language_policy import assert_candidate_report_language, report_locale
 from plotloom.domain_base import CamelModel
 from .production_presentation import (
     PresentationSpan,
@@ -40,6 +41,7 @@ class PresentationSuggestionEntry(CamelModel):
 
 class PresentationSuggestions(CamelModel):
     model_config = ConfigDict(extra="forbid")
+    lang: Literal["zh", "en"] | None = None
     entries: list[PresentationSuggestionEntry] = Field(min_length=1, max_length=MAX_PRESENTATION_SOURCES)
 
 
@@ -57,6 +59,7 @@ def frozen_presentation(request: CreativeHandoffRequest) -> ProductionPresentati
 
 
 def native_presentation_suggestions(request: CreativeHandoffRequest, candidate: dict) -> PresentationSuggestions:
+    assert_candidate_report_language(candidate, request.input_artifacts)
     suggestions = PresentationSuggestions.model_validate(candidate)
     package = frozen_presentation(request)
     bind_presentation_spans(package, [PresentationUpdate(id=item.id, spans=item.spans) for item in suggestions.entries])
@@ -66,13 +69,20 @@ def native_presentation_suggestions(request: CreativeHandoffRequest, candidate: 
 def render_native_presentation_report(request: CreativeHandoffRequest, candidate: dict) -> bytes:
     suggestions = native_presentation_suggestions(request, candidate)
     by_id = {entry.id: entry for entry in suggestions.entries}
+    en = report_locale(request.input_artifacts) == "en"
+    title = "Presentation suggestions · pending creator confirmation" if en else "呈现方式建议 · 待作者确认"
+    roles = ({"physical": "Physical action", "visible_text": "Visible text", "runtime_choice": "Playback choice",
+        "review_only": "Review only", "dialogue": "Dialogue"} if en else
+        {"physical": "实体动作", "visible_text": "画面文字", "runtime_choice": "播放选项", "review_only": "仅供审阅", "dialogue": "台词"})
     sections = []
     for source in frozen_presentation(request).sources:
-        spans = "".join(f"<li><strong>{escape(span.role)}</strong><blockquote>{escape(source.source_text[span.start:span.end])}</blockquote>"
+        spans = "".join(f"<li><strong>{escape(roles[span.role])}</strong><blockquote>{escape(source.source_text[span.start:span.end])}</blockquote>"
             f"<p>{escape(span.rendering)}</p><p>{escape(span.reason)}</p></li>" for span in by_id[source.id].spans)
         sections.append(f"<section><h2>{escape(source.id)}</h2><ol>{spans}</ol></section>")
     proposal = request.source["proposal"]
-    return ("<!doctype html><html lang='zh-CN'><meta charset='utf-8'><title>Codex 呈现方式建议</title>"
+    frozen = "Frozen proposal" if en else "冻结提案"
+    notice = "Assistant suggestions are not creator confirmation; no production or media generation occurs." if en else "助手建议不是作者确认；不会投产或生成媒体。"
+    return (f"<!doctype html><html lang='{'en-US' if en else 'zh-CN'}'><meta charset='utf-8'><title>Codex · {title}</title>"
         "<style>body{font:17px/1.6 system-ui;max-width:1000px;margin:32px auto;padding:24px}section{border-top:1px solid #bbb}blockquote{white-space:pre-wrap}</style>"
-        f"<h1>Codex 呈现方式建议 · 待作者确认</h1><p>冻结提案 r{proposal['revision']} · {escape(proposal['contentHash'])}</p>"
-        "<p>助手建议不是作者确认；不会投产或生成媒体。</p>" + "".join(sections) + "</html>").encode()
+        f"<h1>Codex · {title}</h1><p>{frozen} r{proposal['revision']} · {escape(proposal['contentHash'])}</p>"
+        f"<p>{notice}</p>" + "".join(sections) + "</html>").encode()

@@ -1,7 +1,7 @@
 """The model's deliberately narrow bridge-intent response contract."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -28,6 +28,7 @@ class IntentSuggestion(BaseModel):
 class IntentSuggestions(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    lang: Literal["zh", "en"] | None = None
     entries: list[IntentSuggestion] = Field(min_length=1, max_length=MAX_INTENT_TARGETS)
 
 

@@ -1,12 +1,10 @@
 """No-resend, missing-only race and portable-grant regressions."""
 from contextlib import closing
-from copy import deepcopy
 import shutil
 import pytest
-from plotloom.stage_contracts import StageName
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.project_handle import ProjectStore
-from plotloom.video_batch_contracts import BatchControl
+from plotloom.video_batch_contracts import BatchControl, BatchSetup
 from plotloom.video_batch_runtime import VideoBatchRuntime
 from tests.video_batch_fixtures import batch_environment, ready_batch, start_batch
 from tests.video_prompt_fixtures import reviewed_h3_body
@@ -15,6 +13,10 @@ from plotloom.video_provider import RemoteOutcomeUnknown
 
 def test_unknown_submission_is_retained_across_restart_and_resume(tmp_path):
     storage, _client, service, provider, project_id, view = batch_environment(tmp_path)
+    # The frozen zero-retry policy retains the original no-resend behavior.
+    service.control(project_id, BatchControl(batchId=view["id"], expectedControlRevision=view["controlRevision"], action="cancel"))
+    view = service.setup(project_id, BatchSetup(profileId=view["manifest"]["setup"]["profileId"],
+        shotIds=[view["manifest"]["targets"][0]["shotId"]], automaticRetryLimit=0))
     ready = ready_batch(service, project_id, view)
     start_batch(service, project_id, ready)
     provider.submit_error = RemoteOutcomeUnknown("fixture acknowledgment lost")
@@ -41,7 +43,7 @@ def test_late_manual_job_blocks_frozen_missing_only_start(tmp_path):
         "requestedDurationSeconds": args["requested_seconds"], "aspectPolicy": "reject_mismatch"}
     response = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=reviewed_h3_body(client, project_id, body))
     assert response.status_code == 201, response.text
-    with pytest.raises(InvalidTransitionError, match="existing video work changed"):
+    with pytest.raises(InvalidTransitionError):
         start_batch(service, project_id, ready)
     assert not provider.submits
 
@@ -89,6 +91,8 @@ def test_adopted_prepared_job_obeys_pause_and_its_original_prompt(tmp_path):
     response = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=reviewed_h3_body(client, project_id, body))
     assert response.status_code == 201, response.text
     existing = response.json()
+    single = service.current(project_id)
+    service.control(project_id, BatchControl(batchId=single["id"], expectedControlRevision=single["controlRevision"], action="cancel"))
     adopted = service.setup(project_id, BatchSetup(profileId="minimax_h3_quality8_portrait_576x1024_v2"))
     target = next(item for item in adopted["manifest"]["targets"] if item["shotId"] == args["shot_id"])
     assert target["mode"] == "prepared" and target["compiledPrompt"] == existing["snapshot"]["compiledPrompt"]

@@ -12,6 +12,7 @@ from ..autopilot_contracts import (
 )
 from ..autopilot_handoff_contracts import BulkHumanHandoffRequest, HumanHandoffRequest
 from ..autopilot_service import AutopilotService
+from ..generation_retry_policy import ManualExecutionRetry
 from ..persistence.project.autopilot_handoff import record_handoff, review_material
 
 
@@ -46,6 +47,10 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
     @app.post("/api/v2/projects/{project_id}/autopilot/text-retry", response_model=RunView)
     def text_retry(project_id: str, body: TextRetryGrant):
         return service.retry_text(project_id, body)
+
+    @app.post("/api/v2/projects/{project_id}/autopilot/retry-execution", response_model=RunView)
+    def execution_retry(project_id: str, body: ManualExecutionRetry):
+        return service.retry_execution(project_id, body)
 
     @app.get("/api/v2/autopilot/controller")
     def controller_status():

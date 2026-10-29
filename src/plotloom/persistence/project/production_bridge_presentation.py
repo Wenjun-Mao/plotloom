@@ -50,6 +50,24 @@ class ProductionBridgePresentationPersistence:
                 raise InvalidTransitionError("production presentation source is stale")
             try:
                 original = ProductionPresentation.model_validate(row.proposal["presentation"])
+                if request is not None:
+                    from ..schema import ProductionBridgeIntentJobRow
+                    from ...content_language_candidates import require_generated_bridge_edit
+                    from ...language_policy import report_locale
+                    jobs = session.scalars(select(ProductionBridgeIntentJobRow).where(
+                        ProductionBridgeIntentJobRow.project_id == project_id,
+                        ProductionBridgeIntentJobRow.transport == "codex_native",
+                        ProductionBridgeIntentJobRow.status == "ready",
+                        ProductionBridgeIntentJobRow.native_request["stage"].as_string() == "bridge-presentation",
+                    ).order_by(ProductionBridgeIntentJobRow.created_at.desc())).all()
+                    job = next((item for item in jobs if item.native_request.get("inputArtifacts", {}).get(
+                        "presentation-source.json", {}).get("sourceHash") == original.source_hash), None)
+                    if job is not None:
+                        if job.native_request["source"].get("intentPackage") != row.proposal["intentPackage"]:
+                            raise InvalidTransitionError("呈现建议的原始意图已改变；请重新准备当前来源的建议。")
+                        candidate = {"lang": report_locale(job.native_request["inputArtifacts"]),
+                            "entries": [entry.model_dump(mode="json", by_alias=True) for entry in request.entries]}
+                        require_generated_bridge_edit(session, project_id, job.id, "bridge-presentation", candidate)
                 package = (review_presentation(original, request) if request is not None else
                     ProductionPresentation.model_validate(original.model_dump() | {"reviewed": False,
                         "sources": bind_presentation_spans(original, entries), "machine_adoption": adoption}))

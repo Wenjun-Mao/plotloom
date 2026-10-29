@@ -29,8 +29,4 @@ def inspect_domain_evidence(attempt, stdout_path, session_path, stream, session,
         return False
     if attempt.domain == "text" and (session.image_calls or session.image_events or session.reference_views):
         return False
-    if attempt.domain == "image" and not session.image_calls and not session.image_events:
-        from plotloom.codex_exec_recovery import prove_no_remote_dispatch
-        prove_no_remote_dispatch(stdout_path, session_path, stream.session_id,
-                                 job_root=job_root, source_root=source_root)
     return True

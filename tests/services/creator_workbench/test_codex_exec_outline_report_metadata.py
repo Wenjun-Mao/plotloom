@@ -22,7 +22,7 @@ def _candidate(supervisor, tmp_path, monkeypatch, raw=b'{"lang":"zh-CN"}'):
     return job, attempt, profile, package, private, resources
 
 
-@pytest.mark.parametrize("raw", [b'{"lang":"zh-CN"}', b'{"lang":false}', b'[]', b'null', b'{invalid'])
+@pytest.mark.parametrize("raw", [b'{}', b'{"lang":null}', b'{"lang":"zh-CN"}', b'{"lang":false}', b'[]', b'null', b'{invalid'])
 def test_invalid_metadata_has_no_spawn_report_or_receipt(supervisor, tmp_path, monkeypatch, raw):
     job, attempt, profile, package, private, resources = _candidate(supervisor, tmp_path, monkeypatch, raw)
     with pytest.raises(CodexExecValidationFailure, match="outline_report_metadata_invalid"):

@@ -24,6 +24,7 @@ ReviewContextField = Literal[
     "render_contract", "review_min_cut_seconds", "review_max_cut_seconds",
     "review_max_segment_seconds", "storyboard_render_contract", "dialogue_timing_contract",
     "planned_storyboard_dialogue",
+    "language_contract",
 ]
 
 

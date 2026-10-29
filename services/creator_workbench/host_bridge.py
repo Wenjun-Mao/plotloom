@@ -241,7 +241,7 @@ def handler_for(bridge: QueueBridge):
                 except Exception:
                     self.reply(503, {"error": "codex_exec_admission_unavailable"})
                 return
-            control = next((name for name in ("cancel", "suspend", "resume", "recover-no-remote-dispatch") if self.path.startswith(f"/exec-{name}/")), None)
+            control = next((name for name in ("cancel", "suspend", "resume") if self.path.startswith(f"/exec-{name}/")), None)
             if control is not None:
                 try:
                     attempt_id = UUID(self.path.removeprefix(f"/exec-{control}/"))

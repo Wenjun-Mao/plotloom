@@ -189,9 +189,19 @@ class FakeCodexExecHost(FakeCodexImageReceipts):
         delivery = Path(paths["deliveryPath"])
         delivery.mkdir(exist_ok=True)
         candidate_filename = CREATIVE_CANDIDATE_FILENAMES[request.stage]
-        content = canonical_json(value if value is not None else self.candidate_factory(store, request))
+        from plotloom.content_language_contract import is_language_check, render_language_report
+        checking_language = is_language_check(request)
+        if value is None:
+            if checking_language:
+                from tests.content_language_fixtures import result_for
+                value = result_for(request)  # Explicit synthetic verdict, never semantic/live evidence.
+            else:
+                value = self.candidate_factory(store, request)
+        content = canonical_json(value)
         report = (
-            render_native_intent_report(request, json.loads(content))
+            render_language_report(request, json.loads(content))
+            if checking_language
+            else render_native_intent_report(request, json.loads(content))
             if request.stage == "bridge-intent"
             else render_native_presentation_report(request, json.loads(content))
             if request.stage == "bridge-presentation"

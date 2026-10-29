@@ -1,3 +1,6 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
+import { useProjectReportLocale } from "../features/content-language/useProjectReportLocale";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import { ProductionPresentationReview } from "./ProductionPresentationReview";
@@ -29,6 +32,13 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
   const readOnly = ownerReadOnly || reviewBasis.status !== "current" || !review.acknowledged;
   useReportReviewWorkflowRead(projectId, true, { stage: "production-bridge", status: loadFailed ? "failed" : review.acknowledged ? "ready" : "loading",
     state, busy, dirty: intentDirty || draftConflict || (presentationTouched && presentationDirty), error, blocked: readOnly, canonicalReady, canOpenShot: Boolean(onOpenShot) });
+  const intentCandidateJob = proposal?.intentPackage.suggestionOrigin === "codex_native.v1" && typeof proposal.intentPackage.provenance?.jobId === "string" ? proposal.intentPackage.provenance.jobId : undefined;
+  const intentNeedsLanguage = !!intentCandidateJob && state?.status !== "accepted";
+  const reportLocale = useProjectReportLocale(projectId, intentNeedsLanguage);
+  const intentLanguage = useContentLanguageCheck({ projectId, stage: "bridge-intent", jobId: intentNeedsLanguage ? intentCandidateJob : undefined,
+    candidate: reportLocale.locale ? { lang: reportLocale.locale, entries: intentEntries.map(entry => ({ id: entry.id, suggestedText: entry.text })) } : null,
+    original: reportLocale.locale ? { lang: reportLocale.locale, entries: intentEntries.map(entry => ({ id: entry.id, suggestedText: entry.suggestedText })) } : null,
+    basis: proposal ? `${proposal.revision}:${proposal.contentHash}` : "", disabled: readOnly || busy || draftConflict || state?.status === "stale" });
   const job = state?.intentJob;
   if (!state) return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{loadFailed ? "加载失败" : "正在加载"}</strong></header>
@@ -97,7 +107,8 @@ export function ProductionBridgePanel({ projectId, reviewBasis, readOnly: ownerR
         {draftConflict && <div className="notice warning">服务器提案或审阅状态已变化；未保存的本地编辑仍在此保留。请复制所需文字后，明确载入当前提案。</div>}
         {draftConflict && <Button disabled={readOnly || busy} onClick={review.discard}>载入新提案并放弃本地编辑</Button>}
         {intentEntries.map((entry, index) => <label key={entry.id} className="bridge-intent-field"><span>{entry.targetKind === "scene_objective" ? "场次目标" : "节拍目的"} · 第 {index + 1} 项 <small>（第 {String(entry.sourceCoordinates.episode)} 结构条目 / 场次 {String(entry.sourceCoordinates.sceneIndex)}）</small></span><textarea disabled={readOnly || review.intentStale || busy || state.status === "accepted" || state.status === "stale" || draftConflict} value={entry.text} onChange={event => setIntentEntries(current => current.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))} /><small>来源摘录：{entry.sourceExcerpt}</small>{entry.suggestedText !== null && <small>模型原始建议：{entry.suggestedText}</small>}</label>)}
-        {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || review.intentStale || busy || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={async () => { const applied = await run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true); if (applied) await review.clearAppliedIntent(); }} />}
+        {intentNeedsLanguage && <><ContentLanguageReview check={intentLanguage} />{reportLocale.error && <ErrorNotice message={reportLocale.error} />}</>}
+        {state.status !== "accepted" && <ProductionIntentSaveBar itemCount={intentEntries.length} status={intentSaveStatus} busy={busy} disabled={readOnly || review.intentStale || busy || intentNeedsLanguage && !intentLanguage.ready || state.status === "stale" || (!intentDirty && proposal.intentPackage.reviewState !== "model_suggested") || draftConflict || intentEntries.some(entry => !entry.text.trim())} onSave={async () => { if (intentNeedsLanguage && !intentLanguage.ready) return; const applied = await run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true); if (applied) await review.clearAppliedIntent(); }} />}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
       <NativeBridgePresentationControls projectId={projectId} state={state} disabled={readOnly || busy} localEdits={localEdits} occupied={!!unresolvedJob} run={operation => run(operation)} />

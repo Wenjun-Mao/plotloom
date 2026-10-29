@@ -380,6 +380,7 @@ export interface VideoBackendProfile {
 }
 
 export interface VideoJob {
+  retry?: import("./features/generation-retry/contracts").GenerationRetryStatus;
   id: string;
   projectId: string;
   state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "discard_pending" | "discarded" | "cancelled" | "failed";

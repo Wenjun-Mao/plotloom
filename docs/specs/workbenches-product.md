@@ -230,3 +230,50 @@ Close and manual matching-restoration clauses; prior receipts and decisions rema
 historical. The [retained plan](../roadmap/2026-10-24-autosave-and-project-freeze.md)
 separates source implementation, qualification, installed activation and owner
 creative acceptance.
+
+## Project-language workflow (approved 2026-10-28)
+
+The [language plan](../roadmap/2026-10-28-project-language-consistency.md) and
+[ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md) own this
+bounded extension; implementation/activation evidence remains separate.
+
+- Application controls, help, status and recovery explanations use consistent
+  Chinese. Personal interface language is independent of project creative language;
+  this delivery exposes no incomplete English UI switch.
+- New `zh-CN` and `en-US` projects keep readable creative prose, manual defaults,
+  eight generated text stages and standalone report headings in their project
+  language. Exact source excerpts, names, explicit foreign quotations and literal
+  words retain source ownership. Existing authored stories/reports are not bulk
+  translated or rewritten on read.
+- The creator reviews the complete actionable production brief in project
+  language, including requested picture, action/order, performance, camera,
+  continuity, exact speech/visible words, references, sound and visible settings.
+  English provider instructions remain available as technical detail. Creative
+  descriptions own meaning; adapters cannot add/remove facts to fit a provider.
+- Assistant language/fidelity checking is attributed to actual assistant
+  invocations. The creator authorizes production intent, without asserting personal
+  English review. Structural validation, assistant judgment, generation consent
+  and actual media inspection establish different facts.
+- Source, candidate, language or relevant setting changes invalidate dependent
+  checks/authorization; UI-only presentation changes do not. Failed, uncertain or
+  stale checks explain the owning source/action before adoption or dispatch.
+  Reopening and draft recovery preserve an English project as English.
+
+No full English UI, old-story conversion, new provider or general pacing/quality
+program follows from these requirements.
+
+
+## Generation retry policy — owner approved 2026-10-28
+
+A new generation request offers an automatic retry count, default one retry after
+the initial attempt; zero turns retries off. State shows actual used/allowed retries
+and any possible prior cost. Retry still requires the original remaining budget and
+generation authority. Exhaustion stops that job with an actionable manual retry;
+other work can continue. Cancellation remains cancelled, and errors requiring
+changed settings/access do not loop automatically.
+
+Shared execution capacity describes living local work. Once the system positively
+confirms local process owners stopped, remote uncertainty must not monopolize that
+capacity. Keep uncertain outcomes and possible costs visible; do not promise a
+refund. The owner accepts bounded possible duplicate generation/cost. There is no
+separate forensic recovery workflow. See [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md).

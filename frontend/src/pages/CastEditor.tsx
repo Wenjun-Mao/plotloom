@@ -53,7 +53,7 @@ export function CastEditor({ characters, disabled, onChange, editing = false }: 
           <p>这些方向会与角色外观一起用于后续参考图任务。请保留本次风格及提示词中的风格说明句；要换表现形式，请退出编辑并准备新任务。保存不会自动翻译、生成图片或改写美术设定。</p>
           {([
             ["style", "角色图像风格"], ["prompt", "角色图像提示词"],
-            ["promptLocal", "角色图像中文提示词"], ["negativePrompt", "角色图像反向提示词"],
+            ["promptLocal", "角色图像本地化说明（原文）"], ["negativePrompt", "角色图像反向提示词"],
             ["sheet", "角色设定图提示词"],
           ] as const).map(([key, label]) => <CastDesignField key={key} id={`${fieldId}-image-${key}`} label={label} value={record(character.image)[key]} disabled={disabled} onChange={(value) => onChange(index, "image", key, value)} />)}
           <CastNoteField id={`${fieldId}-image-tags`} label="角色图像标签（每行一个）" value={Array.isArray(record(character.image).tags) ? (record(character.image).tags as string[]).join("\n") : ""} disabled={disabled} onChange={(value) => onChange(index, "image", "tags", value.split("\n").map((tag) => tag.trim()).filter(Boolean))} />

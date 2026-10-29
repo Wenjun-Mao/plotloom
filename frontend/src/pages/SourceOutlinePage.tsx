@@ -1,3 +1,5 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
 import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
 import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { authoredSource } from "../features/autopilot/sourceAuthorship";
@@ -137,6 +139,8 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
 
   const candidate = state?.candidate;
   const accepted = state?.acceptedOutline;
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "outline", jobId: candidate?.status === "ready" ? candidate.jobId : undefined,
+    candidate: candidate?.outline, original: candidate?.outline, basis: JSON.stringify([candidate?.sourceRevision, state?.source?.revision]), disabled: readOnly || busy });
   const retainedOutlineStale = Boolean(accepted && accepted.sourceRevision !== state?.source?.revision);
   const needsAdaptationGoal = draft.kind !== "synopsis";
   const missingSource = !draft.title.trim() || !draft.text.trim();
@@ -182,7 +186,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnl
           {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="outline" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}
           {(candidate.status === "prepared" || candidate.status === "ready") && <Button variant="danger" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.cancelOutlineCandidate(projectId, candidate.jobId))}>取消此任务</Button>}
           {candidate.status === "ready" && <><details><summary>查看上游 outline.json</summary><pre>{JSON.stringify(candidate.outline, null, 2)}</pre></details>{candidate.outline && <section className="source-outline-upstream-report" data-testid="source-outline-upstream-report"><p role="note">这是候选大纲，尚未经你确认。阅读不会接受或修改内容。</p><OutlineReport key={`${projectId}:${candidate.jobId}`} outline={candidate.outline} url={candidate.reportAvailable ? plotloomApi.outlineCandidateReportUrl(projectId, candidate.jobId) : undefined} /></section>}</>}
-          {candidate.status === "ready" && state.source && <><Button variant="primary" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.acceptOutlineCandidate(projectId, { jobId: candidate.jobId, expectedSourceRevision: state.source!.revision, expectedOutlineRevision: accepted?.revision || 0 }))}>确认使用此大纲</Button><p>确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。</p></>}
+          {candidate.status === "ready" && state.source && <><ContentLanguageReview check={languageCheck} /><Button variant="primary" disabled={readOnly || busy || !languageCheck.ready} onClick={() => languageCheck.ready && void mutate(() => plotloomApi.acceptOutlineCandidate(projectId, { jobId: candidate.jobId, expectedSourceRevision: state.source!.revision, expectedOutlineRevision: accepted?.revision || 0 }))}>确认使用此大纲</Button><p>确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。</p></>}
         </>}
         {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><OutlineAssignment key={`${projectId}:${candidate.jobId}`} projectId={projectId} jobId={candidate.jobId} /></details>}
       </article>

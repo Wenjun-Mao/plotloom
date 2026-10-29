@@ -4,6 +4,7 @@ from copy import deepcopy
 
 def style_fixture(cast, contract):
     result = deepcopy(cast)
+    result.setdefault("lang", "zh")
     if contract.get("authority") == "saved_brief":
         result["style"], result["lang"] = "saved-brief", "zh"
         for character in result["characters"]:

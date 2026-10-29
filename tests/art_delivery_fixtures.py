@@ -54,6 +54,7 @@ def _context(
             ]
         },
         {
+            "lang": request.input_artifacts.get("language-contract.json", {}).get("reportLocale", "zh"),
             "source": "Tide Light",
             "summary": "Shared cast",
             "characters": [{"id": "C01", "name": "Lin"}],
@@ -88,7 +89,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
                         {"name": "桌", "desc": "worn wood"},
                     ],
                     "lighting": [
-                        {"state": "dawn", "prompt": "cold dawn through a window"}
+                        {"state": "dawn", "description": "冷色晨光从窗户照进房间。", "prompt": "cold dawn through a window"}
                     ],
                     "image": {
                         **({"style": "Saved Brief direction"} if brief_style else {}),

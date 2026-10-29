@@ -93,14 +93,14 @@ function BoundChapters({ script, binding }: { script: Record<string, unknown>; b
         if (!episode || episode !== rawEpisode) throw new Error("章节原文未能唯一对应到冻结绑定。");
         return <ScriptEpisodeReading key={`episode:${index}`} episode={episode} sectionId={section.sectionId} />;
       } catch (reason) {
-        return <Mismatch key={`episode:${index}`} message={`章节 ${section.sectionId} · episode ${rawEpisode.ep} 无法按冻结绑定读取：${errorText(reason)}`} raw={rawEpisode} />;
+        return <Mismatch key={`episode:${index}`} message={`章节 ${section.sectionId} · 章节 ${rawEpisode.ep} 无法按冻结绑定读取：${errorText(reason)}`} raw={rawEpisode} />;
       }
     })}
     {binding.sectionBindings.map((item, index) => {
       if (displayed.has(item.sectionId) || binding.routeOnlySectionIds.includes(item.sectionId)) return null;
       const hasEpisode = rawEpisodes.some(value => isRecord(value) && value.ep === item.episode);
       if (hasEpisode) return null;
-      return <Mismatch key={`missing:${item.sectionId}:${index}`} message={`冻结绑定中的章节 ${item.sectionId} · episode ${item.episode} 在原始剧本中缺失。`} raw={script} />;
+      return <Mismatch key={`missing:${item.sectionId}:${index}`} message={`冻结绑定中的章节 ${item.sectionId} · 章节 ${item.episode} 在原始剧本中缺失。`} raw={script} />;
     })}
     {binding.routeOnlySectionIds.length > 0 && <section className="script-route-controls" aria-label="冻结绑定中的路线控制节点">
       <h4>路线控制节点 · 没有自己的画面场次</h4>
@@ -112,7 +112,7 @@ function BoundChapters({ script, binding }: { script: Record<string, unknown>; b
 function ScriptEpisodeReading({ episode, sectionId }: { episode: ScriptEpisode; sectionId: string }) {
   const targetSeconds = episode.targetSeconds;
   return <article className="script-readable-episode" data-script-episode={episode.ep} data-script-section={sectionId}>
-    <header><h4>章节 {sectionId} · episode {episode.ep}</h4>
+    <header><h4>章节 {sectionId} · 章节 {episode.ep}</h4>
       {typeof targetSeconds === "number" && <p className="script-content-status">章节计划画面时长 {targetSeconds} 秒；这是创作计划，不是最终运行时间，互斥结局不会合计。</p>}
     </header>
     {episode.scenes.map((scene, index) => {

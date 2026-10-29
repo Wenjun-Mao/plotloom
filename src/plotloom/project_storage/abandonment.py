@@ -57,6 +57,9 @@ def _context(registry, project_id, native, *, preparing_stop=False):
             confirmation_title = confirmed_brief["title"]
         snapshots = connection.execute("SELECT snapshot FROM v2_autopilot_exec_attempts WHERE project_id=? ORDER BY id", (project_id,)).fetchall()
         attempts = [CodexExecAttempt.model_validate_json(row[0]) for row in snapshots]
+        if layout == "current":
+            from .content_language_evidence import retained_language_checks
+            attempts.extend(item[2] for item in retained_language_checks(connection))
         jobs = {attempt.job_id for attempt in attempts}
         blockers = []
         runs = list(connection.execute("SELECT id,state,revision FROM v2_autopilot_runs WHERE project_id=? AND state NOT IN ('cancelled','taken_over','stale','handed_off')", (project_id,)))

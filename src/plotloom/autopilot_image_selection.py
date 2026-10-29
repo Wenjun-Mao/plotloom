@@ -1,5 +1,4 @@
 """Technical provisional selection; never supplies human review observations."""
-from sqlalchemy import select
 
 from .autopilot_contracts import CheckpointEvidence, ProvisionalFrame
 from .autopilot_materials import AutomaticMaterialBundle, GalleryMaterial
@@ -8,7 +7,6 @@ from .exceptions import InvalidTransitionError
 from .image_commands import image_context
 from .keyframe_preparation import has_matching_aspect
 from .persistence.schema import (
-    AutopilotCheckpointRow,
     ImageJobRow,
     ManagedAssetRow,
     ProductionUnitRow,
@@ -91,13 +89,14 @@ def publish_bundle(store, view, inventory):
         for subject in inventory.subjects:
             if subject.owner == "image":
                 continue
-            checkpoint = session.scalar(select(AutopilotCheckpointRow).where(AutopilotCheckpointRow.run_id == run.id,
-                AutopilotCheckpointRow.operation_key == subject.operation_key))
-            if checkpoint is None or checkpoint.state != "adopted":
+            from .autopilot_execution_retry import current_checkpoint
+            checkpoint = current_checkpoint(current, subject.operation_key)
+            if checkpoint is None or checkpoint["state"] != "adopted":
                 raise InvalidTransitionError("required gallery reference is missing")
-            result = checkpoint.evidence["result"]
+            evidence = checkpoint["evidence"]
+            result = evidence["result"]
             refs.append(GalleryMaterial(owner=subject.owner, id=subject.id, subject_type=subject.subject_type,
-                job_id=checkpoint.evidence["jobId"], request_hash=checkpoint.evidence["requestHash"], delivery_hash=checkpoint.evidence["deliveryHash"],
+                job_id=evidence["jobId"], request_hash=evidence["requestHash"], delivery_hash=evidence["deliveryHash"],
                 reference_decision_id=result["referenceDecisionId"], asset_id=result["assetId"], original_hash=result["originalHash"],
                 width=result["width"], height=result["height"]))
         bundle = AutomaticMaterialBundle(run_id=run.id, policy_hash=run.policy_hash,

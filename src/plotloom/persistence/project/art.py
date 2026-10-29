@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 from typing import Any, Literal
+from ...language_policy import freeze_request_language, assert_candidate_report_language, assert_bound_report_language
 
 from .autopilot_authority import receipt_only
 from sqlalchemy import select
@@ -81,7 +82,7 @@ class ProjectArtPersistence:
             ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"),
             ("graph_content_hash", "installed graph"), ("cast_content_hash", "accepted cast"),
         )
-        reasons = binding_diagnostics(current, binding, fields)
+        reasons = binding_diagnostics(current, binding, fields + (("language_contract", "project language"),))
         direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
         if not art_style_current(binding.render_contract, direction):
             reasons.append(ReviewContextDiagnostic(code="art_render_contract_changed", owner="art", technical_message="art render contract is not current; prepare a new art task"))
@@ -157,6 +158,7 @@ class ProjectArtPersistence:
                     + " This is a candidate only, not image generation, an asset selection, or project canon."
                 ),
             )
+            freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -183,6 +185,7 @@ class ProjectArtPersistence:
             if row.status != "prepared" or row.expected_art_revision != head.revision or self._stale(session, project_id, ArtBinding.model_validate(row.binding)):
                 raise CreativeHandoffError("delivery_stale", "art candidate context is stale")
             cast = self._context(session, project_id)[4]
+            assert_candidate_report_language(delivery.candidate, request.input_artifacts)
             _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding))
             row.status, row.delivery_id, row.manifest_hash, row.art, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
@@ -204,6 +207,8 @@ class ProjectArtPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "art candidate context changed before acceptance")
             art = request.art or row.art
+            from ...content_language_persistence import require_language_pass
+            require_language_pass(session, CreativeHandoffRequest.model_validate(row.request), art)
             _validate_art(art, self._context(session, project_id)[4], binding)
             if _art_ids(art) != _art_ids(row.art):
                 raise ValueError("accepted art cannot change frozen scene or prop IDs")
@@ -312,6 +317,7 @@ def _art_ids(art: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
 def _validate_art(
     art: dict[str, Any], cast: dict[str, Any], binding: ArtBinding
 ) -> None:
+    assert_bound_report_language(art, binding)
     if contains_secret_setting(art) or contains_secret_value(art):
         raise ValueError("art must not contain credentials")
     scene_ids, prop_ids = _art_ids(art)

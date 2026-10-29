@@ -91,8 +91,10 @@ export type RuntimeCapabilities = {
 export type H3ReviewedDirections = {
   sourceHash: string;
   fields: Array<{ path: string; english: string }>;
-  reviewedEnglish: true;
-  promptSha256?: string;
+  promptSha256: string;
+  fidelityCheck: { version: "assistant-fidelity.v1"; batchId: string; attemptId: string; resultHash: string };
+  intentAuthorization: { version: "production-intent.v2"; briefHash: string };
+  reviewBasis: { version: "production-intent.v2"; batchId: string; manifestHash: string; shotId: string; attribution?: { kind: "agent_operated_qa"; scopeId: string } };
 };
 
 export type H3PromptPreview = {
@@ -109,6 +111,7 @@ export type VideoJobPrepareBody = {
   aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
   allowLetterbox?: boolean; allowCenterCrop?: boolean; seed?: number; profileId?: string;
   reviewedDirections?: H3ReviewedDirections;
+  automaticRetryLimit?: number;
 };
 
 export type VideoEndFrameDecision = {

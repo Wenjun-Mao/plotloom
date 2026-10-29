@@ -5,6 +5,11 @@ import { Badge, Button, EmptyState, JsonPreview, PageHeader, Panel, Spinner } fr
 import { canRequestRunCancellation, runCancellationLabel, runStatusLabels, traceKindLabels, traceStatusLabels, workUnitStatusLabels } from "../run-presentation";
 import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 
+// Event titles are source diagnostics, not translated application labels.
+function eventLabel(event: TraceEvent): string {
+  return /[\u3400-\u9fff]/.test(event.title) ? event.title : traceKindLabels[event.kind];
+}
+
 function progressElapsed(attempt: RunProgress["workUnits"][number]["latestAttempt"]): string {
   if (!attempt) return "—";
   if (attempt.durationMs != null) return `${attempt.durationMs}ms`;
@@ -27,7 +32,7 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
     <Panel className="run-console">
       <div className="stage-selector">{(["story_bible", "story_graph", "scene_beats", "storyboard"] as ServerStageName[]).map((stage) => <label key={stage}><input type="checkbox" disabled={apiTextPipeline !== true} checked={selectedStages.includes(stage)} onChange={() => toggle(stage)} /><span>{stageLabels[stage]}</span></label>)}</div>
       <div className="run-state"><Badge tone={run?.status === "failed" ? "danger" : run?.status === "quarantined" ? "warning" : running ? "accent" : "neutral"}>{run ? runStatusLabels[run.status] : "尚未启动"}</Badge>{running && apiTextPipeline === true && <Spinner label={run?.status === "cancel_requested" ? "正在等待运行结束" : currentStage ? `正在执行 ${stageLabels[currentStage]}` : "正在启动"} />}<code>{run?.id || "尚无运行任务"}</code></div>
-      {run?.failureCode && <p className="event-detail">{run.failedStage ? `${stageLabels[run.failedStage]} · ` : ""}{run.failureCode}{run.error ? ` · ${run.error}` : ""}</p>}
+      {run?.failureCode && <><p>本次运行未完成，请检查隔离结果与失败详情，再选择当前可用操作。</p><details><summary>失败技术详情</summary><p>{run.failedStage ? `${stageLabels[run.failedStage]} · ` : ""}{run.failureCode}{run.error ? ` · ${run.error}` : ""}</p></details></>}
     </Panel>
     {progress && <Panel className="run-progress-panel">
       <div className="section-title"><span>实时子任务进度</span><strong>{progress.workUnits.length} 个子任务 · {runStatusLabels[progress.status]}</strong></div>
@@ -59,13 +64,13 @@ export function TracePage({ run, progress, trace, executionTrace, running, onRun
           : run
             ? <EmptyState title="当前任务暂无事件记录">请查看上方的任务状态和失败信息；暂无事件记录不代表任务已通过。</EmptyState>
             : <EmptyState title="还没有运行记录">勾选要生成的阶段，再点击“运行所选阶段”启动任务。</EmptyState>)}
-        {trace.map((event) => <button key={event.id} className={`trace-event ${event.id === selected?.id ? "active" : ""}`} onClick={() => setSelectedId(event.id)}><span className={`trace-dot ${event.status}`} /><time>{event.at}</time><div><small>{stageLabels[event.stage]} · {traceKindLabels[event.kind]}</small><strong>{event.title}</strong></div></button>)}
+        {trace.map((event) => <button key={event.id} className={`trace-event ${event.id === selected?.id ? "active" : ""}`} onClick={() => setSelectedId(event.id)}><span className={`trace-dot ${event.status}`} /><time>{event.at}</time><div><small>{stageLabels[event.stage]} · {traceKindLabels[event.kind]}</small><strong>{eventLabel(event)}</strong></div></button>)}
       </Panel>
       <Panel className="prompt-inspector">
-        <div className="section-title"><span>事件详情</span><strong>{selected?.title || (observing ? "正在等待记录" : "暂无事件详情")}</strong></div>
+        <div className="section-title"><span>事件详情</span><strong>{(selected ? eventLabel(selected) : "") || (observing ? "正在等待记录" : "暂无事件详情")}</strong></div>
         {selected ? <>
           <div className="inspector-meta"><Badge tone={selected.status === "error" ? "danger" : selected.status === "warning" ? "warning" : selected.status === "pending" ? "accent" : "ok"}>{traceStatusLabels[selected.status]}</Badge><code>{selected.stage} / {selected.kind}</code></div>
-          {selected.detail && <p className="event-detail">{selected.detail}</p>}
+          <details><summary>原始事件说明（技术详情）</summary><strong>{selected.title}</strong>{selected.detail && <p className="event-detail">{selected.detail}</p>}</details>
           <div className="tabs" role="tablist" aria-label="运行详情">
             {(["system", "user", "payload"] as const).map((tab) => <button role="tab" aria-selected={promptTab === tab} key={tab} onClick={() => setPromptTab(tab)}>{tab === "system" ? "系统提示词" : tab === "user" ? "任务提示词" : "事件数据"}</button>)}
           </div>

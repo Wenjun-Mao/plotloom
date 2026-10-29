@@ -1,3 +1,5 @@
+import { contentLanguageApi } from "../src/features/content-language/api";
+import { languagePass, languageRequired } from "./content-language-fixture";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -22,7 +24,11 @@ const candidate = (value = proposal()): PresentationCandidate => ({ jobId: "ch_"
   proposalContentHash: value.contentHash, sourceHash: value.presentation.sourceHash, provenance: { responseHash: "e".repeat(64) },
   entries: value.presentation.sources.map(source => ({ id: source.id, spans: [{ start: 0, end: [...source.sourceText].length, role: "physical", rendering: source.sourceText, reason: "" }] })),
 });
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => {
+  vi.spyOn(contentLanguageApi, "status").mockImplementation(async (_project, _stage, job) => languageRequired(job));
+  vi.spyOn(contentLanguageApi, "check").mockImplementation(async (_project, _stage, job) => languagePass(job));
+  vi.spyOn(plotloomApi, "getProject").mockResolvedValue({ brief: { language: "zh-CN" } } as never);
+ host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 const fill = async (field: HTMLTextAreaElement, value: string) => act(async () => {
   Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(field, value);
@@ -40,6 +46,7 @@ it("prefills complete labeled advice and saves unchanged spans with no checkbox"
   expect(host.querySelector(".presentation-raw")?.hasAttribute("open")).toBe(false);
   expect(host.querySelector("legend")?.textContent).not.toContain("opaque");
   expect([...host.querySelectorAll("blockquote")].map(item => item.textContent)).toEqual(value.presentation.sources.map(source => source.sourceText));
+  await act(async () => button("检查当前完整候选语言").click());
   expect(button("确认并保存呈现方式").disabled).toBe(false);
   await act(async () => button("确认并保存呈现方式").click());
   expect(save).toHaveBeenCalledWith(advice.entries);
@@ -113,6 +120,7 @@ it("prepares, sends and checks one presentation task without intent or approval 
   await act(async () => button("检查呈现方式交付").click());
   expect(actions.mock.calls.map(call => call[2])).toEqual(["send", "check"]);
   expect(intent).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled(); expect(accept).not.toHaveBeenCalled();
+  await act(async () => button("检查当前完整候选语言").click());
   expect(button("确认并保存呈现方式").disabled).toBe(false);
   expect(button("确认投产提案").disabled).toBe(true);
 });

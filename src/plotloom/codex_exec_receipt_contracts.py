@@ -254,6 +254,7 @@ class CodexExecHostStatus(CamelModel):
     ]
     attempt: CodexExecAttempt | None = None
     receipt: CodexExecReceipt | None = None
+    local_execution_stopped: bool = Field(default=False, exclude_if=lambda value: value is False)
     capacity_deferred: bool = Field(default=False, exclude_if=lambda value: value is False)
     dispatch_enabled: bool | None = Field(default=None, exclude_if=lambda value: value is None)
 

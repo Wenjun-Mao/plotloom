@@ -63,6 +63,7 @@ class LaunchPolicy(CamelModel):
     executor_binding: ExecutorBinding | None = Field(default=None, exclude_if=lambda value: value is None)
     execution_pins: dict[str, dict[str, str]]
     brief: dict[str, Any]
+    automatic_retry_limit: int | None = Field(default=None, strict=True, ge=0, exclude_if=lambda value: value is None)
     text_correction_limit: int | None = Field(default=None, strict=True, ge=0, le=9_007_199_254_740_991, exclude_if=lambda value: value is None)
 
     @model_validator(mode="before")
@@ -117,6 +118,7 @@ class LaunchPolicy(CamelModel):
 
 
 class LaunchRequest(CamelModel):
+    automatic_retry_limit: int = Field(default=1, strict=True, ge=0)
     text_correction_limit: int = Field(default=1, strict=True, ge=0, le=9_007_199_254_740_991)
     expected_brief_revision: int = Field(ge=1)
     style_authority: Literal["preset", "brief"] = "preset"

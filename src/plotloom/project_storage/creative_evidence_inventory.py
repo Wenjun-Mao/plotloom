@@ -123,6 +123,11 @@ def _codex_creative_jobs(connection):
     for request, _data, attempt, profile, receipt in retained_batch_drafts(connection):
         jobs[request.job_id] = {"project_id": request.project_id, "operation_key": request.stage, "profile": profile,
             "plotloom_code_revision": attempt.plotloom_code_revision, "attempt": attempt, "receipt": receipt}
+    from .content_language_evidence import retained_language_checks
+    for request, _data, attempt, profile, receipt in retained_language_checks(connection):
+        jobs[request.job_id] = {"project_id": request.project_id, "operation_key": attempt.operation_key,
+            "profile": profile, "plotloom_code_revision": attempt.plotloom_code_revision,
+            "attempt": attempt, "receipt": receipt}
     return jobs
 
 
@@ -131,7 +136,8 @@ def _retained_codex_request_projection(
 ):
     """Project only the package request shapes admitted by retained launch profiles."""
     if profile.contract_version in {"plotloom.codex-exec.v6", "plotloom.codex-exec.v7", "plotloom.codex-exec.v8"}:
-        if request.stage == "outline":
+        from ..content_language_contract import is_language_check
+        if request.stage == "outline" and not is_language_check(request):
             try:
                 return retained_outline_package_projection(
                     request, execution_pin, source_revision=plotloom_code_revision
@@ -220,9 +226,13 @@ def creative_evidence_paths(root, database, *, prior_snapshot_omissions=None):
             raise ProjectStorageCorruptionError("creative evidence request or pin identity changed")
         execution_pin = execution_pin_for_request(request, pins[identifier][1])
         codex_binding = codex_jobs.get(identifier)
+        from ..content_language_contract import is_language_check
+        from ..content_language_persistence import check_operation_key
+        expected_operation = (check_operation_key(request) if is_language_check(request) else
+            f"{request.stage}:correction:{request.text_correction.ordinal}" if request.text_correction else request.stage)
         if codex_binding is not None and (
             codex_binding["project_id"] != request.project_id
-            or codex_binding["operation_key"] != (f"{request.stage}:correction:{request.text_correction.ordinal}" if request.text_correction else request.stage)
+            or codex_binding["operation_key"] != expected_operation
         ):
             raise ProjectStorageCorruptionError("retained Codex creative checkpoint differs from its request")
         executor_backend = "codex_exec" if codex_binding is not None else "specialist_chat"

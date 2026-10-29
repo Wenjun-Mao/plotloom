@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { QuarantineItem } from "../types";
 import { stageLabels } from "../model";
-import { Badge, Button, EmptyState, PageHeader, Panel } from "../components";
+import { Badge, Button, EmptyState, ErrorNotice, PageHeader, Panel } from "../components";
 import { repairRefusalExplanation, workUnitStatusLabels } from "../run-presentation";
 import { apiTextPipelineMessage } from "../app/workspace/apiTextPipeline";
 
@@ -37,11 +37,11 @@ export function QuarantinePage({ items, repairing, onRepair, onRebuildStage, api
     {apiTextPipeline !== true && <p role="note">{apiTextPipelineMessage(apiTextPipeline)}</p>}
     {!items.length ? <EmptyState title="隔离区为空">当前未显示隔离结果。任务仍在运行或尚未读取完成时，不代表所有结果已通过验证。</EmptyState> : <div className="quarantine-layout">
       <Panel className="quarantine-list">
-        {items.map((item) => <button key={item.id} className={item.id === selected?.id ? "active" : ""} onClick={() => setSelectedId(item.id)}><Badge tone={item.status === "outcome_unknown" ? "warning" : "danger"}>{item.code}</Badge><strong>子任务 {item.id} · {item.message}</strong><small>{stageLabels[item.stage]} · {item.status ? workUnitStatusLabels[item.status] : "状态未记录"}</small></button>)}
+        {items.map((item) => <button key={item.id} className={item.id === selected?.id ? "active" : ""} onClick={() => setSelectedId(item.id)}><Badge tone={item.status === "outcome_unknown" ? "warning" : "danger"}>{item.status ? workUnitStatusLabels[item.status] : "需要检查"}</Badge><strong>子任务 {item.id}</strong><small>{stageLabels[item.stage]} · {item.status ? workUnitStatusLabels[item.status] : "状态未记录"}</small></button>)}
       </Panel>
       {selected && <Panel className="repair-panel">
         <div className="section-title"><span>子任务状态</span><strong>{selected.status ? workUnitStatusLabels[selected.status] : "状态未记录"}</strong></div>
-        <p className="repair-message">{selected.message}</p>
+        <ErrorNotice message={selected.message} />
         <dl className="run-progress-meta">
           <div><dt>阶段</dt><dd>{stageLabels[selected.stage]}</dd></div>
           <div><dt>执行次数</dt><dd>{selected.attempt ? `${selected.attempt.attemptNumber}/${selected.maxAttempts ?? 1} · ${selected.attempt.attemptKind === "correction" ? "更正执行" : "首次执行"}` : "—"}</dd></div>

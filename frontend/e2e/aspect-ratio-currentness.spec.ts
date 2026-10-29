@@ -70,13 +70,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   await panel.locator("details.video-production > summary").click();
   await panel.getByLabel("允许黑边画布（完整保留已审核图）").check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await freezeReviewedFixtureDirections(panel, "20261011");
-  await panel.getByRole("button", { name: "提交一次" }).click();
-  const reconcileResponse = page.waitForResponse(response => response.request().method() === "POST"
-    && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
-    && new URL(response.url()).pathname.endsWith("/reconcile"));
-  await panel.getByRole("button", { name: "获取结果" }).click();
-  const reconciled = await json<{ id: string; state: string; error: string | null }>(await reconcileResponse);
+  const reconciled = await freezeReviewedFixtureDirections(panel, "20261011");
   expect(reconciled).toMatchObject({ state: "ingested", error: null });
   const segmentReview = panel.getByTestId(`video-segment-review-${reconciled.id}`);
   const frameInput = segmentReview.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });

@@ -104,6 +104,8 @@
     "autopilot-guidance.spec.ts",
     "text-retry.spec.ts",
     "video-batch.spec.ts",
+    "production-intent.spec.ts",
+    "content-language.spec.ts",
     "working-project-autosave.spec.ts"
   ]
 }

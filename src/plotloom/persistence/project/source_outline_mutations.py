@@ -18,6 +18,7 @@ from ...outline_report_metadata import (
     assert_outline_report_schema_current,
 )
 from ...outline_settings import assert_outline_settings_current
+from ...language_policy import assert_candidate_report_language
 from ...source_outline_contracts import (
     OutlineAcceptRequest,
     OutlineCandidate,
@@ -120,10 +121,14 @@ class SourceOutlineMutations:
                 if existing.status != "prepared":
                     raise CreativeHandoffError("delivery_stale", "outline job identity is already terminal")
                 assert_outline_report_schema_current(request.input_artifacts)
+                from ...language_policy import assert_language_current
+                assert_language_current(request.input_artifacts, ProjectBrief.require_confirmed(project.brief).language)
                 return self._owner._candidate(existing)
             self._owner._assert_no_prepared_publication(session, project_id)
             freeze_execution_pin(session, request, execution_pin)
             assert_outline_report_schema_current(request.input_artifacts)
+            from ...language_policy import assert_language_current
+            assert_language_current(request.input_artifacts, ProjectBrief.require_confirmed(project.brief).language)
             now = utc_now()
             row = SourceOutlineCandidateRow(
                 job_id=request.job_id, project_id=project_id,
@@ -164,11 +169,13 @@ class SourceOutlineMutations:
                     raise CreativeHandoffError("delivery_conflict", "a different delivery already occupies this candidate")
                 assert_outline_report_schema_current(request.input_artifacts)
                 assert_outline_report_metadata(candidate.outline)
+                assert_candidate_report_language(candidate.outline, request.input_artifacts)
                 return self._owner._candidate(candidate)
             if candidate.status != "prepared":
                 raise CreativeHandoffError("delivery_stale", "outline candidate is no longer awaiting delivery")
             assert_outline_report_schema_current(request.input_artifacts)
             assert_outline_report_metadata(delivery.candidate)
+            assert_candidate_report_language(delivery.candidate, request.input_artifacts)
             candidate.status = "ready"
             candidate.delivery_id = delivery.manifest.delivery_id
             candidate.manifest_hash = delivery.manifest_hash
@@ -205,6 +212,9 @@ class SourceOutlineMutations:
             )
             assert_outline_report_schema_current(candidate.request["inputArtifacts"])
             assert_outline_report_metadata(candidate.outline)
+            assert_candidate_report_language(candidate.outline, candidate.request["inputArtifacts"])
+            from ...content_language_persistence import require_language_pass
+            require_language_pass(session, CreativeHandoffRequest.model_validate(candidate.request), candidate.outline)
             now = utc_now()
             content_hash = sha256(canonical_json(candidate.outline)).hexdigest()
             head.outline_revision += 1
@@ -271,7 +281,8 @@ class SourceOutlineMutations:
             self._access.guards.active(project)
             head = self._owner._head(session, project_id, create=True)
             candidate = session.get(SourceOutlineCandidateRow, job_id)
-            if candidate is None or candidate.project_id != project_id:
+            if (candidate is None or candidate.project_id != project_id or candidate.request.get("stage") != "outline"
+                    or candidate.request.get("source", {}).get("operation") == "content-language-check"):
                 raise NotFoundError("project outline candidate is unavailable")
             if candidate.status == "accepted":
                 raise InvalidTransitionError("an accepted outline candidate cannot be cancelled")

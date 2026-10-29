@@ -1,3 +1,5 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
 import { useAdoptionLabel, adoptionSentence } from "../features/autopilot/AutopilotWorkspace";
 import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { StaticReportReader } from "../components/StaticReportReader";
@@ -94,6 +96,8 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     });
   };
   const prepare = () => run(() => plotloomApi.prepareScriptCandidate(projectId), result => setAssignment(result.assignment));
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "script", jobId: state?.candidate?.status === "ready" ? state.candidate.jobId : undefined,
+    candidate: state?.candidate?.script, original: state?.candidate?.script, basis: state?.candidate ? JSON.stringify(state.candidate.binding) : "", disabled: readOnly || busy || state?.status === "stale" });
   if (!state) return <article id="script" className="panel cast-panel" data-testid="script-review">
     <header><span>剧本</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
     {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载剧本</Button></> : <Spinner />}
@@ -147,7 +151,8 @@ export function ScriptPanel({ projectId, readOnly: ownerReadOnly, active = true,
     {state.candidate && <AcceptedEvidenceNotice projectId={projectId} state={state.acceptedReviewState} />}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
-    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
+    {candidate?.status === "ready" && <ContentLanguageReview check={languageCheck} />}
+    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale" || !languageCheck.ready} busy={busy} run={run} />}
     {candidate?.status === "ready" && candidate.script && <><ScriptContentReview
       title="待审阅候选剧本 · 未确认"
       statusDescription={state.status === "stale" ? "候选上下文已过期；它仍是候选，不是已确认版本。" : "候选状态：ready。此候选按它自己的冻结绑定读取，不分配已确认版本号。"}
@@ -185,7 +190,7 @@ function AcceptedReview({ accepted, projectId, readOnly, busy, status, retained,
   const editing = status === "reopened";
   const contentTitle = status === "retained" ? `保留的${label}剧本 r${accepted.revision}` : status === "reopened" ? `正在编辑的${label}剧本 r${accepted.revision} · 已保存版本` : `当前${label}剧本 r${accepted.revision}`;
   return <section>
-    <small>{status === "retained" ? `保留的${label}剧本` : `${label}剧本`} r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。原始报告保留最初交付的版本，可能与后续修改不同。</small>
+    <small>{status === "retained" ? `保留的${label}剧本` : `${label}剧本`} r{accepted.revision} · 内容标识 {accepted.contentHash.slice(0, 12)}。原始报告保留最初交付的版本，可能与后续修改不同。</small>
     <ScriptContentReview title={contentTitle} statusDescription={status === "retained" ? "此版本是保留的历史证据；它不会因此恢复当前审核资格。" : undefined} script={accepted.script} binding={accepted.binding} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && !retained && <>
@@ -199,7 +204,7 @@ function SectionEditor({ accepted, disabled, sectionId, draft, onSelect, onDraft
   return <section>
     <label>编辑章节<select disabled={disabled} value={sectionId} onChange={event => onSelect(event.target.value)}>
       <option value="">选择稳定章节</option>
-      {accepted.binding.sectionBindings.map(item => <option key={item.sectionId} value={item.sectionId}>{item.sectionId} · episode {item.episode}</option>)}
+      {accepted.binding.sectionBindings.map(item => <option key={item.sectionId} value={item.sectionId}>{item.sectionId} · 章节 {item.episode}</option>)}
     </select></label>
     {sectionId && <><textarea aria-label={`${sectionId} 章节剧本 JSON`} className="source-outline-json" disabled={disabled} rows={22} value={draft} onChange={event => onDraft(event.target.value)} /><Button variant="primary" disabled={disabled} onClick={onSave}>保存此章节，不覆盖其他章节</Button></>}
   </section>;

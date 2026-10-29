@@ -8,13 +8,13 @@ from .codex_exec_files import read_confined_regular_file
 from .creative_commands import current_creative_candidate
 from .creative_handoff_contracts import (
     CREATIVE_CANDIDATE_FILENAMES,
-    CreativeHandoffRequest,
 )
 from plotloom.public_values import contains_secret_value
 from .exceptions import InvalidTransitionError
 from .text_correction_contracts import MANUAL_CORRECTION_CONTRACTS, MANUAL_CORRECTION_STAGES, automatic_correction_limit, logical_checkpoint
 
-STAGES = {"outline": "故事大纲", "characters": "角色设定", "art": "美术方向", "script": "剧本", "storyboard": "分镜"}
+STAGES = {"outline": "故事大纲", "branches": "剧情分支", "characters": "角色设定", "art": "美术方向",
+          "script": "剧本", "storyboard": "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "呈现方式"}
 
 
 def prior_candidate(store, request, rejection):
@@ -44,7 +44,9 @@ def issue_details(rejection, raw):
                 item = literal(f'{prop.get("id", "")} {prop.get("name", "")}').strip()
             details.append({"code": issue.code, "field": path, "item": item,
                 "rule": (f'该字段必须包含原始尺度短语「{issue.repair_facts["requiredPhrase"]}」。'
-                    if issue.code == "art_prop_scale" else "候选未通过来源内容验证；具体说明见下方。"),
+                    if issue.code == "art_prop_scale" else
+                    f'该字段的新创作内容必须使用项目语言 {issue.repair_facts["contentLocale"]}，仅保留有明确来源依据的例外。'
+                    if issue.code == "content_language_mismatch" else "候选未通过来源内容验证；具体说明见下方。"),
                 "excerpt": literal(value) if match else None})
     return details
 
@@ -100,8 +102,10 @@ def failure_context(store, registry, *, stage=None):
         attempt = store.repository.autopilot.exec_attempt_for_operation(history_view.id, item["operationKey"])
         with store.repository._read() as session:
             row = session.get(CANDIDATE_ROWS[stage], item["evidence"]["jobId"])
-            request = CreativeHandoffRequest.model_validate(row.request)
-        rejection = attempt.content_rejection if attempt else None
+            from .content_language_candidates import row_request
+            request = row_request(row)
+        from .content_language_rejection import retained_language_rejection
+        rejection = ((attempt.content_rejection or retained_language_rejection(store, request, attempt)) if attempt else None)
         history.append({"ordinal": request.text_correction.ordinal if request.text_correction else 0,
             "mode": "manual" if request.text_correction and request.text_correction.manual_grant else "automatic" if request.text_correction else "original",
             "state": item["state"], "outcome": attempt.terminal_result if attempt else None,
@@ -111,7 +115,7 @@ def failure_context(store, registry, *, stage=None):
             rejected_request = request
         if item["operationKey"] == checkpoint["operationKey"]:
             latest_attempt, latest_request = attempt, request
-    rejection = latest_attempt.content_rejection if latest_attempt else None
+    rejection = ((latest_attempt.content_rejection or retained_language_rejection(store, latest_request, latest_attempt)) if latest_attempt else None)
     resolved = checkpoint["state"] == "adopted" and previous is not None
     if rejection is None and not resolved and checkpoint["state"] != "failed" and view.state not in {"blocked", "waiting"}:
         return None
@@ -134,7 +138,12 @@ def failure_context(store, registry, *, stage=None):
                 raise InvalidTransitionError("本次冻结运行未授予额外修正能力；请保留证据并接管。")
             assert_frozen_execution(store, registry, view.policy)
             require_job_capacity(view)
-            current_creative_candidate(store, stage, latest_request.job_id, require_fresh=True)
+            if stage.startswith("bridge-"):
+                store.repository.production_bridge_intent.source_context(view.project_id,
+                    expected_revision=latest_request.expected_stage_revision,
+                    expected_hash=latest_request.source["proposal"]["contentHash"])
+            else:
+                current_creative_candidate(store, stage, latest_request.job_id, require_fresh=True)
             can_retry, reason = True, "只追加一次当前失败阶段的修正；已完成阶段保持采用结果。"
         except (InvalidTransitionError, ValueError) as error:
             reason = literal(error)
@@ -160,11 +169,14 @@ def retry_text(store, registry, grant):
         if checkpoint is None or checkpoint["evidence"]["owner"] not in MANUAL_CORRECTION_STAGES:
             raise InvalidTransitionError("text retry failed identity is unavailable")
         attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
-        if attempt.content_rejection is None or attempt.content_rejection.rejection_hash != grant.rejection_hash:
-            raise InvalidTransitionError("text retry requires the exact current typed rejection")
         from .persistence.project.creative_terminal import CANDIDATE_ROWS
         with store.repository._read() as session:
-            request = CreativeHandoffRequest.model_validate(session.get(CANDIDATE_ROWS[attempt.content_rejection.stage], attempt.job_id).request)
+            from .content_language_candidates import row_request
+            request = row_request(session.get(CANDIDATE_ROWS[checkpoint["evidence"]["owner"]], attempt.job_id))
+        from .content_language_rejection import retained_language_rejection
+        rejection = attempt.content_rejection or retained_language_rejection(store, request, attempt)
+        if rejection is None or rejection.rejection_hash != grant.rejection_hash:
+            raise InvalidTransitionError("text retry requires the exact current typed rejection")
         store.repository.autopilot.grant_text_retry(view.project_id, grant, request,
-            attempt.content_rejection, prior_candidate(store, request, attempt.content_rejection))
+            rejection, prior_candidate(store, request, rejection))
     return store.repository.autopilot.current(view.project_id)

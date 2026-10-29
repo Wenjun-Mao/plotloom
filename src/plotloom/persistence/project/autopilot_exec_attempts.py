@@ -45,7 +45,7 @@ class AutopilotExecPersistence:
             raise InvalidTransitionError("new project attempts must begin reserved")
         expected_scope = (
             OperationScope.IMAGE if attempt.domain == "image"
-            else OperationScope.INSTALL if attempt.operation_key in {"bridge-intent", "bridge-presentation"}
+            else OperationScope.INSTALL if attempt.operation_key.split(":", 1)[0] in {"bridge-intent", "bridge-presentation"}
             else OperationScope.TEXT
         )
         if authority.scope != expected_scope:
@@ -112,7 +112,9 @@ class AutopilotExecPersistence:
                 AutopilotCheckpointRow.state != "adopted",
             )).all()
             from .autopilot_text_correction import superseded_text_failure
-            pending = [row for row, checkpoint_row in pending_rows if not superseded_text_failure(session, run, row, checkpoint_row)]
+            from .autopilot_execution_retry import superseded_execution_attempt
+            pending = [row for row, checkpoint_row in pending_rows if not superseded_text_failure(session, run, row, checkpoint_row)
+                and not superseded_execution_attempt(session, run.id, row.id)]
             if attempt.domain == "text" and pending:
                 raise InvalidTransitionError("dependent text execution cannot pass an unadopted text attempt")
 

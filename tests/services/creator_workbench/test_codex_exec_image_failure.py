@@ -107,11 +107,8 @@ def _execute_image(supervisor, tmp_path, monkeypatch, mode, *, reconnect=False, 
             header = {'type': 'session_meta', 'ordinal': 0, 'payload': {'id': str(session_id)}}
             (folder / f'rollout-synthetic-{session_id}.jsonl').write_bytes((json.dumps(header) + '\n').encode() + b''.join(records))
         if mode == 'no-remote-call':
-            from tests.codex_exec_recovery_fixtures import write_readonly_turn
-            write_readonly_turn(job, supervisor.source_root, private,
-                folder / f'rollout-synthetic-{session_id}.jsonl', session_id)
-            (private / 'stdout.jsonl').unlink()
-            (private / 'stderr.log').unlink()
+            (folder / f'rollout-synthetic-{session_id}.jsonl').write_text(
+                json.dumps({"type":"session_meta","ordinal":0,"payload":{"id":str(session_id)}}) + "\n")
     observations, parser_calls = [], []
     def group_exists(group_id):
         assert group_id == NATIVE_PID
@@ -174,7 +171,7 @@ def test_bound_failed_image_settles_only_after_strict_group_exit(supervisor, tmp
     assert result.attempt.remote_output_hash is None
     assert result.receipt is None
     with closing(supervisor._connect()) as connection:
-        assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is None
+        assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is not None
         witness = json.loads(connection.execute('SELECT evidence_json FROM exec_process_exits WHERE attempt_id=?',
             (str(attempt.attempt_id),)).fetchone()[0])
         assert witness['processExitCode'] == 0 and witness['processId'] == NATIVE_PID
@@ -196,15 +193,15 @@ def test_missing_ambiguous_or_unsettled_image_proof_keeps_unknown_capacity(super
         assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone()
 
 
-def test_live_waiter_with_complete_no_dispatch_proof_records_genuine_failure(supervisor, tmp_path, monkeypatch):
+def test_ended_turn_without_image_output_preserves_possible_remote_cost(supervisor, tmp_path, monkeypatch):
     attempt, result, session, groups, parsed = _execute_image(supervisor, tmp_path, monkeypatch, 'no-remote-call')
     assert groups == [NATIVE_PID] and parsed and set(parsed) == {session}
     assert result.state == 'failed' and result.attempt.terminal_result == 'failure'
-    assert result.attempt.remote_tool_state == 'not_applicable'
+    assert result.attempt.remote_tool_state == 'unknown'
     assert result.attempt.process_exit_code == 0 and result.attempt.session_id == session
-    assert result.attempt.image_budget_state == 'released' and result.receipt is None
+    assert result.attempt.image_budget_state == 'reserved' and result.receipt is None
     with closing(supervisor._connect()) as connection:
-        assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is None
+        assert connection.execute('SELECT * FROM exec_slot WHERE attempt_id=?', (str(attempt.attempt_id),)).fetchone() is not None
         witness = json.loads(connection.execute('SELECT evidence_json FROM exec_process_exits WHERE attempt_id=?',
             (str(attempt.attempt_id),)).fetchone()[0])
         assert witness['processExitCode'] == 0

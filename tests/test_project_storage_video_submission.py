@@ -177,7 +177,6 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
     )
     reviewed = {
         "sourceHash": sources["sourceHash"],
-        "reviewedEnglish": True,
         "fields": [
             {
                 "path": source["path"],
@@ -224,16 +223,17 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
         ).status_code
         == 409
     )
-    reviewed["promptSha256"] = full_preview.json()["compiledPromptSha256"]
+    checked_body = _reviewed_video_body(client, project_id, body, directions_fields=reviewed["fields"])
+    reviewed = checked_body["reviewedDirections"]
     prepared = client.post(
         f"/api/v2/projects/{project_id}/video-jobs",
-        json={**body, "reviewedDirections": reviewed},
+        json=checked_body,
     )
     assert prepared.status_code == 201, prepared.text
     job = prepared.json()
     assert (
         job["snapshot"]["compilerVersion"]
-        == "plotloom.h3-reviewed-frame.v5-presentation"
+        == "plotloom.h3-production-brief.v7"
     )
     assert job["snapshot"]["shot"]["action"] == "沈岚把铜质熔断器放在两条并列插槽之间。"
     assert job["snapshot"]["compiledPrompt"] == prompt

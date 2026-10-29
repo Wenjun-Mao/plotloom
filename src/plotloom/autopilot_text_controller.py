@@ -233,6 +233,10 @@ class AutopilotTextController:
             before_spawn=before_spawn,
             operation_scope=OperationScope.INSTALL if bridge else OperationScope.TEXT,
         )
+        if attempt.state in {"failed", "outcome_unknown"} and attempt.content_rejection is None:
+            from .autopilot_execution_retry import retry_native_execution
+            if retry_native_execution(self, store, view, claim, checkpoint, attempt):
+                return
         if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started"}:
             if (attempt.content_rejection is not None and
                     store.repository.autopilot.automatic_corrections_used(view.id, stage) < automatic_correction_limit(view.policy, stage)):
@@ -253,7 +257,7 @@ class AutopilotTextController:
             return
         with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.EVIDENCE):
             if bridge:
-                service._admit(store, request, delivery)
+                store.repository.production_bridge_intent.retain_native_candidate(view.project_id, delivery)
             else:
                 getattr(store, CREATIVE_METHODS[stage][2])(delivery)
             store.repository.autopilot.checkpoint(checkpoint["operationKey"], state="delivered",
@@ -268,6 +272,9 @@ class AutopilotTextController:
         delivery = self.validated_delivery(store, view, stage, request, expected_hash=evidence.delivery_hash)
         if delivery is None:
             raise InvalidTransitionError("retained native delivery is unavailable")
+        from .autopilot_content_language import ensure_content_language
+        if not ensure_content_language(self, store, view, claim, request, delivery.candidate, checkpoint):
+            return
         with self.command(store, view, claim, OperationScope.INSTALL if bridge else OperationScope.TEXT):
             if bridge:
                 service = self.bridge_services[stage]
@@ -307,6 +314,8 @@ class AutopilotTextController:
                     self.registry.complete_creative_task(evidence.job_id, project_id=view.project_id, stage=evidence.owner)
 
     def cancel_pending(self, store, view):
+        from .content_language_service import reconcile_language_checks
+        reconcile_language_checks(store, self.registry, view.id, cancel=True)
         methods = {"outline": store.cancel_outline_candidate, "branches": store.cancel_branch_candidate,
             "characters": store.cancel_cast_candidate, "art": store.cancel_art_candidate,
             "script": store.cancel_script_candidate, "storyboard": store.cancel_storyboard_review_candidate}
@@ -333,6 +342,8 @@ class AutopilotTextController:
                 methods[evidence.owner](evidence.job_id)
 
     def reconcile_inactive(self, store, view, claim):
+        from .content_language_service import reconcile_language_checks
+        reconcile_language_checks(store, self.registry, view.id)
         self.settle_delivered(view)
         if view.policy.version == POLICY_VERSION:
             self.reconcile_codex_inactive(store, view, claim)

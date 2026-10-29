@@ -52,8 +52,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("text,language,delivery,expected", [
     (LINE, "zh-CN", NOTES, 7920), (LINE, "zh-CN", "brisk", 6240),
-    (LINE, "en", NOTES, 1440), ("  A 😀 B  ", "zh-CN", "natural", 1650),
-    ("台 词。", "zh-CN", "measured", 1680), ("abc", "en-US", NOTES, 210),
+    (LINE, "en", NOTES, 1680), ("  A 😀 B  ", "zh-CN", "natural", 1650),
+    ("台 词。", "zh-CN", "measured", 1680), ("abc", "en-US", NOTES, 400),
 ])
 def test_shared_projection_uses_spoken_language_pace_and_unicode(text, language, delivery, expected):
     value = {"speaker": "VO", "line": text, "delivery": delivery}

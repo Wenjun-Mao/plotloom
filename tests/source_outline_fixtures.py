@@ -19,6 +19,7 @@ from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_setting
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import SourceMaterial
 from plotloom.source_structures import planned_structure
+from plotloom.language_policy import freeze_request_language
 
 
 def _material(kind: str = "synopsis") -> SourceMaterial:
@@ -48,7 +49,7 @@ def _request(
     brief: ProjectBrief | None = None,
 ) -> CreativeHandoffRequest:
     selected_brief = brief or FIXED_CHINESE_BRIEF
-    return CreativeHandoffRequest(
+    request = CreativeHandoffRequest(
         job_id="ch_" + job_suffix * 32,
         project_id=project_id,
         section_id="story",
@@ -64,6 +65,8 @@ def _request(
         },
         creative_brief="Produce one upstream-shaped review candidate only.",
     )
+    freeze_request_language(request, selected_brief.language)
+    return request
 
 
 def _deliver(store: object, request: CreativeHandoffRequest) -> object:
@@ -76,7 +79,8 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
     outline = canonical_json(
-        {"source": "渡口的信", "params": {"episodes": 1}, "episodes": []}
+        {"source": "渡口的信", "lang": request.input_artifacts.get("language-contract.json", {}).get("reportLocale", "zh"),
+         "params": {"episodes": 1}, "episodes": []}
     )
     report = b"<!doctype html><html><body>derived outline</body></html>"
     (delivery / "outline.json").write_bytes(outline)
@@ -108,4 +112,6 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     (delivery / "completion.json").write_text(json.dumps(manifest))
     result = exchange.read_delivery(request, pin)
     assert result is not None
+    from tests.content_language_fixtures import install_synthetic_language_check
+    install_synthetic_language_check(store, request, result.candidate)
     return result

@@ -1,3 +1,4 @@
+import { creativeDefaults } from "./creative-language";
 import type {
   Beat,
   ContinuityState,
@@ -154,8 +155,8 @@ export const emptyContinuityState = (note = ""): ContinuityState => ({
   notes: note ? [note] : [],
 });
 
-export const emptyScene = (id: string, storyNodeId = "", order = 1): DramaticScene => ({
-  id, storyNodeId, order, title: "新场景", objective: "", locationId: null,
+export const emptyScene = (id: string, storyNodeId = "", order = 1, language = "zh-CN"): DramaticScene => ({
+  id, storyNodeId, order, title: creativeDefaults(language).scene, objective: "", locationId: null,
   characterIds: [], beatIds: [], durationBudgetUnits: 1000,
   entryState: emptyContinuityState(), exitState: emptyContinuityState(),
 });
@@ -166,8 +167,8 @@ export const emptyBeat = (id: string, sceneId: string, order: number): Beat => (
   continuityAnchors: [], continuityDelta: {},
 });
 
-export const emptyCue = (id: string, beatId: string, order: number): DialogueCue => ({
-  id, beatId, order, speakerId: null, voiceOver: "旁白", text: "", language: "zh-CN",
+export const emptyCue = (id: string, beatId: string, order: number, language = "zh-CN"): DialogueCue => ({
+  id, beatId, order, speakerId: null, voiceOver: creativeDefaults(language).narrator, text: "", language,
   delivery: "natural", performanceNotes: "", estimatedDurationUnits: 1000,
 });
 
@@ -247,15 +248,15 @@ function moveWithin<T extends { id: string; order: number }>(items: T[], id: str
   return ordered.map((item, order) => ({ ...item, order: order + 1 }));
 }
 
-export function addScene(plan: SceneBeatPlan, factory: StableIdFactory, storyNodeId = ""): SceneBeatPlan {
+export function addScene(plan: SceneBeatPlan, factory: StableIdFactory, storyNodeId = "", language = "zh-CN"): SceneBeatPlan {
   const siblingScenes = plan.scenes.filter((scene) => scene.storyNodeId === storyNodeId);
-  return { ...plan, scenes: [...plan.scenes, emptyScene(factory(), storyNodeId, siblingScenes.length + 1)] };
+  return { ...plan, scenes: [...plan.scenes, emptyScene(factory(), storyNodeId, siblingScenes.length + 1, language)] };
 }
 
 export function patchScene(plan: SceneBeatPlan, sceneId: string, patch: Partial<Omit<DramaticScene, "id" | "beatIds">>): SceneBeatPlan {
   const before = plan.scenes.find((scene) => scene.id === sceneId);
   const protectedFields = patch as Partial<DramaticScene>;
-  if (protectedFields.id !== undefined && protectedFields.id !== sceneId) throw new Error("scene identity is immutable");
+  if (protectedFields.id !== undefined && protectedFields.id !== sceneId) throw new Error("场景标识不可修改");
   const scenes = plan.scenes.map((scene) => scene.id === sceneId
     ? { ...scene, ...protectedFields, id: scene.id, beatIds: scene.beatIds }
     : scene);
@@ -293,8 +294,8 @@ export function patchBeat(plan: SceneBeatPlan, beatId: string, patch: Partial<Om
 
 export function beatMigrationImpact(plan: SceneBeatPlan, beatId: string, targetSceneId: string): SceneBeatsMigrationImpact {
   const beat = plan.beats.find((item) => item.id === beatId);
-  if (!beat) throw new Error(`unknown beat: ${beatId}`);
-  if (!plan.scenes.some((scene) => scene.id === targetSceneId)) throw new Error(`unknown target scene: ${targetSceneId}`);
+  if (!beat) throw new Error(`未找到节拍： ${beatId}`);
+  if (!plan.scenes.some((scene) => scene.id === targetSceneId)) throw new Error(`未找到目标场景： ${targetSceneId}`);
   return {
     kind: "beat", targetId: beatId, fromParentId: beat.sceneId, toParentId: targetSceneId,
     // Their stable beatId remains unchanged, so these cues follow the beat's
@@ -325,16 +326,16 @@ export function reorderBeat(plan: SceneBeatPlan, beatId: string, direction: -1 |
   return normalizeSceneBeatReferences({ ...plan, beats: plan.beats.map((beat) => byId.get(beat.id) || beat) });
 }
 
-export function addCue(plan: SceneBeatPlan, beatId: string, factory: StableIdFactory): SceneBeatPlan {
+export function addCue(plan: SceneBeatPlan, beatId: string, factory: StableIdFactory, language = "zh-CN"): SceneBeatPlan {
   const order = plan.dialogueCues.filter((cue) => cue.beatId === beatId).length + 1;
-  return { ...plan, dialogueCues: [...plan.dialogueCues, emptyCue(factory(), beatId, order)] };
+  return { ...plan, dialogueCues: [...plan.dialogueCues, emptyCue(factory(), beatId, order, language)] };
 }
 
 export function patchCue(plan: SceneBeatPlan, cueId: string, patch: Partial<Omit<DialogueCue, "id" | "beatId">>): SceneBeatPlan {
   const protectedFields = patch as Partial<DialogueCue>;
-  if (protectedFields.id !== undefined && protectedFields.id !== cueId) throw new Error("dialogue cue identity is immutable");
+  if (protectedFields.id !== undefined && protectedFields.id !== cueId) throw new Error("对白标识不可修改");
   if (protectedFields.beatId !== undefined && protectedFields.beatId !== plan.dialogueCues.find((cue) => cue.id === cueId)?.beatId) {
-    throw new Error("use migrateCueToBeat to change a cue beat");
+    throw new Error("请使用迁移操作更改对白所属节拍");
   }
   const next = plan.dialogueCues.map((cue) => cue.id === cueId
     ? { ...cue, ...protectedFields, id: cue.id, beatId: cue.beatId }
@@ -344,8 +345,8 @@ export function patchCue(plan: SceneBeatPlan, cueId: string, patch: Partial<Omit
 
 export function cueMigrationImpact(plan: SceneBeatPlan, cueId: string, targetBeatId: string): SceneBeatsMigrationImpact {
   const cue = plan.dialogueCues.find((item) => item.id === cueId);
-  if (!cue) throw new Error(`unknown dialogue cue: ${cueId}`);
-  if (!plan.beats.some((beat) => beat.id === targetBeatId)) throw new Error(`unknown target beat: ${targetBeatId}`);
+  if (!cue) throw new Error(`未找到对白： ${cueId}`);
+  if (!plan.beats.some((beat) => beat.id === targetBeatId)) throw new Error(`未找到目标节拍： ${targetBeatId}`);
   const targetSceneId = plan.beats.find((beat) => beat.id === targetBeatId)!.sceneId;
   return {
     kind: "cue", targetId: cueId, fromParentId: cue.beatId, toParentId: targetBeatId,

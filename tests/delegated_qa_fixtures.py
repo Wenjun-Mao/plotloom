@@ -55,7 +55,7 @@ def qa_environment(tmp_path, monkeypatch, *, limits="finite"):
 
 def qa_start(service, project, view, actor):
     return service.start(project, BatchStart(expectedRevision=view["revision"], manifestHash=view["manifestHash"],
-        basis="whole-batch-english.v1", attribution=actor))
+        basis="production-intent.v2", attribution=actor))
 
 
 INSPECTION = {"clips": True, "nativeAudio": True, "intent": True, "windows": True,

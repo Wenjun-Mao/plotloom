@@ -1,3 +1,4 @@
+import { supportsCreativeLanguage } from "../creative-language";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CharacterCard,
@@ -29,6 +30,7 @@ import {
 
 type StoryBiblePageProps = {
   value: StoryBible;
+  language?: string;
   stale: boolean;
   saving: boolean;
   readOnly?: boolean;
@@ -44,6 +46,7 @@ const freshEntityId = (type: BibleEntityType) =>
 
 export function StoryBiblePage({
   value,
+  language = "zh-CN",
   stale,
   saving,
   readOnly = false,
@@ -90,7 +93,7 @@ export function StoryBiblePage({
   };
   const addEntity = (type: BibleEntityType) => {
     const id = freshEntityId(type);
-    update((current) => addBibleEntity(current, type, id));
+    update((current) => addBibleEntity(current, type, id, language));
     selectEntity({ type, id });
   };
   const updateEntity = (patch: Record<string, unknown>) => {
@@ -315,7 +318,7 @@ export function StoryBiblePage({
             </div>
             <Button
               variant="quiet"
-              disabled={readOnly}
+              disabled={readOnly || !supportsCreativeLanguage(language)}
               data-testid={`add-${type}`}
               onClick={() => addEntity(type)}
             >

@@ -36,6 +36,7 @@ class VideoJobPreparation:
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
+        automatic_retry_limit: int = 1,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
         self.assert_video_authority(project_id)
@@ -45,11 +46,13 @@ class VideoJobPreparation:
         resolution = production_contract.resolution
         audio = production_contract.audio
         compiler_version = (
-            "plotloom.h3-reviewed-frame.v5-presentation" if production_contract.profile_id is not None
+            "plotloom.h3-production-brief.v7" if production_contract.profile_id is not None
             else "p2-video-adapters-v1"
         )
         provider_snapshot = production_contract.provider_snapshot()
         request_snapshot = production_contract.request_snapshot()
+        from ...generation_retry_policy import RetryConfiguration
+        request_snapshot["automaticRetryLimit"] = RetryConfiguration(automatic_retry_limit=automatic_retry_limit).automatic_retry_limit
         tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
         if backend_binding is not None:
             if (
@@ -190,11 +193,12 @@ class VideoJobPreparation:
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
+            if production_contract.profile_id is not None:
+                from ...language_policy import language_contract
+                snapshot["languageContract"] = language_contract(self._access.rows.project(session, project_id).brief["language"])
             end_frame = snapshot["endFrame"]
             if presentation is not None:
                 snapshot["shotPresentation"] = presentation
-                if production_contract.profile_id is not None:
-                    snapshot["compilerVersion"] = "plotloom.h3-reviewed-frame.v6-shot-presentation"
             if isinstance(end_frame, dict) and end_frame.get("assetId") is not None:
                 if production_contract.width is None or production_contract.height is None:
                     raise InvalidTransitionError("ending frame requires an H3 profile")
@@ -212,16 +216,24 @@ class VideoJobPreparation:
                 from ...video_backends.minimax_h3.directions import direction_sources
                 from ...video_backends.minimax_h3.prompt import compile_i2va_prompt
 
-                sources = direction_sources(snapshot)
+                from ...production_brief import production_brief, assert_adaptable
+                try:
+                    assert_adaptable(snapshot)
+                except ValueError as exc:
+                    raise InvalidTransitionError(str(exc)) from exc
+                sources = direction_sources(snapshot) | {"productionBrief": production_brief(snapshot)}
                 if preview_only and reviewed_directions is None:
                     return sources | {"compiledPrompt": None, "snapshot": snapshot}
+                if not preview_only and (not reviewed_directions or reviewed_directions.get("reviewedEnglish") or any(not reviewed_directions.get(key) for key in ("fidelityCheck", "intentAuthorization", "reviewBasis"))):
+                    raise InvalidTransitionError("新视频需要独立助手保真检查与制作意图授权。")
                 try:
-                    snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot, reviewed_directions)
+                    snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot, reviewed_directions, draft=preview_only)
                 except ValueError as exc:
                     raise InvalidTransitionError(str(exc)) from exc
                 snapshot["reviewedDirections"] = reviewed_directions
                 from ...video_batch_basis import assert_direction_basis
-                assert_direction_basis(session, snapshot)
+                if not preview_only:
+                    assert_direction_basis(session, snapshot)
                 if preview_only:
                     return sources | {
                         "compiledPrompt": snapshot["compiledPrompt"],
@@ -233,6 +245,10 @@ class VideoJobPreparation:
                 raise InvalidTransitionError("reviewed prompt directions require a current H3 profile")
             from ...delegated_qa_video import assert_preparation_actor
             assert_preparation_actor(session, project_id, snapshot)
+            batch_owner = None
+            if production_contract.profile_id is not None:
+                from ...video_batch_preparation import preparation_owner
+                batch_owner = preparation_owner(session, snapshot, idempotency_key)
             fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
             existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
             if existing is not None:
@@ -244,6 +260,9 @@ class VideoJobPreparation:
                 state="prepared", provider_prediction_id=None, output_uri=None, output_hash=None, observed=None, error=None,
                 created_at=now, updated_at=now, dispatched_at=None, cancel_requested_at=None)
             session.add(job)
+            if batch_owner is not None:
+                from ...video_batch_preparation import link_prepared_job
+                link_prepared_job(batch_owner, job, now)
             if tracks_paid_wan_pilot:
                 if self._accounting is None:
                     raise InvalidTransitionError(

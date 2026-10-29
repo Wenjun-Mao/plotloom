@@ -120,10 +120,14 @@ class CodexExecSupervisorAdmissionMixin:
         from plotloom.codex_exec_contracts import CodexExecAttempt
         attempt = CodexExecAttempt.model_validate_json(row["status_json"])
         self._namespace_assert_attempt(attempt, check_profile=True)
+        if attempt.state in {"completed", "failed", "settled"}:
+            self._release_stopped_local_slot(row)
+            return attempt
         if attempt.state == "outcome_unknown":
             validation = self._active_validation_process(attempt.attempt_id)
             if validation is not None and validation["spawn_state"] == "running" and self._owns_validation_process(validation):
                 self._terminate_active_validation(attempt.attempt_id, sig=signal.SIGKILL)
+            self._release_stopped_local_slot(row)
             return attempt
         if attempt.state not in {"spawn_intent", "running", "validating", "cancel_requested"}:
             return attempt

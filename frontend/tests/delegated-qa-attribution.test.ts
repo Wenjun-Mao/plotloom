@@ -69,7 +69,7 @@ it.each(["running", "paused"])("labels frozen planned work truthfully while %s w
   const root = createRoot(host);
   try {
     await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
-    expect(host.querySelector("h3")?.textContent).toBe(state === "paused" ? "已暂停新派发" : "正在制作全部缺失视频");
+    expect(host.querySelector("h3")?.textContent).toBe(state === "paused" ? "已暂停新派发" : "正在制作视频");
     expect(host.textContent).toContain("计划新作业 2 项");
     expect(host.textContent).not.toContain("待派发任务");
     expect(host.textContent).toContain("播放提案就绪 0/2");

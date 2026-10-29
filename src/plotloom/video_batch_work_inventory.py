@@ -17,7 +17,14 @@ def assert_work_inventory(session, project_id, manifest, links):
             by_shot.setdefault(shot.get("id"), []).append(job.id)
     for target in manifest["targets"]:
         identifier = links.get(target["shotId"], target["jobId"])
-        expected = ([identifier] if identifier else []) + [fact["jobId"] for fact in manifest.get("rejectedHistory", []) if fact["shotId"] == target["shotId"]]
+        existing = target.get("existingJobIds", [])
+        if existing and not manifest["setup"].get("singleRequest"):
+            raise InvalidTransitionError("preexisting candidates require explicit single-shot authorization")
+        expected = existing + ([identifier] if identifier else []) + [fact["jobId"] for fact in manifest.get("rejectedHistory", []) if fact["shotId"] == target["shotId"]]
+        # A child may retain only the exact immutable predecessors in its snapshot.
+        current = next((job for job in jobs if job.id == identifier), None)
+        if current is not None:
+            expected += current.snapshot.get("executionRetry", {}).get("predecessorJobIds", [])
         expected.sort()
         if sorted(by_shot.get(target["shotId"], [])) != expected:
             raise InvalidTransitionError(f"{target['shotId']}: existing video work changed; no replacement may be prepared or submitted")

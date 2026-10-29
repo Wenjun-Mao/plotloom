@@ -1,3 +1,4 @@
+import { LanguageTaskObserver } from "../features/content-language/LanguageTaskObserver";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import { useAutomaticGuidance } from "../features/autopilot/guidance";
@@ -27,6 +28,8 @@ export function NativeBridgePresentationControls({ projectId, state, disabled, l
       {job.status === "queued" && state.nativePresentationTask?.state === "prepared" && <Button disabled={disabled || localEdits || !available || state.status === "stale"} onClick={() => action("send")}>发送呈现方式任务</Button>}
       {["dispatched", "outcome_unknown", "cancelled", "stale"].includes(job.status) && !job.responseHash && <Button disabled={disabled} onClick={() => action("check")}>检查呈现方式交付</Button>}
       {["queued", "dispatched", "outcome_unknown"].includes(job.status) && <Button disabled={disabled} onClick={() => action("cancel")}>取消呈现方式任务</Button>}
+      {state.nativePresentationTask?.languageCheck && <LanguageTaskObserver key={`${projectId}:${job.id}:${state.nativePresentationTask.languageCheck.checkJobId}`} projectId={projectId} initial={state.nativePresentationTask.languageCheck} disabled={disabled || localEdits}
+        onVerified={job.status === "ready" ? undefined : () => action("check")} onContinue={() => action("check")} />}
       {job.errorMessage && <ErrorNotice message={job.errorMessage} />}
       {!!state.nativePresentationTask?.limitations.length && <details><summary>助手建议的限制说明</summary><ul>{state.nativePresentationTask.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul></details>}
       {job.responseHash && <details className="bridge-intent-report"><summary>阅读呈现方式原始报告（只读）</summary>

@@ -133,6 +133,7 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"dispatching", "submitted"}:
                 raise InvalidTransitionError("only a dispatched video job can have unknown outcome")
             job.state, job.error, job.updated_at = "outcome_unknown", message[:2_000], utc_now()
+            job.observed = (job.observed or {}) | {"localExecutionStopped": True}
             return self._currentness.video_job_dict(session, job, current=False)
 
     def record_video_output(self, project_id: str, video_job_id: str, *, uri: str, digest: str, observed: dict[str, Any]) -> dict[str, Any]:
@@ -163,7 +164,12 @@ class VideoJobPersistence(VideoJobPreparation):
             if job.state not in {"submitted", "retrieve_needed"}:
                 raise InvalidTransitionError("only a known submitted video can record remote failure")
             job.state, job.error, job.updated_at = "failed", code, utc_now()
+            job.observed = (job.observed or {}) | {"localExecutionStopped": True}
             return self._currentness.video_job_dict(session, job, current=False)
+
+    def prepare_video_retry(self, project_id, video_job_id, **kwargs):
+        from .media_video_retry import prepare_video_retry
+        return prepare_video_retry(self, project_id, video_job_id, **kwargs)
 
     def recover_video_dispatches(self) -> list[str]:
         """A restart never replays a POST whose durable claim was entered."""

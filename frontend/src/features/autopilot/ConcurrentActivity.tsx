@@ -1,3 +1,4 @@
+import { GenerationRetryStatus } from "../generation-retry/GenerationRetryStatus";
 import type { AutopilotActivity, AutopilotRun } from "./contracts";
 import { projectAutopilotProgress } from "./progress";
 
@@ -35,6 +36,7 @@ export function ConcurrentActivity({ run }: { run: AutopilotRun }) {
       <span>{activity.domain === "image" ? "图片" : "文字"} · {owners[activity.owner] || "素材任务"}
         {activity.domain === "image" && ` · ${activity.subjectId}`}</span>
       <strong>{activityLabel(activity, run)}</strong>
+      <GenerationRetryStatus status={run.checkpoints.find(checkpoint => checkpoint.operationKey === activity.operationKey)?.retry} />
     </li>)}</ul>
     {progress.activities.some(activity => activity.state === "unknown") && <p>原任务结果正在核对，请勿重复发送。</p>}
   </section>;

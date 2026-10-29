@@ -45,6 +45,8 @@ def _deliver_stage(
     candidate: dict[str, object],
     delivery_id: str,
 ) -> object:
+    if "language-contract.json" in request.input_artifacts:
+        candidate.setdefault("lang", request.input_artifacts["language-contract.json"]["reportLocale"])
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
     pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
     paths = exchange.write_package(request, pin)
@@ -394,6 +396,7 @@ def _pilot_script() -> dict[str, object]:
         }
 
     return {
+        "lang": "zh",
         "source": "Tide Light",
         "sectionBindings": [
             {"sectionId": "opening", "episode": 1},

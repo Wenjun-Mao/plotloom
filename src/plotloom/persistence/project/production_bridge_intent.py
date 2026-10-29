@@ -68,7 +68,7 @@ class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePer
                 f4_scene = f4_scenes[index - 1] if 0 < index <= len(f4_scenes) else None
                 node = nodes.get(section_id)
                 cuts = [
-                    {key: cut.get(key) for key in ("frame", "beats", "seconds", "cutIndex")}
+                    {key: cut.get(key) for key in ("composition", "frame", "beats", "seconds", "cutIndex")}
                     for cut in row.proposal["cuts"]
                     if cut.get("sectionId") == section_id and cut.get("episode") == episode
                     and cut.get("sceneIndex") == index
@@ -158,6 +158,29 @@ class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePer
                 "responseEvidence": job.response_evidence,
             }
 
+    def retain_native_candidate(self, project_id, delivery):
+        """Retain structurally valid full evidence without projecting creative values."""
+        with self._access.leases.lifecycle_write() as session:
+            job = self._job(session, project_id, delivery.request.job_id)
+            request = CreativeHandoffRequest.model_validate(job.native_request)
+            if request != delivery.request or job.transport != "codex_native":
+                raise InvalidTransitionError("native checking source differs from retained creative job")
+            if request.stage == "bridge-intent":
+                from ...native_bridge_intent_contract import native_intent_suggestions
+                native_intent_suggestions(request, delivery.candidate)
+            else:
+                from ...native_bridge_presentation_contract import native_presentation_suggestions
+                native_presentation_suggestions(request, delivery.candidate)
+            if job.response_evidence is not None:
+                if job.response_evidence.get("manifestHash") != delivery.manifest_hash or job.candidate != delivery.candidate:
+                    raise InvalidTransitionError("native candidate evidence cannot be replaced")
+                return
+            job.candidate = delivery.candidate
+            job.response_hash = delivery.manifest.candidate.sha256
+            job.response_evidence = {"manifest": delivery.manifest.model_dump(mode="json", by_alias=True),
+                                     "manifestHash": delivery.manifest_hash}
+            job.updated_at = utc_now()
+
     def expected_entries(self, project_id: str, job_id: str) -> list[dict[str, Any]]:
         with self._access.leases.read() as session:
             return list(self._job(session, project_id, job_id).expected_entries)
@@ -185,16 +208,22 @@ class ProductionBridgeIntentPersistence(ProductionBridgePresentationCandidatePer
         response_evidence: dict[str, Any], response_hash: str,
         provider_request_id: str | None, usage: dict[str, Any] | None,
         native_provenance: dict[str, Any] | None = None,
+        native_candidate: dict[str, Any] | None = None,
     ) -> None:
         with self._access.leases.lifecycle_write() as session:
             job = self._job(session, project_id, job_id)
             if job.status not in {"dispatched", "cancelled", "outcome_unknown", "stale"}:
                 return
+            if job.native_request is not None and job.status not in {"cancelled", "stale"}:
+                from ...content_language_persistence import require_language_pass
+                if native_candidate is None:
+                    raise InvalidTransitionError("native intent requires its complete checked candidate")
+                require_language_pass(session, CreativeHandoffRequest.model_validate(job.native_request), native_candidate)
             job.response_evidence = response_evidence
             job.response_hash = response_hash
             job.provider_request_id = provider_request_id
             job.usage = usage
-            job.candidate = {"entries": [{"id": key, "suggestedText": value} for key, value in suggestions.items()]}
+            job.candidate = native_candidate or {"entries": [{"id": key, "suggestedText": value} for key, value in suggestions.items()]}
             job.updated_at = utc_now()
             if job.status in {"cancelled", "stale"}:
                 return

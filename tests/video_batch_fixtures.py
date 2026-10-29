@@ -45,8 +45,9 @@ def draft_for(view):
 
 
 def ready_batch(service, project_id, view):
-    return service.edit_directions(project_id, view["revision"], draft_for(view))
+    from tests.video_fidelity_fixtures import checked_batch
+    return checked_batch(service, project_id, view, draft_for(view))
 
 
 def start_batch(service, project_id, view):
-    return service.start(project_id, BatchStart(expectedRevision=view["revision"], manifestHash=view["manifestHash"], basis="whole-batch-english.v1"))
+    return service.start(project_id, BatchStart(expectedRevision=view["revision"], manifestHash=view["manifestHash"], basis="production-intent.v2"))

@@ -57,7 +57,8 @@ class CodexExecSupervisorValidationMixin(CodexExecSupervisorValidationProcessMix
         candidate_before = initial[0]
         if candidate_before.size_bytes > 2_000_000:
             raise self._validation_failure("candidate_too_large", plan.plan_hash)
-        if plan.stage == "outline":
+        from plotloom.content_language_contract import is_language_check
+        if plan.stage == "outline" and not is_language_check(package_request):
             from plotloom.codex_exec_files import (
                 CodexExecFileError,
                 read_confined_regular_file,

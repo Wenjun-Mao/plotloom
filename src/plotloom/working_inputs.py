@@ -29,7 +29,9 @@ class BriefWorkingInput(CamelModel):
     def confirmed(self) -> ProjectBrief:
         """Explicit Apply alone supplies the documented optional-title fallback."""
         payload = self.model_dump(mode="json", by_alias=True)
-        payload["title"] = self.title.strip() or "未命名故事"
+        from .language_policy import default_creative_title, supported_content_locale
+        supported_content_locale(self.language)
+        payload["title"] = self.title.strip() or default_creative_title(self.language)
         return ProjectBrief.model_validate(payload)
 
 

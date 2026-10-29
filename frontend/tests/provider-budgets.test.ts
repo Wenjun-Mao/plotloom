@@ -59,7 +59,7 @@ it.each([[null, null, "任务上限 不限 / 源秒上限 不限"], [2, 10, "任
     await act(async () => button("准备新的缺失视频清单").click());
     expect([...host.querySelectorAll("select")].filter(node => node.value === "unlimited")).toHaveLength(2);
     await act(async () => button("批量生成缺失视频").click());
-    expect(send).toHaveBeenCalledWith("project", "setup", { profileId: "test-profile", aspectPolicy: "reject_mismatch", maxJobs: null, maxRequestedSeconds: null });
+    expect(send).toHaveBeenCalledWith("project", "setup", { profileId: "test-profile", aspectPolicy: "reject_mismatch", maxJobs: null, maxRequestedSeconds: null, automaticRetryLimit: 1 });
   });
 it("project switches reset finite budget drafts and invalid drafts cannot submit", async () => {
   vi.spyOn(batchApi, "current").mockResolvedValue(null); backend();
@@ -75,7 +75,7 @@ it("project switches reset finite budget drafts and invalid drafts cannot submit
   expect(send).toHaveBeenCalledWith("first", "setup", expect.objectContaining({ maxJobs: 300, maxRequestedSeconds: null }));
   await render("second");
   expect([...host.querySelectorAll("select")].filter(node => node.value === "unlimited")).toHaveLength(2);
-  expect(host.querySelector("input")).toBeNull();
+  expect([...host.querySelectorAll<HTMLInputElement>("input")].map(node => node.value)).toEqual(["1"]);
 });
 
 it("autopilot project changes clear finite drafts and restore explicit unlimited defaults", async () => {
@@ -92,4 +92,24 @@ it("autopilot project changes clear finite drafts and restore explicit unlimited
   expect(host.querySelector('input[type="text"]')).toBeNull();
   expect(host.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe("1");
   expect([...host.querySelectorAll("select")].map(node => node.value)).toEqual(["unlimited", "unlimited"]);
+});
+
+
+it.each([0, 3])("freezes %s automatic retries after the initial attempt in a new batch", async count => {
+  vi.spyOn(batchApi, "current").mockResolvedValue(null); backend();
+  const send = vi.spyOn(batchApi, "command").mockResolvedValue(frozen(null, null));
+  await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
+  await input(0, String(count));
+  await act(async () => button("批量生成缺失视频").click());
+  expect(send).toHaveBeenCalledWith("project", "setup", {
+    profileId: "test-profile", aspectPolicy: "reject_mismatch", maxJobs: null, maxRequestedSeconds: null, automaticRetryLimit: count,
+  });
+});
+it("does not submit a batch with an invalid automatic retry allowance", async () => {
+  vi.spyOn(batchApi, "current").mockResolvedValue(null); backend();
+  const send = vi.spyOn(batchApi, "command").mockResolvedValue(frozen(null, null));
+  await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
+  await input(0, "-1");
+  expect(button("批量生成缺失视频").disabled).toBe(true);
+  expect(send).not.toHaveBeenCalled();
 });

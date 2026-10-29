@@ -42,7 +42,7 @@ export function frozenF5DialogueTiming(request) {
   assert(admission && script && timing?.version === 'plotloom.f5-dialogue-timing.v1', 'Frozen canonical dialogue timing contract is required');
   const { contentHash, ...payload } = timing;
   assert(contentHash === textHash(canonical(payload)), 'Frozen canonical dialogue timing content hash differs');
-  assert(timing.profileVersion === 'dialogue.default.v1' && typeof timing.language === 'string' && timing.language.trim(), 'Canonical dialogue timing profile/language is invalid');
+  assert(timing.profileVersion === 'dialogue.bilingual.v2' && typeof timing.language === 'string' && timing.language.trim(), 'Canonical dialogue timing profile/language is invalid');
   assert(timing.scriptContentHash === admission.scriptContentHash && admission.scriptRevision === request.source?.acceptedScriptRevision && admission.scriptContentHash === request.source?.acceptedScriptContentHash, 'Canonical dialogue timing Script identity differs');
   assert(Number.isSafeInteger(admission.scriptRevision) && admission.scriptRevision > 0
     && typeof admission.scriptContentHash === 'string' && /^[a-f0-9]{64}$/.test(admission.scriptContentHash), 'Frozen Script identity is required');

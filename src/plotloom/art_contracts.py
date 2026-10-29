@@ -9,6 +9,7 @@ from pydantic import Field, field_validator
 from .accepted_review_state import AcceptedReviewState
 from plotloom.domain_base import CamelModel
 from .review_context_diagnostics import ReviewContextDiagnostic
+from .language_policy import ProjectLanguageContract
 
 
 ArtStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reopened", "stale"]
@@ -30,6 +31,7 @@ class ArtBinding(CamelModel):
     section_ids: list[str] = Field(min_length=1, max_length=128)
     # Missing only in retained pre-0094 evidence; it cannot become current art.
     render_contract: dict[str, Any] | None = None
+    language_contract: ProjectLanguageContract | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("section_ids")
     @classmethod

@@ -36,10 +36,10 @@ class CodexExecSupervisorImageMixin:
         )
 
         if not session.image_calls and not session.image_events:
-            # Unlike postmortem recovery, this live waiter observed a genuine
-            # process exit. Complete read-only proof permits ordinary failure.
+            # The local turn ended without usable ImageGen evidence. Preserve
+            # possible remote spending; local execution failure is not a refund.
             self._finish_failure(current, exit_code, stream.session_id, session, stdout_path, stderr_path,
-                                 max_output_bytes=profile.max_output_bytes)
+                                 max_output_bytes=profile.max_output_bytes, remote_state="unknown")
             return None
         if attempt.reserved_image_outputs != 1 or len(session.image_calls) != 1 or len(session.image_events) != 1:
             raise CodexExecRuntimeError("serial image attempt did not produce exactly one ImageGen event")

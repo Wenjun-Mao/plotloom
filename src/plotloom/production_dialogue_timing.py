@@ -12,12 +12,17 @@ from plotloom.domain_base import CamelModel
 
 TIMING_FILENAME = "dialogue-timing-contract.json"
 TIMING_VERSION = "plotloom.f5-dialogue-timing.v1"
-DIALOGUE_NORMALIZATION_VERSION = "plotloom.f4-dialogue-normalization.v1"
+DIALOGUE_NORMALIZATION_VERSION = "plotloom.f4-dialogue-normalization.v2"
 
 
 def projected_dialogue_timing(value: dict[str, Any], language: str) -> dict[str, Any]:
     """Free-form performance notes are not a machine-selected delivery pace."""
     source_delivery = value.get("delivery")
+    if "language" in value:
+        from .language_policy import supported_content_locale
+        # An explicit override is a source/intent fact, never a free-form hint
+        # that can select an unknown-locale wildcard to shorten dialogue.
+        language = supported_content_locale(value["language"])
     pace = source_delivery if source_delivery in ("measured", "natural", "brisk") else "natural"
     estimate = default_dialogue_timing_profile().estimate_text_duration_units(
         text=value["line"], language=language, delivery=pace,

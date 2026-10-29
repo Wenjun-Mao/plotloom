@@ -1,3 +1,6 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
+import { useProjectReportLocale } from "../features/content-language/useProjectReportLocale";
 import { useReviewEditorDraft } from "../features/authoring/ReviewDraftContext";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button, ErrorNotice } from "../components";
@@ -74,6 +77,14 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
     span.role !== "unassigned" && (span.role !== "physical" || span.rendering.trim())
     && (!["runtime_choice", "review_only"].includes(span.role) || span.reason.trim()));
   const unresolved = pkg.sources.filter(source => !sourceComplete(source)).length;
+  const generatedJob = candidate?.sourceHash === pkg.sourceHash ? candidate.jobId : undefined;
+  const needsLanguage = !!generatedJob && !accepted;
+  const reportLocale = useProjectReportLocale(projectId, needsLanguage);
+  const completeEntries = pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] ?? [] }));
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "bridge-presentation", jobId: needsLanguage ? generatedJob : undefined,
+    candidate: reportLocale.locale && !unresolved ? { lang: reportLocale.locale, entries: completeEntries } : null,
+    original: reportLocale.locale ? { lang: reportLocale.locale, entries: candidate?.entries } : null,
+    basis: `${proposal.revision}:${proposal.contentHash}:${pkg.sourceHash}`, disabled: disabled || accepted || working.stale || busy });
   const groups = new Map<string, { title: string; sources: PresentationSource[] }>();
   pkg.sources.forEach(source => {
     const { episode, sceneIndex } = source.coordinates, key = JSON.stringify([episode, sceneIndex]);
@@ -112,10 +123,11 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
       </fieldset>)}
     </details>)}
     <details><summary>完整原始 F4 / F5 / 选择来源（只读）</summary><pre>{JSON.stringify(pkg.frozenEvidence, null, 2)}</pre></details>
+    {needsLanguage && <><ContentLanguageReview check={languageCheck} />{reportLocale.error && <ErrorNotice message={reportLocale.error} />}</>}
     {!accepted && <div className="presentation-save" role="group" aria-label="呈现方式 · 确认保存">
       <div className="bridge-intent-save-copy"><div><strong>呈现方式 · 共 {pkg.sources.length} 项</strong><span role="status">{unresolved ? `还有 ${unresolved} 项待完善` : pkg.reviewed && !dirty ? "呈现方式已保存" : "呈现方式已填齐，待确认保存"}</span></div>
         <p>保存表示采用当前呈现方式；不会确认投产或生成图片、视频。</p></div>
-      <Button variant="primary" disabled={disabled || working.stale || busy || unresolved > 0} onClick={() => {
+      <Button variant="primary" disabled={disabled || working.stale || busy || unresolved > 0 || needsLanguage && !languageCheck.ready} onClick={() => {
         const epoch = ownership.current, version = editVersion.current; setBusy(true); setError("");
         void onSave(pkg.sources.map(source => ({ id: source.id, spans: entries[source.id] })))
           .then(async saved => { if (saved) await working.clear(); if (saved && ownership.current === epoch && editVersion.current === version) onDirty(false); })

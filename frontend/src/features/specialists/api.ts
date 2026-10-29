@@ -1,9 +1,10 @@
+import type { ContentLanguageStatus } from "../content-language/contracts";
 import { browserProjectReads, projectReadScope } from "../../project-read-admission";
 
 export type SpecialistStage = "outline" | "branches" | "characters" | "art" | "script" | "storyboard";
 export type SpecialistBinding = { name: string; taskId: string | null };
 export type SpecialistSettings = { text: SpecialistBinding; image: SpecialistBinding; busy: boolean; activeTasks?: Array<{ jobId: string; projectId?: string; stage?: SpecialistStage }> };
-export type SpecialistTask = { state: "prepared" | "queued" | "outcome_unknown" | "completed"; configured?: boolean; candidateStatus?: string };
+export type SpecialistTask = { state: "prepared" | "queued" | "outcome_unknown" | "completed"; configured?: boolean; candidateStatus?: string; languageCheck?: ContentLanguageStatus | null };
 export type ImageTerminalTarget = "image_job" | "character_reference_proposal" | "art_reference_proposal";
 export type ImageTerminalPreview = { markerHash: string; marker: { jobId: string; taskId: string; requestHash: string; reason: string } };
 export type ImageTerminalReview = { markerHash: string; taskId: string; terminalTurnId: string; terminalRevision: number; reviewer: string; observedIdle: true; reviewedBlockedVerdict: true };

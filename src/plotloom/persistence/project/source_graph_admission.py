@@ -56,6 +56,16 @@ class SourceGraphAdmission:
             graph_draft, draft = self._exact_draft(session, project_id, request.expected_graph_draft_revision)
             if draft.admitted_mapping() != request.mapping:
                 raise InvalidTransitionError("确认内容必须与已保存的当前图草稿完全一致。")
+            # A generated branch draft and subsequent text edits remain bound
+            # to the original generation; cancelling it restores hand authoring.
+            from .branches import ProjectBranchPersistence
+            branch = ProjectBranchPersistence._latest(session, project_id)
+            if branch is not None and branch.status == "ready":
+                from ...content_language_candidates import branch_candidate_from_mapping
+                from ...content_language_persistence import require_language_pass
+                from ...creative_handoff_contracts import CreativeHandoffRequest
+                require_language_pass(session, CreativeHandoffRequest.model_validate(branch.request),
+                                      branch_candidate_from_mapping(request.mapping, branch.outline))
             outline_head = self._source._head(session, project_id, create=True)
             section_map_head = self._source._section_map_head(session, project_id, create=True)
             from plotloom.brief_contracts import ProjectBrief

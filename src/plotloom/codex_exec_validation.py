@@ -152,11 +152,13 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
     if not isinstance(source_revision, str) or re.fullmatch(r"[a-f0-9]{7,64}", source_revision) is None:
         raise ValueError("text validation requires the frozen source revision")
     stage = request.stage
-    if stage == "outline":
+    from .content_language_contract import is_language_check
+    checking_language = is_language_check(request)
+    if stage == "outline" and not checking_language:
         from .outline_report_metadata import assert_outline_report_schema_current
 
         assert_outline_report_schema_current(request.input_artifacts)
-    if stage == "storyboard":
+    if stage == "storyboard" and not checking_language:
         from .production_dialogue_timing import TIMING_FILENAME, FrozenF5DialogueTiming
 
         frozen_timing = request.input_artifacts.get(TIMING_FILENAME)
@@ -183,7 +185,12 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
     package = "{package}"
     cand = "{candidate}"
     request_path = f"{package}/request.json"
-    if stage == "branches":
+    if checking_language:
+        runner = ("run", "--project", source, "--locked", "--no-sync", "python", f"{source}/scripts/content_language.py")
+        validate = ("uv", runner + ("validate", cand, "--request", request_path))
+        render = ("uv", runner + ("render", cand, "--request", request_path))
+        route = "plotloom_native"
+    elif stage == "branches":
         runner = ("run", "--project", source, "--locked", "--no-sync", "python", f"{source}/scripts/branch_suggestion.py")
         validate = ("uv", runner + ("validate", cand, "--request", request_path))
         render = ("uv", runner + ("render", cand, "--request", request_path))
@@ -249,11 +256,11 @@ def build_text_validation_plan(request, *, execution_pin: dict, source_revision:
 
     # Only APIs with an explicit normal-return content rejection are eligible.
     # Render remains the same source-owned command and every thrown failure stays terminal.
-    if stage in {"outline", "characters", "art"} and request.content_validation_contract is not None:
+    if not checking_language and stage in {"outline", "characters", "art"} and request.content_validation_contract is not None:
         validate = ("node", (f"{source}/scripts/text-content-validation.mjs", cand, request_path))
-    if stage == "storyboard" and request.content_validation_contract is not None:
+    if not checking_language and stage == "storyboard" and request.content_validation_contract is not None:
         validate = ("node", (f"{source}/scripts/storyboard-content-validation.mjs", cand, request_path))
-    if stage == "art":
+    if stage == "art" and not checking_language:
         from .art_structure import marked_art_structure
         if marked_art_structure(artifacts):
             if request.content_validation_contract is None:
@@ -287,11 +294,14 @@ def validation_plan_from_package(package_request: dict) -> CodexExecTextValidati
             or package_request.get("packageVersion") != 4
             or package_request.get("plotloomCodeRevision") is None):
         raise ValueError("fresh Codex text package must contain the v4 trusted validation plan")
+    request = creative_handoff_request_from_package(package_request)
     expected = build_text_validation_plan(
-        creative_handoff_request_from_package(package_request),
+        request,
         execution_pin=package_request.get("executionPin"),
         source_revision=package_request["plotloomCodeRevision"],
     )
+    from .language_policy import assert_new_request_language
+    assert_new_request_language(request)
     actual = package_request.get("validationPlan")
     actual_hash = package_request.get("validationPlanHash")
     if actual != expected.model_dump(mode="json", by_alias=True) or actual_hash != expected.plan_hash:

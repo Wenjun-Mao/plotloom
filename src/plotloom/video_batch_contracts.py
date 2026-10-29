@@ -3,14 +3,18 @@ from typing import Literal
 
 from pydantic import Field, field_validator
 
-from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
 from plotloom.domain_base import CamelModel
-from .video_contracts import H3DirectionField
+
+from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
+from .video_contracts import H3DirectionField, VideoJobRequest
 
 
 class BatchSetup(CamelModel):
+    automatic_retry_limit: int = Field(default=1, strict=True, ge=0)
     profile_id: str = Field(min_length=3, max_length=63)
     aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] = "reject_mismatch"
+    single_request: VideoJobRequest | None = Field(default=None, exclude_if=lambda value: value is None)
+    shot_ids: list[str] | None = Field(default=None, min_length=1, max_length=256, exclude_if=lambda value: value is None)
     max_jobs: int | None = Field(default=None, strict=True, ge=1)
     max_requested_seconds: int | None = Field(default=None, strict=True, ge=5)
 
@@ -41,7 +45,7 @@ class BatchStart(CamelModel):
     attribution: AgentQaAttribution | None = None
     expected_revision: int = Field(strict=True, ge=1)
     manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    basis: Literal["whole-batch-english.v1"]
+    basis: Literal["production-intent.v2"]
 
 class BatchControl(CamelModel):
     batch_id: str = Field(min_length=36, max_length=36)

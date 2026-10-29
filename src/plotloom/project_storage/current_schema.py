@@ -80,6 +80,8 @@ def assert_current_review_bindings(
         assert_autopilot_contracts(connection, asset_home=asset_home, continuation=continuation)
     from .video_batch_validation import assert_video_batch_contracts
     assert_video_batch_contracts(connection)
+    from .content_language_evidence import retained_language_checks
+    retained_language_checks(connection)
     from .delegated_qa_validation import assert_delegated_qa_contracts
     assert_delegated_qa_contracts(connection, batch_layout=batch_layout)
     assert_review_binding_shapes(connection)

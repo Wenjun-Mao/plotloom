@@ -61,8 +61,8 @@ export function JsonPreview({ value }: { value: unknown }) {
   return <pre className="code-block" tabIndex={0}><code>{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</code></pre>;
 }
 
-export function ErrorNotice({ message }: { message: string }) {
-  return <div className="notice error" role="alert"><strong>请求未完成</strong><span>{message}</span></div>;
+export function ErrorNotice({ message, detail }: { message: string; detail?: string }) {
+  return <div className="notice error" role="alert"><strong>请求未完成</strong>{/[\u3400-\u9fff]/.test(message) ? <span>{message}</span> : <><span>请检查当前操作所需的输入和服务状态，再重试；若结果不确定，请先核实原任务。</span><details><summary>技术详情</summary><pre>{message}</pre></details></>}{detail && <details><summary>技术详情</summary><pre>{detail}</pre></details>}</div>;
 }
 
 export function Spinner({ label = "正在处理" }: { label?: string }) {

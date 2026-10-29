@@ -86,4 +86,14 @@ def run_activities(session, run_id, checkpoints: _RunViewCheckpoints):
                 "image" if evidence.owner in {"image", "character-reference", "art-reference"} else "text"
             ), state=state,
         ))
+    from ...content_language_persistence import check_rows, verified_check
+    checks = check_rows(session, checkpoints.typed[0][0].project_id) if checkpoints.typed else ()
+    for row in checks:
+        request, _data, attempt, _profile, _receipt, result = verified_check(row)
+        if str(attempt.run_id) != str(run_id):
+            continue
+        state = ("failed" if result is not None and result.verdict in {"reject", "uncertain"} else
+                 "delivered" if result is not None else "failed" if attempt.state == "settled" else ATTEMPT_ACTIVITY[attempt.state])
+        activities.append(RunActivity(operation_key=attempt.operation_key, owner=request.stage,
+            subject_id=request.source["candidateJobId"], job_id=request.job_id, domain="text", state=state))
     return activities

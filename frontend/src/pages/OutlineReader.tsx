@@ -16,7 +16,7 @@ const labels: Record<string, string> = {
 };
 
 function fieldLabel(key: string, parent?: string) {
-  return key === "episodes" && parent === "params" ? labels.episodesCount : labels[key] || key;
+  return key === "episodes" && parent === "params" ? labels.episodesCount : labels[key] || "技术字段";
 }
 
 /** Render data as escaped React text; never execute the specialist's report HTML. */
@@ -25,7 +25,7 @@ function Value({ value, parent }: { value: unknown; parent?: string }) {
   if (Array.isArray(value)) return value.length
     ? <ol className="outline-reader-list">{value.map((item, index) => <li key={index}><Value value={item} parent={parent} /></li>)}</ol>
     : <span className="muted">无</span>;
-  if (typeof value === "object") return <dl className="outline-reader-fields">{Object.entries(value).map(([key, item]) => <div key={key}><dt>{fieldLabel(key, parent)}</dt><dd><Value value={item} parent={key} /></dd></div>)}</dl>;
+  if (typeof value === "object") return <dl className="outline-reader-fields">{Object.entries(value).map(([key, item]) => <div key={key}><dt>{fieldLabel(key, parent)}</dt><dd>{labels[key] ? <Value value={item} parent={key} /> : <details><summary>查看原始字段</summary><code>{key}</code><Value value={item} parent={key} /></details>}</dd></div>)}</dl>;
   return <span>{typeof value === "boolean" ? value ? "是" : "否" : String(value)}</span>;
 }
 
@@ -52,7 +52,7 @@ export function OutlineReader({ outline }: { outline: Record<string, unknown> })
           <thead><tr><th scope="col">节拍</th><th scope="col">所属结构条目</th><th scope="col">完整内容</th></tr></thead>
           <tbody>{beats.map((beat, index) => { const entry = record(beat); return <tr key={index}><th scope="row"><Value value={entry.id} /></th><td><Value value={entry.episode} /></td><td><Value value={beat} /></td></tr>; })}</tbody>
         </table>{!beats.length && <p>尚无节拍。</p>}</div>}
-      </> : <Value value={value} parent={key} />}
+      </> : labels[key] ? <Value value={value} parent={key} /> : <details><summary>查看原始字段</summary><code>{key}</code><Value value={value} parent={key} /></details>}
     </section>)}
   </div>;
 }

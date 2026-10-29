@@ -64,7 +64,8 @@ class ProductionBridgeProjection:
             return {"id": item["id"], "name": item.get("name") if isinstance(item.get("name"), str) and item["name"].strip() else item["id"], "description": item.get("summary") if isinstance(item.get("summary"), str) else "", "visualAnchors": anchors, "soundAnchors": [], "allowedStates": states, "continuityRules": []}
         locations = [art_entity(item) for item in art.get("scenes", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
         props = [art_entity(item) for item in art.get("props", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
-        bible = {"logline": brief.synopsis, "premise": brief.synopsis, "genre": brief.genre_direction or "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": brief.visual_direction or "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": ["F5 H3 prompt text is review evidence, not provider input."], "characters": characters, "locations": locations, "props": props}
+        source_note = "F5 H3 prompts are retained as technical review evidence." if brief.language == "en-US" else "F5 的 H3 提示词保留为技术审阅证据。"
+        bible = {"logline": brief.synopsis, "premise": brief.synopsis, "genre": brief.genre_direction or "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": brief.visual_direction or "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": [source_note], "characters": characters, "locations": locations, "props": props}
         conflicts: list[ProductionBridgeConflict] = []
         advisories: list[ProductionBridgeConflict] = []
         f4_episodes = {item.get("ep"): item for item in script.get("episodes", []) if isinstance(item, dict)}
@@ -139,7 +140,8 @@ class ProductionBridgeProjection:
                     assert flow_seed is not None
                     source_coordinates, source_value = {"stage": "F4", "sectionId": section_id, "episode": ep, "sceneIndex": index, "flowIndex": flow_seed[0]}, flow_seed[1]
                 intent_entries.append(ProductionBridgeIntentEntry(id=scene_intent_id, target_kind="scene_objective", target_id=scene_id, source_coordinates=source_coordinates, source_content_hash=sha256(canonical_json(source_value)).hexdigest(), source_excerpt=scene_seed, text=""))
-                scenes.append({"id": scene_id, "storyNodeId": section_id, "order": index, "title": source_scene.get("sceneId") or scene_id, "objective": "", "locationId": location_id, "characterIds": character_ids, "beatIds": beat_ids, "durationBudgetUnits": sum(cut_durations.values()), "entryState": state, "exitState": state})
+                scene_title = next((item["name"] for item in locations if item["id"] == location_id), None) or (f"Scene {index}" if brief.language == "en-US" else f"场次 {index}")
+                scenes.append({"id": scene_id, "storyNodeId": section_id, "order": index, "title": scene_title, "objective": "", "locationId": location_id, "characterIds": character_ids, "beatIds": beat_ids, "durationBudgetUnits": sum(cut_durations.values()), "entryState": state, "exitState": state})
                 for order, beat_id in enumerate(beat_ids, 1):
                     value = flow[order - 1] if order <= len(flow) else {}
                     description = value.get("action") if isinstance(value, dict) else None
@@ -166,7 +168,7 @@ class ProductionBridgeProjection:
                                 conflicts.append(ProductionBridgeConflict(code="dialogue_timing_unmappable", message="不能安装：F4 台词没有当前语言的时长规则", section_id=section_id, episode=ep, scene_index=index))
                             else:
                                 cues.append({"id": f"{beat_id}-d1", "beatId": beat_id, "order": 1, "speakerId": speaker_id, "voiceOver": voice_over, "text": value["line"], **timing})
-                visual_scenes.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "sceneId": scene_id, "title": source_scene.get("sceneId") or scene_id, "cutCount": len(cuts)})
+                visual_scenes.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "sceneId": scene_id, "title": scene_title, "cutCount": len(cuts)})
                 for order, (segment_order, segment, source_cut_index, cut) in enumerate(cuts, 1):
                     if not isinstance(cut, dict) or order not in cut_durations:
                         continue
@@ -178,6 +180,9 @@ class ProductionBridgeProjection:
                     if len(selected) != end - start + 1:
                         conflicts.append(ProductionBridgeConflict(code="cut_beats_unmappable", message="不能安装：F5 镜头节拍范围无法映射到当前 F4", section_id=section_id, episode=ep, scene_index=index)); continue
                     frame = cut.get("frame") if isinstance(cut.get("frame"), str) and cut["frame"].strip() else None
+                    composition = cut.get("composition")
+                    if not isinstance(composition, str) or not composition.strip():
+                        conflicts.append(ProductionBridgeConflict(code="cut_composition_missing", message="不能安装：镜头缺少项目语言的创作画面描述，请修正分镜；英文技术提示词不能代替。", section_id=section_id, episode=ep, scene_index=index)); continue
                     size = {"extreme-wide":"extreme_wide", "wide":"wide", "medium":"medium", "close":"close_up", "extreme-close":"extreme_close_up"}.get(cut.get("size"))
                     if size is None:
                         conflicts.append(ProductionBridgeConflict(code="cut_size_unmappable", message="不能安装：F5 镜头景别不在当前规范映射中", section_id=section_id, episode=ep, scene_index=index)); continue
@@ -191,8 +196,9 @@ class ProductionBridgeProjection:
                     cue_ids = [cue["id"] for cue in cues if cue["beatId"] in selected]
                     action = "\n".join(value["action"] for value in flow[start - 1:end] if isinstance(value, dict) and isinstance(value.get("action"), str) and value["action"].strip())
                     visible_props = list(dict.fromkeys([*source_props, *cut_props]))
-                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": f"场次 {index} · 镜头 {order}", "shotSize": size, "durationUnits": cut_durations[order], "cameraAngle": "", "cameraMovement": cut.get("camera") if isinstance(cut.get("camera"), str) else "", "composition": frame or "", "visualIntent": "", "motionIntent": "", "action": action, "transition": "", "cueIds": cue_ids, "audioPlan": {"events": []}, "characterIds": mapped_cut_characters, "locationId": location_id, "propIds": visible_props, "requiredEntityStates": [], "entryState": state, "exitState": state})
+                    title = f"Scene {index} · Shot {order}" if brief.language == "en-US" else f"场次 {index} · 镜头 {order}"
+                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": title, "shotSize": size, "durationUnits": cut_durations[order], "cameraAngle": "", "cameraMovement": cut.get("camera") if isinstance(cut.get("camera"), str) else "", "composition": composition, "visualIntent": "", "motionIntent": "", "action": action, "transition": "", "cueIds": cue_ids, "audioPlan": {"events": []}, "characterIds": mapped_cut_characters, "locationId": location_id, "propIds": visible_props, "requiredEntityStates": [], "entryState": state, "exitState": state})
                     links.extend({"shotId": shot_id, "beatId": beat_id, "role": "primary", "coverageWeight": 1 / len(selected)} for beat_id in selected)
-                    visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "frame": frame, "h3Prompt": segment.get("h3Prompt"), "source": {"segmentIndex": segment_order, "segmentSceneIndex": index, "cutIndex": source_cut_index}})
+                    visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "composition": composition, "frame": frame, "h3Prompt": segment.get("h3Prompt"), "source": {"segmentIndex": segment_order, "segmentSceneIndex": index, "cutIndex": source_cut_index}})
         package = ProductionBridgeIntentPackage(suggestion_origin="none", review_state="pending", entries=intent_entries)
         return {"bible": bible, "sceneBeats": {"scenes": scenes, "beats": beats, "dialogueCues": cues}, "storyboard": {"shots": shots, "shotBeatLinks": links}}, package, conflicts, advisories, visual_scenes, visual_cuts

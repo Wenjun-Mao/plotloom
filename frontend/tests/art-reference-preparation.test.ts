@@ -213,7 +213,7 @@ it("blocks new image work for retained Art without hiding subjects or requiremen
   expect(button("准备图片生成任务")!.disabled).toBe(true);
   expect(host.textContent).toContain("图片要求（暂不可编辑）");
   expect(host.textContent).toContain("当前只能查看已有图片要求；暂不能编辑或准备新图片任务。");
-  expect(host.textContent).not.toContain("可以用中文补充构图");
+  expect(host.textContent).not.toContain("请按项目语言补充构图");
   await click("准备图片生成任务");
   expect(prepare).not.toHaveBeenCalled();
   expect(host.textContent).toContain("暂不能准备、发送或选用参考图");
@@ -224,7 +224,7 @@ it("blocks new image work for retained Art without hiding subjects or requiremen
   await render();
   expect(textarea().value).toBe("保留作者要求");
   expect(textarea().disabled).toBe(false);
-  expect(host.textContent).toContain("可以用中文补充构图");
+  expect(host.textContent).toContain("请按项目语言补充构图");
 });
 
 it("retains a revision draft through currentness loss and successful revalidation", async () => {

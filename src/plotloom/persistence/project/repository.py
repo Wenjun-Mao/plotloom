@@ -183,6 +183,8 @@ class ProjectSQLiteRepository(ProjectCommandTransactions):
         self.script = ProjectScriptPersistence(self._project_access, self.art)
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
         self.creative_terminal = ProjectCreativeTerminalPersistence(self._project_access)
+        from ...content_language_persistence import ContentLanguagePersistence
+        self.content_language = ContentLanguagePersistence(self._project_access)
         self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review, self.source_outline._graph_writer)
         self.production_bridge_intent = ProductionBridgeIntentPersistence(self._project_access, self.production_bridge)
         self._media = ProjectMediaPersistence(

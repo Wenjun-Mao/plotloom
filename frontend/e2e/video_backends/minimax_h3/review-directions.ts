@@ -1,33 +1,47 @@
 import { expect, type Locator } from "@playwright/test";
+import type { VideoJob } from "../../../src/types";
 
-// Explicit translations for the authored synthetic browser fixture only.
-const translations: Record<string, string> = {
-  "气密门向两侧弹开，阮星冲入控制室。": "The airtight doors spring apart and Ruan Xing rushes into the control room.",
-  "金色与青色实体键从主控台升起。": "Gold and cyan physical keys rise from the main console.",
-  "月城建筑群从黑暗中逐区亮起金光。": "Moon City's buildings illuminate district by district with golden light from darkness.",
-  "救生舱门在青色蒸汽中缓慢开启。": "The life-support pod door slowly opens in cyan steam.",
-  "控制室警报与通风系统底噪": "Control-room alarms and the background hum of ventilation.",
-  "年轻女声、压低语速": "A young female voice speaking slowly.",
-  "虚弱男声、语句清晰": "A weak male voice with clear words.",
-  "克制但紧迫": "Restrained but urgent.",
-};
-
-export async function freezeReviewedFixtureDirections(panel: Locator, seed?: string) {
+/** Browser fixture uses a synthetic native drafter/checker and offline H3.
+ * This establishes transport/authority behavior, never live semantic fidelity. */
+export async function freezeReviewedFixtureDirections(panel: Locator, seed?: string): Promise<VideoJob> {
+  const page = panel.page(), projectId = new URL(page.url()).searchParams.get("project")!;
+  const root = `/api/v2/projects/${encodeURIComponent(projectId)}`;
+  const currentResponse = await page.request.get(`${root}/video-batch`);
+  expect(currentResponse.ok()).toBe(true);
+  const current = await currentResponse.json();
+  if (current && !["approved", "cancelled"].includes(current.state)) {
+    // Each explicit fixture invocation requests a new single candidate. Settle
+    // only its exact observed one-target predecessor, preserving existing media.
+    expect(current.manifest.setup.singleRequest).toBeTruthy();
+    expect(current.manifest.scopeShotIds).toHaveLength(1);
+    const cancelled = await page.request.post(`${root}/video-batch/control`, { data: {
+      batchId: current.id, expectedControlRevision: current.controlRevision, action: "cancel",
+    } });
+    expect(cancelled.ok(), await cancelled.text()).toBe(true);
+  }
   const production = panel.locator("#video-production");
   if (!await production.evaluate(element => (element as HTMLDetailsElement).open)) await production.locator("summary").first().click();
   const review = panel.getByTestId("h3-directions-review");
-  if (!await review.evaluate(element => (element as HTMLDetailsElement).open)) await review.locator("summary").click();
+  if (!await review.evaluate(element => (element as HTMLDetailsElement).open)) await review.locator("summary").first().click();
+  const newTake = review.getByRole("button", { name: "保留设置并准备新的原片候选", exact: true });
+  if (await newTake.isVisible()) await newTake.click();
   if (seed !== undefined) await review.getByLabel("H3 随机种子", { exact: true }).fill(seed);
-  await review.getByRole("button", { name: "读取当前来源" }).click();
-  await expect(review.locator("textarea").first()).toBeVisible();
-  for (const field of await review.locator(".h3-direction-field").all()) {
-    const source = (await field.locator(".h3-direction-source").innerText()).replace(/^来源：/, "");
-    const english = translations[source] ?? (/^[\x20-\x7e]+$/.test(source) ? source : undefined);
-    expect(english, `Fixture needs an explicit faithful translation: ${source}`).toBeTruthy();
-    await field.locator("textarea").fill(english!);
-  }
-  await review.getByRole("checkbox").check();
-  await review.getByRole("button", { name: "预览完整 H3 提示词" }).click();
-  await expect(review.getByTestId("h3-frozen-review-inputs")).toBeVisible();
-  await review.getByRole("button", { name: "冻结此说明并准备原片" }).click();
+  await review.getByRole("button", { name: "读取当前来源", exact: true }).click();
+  if (await newTake.isVisible()) { await newTake.click(); await review.getByRole("button", { name: "读取当前来源", exact: true }).click(); }
+  await review.getByRole("button", { name: "准备本镜头制作简报", exact: true }).click();
+  await review.getByRole("button", { name: "用助手起草并独立检查指令", exact: true }).click();
+  const authorize = review.getByRole("button", { name: "授权本镜头制作意图并开始生成", exact: true });
+  await expect(authorize).toBeEnabled({ timeout: 30_000 });
+  const prepared = page.waitForResponse(response => response.request().method() === "POST" && new URL(response.url()).pathname === `${root}/video-jobs`);
+  await authorize.click();
+  const response = await prepared; expect(response.ok(), await response.text()).toBe(true);
+  const created = await response.json() as VideoJob;
+  let ingested: VideoJob | undefined;
+  await expect.poll(async () => {
+    const read = await page.request.get(`${root}/video-jobs`); expect(read.ok()).toBe(true);
+    ingested = ((await read.json()) as { jobs: VideoJob[] }).jobs.find(job => job.id === created.id);
+    return ingested?.state;
+  }, { timeout: 30_000 }).toBe("ingested");
+  await expect(panel.getByTestId(`video-job-player-${created.id}`)).toBeVisible({ timeout: 15_000 });
+  return ingested!;
 }

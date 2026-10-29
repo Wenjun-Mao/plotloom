@@ -1,3 +1,4 @@
+import { creativeDefaults } from "./creative-language";
 import type {
   CharacterCard,
   LocationCard,
@@ -46,11 +47,8 @@ const entityCollections: Record<BibleEntityType, keyof Pick<StoryBible, "charact
   prop: "props",
 };
 
-const entityPrefixes: Record<BibleEntityType, string> = {
-  character: "character",
-  location: "location",
-  prop: "prop",
-};
+const entityLabels: Record<BibleEntityType, string> = { character: "人物", location: "地点", prop: "道具" };
+const ownerLabels = { scene: "场景", beat: "节拍", shot: "镜头" };
 
 export function entityUrlIdentity(type: BibleEntityType, id: string): string {
   return `bible:${type}:${id}`;
@@ -82,8 +80,9 @@ export function addBibleEntity(
   bible: StoryBible,
   type: BibleEntityType,
   id: string,
+  language = "zh-CN",
 ): StoryBible {
-  const base = { id, name: "未命名实体", description: "", visualAnchors: [], soundAnchors: [], allowedStates: [], continuityRules: [] };
+  const base = { id, name: creativeDefaults(language).entity, description: "", visualAnchors: [], soundAnchors: [], allowedStates: [], continuityRules: [] };
   const entity: BibleEntity = type === "character"
     ? { ...base, role: null, goal: "", traits: [], voiceAnchors: [] }
     : base;
@@ -116,7 +115,7 @@ function stateImpacts(
       kind: "state" as const,
       id: ownerId,
       path: `${statePath}.entityStates.${index}`,
-      message: `${owner} ${ownerId} requires ${entityPrefixes[selection.type]} state “${state.state}”`,
+      message: `${ownerLabels[owner]} ${ownerId} 需要${entityLabels[selection.type]}状态“${state.state}”`,
     }));
 }
 
@@ -130,10 +129,10 @@ export function bibleEntityImpacts(
 
   for (const scene of sceneBeats?.scenes ?? []) {
     if (selection.type === "character" && scene.characterIds.includes(selection.id)) {
-      impacts.push({ kind: "scene", id: scene.id, path: `scenes.${scene.id}.characterIds`, message: `scene ${scene.id} casts this character` });
+      impacts.push({ kind: "scene", id: scene.id, path: `scenes.${scene.id}.characterIds`, message: `场景 ${scene.id} 使用此人物` });
     }
     if (selection.type === "location" && scene.locationId === selection.id) {
-      impacts.push({ kind: "scene", id: scene.id, path: `scenes.${scene.id}.locationId`, message: `scene ${scene.id} takes place at this location` });
+      impacts.push({ kind: "scene", id: scene.id, path: `scenes.${scene.id}.locationId`, message: `场景 ${scene.id} 使用此地点` });
     }
     impacts.push(...stateImpacts(scene.entryState?.entityStates, selection, "scene", scene.id, `scenes.${scene.id}.entryState`));
     impacts.push(...stateImpacts(scene.exitState?.entityStates, selection, "scene", scene.id, `scenes.${scene.id}.exitState`));
@@ -145,7 +144,7 @@ export function bibleEntityImpacts(
   if (selection.type === "character") {
     for (const cue of sceneBeats?.dialogueCues ?? []) {
       if (cue.speakerId === selection.id) {
-        impacts.push({ kind: "cue", id: cue.id, path: `dialogueCues.${cue.id}.speakerId`, message: `cue ${cue.id} names this character as speaker` });
+        impacts.push({ kind: "cue", id: cue.id, path: `dialogueCues.${cue.id}.speakerId`, message: `对白 ${cue.id} 使用此人物作为说话人` });
       }
     }
   }
@@ -157,7 +156,7 @@ export function bibleEntityImpacts(
         : shot.propIds.includes(selection.id);
     if (directReference) {
       const field = selection.type === "character" ? "characterIds" : selection.type === "location" ? "locationId" : "propIds";
-      impacts.push({ kind: "shot", id: shot.id, path: `shots.${shot.id}.${field}`, message: `shot ${shot.id} references this ${selection.type}` });
+      impacts.push({ kind: "shot", id: shot.id, path: `shots.${shot.id}.${field}`, message: `镜头 ${shot.id} 引用此${entityLabels[selection.type]}` });
     }
     impacts.push(...stateImpacts(shot.requiredEntityStates, selection, "shot", shot.id, `shots.${shot.id}.requiredEntityStates`));
     impacts.push(...stateImpacts(shot.entryState?.entityStates, selection, "shot", shot.id, `shots.${shot.id}.entryState`));

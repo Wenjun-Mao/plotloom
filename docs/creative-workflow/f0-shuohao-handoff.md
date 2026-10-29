@@ -5,8 +5,8 @@ product acceptance.
 
 ## Pin and operation
 
-`third_party/shuohao-skills` is a Git submodule pinned to the owned fork
-`266af294da035324139202235430ffd68f5b877d` (2026-10-09), based on reviewed upstream
+`third_party/shuohao-skills` is a Git submodule pinned to an exact retained commit
+of the owned fork, based on reviewed upstream
 `4322897e6d2bdaf66365534fd40194360c75a85f` (2026-08-26). The handbook's historical
 audit remains tied to that upstream base. The current fork contains all five public skills, their
 schemas, deterministic Node scripts, `LICENSE`, and `NOTICE`. A submodule is
@@ -23,6 +23,12 @@ The exchange compares the initialized submodule `HEAD` to Plotloom's recorded
 Git gitlink before it freezes a package; a merely available upstream checkout is
 not a pin. This deliberately operates from a source checkout: an installed
 Plotloom wheel does not package or resolve the specialist/upstream skill tree.
+The current source pin is the committed parent gitlink (`git ls-tree HEAD
+third_party/shuohao-skills`), rather than a historical hash copied into this guide.
+ADR 0147's October 28 amendment permits local qualification/activation from that
+clean retained pin without a push. Another host needs publication or explicit
+Git object transfer before depending on it. Never substitute a new pin into an
+older frozen package or report; license and fork notices remain required.
 
 The F0 CLI is deliberately small:
 

@@ -1,3 +1,4 @@
+import type { ContentLanguageStatus } from "./features/content-language/contracts";
 /** Current proposal review is separate from immutable installed-story authority. */
 export interface CanonicalReplacementHead {
   revision: number;
@@ -64,7 +65,7 @@ export interface ProductionBridgeIntentJob { id: string; transport: "text_api" |
 export interface ProductionBridgeState {
   intentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
   nativeIntentGeneration: { status: "available" } | { status: "unavailable"; reason: "not_configured" };
-  nativeIntentTask?: { state: "prepared" | "queued" | "outcome_unknown" | "completed"; candidateStatus: ProductionBridgeIntentJob["status"]; reportAvailable: boolean; limitations: string[]; taskId?: string } | null;
+  nativeIntentTask?: { state: "prepared" | "queued" | "outcome_unknown" | "completed"; candidateStatus: ProductionBridgeIntentJob["status"]; reportAvailable: boolean; limitations: string[]; languageCheck?: ContentLanguageStatus | null; taskId?: string } | null;
   nativePresentationGeneration: ProductionBridgeState["nativeIntentGeneration"];
   nativePresentationTask?: ProductionBridgeState["nativeIntentTask"];
   presentationJob?: ProductionBridgeIntentJob | null;

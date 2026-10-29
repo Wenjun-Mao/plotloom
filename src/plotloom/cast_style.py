@@ -59,6 +59,9 @@ def cast_style_current(contract: dict[str, Any] | None, direction: str | None) -
 
 
 def validate_cast_style(cast: dict[str, Any], contract: dict[str, Any] | None, request: dict[str, Any] | None = None) -> None:
+    if request is not None:
+        from .language_policy import assert_candidate_report_language
+        assert_candidate_report_language(cast, request.get("inputArtifacts", {}))
     if not contract:
         raise ValueError("character render contract is missing; prepare a new task")
     if contract.get("authority") == "saved_brief":

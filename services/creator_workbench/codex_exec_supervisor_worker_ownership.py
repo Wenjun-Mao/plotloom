@@ -242,6 +242,11 @@ class CodexExecSupervisorWorkerOwnershipMixin:
         with self._guard:
             if self._workers.get(str(attempt_id)) is worker:
                 self._workers.pop(str(attempt_id))
+        row = self._row(attempt_id)
+        if row is not None:
+            self._refresh_active_attempt(row)
+            if self._release_stopped_local_slot(self._row(attempt_id)):
+                self._drain_queue()
 
     def _worker_environment(self):
         import sys

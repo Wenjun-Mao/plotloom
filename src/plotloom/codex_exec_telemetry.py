@@ -86,6 +86,8 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
     reference_views: list[ReferenceViewEvidence] = []
     pending_view: _PendingReferenceView | None = None
     view_event_ids: set[str] = set()
+    from .codex_exec_clock import ClockSleeps
+    clock = ClockSleeps(expected_session_id)
     first = True
     last_ordinal = -1
     try:
@@ -121,6 +123,8 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
                     raise CodexExecTelemetryError("Codex session event order is not monotonic and complete")
                 last_ordinal = ordinal
                 payload = row.get("payload")
+                if clock.accept(row):
+                    continue
                 if row["type"] == "response_item" and isinstance(payload, dict):
                     if payload.get("type") == "custom_tool_call":
                         tool_name = payload.get("name")
@@ -258,6 +262,7 @@ def read_cli_session(session_path: Path, expected_session_id: UUID, *, max_event
             raise CodexExecTelemetryError("Codex session changed during evidence inspection")
         if first:
             raise CodexExecTelemetryError("Codex session evidence is empty")
+        clock.finish()
         if pending_view is not None:
             raise CodexExecTelemetryError("view_image call lacks its exact ImageView event and inline result")
         if pending:

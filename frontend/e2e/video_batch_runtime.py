@@ -18,6 +18,7 @@ from tests.autopilot_fake_exec_host import FakeCodexExecHost
 from tests.codex_exec_fixtures import install_profile
 from tests.video_batch_fixtures import batch_environment
 from tests.video_storage_fixtures import FakeH3
+from tests.video_fidelity_fixtures import fidelity_for
 
 root = Path(os.environ["PLOTLOOM_OUTPUTS_DIR"]).parent
 source = root / "source"
@@ -50,6 +51,8 @@ install_profile(registry)
 CreativeHandoffExchange.current_execution_pin = lambda _self, stage: PIN
 
 def candidate(store, request):
+    if request.source.get("operation") == "fidelity-check":
+        return fidelity_for(request)
     return {"version": "video-directions.draft.v1", "targets": [{"shotId": target["shotId"], "sourceHash": target["sourceHash"],
         "fields": [{"path": item["path"], "english": "Soft wind and cloth movement." if item["path"] == "reviewedSoundscape" else "The keeper holds still beside the beacon in soft light."}
             for item in target["sources"]]} for target in request.input_artifacts["video-targets.json"]["targets"]]}

@@ -83,13 +83,20 @@ class NativeBridgeCandidateService:
             if delivery is None:
                 return self.registry.status(job_id) | {"candidateStatus": data["status"]}
             if data["status"] not in {"ready", "failed"}:
+                if data["status"] not in {"cancelled", "stale"}:
+                    store.repository.production_bridge_intent.retain_native_candidate(project_id, delivery)
+                    from .content_language_service import ContentLanguageService
+                    checked = ContentLanguageService(self.registry).ensure(store, request, delivery.candidate)
+                    if checked["verdict"] != "pass":
+                        return {"state": "completed", "candidateStatus": data["status"], "languageCheck": checked}
                 self._admit(store, request, delivery)
             # Validated late delivery is terminal evidence, even when cancelled
             # or stale. Invalid/partial evidence cannot release the reservation.
             self.registry.complete_creative_task(job_id, project_id=project_id, stage=request.stage)
             return {"state": "completed", "candidateStatus": store.repository.production_bridge_intent.load_job(project_id, job_id)["status"]}
 
-    def _delivery(self, store: Any, request: CreativeHandoffRequest):
+    @classmethod
+    def _delivery(cls, store: Any, request: CreativeHandoffRequest):
         try:
             delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
         except CreativeHandoffError as error:
@@ -98,7 +105,7 @@ class NativeBridgeCandidateService:
             raise
         if delivery is not None:
             try:
-                expected_report = self.render_report(request, delivery.candidate)
+                expected_report = cls.render_report(request, delivery.candidate)
             except (ValueError, KeyError) as error:
                 raise CreativeHandoffError("native_candidate_invalid", "助手交付不符合完整来源与建议合同；助手占用仍保留。") from error
             if delivery.report != expected_report:
@@ -123,8 +130,18 @@ class NativeBridgeCandidateService:
             request, data = self._request(store, project_id, job_id)
             self.registry.assert_creative_task_identity(job_id, project_id=project_id, stage=request.stage)
             evidence = data["responseEvidence"]
+            checking = None
+            from .content_language_candidates import candidate_row
+            from .content_language_service import ContentLanguageService
+            with store.repository._read() as session:
+                row = candidate_row(session, request.stage, job_id)
+                value = row.candidate
+            if value is not None:
+                check = store.repository.content_language.find(request, value)
+                if check is not None:
+                    checking = ContentLanguageService.status(store, check)
             return self.registry.status(job_id) | {"candidateStatus": data["status"], "reportAvailable": evidence is not None,
-                "limitations": evidence["manifest"]["limitations"] if evidence else []}
+                "limitations": evidence["manifest"]["limitations"] if evidence else [], "languageCheck": checking}
 
     def _admit(self, store: Any, request: CreativeHandoffRequest, delivery: Any) -> None:
         raise NotImplementedError

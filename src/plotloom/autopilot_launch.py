@@ -59,6 +59,7 @@ def freeze_launch_policy(store, registry, request):
         max_images=request.max_images, max_jobs=request.max_jobs, image_width=width, image_height=height,
         early_reference_limit=4,
         text_correction_limit=request.text_correction_limit,
+        automatic_retry_limit=request.automatic_retry_limit,
         code_revision=code_revision, specialist_bindings=None, executor_binding=profile, execution_pins=pins,
         brief=brief.model_dump(mode="json", by_alias=False))
 

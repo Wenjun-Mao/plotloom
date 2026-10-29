@@ -57,6 +57,8 @@ class ProjectSourceOutlinePersistence:
 
     @staticmethod
     def _candidate(row: SourceOutlineCandidateRow) -> OutlineCandidate:
+        if row.request.get("stage") != "outline" or row.request.get("source", {}).get("operation") == "content-language-check":
+            raise InvalidTransitionError("source-outline head cannot project another kind of candidate evidence")
         return OutlineCandidate(
             job_id=row.job_id,
             source_revision=row.source_revision,
@@ -221,7 +223,9 @@ class ProjectSourceOutlinePersistence:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             candidate = session.get(SourceOutlineCandidateRow, job_id)
-            if candidate is None or candidate.project_id != project_id or candidate.request.get("stage") != "outline" or candidate.status not in {"ready", "accepted"} or candidate.report_html is None:
+            if (candidate is None or candidate.project_id != project_id or candidate.request.get("stage") != "outline"
+                    or candidate.request.get("source", {}).get("operation") == "content-language-check"
+                    or candidate.status not in {"ready", "accepted"} or candidate.report_html is None):
                 raise NotFoundError("ready outline candidate report is unavailable")
             return candidate.report_html
 
@@ -229,7 +233,8 @@ class ProjectSourceOutlinePersistence:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             candidate = session.get(SourceOutlineCandidateRow, job_id)
-            if candidate is None or candidate.project_id != project_id:
+            if (candidate is None or candidate.project_id != project_id or candidate.request.get("stage") != "outline"
+                    or candidate.request.get("source", {}).get("operation") == "content-language-check"):
                 raise NotFoundError("project outline candidate is unavailable")
             if candidate.status == "cancelled":
                 raise CreativeHandoffError("delivery_cancelled", "outline candidate was cancelled and cannot be refreshed")

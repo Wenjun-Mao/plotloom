@@ -53,15 +53,16 @@ def test_realistic_42_shot_source_complete_draft_and_read_work(tmp_path, monkeyp
         assert batch["manifest"]["requestedSeconds"] == 210
         host = registry._codex_exec_test_host
         original_candidate = host.candidate_factory
-        host.candidate_factory = lambda store, request: draft_for(batch).model_dump(mode="json", by_alias=True) if request.stage == "video-directions" else original_candidate(store, request)
+        from tests.video_fidelity_fixtures import fidelity_for
+        host.candidate_factory = lambda store, request: fidelity_for(request) if request.source.get("operation") == "fidelity-check" else draft_for(batch).model_dump(mode="json", by_alias=True) if request.stage == "video-directions" else original_candidate(store, request)
         before = len(host.calls)
         service.draft(view.project_id, batch["revision"])
-        for _ in range(4):
+        for _ in range(8):
             service.step(view.project_id)
             batch = service.current(view.project_id)
             if batch["state"] in {"ready", "blocked"}: break
         assert batch["state"] == "ready", batch["execution"].get("error")
-        assert len(host.calls) == before + 1 and not provider.submits
+        assert len(host.calls) == before + 2 and not provider.submits
         assert all(target["compiledPrompt"] and "reviewedEnglish" not in target["directions"] for target in batch["manifest"]["targets"])
         from plotloom.project_storage.creative_evidence_inventory import creative_evidence_paths
         with closing(storage.projects.open(view.project_id)) as store:

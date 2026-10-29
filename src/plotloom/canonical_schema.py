@@ -11,6 +11,12 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
+from .dialogue_timing_policy import (
+    DEFAULT_DIALOGUE_TIMING_PROFILE as DEFAULT_DIALOGUE_TIMING_PROFILE,
+    DialogueDeliveryPace as DialogueDeliveryPace, DialogueTimingProfile as DialogueTimingProfile,
+    DialogueTimingRule as DialogueTimingRule, default_dialogue_timing_profile as default_dialogue_timing_profile,
+)
+
 
 def _to_camel(value: str) -> str:
     head, *tail = value.split("_")
@@ -85,14 +91,6 @@ class AudioKind(str, Enum):
     DIEGETIC_SOUND = "diegetic_sound"
     DIEGETIC_MUSIC = "diegetic_music"
     SCORE = "score"
-
-
-class DialogueDeliveryPace(str, Enum):
-    """The bounded timing input; expressive direction belongs in notes."""
-
-    MEASURED = "measured"
-    NATURAL = "natural"
-    BRISK = "brisk"
 
 
 class EntitySpecV2(V2Model):
@@ -314,111 +312,6 @@ class DialogueCue(V2Model):
         if (self.speaker_id is None) == (self.voice_over is None):
             raise ValueError("DialogueCue requires exactly one of speakerId or voiceOver")
         return self
-
-
-class DialogueTimingRule(V2Model):
-    """One explicit language/delivery estimate rule in integer time units."""
-
-    model_config = V2Model.model_config | {"frozen": True}
-
-    language: Annotated[str, Field(min_length=1)]
-    delivery: DialogueDeliveryPace
-    units_per_character: Annotated[int, Field(ge=1)]
-
-
-class DialogueTimingProfile(V2Model):
-    """Versioned timing policy; no evaluator owns an implicit CPS constant."""
-
-    model_config = V2Model.model_config | {"frozen": True}
-
-    version: Annotated[str, Field(min_length=1)]
-    rules: Annotated[list[DialogueTimingRule], Field(min_length=1)]
-
-    @model_validator(mode="after")
-    def _rules_are_unique(self) -> DialogueTimingProfile:
-        pairs = [(rule.language, rule.delivery) for rule in self.rules]
-        if len(pairs) != len(set(pairs)):
-            raise ValueError("dialogue timing rules must be unique by language and delivery")
-        return self
-
-    def rule_for(
-        self,
-        *,
-        language: str,
-        delivery: DialogueDeliveryPace,
-    ) -> DialogueTimingRule | None:
-        """Return the one versioned rule governing a language/pace pair.
-
-        This is deliberately the sole language/delivery selection path.  The
-        validator and correction evidence must never independently reimplement
-        its exact-language then wildcard fallback semantics.
-        """
-
-        matching = next(
-            (
-                rule
-                for rule in self.rules
-                if rule.language == language and rule.delivery == delivery
-            ),
-            None,
-        )
-        fallback = next(
-            (
-                rule
-                for rule in self.rules
-                if rule.language == "*" and rule.delivery == delivery
-            ),
-            None,
-        )
-        return matching or fallback
-
-    def estimate_text_duration_units(
-        self,
-        *,
-        text: str,
-        language: str,
-        delivery: DialogueDeliveryPace,
-    ) -> int | None:
-        """Estimate text without requiring a canonical cue identity.
-
-        Generation fragments use response-local correlation handles until the
-        trusted binder assigns canonical IDs.  Timing therefore depends only
-        on the three values that actually govern the versioned policy.
-        """
-
-        rule = self.rule_for(language=language, delivery=delivery)
-        if rule is not None:
-            return len(text.strip()) * rule.units_per_character
-        return None
-
-    def estimate_duration_units(self, cue: DialogueCue) -> int | None:
-        return self.estimate_text_duration_units(
-            text=cue.text,
-            language=cue.language,
-            delivery=cue.delivery,
-        )
-
-
-DEFAULT_DIALOGUE_TIMING_PROFILE = DialogueTimingProfile(
-    version="dialogue.default.v1",
-    rules=[
-        DialogueTimingRule(language="zh-CN", delivery=DialogueDeliveryPace.MEASURED, units_per_character=420),
-        DialogueTimingRule(language="zh-CN", delivery=DialogueDeliveryPace.NATURAL, units_per_character=330),
-        DialogueTimingRule(language="zh-CN", delivery=DialogueDeliveryPace.BRISK, units_per_character=260),
-        DialogueTimingRule(language="en", delivery=DialogueDeliveryPace.MEASURED, units_per_character=75),
-        DialogueTimingRule(language="en", delivery=DialogueDeliveryPace.NATURAL, units_per_character=60),
-        DialogueTimingRule(language="en", delivery=DialogueDeliveryPace.BRISK, units_per_character=45),
-        DialogueTimingRule(language="*", delivery=DialogueDeliveryPace.MEASURED, units_per_character=85),
-        DialogueTimingRule(language="*", delivery=DialogueDeliveryPace.NATURAL, units_per_character=70),
-        DialogueTimingRule(language="*", delivery=DialogueDeliveryPace.BRISK, units_per_character=55),
-    ],
-)
-
-
-def default_dialogue_timing_profile() -> DialogueTimingProfile:
-    """Return the explicit multilingual fallback policy used by V2 gates."""
-
-    return DEFAULT_DIALOGUE_TIMING_PROFILE.model_copy(deep=True)
 
 
 class SceneBeatPlanV2(V2Model):

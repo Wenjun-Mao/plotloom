@@ -23,6 +23,17 @@ UPSTREAM_PIN = {"upstreamRevision": "d" * 40, "upstreamSkillHash": "e" * 64, "sp
 
 
 def candidate(store, request):
+    from plotloom.content_language_contract import is_language_check
+    if is_language_check(request):
+        raise AssertionError("checker fixtures must use their explicit synthetic verdict contract, not stage authoring")
+    value = _stage_candidate(store, request)
+    # This central factory supplies offline current-contract creative fixtures.
+    # Explicit host.complete(value=...) failure fixtures remain untouched.
+    value["lang"] = request.input_artifacts["language-contract.json"]["reportLocale"]
+    return value
+
+
+def _stage_candidate(store, request):
     stage = request.stage
     if stage == "outline":
         return {"source": request.source["title"], "params": {"episodes": 1}, "episodes": []}
@@ -32,6 +43,10 @@ def candidate(store, request):
         return style_fixture(json.loads((FIXTURES / "cast.json").read_text()), request.input_artifacts["cast-style-contract.json"])
     if stage == "art":
         value = json.loads((FIXTURES / "art.json").read_text())
+        en = request.input_artifacts["language-contract.json"]["reportLocale"] == "en"
+        for scene in value["scenes"]:
+            for lighting in scene.get("lighting", []):
+                lighting["description"] = ("Cold dawn light enters through the window." if en else "黎明的冷光从窗边照入。")
         value["sectionUsage"] = [{"sectionId": item["sectionId"], "sceneIds": ["S01"], "propIds": []}
             for item in request.input_artifacts["section-map.json"]["sections"]]
         return value
@@ -119,7 +134,9 @@ def environment(tmp_path, monkeypatch, *, auto_deliver=True, brief=None, limits=
     return storage, registry, service, view, host.calls
 
 
-def run_text(service, view, *, steps=40):
+def run_text(service, view, *, steps=64):
+    # Eight creative attempts plus eight separate checking attempts require
+    # additional controller observations; this remains a finite offline loop.
     assert service.acquire_controller()
     for _ in range(steps):
         service.step(view.project_id)

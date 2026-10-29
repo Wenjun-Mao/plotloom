@@ -16,12 +16,12 @@ export type AutopilotRun = {
   phase: string; blocker: { code: string; message: string } | null;
   materialCurrent?: boolean; activities?: AutopilotActivity[];
   policy: { version?: string; geometryPreparation?: { recipeVersion: string }; styleAuthority?: "preset" | "brief"; renderStyle?: ArtRenderStyle | null; artRenderStyle?: ArtRenderStyle | null; maxImages: number | null; maxJobs: number | null;
-    textCorrectionLimit?: number; executorBinding?: { backend: "codex_exec"; model: string; reasoningEffort: string; maxProcesses: number; maxTextProcesses?: number; maxImageProcesses?: number } };
-  checkpoints: Array<{ operationKey: string; state: string; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
+    automaticRetryLimit?: number | null; textCorrectionLimit?: number; executorBinding?: { backend: "codex_exec"; model: string; reasoningEffort: string; maxProcesses: number; maxTextProcesses?: number; maxImageProcesses?: number } };
+  checkpoints: Array<{ operationKey: string; state: string; retry?: import("../generation-retry/contracts").GenerationRetryStatus; evidence: { owner: string; jobId?: string; result: Record<string, unknown> } }>;
   bundle: { inventory: { subjects: Array<{ owner: string; id: string; subjectType?: "scene" | "prop" | null }> }; frames: unknown[]; references: unknown[] } | null;
   handoff: { receiptId: string } | null;
 };
-export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number | null; maxJobs: number | null; textCorrectionLimit?: number };
+export type Launch = { expectedBriefRevision: number; styleAuthority: "brief" | "preset"; renderStyle?: ArtRenderStyle; artRenderStyle?: ArtRenderStyle; maxImages: number | null; maxJobs: number | null; textCorrectionLimit?: number; automaticRetryLimit?: number };
 export type TextFailure = { runId: string; runRevision: number; stage: string; stageLabel: string; failedAttemptId: string | null; rejectionHash: string | null;
   terminalContentFailure: boolean; resolved?: boolean; canRetry: boolean; reason: string; automaticUsed: number; automaticLimit: number;
   issues: Array<{ code: string; field: string; item: string; rule: string; excerpt: string | null }>; diagnostics: string[];

@@ -12,6 +12,7 @@ from ..schema import (
     ScriptCandidateRow,
     SourceOutlineCandidateRow,
     StoryboardReviewCandidateRow,
+    ProductionBridgeIntentJobRow,
 )
 from .access import ProjectPersistenceAccess
 from .creative_execution_pins import execution_pin_for_candidate
@@ -23,6 +24,8 @@ CANDIDATE_ROWS = {
     "art": ArtCandidateRow,
     "script": ScriptCandidateRow,
     "storyboard": StoryboardReviewCandidateRow,
+    "bridge-intent": ProductionBridgeIntentJobRow,
+    "bridge-presentation": ProductionBridgeIntentJobRow,
 }
 
 
@@ -38,6 +41,9 @@ class ProjectCreativeTerminalPersistence:
             if row is None or row.project_id != project_id or row.status not in {"cancelled", "ready", "accepted"}:
                 raise NotFoundError("retained terminal creative candidate is unavailable")
             request = CreativeHandoffRequest.model_validate(row.request)
+            from ...content_language_contract import is_language_check
+            if is_language_check(request):
+                raise NotFoundError("checking evidence is not a creative stage candidate")
             if (request.project_id, request.stage, request.job_id) != (project_id, stage, job_id):
                 raise CreativeHandoffError("request_identity_mismatch", "retained creative request does not match its project, stage and job")
             execution_pin_for_candidate(session, request)
@@ -53,6 +59,9 @@ class ProjectCreativeTerminalPersistence:
             if row is None or row.project_id != project_id:
                 raise NotFoundError("original run creative request is unavailable")
             request = CreativeHandoffRequest.model_validate(row.request)
+            from ...content_language_contract import is_language_check
+            if is_language_check(request):
+                raise NotFoundError("checking evidence is not a creative stage candidate")
             if (request.project_id, request.stage, request.job_id) != (project_id, stage, job_id):
                 raise CreativeHandoffError("request_identity_mismatch", "original run request identity changed")
             execution_pin_for_candidate(session, request)

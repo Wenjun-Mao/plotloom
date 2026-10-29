@@ -275,8 +275,16 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 | --- | --- |
 | [0219-validated-installation-only-reader](../adr/0219-validated-installation-only-reader.md) | Status: implemented, locally qualified and activated, 2026-10-25, under the owner-approved |
 
+## Project language and provider adaptation
+
+| Record (full slug) | Opening status cue — inspect source for exact scope |
+| --- | --- |
+| [0224-project-language-and-derived-provider-adaptation](../adr/0224-project-language-and-derived-provider-adaptation.md) | Accepted by owner 2026-10-28; implementation in progress, not activation/acceptance evidence. |
+
 ## Specification organization
 
 | Record (full slug) | Opening status cue — inspect source for exact scope |
 | --- | --- |
 | [0217-feature-oriented-specification-authority](../adr/0217-feature-oriented-specification-authority.md) | Status: documentation organization approved by the owner, 2026-10-22. |
+
+- [0225 Bounded generation retries and local capacity](../adr/0225-bounded-generation-retries-and-local-capacity.md): distinct attempts, persisted allowance, stopped local ownership, truthful costs, and job-scoped failure.

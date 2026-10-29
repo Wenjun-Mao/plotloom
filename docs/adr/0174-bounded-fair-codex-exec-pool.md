@@ -1,5 +1,11 @@
 # ADR 0174: Bounded fair Codex Exec scheduling
 
+
+The owner's 2026-10-28 [ADR 0225](0225-bounded-generation-retries-and-local-capacity.md)
+supersedes dedicated no-dispatch recovery, blanket no-retry wording and local-slot
+retention solely due to remote UNKNOWN. Prior outcomes remain historical evidence;
+current execution uses distinct bounded retries and positive local-stop proof.
+
 Status: accepted for the approved bounded implementation, 2026-10-14.
 Native concurrency and final release qualification remain required.
 

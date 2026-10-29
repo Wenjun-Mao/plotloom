@@ -70,14 +70,11 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   await expect(panel.getByTestId("h3-authored-timing")).toContainText("原稿需要 180 帧");
 
   await directions.getByRole("button", { name: "读取当前来源" }).click();
-  const fields = directions.locator(".h3-direction-field textarea");
-  await expect(fields.first()).toBeVisible();
-  for (let index = 0; index < await fields.count(); index += 1) {
-    await fields.nth(index).fill(`The visible subject moves steadily through the frame while the camera follows; synthetic fixture direction ${index + 1}.`);
-  }
-  await directions.getByRole("checkbox").check();
-  await directions.getByRole("button", { name: "预览完整 H3 提示词" }).click();
-  await expect(directions.locator(".video-prompt-preview")).toContainText("Picture 2 (from Shot 1) aligns with the 8.00-second mark");
+  await directions.getByRole("button", { name: "准备本镜头制作简报", exact: true }).click();
+  await directions.getByRole("button", { name: "用助手起草并独立检查指令", exact: true }).click();
+  await expect(directions.getByRole("button", { name: "授权本镜头制作意图并开始生成", exact: true })).toBeEnabled({ timeout: 30000 });
+  await directions.getByText("来源、完整供应商指令与检查记录（技术详情）", { exact: true }).click();
+  await expect(directions.locator(".production-brief-review pre").first()).toContainText("Picture 2 (from Shot 1) aligns with the 8.00-second mark");
   await expect(directions.getByTestId("h3-frozen-review-inputs")).toContainText("末帧 SHA-256");
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 1080 });
@@ -88,7 +85,7 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   }
   const preparedPost = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
-  await directions.getByRole("button", { name: "冻结此说明并准备原片" }).click();
+  await directions.getByRole("button", { name: "授权本镜头制作意图并开始生成" }).click();
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok(), await preparedResponse.text()).toBeTruthy();
   const jobsResponse = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
@@ -97,8 +94,10 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   expect(jobs).toHaveLength(1);
   expect(jobs[0].snapshot.endFrame.assetId).toBe(assetId);
   const jobId = jobs[0].id;
-  await panel.getByRole("button", { name: "提交一次" }).click();
-  await panel.getByRole("button", { name: "获取结果" }).click();
+  await expect.poll(async () => {
+    const read = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
+    return (await read.json()).jobs.find((job: { id: string }) => job.id === jobId)?.state;
+  }, { timeout: 30000 }).toBe("ingested");
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
   await expect(review).toBeVisible();
   await review.getByLabel("片段入点（帧）").fill("6");

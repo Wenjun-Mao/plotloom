@@ -1,3 +1,4 @@
+import { LanguageTaskObserver } from "../content-language/LanguageTaskObserver";
 import { useEffect, useRef, useState } from "react";
 import { Button, ErrorNotice, Spinner } from "../../components";
 import { SpecialistApiError, specialistsApi, type SpecialistStage, type SpecialistTask } from "./api";
@@ -72,6 +73,7 @@ export function SpecialistTaskActions({ projectId, stage, jobId, disabled, sendD
   return <section className="specialist-task-actions" aria-label="助手任务">
     <strong>{task ? labels[task.state] : error ? "无法读取任务状态" : "正在读取任务状态…"}</strong>
     {pending && (error && !recovering ? <p role="status">自动检查已暂停，请处理错误后立即检查。</p> : <Spinner label={recovering ? "等待重试读取" : visible ? "自动检查交付中" : "页面隐藏，返回后继续检查"} />)}
+    {task?.languageCheck && <LanguageTaskObserver key={`${projectId}:${jobId}:${task.languageCheck.checkJobId}`} projectId={projectId} initial={task.languageCheck} disabled={disabled || busy} onVerified={() => void act()} onContinue={() => void act()} />}
     {lastCheck && <p className="action-prerequisite">最近成功检查：<time>{lastCheck}</time></p>}
     {task && !task.configured && task.state === "prepared" && <p>请先打开侧栏的「生成助手设置」，填写文字创作助手的聊天 ID。</p>}
     <div className="button-row">{task?.state === "prepared" && <Button variant="primary" busy={busy} disabled={disabled || sendDisabled || busy || !task.configured} onClick={() => void act(true)}>{busy ? "正在处理任务…" : "发送给文字创作助手"}</Button>}

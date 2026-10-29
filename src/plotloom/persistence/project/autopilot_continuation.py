@@ -20,6 +20,8 @@ def project_job_counts(session, project_id):
     checkpoints = session.scalars(select(AutopilotCheckpointRow).where(
         AutopilotCheckpointRow.project_id == project_id)).all()
     jobs = {row.evidence["jobId"] for row in checkpoints if row.evidence.get("jobId")}
+    from ...content_language_persistence import check_rows
+    jobs.update(row.job_id for row in check_rows(session, project_id))
     images = {row.evidence["jobId"] for row in checkpoints if row.evidence.get("jobId")
               and row.evidence["owner"] in {"image", "character-reference", "art-reference"}}
     return len(jobs), len(images)
@@ -48,6 +50,10 @@ def continuation_preview(owner, session, project_id):
             AutopilotExecAttemptRow.operation_key == checkpoint.operation_key))
         if attempt is not None and attempt.state in {"failed", "settled"} and attempt.snapshot.get("terminalResult") in {"failure", "not_started", "no_remote_dispatch"}:
             continue
+        if attempt is not None:
+            from .autopilot_text_correction import superseded_text_failure
+            if superseded_text_failure(session, run, attempt, checkpoint):
+                continue
         blockers.append(f"原任务 {checkpoint.evidence.get('jobId', checkpoint.operation_key)} 尚未完成采用；"
                         "请保留并核对原交付/终止证据，不会重复发送。")
     jobs, images = project_job_counts(session, project_id)

@@ -1,4 +1,5 @@
 """Model prose bound to a frozen, code-planned Source structure."""
+from typing import Literal
 from pydantic import Field, field_validator
 from plotloom.domain_base import CamelModel
 from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
@@ -52,6 +53,7 @@ class BranchJoin(CamelModel):
 
 
 class BranchSuggestion(CamelModel):
+    lang: Literal["zh", "en"] | None = Field(default=None, exclude_if=lambda value: value is None)
     nodes: list[BranchNode] = Field(min_length=1, max_length=128)
     choices: list[BranchChoice] = Field(max_length=128)
     joins: list[BranchJoin] = Field(max_length=128)

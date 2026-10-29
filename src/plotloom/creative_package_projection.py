@@ -44,6 +44,15 @@ def project_creative_package(
         )
         projected["validationPlan"] = validation_plan.model_dump(mode="json", by_alias=True)
         projected["validationPlanHash"] = validation_plan.plan_hash
+    from .content_language_contract import is_language_check, language_check_instructions
+    if is_language_check(request):
+        if executor_backend != "codex_exec":
+            raise CreativeHandoffError("language_check_native_required", "内容语言检查必须通过独立原生执行与实际回执。")
+        instructions = (language_check_instructions() +
+            f" Write only ../delivery/{candidate_filename}. This check operation replaces primary-stage "
+            "authoring instructions; original stage skill is source/reference authority only. "
+            "Do not run the original stage validator on the checking result.\n").encode()
+        return projected, instructions, b"", {"request.json", "COPY_ASSIGNMENT.txt", "inputs"}
     character_id_instruction = (
         "For characters, preserve established characters[].id values; every "
         "characters[].id must be unique and nonblank. "

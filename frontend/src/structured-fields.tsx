@@ -65,7 +65,7 @@ function StructuredValueInput({
   }, [kind, value]);
 
   if (kind === "boolean") {
-    return <select data-focus-key={focusKey} data-focus-field={focusField} value={String(value)} onChange={(event) => onChange(event.target.value === "true")}><option value="true">true</option><option value="false">false</option></select>;
+    return <select data-focus-key={focusKey} data-focus-field={focusField} value={String(value)} onChange={(event) => onChange(event.target.value === "true")}><option value="true">是</option><option value="false">否</option></select>;
   }
   if (kind === "null") return <input data-focus-key={focusKey} data-focus-field={focusField} value="null" readOnly />;
   if (kind === "json") {
@@ -102,7 +102,7 @@ function RecordRow({ name, value, allNames, onRename, onValue, onRemove, focusKe
   const rowFocusField = focusField ? `${focusField}.${name}` : undefined;
   return <div className="structured-row" data-record-key={name} data-focus-key={rowFocusKey} data-focus-field={rowFocusField} tabIndex={rowFocusKey ? -1 : undefined}>
     <div><input data-focus-key={rowFocusKey ? `${rowFocusKey}.key` : undefined} data-focus-field={rowFocusField ? `${rowFocusField}.key` : undefined} aria-label="键" value={nameDraft} aria-invalid={Boolean(nameError)} onChange={(event) => setNameDraft(event.target.value)} onBlur={commitName} />{nameError && <small role="alert">{nameError}</small>}</div>
-    <select data-focus-key={rowFocusKey ? `${rowFocusKey}.type` : undefined} data-focus-field={rowFocusField ? `${rowFocusField}.type` : undefined} aria-label="值类型" value={structuredValueKind(value)} onChange={(event) => onValue(valueForKind(event.target.value as StructuredValueKind))}><option value="string">文字</option><option value="number">数字</option><option value="boolean">布尔</option><option value="null">null</option><option value="json">JSON</option></select>
+    <select data-focus-key={rowFocusKey ? `${rowFocusKey}.type` : undefined} data-focus-field={rowFocusField ? `${rowFocusField}.type` : undefined} aria-label="值类型" value={structuredValueKind(value)} onChange={(event) => onValue(valueForKind(event.target.value as StructuredValueKind))}><option value="string">文字</option><option value="number">数字</option><option value="boolean">是／否</option><option value="null">空值</option><option value="json">JSON</option></select>
     <StructuredValueInput value={value} onChange={onValue} focusKey={rowFocusKey ? `${rowFocusKey}.value` : undefined} focusField={rowFocusField ? `${rowFocusField}.value` : undefined} />
     <Button variant="quiet" aria-label={`删除键 ${name}`} onClick={onRemove}>删除</Button>
   </div>;

@@ -111,6 +111,8 @@ class CreativeHandoffPackageExchange:
             self._assert_outline_report_schema(request)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
         self._assert_outline_report_schema(request)
+        from .language_policy import assert_new_request_language
+        assert_new_request_language(request)
         from .creative_package_publication import publish_package
 
         files = {
@@ -136,7 +138,8 @@ class CreativeHandoffPackageExchange:
 
     @staticmethod
     def _assert_outline_report_schema(request: CreativeHandoffRequest) -> None:
-        if request.stage == "outline":
+        from .content_language_contract import is_language_check
+        if request.stage == "outline" and not is_language_check(request):
             from .outline_report_metadata import assert_outline_report_schema_current
 
             assert_outline_report_schema_current(request.input_artifacts)

@@ -13,15 +13,18 @@ from plotloom.outline_report_metadata import (
     OUTLINE_REPORT_SCHEMA_FILENAME,
     outline_report_metadata_schema,
 )
+from plotloom.language_policy import freeze_request_language
 
 PIN = {"upstreamRevision": "a" * 40, "upstreamSkillHash": "b" * 64, "specialistSkillHash": "c" * 64}
 REVISION = "d" * 40
 
 
 def _request(artifacts):
-    return CreativeHandoffRequest(job_id="ch_" + "a" * 20, project_id="project", section_id="story",
+    request = CreativeHandoffRequest(job_id="ch_" + "a" * 20, project_id="project", section_id="story",
         stage="outline", expected_stage_revision=0, source={"text": "source"},
         input_artifacts=artifacts, creative_brief="candidate only")
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 @pytest.mark.parametrize("fault,code", [("pin", "execution_pin_missing"), ("revision", "executor_revision_missing")])
@@ -83,7 +86,7 @@ def test_existing_manual_package_requires_current_schema_after_package_checks(tm
 def test_schema_is_hashed_and_other_stages_keep_their_language_domain():
     request = _request({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()})
     plan = build_text_validation_plan(request, execution_pin=PIN, source_revision=REVISION)
-    assert [item.filename for item in plan.inputs] == [OUTLINE_REPORT_SCHEMA_FILENAME]
+    assert [item.filename for item in plan.inputs] == ["language-contract.json", OUTLINE_REPORT_SCHEMA_FILENAME]
     assert [(step.step_id, step.program, step.argv[1:]) for step in plan.steps] == [
         ("validate", "node", ("validate", "{candidate}")),
         ("render", "node", ("render", "{candidate}", "--html")),

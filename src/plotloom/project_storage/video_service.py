@@ -50,11 +50,19 @@ class ProjectVideoService:
         repository = self._repository(store)
         backend_binding = self._configured_backend_binding()
         repository.assert_submit_allowed(video_job_id, backend_binding=backend_binding)
-        return self._job_service(
-            store, repository=repository, backend_binding=backend_binding
-        ).submit(
-            store.manifest.project_id, video_job_id
-        )
+        service = self._job_service(store, repository=repository, backend_binding=backend_binding)
+        while True:
+            result = service.submit(store.manifest.project_id, video_job_id)
+            successor = repository.prepare_video_retry(store.manifest.project_id, result["id"])
+            if successor is None:
+                return result
+            if successor == video_job_id:
+                return result
+            video_job_id = successor
+            current = next(job for job in self.jobs(store) if job["id"] == successor)
+            if current["state"] != "prepared":
+                return current
+            repository.assert_submit_allowed(video_job_id, backend_binding=backend_binding)
 
     def reconcile(self, store: ProjectStore, video_job_id: str) -> dict[str, Any]:
         repository = self._repository(store)
@@ -63,11 +71,16 @@ class ProjectVideoService:
             video_job_id,
             backend_binding=backend_binding,
         )
-        return self._job_service(
-            store, repository=repository, backend_binding=backend_binding
-        ).reconcile(
-            store.manifest.project_id, video_job_id
-        )
+        result = self._job_service(store, repository=repository, backend_binding=backend_binding).reconcile(
+            store.manifest.project_id, video_job_id)
+        successor = repository.prepare_video_retry(store.manifest.project_id, video_job_id)
+        if successor is not None:
+            current = next(job for job in self.jobs(store) if job["id"] == successor)
+            return self.submit(store, successor) if current["state"] == "prepared" else current
+        return result
+
+    def retry_failed(self, store, video_job_id):
+        return self._repository(store).prepare_video_retry(store.manifest.project_id, video_job_id)
 
     def cancel(self, store: ProjectStore, video_job_id: str) -> dict[str, Any]:
         return self._repository(store).cancel_video_job(store.manifest.project_id, video_job_id)

@@ -86,6 +86,38 @@ class AutopilotService:
         self._wake.set()
         return result
 
+    def retry_execution(self, project_id, command):
+        from .autopilot_execution_retry import current_checkpoint
+        from .generation_retry_policy import repeatable_failure
+        with closing(self.storage.projects.open(project_id)) as store, store.repository.text_retry_command():
+            view = store.repository.autopilot.current(project_id)
+            if view is None or str(command.expected_run_id) != view.id:
+                raise InvalidTransitionError("手动重试运行已变化。")
+            for checkpoint in view.checkpoints:
+                lineage = checkpoint["evidence"]["result"].get("executionRetry", {})
+                if lineage.get("manualCommandId") == str(command.command_id):
+                    if lineage["predecessorJobId"] != command.failed_job_id or lineage["predecessorAttemptId"] != str(command.failed_attempt_id):
+                        raise InvalidTransitionError("重试命令不能替换原失败身份。")
+                    return view
+            if view.revision != command.expected_revision or view.state not in {"running","waiting"}:
+                raise InvalidTransitionError("原运行已暂停、停止或版本改变。")
+            checkpoint = next((c for c in view.checkpoints if c["evidence"].get("jobId") == command.failed_job_id), None)
+            if checkpoint is None or current_checkpoint(view, checkpoint["operationKey"]) != checkpoint:
+                raise InvalidTransitionError("手动重试仅适用于当前失败任务。")
+            attempt = store.repository.autopilot.exec_attempt_for_operation(view.id, checkpoint["operationKey"])
+            if attempt is None or attempt.attempt_id != command.failed_attempt_id or not repeatable_failure(attempt):
+                raise InvalidTransitionError("任务已取消、权限配置失败或不适合执行重试。")
+            status = self.registry.codex_exec_status(attempt.attempt_id)
+            if status.attempt != attempt or not status.local_execution_stopped:
+                raise InvalidTransitionError("原任务尚未确认在本地停止。")
+            assert_frozen_execution(store, self.registry, view.policy)
+            store.repository.autopilot.claim(project_id, self.claim)
+            store.repository.autopilot.prepare_execution_retry(checkpoint["operationKey"], attempt,
+                manual_command_id=command.command_id)
+            result = store.repository.autopilot.current(project_id)
+        self._wake.set()
+        return result
+
     def acquire_controller(self):
         with self._descriptor_lock:
             return self._acquire_controller()
@@ -156,12 +188,23 @@ class AutopilotService:
             return False
         return store.repository.autopilot.controller_execution_eligible(project_id)
 
+    @staticmethod
+    def _can_advance_standalone_checks(store):
+        from .content_language_runtime import standalone_check_jobs
+        state, _revision = store.repository.operational_state()
+        return (state == "open" and store.project().lifecycle_status.value == "active"
+                and bool(standalone_check_jobs(store)))
+
     def _step(self, project_id):
         # Discovery is observation: closed/manual folders must not gain locks or WAL.
         with closing(self.storage.projects.inspect(project_id, passive=True)) as inspection:
-            if not self._can_advance(inspection, project_id):
+            if (not self._can_advance(inspection, project_id)
+                    and not self._can_advance_standalone_checks(inspection)):
                 return
         with closing(self.storage.projects.open(project_id)) as store:
+            if self._can_advance_standalone_checks(store):
+                from .content_language_runtime import advance_standalone_checks
+                advance_standalone_checks(store, self.registry)
             if not self._can_advance(store, project_id):
                 return
             store.repository.autopilot.claim(project_id, self.claim)

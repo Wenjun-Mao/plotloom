@@ -47,17 +47,15 @@ class CodexExecSupervisorCapacityMixin:
         if row is None:
             raise CodexExecSupervisorError("capacity retirement has no exact retained attempt")
         original = CodexExecAttempt.model_validate_json(row["attempt_json"])
-        current = self._held_attempt(row)
-        if (str(current.project_id) != str(request.project_id) or current.domain != "image"
-                or current.state != "outcome_unknown" or self._identity(original) != self._identity(current)):
-            raise CodexExecSupervisorError("capacity retirement requires the exact UNKNOWN image identity")
+        current = CodexExecAttempt.model_validate_json(row["status_json"])
+        if (str(current.project_id) != str(request.project_id) or current.domain not in {"image", "text"}
+                or current.state not in {"outcome_unknown", "failed", "completed", "settled"} or self._identity(original) != self._identity(current)):
+            raise CodexExecSupervisorError("capacity retirement requires the exact terminal or UNKNOWN execution identity")
         self._namespace_assert_attempt(current, check_profile=False)
         revocation = connection.execute("SELECT * FROM exec_project_revocations WHERE project_id=?", (str(request.project_id),)).fetchone()
-        if revocation is None or not row["project_home"] or row["project_home"] != revocation["project_home"]:
-            raise CodexExecSupervisorError("capacity retirement requires permanent exact project revocation")
         home = Path(row["project_home"])
         if not home.is_absolute() or home.parent != self.outputs_root or home.name in {"", ".", ".."}:
-            raise CodexExecSupervisorError("revoked home is not one exact confined outputs child")
+            raise CodexExecSupervisorError("execution home is not one exact confined outputs child")
         metadata = self.database.lstat()
         if (not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o600
                 or metadata.st_nlink != 1 or metadata.st_uid != os.getuid()):
@@ -74,31 +72,18 @@ class CodexExecSupervisorCapacityMixin:
         return {"installation": {"database": str(self.database), "device": metadata.st_dev,
                     "inode": metadata.st_ino, "uid": metadata.st_uid,
                     "outputs": directory(self.outputs_root), "private": directory(self.private_root)},
-                "attempt": dict(row), "revocation": dict(revocation), "slot": dict(slot) if slot else None,
+                "attempt": dict(row), "revocation": dict(revocation) if revocation else None, "slot": dict(slot) if slot else None,
                 "validator": dict(validator) if validator else None, "queue": dict(queue) if queue else None,
                 "poolConfiguration": dict(pool) if pool else None}
-
-    @staticmethod
-    def _retired_home_absent(home):
-        try:
-            Path(home).lstat()
-        except FileNotFoundError:
-            return True
-        except OSError:
-            return False
-        return False
 
     def _capacity_absence_proofs(self, facts):
         row = facts["attempt"]
         current = CodexExecAttempt.model_validate_json(row["status_json"])
         blockers, proofs = [], []
         observed_at = utc_now().isoformat()
-        home_absent = self._retired_home_absent(row["project_home"])
-        if not home_absent:
-            blockers.append("original revoked project home is not positively absent (replacement, symlink or access uncertainty)")
-        proofs.append({"role": "project_home", "path": row["project_home"], "absent": home_absent, "observedAt": observed_at})
-        owners = [("worker", row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"]),
-                  ("cli", current.process_id, current.process_group_id, current.process_birth_identity)]
+        owners = [("worker", row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"])]
+        if current.terminal_result != "not_started" or current.process_id is not None:
+            owners.append(("cli", current.process_id, current.process_group_id, current.process_birth_identity))
         validator = facts["validator"]
         if validator is not None:
             if validator["spawn_state"] != "running":
@@ -115,7 +100,8 @@ class CodexExecSupervisorCapacityMixin:
     def _capacity_retirement_context(self, connection, request):
         facts = self._capacity_retirement_facts(connection, request)
         current = CodexExecAttempt.model_validate_json(facts["attempt"]["status_json"])
-        budget = {"image_budget_state": current.image_budget_state, "reserved_image_outputs": current.reserved_image_outputs}
+        budget = {"image_budget_state": current.image_budget_state, "reserved_image_outputs": current.reserved_image_outputs,
+                  "remote_outcome": "preserved_unknown" if current.state == "outcome_unknown" or current.remote_tool_state == "unknown" else "preserved"}
         prior = connection.execute("SELECT * FROM exec_capacity_retirements WHERE attempt_id=?", (str(request.attempt_id),)).fetchone()
         if prior is not None:
             raw = json.loads(prior["receipt_json"])
@@ -124,22 +110,17 @@ class CodexExecSupervisorCapacityMixin:
             if (stable_hash(raw) != prior["receipt_hash"] or str(receipt.project_id) != str(request.project_id)
                     or str(receipt.attempt_id) != str(request.attempt_id)
                     or stable_hash(retained) != receipt.preview_hash
-                    or {key: value for key, value in facts.items() if key != "slot"}
-                    != {key: value for key, value in retained.items() if key != "slot"}
+                    or {key: value for key, value in facts.items() if key not in {"slot", "queue"}}
+                    != {key: value for key, value in retained.items() if key not in {"slot", "queue"}}
+                    or (facts["queue"] is not None and facts["queue"]["enabled"] != 0)
                     or facts["slot"] is not None):
                 raise CodexExecSupervisorError("retirement facts changed or a retired slot was restored")
-            # An exact readback returns the original observation, never claims
-            # fresh absence for numeric PIDs that may have been reused later.
-            if not self._retired_home_absent(facts["attempt"]["project_home"]):
-                raise CodexExecSupervisorError("retired project home was restored or its absence is uncertain")
             return CapacityRetirementPreview(project_id=request.project_id, attempt_id=request.attempt_id,
                 preview_hash=receipt.preview_hash, eligible=True, blockers=[], local_capacity_state="retired",
                 already_retired=True, receipt=receipt, **budget), facts, []
         blockers, proofs = self._capacity_absence_proofs(facts)
-        if facts["slot"] is None or facts["slot"]["domain"] != "image":
-            blockers.append("the exact original image capacity slot is missing or changed")
-        if facts["queue"] is not None and facts["queue"]["enabled"] != 0:
-            blockers.append("revoked queue authorization is not disabled")
+        if facts["slot"] is None or facts["slot"]["domain"] != current.domain:
+            blockers.append("the exact original local capacity slot is missing or changed")
         return CapacityRetirementPreview(project_id=request.project_id, attempt_id=request.attempt_id,
             preview_hash=stable_hash(facts), eligible=not blockers, blockers=blockers, local_capacity_state="held", **budget), facts, proofs
 
@@ -172,11 +153,12 @@ class CodexExecSupervisorCapacityMixin:
                     raise CodexExecSupervisorError("; ".join(blockers))
                 receipt = CapacityRetirementReceipt(id=new_id(), project_id=request.project_id,
                     attempt_id=request.attempt_id, preview_hash=context.preview_hash, reason=request.reason,
-                    created_at=utc_now(), retained_facts=facts, absence_proofs=proofs,
+                    created_at=utc_now(), retained_facts=facts, absence_proofs=proofs, remote_outcome=context.remote_outcome,
                     maintenance_source_root=str(self.source_root), maintenance_code_hash=sha256(Path(__file__).read_bytes()).hexdigest())
                 raw = receipt.model_dump(mode="json", by_alias=True)
                 connection.execute("INSERT INTO exec_capacity_retirements VALUES (?,?,?)",
                     (str(request.attempt_id), json.dumps(raw, sort_keys=True, separators=(",", ":")), stable_hash(raw)))
+                connection.execute("UPDATE exec_queue SET enabled=0 WHERE attempt_id=?", (str(request.attempt_id),))
                 self._retire_exact_slot_in_transaction(connection, request.attempt_id)
                 connection.commit()
                 return context.model_copy(update={"already_retired": True, "local_capacity_state": "retired", "receipt": receipt})
@@ -186,6 +168,45 @@ class CodexExecSupervisorCapacityMixin:
 
     @staticmethod
     def _retire_exact_slot_in_transaction(connection, attempt_id):
-        cursor = connection.execute("DELETE FROM exec_slot WHERE attempt_id=? AND domain='image'", (str(attempt_id),))
+        cursor = connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt_id),))
         if cursor.rowcount != 1:
             raise CodexExecSupervisorError("exact capacity slot changed during retirement")
+
+    def _local_execution_stopped(self, row):
+        """Positive owner absence, independent of remote outcome and capacity."""
+        current = CodexExecAttempt.model_validate_json(row["status_json"])
+        if current.state not in {"outcome_unknown", "failed", "completed", "settled"}:
+            return False
+        with closing(self._connect()) as connection:
+            validator = connection.execute("SELECT * FROM exec_validation_process WHERE attempt_id=?",
+                                           (str(current.attempt_id),)).fetchone()
+        if validator is not None and (
+                validator["spawn_state"] != "running" or not validator["process_id"]
+                or validator["process_group_id"] != validator["process_id"]
+                or not validator["process_birth_identity"]
+                or not self._prove_group_absent(validator["process_id"],validator["process_group_id"],validator["process_birth_identity"])):
+            return False
+        if current.terminal_result == "not_started" and current.process_id is None and row["worker_pid"] is None:
+            return True
+        owners = [(row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"])]
+        if current.terminal_result != "not_started" or current.process_id is not None:
+            owners.append((current.process_id, current.process_group_id, current.process_birth_identity))
+        return all(pid and group == pid and birth and self._prove_group_absent(pid, group, birth)
+                   for pid, group, birth in owners)
+
+    def _release_stopped_local_slot(self, row):
+        """Existing status observation may retire dead occupancy, never queue/drain."""
+        current = CodexExecAttempt.model_validate_json(row["status_json"])
+        if not self._local_execution_stopped(row):
+            return False
+        with closing(self._connect()) as connection:
+            slot = connection.execute("SELECT 1 FROM exec_slot WHERE attempt_id=?", (str(current.attempt_id),)).fetchone()
+        if slot is None:
+            return True
+        request = CapacityRetirementRequest(project_id=current.project_id, attempt_id=current.attempt_id,
+                                            reason="stopped_local_execution")
+        preview = self.capacity_retirement_preview(request)
+        if not preview.eligible:
+            return False
+        self.retire_local_capacity(request.model_copy(update={"expected_preview_hash": preview.preview_hash}))
+        return True

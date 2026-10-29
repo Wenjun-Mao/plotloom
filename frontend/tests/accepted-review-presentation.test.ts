@@ -1,3 +1,5 @@
+import { contentLanguageApi } from "../src/features/content-language/api";
+import { languagePass, languageRequired } from "./content-language-fixture";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -15,7 +17,9 @@ vi.mock("../src/pages/ProductionBridgePanel", () => ({ ProductionBridgePanel: ({
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root;
 let host: HTMLDivElement;
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+beforeEach(() => {
+  vi.spyOn(contentLanguageApi, "status").mockImplementation(async (_project, _stage, job) => languageRequired(job));
+  vi.spyOn(contentLanguageApi, "check").mockImplementation(async (_project, _stage, job) => languagePass(job)); host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
 const diagnostic = { code: "binding_revision_changed", owner: "art", field: "art_revision", technicalMessage: "accepted art revision changed" } as const;
@@ -54,6 +58,7 @@ async function renderArtState(state: ArtReviewState) {
   vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
   vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ decisions: [], states: [] });
   await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
+  const languageButton = [...host.querySelectorAll("button")].find(item => item.textContent === "检查当前完整候选语言"); if (languageButton && !languageButton.disabled) await act(async () => languageButton.click());
 }
 
 it("projects the real stage-specific preset shapes and keeps null, empty, and missing Brief direction distinct", () => {
@@ -119,6 +124,7 @@ it.each([ ["prepared", "opening"], ["prepared", "choice"], ["ready", "opening"],
   vi.spyOn(plotloomApi, "getScript").mockResolvedValue(state);
   const reopen = vi.spyOn(plotloomApi, "reopenScript");
   await act(async () => root.render(createElement(ScriptPanel, { projectId: "project", readOnly: false, contextSectionId: sectionId })));
+  const languageButton = [...host.querySelectorAll("button")].find(item => item.textContent === "检查当前完整候选语言"); if (languageButton && !languageButton.disabled) await act(async () => languageButton.click());
   expect(host.textContent).toContain("保留的已确认剧本 r1");
   expect(host.textContent).not.toContain("查看当前已确认剧本");
   expect(host.textContent).not.toContain("当前已确认剧本 r1");
@@ -148,6 +154,7 @@ it.each(["prepared", "ready"] as const)("fresh %s Art candidate cannot reopen re
   vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ decisions: [], states: [] });
   const reopen = vi.spyOn(plotloomApi, "reopenArt");
   await act(async () => root.render(createElement(ArtPanel, { projectId: "project", readOnly: false })));
+  const languageButton = [...host.querySelectorAll("button")].find(item => item.textContent === "检查当前完整候选语言"); if (languageButton && !languageButton.disabled) await act(async () => languageButton.click());
   const button = [...host.querySelectorAll("button")].find(b => b.textContent === "重新打开美术提案")!;
   expect(button.disabled).toBe(true);
   expect(host.querySelector('[aria-label="保留的已确认内容"]')?.textContent).toContain("美术设定版本已变化");
@@ -166,6 +173,7 @@ it("keeps retained Storyboard evidence distinct while a fresh candidate is ready
   };
   vi.spyOn(plotloomApi, "getStoryboardSourceReview").mockResolvedValue(state);
   await act(async () => root.render(createElement(StoryboardReviewPanel, { projectId: "project", readOnly: false, onInstalled: vi.fn(async () => undefined) })));
+  const languageButton = [...host.querySelectorAll("button")].find(item => item.textContent === "检查当前完整候选语言"); if (languageButton && !languageButton.disabled) await act(async () => languageButton.click());
   expect(host.textContent).toContain("查看保留的已确认分镜");
   expect(host.textContent).not.toContain("查看当前已确认分镜");
   expect([...host.querySelectorAll("button")].find(b => b.textContent === "production bridge")?.disabled).toBe(true);

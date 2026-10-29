@@ -53,7 +53,7 @@ it("keeps route-only nodes as controls and surfaces ambiguous or missing frozen 
   expect(host.textContent).toContain("choice · 本对象的冻结绑定明确标为仅控制路线");
   await act(async () => root.render(createElement(ScriptContentReview, { title: "不完整候选", script: { episodes: [{ ep: 2, scenes: [] }, { ep: 2, scenes: [] }] }, binding: { sectionBindings: [{ sectionId: "opening", episode: 2 }, { sectionId: "missing", episode: 4 }], completeRouteSectionIds: [], routeOnlySectionIds: [] } as unknown as ScriptBinding })));
   expect(host.textContent).toContain("不唯一或缺失");
-  expect(host.textContent).toContain("episode 4 在原始剧本中缺失");
+  expect(host.textContent).toContain("章节 4 在原始剧本中缺失");
   expect(host.querySelectorAll(".script-content-mismatch").length).toBeGreaterThanOrEqual(3);
   expect(host.textContent).toContain("查看此对象的冻结绑定与完整原始剧本 JSON");
 });

@@ -1,5 +1,12 @@
 # 0162 — Pre-video autopilot decisions are machine-owned and scoped
 
+
+Current execution policy: [ADR 0225](0225-bounded-generation-retries-and-local-capacity.md)
+supersedes dedicated forensic/no-dispatch recovery, blanket no-retry behavior and
+dead local-slot retention solely due to remote UNKNOWN. New work freezes its
+additional retry allowance; old frozen work gains no retry authority. Snapshot/
+restore and original outcome/cost evidence remain protected.
+
 Status: accepted for implementation, 2026-10-12; source implementation present, release gates pending. The owner selected automatic
 first-pass adoption with one final human review, and existing-app rollout after
 isolated proof, then approved implementing the [plan](../roadmap/2026-10-12-pre-video-autopilot.md)

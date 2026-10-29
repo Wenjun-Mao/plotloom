@@ -27,7 +27,17 @@ from .creative_execution_pins import freeze_execution_pin
 from .creative_terminal import CANDIDATE_ROWS
 
 HEADS = {"outline": SourceOutlineHeadRow, "characters": CastHeadRow, "art": ArtHeadRow, "script": ScriptHeadRow,
-         "storyboard": StoryboardReviewHeadRow}
+         "storyboard": StoryboardReviewHeadRow, "branches": None, "bridge-intent": None, "bridge-presentation": None}
+
+
+def _request_for_row(row):
+    from ...content_language_candidates import row_request
+    return row_request(row)
+
+
+def _candidate_row(session, stage, job_id):
+    from ...content_language_candidates import candidate_row
+    return candidate_row(session, stage, job_id)
 
 
 def correction_job(run_id, rejection, ordinal):
@@ -56,7 +66,7 @@ def assert_correction_lineage(connection, request, *, run_id, operation_key):
     while current.text_correction is not None:
         correction = current.text_correction
         rejection = correction.rejection
-        if (current.content_validation_contract != "plotloom.typed-content-result.v1"
+        if ((current.content_validation_contract != "plotloom.typed-content-result.v1" and rejection.language_check is None)
                 or key != correction_key(current.stage, correction.ordinal)
                 or rejection.stage != current.stage or str(rejection.run_id) != run_id):
             raise ValueError("correction operation differs from its parent stage/run")
@@ -70,24 +80,37 @@ def assert_correction_lineage(connection, request, *, run_id, operation_key):
                 raise ValueError("retained launch cannot acquire explicit extra correction authority")
         else:
             automatic += 1
-        source = _row(connection, "SELECT snapshot FROM v2_autopilot_exec_attempts WHERE id=? AND run_id=?",
+        source = _row(connection, "SELECT snapshot,receipt FROM v2_autopilot_exec_attempts WHERE id=? AND run_id=?",
             (str(rejection.source_attempt_id), run_id))
         attempt = CodexExecAttempt.model_validate_json(source["snapshot"])
         rejection.assert_attempt(attempt)
         parent_key = current.stage if correction.ordinal == 1 else correction_key(current.stage, correction.ordinal - 1)
-        if attempt.content_rejection != rejection or attempt.operation_key != parent_key:
+        from ...autopilot_execution_retry import retry_root
+        if (retry_root(attempt.operation_key) != parent_key
+                or (rejection.language_check is None and attempt.content_rejection != rejection)):
             raise ValueError("correction lacks its immediate parent typed rejection")
+        parent_key = attempt.operation_key
         checkpoint = _row(connection, "SELECT state,evidence FROM v2_autopilot_checkpoints WHERE run_id=? AND operation_key=?",
             (run_id, parent_key))
         evidence = CheckpointEvidence.model_validate_json(checkpoint["evidence"])
-        if (checkpoint["state"] != "failed" or evidence.executor_attempt_id != rejection.source_attempt_id
+        if (checkpoint["state"] != ("delivered" if rejection.language_check else "failed") or evidence.executor_attempt_id != rejection.source_attempt_id
                 or evidence.executor_receipt_hash != attempt.evidence_hash or evidence.job_id != rejection.job_id
                 or evidence.execution_pin != policy.execution_pins[current.stage]):
             raise ValueError("correction parent failed checkpoint changed")
         table = CANDIDATE_ROWS[current.stage].__tablename__
-        original = _row(connection, f'SELECT request FROM "{table}" WHERE job_id=? AND project_id=?',
+        bridge = current.stage.startswith("bridge-")
+        original = _row(connection, f'SELECT {"native_request" if bridge else "request"} AS request FROM "{table}" WHERE {"id" if bridge else "job_id"}=? AND project_id=?',
             (rejection.job_id, current.project_id))
         parent = CreativeHandoffRequest.model_validate_json(original["request"])
+        if rejection.language_check is not None:
+            from ...content_language_rejection import assert_language_rejection
+            from ...codex_exec_contracts import CodexExecReceipt, assert_receipt_matches_attempt
+            original_receipt = CodexExecReceipt.model_validate_json(source["receipt"])
+            assert_receipt_matches_attempt(attempt, original_receipt)
+            if (original_receipt.text_validation is None
+                    or original_receipt.text_validation.candidate_hash != rejection.candidate_hash):
+                raise ValueError("language correction original bytes differ from creation receipt")
+            assert_language_rejection(connection, rejection, parent, attempt)
         parent_ordinal = parent.text_correction.ordinal if parent.text_correction else 0
         if parent_ordinal != correction.ordinal - 1 or request_hash(parent) != rejection.request_hash:
             raise ValueError("correction parent ordinal or request changed")
@@ -96,7 +119,7 @@ def assert_correction_lineage(connection, request, *, run_id, operation_key):
             raise ValueError("correction changed frozen source/style/upstream authority")
         if current.job_id != correction_job(run_id, rejection, correction.ordinal):
             raise ValueError("correction deterministic identity changed")
-        current, key = parent, parent_key
+        current, key = parent, retry_root(parent_key)
     if key != current.stage:
         raise ValueError("ordinary creative job cannot claim a correction operation")
     if automatic > automatic_correction_limit(policy, request.stage):
@@ -111,7 +134,7 @@ class AutopilotTextCorrectionPersistence:
             checkpoints = session.scalars(select(AutopilotCheckpointRow).where(
                 AutopilotCheckpointRow.run_id == run_id)).all()
             return sum(1 for c in checkpoints if c.evidence["owner"] == stage
-                and (request := CreativeHandoffRequest.model_validate(session.get(CANDIDATE_ROWS[stage], c.evidence["jobId"]).request)).text_correction
+                and (request := _request_for_row(_candidate_row(session, stage, c.evidence["jobId"]))).text_correction
                 and request.text_correction.manual_grant is None)
 
     def prepare_text_correction(self, original_request, rejection, prior_candidate_json):
@@ -135,7 +158,7 @@ class AutopilotTextCorrectionPersistence:
                 if checkpoint.evidence.get("owner") not in HEADS:
                     continue
                 candidate = session.get(CANDIDATE_ROWS[checkpoint.evidence["owner"]], checkpoint.evidence["jobId"])
-                retained = CreativeHandoffRequest.model_validate(candidate.request)
+                retained = _request_for_row(candidate)
                 correction = retained.text_correction
                 if correction and correction.manual_grant and correction.manual_grant.command_id == grant.command_id:
                     if correction.manual_grant != grant:
@@ -173,7 +196,7 @@ class AutopilotTextCorrectionPersistence:
         existing = session.scalar(select(AutopilotCheckpointRow).where(
             AutopilotCheckpointRow.run_id == run.id, AutopilotCheckpointRow.operation_key == key))
         if existing is not None:
-            retained = CreativeHandoffRequest.model_validate(session.get(CANDIDATE_ROWS[parent.stage], existing.evidence["jobId"]).request)
+            retained = _request_for_row(_candidate_row(session, parent.stage, existing.evidence["jobId"]))
             if retained.text_correction != correction:
                 raise InvalidTransitionError("corrective identity already owns different immutable feedback")
             return retained
@@ -187,18 +210,41 @@ class AutopilotTextCorrectionPersistence:
         connection = session.connection().connection.driver_connection
         assert_correction_lineage(connection, request, run_id=run.id, operation_key=key)
         row_type = CANDIDATE_ROWS[request.stage]
-        original = session.get(row_type, parent.job_id)
-        head = session.get(HEADS[request.stage], run.project_id)
-        if (original is None or original.status != "prepared" or original.manifest_hash is not None
-                or head is None or head.candidate_job_id != parent.job_id
-                or original.request != parent.model_dump(mode="json", by_alias=True)):
+        original = _candidate_row(session, parent.stage, parent.job_id)
+        head = session.get(HEADS[request.stage], run.project_id) if HEADS[request.stage] is not None else None
+        semantic = rejection.language_check is not None
+        expected_status = {"ready"} if semantic else {"prepared"}
+        if semantic and request.stage.startswith("bridge-"):
+            expected_status = {"dispatched"}
+        current = head.candidate_job_id == parent.job_id if head is not None else True
+        if request.stage == "branches":
+            from .branches import ProjectBranchPersistence
+            current = ProjectBranchPersistence._latest(session, run.project_id).job_id == parent.job_id
+        if (original is None or original.status not in expected_status or not current
+                or _request_for_row(original) != parent):
             raise InvalidTransitionError("rejected candidate is no longer current and unreceived")
         values = {column.key: getattr(original, column.key) for column in row_type.__table__.columns}
         now = utc_now()
-        values.update(job_id=request.job_id, request=request.model_dump(mode="json", by_alias=True), created_at=now)
+        if request.stage.startswith("bridge-"):
+            from ..schema import ProductionBridgeHeadRow
+            bridge_head = session.get(ProductionBridgeHeadRow, run.project_id)
+            if bridge_head.revision != original.proposal_revision or bridge_head.status == "accepted":
+                raise InvalidTransitionError("rejected bridge proposal is no longer current")
+            values.update(id=request.job_id, native_request=request.model_dump(mode="json", by_alias=True),
+                status="queued", created_at=now, updated_at=now, dispatched_at=None, response_evidence=None,
+                response_hash=None, candidate=None, provider_request_id=None, usage=None, error_code=None,
+                error_message=None, result_proposal_revision=None,
+                prompt_trace=original.prompt_trace | {"rendered_hash": request_hash(request)})
+        else:
+            candidate_field = {"outline": "outline", "branches": "outline", "characters": "cast", "art": "art",
+                               "script": "script", "storyboard": "storyboard"}[request.stage]
+            values.update(job_id=request.job_id, request=request.model_dump(mode="json", by_alias=True),
+                status="prepared", created_at=now, delivery_id=None, manifest_hash=None, report_html=None,
+                delivered_at=None, **{candidate_field: None})
         session.add(row_type(**values))
         freeze_execution_pin(session, request, policy.execution_pins[request.stage])
-        head.candidate_job_id, head.updated_at = request.job_id, now
+        if head is not None:
+            head.candidate_job_id, head.updated_at = request.job_id, now
         session.flush()
         evidence = CheckpointEvidence(owner=request.stage, subject_id=request.job_id, job_id=request.job_id,
             request_hash=request_hash(request), execution_pin=policy.execution_pins[request.stage],
@@ -219,7 +265,7 @@ class AutopilotTextCorrectionPersistence:
 
 def superseded_text_failure(session, run, attempt_row, checkpoint):
     """A rejected ancestor is superseded only by its validated immediate child."""
-    if checkpoint.state != "failed" or attempt_row.snapshot.get("contentRejection") is None:
+    if checkpoint.state not in {"failed", "delivered"}:
         return False
     stage = checkpoint.evidence["owner"]
     ordinal = checkpoint.evidence["result"].get("correctionOrdinal", 0) + 1
@@ -228,7 +274,12 @@ def superseded_text_failure(session, run, attempt_row, checkpoint):
     if linked is None:
         return False
     row = session.get(CANDIDATE_ROWS[stage], linked.evidence["jobId"])
-    request = CreativeHandoffRequest.model_validate(row.request)
+    request = _request_for_row(row)
+    correction = request.text_correction
+    if correction is None or (checkpoint.state == "delivered") != (correction.rejection.language_check is not None):
+        return False
+    if checkpoint.state == "failed" and attempt_row.snapshot.get("contentRejection") is None:
+        return False
     assert_correction_lineage(session.connection().connection.driver_connection, request,
         run_id=run.id, operation_key=linked.operation_key)
     return str(request.text_correction.rejection.source_attempt_id) == attempt_row.id

@@ -1,3 +1,4 @@
+import { supportsCreativeLanguage } from "../creative-language";
 import { VideoBatchPanel } from "../features/video-batch/VideoBatchPanel";
 import { revealWorkspaceTarget } from "../app/workspace/completionReveal";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -91,6 +92,7 @@ function referenceOptions(bible: StoryBible): EntityOption[] {
 
 export function StoryboardPage({
   bible,
+  language = "zh-CN",
   graph,
   sceneBeats,
   value,
@@ -121,6 +123,7 @@ export function StoryboardPage({
   graph: StoryGraph;
   sceneBeats: SceneBeatPlan;
   value: Storyboard;
+  language?: string;
   stale: boolean;
   mediaTasks: Record<string, MediaTask>;
   saving: boolean;
@@ -311,7 +314,7 @@ export function StoryboardPage({
       locationId: scene.locationId,
       entryState: scene.entryState,
       exitState: scene.exitState,
-    });
+    }, language);
     update((current) => addShot(current, shot));
     selectShot(shot.id);
   };
@@ -432,7 +435,7 @@ export function StoryboardPage({
       <div className="shot-groups">
         {!visible.length && <EmptyState title="这条路径没有分镜">切换到“全部场景”，或先准备分镜。</EmptyState>}
         {visible.map((group, groupIndex) => <section className="shot-group" key={group.sceneId}>
-          <header><div><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.title}</strong></div><div><small>{group.shots.length} 个镜头 · 故事节点 {group.storyNodeId}</small><Button variant="quiet" data-testid={`add-shot-${group.sceneId}`} onClick={() => addShotToScene(group.sceneId)}>＋ 镜头</Button></div></header>
+          <header><div><span>{String(groupIndex + 1).padStart(2, "0")}</span><strong>{group.title}</strong></div><div><small>{group.shots.length} 个镜头 · 故事节点 {group.storyNodeId}</small><Button variant="quiet" disabled={!supportsCreativeLanguage(language)} data-testid={`add-shot-${group.sceneId}`} onClick={() => addShotToScene(group.sceneId)}>＋ 镜头</Button></div></header>
           <div className="shot-strip">
             {group.shots.map((shot) => {
               const imageTask = mediaTasks[`${shot.id}:image`];

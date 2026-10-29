@@ -16,7 +16,7 @@ def test_setup_draft_and_explicit_start_have_separate_authority(tmp_path):
     assert ready["state"] == "ready" and ready["manifestHash"] != view["manifestHash"]
     assert all("reviewedEnglish" not in target["directions"] for target in ready["manifest"]["targets"])
     with pytest.raises(InvalidTransitionError):
-        service.start(project_id, BatchStart(expectedRevision=ready["revision"], manifestHash=view["manifestHash"], basis="whole-batch-english.v1"))
+        service.start(project_id, BatchStart(expectedRevision=ready["revision"], manifestHash=view["manifestHash"], basis="production-intent.v2"))
     started = start_batch(service, project_id, ready)
     assert started["state"] == "running" and not provider.submits
     service.step(project_id)  # prepare only, linked atomically

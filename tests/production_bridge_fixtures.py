@@ -27,6 +27,7 @@ def _source_shaped_review_board(
                 "camera": "Static Shot",
                 "characters": [],
                 "props": [],
+                "composition": "黎明时空的航标室，中景，静止构图。",
                 "frame": "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9",
             }
             for beat_range in beat_ranges
@@ -53,6 +54,7 @@ def _source_shaped_review_board(
         }
 
     return {
+        "lang": "zh",
         "source": "Tide Light",
         "params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15},
         "episodes": [

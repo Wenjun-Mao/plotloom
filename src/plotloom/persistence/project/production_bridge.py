@@ -259,6 +259,18 @@ class ProductionBridgePersistence(ProductionBridgeProjection, ProductionBridgePr
             if adoption is not None and (package.review_state != "model_suggested" or package.provenance.get("jobId") != adoption.job_id
                     or updates != {entry.id: entry.suggested_text for entry in package.entries}):
                 raise InvalidTransitionError("machine intent adoption cannot alter native suggestion text")
+            if package.suggestion_origin == "codex_native.v1":
+                from ...content_language_candidates import candidate_row, require_generated_bridge_edit
+                job_id = package.provenance.get("jobId")
+                job = candidate_row(session, "bridge-intent", job_id)
+                if job is None or job.candidate is None:
+                    raise InvalidTransitionError("native intent candidate evidence is missing")
+                candidate = job.candidate
+                from ...production_bridge_intent_contract import bind_intent_suggestions
+                if bind_intent_suggestions(candidate, list(updates)) != updates:
+                    candidate = candidate | {"entries": [{"id": item["id"], "suggestedText": updates[item["id"]]}
+                                                         for item in candidate["entries"]]}
+                require_generated_bridge_edit(session, project_id, job_id, "bridge-intent", candidate)
             updated = ProductionBridgeIntentPackage(
                 suggestion_origin=package.suggestion_origin, review_state="ai_adopted" if adoption else "author_saved", machine_adoption=adoption,
                 entries=[entry.model_copy(update={"text": updates[entry.id]}) for entry in package.entries],

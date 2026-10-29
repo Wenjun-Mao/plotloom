@@ -124,7 +124,8 @@ class CodexExecSupervisorLedgerMixin:
         attempt = CodexExecAttempt.model_validate_json(row["status_json"])
         receipt = CodexExecReceipt.model_validate_json(row["receipt_json"]) if row["receipt_json"] else None
         enabled = self._dispatch_enabled(attempt.attempt_id) if attempt.state in {"queued", "spawn_intent"} else None
-        return self._status(attempt, receipt, dispatch_enabled=enabled)
+        status = self._status(attempt, receipt, dispatch_enabled=enabled)
+        return status.model_copy(update={"local_execution_stopped": bool(self._local_execution_stopped(row))})
 
     def _store(self, attempt, *, receipt=None, manifest_json=None, preserve_manifest=True):
         from plotloom.codex_exec_contracts import (
@@ -205,7 +206,7 @@ class CodexExecSupervisorLedgerMixin:
             )
             self._qualification_terminal(connection, updated)
             if updated.state in {"completed", "failed", "settled"}:
-                connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
+                self._release_terminal_slot_in_transaction(connection, updated)
                 self._forget_terminal_queue(connection, attempt.attempt_id)
             connection.commit()
             return updated
@@ -217,8 +218,13 @@ class CodexExecSupervisorLedgerMixin:
             (attempt.model_dump_json(by_alias=True), time.time(), str(attempt.attempt_id)),
         )
         if attempt.state in {"completed", "failed", "settled"}:
-            connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
+            self._release_terminal_slot_in_transaction(connection, attempt)
             self._forget_terminal_queue(connection, attempt.attempt_id)
+
+    def _release_terminal_slot_in_transaction(self, connection, attempt):
+        row = connection.execute("SELECT * FROM exec_attempts WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
+        if row is not None and self._local_execution_stopped(dict(row) | {"status_json":attempt.model_dump_json(by_alias=True)}):
+            connection.execute("DELETE FROM exec_slot WHERE attempt_id=?", (str(attempt.attempt_id),))
 
     def _settle_not_started_in_transaction(self, connection, row, current, *, worker_identity=None):
         from plotloom.codex_exec_contracts import transition_exec_attempt

@@ -92,13 +92,6 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
   expect(prepared.snapshot.request).toMatchObject({ durationSeconds: 8, frameCount: 192, fps: 24, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false });
 
-  await panel.getByRole("button", { name: "提交一次" }).click();
-  const reconcile = page.waitForResponse((response) => (
-    response.request().method() === "POST"
-    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs/${prepared.id}/reconcile`
-  ));
-  await panel.getByRole("button", { name: "获取结果" }).click();
-  expect((await reconcile).ok()).toBeTruthy();
   await expect(page.getByTestId(`video-job-player-${prepared.id}`)).toBeVisible();
   const segment = panel.getByTestId(`video-segment-review-${prepared.id}`);
   await segment.getByRole("button", { name: "准备播放片段" }).click();

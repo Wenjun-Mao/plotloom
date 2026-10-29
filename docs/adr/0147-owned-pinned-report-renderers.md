@@ -25,7 +25,7 @@ expected upstream. Initial published pin `266af294da035324139202235430ffd68f5b87
 is on `codex/plotloom-report-context`. The evaluated/skip correction is published
 at `4f9b2128c82adf623f594ba714c97d0afcfc16a2` on
 `codex/plotloom-evaluated-report-gates`; no later breaking release was adopted.
-Keep an exact published commit as the parent submodule gitlink. Preserve legal
+Keep an exact retained commit as the parent submodule gitlink. Preserve legal
 notices and prominently identify modified files and fork provenance.
 
 The bounded delta is:
@@ -60,7 +60,7 @@ all entries and does not imply one complete playback route.
 Presentation helpers stay local to independently copyable skills, rather than
 introducing cross-skill imports. A byte-parity regression protects their common
 contract. There is no old-result adapter or automatic accepted-report rewrite.
-The correction requires a new published pin for future frozen deliveries;
+The correction requires a new exact retained pin for future frozen deliveries;
 earlier reports keep their original pin, bytes and truthful audit limitations.
 
 Verify fork ownership/parent, clean submodule HEAD equal to the parent gitlink,
@@ -70,3 +70,13 @@ limits, truthful execution wording, unchanged JSON and all three desktop sizes.
 Requalify new execution pins and explicitly rebuild affected dependencies where
 their existing hash contracts require it. No provider dispatch or creative
 acceptance follows automatically from a renderer correction.
+
+## Local-pin qualification amendment · 2026-10-28
+
+The owner-authorized project-language delivery may qualify and activate an exact
+locally retained owned-fork commit without publishing it. The fork must be clean,
+the parent gitlink committed, and all required source/resources/package checks
+must bind that exact commit. Another host may depend on it only after publication
+or an explicit Git object transfer. Preserve license/fork notices and reproducible
+resource hashes. This is not push/CI authority, and never replaces a pin inside
+an older immutable package or report.

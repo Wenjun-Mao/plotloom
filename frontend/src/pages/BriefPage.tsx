@@ -1,3 +1,4 @@
+import { canonicalBriefTitle, supportsCreativeLanguage } from "../creative-language";
 import { useContext, useState } from "react";
 import type { ProjectBrief, StoryBible, StoryGraph } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
@@ -31,8 +32,6 @@ type BriefPageProps = {
   onContinueToPlanning?: () => void;
 };
 
-const defaultWorkingTitle = "未命名故事";
-
 /**
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
@@ -54,14 +53,15 @@ export function BriefPage({ apiTextPipeline = null, value, savedValue = value, h
   });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, raw as unknown as ProjectBrief[K]);
   const canonicalDraft = (): ProjectBrief => {
-    const next = { ...draft, title: draft.title.trim() || defaultWorkingTitle };
+    const next = { ...draft, title: canonicalBriefTitle(draft.title, draft.language) };
     for (const key of ["targetPlaythroughSeconds", "decisionPointsPerPath", "endingCount", "nodeBudget", "maxOutDegree", "desiredJoinCount", "shotsPerSceneMin", "shotsPerSceneMax"] as const) next[key] = Number(draft[key]);
     return next;
   };
   const savedVisualDirection = [...(savedValue.visualStyleSelections || []).map(item => item.value), ...(savedValue.visualStyle ? [savedValue.visualStyle] : [])].join("；") || null;
   const validDuration = String(draft.targetPlaythroughSeconds).trim() !== "" && Number.isInteger(Number(draft.targetPlaythroughSeconds)) && Number(draft.targetPlaythroughSeconds) >= 3;
-  const canSave = !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
-  const saveHint = readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后可选择自动准备素材，或继续手动创作；保存本身不会启动任务。";
+  const supportedLanguage = supportsCreativeLanguage(draft.language);
+  const canSave = supportedLanguage && !readOnly && !saving && Boolean(draft.synopsis.trim()) && validDuration;
+  const saveHint = !supportedLanguage ? "此项目语言暂不支持新创作；请选择简体中文或英语。" : readOnly ? "项目当前只读，无法保存修改。" : saving ? "正在保存，请稍候。" : !draft.synopsis.trim() ? "填写故事梗概后即可保存；片名可稍后补充。" : !validDuration ? "目标游玩时长需填写至少 3 秒的整数。" : hasSavedProject ? "保存修改不会覆盖已确认的来源内容。" : "保存后可选择自动准备素材，或继续手动创作；保存本身不会启动任务。";
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
   const decisions = graph?.nodes.filter((node) => node.kind === "decision") || [];
   const endings = graph?.nodes.filter((node) => node.kind === "ending") || [];
@@ -83,12 +83,12 @@ export function BriefPage({ apiTextPipeline = null, value, savedValue = value, h
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
-        <Field label="片名" hint="可选工作片名；留空时保存为“未命名故事”。"><input placeholder={defaultWorkingTitle} value={draft.title} onChange={(event) => set("title", event.target.value)} /></Field>
+        <Field label="片名" hint="可选工作片名；留空时按项目语言保存默认片名。"><input placeholder="填写工作片名（可稍后修改）" value={draft.title} onChange={(event) => set("title", event.target.value)} /></Field>
         <Field label="故事梗概" required><textarea aria-required="true" rows={5} placeholder="主角遇到了什么？观众可以替主角做什么选择？不同选择会带来怎样的结局？" value={draft.synopsis} onChange={(event) => set("synopsis", event.target.value)} /></Field>
         <div className="brief-directions"><DirectionPresets label="类型" groups={genreGroups} selections={draft.genreSelections || []} detail={draft.genre || ""} disabled={readOnly || saving} onSelections={value => set("genreSelections", value)} onDetail={value => set("genre", value)} />
         <DirectionPresets label="视觉风格" groups={visualGroups} selections={draft.visualStyleSelections || []} detail={draft.visualStyle || ""} disabled={readOnly || saving} onSelections={value => set("visualStyleSelections", value)} onDetail={value => set("visualStyle", value)} /></div>
         <div className="field-grid three">
-          <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
+          <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}>{!supportedLanguage && <option value={draft.language}>原项目语言：{draft.language}</option>}<option value="zh-CN">简体中文</option><option value="en-US">英语</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
           <Field label="目标游玩时长（秒）" required hint="至少 3 秒；这是创作目标，不是最终播放时长的承诺。"><input aria-required="true" type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /></Field>
         </div>

@@ -206,7 +206,11 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
         row = _row(connection, f'SELECT * FROM "{table}" WHERE {"id" if bridge else "job_id"}=?', (evidence.job_id,))
         request = CreativeHandoffRequest.model_validate_json(row["native_request" if bridge else "request"])
         from .autopilot_text_correction import assert_correction_lineage
-        assert_correction_lineage(connection, request, run_id=run_id, operation_key=operation_key)
+        from .autopilot_execution_retry import assert_execution_retry_lineage
+        semantic_key = assert_execution_retry_lineage(connection, run_id=run_id, operation_key=operation_key, evidence=evidence)
+        from .autopilot_execution_retry import creative_retry_origin
+        semantic_request = creative_retry_origin(connection, run_id=run_id, evidence=evidence) if evidence.result.get("executionRetry") else request
+        assert_correction_lineage(connection, semantic_request, run_id=run_id, operation_key=semantic_key)
         if request.text_correction is not None:
             rejection = request.text_correction.rejection
             expected_correction = {"sourceAttemptId": str(rejection.source_attempt_id),
@@ -245,7 +249,7 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
                     != CREATIVE_CANDIDATE_FILENAMES[request.stage]
                 ):
                     raise ValueError("Codex Exec receipt differs from the frozen creative validation evidence")
-        proof = json.loads(row["response_evidence"] or "{}").get("manifestHash") if bridge else row["manifest_hash"]
+        proof = (json.loads(row["response_evidence"] or "{}") or {}).get("manifestHash") if bridge else row["manifest_hash"]
     elif owner in IMAGE_OWNERS:
         table, delivery_table, foreign_key = IMAGE_OWNERS[owner]
         row = _row(connection, f'SELECT * FROM "{table}" WHERE id=?', (evidence.job_id,))
@@ -264,11 +268,13 @@ def _assert_checkpoint_binding(connection, project_id, state, evidence, *, run_i
                 or request.get("specialistPreflight") != evidence.execution_pin):
             raise ValueError("image checkpoint frozen owner binding changed")
         profile = frozen_policy.get("executorBinding", {})
+        from .autopilot_execution_retry import assert_execution_retry_lineage
+        semantic_key = assert_execution_retry_lineage(connection,run_id=run_id,operation_key=operation_key,evidence=evidence)
         if owner == "character-reference" and profile.get("contractVersion") == "plotloom.codex-exec.v8":
             cast_subject = subject.get("acceptedCast", {}).get("castCharacterId")
             consumer = subject.get("characterContext", {}).get("characterId")
             if (not cast_subject or consumer != evidence.subject_id
-                    or operation_key != f"character-reference:{cast_subject}"):
+                    or semantic_key != f"character-reference:{cast_subject}"):
                 raise ValueError("Cast operation and consumer proposal identities differ from frozen provenance")
         proofs = list(connection.execute(f'SELECT manifest_hash,manifest,id,state FROM "{delivery_table}" WHERE "{foreign_key}"=? AND manifest_hash IS NOT NULL', (evidence.job_id,)))
         retained = next((item for item in proofs if item[0] == evidence.delivery_hash), None)

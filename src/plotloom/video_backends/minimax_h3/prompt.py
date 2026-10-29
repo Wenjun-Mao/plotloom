@@ -34,6 +34,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     if camera:
         description.append(rendered["shot.cameraMovement"])
 
+    if "languageContract" in snapshot:
+        from .production_details import append_production_details
+        append_production_details(description, shot, rendered)
+
     for visible in shot.get("visibleTexts", []):
         description.append(
             "Show this exact authored diegetic visible text, without speaking it or adding captions: "
@@ -50,14 +54,14 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     events = shot.get("audioPlan", {}).get("events", [])
     for event_index, event in enumerate(events):
         if event.get("kind") in {"diegetic_sound", "diegetic_music"} and event.get("description"):
-            description.append(rendered[f"shot.audioPlan.events.{event_index}.description"])
+            description.append(_timed_event(snapshot, event_index, rendered))
     for cue_index, cue in enumerate(cues):
         text = str(cue.get("text") or "")
         if not text:
             continue
         # A duplicate line in action or visual intent is ambiguous: the
         # author must resolve it before the provider sees a second utterance.
-        if any(text in str(shot.get(field) or "") for field in ("composition", "visualIntent", "action", "motionIntent", "cameraMovement")) or any(text in str(event.get("description") or "") for event in events):
+        if "languageContract" not in snapshot and (any(text in str(shot.get(field) or "") for field in ("composition", "visualIntent", "action", "motionIntent", "cameraMovement")) or any(text in str(event.get("description") or "") for event in events)):
             raise ValueError("dialogue is repeated in the authored shot description")
         identity = str(cue.get("speakerId") or cue.get("voiceOver") or "")
         if not identity:
@@ -103,14 +107,14 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     description.append("Do not add text overlays or words absent from the reviewed pictures and authored shot.")
 
     soundscape = " ".join(
-        rendered[f"shot.audioPlan.events.{index}.description"]
+        _timed_event(snapshot, index, rendered)
         for index, event in enumerate(events)
         if event.get("kind") in {"ambience", "sound_effect"} and event.get("description")
     )
     if not soundscape:
         soundscape = rendered["reviewedSoundscape"]
     music = " ".join(
-        rendered[f"shot.audioPlan.events.{index}.description"]
+        _timed_event(snapshot, index, rendered)
         for index, event in enumerate(events)
         if event.get("kind") == "score" and event.get("description")
     ) or "N/A"
@@ -130,6 +134,16 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         f"overall_soundscape: {soundscape}\n\n"
         f"non_diegetic_music: {music}"
     )
+
+
+def _timed_event(snapshot, index, rendered):
+    text = rendered[f"shot.audioPlan.events.{index}.description"]
+    if "languageContract" not in snapshot:
+        return text
+    event = snapshot["shot"]["audioPlan"]["events"][index]
+    start = event["startOffsetUnits"] / 1000
+    end = (event["startOffsetUnits"] + event["durationUnits"]) / 1000
+    return f"From {start:.3f}s to {end:.3f}s: {text}"
 
 
 def _language(value: object) -> str:

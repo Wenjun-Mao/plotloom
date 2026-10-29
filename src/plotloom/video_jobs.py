@@ -66,6 +66,7 @@ class VideoJobService:
         playback_intent: str = "source_exact",
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
+        automatic_retry_limit: int = 1,
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
         self.repository.assert_video_authority(project_id)
@@ -92,6 +93,7 @@ class VideoJobService:
             playback_intent=playback_intent,
             reviewed_directions=reviewed_directions,
             preview_only=preview_only,
+            automatic_retry_limit=automatic_retry_limit,
             production_contract=contract,
             backend_binding=self.backend_binding,
         )
@@ -104,6 +106,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
+            "plotloom.h3-production-brief.v7",
             "plotloom.h3-reviewed-frame.v6-shot-presentation", "plotloom.h3-reviewed-frame.v5-presentation", "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
         }:
             prompt = snapshot.get("compiledPrompt")
@@ -276,6 +279,12 @@ class VideoJobService:
             # The state stays outcome_unknown because a claimed remote POST is
             # not safely replayable. The code only identifies the local phase.
             return self.repository.record_video_outcome_unknown(project_id, video_job_id, error.diagnostic.outcome_error)
+        except VideoProviderError as error:
+            # Only exact local diagnostic codes are public. Provider text, URLs
+            # and bodies never enter project state or retry classification.
+            safe = {"h3_gateway_credential_unavailable", "h3_gateway_profile_unavailable"}
+            code = str(error) if str(error) in safe else "dispatch_outcome_unknown"
+            return self.repository.record_video_outcome_unknown(project_id, video_job_id, code)
         except Exception:
             # It is unsafe to infer that the remote POST did not begin.
             return self.repository.record_video_outcome_unknown(project_id, video_job_id, "dispatch_outcome_unknown")

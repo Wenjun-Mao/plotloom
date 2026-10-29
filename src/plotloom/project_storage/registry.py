@@ -83,6 +83,9 @@ class ProjectDirectoryRegistry:
         # This keeps an idempotent retry reservation recoverable only after a
         # complete project initialization can actually begin.
         validate_initial_stage_prefix(initial_stages)
+        if brief is not None:
+            from ..language_policy import supported_content_locale
+            supported_content_locale(brief.language)
         values: dict[str, object] = {"brief": brief}
         if project_id is not None:
             values["id"] = project_id

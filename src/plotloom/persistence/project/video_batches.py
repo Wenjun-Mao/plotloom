@@ -37,9 +37,9 @@ class VideoBatches:
             row = self.latest(session, project_id)
             if row is None:
                 return False
-            draft = row.execution.get("draft")
-            unsettled_draft = draft and draft["attempt"]["state"] not in {"completed", "failed", "settled"}
-            return bool(row.state in {"running", "drafting"} or unsettled_draft or self._known_predictions(session, project_id))
+            pending = [row.execution.get(key) for key in ("draft", "fidelity")]
+            unsettled_draft = any(data and data["attempt"]["state"] not in {"completed", "failed", "settled"} for data in pending)
+            return bool(row.state in {"running", "drafting", "checking"} or unsettled_draft or self._known_predictions(session, project_id))
 
     def current(self, project_id):
         with self.access.read() as session:

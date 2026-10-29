@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from pydantic import Field
 
 from plotloom.domain_base import CamelModel
+
 from ..video_batch_contracts import (
     BatchConfirmation,
     BatchControl,
@@ -48,6 +49,11 @@ def register_video_batch_runtime(app, storage, registry, video):
     def replace_rejected(project_id: str, body: BatchRejectedReplacement):
         return service.replace_rejected(project_id, body)
 
+    from ..generation_retry_policy import ManualExecutionRetry
+    @app.post(prefix + "/retry-execution")
+    def retry_execution(project_id: str, body: ManualExecutionRetry):
+        return service.retry_execution(project_id, body)
+
     @app.post(prefix + "/draft")
     def draft(project_id: str, body: DraftRequest):
         return service.draft(project_id, body.expected_revision)
@@ -55,6 +61,10 @@ def register_video_batch_runtime(app, storage, registry, video):
     @app.post(prefix + "/directions")
     def edit(project_id: str, body: EditDirections):
         return service.edit_directions(project_id, body.expected_revision, body.draft)
+
+    @app.post(prefix + "/check")
+    def check(project_id: str, body: DraftRequest):
+        return service.check_directions(project_id, body.expected_revision)
 
     @app.post(prefix + "/start")
     def start(project_id: str, body: BatchStart):

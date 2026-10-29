@@ -1,3 +1,8 @@
+import { batchApi } from "../src/features/video-batch/api";
+import { projectQaApi } from "../src/components/ProjectQaContext";
+import { readyProductionBatch } from "./h3-production-fixtures";
+import type { Batch } from "../src/features/video-batch/contracts";
+import type { VideoJobPrepareBody } from "../src/api";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -52,7 +57,7 @@ const source = (hash = "c"): H3PromptPreview => ({
   sourceHash: hash.repeat(64), compiledPrompt: null,
   sources: [{ path: "shot.action", text: "A1 authored action", label: "动作" }],
 });
-const compiled = { ...source(), compiledPrompt: "Exact reviewed prompt", compiledPromptSha256: "d".repeat(64) };
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: Error) => void;
@@ -60,9 +65,9 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 const button = (name: string) => Array.from(host.querySelectorAll<HTMLButtonElement>("button")).find((item) => item.textContent === name)!;
-const editor = () => host.querySelector<HTMLTextAreaElement>('.h3-direction-field textarea')!;
+const editor = () => host.querySelector<HTMLTextAreaElement>('.h3-directions-review textarea')!;
 const seed = () => host.querySelector<HTMLInputElement>('[aria-label="H3 随机种子"]')!;
-const consent = () => host.querySelector<HTMLInputElement>('.h3-direction-check input')!;
+const authorityDisabled = () => !button("授权本镜头制作意图并开始生成") || button("授权本镜头制作意图并开始生成").disabled;
 async function settle() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
 async function click(name: string) { await act(async () => button(name).click()); await settle(); }
 async function edit(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
@@ -84,11 +89,12 @@ async function render(lifecycleRevision?: number, readOnly = false) {
 async function beginReview() {
   await render(); await edit(seed(), "4215546708741480"); await click("读取当前来源");
   await edit(editor(), "The keeper crosses the doorway.");
-  await act(async () => consent().click());
 }
 async function poll() { await act(async () => vi.advanceTimersByTimeAsync(3_000)); await settle(); }
 
 beforeEach(() => {
+  vi.spyOn(batchApi, "current").mockResolvedValue(null);
+  vi.spyOn(projectQaApi, "current").mockResolvedValue({ eligible: false, required: false, attribution: null });
   vi.useFakeTimers(); sessionStorage.clear(); localStorage.clear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(plotloomApi, "getImageJobs").mockResolvedValueOnce({ configured: true, jobs: [exported] })
@@ -108,58 +114,57 @@ it.each(["c", "e"])("retains seed through unrelated polling and reuses English o
   const pending = deferred<VisualWorkbench>();
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot()).mockReturnValueOnce(pending.promise);
   const preview = vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source())
-    .mockResolvedValueOnce(compiled).mockResolvedValueOnce(source(hash)).mockResolvedValueOnce(compiled);
+    .mockResolvedValueOnce(source(hash));
   const freeze = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue({} as never);
-  await beginReview(); await click("预览完整 H3 提示词");
-  expect(button("冻结此说明并准备原片")).toBeDefined();
+  await beginReview();
+  expect(authorityDisabled()).toBe(true);
   await poll();
   expect(vi.mocked(plotloomApi.refreshImageJob)).toHaveBeenCalledWith("project", exported.id);
   expect(seed().value).toBe("4215546708741480"); expect(editor().value).toBe("The keeper crosses the doorway.");
-  expect(editor().disabled).toBe(true); expect(consent().checked).toBe(false);
-  expect(button("读取当前来源").disabled).toBe(true); expect(button("冻结此说明并准备原片")).toBeUndefined();
-  await click("读取当前来源"); expect(preview).toHaveBeenCalledTimes(2); expect(freeze).not.toHaveBeenCalled();
+  expect(editor().disabled).toBe(true); expect(authorityDisabled()).toBe(true);
+  expect(button("读取当前来源").disabled).toBe(true); expect(authorityDisabled()).toBe(true);
+  await click("读取当前来源"); expect(preview).toHaveBeenCalledTimes(1); expect(freeze).not.toHaveBeenCalled();
   await act(async () => pending.resolve(snapshot(binding, 8))); await settle();
   expect(seed().value).toBe("4215546708741480"); expect(editor().disabled).toBe(true);
-  expect(button("预览完整 H3 提示词").disabled).toBe(true);
+  expect(authorityDisabled()).toBe(true);
   await click("读取当前来源");
-  expect(preview.mock.calls[2][1]).toMatchObject({ seed: 4215546708741480, expectedSelectionRevision: 8 });
+  expect(preview.mock.calls[1][1]).toMatchObject({ seed: 4215546708741480, expectedSelectionRevision: 8 });
   expect(editor().value).toBe(hash === "c" ? "The keeper crosses the doorway." : "");
-  expect(consent().checked).toBe(false); expect(freeze).not.toHaveBeenCalled();
-  if (hash === "c") {
-    await act(async () => consent().click()); await click("预览完整 H3 提示词");
-    await click("冻结此说明并准备原片");
-    expect(freeze).toHaveBeenCalledWith("project", expect.objectContaining({
-      seed: 4215546708741480, expectedSelectionRevision: 8,
-      reviewedDirections: expect.objectContaining({ sourceHash: "c".repeat(64) }),
-    }));
-  }
+  expect(authorityDisabled()).toBe(true); expect(freeze).not.toHaveBeenCalled();
+  // Preserved prose is only an editable candidate. The new request must still
+  // acquire a complete brief and independent check before generation authority.
+  expect(button("准备本镜头制作简报")).toBeDefined(); expect(freeze).not.toHaveBeenCalled();
 });
 
-it.each([["read", "resolve"], ["read", "reject"], ["preview", "resolve"], ["preview", "reject"]])("ignores late %s/%s callbacks withdrawn by polling and retains buffer through read failure/retry", async (operation, disposition) => {
+it.each([["read", "resolve"], ["read", "reject"], ["setup", "resolve"], ["setup", "reject"]])("ignores late %s/%s callbacks withdrawn by polling and retains buffer through read failure/retry", async (operation, disposition) => {
   const pendingMedia = deferred<VisualWorkbench>();
   const reconciliationRetry = deferred<VisualWorkbench>();
   const pendingPrompt = deferred<H3PromptPreview>();
+  const pendingSetup = deferred<Batch>();
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValueOnce(snapshot())
     .mockReturnValueOnce(pendingMedia.promise).mockReturnValueOnce(reconciliationRetry.promise).mockResolvedValueOnce(snapshot());
-  const preview = vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source()).mockReturnValueOnce(pendingPrompt.promise)
-    .mockResolvedValueOnce(source());
+  const preview = vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source()).mockResolvedValue(source());
   const freeze = vi.spyOn(plotloomApi, "prepareVideoJob");
-  await beginReview(); await click(operation === "read" ? "读取当前来源" : "预览完整 H3 提示词");
+  await beginReview();
+  if (operation === "read") preview.mockReturnValueOnce(pendingPrompt.promise);
+  else vi.spyOn(batchApi, "command").mockReturnValueOnce(pendingSetup.promise);
+  await click(operation === "read" ? "读取当前来源" : "准备本镜头制作简报");
   await poll();
   await act(async () => pendingMedia.reject(new Error("offline"))); await settle();
   await act(async () => reconciliationRetry.reject(new Error("still offline"))); await settle();
   expect(editor().value).toBe("The keeper crosses the doorway."); expect(seed().value).toBe("4215546708741480");
   expect(button("读取当前来源").disabled).toBe(true);
-  await act(async () => disposition === "resolve"
-    ? pendingPrompt.resolve(operation === "read" ? source("e") : compiled)
-    : pendingPrompt.reject(new Error("late prompt failure"))); await settle();
+  await act(async () => {
+    if (operation === "read") disposition === "resolve" ? pendingPrompt.resolve(source("e")) : pendingPrompt.reject(new Error("late prompt failure"));
+    else disposition === "resolve" ? pendingSetup.resolve(readyProductionBatch({ approvalId: "approval", shotId: shot.id, storyboardRevision: 1, expectedSelectionRevision: 7, seed: 4215546708741480, idempotencyKey: "late-old-key", profileId: "landscape" } as VideoJobPrepareBody)) : pendingSetup.reject(new Error("late prompt failure"));
+  }); await settle();
   expect(editor().value).toBe("The keeper crosses the doorway."); expect(host.textContent).not.toContain("Exact reviewed prompt");
   expect(host.textContent).not.toContain("late prompt failure");
   await act(async () => Array.from(host.querySelectorAll("button")).find((item) => item.textContent?.includes("重试媒体读取"))!.click());
-  await settle(); expect(editor().disabled).toBe(true); expect(consent().checked).toBe(false);
+  await settle(); expect(editor().disabled).toBe(true); expect(authorityDisabled()).toBe(true);
   await click("读取当前来源");
   expect(editor().value).toBe("The keeper crosses the doorway."); expect(editor().disabled).toBe(false);
-  expect(preview).toHaveBeenCalledTimes(3); expect(freeze).not.toHaveBeenCalled();
+  expect(preview).toHaveBeenCalledTimes(operation === "read" ? 3 : 2); expect(freeze).not.toHaveBeenCalled();
 });
 
 it.each(["binding", "intent", "review"])("invalidates the buffer for a genuine ready %s change", async (change) => {
@@ -170,7 +175,7 @@ it.each(["binding", "intent", "review"])("invalidates the buffer for a genuine r
   const nextBinding = change === "binding" ? { ...binding, id: "new-binding" }
     : change === "intent" ? { ...binding, visualIntentId: "new-intent", visualIntentRevision: 2 } : binding;
   await act(async () => pending.resolve(snapshot(nextBinding, 8, change === "review" ? "new-review" : "a1-review"))); await settle();
-  expect(editor()).toBeNull(); expect(consent()).toBeNull();
+  expect(editor()).toBeNull(); expect(authorityDisabled()).toBe(true);
   expect(host.textContent).not.toContain("来源绑定：");
 });
 
@@ -181,26 +186,24 @@ it("retains English and seed through archive/restore reads while withdrawing con
     .mockReturnValueOnce(archivedMedia.promise).mockResolvedValueOnce(snapshot());
   vi.mocked(plotloomApi.getVideoJobs).mockResolvedValueOnce({ jobs: [] })
     .mockReturnValueOnce(archivedVideos.promise).mockResolvedValueOnce({ jobs: [] });
-  vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source()).mockResolvedValueOnce(compiled).mockResolvedValue(source());
+  vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValueOnce(source()).mockResolvedValue(source());
   const freeze = vi.spyOn(plotloomApi, "prepareVideoJob");
   await render(1); await edit(seed(), "4215546708741480"); await click("读取当前来源");
   await edit(editor(), "The keeper crosses the doorway.");
-  await act(async () => consent().click());
-  await click("预览完整 H3 提示词");
   const originalEditor = editor();
   await render(2, true);
   expect(editor()).toBe(originalEditor);
   expect(editor().value).toBe("The keeper crosses the doorway.");
-  expect(seed().value).toBe("4215546708741480"); expect(consent().checked).toBe(false);
+  expect(seed().value).toBe("4215546708741480"); expect(authorityDisabled()).toBe(true);
   expect(button("读取当前来源").disabled).toBe(true);
-  expect(button("冻结此说明并准备原片")).toBeUndefined();
+  expect(authorityDisabled()).toBe(true);
   expect(host.querySelector(".video-workflow-nav")).toBeNull();
   await act(async () => { archivedMedia.resolve(snapshot()); archivedVideos.resolve({ jobs: [] }); }); await settle();
   expect(editor()).toBe(originalEditor); expect(editor().value).toBe("The keeper crosses the doorway.");
   await render(3);
   expect(editor()).toBe(originalEditor); expect(seed().value).toBe("4215546708741480");
   await click("读取当前来源");
-  expect(editor().value).toBe("The keeper crosses the doorway."); expect(consent().checked).toBe(false);
+  expect(editor().value).toBe("The keeper crosses the doorway."); expect(authorityDisabled()).toBe(true);
   expect(freeze).not.toHaveBeenCalled();
   expect(plotloomApi.getVideoJobs).toHaveBeenCalledTimes(3);
 });

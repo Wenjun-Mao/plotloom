@@ -129,15 +129,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
   const letterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await freezeReviewedFixtureDirections(panel);
-  await panel.getByRole("button", { name: "提交一次" }).click();
-  const reconcile = page.waitForResponse((response) => response.request().method() === "POST"
-    && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
-    && new URL(response.url()).pathname.endsWith("/reconcile"));
-  await panel.getByRole("button", { name: "获取结果" }).click();
-  const response = await reconcile;
-  expect(response.ok(), await response.text()).toBeTruthy();
-  const job = await response.json() as { id: string; requestedSeconds: number; state: string; observed: { durationSeconds: number; frameCount: number } };
+  const job = await freezeReviewedFixtureDirections(panel);
   expect(job).toMatchObject({ requestedSeconds: 8, state: "ingested", observed: { durationSeconds: 8, frameCount: 192 } });
   const jobsResponse = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
   expect(jobsResponse.ok()).toBeTruthy();

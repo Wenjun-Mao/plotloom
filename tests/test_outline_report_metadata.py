@@ -15,7 +15,7 @@ from plotloom.outline_report_metadata import (
 )
 
 
-@pytest.mark.parametrize("metadata", [{}, {"lang": None}, {"lang": "zh"}, {"lang": "en"}])
+@pytest.mark.parametrize("metadata", [{"lang": "zh"}, {"lang": "en"}])
 def test_metadata_projection_preserves_creative_content_and_defaults(metadata):
     candidate = {**metadata, "episodes": [{"synopsis": "雨夜"}], "params": {"language": "zh-CN"}}
     before = deepcopy(candidate)
@@ -24,7 +24,7 @@ def test_metadata_projection_preserves_creative_content_and_defaults(metadata):
     assert candidate.keys() == before.keys()
 
 
-@pytest.mark.parametrize("lang", ["zh-CN", "en-US", "", " ", "ZH", 0, 1, False, [], {}])
+@pytest.mark.parametrize("lang", [None, "zh-CN", "en-US", "", " ", "ZH", 0, 1, False, [], {}])
 def test_metadata_rejects_non_ui_keys_without_conversion(lang):
     with pytest.raises(CreativeHandoffError) as error:
         assert_outline_report_metadata({"lang": lang})
@@ -34,11 +34,10 @@ def test_metadata_rejects_non_ui_keys_without_conversion(lang):
 def test_generated_schema_is_a_permissive_metadata_projection():
     schema = outline_report_metadata_schema()
     assert schema["additionalProperties"] is True
-    assert "required" not in schema
+    assert schema["required"] == ["lang"]
     assert set(schema["properties"]) == {"lang"}
-    assert schema["properties"]["lang"]["anyOf"] == [
-        {"enum": ["zh", "en"], "type": "string"}, {"type": "null"},
-    ]
+    assert schema["properties"]["lang"]["enum"] == ["zh", "en"]
+    assert schema["properties"]["lang"]["type"] == "string"
     assert_outline_report_schema_current({OUTLINE_REPORT_SCHEMA_FILENAME: schema})
     schema["properties"]["lang"]["default"] = "en"
     with pytest.raises(CreativeHandoffError) as error:
@@ -55,7 +54,7 @@ def test_expected_schema_identity_distinguishes_boolean_from_number():
         assert_outline_report_schema_current({OUTLINE_REPORT_SCHEMA_FILENAME: schema})
 
 
-@pytest.mark.parametrize("metadata", [{}, {"lang": None}, {"lang": "zh"}, {"lang": "en"}])
+@pytest.mark.parametrize("metadata", [{"lang": "zh"}, {"lang": "en"}])
 def test_valid_metadata_renders_through_unchanged_upstream_commands(tmp_path, metadata):
     stage = Path(__file__).resolve().parents[1] / "third_party/shuohao-skills/skills/novel-outline"
     candidate = json.loads((stage / "examples/渡口-outline.json").read_bytes())
@@ -75,3 +74,8 @@ def test_valid_metadata_renders_through_unchanged_upstream_commands(tmp_path, me
             label = "Quality gates" if metadata.get("lang") == "en" else "质量门"
             assert label.encode() in completed.stdout
     assert path.read_bytes() == raw
+
+
+def test_missing_outline_language_is_a_fresh_contract_failure():
+    with pytest.raises(CreativeHandoffError, match="required"):
+        assert_outline_report_metadata({"episodes": []})

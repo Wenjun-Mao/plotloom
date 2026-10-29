@@ -1,3 +1,5 @@
+import { ExecutionRetries } from "./ExecutionRetries";
+import { AutomaticRetryCount, automaticRetryCount } from "../generation-retry/AutomaticRetryCount";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Panel } from "../../components";
 import { AggregateBudget, budgetSummary, parseBudget, type BudgetInput } from "../../components/AggregateBudget";
@@ -123,8 +125,8 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     };
     void refresh(); return () => { abort.abort(); clearTimeout(timer); };
   }, [projectId, revision, readEpoch]);
-  const execute = async (operation: () => Promise<AutopilotRun>, refresh = false, foreground = false) => {
-    if (command.current?.lifetime === commandLifetime.current) return;
+  const execute = async (operation: () => Promise<AutopilotRun>, refresh = false, foreground = false, rejectFailure = false) => {
+    if (command.current?.lifetime === commandLifetime.current) { if (rejectFailure) throw new Error("已有操作待核实。"); return; }
     const operationOwner = { lifetime: commandLifetime.current }; command.current = operationOwner;
     const context = commandContext.current;
     const expectedRunId = run?.id ?? null;
@@ -133,7 +135,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     setBusy(true); setCommandError("");
     try {
       const value = await operation();
-      if (commandContext.current !== context || observedRunId.current !== expectedRunId && observedRunId.current !== value.id) return;
+      if (commandContext.current !== context || observedRunId.current !== expectedRunId && observedRunId.current !== value.id) { if (rejectFailure) throw new Error("当前运行已变化，请重新读取。"); return; }
       // Start's new run identity binds the original intent; it never rearms an
       // intent withdrawn by polling, navigation or a hidden tab during the call.
       if (intended && completionOwner.current === intended) {
@@ -148,7 +150,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       // never replay the command just to recover browser observation.
       setReady(false);
       setReadEpoch(epoch => epoch + 1);
-    } }
+    } if (rejectFailure) throw failure; }
     finally {
       if (command.current === operationOwner) {
         command.current = null;
@@ -167,6 +169,18 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
       {ready && progress && <p>已保留 {progress.imagesRetained} 张图片候选{progress.imagesRequired === null ? "；图片总量待完整发现。" : "。"}</p>}
       {ready && run.policy.executorBinding && <p>本次生成：Codex · {run.policy.executorBinding.model} · 最多同时运行 {run.policy.executorBinding.maxProcesses} 项任务</p>}
       {ready && <ConcurrentActivity run={run} />}
+      <ExecutionRetries projectId={projectId} run={run} disabled={readOnly || busy || !ready} onRetry={async body => {
+        await execute(async () => {
+          if (!body.failedAttemptId) throw new Error("缺少失败尝试，请重新读取。");
+          const value = await autopilotApi.retryExecution(projectId, { ...body, failedAttemptId: body.failedAttemptId, expectedRunId: run.id, expectedRevision: run.revision });
+          if (value.id !== run.id || value.revision < run.revision) throw new Error("手动重试返回了其他运行，请重新读取。");
+          return value;
+        }, false, false, true);
+      }} onObserve={async () => {
+        const context = commandContext.current, value = await autopilotApi.current(projectId);
+        if (commandContext.current !== context || !value || value.id !== run.id) throw new Error("当前运行已变化，请刷新素材准备。");
+        setRun(previous => previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
+      }} />
       {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
       {ready && run.blocker && run.blocker.code !== "text_content_rejected" && <p role="status">{run.blocker.message}</p>}
       {["outline", "characters", "art", "script", "storyboard"].includes(run.phase) && <TextFailureCard key={`${projectId}:${run.id}:${run.phase}`} projectId={projectId} run={run} disabled={busy || readOnly || !ready} readingDisabled={busy} execute={execute} />}
@@ -202,10 +216,11 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
   const [images, setImages] = useState<BudgetInput>(null); const [jobs, setJobs] = useState<BudgetInput>(null);
   const [corrections, setCorrections] = useState("1");
   const correctionLimit = correctionCount(corrections);
+  const [retries, setRetries] = useState("1"); const retryLimit = automaticRetryCount(retries);
   const imageLimit = parseBudget(images, 1); const jobLimit = parseBudget(jobs, 9);
   const projectId = owner?.projectId || "";
   const admissionKey = owner?.admissionKey || "";
-  useEffect(() => { setImages(null); setJobs(null); setCorrections("1"); setOpen(false); }, [projectId]);
+  useEffect(() => { setImages(null); setJobs(null); setCorrections("1"); setRetries("1"); setOpen(false); }, [projectId]);
   useEffect(() => {
     setAdmission(null);
     if (!saved || !projectId) return;
@@ -238,8 +253,9 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
       <p>由 Codex 执行文字与图片任务；启动时核对当前执行条件。</p>
       <div className="field-grid two"><AggregateBudget label="最多图片数" value={images} minimum={1} onChange={setImages} disabled={disabled || owner.busy} /><AggregateBudget label="最多任务数" value={jobs} minimum={9} onChange={setJobs} disabled={disabled || owner.busy} /></div>
       <CorrectionCount value={corrections} onChange={setCorrections} disabled={disabled || owner.busy} />
+      <AutomaticRetryCount value={retries} onChange={setRetries} disabled={disabled || owner.busy} />
       <p>本次不生成视频、声音或可选尾帧。图片质量、构图与人物身份仍需你审阅；暂停或取消会保留已发送任务的结果。</p>
-      <Button variant="primary" busy={owner.busy} disabled={disabled || dirty || owner.busy || imageLimit === undefined || jobLimit === undefined || correctionLimit === undefined} onClick={() => { if (imageLimit !== undefined && jobLimit !== undefined && correctionLimit !== undefined) void owner.start({ styleAuthority: "brief", maxImages: imageLimit, maxJobs: jobLimit, textCorrectionLimit: correctionLimit }); }}>{owner.busy && <ActivityIndicator />}{owner.busy ? "正在开始自动准备…" : "开始准备已保存简报的素材"}</Button>
+      <Button variant="primary" busy={owner.busy} disabled={disabled || dirty || owner.busy || imageLimit === undefined || jobLimit === undefined || correctionLimit === undefined || retryLimit === undefined} onClick={() => { if (imageLimit !== undefined && jobLimit !== undefined && correctionLimit !== undefined && retryLimit !== undefined) void owner.start({ styleAuthority: "brief", maxImages: imageLimit, maxJobs: jobLimit, textCorrectionLimit: correctionLimit, automaticRetryLimit: retryLimit }); }}>{owner.busy && <ActivityIndicator />}{owner.busy ? "正在开始自动准备…" : "开始准备已保存简报的素材"}</Button>
     </div>}
   </Panel>;
 }

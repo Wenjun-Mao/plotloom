@@ -75,7 +75,7 @@ def storyboard_brief_instructions() -> str:
         "only preset selection/defaults, preset matching/phrases and preset-specific validate/render commands. "
         "Every other upstream structural, script coverage, timing, source/name, language, shot-recipe and H3 "
         "gate remains in force. The author owns the exact direction in the frozen contract; interpret it "
-        "faithfully in English in every cut.frame and H3 visual description. Do not copy non-English direction "
+        "faithfully in project-language cut.composition, then derive English cut.frame and H3 visual instructions from it. Do not copy non-English direction "
         "into machine prompts. Empty direction permits story-informed discretion with no preset default. "
         f"Set storyboard.style to `{BRIEF_STYLE}`, promptLang to `en`, and include the neutral authority marker "
         f"`{BRIEF_STYLE_LABEL}` in every cut.frame. The marker proves authority membership, not creative fidelity; "

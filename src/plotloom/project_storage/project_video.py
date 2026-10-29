@@ -58,6 +58,7 @@ class ProjectVideoRepository:
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
+        automatic_retry_limit: int = 1,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         self.assert_video_authority(project_id)
@@ -79,7 +80,13 @@ class ProjectVideoRepository:
             backend_binding=backend_binding,
             reviewed_directions=reviewed_directions,
             preview_only=preview_only,
+            automatic_retry_limit=automatic_retry_limit,
         )
+
+    def prepare_video_retry(self, project_id, video_job_id, **kwargs):
+        self._assert_project(project_id)
+        self.store.require_recovery_acknowledged()
+        return self._video.prepare_video_retry(project_id, video_job_id, **kwargs)
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
@@ -89,6 +96,8 @@ class ProjectVideoRepository:
             raise InvalidTransitionError(
                 "video job cannot be submitted again; reconcile its existing attempt"
             )
+        from ..video_batch_basis import assert_new_dispatch_authority
+        assert_new_dispatch_authority(job.snapshot)
         provider = self._frozen_direct_h3_provider(job)
         request = job.snapshot.get("request") if isinstance(job.snapshot, dict) else {}
         requested_seconds = request.get("durationSeconds") if isinstance(request, dict) else None
@@ -158,6 +167,19 @@ class ProjectVideoRepository:
 
     def cancel_video_job(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
+        from ..persistence.schema import VideoBatchRow
+        from sqlalchemy import select
+        with self.store.repository.manual_command() as session:
+            for batch in session.scalars(select(VideoBatchRow).where(VideoBatchRow.project_id==project_id)):
+                for shot,identifier in batch.execution.get("jobs",{}).items():
+                    history=batch.execution.get("retryHistory",{}).get(shot,[])
+                    if video_job_id not in [*history,identifier]:
+                        continue
+                    for member in [*history,identifier]:
+                        self._video.cancel_video_job(project_id,member)
+                    batch.execution=batch.execution | {"cancelledTargets":sorted(set(batch.execution.get("cancelledTargets",[]))|{shot})}
+                    batch.revision+=1
+                    batch.updated_at=utc_now()
         result = self._video.cancel_video_job(project_id, video_job_id)
         if result["state"] == "cancelled":
             self._application.release_video_before_dispatch(

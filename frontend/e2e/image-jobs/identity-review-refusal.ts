@@ -51,7 +51,7 @@ export async function inspectIdentityReviewRefusal(
     verify(await preparation.json());
     const notice = directions.getByRole("alert");
     await expect(notice).toContainText("跨镜头同一人物视觉复核");
-    await expect(directions.getByRole("button", { name: "冻结此说明并准备原片" })).toHaveCount(0);
+    await expect(directions.getByRole("button", { name: "授权本镜头制作意图并开始生成" })).toHaveCount(0);
     if (state === "failed") {
       for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
         await page.setViewportSize(size);

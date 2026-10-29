@@ -46,7 +46,7 @@ export function CreatorProductionInspector({ project, read, graphCurrent, disabl
           <p>{bound ? "当前已安装绑定" : "未安装、过期或镜头版本不同"} · 分镜{approved && bound ? "已批准" : "需审核"}</p>
           <Button disabled={disabled || !bound} onClick={() => onOpenShot(cut.shotId)}>镜头审核与媒体</Button>
           <small>打开此镜头的参考、关键帧候选与审核、视频候选及明确选择。这里不推断媒体就绪。</small>
-          <details><summary>精确来源与身份</summary><p>{sectionId} · episode {cut.episode} · 场次 {cut.sceneIndex} · 段 {cut.segmentIndex} · 段内镜头 {cut.sourceCutIndex}</p><code>{cut.shotId}</code></details>
+          <details><summary>精确来源与身份</summary><p>{sectionId} · 章节 {cut.episode} · 场次 {cut.sceneIndex} · 段 {cut.segmentIndex} · 段内镜头 {cut.sourceCutIndex}</p><code>{cut.shotId}</code></details>
         </article>;
       })}
     </details>)}

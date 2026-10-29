@@ -90,6 +90,8 @@ def _prepared_text_job(supervisor, tmp_path, *, fake_cli_source=None):
             inputArtifacts={OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()},
             creativeBrief="Create a one-episode outline candidate without claiming approval.",
         )
+        from plotloom.language_policy import freeze_request_language
+        freeze_request_language(request, store.project().require_brief().language)
         exchange = store.creative_handoff_exchange()
         execution_pin = exchange.current_execution_pin(request.stage)
         code_revision = subprocess.run(

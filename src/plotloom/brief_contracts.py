@@ -63,15 +63,13 @@ class ProjectBrief(CamelModel):
 
     @property
     def genre_direction(self) -> str | None:
-        return self._direction(self.genre_selections, self.genre)
+        from .creative_direction_labels import composed_direction
+        return composed_direction(self.genre_selections, self.genre, self.language)
 
     @property
     def visual_direction(self) -> str | None:
-        return self._direction(self.visual_style_selections, self.visual_style)
-
-    @staticmethod
-    def _direction(selections: list[DirectionSelection], detail: str | None) -> str | None:
-        return "；".join([item.value for item in selections] + ([detail] if detail else [])) or None
+        from .creative_direction_labels import composed_direction
+        return composed_direction(self.visual_style_selections, self.visual_style, self.language)
 
     def generation_input(self) -> dict[str, Any]:
         return self.model_dump(mode="json", by_alias=True) | {

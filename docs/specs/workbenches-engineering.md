@@ -21,7 +21,7 @@ choices; their status is not a claim that native acceptance completed.
 | Production identity | Exact accepted scene/cut coordinates and installed shot IDs, no location/index guessing; current installation separate from latest proposal; inventory uses the existing validated installation-only read lease; no handoff on missing/stale/unknown binding | [0123](../adr/0123-node-context-story-production-workflows.md), [0138](../adr/0138-one-current-story-explicit-rebuild.md), [0150](../adr/0150-review-bound-production-bridge-acknowledgement.md), [0219](../adr/0219-validated-installation-only-reader.md); C40–C43/E12.2 |
 | Explicit rebuild | Freeze replacement heads/admission/hash + proposal CAS; atomic bundle install and source-owned graph/Bible rebind; fresh relevant approvals; retained assets not automatically eligible; no selective-video-reuse claim | [0138](../adr/0138-one-current-story-explicit-rebuild.md); E12.1–E12.4/E18 |
 | Directory and working input | One typed project-draft CAS owner per scope/entity; raw incomplete input, exact lost-receipt reconciliation and atomic explicit adoption; verified per-document journals with addressable retained namespaces; all-owner preservation and reconnect; route-epoch fencing. Optional Freeze drains admitted writes and holds true read-only browse/play admission, without resume/reconcile. Restore retains Frozen; no Close/save-close/force-exit surface | [0218](../adr/0218-working-input-autosave-and-optional-freeze.md); C58; [retained inventory](../roadmap/2026-10-24-autosave-and-project-freeze.md#execution-inventory--source-review-checkpoint) |
-| Lifecycle and dispatch | [0218](../adr/0218-working-input-autosave-and-optional-freeze.md) replaces routine Close with automatic working-input preservation and optional Freeze; existing owned flights/quiescence/consent/recovery apply; cannot clear unknown reservations, retry uncertain dispatch or infer native cancellation from task state | [0043](../adr/0043-project-folder-close-quiescence.md), [0113](../adr/0113-project-save-close-and-force-exit.md), [0132](../adr/0132-creator-ui-reading-boundaries.md), [0148](../adr/0148-workspace-owned-branch-mutations.md), [0201](../adr/0201-unified-project-deletion-preparation.md); P03/E19–E21 |
+| Lifecycle and dispatch | [0218](../adr/0218-working-input-autosave-and-optional-freeze.md) replaces routine Close with automatic working-input preservation and optional Freeze; existing owned flights/quiescence/consent/recovery apply; remote uncertainty/costs remain truthful; positive local-stop proof releases local capacity and bounded distinct retries follow ADR 0225; task state alone never proves native cancellation | [0043](../adr/0043-project-folder-close-quiescence.md), [0113](../adr/0113-project-save-close-and-force-exit.md), [0132](../adr/0132-creator-ui-reading-boundaries.md), [0148](../adr/0148-workspace-owned-branch-mutations.md), [0201](../adr/0201-unified-project-deletion-preparation.md); P03/E19–E21 |
 | Selective batch replacement | Review, predecessor cancellation and successor creation are separate persisted operations. Exact lineage/CAS/currentness retain rejected history and good siblings; lost acknowledgements reconcile retained state without replay or cancelling the successor. Fresh endorsement/Start remain explicit | [0204](../adr/0204-explicit-rejected-batch-take-replacement.md), [completion plan](../roadmap/2026-10-22-creator-completion-loop.md#revise-selected-takes); distinct from whole-story rebuild |
 | Timing and status projection | Response-only immutable run/batch facts, scope-correct milestones and shared effective state; server observation plus monotonic display, no per-second writes/provider polls. Mutable updates/reused media do not establish progress; read failure withdraws status certainty | [0204](../adr/0204-explicit-rejected-batch-take-replacement.md), [timing contract](../roadmap/2026-10-22-creator-completion-loop.md#timing-and-status) |
 | Delegated UI QA | Read-only context discovery grants no write authority. Visible project-local opt-in resets on navigation; every write independently validates exact original-runtime scope/current actor. Missing context cannot silently become human approval; portable evidence grants no execution authority | [0198 amendment](../adr/0198-delegated-disposable-qa-authority.md#native-material-handoff-and-browser-context-amendment--2026-10-22), [QA prerequisite](../roadmap/2026-10-22-creator-completion-loop.md#truthful-delegated-qa-prerequisite) |
@@ -54,3 +54,57 @@ Hosted CI is optional and off without a new direct owner request under
 Ordinary departure and exclusive drainage use separate owner contracts (ADR 0218). Ordinary preservation checks captured and current owners rather than requiring harmless registration churn to stop; old receipts never cover newer unpreserved input, unknown owners or pending Files. Exclusive drain/commit retains revision stability. File guards retain the actual in-memory File under the exact cast session until import or explicit discard; busy operations without a File retain server admission authority but do not report lost author input or survive unmount as ghost input guards. A branch mutation already sent and owned by the workspace can continue after navigation, without cancel/replay; this exception carries no editable buffer. Freeze/snapshot/delete still join it and refuse uncertain results. Branch state/draft basis queries use read leases and never initialize absent review heads; creation owns initialization.
 
 Current project-management titles, including deletion consent, share the working-title projection with the raw current-layout abandonment snapshot. Exact scope and current title/digest must agree before ledger/revocation; no Brief Apply is required to manage a draft. The supported prior reader/digest stays explicit and unchanged. Read-open validation depth is independently selectable for inspection consumers, while both inspection and default authority require a real initialized shared lease before DB validation and the deletion-quarantine predicate before exposing the handle (ADR 0192/0218).
+
+## Frozen language and adaptation ownership
+
+[ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md) and the
+[approved plan](../roadmap/2026-10-28-project-language-consistency.md) define the
+current implementation boundary; the [verification record](../verification/2026-10-28-project-language-consistency.md)
+distinguishes incomplete work from qualification and activation.
+
+`language-contract.json` freezes supported content locale, derived `zh`/`en`
+report locale, language-policy version and canonical timing-policy identity in
+existing request hashes/currentness. Candidate metadata is checked against those
+inputs. UI preference is absent. The prospective bilingual timing policy has
+explicit `en-US` word/character bounds; upstream independently copyable skills
+carry identical deterministic rules rather than importing a sibling or parent
+runtime. Provider capacity remains separate and models cannot accelerate speech
+to pass admission.
+
+F5 `cut.composition`, existing Cast appearance and Art summaries/variant
+descriptions own creative meaning. `frame`, image and H3 provider instructions
+are derived technical content. The complete production brief is a read projection
+of existing sources, never a second editable/persisted story. Unsupported/lossy
+requirements produce source-owned actionable conflicts before dispatch.
+
+Generated adoption requires a current assistant language check over the complete
+classified field inventory; technical/source exceptions are explicit. A distinct
+native checking operation uses the original creative stage and binds exact
+candidate/source/projection/policy/profile plus real attempt and receipt evidence.
+Semantic rejection extends existing typed correction lineage without changing
+the original drafting attempt into an invented execution failure. Failure/UNKNOWN
+never implies checking success. Configured execution retries use distinct job/attempt identities under ADR 0225; they cannot manufacture a passing check.
+
+H3 draft/check invocations and production-intent authorization remain separate.
+The final compiled request, all source/translated fields, checking provenance and
+visible settings bind the same immutable authority. Creator and delegated QA
+actors stay distinct; neither checking nor authorization accepts generated media.
+Old frozen reports/jobs retain their original bytes and stated review facts.
+
+
+## Generation failure and local capacity
+
+[ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md) replaces
+dedicated forensic/no-dispatch recovery. New requests freeze
+`automaticRetryLimit`, default 1 additional attempt; zero disables retries. Existing
+frozen work without retry authority gains none. Keep this distinct from semantic
+`textCorrectionLimit` and aggregate generation budgets.
+
+Existing owners retain predecessor/current-attempt identities, exact output and
+cost evidence, and retry counts across restart. Never retry a running local owner
+or resend a used identity. Positive worker/CLI/validator stop permits exact local
+slot release even when remote outcome remains UNKNOWN; that is no refund or
+remote settlement. Stop cancellation/nonretryable authorization/configuration
+failures immediately. Exhaustion fails the affected job with a manual retry action
+under remaining authority, while unrelated eligible work continues. Late old
+results cannot overwrite the current attempt or revive cancelled work.

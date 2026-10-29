@@ -75,6 +75,8 @@ def publish_creative_completion(
             or receipt.plotloom_code_revision != attempt.plotloom_code_revision):
         raise ValueError("Codex Exec completion does not match the frozen creative request or profile")
     from .creative_execution_pin import execution_pin_for_request
+    from .language_policy import assert_new_request_language
+    assert_new_request_language(request)
     plan = build_text_validation_plan(
         request,
         execution_pin=execution_pin_for_request(request, execution_pin),

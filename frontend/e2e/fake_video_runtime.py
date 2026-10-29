@@ -51,6 +51,13 @@ def main() -> None:
                     executable="/usr/bin/true",
                 ),
             )
+        @app.middleware("http")
+        async def synthetic_video_directions(request, call_next):
+            if request.method == "POST" and request.url.path.endswith("/video-batch/draft"):
+                from fixtures.video_directions_exec import install
+                install(app)
+            return await call_next(request)
+
         if os.environ.get("PLOTLOOM_E2E_PRIOR_ABANDONMENT") == "1":
             from fixtures.prior_abandonment_runtime import install
             install(app, settings.application_data_dir)

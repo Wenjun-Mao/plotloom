@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
+from ...language_policy import freeze_request_language, assert_candidate_report_language, assert_bound_report_language
+from ...brief_contracts import ProjectBrief
 
 from sqlalchemy import select
 
@@ -229,6 +231,7 @@ class ProjectStoryboardReviewPersistence:
             else:
                 receiving += " Run the pinned novel-storyboard gates through the Plotloom receiving adapter. From the repository root, run node scripts/storyboard-receiving.mjs validate <absolute-delivery/storyboard.json> --request <absolute-package/request.json>, then the same command with render redirected to report.html."
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", content_validation_contract="plotloom.typed-content-result.v1", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts=artifacts, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, the complete-route maximum and budget hash, and review timing. Preserve unequal authored section lengths; sum actual cuts along each complete route, not across mutually exclusive endings. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support." + receiving)
+            freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
             request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -252,6 +255,7 @@ class ProjectStoryboardReviewPersistence:
                     raise CreativeHandoffError("delivery_conflict", "different delivery already occupies storyboard review candidate")
                 return self._candidate(row)
             _current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
+            assert_candidate_report_language(delivery.candidate, request.input_artifacts)
             self._validate(delivery.candidate, binding, script, outline, cast, request)
             row.status, row.delivery_id, row.manifest_hash, row.storyboard, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
@@ -272,6 +276,8 @@ class ProjectStoryboardReviewPersistence:
             # Unlike F4's author-owned section edits, F5A has no acceptance-time
             # JSON editor or replacement seam.
             binding, storyboard = StoryboardReviewBinding.model_validate(row.binding), row.storyboard
+            from ...content_language_persistence import require_language_pass
+            require_language_pass(session, CreativeHandoffRequest.model_validate(row.request), storyboard)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "storyboard review candidate context changed before acceptance")
             _current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
@@ -313,6 +319,7 @@ class ProjectStoryboardReviewPersistence:
 
     @staticmethod
     def _validate(storyboard: dict[str, Any], binding: StoryboardReviewBinding, script: dict[str, Any], outline: dict[str, Any], cast: dict[str, Any], request: CreativeHandoffRequest | None = None) -> None:
+        assert_bound_report_language(storyboard, binding)
         if contains_secret_setting(storyboard) or contains_secret_value(storyboard):
             raise ValueError("storyboard must not contain credentials")
         contract = binding.storyboard_render_contract

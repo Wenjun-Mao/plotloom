@@ -1,5 +1,11 @@
 # 0193: Frozen batch video authority
 
+
+The owner-approved 2026-10-28 [ADR 0225](0225-bounded-generation-retries-and-local-capacity.md)
+supersedes the earlier no-automatic-paid-retry rule. New batches freeze a bounded
+additional retry allowance with distinct successor identities, original remaining
+budgets and truthful possible cost. Retained older batches gain no new authority.
+
 Status: implementation decision, 2026-10-18
 
 ## Problem

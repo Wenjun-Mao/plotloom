@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button } from "../components";
+import { Button, ErrorNotice } from "../components";
 
 /** Keyed by project/job: late clipboard or GET results belong to that task only. */
 export function OutlineAssignment({ projectId, jobId }: { projectId: string; jobId: string }) {
@@ -34,11 +34,11 @@ export function OutlineAssignment({ projectId, jobId }: { projectId: string; job
 
   return <section aria-label="大纲任务交接">
     <p>复制完整任务，粘贴给同机 Codex 执行。准备或复制不会启动生成；大纲返回后仍由你审核确认。</p>
-    {error ? <><p role="alert">{error}</p><Button onClick={() => setAttempt((value) => value + 1)}>重试读取任务</Button></> : !assignment ? <p role="status">正在读取完整任务…</p> : <>
+    {error ? <><ErrorNotice message={error} /><Button onClick={() => setAttempt((value) => value + 1)}>重试读取任务</Button></> : !assignment ? <p role="status">正在读取完整任务…</p> : <>
       <Button disabled={copyState === "copying"} onClick={() => void copy()}>复制完整任务</Button>
       {copyState === "copied" && <p role="status">已复制完整任务，可直接粘贴执行。</p>}
       {copyState === "failed" && <p role="alert">复制失败。请点击下方任务文本全选后手动复制。</p>}
-      <label>完整任务<textarea aria-label="specialist assignment" readOnly value={assignment} rows={8} onFocus={(event) => event.currentTarget.select()} /></label>
+      <label>完整任务<textarea aria-label="完整助手任务" readOnly value={assignment} rows={8} onFocus={(event) => event.currentTarget.select()} /></label>
     </>}
   </section>;
 }

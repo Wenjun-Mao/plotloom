@@ -28,12 +28,13 @@ from .autopilot_activity import _project_checkpoints, run_activities, run_timing
 from .autopilot_closure import material_closure
 from .autopilot_continuation import AutopilotContinuationPersistence, project_job_counts
 from .autopilot_exec_attempts import AutopilotExecPersistence
+from .autopilot_execution_retry import AutopilotExecutionRetryPersistence
 from .autopilot_freshness import assert_fresh
 from .autopilot_lineage import current_run_row
 from .autopilot_text_correction import AutopilotTextCorrectionPersistence
 
 
-class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersistence, AutopilotTextCorrectionPersistence):
+class AutopilotPersistence(AutopilotExecutionRetryPersistence, AutopilotContinuationPersistence, AutopilotExecPersistence, AutopilotTextCorrectionPersistence):
     def __init__(self, access, *, claim_write: Callable[[], ContextManager[Session]]):
         self.access = access
         self._claim_write = claim_write
@@ -87,6 +88,24 @@ class AutopilotPersistence(AutopilotContinuationPersistence, AutopilotExecPersis
         effective_state = "stale" if stale and row.state not in {"cancelled", "taken_over", "stale"} else row.state
         policy = LaunchPolicy.model_validate(row.policy)
         projected_checkpoints = _project_checkpoints(checkpoints)
+        from ...generation_retry_policy import retry_status
+        for item in projected_checkpoints.public:
+            evidence = item["evidence"]
+            if not evidence.get("jobId"):
+                continue
+            lineage = evidence["result"].get("executionRetry", {})
+            predecessors = []
+            cursor = item
+            while cursor["evidence"]["result"].get("executionRetry"):
+                link = cursor["evidence"]["result"]["executionRetry"]
+                predecessors.insert(0, link["predecessorJobId"])
+                cursor = next(c for c in projected_checkpoints.public if c["operationKey"] == link["parentOperationKey"])
+            failed = evidence["result"].get("executionRetryExhausted", False)
+            item["retry"] = retry_status(limit=policy.automatic_retry_limit, current_job_id=evidence["jobId"],
+                current_attempt_id=evidence.get("executorAttemptId"), predecessors=predecessors,
+                automatic_used=lineage.get("automaticRetriesUsed",len(predecessors)),
+                state="exhausted" if failed else "running" if item["state"] == "sent" else "ready",
+                possible_cost=item["state"] == "outcome_unknown" or bool(predecessors))
         lifetime_jobs, lifetime_images = project_job_counts(session, row.project_id)
         handoff = session.get(AutopilotHandoffRow, row.handoff["receiptId"]) if row.handoff else None
         return RunView(id=row.id, project_id=row.project_id, revision=row.revision,

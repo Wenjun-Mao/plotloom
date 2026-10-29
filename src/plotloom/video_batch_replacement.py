@@ -79,6 +79,8 @@ def assert_rejected_history(read, project_id, manifest):
     generated = {target["shotId"] for target in manifest["targets"] if target["mode"] == "generate" and target["jobId"] is None}
     if not {fact["shotId"] for fact in added}.issubset(generated):
         raise InvalidTransitionError("each newly rejected take must have one fresh successor target")
+    from .video_single_replacement import assert_single_replacement_manifest
+    assert_single_replacement_manifest(read, project_id, prior_manifest, manifest, added)
 
 
 def replacement_inventory(store, video, predecessor, request):
@@ -86,8 +88,7 @@ def replacement_inventory(store, video, predecessor, request):
     if (predecessor is None or predecessor["id"] != request.batch_id
             or predecessor["revision"] != request.expected_revision or predecessor["state"] != "cancelled"):
         raise InvalidTransitionError("cancel the exact current predecessor and use its current revision")
-    draft = predecessor["execution"].get("draft")
-    if draft and draft["attempt"]["state"] not in {"completed", "failed", "settled"}:
+    if any(predecessor["execution"].get(key) and predecessor["execution"][key]["attempt"]["state"] not in {"completed", "failed", "settled"} for key in ("draft", "fidelity")):
         raise InvalidTransitionError("replacement predecessor directions are unsettled")
     jobs = {job["id"]: job for job in video.jobs(store)}
     for identifier in request.rejected_job_ids:
@@ -97,6 +98,9 @@ def replacement_inventory(store, video, predecessor, request):
         read = evidence_reader(session)
         assert_rejected_history(read, store.manifest.project_id, predecessor["manifest"])
         facts = [rejected_fact(read, store.manifest.project_id, identifier) for identifier in request.rejected_job_ids]
+        from .video_single_replacement import assert_fresh_single_replacement
+        assert_fresh_single_replacement(read, store.manifest.project_id, predecessor["manifest"],
+            request.setup.model_dump(mode="json", by_alias=True), facts)
     history = sorted([*predecessor["manifest"].get("rejectedHistory", []), *facts], key=lambda fact: fact["jobId"])
     manifest = inventory(store, video, request.setup, rejected_history=history)
     manifest |= {"rejectedHistory": history, "replacement": {"batchId": predecessor["id"],

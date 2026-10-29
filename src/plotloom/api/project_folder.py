@@ -167,6 +167,8 @@ def create_project_folder_authoring_app(
     native_presentation_service = NativeBridgePresentationService(storage, specialists)
     app.state.native_bridge_presentation_service = native_presentation_service
     register_specialist_routes(app, opened_project, specialists)
+    from .project_folder_content_language import register_content_language_routes
+    register_content_language_routes(app, opened_project, specialists)
     register_autopilot_runtime(app, opened_project, specialists)
     from .project_folder_abandonment import register_abandonment_routes
 

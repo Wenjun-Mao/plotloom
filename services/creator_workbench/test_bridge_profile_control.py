@@ -182,7 +182,7 @@ def test_client_rejects_unrecognized_readiness_fields(tmp_path, monkeypatch, cap
 
 
 
-@pytest.mark.parametrize("control", ["cancel", "suspend", "resume", "recover-no-remote-dispatch"])
+@pytest.mark.parametrize("control", ["cancel", "suspend", "resume"])
 def test_control_endpoint_passes_the_exact_attempt_snapshot_to_the_supervisor(bridge, monkeypatch, control):
     attempt = _spawn_intent_attempt()
     cancelled = transition_exec_attempt(

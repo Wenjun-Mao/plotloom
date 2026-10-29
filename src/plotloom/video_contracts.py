@@ -10,7 +10,13 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from plotloom.domain_base import CamelModel
+
 from .delegated_qa_contracts import AgentQaAttribution
+from .video_fidelity_contracts import (
+    DirectionReviewBasis,
+    FidelityReference,
+    IntentAuthorization,
+)
 
 
 class H3DirectionField(CamelModel):
@@ -21,11 +27,14 @@ class H3DirectionField(CamelModel):
 class H3ReviewedDirections(CamelModel):
     source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
     fields: list[H3DirectionField] = Field(max_length=100)
-    reviewed_english: Literal[True]
+    review_basis: DirectionReviewBasis | None = None
+    fidelity_check: FidelityReference | None = None
+    intent_authorization: IntentAuthorization | None = None
     prompt_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 class VideoJobRequest(CamelModel):
+    automatic_retry_limit: int = Field(default=1, strict=True, ge=0)
     approval_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
     storyboard_revision: int = Field(ge=1)

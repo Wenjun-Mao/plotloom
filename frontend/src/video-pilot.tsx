@@ -1,3 +1,4 @@
+import { GenerationRetryStatus } from "./features/generation-retry/GenerationRetryStatus";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { humanReviewLabel } from "./human-review-attribution";
 import type { ManagedAsset, ReviewedKeyframe, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
@@ -467,6 +468,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
       </div>
       {job.state === "ingested" && !job.selected && Boolean(job.segments?.length) && <small>此原片已有保留片段，不能永久删除；原片与片段证据会保留。</small>}
       {isH3Job(job) && projectId && job.state === "ingested" && <div id={job.id === segmentAnchorJobId ? "shot-segment" : undefined}><VideoSegmentReview key={`${projectId}:${job.id}`} projectId={projectId} job={job} readOnly={readOnly} onRefresh={refresh} /></div>}
+      <GenerationRetryStatus status={job.retry} />
       {job.error && <small>{job.error}</small>}</article>)}
     <section id="shot-story-preview" className="story-playback-section"><strong>预览 · 用于故事</strong>
       {!videoReadCurrent ? <p role="status">视频状态尚未核实，故事播放暂不可用。</p> : lifecycleStatus === "archived"

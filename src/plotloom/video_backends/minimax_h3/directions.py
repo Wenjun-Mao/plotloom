@@ -27,14 +27,22 @@ def direction_sources(snapshot: dict[str, Any]) -> dict[str, Any]:
             sources.append({"path": path, "text": value, "label": label})
             seen_paths.add(path)
 
-    for field, label in (
+    shot_fields = (
         ("composition", "构图与首帧"),
         ("visualIntent", "视觉意图"),
         ("action", "动作"),
         ("motionIntent", "动态意图"),
         ("cameraMovement", "镜头运动"),
-    ):
+    )
+    if "languageContract" in snapshot:
+        shot_fields += (("cameraAngle", "镜头角度"), ("transition", "镜头结束衔接"))
+    for field, label in shot_fields:
         add(f"shot.{field}", shot.get(field), label)
+
+    if "languageContract" in snapshot:
+        from .production_details import detail_sources
+        for path, text, label in detail_sources(shot):
+            add(path, text, label)
 
     events = shot.get("audioPlan", {}).get("events", [])
     for index, event in enumerate(events):
@@ -57,7 +65,8 @@ def direction_sources(snapshot: dict[str, Any]) -> dict[str, Any]:
         # changing canonical audio events. Its provenance is a supplement.
         sources.append({
             "path": "reviewedSoundscape",
-            "text": "No ambient or physical sound event is authored in this shot.",
+            "text": ("No ambient or physical sound event is authored. Do not invent additional sound; use N/A."
+                if "languageContract" in snapshot else "No ambient or physical sound event is authored in this shot."),
             "label": "补充环境与动作声音（根据画面审阅）",
         })
 
@@ -95,9 +104,11 @@ def validate_direction_fields(snapshot: dict[str, Any], package: dict[str, Any] 
     # Typed visibleTexts belong to the compiler's nonspoken role. Ordinary
     # words shared with physical direction cannot establish semantic misuse;
     # faithful role separation remains an explicit package review.
+    # New work delegates semantic role/extra-speech checking to the distinct
+    # source-bound checker. A shared short word is not an extra utterance.
     for cue in snapshot["resolvedContext"].get("dialogueCues", []):
         text = str(cue.get("text") or "")
-        if text and any(text in english for english in rendered.values()):
+        if "languageContract" not in snapshot and text and any(text in english for english in rendered.values()):
             raise ValueError("H3 dialogue is repeated in reviewed directions")
     return rendered
 
@@ -105,6 +116,13 @@ def validate_direction_fields(snapshot: dict[str, Any], package: dict[str, Any] 
 def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] | None) -> dict[str, str]:
     rendered = validate_direction_fields(snapshot, package)
     from ...video_batch_basis import valid_direction_endorsement
-    if package is None or (package.get("reviewedEnglish") is not True and not valid_direction_endorsement(package)):
+    if package is not None and package.get("fidelityCheck"):
+        from ...video_fidelity_contracts import FidelityReference, IntentAuthorization
+        from ...production_brief import production_brief
+        FidelityReference.model_validate(package["fidelityCheck"])
+        authorization = IntentAuthorization.model_validate(package.get("intentAuthorization"))
+        if authorization.brief_hash != production_brief(snapshot)["briefHash"] or not valid_direction_endorsement(package):
+            raise ValueError("制作简报或生成授权已变化。")
+    elif package is None or (package.get("reviewedEnglish") is not True and not valid_direction_endorsement(package)):
         raise ValueError("H3 English directions need explicit package review")
     return rendered

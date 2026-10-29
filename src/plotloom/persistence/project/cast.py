@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 from typing import Any
+from ...language_policy import freeze_request_language, language_contract, assert_candidate_report_language
 
 from .autopilot_authority import receipt_only
 from sqlalchemy import select
@@ -115,7 +116,7 @@ class ProjectCastPersistence:
             raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_not_current", owner="source", technical_message="the accepted source-map-installed graph is not current"))
         if not (identity is not None and identity.project_id == project_id and identity.canonical_revision == graph.revision and identity.content_hash == graph.content_hash and identity.source_binding == {name: getattr(admission, name) for name in ("source_revision", "source_content_hash", "outline_revision", "outline_content_hash", "section_map_revision", "section_map_content_hash")} and admission.source_revision == source.revision and admission.source_content_hash == source.content_hash and admission.outline_revision == outline.revision and admission.outline_content_hash == outline.content_hash and admission.section_map_revision == mapping.revision and admission.section_map_content_hash == mapping.content_hash and admission.graph_revision == graph.revision and admission.graph_content_hash == graph.content_hash):
             raise ReviewContextError(ReviewContextDiagnostic(code="installed_graph_context_mismatch", owner="source", technical_message="the installed graph no longer matches the accepted source-map context"))
-        binding = CastBinding(source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=identity.authored_revision, graph_content_hash=identity.content_hash, section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
+        binding = CastBinding(language_contract=language_contract(ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language), source_revision=source.revision, source_content_hash=source.content_hash, outline_revision=outline.revision, outline_content_hash=outline.content_hash, section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash, graph_revision=identity.authored_revision, graph_content_hash=identity.content_hash, section_ids=[str(item.get("sectionId", "")) for item in mapping.mapping.get("sections", [])])
         return binding, source.material, outline.outline, mapping.mapping
 
     def _stale(self, session: Any, project_id: str, binding: CastBinding) -> list[ReviewContextDiagnostic]:
@@ -128,7 +129,7 @@ class ProjectCastPersistence:
     def _stale_against(self, session: Any, project_id: str, current: CastBinding, binding: CastBinding) -> list[ReviewContextDiagnostic]:
         """Compare this operation's inputs; never resolve or retain context."""
         fields = (("source_revision", "source"), ("outline_revision", "accepted outline"), ("section_map_revision", "section map"), ("graph_revision", "installed graph"), ("source_content_hash", "source"), ("outline_content_hash", "accepted outline"), ("section_map_content_hash", "section map"), ("graph_content_hash", "installed graph"))
-        reasons = binding_diagnostics(current, binding, fields)
+        reasons = binding_diagnostics(current, binding, fields + (("language_contract", "project language"),))
         direction = ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).visual_direction
         if not cast_style_current(binding.render_contract, direction):
             reasons.append(ReviewContextDiagnostic(code="cast_render_contract_changed", owner="characters", technical_message="cast render contract is not current; prepare a new cast task"))
@@ -271,6 +272,7 @@ class ProjectCastPersistence:
                 request.creative_brief += brief_stage_instructions("cast")
             else:
                 request.creative_brief += " The author-selected cast-style-contract.json owns render style and overrides upstream presets/defaults and inherited outline style. Use its exact style, label and complete preset; apply authorDirection without changing source facts. Validate and render with scripts/cast-style.mjs using --request request.json --contract inputs/cast-style-contract.json. Never defer a style conflict to image generation."
+            freeze_request_language(request, ProjectBrief.require_confirmed(self._access.rows.project(session, project_id).brief).language)
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -298,6 +300,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context is stale")
             _validate_cast(delivery.candidate)
             validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
+            assert_candidate_report_language(delivery.candidate, request.input_artifacts)
             validate_cast_style(delivery.candidate, CastBinding.model_validate(row.binding).render_contract, request.model_dump(mode="json", by_alias=True))
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             if not receipt_only(self._access):
@@ -319,6 +322,8 @@ class ProjectCastPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "cast candidate context changed before acceptance")
             cast = request.cast or row.cast
+            from ...content_language_persistence import require_language_pass
+            require_language_pass(session, CreativeHandoffRequest.model_validate(row.request), cast)
             _validate_cast(cast)
             validate_cast_design(cast)
             validate_cast_style(cast, binding.render_contract, row.request)

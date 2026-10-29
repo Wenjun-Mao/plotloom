@@ -20,12 +20,13 @@ from tests.source_outline_fixtures import _deliver, _material, _request, _storag
 
 
 @contextmanager
-def _prepared(tmp_path):
-    store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
+def _prepared(tmp_path, language="zh-CN"):
+    brief = FIXED_CHINESE_BRIEF.model_copy(update={"language": language})
+    store = _storage(tmp_path).projects.create(brief)
     try:
         source = _material()
         store.save_source_material(expected_source_revision=0, material=source)
-        request = _request(store.manifest.project_id, source)
+        request = _request(store.manifest.project_id, source, brief=brief)
         store.prepare_outline_candidate(request)
         yield store, request, _deliver(store, request)
     finally:
@@ -46,10 +47,11 @@ def _output(store, request, filename, raw):
     manifest_path.write_bytes(canonical_json(manifest))
 
 
-@pytest.mark.parametrize("lang", ["zh", "en", None])
+@pytest.mark.parametrize("lang", ["zh", "en"])
 def test_manual_and_direct_acceptance_preserve_content_locale(tmp_path, lang):
-    with _prepared(tmp_path) as (store, request, _delivery):
-        candidate = {"lang": lang, "params": {"language": "zh-CN"}, "episodes": []}
+    language = "zh-CN" if lang == "zh" else "en-US"
+    with _prepared(tmp_path, language) as (store, request, _delivery):
+        candidate = {"lang": lang, "params": {"episodes": 1}, "episodes": []}
         raw = canonical_json(candidate)
         _output(store, request, "outline.json", raw)
         exchange = store.creative_handoff_exchange()
@@ -57,11 +59,13 @@ def test_manual_and_direct_acceptance_preserve_content_locale(tmp_path, lang):
         assert delivery.candidate == candidate
         ready = store.admit_outline_delivery(delivery)
         assert ready.outline == candidate
+        from tests.content_language_fixtures import install_synthetic_language_check
+        install_synthetic_language_check(store, request, candidate)
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0,
         ))
         assert accepted.accepted_outline.outline == candidate
-        assert store.project().brief.language == "zh-CN"
+        assert store.project().brief.language == language
 
 
 def test_manual_invalid_metadata_is_not_rewritten(tmp_path):

@@ -11,13 +11,16 @@ class ProductionBridgePresentationCandidatePersistence:
         with self._access.leases.lifecycle_write() as session:
             job = self._job(session, project_id, job_id)
             request = CreativeHandoffRequest.model_validate(job.native_request)
-            validated = native_presentation_suggestions(request, candidate)
+            native_presentation_suggestions(request, candidate)
             if job.transport != "codex_native" or request.project_id != project_id or request.job_id != job_id:
                 raise InvalidTransitionError("presentation candidate identity differs from its job")
             if job.status not in {"dispatched", "cancelled", "outcome_unknown", "stale"}:
                 return
+            if job.status not in {"cancelled", "stale"}:
+                from ...content_language_persistence import require_language_pass
+                require_language_pass(session, request, candidate)
             job.response_evidence, job.response_hash = response_evidence, response_hash
-            job.candidate = validated.model_dump(mode="json", by_alias=True)
+            job.candidate = candidate
             job.updated_at = utc_now()
             if job.status in {"cancelled", "stale"}:
                 return

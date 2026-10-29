@@ -54,7 +54,7 @@ class CapacityRetirementReceipt(CamelModel):
     maintenance_code_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     retained_facts: dict[str, Any]
     absence_proofs: list[dict[str, Any]]
-    remote_outcome: Literal["preserved_unknown"] = "preserved_unknown"
+    remote_outcome: Literal["preserved", "preserved_unknown"] = "preserved"
     spending_reservations: Literal["preserved"] = "preserved"
 
 
@@ -65,9 +65,9 @@ class CapacityRetirementPreview(CamelModel):
     eligible: bool
     blockers: list[str]
     local_capacity_state: Literal["held", "retired"]
-    remote_outcome: Literal["preserved_unknown"] = "preserved_unknown"
-    image_budget_state: Literal["reserved", "consumed", "released"]
-    reserved_image_outputs: int = Field(ge=1)
+    remote_outcome: Literal["preserved", "preserved_unknown"] = "preserved"
+    image_budget_state: Literal["none", "reserved", "consumed", "released"]
+    reserved_image_outputs: int = Field(ge=0)
     spending_reservations: Literal["preserved"] = "preserved"
     already_retired: bool = False
     receipt: CapacityRetirementReceipt | None = None

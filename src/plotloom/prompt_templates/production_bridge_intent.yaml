@@ -1,5 +1,5 @@
 id: production_bridge_intent
-version: "1.0.0"
+version: "2.0.0"
 stage: production_bridge_intent
 description: Infer provisional dramatic intent for one frozen F5 production-bridge proposal.
 system: |-
@@ -17,7 +17,7 @@ user: |-
   【输出 JSON Schema】
   {{ json_schema | tojson }}
 
-  输出 suggestedText 必须是非空的中文戏剧意图，不能只是复制 sourceExcerpt。严格覆盖目标集合，一项不多、一项不少。
+  输出 suggestedText 必须按 source_context.brief.language 的项目语言撰写：zh-CN 用简体中文，en-US 用英语；不能只是复制 sourceExcerpt。来源摘录、专名与作者明确指定的引用保留原文。严格覆盖目标集合，一项不多、一项不少。
 variables:
   source_context:
     required: true

@@ -2,7 +2,8 @@
 
 Status: finalized and explicitly authorized for end-to-end implementation on
 2026-10-28. Both independent planning reviews are complete; coordinator dispatch
-and execution preflight are starting.
+and execution preflight are in progress. Implementation is not yet qualified or
+activated.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
@@ -514,3 +515,83 @@ ordinary Codex executor tasks and chooses supported explicit settings under Dire
 Register Relay reporting at each level before work, collect actual results, and
 retire child assignments only after review and quiescence. The director owns final
 coordinator acceptance/archival and reporting-route retirement.
+
+### Execution checkpoint — 2026-10-28
+
+Coordinator `01a184ec-5035-7542-a6e1-869dbdc84660` registered Relay reporting to the
+director before implementation (route `7b6a4bdb-2210-41ba-ab16-6bd7a6854094`).
+Clean retained source was `d2e3c26d` on `main`; installed runtime remains untouched.
+The coordinator owns integration, shared language/timing contracts, Git/index,
+live QA, qualification and activation. Three isolated, explicitly configured
+executor chats use Relay Deliver with reporting registered before source writes:
+
+| Assignment | Actual chat / checkout | Requested model / effort | Write boundary |
+| --- | --- | --- | --- |
+| Chinese UI and manual defaults | `01a184ed-83ee-72d0-80ec-00ee7216a10f`, worktree `adaa/plotloom` | Sol / Medium | `frontend/**` |
+| Production brief and truthful adaptation authority | `01a184ee-5afd-75f3-a9ff-9d3683569d27`, worktree `9d86/plotloom` | Sol / High | D backend contracts/lifecycle and tests |
+| Owned stage languages/descriptions/timing | `01a184ef-94b5-7653-a030-b193c1665e94`, worktree `448f/plotloom` | Sol / Medium | isolated owned fork only |
+| Complete candidate language review | `01a18501-c083-77c0-9d27-d16a90e65c6b`, worktree `f4b3/plotloom` | Sol / High | narrow native checking/adoption/correction owners and tests |
+
+Native read-only attended support used requested Sol/Medium for upstream mapping
+and Luna/Max for runtime/speech preflight. Actual returned findings are inspected;
+effective host model settings are not independently verified. No parallel worker
+owns Git/index or live dispatch. Isolated fork baseline is exact `4f9b2128` with
+its own submodule Git directory, initialized from the retained local source.
+
+Smallest real outcome remains two new original projects, one per locale, with
+one shared opening/choice/two endings, native Sol/Medium Outline/report/install
+and reopen before broad qualification. Coordinator owns settlement and eventual
+retention/cleanup. Media uses exact new grants after text evidence; existing
+grants and UNKNOWN remain untouched. Local speech-method preflight found macOS
+English/Chinese voices and ffmpeg, but no installed speech-recognition package;
+short local synthetic calibration is in progress and cannot prove H3 speech.
+
+Consequential shape choice: authored F5 `cut.composition` is separate from
+English derived `cut.frame`; Art lighting/state items gain authored `description`.
+Existing Cast appearance and Art summary remain their creative owners. The
+language policy freezes content/report locale and timing identity in existing
+request artifacts. D uses distinct native draft/check invocations and a complete
+read-only production brief, with separate generation authorization. ADR 0224
+records ownership before implementation. Tests and real outcomes will be recorded
+in the existing verification area; no completion/activation claim is made here.
+
+The [implementation evidence](../verification/2026-10-28-project-language-consistency.md)
+now owns actual preflight/check results and retained failures. Fork follow-up is
+integrated at exact local `f3beafdc3561949a25d61e5c5c4fe38d516d4521`; parent `main`
+gitlink checkpoint is `f36ebd3c0d58aaf259057dede12cedf1788f5f78`. The fork worker's
+actual final reports nine selftest suites/1,426 passes; exact copied bytes and
+coordinator targeted checks were inspected. No fork/main publication or CI ran.
+The full implementation remains unqualified and the installed checkout untouched.
+
+## Approved execution-policy simplification — 2026-10-28
+
+The owner explicitly approved removing dedicated forensic/no-dispatch recovery and
+adopting configurable automatic retries, default one retry after the initial attempt.
+ADR 0225 owns the current contract. The unactivated recovery expansion is withdrawn;
+its focused/review evidence remains historical, not an activation promise.
+
+Use distinct existing job/attempt identities and retained current-attempt lineage.
+Confirm worker/CLI/validator ownership is stopped before retrying or releasing local
+capacity. Remote UNKNOWN and possible costs remain truthful but do not retain shared
+execution slots after positive local stop. Preserve original finite generation
+permissions/budgets; cancellation stays cancelled, nonretryable authorization or
+configuration errors stop, and exhaustion fails the affected job with an actionable
+manual retry. Independent work continues. Fix benign clock.sleep parsing at its
+normal owner rather than treating the reproducible parser defect as a retry strategy.
+
+The existing Sol/High worker `01a18518-a761-7db1-a5c7-daf04dc3d484`, worktree `8f80`,
+now owns the bounded retry/local-capacity/root-cause implementation against a seeded
+integrated A/D source. Coordinator owns docs, integration, Git, qualification and
+live application; frontend and offline-fixture workers retain separate ownership.
+Do not add a generic retry engine or deployment framework. Preserve all 15 normal
+homes and current H5 exports. Release only positively stopped LOCAL occupancy of the
+two old holds; never automatically retry/resume the old H5 run or resolve its remote
+outcomes without facts.
+
+Sequence: complete coherent A/D/UI/retry freeze; real native bilingual Outline and
+all-eight installation/readback; focused checks, one stable full candidate gate,
+exact-wheel checks and independent review; supported activation and exact old local
+slot release; sequential real images/H3 and four route plays; installed language/
+playback/preservation readback and closeout. Software qualification, activation,
+slot application, media evidence and final acceptance stay distinct. No routine
+owner approval is required within this now-approved assignment. No push or CI.

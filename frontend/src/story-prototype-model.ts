@@ -27,7 +27,7 @@ export interface PrototypeRoute extends StoryRoute {
   sectionIds: string[];
 }
 
-export type PrototypeCut = { seconds?: number; size?: string; camera?: string; frame?: string };
+export type PrototypeCut = { seconds?: number; size?: string; camera?: string; composition?: string; frame?: string };
 export type PrototypeSegment = { id?: string; sceneIndex?: number; cuts?: PrototypeCut[]; h3Prompt?: string };
 export type PrototypeStoryboardEpisode = { ep?: number; segments?: PrototypeSegment[] };
 export type PrototypeStoryboard = { episodes?: PrototypeStoryboardEpisode[] };

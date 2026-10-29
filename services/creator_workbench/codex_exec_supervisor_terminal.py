@@ -3,11 +3,42 @@ from __future__ import annotations
 from codex_exec_terminal_receipt import evidence_hash_for_process
 
 from pathlib import Path
+import os
+import json
+from hashlib import sha256
+from contextlib import closing
 
 from codex_exec_supervisor_errors import CodexExecSupervisorError
 
 
 class CodexExecSupervisorTerminalMixin:
+    def _record_cli_exit(self, attempt, process_id, group_id, birth_identity, exit_code):
+        """Only the registered waiter may persist the native Popen.wait result."""
+        if type(exit_code) is not int:
+            raise CodexExecSupervisorError("CLI wait did not return an exit code")
+        from plotloom.codex_exec_contracts import CodexExecAttempt
+        with self._guard, closing(self._connect()) as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute("SELECT * FROM exec_attempts WHERE attempt_id=?", (str(attempt.attempt_id),)).fetchone()
+            current = CodexExecAttempt.model_validate_json(row["status_json"])
+            worker = (row["worker_pid"], row["worker_group_id"], row["worker_birth_identity"])
+            if (worker != (os.getpid(), *self._process_identity(os.getpid()))
+                    or self._identity(current) != self._identity(attempt)
+                    or (current.process_id, current.process_group_id, current.process_birth_identity)
+                    != (process_id, group_id, birth_identity)):
+                raise CodexExecSupervisorError("CLI exit witness changed its exact owner")
+            evidence = json.dumps({"version": "plotloom.codex-exec.wait-result.v1",
+                "attemptHash": sha256(row["attempt_json"].encode()).hexdigest(),
+                "processId": process_id, "processGroupId": group_id, "processBirthIdentity": birth_identity,
+                "workerIdentity": worker, "processExitCode": exit_code}, sort_keys=True, separators=(",", ":"))
+            prior = connection.execute("SELECT evidence_json FROM exec_process_exits WHERE attempt_id=?",
+                                       (str(attempt.attempt_id),)).fetchone()
+            if prior is not None and prior[0] != evidence:
+                raise CodexExecSupervisorError("CLI wait evidence cannot be replaced")
+            connection.execute("INSERT OR IGNORE INTO exec_process_exits VALUES (?,?)", (str(attempt.attempt_id), evidence))
+            connection.commit()
+
+
     def _build_manifest_json(self, attempt, profile, package_request, job_root, terminal, receipt,
                              session, image_facts, image_call, image_event, reference_hashes):
         if attempt.domain == "text":
@@ -92,6 +123,8 @@ class CodexExecSupervisorTerminalMixin:
         if extra_evidence_hash is not None:
             from hashlib import sha256
             evidence = sha256(f"{evidence}:{extra_evidence_hash}".encode("ascii")).hexdigest()
+        from plotloom.generation_retry_policy import classify_execution_failure
+        failure = classify_execution_failure(stdout_path, stderr_path, cancelled=current.state == "cancel_requested")
         changes = {
             "state": "failed",
             "session_id": session_id,
@@ -102,8 +135,10 @@ class CodexExecSupervisorTerminalMixin:
             "output_hash": None,
             "remote_output_hash": remote_output_hash,
             "content_rejection": content_rejection,
+            "execution_failure": failure,
             "image_budget_state": (
                 "consumed" if attempt.domain == "image" and remote == "completed"
+                else "reserved" if attempt.domain == "image" and remote == "unknown"
                 else "released" if attempt.domain == "image" else "none"
             ),
         }

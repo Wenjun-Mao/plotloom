@@ -12,7 +12,7 @@ OUTLINE_REPORT_SCHEMA_FILENAME = "outline-report-metadata-schema.json"
 class OutlineReportMetadata(BaseModel):
     model_config = ConfigDict(strict=True, extra="allow")
 
-    lang: Literal["zh", "en"] | None = None
+    lang: Literal["zh", "en"]
 
 
 def outline_report_metadata_schema() -> dict[str, Any]:
@@ -35,5 +35,5 @@ def assert_outline_report_metadata(candidate: dict[str, Any]) -> None:
         OutlineReportMetadata.model_validate(candidate)
     except ValidationError as error:
         raise CreativeHandoffError(
-            "outline_report_metadata_invalid", "Outline report lang must be omitted, null, or exactly zh/en",
+            "outline_report_metadata_invalid", "Outline report lang is required and must be exactly zh/en",
         ) from error

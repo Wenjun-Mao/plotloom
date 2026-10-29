@@ -62,7 +62,8 @@ def test_source_api_carries_settings_without_inventing_story_or_direction(tmp_pa
         assert request["inputArtifacts"][OUTLINE_SETTINGS_FILENAME] == expected
         assert request["inputArtifacts"][OUTLINE_REPORT_SCHEMA_FILENAME] == outline_report_metadata_schema()
         assert json.loads((package / "inputs" / OUTLINE_REPORT_SCHEMA_FILENAME).read_text()) == outline_report_metadata_schema()
-        assert "Top-level lang selects report UI" in request["creativeBrief"]
+        assert "Top-level lang must match the frozen project report locale" in request["creativeBrief"]
+        assert request["inputArtifacts"]["language-contract.json"]["contentLocale"] == "zh-CN"
         assert json.loads((package / "inputs" / OUTLINE_SETTINGS_FILENAME).read_text()) == expected
         assert "title" not in expected and "synopsis" not in expected
         assert request["source"]["text"] == material["text"]

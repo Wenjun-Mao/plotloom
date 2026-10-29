@@ -1,3 +1,5 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
 import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { useAutomaticGuidance, useKnownAutomaticRun } from "../features/autopilot/guidance";
 import { ProjectReportFrame } from "../components/ProjectReportFrame";
@@ -50,6 +52,8 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
   const castCharacters = charactersOf(editedCast);
   const canConfirm = hasValidCastDesign(castCharacters);
   useReportReviewWorkflowRead(projectId, true, { stage: "characters", status: readStatus, state, busy, dirty: draftDirty.current, error, renderStyle, retainedDraft: reviewDraft.stale, designValid: canConfirm });
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "characters", jobId: state?.candidate?.status === "ready" ? state.candidate.jobId : undefined,
+    candidate: editedCast, original: state?.candidate?.cast, basis, disabled: readOnly || busy || state?.status === "stale" });
   const operationOwner = useRef(0); const active = useRef(true); const projectRef = useRef(projectId);
   projectRef.current = projectId;
   useEffect(() => { active.current = true; return () => { active.current = false; operationOwner.current += 1; }; }, []);
@@ -96,7 +100,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
     const next = { ...editedCast, characters: charactersOf(editedCast).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character) };
     draftDirty.current = true; draftBasis.current = basis; setEditedCast(next); reviewDraft.changed(JSON.stringify(next));
   };
-  const saveAccepted = () => canConfirm && state.status !== "stale" && act(() => plotloomApi.acceptCastCandidate(projectId, {
+  const saveAccepted = () => languageCheck.ready && canConfirm && state.status !== "stale" && act(() => plotloomApi.acceptCastCandidate(projectId, {
     jobId: candidate!.jobId, expectedCastRevision: candidate!.expectedCastRevision, binding: candidate!.binding, cast: editedCast,
     consumerMappings: castCharacters.map((character) => ({ castCharacterId: String(character.id), consumerCharacterId: String(character.id) })),
   }), undefined, true);
@@ -115,7 +119,7 @@ export function CastPanel({ projectId, readOnly: ownerReadOnly, state, loadError
       <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <><p className="action-prerequisite">角色报告静态阅读：全部角色、关系与提示词展开；搜索、角色切换、复制、导出与报告内图片放大停用。原始归档与当前审阅内容保持独立。</p><ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="角色报告静态阅读" className="source-outline-report" url={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} /></>}</>}</details>
       {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="characters" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={() => onRefresh()} />}
       {["prepared", "ready"].includes(candidate.status) && <Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>{candidate.status === "ready" ? "放弃此角色提案" : "取消此任务"}</Button>}
-      {candidate.status === "ready" && <><CastEditor characters={castCharacters} disabled={readOnly || busy || state.status === "stale"} onChange={updateDirection} /><Button variant="primary" disabled={readOnly || busy || state.status === "stale" || !canConfirm} onClick={saveAccepted}>确认使用此角色设定</Button></>}
+      {candidate.status === "ready" && <><ContentLanguageReview check={languageCheck} /><CastEditor characters={castCharacters} disabled={readOnly || busy || state.status === "stale"} onChange={updateDirection} /><Button variant="primary" disabled={readOnly || busy || state.status === "stale" || !canConfirm || !languageCheck.ready} onClick={saveAccepted}>确认使用此角色设定</Button></>}
     </>}
     {accepted && state.status === "reopened" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} editing /><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !canConfirm} onClick={() => canConfirm && act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }), undefined, true)}>保存角色修改</Button><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelReopenedCast(projectId, accepted.revision), undefined, true, true)}>取消编辑</Button></div><small>取消会丢弃未保存的修改；只有所依据的故事内容与路线未变，才会恢复 r{accepted.revision} 的已确认状态。</small></>}
     {assignment && <details className="cast-assignment"><summary>查看任务说明（手动方式）</summary><textarea readOnly rows={5} value={assignment} /></details>}

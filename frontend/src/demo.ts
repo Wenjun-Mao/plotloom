@@ -94,9 +94,9 @@ export const demoRun: PipelineRun = {
 };
 
 export const demoTrace: TraceEvent[] = [
-  { id: "t1", at: "10:42:01", stage: "story_bible", kind: "prompt", title: "Story bible prompt compiled", status: "ok", systemPrompt: "你是 Plotloom · 叙织的故事圣经编辑器。只返回符合合同的 JSON。", userPrompt: "根据项目简报建立人物、世界规则与视觉语言。\n片名：月城余晖\n目标时长：180 秒。" },
-  { id: "t2", at: "10:42:08", stage: "story_bible", kind: "validation", title: "Schema and continuity checks passed", status: "ok", detail: "2 characters · 3 world rules · 3 themes" },
-  { id: "t3", at: "10:42:09", stage: "story_graph", kind: "prompt", title: "Graph generation requested", status: "ok", systemPrompt: "构造有向无环叙事图；遵守节点预算、出度和结局数。", userPrompt: "节点预算 10；每路径 2 个决定；3 个结局；期望 1 个汇合。" },
-  { id: "t4", at: "10:42:17", stage: "story_graph", kind: "validation", title: "Graph contract rejected", status: "error", detail: "GRAPH_ENDING_COUNT: expected 3, received 2", payload: { expectedEndingCount: 3, actualEndingCount: 2 } },
+  { id: "t1", at: "10:42:01", stage: "story_bible", kind: "prompt", title: "故事圣经提示词已编译", status: "ok", systemPrompt: "你是 Plotloom · 叙织的故事圣经编辑器。只返回符合合同的 JSON。", userPrompt: "根据项目简报建立人物、世界规则与视觉语言。\n片名：月城余晖\n目标时长：180 秒。" },
+  { id: "t2", at: "10:42:08", stage: "story_bible", kind: "validation", title: "结构与连续性检查已通过", status: "ok", detail: "2 个角色 · 3 条世界规则 · 3 个主题" },
+  { id: "t3", at: "10:42:09", stage: "story_graph", kind: "prompt", title: "已请求生成剧情图", status: "ok", systemPrompt: "构造有向无环叙事图；遵守节点预算、出度和结局数。", userPrompt: "节点预算 10；每路径 2 个决定；3 个结局；期望 1 个汇合。" },
+  { id: "t4", at: "10:42:17", stage: "story_graph", kind: "validation", title: "剧情图未通过契约检查", status: "error", detail: "结局数量不符：需要 3 个，实际收到 2 个", payload: { expectedEndingCount: 3, actualEndingCount: 2 } },
   { id: "t5", at: "10:42:17", stage: "story_graph", kind: "error", title: "输出已隔离", status: "warning", detail: "未覆盖任何正式内容。此教学记录不提供可执行的单独修复。" },
 ];

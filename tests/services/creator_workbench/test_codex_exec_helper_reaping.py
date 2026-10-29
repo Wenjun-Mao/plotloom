@@ -115,7 +115,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "sandbox":
         print("<!doctype html><html><body>fixture renderer</body></html>")
     raise SystemExit(0)
 sys.stdin.read()
-Path("outline.json").write_text(json.dumps({"source":"The Ferryman","params":{"episodes":1},"episodes":[]}))
+Path("outline.json").write_text(json.dumps({"lang":"zh","source":"The Ferryman","params":{"episodes":1},"episodes":[]}))
 session = uuid4()
 day = date.today()
 root = Path(os.environ["CODEX_HOME"]) / "sessions" / f"{day.year:04d}" / f"{day.month:02d}" / f"{day.day:02d}"
@@ -144,7 +144,7 @@ def test_real_registered_helper_reaps_without_followup_rpc_and_preserves_outcome
         row = supervisor._row(attempt.attempt_id)
         assert row["attempt_json"] == original
         with closing(supervisor._connect()) as connection:
-            assert supervisor._capacity_counts(connection) == {"text": int(outcome == "outcome_unknown"), "image": 0}
+            assert supervisor._capacity_counts(connection) == {"text": 0, "image": 0}
         assert bool(row["receipt_json"]) == (outcome == "completed")
     finally:
         _cleanup(worker)
@@ -268,7 +268,7 @@ def test_another_host_reconciles_but_never_waits_for_original_parents_child(supe
         _assert_reaped(worker)
         assert json.loads(other._row(attempt.attempt_id)["status_json"])["state"] == "outcome_unknown"
         with closing(other._connect()) as connection:
-            assert other._capacity_counts(connection) == {"text": 1, "image": 0}
+            assert other._capacity_counts(connection) == {"text": 0, "image": 0}
     finally:
         release.touch()
         try:

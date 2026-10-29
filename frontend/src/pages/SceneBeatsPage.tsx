@@ -1,3 +1,4 @@
+import { creativeDefaults, supportsCreativeLanguage } from "../creative-language";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   Beat,
@@ -51,6 +52,7 @@ export interface SceneBeatsReferenceContext {
 
 interface Props {
   value: SceneBeatPlan;
+  language?: string;
   stale: boolean;
   saving: boolean;
   entityId?: string;
@@ -470,7 +472,7 @@ function CueCard({
                   ? onPatch({ speakerId: characters[0].id, voiceOver: null })
                   : onPatch({
                       speakerId: null,
-                      voiceOver: cue.voiceOver || "旁白",
+                      voiceOver: cue.voiceOver || (supportsCreativeLanguage(cue.language) ? creativeDefaults(cue.language).narrator : ""),
                     })
               }
             >
@@ -500,11 +502,12 @@ function CueCard({
             <Field label="画外音身份">
               <input
                 {...focusProps(entity, "voiceOver")}
-                value={cue.voiceOver || "旁白"}
+                value={cue.voiceOver || ""}
+                placeholder="填写画外音身份"
                 onChange={(event) =>
                   onPatch({
                     speakerId: null,
-                    voiceOver: event.target.value || "旁白",
+                    voiceOver: event.target.value,
                   })
                 }
               />
@@ -595,7 +598,7 @@ function BeatCard({
   onMigrate?: (sceneId: string) => void;
   onMove: (direction: -1 | 1) => void;
   onDelete: () => void;
-  onAddCue: () => void;
+  onAddCue?: () => void;
   onPatchCue: (
     id: string,
     patch: Partial<Omit<DialogueCue, "id" | "beatId">>,
@@ -728,7 +731,7 @@ function BeatCard({
             <span className="eyebrow">本节拍对白</span>
             <h3>对白条目</h3>
           </div>
-          <Button type="button" variant="quiet" onClick={onAddCue}>
+          <Button type="button" variant="quiet" disabled={!onAddCue} onClick={onAddCue}>
             ＋ 添加对白条目
           </Button>
         </div>
@@ -752,6 +755,7 @@ function BeatCard({
 
 export function SceneBeatsPage({
   value,
+  language = "zh-CN",
   stale,
   saving,
   entityId,
@@ -982,9 +986,10 @@ export function SceneBeatsPage({
           <Button
             type="button"
             variant="quiet"
+            disabled={!supportsCreativeLanguage(language)}
             onClick={() =>
               update(
-                addScene(plan, newId, referenceContext.nodes?.[0]?.id || ""),
+                addScene(plan, newId, referenceContext.nodes?.[0]?.id || "", language),
               )
             }
           >
@@ -1249,7 +1254,7 @@ export function SceneBeatsPage({
                   onDelete={() =>
                     setPendingDelete(beatDeleteImpact(plan, beat.id, referenceContext.storyboard))
                   }
-                  onAddCue={() => update(addCue(plan, beat.id, newId))}
+                  onAddCue={supportsCreativeLanguage(language) ? () => update(addCue(plan, beat.id, newId, language)) : undefined}
                   onPatchCue={(id, patch) => update(patchCue(plan, id, patch))}
                   onMigrateCue={requestCueMigration}
                   onMoveCue={(id, direction) =>

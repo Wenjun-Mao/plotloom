@@ -172,3 +172,13 @@ composite qualification is separate from installed activation and owner acceptan
 [ADR 0223](0223-durable-runtime-grant-identity.md) replaces durable filesystem-stat
 grant identity with DB-attached installation-local metadata while preserving exact
 QA scopes, truthful attribution and supported copy/restore refusal.
+
+[ADR 0224](0224-project-language-and-derived-provider-adaptation.md) separates
+Chinese application copy from project-language creative/report content, authored
+meaning from provider adaptation, and actual assistant checks from creator
+production authorization. The approved implementation is in progress; the
+language verification record owns qualification/activation evidence.
+
+[ADR 0225](0225-bounded-generation-retries-and-local-capacity.md) adopts bounded
+generation retries and dead local-slot release while preserving remote uncertainty
+and possible-cost accounting; dedicated forensic recovery is retired.

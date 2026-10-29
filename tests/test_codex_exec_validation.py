@@ -41,7 +41,7 @@ def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffReques
         artifacts = artifacts | {TIMING_FILENAME: freeze_f5_dialogue_timing(
             artifacts["script.json"], script_content_hash="a" * 64, language="zh-CN",
         ).model_dump(mode="json", by_alias=True)}
-    return CreativeHandoffRequest.model_validate({
+    request = CreativeHandoffRequest.model_validate({
         "jobId": "ch_" + "a" * 20,
         "projectId": "project-demo",
         "sectionId": "section-opening",
@@ -51,6 +51,9 @@ def _request(stage: str, artifacts: dict | None = None) -> CreativeHandoffReques
         "inputArtifacts": ({OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema()} if stage == "outline" else {}) | (artifacts or {}),
         "creativeBrief": "Create one stage candidate. Preserve the frozen source facts.",
     })
+    from plotloom.language_policy import freeze_request_language
+    freeze_request_language(request, "zh-CN")
+    return request
 
 
 def _saved_brief_artifacts(stage: str) -> dict:

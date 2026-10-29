@@ -14,6 +14,7 @@ from .native_bridge_presentation_contract import (
     render_native_presentation_report,
 )
 from .native_bridge_request import assert_native_bridge_request_size
+from .language_policy import freeze_request_language, language_response_schema
 
 
 class NativeBridgePresentationService(NativeBridgeCandidateService):
@@ -38,11 +39,13 @@ class NativeBridgePresentationService(NativeBridgeCandidateService):
         if not 0 < len(proposal.presentation.sources) <= MAX_PRESENTATION_SOURCES:
             raise InvalidTransitionError("presentation sources exceed the bounded one-package limit")
         context["intentPackage"] = proposal.intent_package.model_dump(mode="json", by_alias=True)
-        schema = presentation_response_schema([source.id for source in proposal.presentation.sources])
+        language = store.project().require_brief().language
+        schema = language_response_schema(presentation_response_schema([source.id for source in proposal.presentation.sources]), language)
         request = CreativeHandoffRequest(job_id="ch_" + new_id().replace("-", ""), project_id=project_id,
             section_id="production-bridge", stage=self.stage, expected_stage_revision=expected_revision,
             source=context, input_artifacts={"presentation-source.json": package, "presentation-schema.json": schema},
             creative_brief="为全部冻结来源提出呈现归属与忠实画面描述，保留每字与限制；仅提供可编辑建议，等待作者确认。")
+        freeze_request_language(request, language)
         assert_native_bridge_request_size(request)
         exchange = store.creative_handoff_exchange()
         pin = exchange.current_execution_pin(self.stage)

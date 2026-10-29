@@ -1,3 +1,4 @@
+import { LanguageTaskObserver } from "../features/content-language/LanguageTaskObserver";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import { useAutomaticGuidance } from "../features/autopilot/guidance";
@@ -33,6 +34,8 @@ export function NativeBridgeIntentControls({ projectId, state, disabled, localEd
       {job.status === "queued" && state.nativeIntentTask?.state === "prepared" && <Button disabled={disabled || localEdits || !available || state.status === "stale"} onClick={() => action("send")}>发送给 Codex 文字助手</Button>}
       {["dispatched", "outcome_unknown", "cancelled", "stale"].includes(job.status) && !job.responseHash && <Button disabled={disabled} onClick={() => action("check")}>检查原任务交付</Button>}
       {["queued", "dispatched", "outcome_unknown"].includes(job.status) && <Button disabled={disabled} onClick={() => action("cancel")}>取消 Codex 意图任务</Button>}
+      {state.nativeIntentTask?.languageCheck && <LanguageTaskObserver key={`${projectId}:${job.id}:${state.nativeIntentTask.languageCheck.checkJobId}`} projectId={projectId} initial={state.nativeIntentTask.languageCheck} disabled={disabled || localEdits}
+        onVerified={job.status === "ready" ? undefined : () => action("check")} onContinue={() => action("check")} />}
       {job.errorMessage && ["outcome_unknown", "failed"].includes(job.status) && <ErrorNotice message={job.errorMessage} />}
       {!!state.nativeIntentTask?.limitations.length && <details open><summary>助手交付的限制说明</summary><ul>{state.nativeIntentTask.limitations.map((text, index) => <li key={index}>{text}</li>)}</ul></details>}
       {job.responseHash && <details className="bridge-intent-report"><summary>阅读 Codex 戏剧意图原始报告（只读）</summary>

@@ -91,6 +91,8 @@ class ProjectDraftPersistence:
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         require_manual_command(self._access)
+        from ...language_policy import supported_content_locale
+        supported_content_locale(brief.language)
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)

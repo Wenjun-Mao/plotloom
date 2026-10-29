@@ -134,7 +134,7 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: st
   const preparedPost = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
   // All three deliberate candidates reuse one exact seed, while each new
-  // review still has its own idempotency key and explicit submission.
+  // review still has its own idempotency key and explicit generation authorization.
   const priorDirections = panel.getByTestId("h3-directions-review").locator(".notice.warning").filter({ hasText: "保留草稿的版本已变化" });
   if (await priorDirections.isVisible()) {
     // A new selected segment changes request basis, never reuses its old consent.
@@ -148,9 +148,6 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: st
   expect(response.request().postDataJSON()).toMatchObject({ seed: 2325339575976657 });
   const prepared = await response.json() as { id: string; snapshot: { request: { seed: number } } };
   expect(prepared.snapshot.request.seed).toBe(2325339575976657);
-  const job = panel.getByTestId(`video-job-${prepared.id}`);
-  await job.getByRole("button", { name: "提交一次" }).click();
-  await job.getByRole("button", { name: "获取结果" }).click();
   await expect(panel.getByTestId(`video-job-player-${prepared.id}`)).toBeVisible();
   return prepared;
 }

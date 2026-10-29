@@ -88,6 +88,9 @@ class CodexExecSupervisorControlMixin:
                     connection.commit()
                     return self._load(row)
                 if current.state == "outcome_unknown":
+                    if current.execution_failure != "cancelled":
+                        current = transition_exec_attempt(current, execution_failure="cancelled")
+                        self._persist_status_in_transaction(connection, current)
                     connection.commit()
                     attempt = current
                 else:
@@ -99,7 +102,7 @@ class CodexExecSupervisorControlMixin:
                             connection.commit()
                             return self._status(current)
                     if current.state != "cancel_requested":
-                        current = transition_exec_attempt(current, state="cancel_requested")
+                        current = transition_exec_attempt(current, state="cancel_requested", execution_failure="cancelled")
                         self._persist_status_in_transaction(connection, current)
                     connection.commit()
                     attempt = current

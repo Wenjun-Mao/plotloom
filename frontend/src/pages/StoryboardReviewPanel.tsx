@@ -1,3 +1,5 @@
+import { useContentLanguageCheck } from "../features/content-language/useContentLanguageCheck";
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
 import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 import { useAutomaticGuidance } from "../features/autopilot/guidance";
 import { StaticReportReader } from "../components/StaticReportReader";
@@ -34,7 +36,7 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
       const next = await plotloomApi.getStoryboardSourceReview(session.projectId);
       if (owns(session) && isCurrent()) { setState(next); return true; }
     } catch (reason) {
-      if (owns(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "Unable to load storyboard review.");
+      if (owns(session) && isCurrent()) setError(reason instanceof Error ? reason.message : "无法读取分镜评审，请重试读取。");
     }
     return false;
   }, [projectId]);
@@ -57,6 +59,8 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
       if (owns(session)) setError(reviewContextFailure(reason, "分镜评审操作失败。"));
     }).finally(() => { if (owns(session)) setBusy(false); });
   };
+  const languageCheck = useContentLanguageCheck({ projectId, stage: "storyboard", jobId: state?.candidate?.status === "ready" ? state.candidate.jobId : undefined,
+    candidate: state?.candidate?.storyboard, original: state?.candidate?.storyboard, basis: state?.candidate ? JSON.stringify(state.candidate.binding) : "", disabled: readOnly || busy || state?.status === "stale" });
   if (!state) return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>分镜评审</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
     {error ? <><ReviewContextErrorNotice error={error} projectId={projectId} /><Button variant="quiet" onClick={() => void recheck()}>重试加载分镜评审</Button></> : <Spinner />}
@@ -78,10 +82,11 @@ export function StoryboardReviewPanel({ projectId, readOnly: ownerReadOnly, onOp
     {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备分镜任务</Button></div>}
     {candidate && <small>冻结评审时长：单镜头 {candidate.binding.reviewMinCutSeconds}–{candidate.binding.reviewMaxCutSeconds} 秒；分段上限 {candidate.binding.reviewMaxSegmentSeconds} 秒。</small>}
     {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="storyboard" jobId={candidate.jobId} disabled={readOnly || busy} sendDisabled={state.status === "stale"} onDelivered={recheck} />}
-    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale"} busy={busy} run={run} />}
+    {candidate?.status === "ready" && <ContentLanguageReview check={languageCheck} />}
+    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} stale={state.status === "stale" || !languageCheck.ready} busy={busy} run={run} />}
     {reportJobId && <StaticReportReader kind="storyboard" url={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} expandable active={visible} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待审阅分镜" value={candidate.storyboard} />}
-    {acceptedReview && <section><small>{adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}评审 r{acceptedReview.revision} · 来源剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? `查看保留的${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜` : `查看当前${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜`} value={acceptedReview.storyboard} /></section>}
+    {acceptedReview && <section><small>{adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}评审 r{acceptedReview.revision} · 来源剧本 r{acceptedReview.binding.scriptRevision} · 内容标识 {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title={state.acceptedReviewState.status === "retained" ? `查看保留的${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜` : `查看当前${adoptionLabel("storyboard", acceptedReview.revision, acceptedReview.contentHash)}分镜`} value={acceptedReview.storyboard} /></section>}
     {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ReviewContextErrorNotice error={error} projectId={projectId} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} reviewBasis={{ revision: acceptedReview.revision, contentHash: acceptedReview.contentHash, status: state.acceptedReviewState.status }} refreshToken={state} readOnly={readOnly || state.acceptedReviewState.status !== "current"} onOpenShot={onOpenShot} onInstalled={onInstalled} />}

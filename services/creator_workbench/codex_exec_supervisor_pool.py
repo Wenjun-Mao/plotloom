@@ -79,7 +79,7 @@ class CodexExecSupervisorPoolMixin:
         current = CodexExecAttempt.model_validate_json(row["status_json"])
         if self._identity(original) != self._identity(current):
             raise CodexExecSupervisorError("private capacity immutable identity differs")
-        if current.state not in {"spawn_intent", "running", "validating", "outcome_unknown", "cancel_requested"}:
+        if current.state not in {"spawn_intent", "running", "validating", "outcome_unknown", "cancel_requested", "failed", "completed", "settled"}:
             raise CodexExecSupervisorError("capacity must belong to unsettled work")
         return current
 

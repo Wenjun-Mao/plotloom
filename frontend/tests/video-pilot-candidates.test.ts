@@ -1,3 +1,5 @@
+import { batchApi } from "../src/features/video-batch/api";
+import { projectQaApi } from "../src/components/ProjectQaContext";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -25,6 +27,8 @@ async function render(projectId: string, shotId: string, sceneId?: string) {
 }
 
 beforeEach(() => {
+  vi.spyOn(batchApi, "current").mockResolvedValue(null);
+  vi.spyOn(projectQaApi, "current").mockResolvedValue({ eligible: false, required: false, attribution: null });
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
   vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);

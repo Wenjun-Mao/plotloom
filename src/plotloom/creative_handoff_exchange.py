@@ -143,7 +143,12 @@ class CreativeHandoffExchange:
             raise CreativeHandoffError("delivery_candidate_invalid", "candidate must be a JSON object")
         if not report.lstrip().lower().startswith((b"<!doctype html", b"<html")):
             raise CreativeHandoffError("delivery_report_invalid", "report must be an HTML-derived view")
-        if request.stage == "outline":
+        from .language_policy import assert_candidate_report_language
+        from .content_language_contract import is_language_check, bind_language_result
+        checking_language = is_language_check(request)
+        if checking_language:
+            bind_language_result(request, candidate)
+        if request.stage == "outline" and not checking_language:
             from .outline_report_metadata import (
                 assert_outline_report_metadata,
                 assert_outline_report_schema_current,
@@ -151,6 +156,8 @@ class CreativeHandoffExchange:
 
             assert_outline_report_schema_current(request.input_artifacts)
             assert_outline_report_metadata(candidate)
+        if not checking_language and request.stage != "video-directions":
+            assert_candidate_report_language(candidate, request.input_artifacts)
         return ValidatedCreativeDelivery(
             request=request, manifest=manifest,
             manifest_hash=sha256(canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),

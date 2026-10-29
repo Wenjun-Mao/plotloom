@@ -12,7 +12,7 @@ from ..video_backends.minimax_h3.prompt import compile_i2va_prompt
 from ..video_batch_contracts import BatchDirectionsTarget, BatchSetup
 from .format import ProjectStorageCorruptionError
 
-STATES = {"setup", "drafting", "ready", "running", "paused", "cancelled", "blocked", "stale", "awaiting_review", "approved", "retired"}
+STATES = {"setup", "drafting", "checking", "translation_rejected", "ready", "running", "paused", "cancelled", "blocked", "stale", "awaiting_review", "approved", "retired"}
 
 
 def assert_video_batch_contracts(connection):
@@ -21,7 +21,7 @@ def assert_video_batch_contracts(connection):
     try:
         for identifier, project_id, revision, state, raw, digest, execution_raw in connection.execute("SELECT id,project_id,revision,state,manifest,manifest_hash,execution FROM v2_video_batches"):
             manifest, execution = json.loads(raw), json.loads(execution_raw)
-            if (revision < 1 or state not in STATES or manifest.get("version") != "video-batch.manifest.v1"
+            if (revision < 1 or state not in STATES or manifest.get("version") not in {"video-batch.manifest.v1", "video-batch.manifest.v2"}
                     or manifest.get("projectId") != project_id or stable_hash(manifest) != digest):
                 raise ValueError("batch identity or current format changed")
             if not {"maxJobs", "maxRequestedSeconds"}.issubset(manifest["setup"]):
@@ -48,20 +48,45 @@ def assert_video_batch_contracts(connection):
                 if source["sourceHash"] != target["sourceHash"] or source["sources"] != target["sources"] or target["snapshot"]["shot"]["id"] != target["shotId"]:
                     raise ValueError("batch source binding changed")
                 if target["directions"] is not None:
-                    BatchDirectionsTarget.model_validate(target["directions"] | {"shotId": target["shotId"]})
+                    BatchDirectionsTarget.model_validate({key: target["directions"][key] for key in ("sourceHash", "fields")} | {"shotId": target["shotId"]})
                     validate_direction_fields(target["snapshot"], target["directions"])
                     if compile_i2va_prompt(target["snapshot"], target["directions"], draft=True) != target["compiledPrompt"]:
                         raise ValueError("batch compiled prompt changed")
             if execution.get("authorizedManifestHash") is not None and (execution["authorizedManifestHash"] != digest or manifest["blockers"]
                     or exceeds_budget(manifest["newJobs"], setup.max_jobs) or exceeds_budget(manifest["requestedSeconds"], setup.max_requested_seconds)):
                 raise ValueError("batch authorization or limits changed")
+            if manifest.get("version") == "video-batch.manifest.v2":
+                from ..production_brief import production_brief
+                for target in manifest["targets"]:
+                    if "languageContract" in target["snapshot"] and target.get("productionBrief") != production_brief(target["snapshot"]):
+                        raise ValueError("production brief projection changed")
+                for target in manifest["targets"]:
+                    reference = (target.get("directions") or {}).get("fidelityCheck")
+                    required = target["mode"] in {"generate", "prepared"} and (state == "ready" or execution.get("authorizedManifestHash"))
+                    if required and not reference:
+                        raise ValueError("new ready target lacks independent fidelity evidence")
+                    if reference:
+                        from ..video_fidelity_contracts import FidelityReference
+                        from ..video_fidelity import validate_retained_fidelity
+                        parsed = FidelityReference.model_validate(reference)
+                        owner = connection.execute("SELECT project_id,execution FROM v2_video_batches WHERE id=?", (parsed.batch_id,)).fetchone()
+                        if owner is None or owner[0] != project_id:
+                            raise ValueError("fidelity evidence owner changed")
+                        check = validate_retained_fidelity(json.loads(owner[1]).get("fidelity"), project_id,
+                            parsed.batch_id, target, parsed, require_pass=bool(required))
+                        if target.get("fidelity") not in (None, check):
+                            raise ValueError("displayed fidelity verdict changed")
+                if execution.get("authorizedManifestHash") and execution.get("intentReviewActor") != (execution.get("reviewAttribution") or {"kind": "unnamed_creator"}):
+                    raise ValueError("generation authorization actor changed")
+                if execution.get("authorizedManifestHash") and execution.get("intentReviewVersion") != "production-intent.v2":
+                    raise ValueError("new batch lacks production-intent authorization")
             if execution.get("reviewAttribution"):
                 from ..delegated_qa import require_scope
                 from ..delegated_qa_video import assert_snapshot
                 scope = require_scope(project_id, execution["reviewAttribution"])
                 if (not execution.get("authorizedManifestHash") or not budget_within_authority(setup.max_jobs, scope.max_submissions)
                         or not budget_within_authority(setup.max_requested_seconds, scope.max_requested_seconds) or setup.profile_id != scope.profile_id
-                        or manifest["scopeShotIds"] != sorted(item.shot_id for item in scope.materials)):
+                        or not set(manifest["scopeShotIds"]).issubset({item.shot_id for item in scope.materials})):
                     raise ValueError("QA batch scope changed")
                 for target in manifest["targets"]:
                     assert_snapshot(scope, target["snapshot"])
@@ -69,6 +94,8 @@ def assert_video_batch_contracts(connection):
                 raise ValueError("batch command authority revision is invalid")
             if not set(execution["jobs"]).issubset(ids) or not set(execution["segments"]).issubset(execution["jobs"]):
                 raise ValueError("batch execution links changed")
+            from .video_retry_evidence import assert_video_retry_evidence
+            assert_video_retry_evidence(connection, project_id, manifest, execution)
             for shot_id, job_id in execution["jobs"].items():
                 job = connection.execute("SELECT project_id,snapshot FROM v2_video_jobs WHERE id=?", (job_id,)).fetchone()
                 snapshot = json.loads(job[1]) if job is not None else None

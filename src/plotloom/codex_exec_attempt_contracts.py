@@ -55,10 +55,11 @@ class CodexExecAttempt(CamelModel):
     process_birth_identity: str | None = Field(default=None, min_length=1, max_length=160)
     process_exit_code: int | None = None
     terminal_result: Literal["success", "failure", "not_started", "no_remote_dispatch"] | None = None
-    remote_tool_state: Literal["not_applicable", "completed", "failed"] | None = None
+    remote_tool_state: Literal["not_applicable", "completed", "failed", "unknown"] | None = None
     evidence_hash: str | None = Field(default=None, pattern=HASH)
     output_hash: str | None = Field(default=None, pattern=HASH)
     remote_output_hash: str | None = Field(default=None, pattern=HASH)
+    execution_failure: Literal["transient", "cancelled", "configuration", "permission", "authorization"] | None = Field(default=None, exclude_if=lambda value: value is None)
     content_rejection: TextContentRejection | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
@@ -108,7 +109,7 @@ class CodexExecAttempt(CamelModel):
             if self.state not in {"completed", "failed", "settled"} and self.image_budget_state != "reserved":
                 raise ValueError("unsettled image attempts must retain their project budget reservation")
             if self.state in {"completed", "failed", "settled"}:
-                expected = "consumed" if self.remote_tool_state == "completed" else "released"
+                expected = "consumed" if self.remote_tool_state == "completed" else "reserved" if self.remote_tool_state == "unknown" else "released"
                 if self.image_budget_state != expected:
                     raise ValueError("terminal image outcome must settle its reserved project budget")
         if self.domain == "text" and self.remote_tool_state not in {None, "not_applicable"}:
@@ -183,7 +184,7 @@ _ATTEMPT_TRANSITIONS = {
 ATTEMPT_PROOF_FIELDS = (
     "session_id", "process_id", "process_group_id", "process_birth_identity",
     "process_exit_code", "terminal_result", "remote_tool_state", "evidence_hash",
-    "output_hash", "remote_output_hash", "content_rejection",
+    "output_hash", "remote_output_hash", "content_rejection", "execution_failure",
 )
 ATTEMPT_OBSERVED_FIELDS = ("state", *ATTEMPT_PROOF_FIELDS, "image_budget_state")
 _ATTEMPT_MUTABLE_FIELDS = set(ATTEMPT_OBSERVED_FIELDS)

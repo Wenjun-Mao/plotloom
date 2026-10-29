@@ -102,7 +102,8 @@ def capture_recovery_control(database: Path, project_id: str) -> ProjectRecovery
                     operations.append(RecoveryOperation(kind="codex_exec_attempt", operation_id=identifier,
                         provider_state="not_submitted" if state == "reserved" else "known" if state in {"completed", "failed", "settled"} else "unknown"))
         from .video_batch_evidence import retained_batch_drafts
-        for _request, _data, attempt, _profile, _receipt in retained_batch_drafts(connection):
+        from .content_language_evidence import retained_language_checks
+        for _request, _data, attempt, _profile, _receipt in [*retained_batch_drafts(connection), *retained_language_checks(connection)]:
             operations.append(RecoveryOperation(kind="codex_exec_attempt", operation_id=str(attempt.attempt_id),
                 provider_state="known" if attempt.state in {"completed", "failed", "settled"} else "unknown"))
         if connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v2_video_batches'").fetchone():

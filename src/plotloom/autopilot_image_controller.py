@@ -37,7 +37,8 @@ class AutopilotImageController:
 
     @staticmethod
     def checkpoint(view, key):
-        return next((item for item in view.checkpoints if item["operationKey"] == key), None)
+        from .autopilot_execution_retry import current_checkpoint
+        return current_checkpoint(view, key)
 
     @staticmethod
     def command(store, view, claim, scope):
@@ -215,6 +216,10 @@ class AutopilotImageController:
             domain="image", package_path=paths["packagePath"], command_factory=self.command,
             before_spawn=before_spawn,
         )
+        if attempt.state in {"failed", "outcome_unknown"}:
+            from .autopilot_execution_retry import retry_native_execution
+            if retry_native_execution(self, store, view, claim, checkpoint, attempt):
+                return
         if attempt.state in {"failed", "settled"} and attempt.terminal_result in {"failure", "not_started", "no_remote_dispatch"}:
             raise ImageJobError("codex_exec_attempt_failed", "Codex Exec image attempt failed; preserve the exact attempt for review.")
         if attempt.state == "outcome_unknown":

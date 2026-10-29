@@ -16,21 +16,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await freezeReviewedFixtureDirections(panel);
-  await panel.getByRole("button", { name: "提交一次" }).click();
-  const reconcilePost = page.waitForResponse((response) => {
-    const pathname = new URL(response.url()).pathname;
-    return response.request().method() === "POST"
-      && pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
-      && pathname.endsWith("/reconcile");
-  });
-  await panel.getByRole("button", { name: "获取结果" }).click();
-  const reconciledResponse = await reconcilePost;
-  expect(reconciledResponse.ok()).toBeTruthy();
-  const reconciled = await reconciledResponse.json() as {
-    id: string; state: string; error: string | null;
-    observed: { videoCodec: string; audioCodec: string | null } | null;
-  };
+  const reconciled = await freezeReviewedFixtureDirections(panel);
   expect(reconciled).toMatchObject({
     state: "ingested", error: null,
     observed: { videoCodec: "h264", audioCodec: "aac" },

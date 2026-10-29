@@ -38,7 +38,7 @@ def test_opted_in_f4_exposes_trusted_requirement_before_model_work(script_store)
         planned_storyboard_max_cut_seconds=8)
     planned = candidate.binding.planned_storyboard_dialogue
     assert planned.language == "zh-CN" and planned.max_cut_seconds == 8
-    assert planned.profile.version == "dialogue.default.v1"
+    assert planned.profile.version == "dialogue.bilingual.v2"
     assert request.input_artifacts["script-admission.json"]["plannedStoryboardDialogue"] == planned.model_dump(mode="json", by_alias=True)
     assert "necessary" in request.creative_brief and "canonical" in request.creative_brief
 

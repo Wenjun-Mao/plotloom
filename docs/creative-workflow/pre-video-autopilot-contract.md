@@ -1,5 +1,12 @@
 # Pre-video autopilot implementation contract
 
+
+Current execution policy: [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
+supersedes dedicated forensic/no-dispatch recovery, blanket no-retry behavior and
+dead local-slot retention solely due to remote UNKNOWN. New work freezes its
+additional retry allowance; old frozen work gains no retry authority. Snapshot/
+restore and original outcome/cost evidence remain protected.
+
 Accepted after attended P0 review, 2026-10-12. Authority: [ADR 0162](../adr/0162-pre-video-autopilot-authority.md). Outcome, ordered delivery and progress remain in the [roadmap](../roadmap/2026-10-12-pre-video-autopilot.md); executed evidence remains in the [single receipt](../verification/2026-10-12-pre-video-autopilot.md). This contract defines required behavior, not completion evidence.
 
 ### Ownership and typed records

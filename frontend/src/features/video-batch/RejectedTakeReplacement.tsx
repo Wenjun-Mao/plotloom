@@ -55,8 +55,15 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
         current = await batchApi.command(projectId, "control", { batchId: batch.id, expectedControlRevision: current.controlRevision, action: "cancel" });
         completed = "已取消原批次的新派发。"; onRead(current, updated);
       } else completed = "原批次已取消新派发。";
+      const setup = batch.manifest.setup;
+      // One exact predecessor/rejected target has one replacement intent. Derive
+      // its fresh key from those immutable IDs so reopening cannot mint a retry.
+      const replacementSetup = setup.singleRequest ? { ...setup, singleRequest: { ...setup.singleRequest,
+        idempotencyKey: `video-replacement-${batch.id}-${ids[0]}` } } : setup;
+      if (setup.singleRequest && (ids.length !== 1 || setup.shotIds?.length !== 1 || setup.shotIds[0] !== setup.singleRequest.shotId))
+        throw new Error("单镜头重做需要精确的原任务与唯一镜头；不会修改原种子或设置。");
       const successor = await batchApi.command(projectId, "replace-rejected", { batchId: batch.id,
-        expectedRevision: current.revision, rejectedJobIds: ids, setup: batch.manifest.setup, ...attribution });
+        expectedRevision: current.revision, rejectedJobIds: ids, setup: replacementSetup, ...attribution });
       onSuccess(successor);
     } catch (error) {
       uncertain.current = true;
@@ -79,7 +86,7 @@ export function RejectedTakeReplacement({ projectId, batch, review, disabled, ac
       <p>将此原片保留为已拒绝历史；其他好镜头保留。此操作不发送新作业。</p>
       <Button disabled={busy || disabled || working.stale || !reason.trim()} onClick={() => void act("reject")}>保存拒绝与修改原因</Button></>}
     {review.proposals.map(item => item.job?.state === "ingested" && !item.job.selected && item.job.reviews.at(-1)?.decision !== "reject" && <Button key={item.shotId} disabled={busy || disabled} onClick={() => setShot(item.shotId)}>重新制作这个镜头… · {item.shotId}</Button>)}</>}
-    {rejected.length > 0 && <><p>已拒绝：{rejected.map(item => item.shotId).join("、")}。仅为这些镜头创建后继清单；新方向仍须重新审阅并明确开始。</p>
+    {rejected.length > 0 && <><p>已拒绝：{rejected.map(item => item.shotId).join("、")}。仅为这些镜头创建后继清单；新候选仍需独立助手检查，并重新审阅完整制作简报、明确授权生成。</p>
       {rejected.map(item => <p key={item.jobId}>{item.shotId} · 拒绝原因：{item.job?.reviews.at(-1)?.note}</p>)}
       <Button disabled={busy || disabled || batch.state === "approved"} onClick={() => void act("replace")}>仅重做这些镜头</Button></>}
   </section>;

@@ -237,10 +237,14 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
 
     root = source_root.expanduser().resolve(strict=True)
     stage = package_request.get("stage")
+    from .content_language_contract import is_language_check
+    checking_language = is_language_check(package_request)
     try:
         plan = _STAGES[stage]
     except (KeyError, TypeError) as error:
         raise CodexExecResourceError("Codex Exec package has an unsupported creative stage") from error
+    if checking_language:
+        plan = replace(plan, python_project=True, validator_paths=("scripts/content_language.py",))
     if package_request.get("upstreamSkillPath") != plan.upstream_skill_path:
         raise CodexExecResourceError("frozen upstream skill path does not match its creative stage")
     pin = package_request.get("executionPin")
@@ -278,11 +282,11 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             raise CodexExecResourceError("pinned native contract revision differs from the frozen package")
 
     try:
-        saved_brief_route = codex_exec_saved_brief_route(stage, package_request)
+        saved_brief_route = None if checking_language else codex_exec_saved_brief_route(stage, package_request)
     except (TypeError, ValueError) as error:
         raise CodexExecResourceError("frozen saved-Brief contract does not match its source policy") from error
     planned_script = False
-    if stage == "script":
+    if stage == "script" and not checking_language:
         from .script_dialogue_compatibility import assert_current_planned_dialogue, planned_dialogue_from_admission
         planned = planned_dialogue_from_admission(package_request.get("inputArtifacts", {}).get("script-admission.json"))
         if planned is not None:
@@ -290,7 +294,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
             planned_script = True
             plan = replace(plan, python_project=True, validator_paths=("scripts/script_receiving.py",))
     marked_art = False
-    if stage == "art":
+    if stage == "art" and not checking_language:
         from .art_structure import marked_art_structure
         marked_art = marked_art_structure(package_request.get("inputArtifacts", {}))
         if marked_art:
@@ -301,7 +305,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         relative_paths.append("scripts/text-content-validation.mjs")
     if stage == "script" and package_request.get("contentValidationContract") is not None:
         relative_paths.append("scripts/script-content-validation.mjs")
-    if stage == "storyboard":
+    if stage == "storyboard" and not checking_language:
         relative_paths.append("scripts/storyboard-dialogue-timing.mjs")
         if package_request.get("contentValidationContract") is not None:
             relative_paths.append("scripts/storyboard-content-validation.mjs")

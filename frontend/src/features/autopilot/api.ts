@@ -5,6 +5,7 @@ const transport = new ApiTransport(globalThis.fetch, "/api/v2", browserProjectRe
 const path = (id: string) => `/projects/${encodeURIComponent(id)}/autopilot`;
 const read = async <T,>(url: string, init?: RequestInit) => (await transport.json<T>(url, init)).body;
 export const autopilotApi = {
+  retryExecution: (id: string, body: { commandId: string; expectedRunId: string; expectedRevision: number; failedJobId: string; failedAttemptId: string }) => read<AutopilotRun>(`${path(id)}/retry-execution`, { method: "POST", body: JSON.stringify(body) }),
   textFailure: (id: string, signal?: AbortSignal, stage?: string) => read<TextFailure | null>(`${path(id)}/text-failure${stage ? `?stage=${encodeURIComponent(stage)}` : ""}`, { signal }),
   retryText: (id: string, body: TextRetry) => read<AutopilotRun>(`${path(id)}/text-retry`, { method: "POST", body: JSON.stringify(body) }),
   deliveryEvidence: (id: string, signal?: AbortSignal) => read<import("./deliveryEvidence").EvidenceReads>(`${path(id)}/delivery-evidence`, { signal }),

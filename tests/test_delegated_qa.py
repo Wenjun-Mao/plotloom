@@ -84,7 +84,7 @@ def test_qa_readback_and_start_require_the_actual_actor(tmp_path, monkeypatch):
     workbench = client.get(f"/api/v2/projects/{project}/visual-workbench").json()
     assert all(item["attribution"] == expected for item in workbench["reviewedKeyframes"])
     with pytest.raises(InvalidTransitionError, match="actual attribution"):
-        service.start(project, BatchStart(expectedRevision=view["revision"], manifestHash=view["manifestHash"], basis="whole-batch-english.v1"))
+        service.start(project, BatchStart(expectedRevision=view["revision"], manifestHash=view["manifestHash"], basis="production-intent.v2"))
     started = qa_start(service, project, view, actor)
     assert started["execution"]["reviewAttribution"] == expected and not provider.submits
     service.step(project)
@@ -128,12 +128,12 @@ def test_manual_per_shot_prepare_cannot_save_misattributed_qa_material(tmp_path,
         "requestedDurationSeconds": args["requested_seconds"], "seed": args["seed"], "profileId": args["profile_id"],
         "aspectPolicy": "cover_center_crop", "allowCenterCrop": True, "playbackIntent": args["playback_intent"]}
     base = f"/api/v2/projects/{project}/video-jobs"
-    directions = target["directions"] | {"reviewedEnglish": True}
+    directions = target["directions"]
     preview = client.post(base+"/prompt-preview", json=body | {"reviewedDirections": directions})
     assert preview.status_code == 200, preview.text
     directions["promptSha256"] = preview.json()["compiledPromptSha256"]
     response = client.post(base, json=body | {"reviewedDirections": directions})
-    assert response.status_code == 409 and "QA batch English endorsement" in response.text
+    assert response.status_code == 409 and "制作" in response.text
     assert client.get(base).json()["jobs"] == []
     assert not provider.submits
 

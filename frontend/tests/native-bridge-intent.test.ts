@@ -1,3 +1,5 @@
+import { contentLanguageApi } from "../src/features/content-language/api";
+import { languagePass, languageRequired } from "./content-language-fixture";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -29,8 +31,12 @@ const withJob = (status: "queued" | "dispatched" | "outcome_unknown" | "ready" |
     errorCode: null, errorMessage: null, resultProposalRevision: status === "ready" ? 2 : null, providerRequestId: null, responseHash: status === "ready" ? "d".repeat(64) : null,
   }, nativeIntentTask: { state: status === "queued" ? "prepared" : status === "ready" ? "completed" : status === "outcome_unknown" ? "outcome_unknown" : "queued", candidateStatus: status, reportAvailable: status === "ready", limitations: [] },
 });
-const render = async () => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId: "project", reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" }, readOnly: false, onInstalled: async () => undefined }))); };
-beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
+const render = async () => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId: "project", reviewBasis: { revision: 1, contentHash: "a".repeat(64), status: "current" }, readOnly: false, onInstalled: async () => undefined }))); const check = [...host.querySelectorAll("button")].find(item => item.textContent === "检查当前完整候选语言"); if (check && !check.disabled) await act(async () => check.click()); };
+beforeEach(() => {
+  vi.spyOn(contentLanguageApi, "status").mockImplementation(async (_project, _stage, job) => languageRequired(job));
+  vi.spyOn(contentLanguageApi, "check").mockImplementation(async (_project, _stage, job) => languagePass(job));
+  vi.spyOn(plotloomApi, "getProject").mockResolvedValue({ brief: { language: "zh-CN" } } as never);
+ host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
 it("prepares a frozen native candidate without API generation or sending", async () => {
@@ -139,4 +145,17 @@ it.each([undefined, { jobId: "another-job" }])("labels a retained delivery separ
   expect(button("确认投产提案")?.disabled).toBe(true);
   expect(host.querySelector("iframe")?.getAttribute("sandbox")).toBe("");
   expect(action).not.toHaveBeenCalled();
+});
+
+it("keeps rejected generated intent editable while saving remains blocked", async () => {
+  const inferred = withJob("ready");
+  inferred.proposal!.revision = 2;
+  inferred.proposal!.intentPackage = { suggestionOrigin: "codex_native.v1", reviewState: "model_suggested", provenance: { jobId: inferred.intentJob!.id }, entries: inferred.proposal!.intentPackage.entries.map(entry => ({ ...entry, text: "Wrong language.", suggestedText: "Wrong language." })) };
+  vi.mocked(contentLanguageApi.check).mockResolvedValue({ ...languagePass(inferred.intentJob!.id), verdict: "reject" });
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(inferred);
+  const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent");
+  await render();
+  expect(host.querySelector<HTMLTextAreaElement>(".bridge-intent-field textarea")!.disabled).toBe(false);
+  expect(button("保存戏剧意图整包")?.disabled).toBe(true);
+  expect(save).not.toHaveBeenCalled();
 });

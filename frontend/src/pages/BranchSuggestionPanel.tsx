@@ -1,3 +1,4 @@
+import { ContentLanguageReview } from "../features/content-language/ContentLanguageReview";
 import { useEffect } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
@@ -10,7 +11,7 @@ import { useAdoptionLabel } from "../features/autopilot/AutopilotWorkspace";
 
 export function BranchSuggestionPanel({ projectId, basis, outline, disabled, cancelDisabled, dirty, onAdopt, onPlan, onTaskRead }: { projectId: string; basis: string; outline: { revision: number; contentHash: string }; disabled: boolean; cancelDisabled: boolean; dirty: boolean; onAdopt: (draft: SectionMap) => void; onPlan: (topology: SourceTopology) => void; onTaskRead?: (projectId: string, observation: BranchTaskReadObservation) => void }) {
   const outlineLabel = useAdoptionLabel()("outline", outline.revision, outline.contentHash);
-  const { state, busy, mutationPending, error, refresh, adopt, mutate, retryDisabled } = useBranchSuggestions(projectId, basis, dirty, onAdopt);
+  const { state, languageCheck, busy, mutationPending, error, refresh, adopt, mutate, retryDisabled } = useBranchSuggestions(projectId, basis, dirty, onAdopt);
   useEffect(() => { if (state?.plannedTopology) onPlan(state.plannedTopology); }, [state?.plannedTopology?.topologyHash]);
   useEffect(() => {
     if (!onTaskRead) return;
@@ -35,6 +36,7 @@ export function BranchSuggestionPanel({ projectId, basis, outline, disabled, can
       <p className="action-prerequisite">报告对应这份未确认的建议。阅读不会带入、保存、确认或应用路线；报告内脚本和网络内容受隔离限制。</p>
       <ProjectReportFrame sandbox="" referrerPolicy="no-referrer" title="分支建议报告静态阅读" className="source-outline-report" url={plotloomApi.branchCandidateReportUrl(projectId, candidate.jobId)} />
     </details>}
+    {candidate?.status === "ready" && <ContentLanguageReview check={languageCheck} />}
     {suggestion && <div className="branch-suggestion-preview">
       {suggestion.nodes.map((node, index) => <section key={node.id}><h4>剧情节点 {index + 1}：{node.title}</h4><p>{node.summary}</p></section>)}
       {suggestion.choices.map(choice => <section key={choice.nodeId}><h4>播放时显示的问题：{choice.question}</h4><div className="field-grid two">{choice.options.map((option, index) => {
@@ -43,7 +45,7 @@ export function BranchSuggestionPanel({ projectId, basis, outline, disabled, can
       })}</div></section>)}
       {suggestion.joins.map(join => <p key={join.id}>汇合衔接：{join.reconciliation}</p>)}
       {suggestion.clarifications.map((note, index) => <p className="notice warning" key={index}>待确认说明：{note}</p>)}
-      <Button variant="primary" busy={busy} disabled={disabled || busy || dirty || stale} onClick={() => void adopt()}>带入可编辑草稿</Button>
+      <Button variant="primary" busy={busy} disabled={disabled || busy || dirty || stale || !languageCheck.ready} onClick={() => void adopt()}>带入可编辑草稿</Button>
       {dirty && <p className="action-prerequisite">已有未保存修改。请先保存或明确放弃当前草稿，再带入建议。</p>}
       <p className="action-prerequisite">带入只更新本地草稿；随后需确认保存并应用到故事路线。</p>
     </div>}

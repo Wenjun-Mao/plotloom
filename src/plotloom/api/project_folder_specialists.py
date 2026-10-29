@@ -59,6 +59,12 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
             is_current = candidate is not None and candidate.job_id == job_id
             if is_current and candidate.status in {"ready", "accepted"}:
                 registry.complete_creative_task(job_id, project_id=project_id, stage=stage)
+                if candidate.status == "ready":
+                    from ..content_language_candidates import load_generated_candidate
+                    from ..content_language_service import ContentLanguageService
+                    original, value = load_generated_candidate(store, stage, job_id)
+                    return {"state": "completed", "candidateStatus": "ready",
+                            "languageCheck": ContentLanguageService(registry).ensure(store, original, value)}
                 return {"state": "completed"}
             request = getattr(store, METHODS[stage][1])(job_id) if is_current and candidate.status == "prepared" else store.terminal_creative_request(stage, job_id)
             try:
@@ -76,4 +82,6 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
             # Admission validates source binding/schema/report/hash; it is not creative acceptance.
             result = getattr(store, METHODS[stage][2])(delivery)
             registry.complete_creative_task(job_id, project_id=project_id, stage=stage)
-            return {"state": "completed", "candidateStatus": result.status}
+            from ..content_language_service import ContentLanguageService
+            checked = ContentLanguageService(registry).ensure(store, request, delivery.candidate)
+            return {"state": "completed", "candidateStatus": result.status, "languageCheck": checked}
