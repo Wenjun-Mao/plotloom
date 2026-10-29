@@ -1,5 +1,24 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Action-owned soundtrack context — 2026-10-29
+
+The real English v8 checker rejected speech misassigned to soundscape. Its complete
+source also exposed a v8 preparation gap: the F5 composition has no sound clause,
+while the installed shot.action explicitly requires quiet room ambience and no
+music. Composition-only soundtrack views cannot carry those requirements into the
+dedicated H3 sections. Do not resolve this by dropping the action-owned sound or
+silently treating a global sound section's N/A as its absence.
+
+Prospective compiler v9 adds exact role-specific action sources alongside the
+composition sources. Each has its own path/hash/coordinates and independent
+semantic judgment. Compile every applicable contribution and explicit event into
+its matching sound role; N/A represents no requirement from that one source, and
+is emitted only when the whole role has no contribution. Preserve conflicting
+instructions for independent checker rejection. Source authors, model adaptation
+and trusted transport/compiler ownership otherwise remain as above. Retained
+v8/v7 packages and original native verdicts/bytes retain their original contracts.
+No presentation, canon, material, grant or original creative prose changes follow.
+
 ### Authored soundtrack preservation in H3 adaptation — 2026-10-29
 
 The first real Chinese H3 draft/check pair rejected an omitted room-tone clause:

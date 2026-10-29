@@ -27,12 +27,14 @@ def source(composition=ZH):
     return snapshot
 
 
-def package(snapshot, sound="Only continuous quiet room tone besides the authored cue. No other voices or action sounds.", music="No music."):
+def package(snapshot, sound="Only continuous quiet room tone besides the authored cue. No other voices or action sounds.", music="No music.", action_sound="N/A", action_music="N/A"):
     request, draft = draft_request(snapshot)
     target = draft["targets"][0]
     for field in target["fields"]:
         if field["path"] == "reviewedSoundscape": field["english"] = sound
         if field["path"] == "reviewedMusic": field["english"] = music
+        if field["path"] == "reviewedActionSoundscape": field["english"] = action_sound
+        if field["path"] == "reviewedActionMusic": field["english"] = action_music
     return request, target
 
 
@@ -124,3 +126,42 @@ def test_canonical_composition_uses_its_own_exact_source_coordinates():
     sound = next(item for item in sources if item["path"] == "reviewedSoundscape")
     assert sound["text"] == snapshot["shot"]["composition"]
     assert sound["sourcePath"] == "shot.composition"
+
+
+def test_english_action_owns_room_tone_and_no_music_when_composition_only_describes_speech():
+    snapshot = source("Nora rests her hand beside the cup, says the source sentence once, then keeps her hand there through the end.")
+    action = "Maintain one continuous static-camera live-action shot with quiet room ambience, no music, subtitles, signs or visible words beyond the cup marking."
+    snapshot["shot"]["action"] = action
+    sources = {item["path"]: item for item in direction_sources(snapshot)["sources"]}
+    for path in ("reviewedActionSoundscape", "reviewedActionMusic"):
+        assert sources[path]["text"] == action
+        assert sources[path]["sourcePath"] == "shot.action"
+        assert sources[path]["sourceTextHash"] == sha256(action.encode()).hexdigest()
+    _, target = package(snapshot, sound="N/A", music="N/A",
+        action_sound="Quiet room ambience.", action_music="No music.")
+    prompt = compile_i2va_prompt(snapshot, target, draft=True)
+    assert "overall_soundscape: Quiet room ambience.\n\nnon_diegetic_music: No music." in prompt
+    finding = bind_finding_paths(snapshot, target, [FidelityFinding(
+        path="reviewedActionSoundscape", code="sound_role", message="Preserve room ambience.")])[0]
+    assert finding["sourcePath"] == "shot.action"
+
+
+def test_conflicting_prose_owners_are_preserved_for_rejection_instead_of_prioritized():
+    snapshot = source("只有房间底噪，无配乐。")
+    snapshot["shot"]["action"] = "敲击声持续，弦乐不停。"
+    _, target = package(snapshot, action_sound="Continuous knocking.", action_music="Continuous strings.")
+    prompt = compile_i2va_prompt(snapshot, target, draft=True)
+    assert "Only continuous quiet room tone" in prompt and "Continuous knocking." in prompt
+    assert "non_diegetic_music: No music. Continuous strings." in prompt
+
+
+def test_retained_v8_composition_sources_do_not_acquire_new_action_authority():
+    snapshot = source()
+    snapshot["compilerVersion"] = "plotloom.h3-production-brief.v8"
+    paths = {item["path"] for item in direction_sources(snapshot)["sources"]}
+    assert {"reviewedSoundscape", "reviewedMusic"} <= paths
+    assert not paths & {"reviewedActionSoundscape", "reviewedActionMusic"}
+    _, target = package(snapshot)
+    prompt = compile_i2va_prompt(snapshot, target, draft=True)
+    assert "overall_soundscape: Only continuous quiet room tone" in prompt
+    assert "non_diegetic_music: No music." in prompt

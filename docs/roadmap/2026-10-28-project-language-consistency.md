@@ -1,5 +1,34 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+2026-10-29 first actual video checkpoint: v8's Chinese native draft and independent
+check passed; UI agent-QA production authorization dispatched one eight-second H3 job
+vj_4b79ba8e3c1d46a0a1d1913ef51f6acf. Retrieval first reported a recoverable failure;
+the same prediction later ingested normally. Actual served bytes match the read-only
+probe, SHA-25643b8c86681296239450f73e7558774d0bd3c7af69663a378fe3f92b366cd1f05,
+8.0s/192frames/832x480/H.264/AAC. ASR auto-detected Chinese0.984832 and recognized
+one exact spoken clause 把灯留在这里 at0.62–1.92s; no direct listening is claimed.
+Actual frames fail: the hand rests on the lamp and withdraws before the end.
+Agent QA rejected the clip in the normal API; original video/checks remain retained,
+unselected. Its batch is cancelled17, not an accepted media result.
+
+English v8's distinct checker rejected speech placed in the soundscape view. It also
+exposed action-owned quiet ambience/no-music requirements absent from composition
+views. Independently reviewed ADR0224 compiler v9 adds exact action views and merges
+local source requirements with events; N/A appears only for an empty whole role.
+Focused sound/prompt/storage selection34 and fidelity/display selection59 passed
+(overlap); scoped Ruff and whitespace checks passed. Retained v7 reject, v8 Chinese pass
+and v8 English reject bind with unchanged original prompt hashes. Normal read-only
+validation remains14/14, zero new regressions. The seven-case offline source-review
+browser owner passed90.074s, closing its three earlier UI failures; unchanged seven
+story-reader passes remain reusable. These are fixture evidence, not native media.
+
+Next: freeze v9, use the supported rejected-take replacement and manually derived,
+exact-source English candidate with clearer existing held-hand negation; run a fresh
+distinct native check before one replacement H3 submission. Prepare the English
+opening from its same original home/current material, correcting sound roles through
+the same supported edited-candidate/check path. No story/source rewrite, new creative
+acceptance, automatic rejected-take retry or additional H3 dispatch is implied.
+
 2026-10-29 soundtrack checkpoint: both original bilingual homes completed their
 three references and three first frames, actual pixel inspection and UI material
 handoff with explicit agent-QA attribution. The Chinese opening's real native

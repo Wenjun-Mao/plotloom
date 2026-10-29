@@ -114,7 +114,7 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     )
     authored_audio = authored_audio_sources(snapshot)
     if authored_audio:
-        soundscape = _audio_supplement(soundscape, rendered["reviewedSoundscape"])
+        soundscape = _audio_section(soundscape, authored_audio, rendered, "ambient_effects_and_sound_exclusions")
     elif not soundscape:
         soundscape = rendered["reviewedSoundscape"]
     music = " ".join(
@@ -123,7 +123,7 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         if event.get("kind") == "score" and event.get("description")
     )
     if authored_audio:
-        music = _audio_supplement(music, rendered["reviewedMusic"])
+        music = _audio_section(music, authored_audio, rendered, "non_diegetic_music")
     else:
         music = music or "N/A"
     if snapshot.get("endFrame", {}).get("assetId"):
@@ -144,11 +144,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     )
 
 
-def _audio_supplement(events, supplement):
-    # N/A means no additional prose-owned requirement, never cancel an event.
-    if events and supplement == "N/A":
-        return events
-    return " ".join(filter(None, (events, supplement)))
+def _audio_section(events, sources, rendered, role):
+    # N/A is local to one source view; it never cancels another source/event.
+    contributions = [events, *(rendered[item["path"]] for item in sources if item["role"] == role)]
+    return " ".join(item for item in contributions if item and item != "N/A") or "N/A"
 
 
 def _timed_event(snapshot, index, rendered):
