@@ -37,8 +37,12 @@ def language_result_schema(frozen):
 
     schema = ContentLanguageResult.model_json_schema(by_alias=True)
     leaves = dict(string_leaves(frozen["candidate"]))
-    authored = [item["path"] for item in frozen["inventory"]
-                if (item["role"] == "authored_prose" or "providerLiterals" in frozen and item["role"] == "provider_technical") and leaves[item["path"]].strip()]
+    exception_paths = [item["path"] for item in frozen["inventory"]
+                       if item["role"] == "authored_prose" and leaves[item["path"]].strip()]
+    finding_paths = [item["path"] for item in frozen["inventory"]
+                     if (item["role"] == "authored_prose"
+                         or "providerLiterals" in frozen and item["role"] == "provider_technical")
+                     and leaves[item["path"]].strip()]
     sources = [path for path, text in string_leaves(frozen["sources"]) if text]
 
     def span(paths, description):
@@ -47,21 +51,34 @@ def language_result_schema(frozen):
         value["properties"]["path"]["description"] = description
         return value
 
-    candidate = span(authored, "Copy a canonical candidate path exactly; relative to candidate root, never $.candidate.")
+    exception_candidate = span(exception_paths,
+        "Copy a nonempty authored_prose candidate path exactly; relative to candidate root, never $.candidate.")
+    finding_candidate = span(finding_paths,
+        "Copy a semantically reviewed candidate path exactly; relative to candidate root, never $.candidate.")
     source = span(sources, "Copy a canonical source path exactly; relative to sources root, never $.sources.")
-    schema["$defs"]["LanguageException"]["properties"]["candidateSpan"] = candidate
+    schema["$defs"]["LanguageException"]["properties"]["candidateSpan"] = exception_candidate
     schema["$defs"]["LanguageException"]["properties"]["sourceSpan"] = source
-    schema["$defs"]["LanguageFinding"]["properties"]["span"] = deepcopy(candidate)
+    schema["$defs"]["LanguageFinding"]["properties"]["span"] = finding_candidate
+
+    coverage_conditions = [
+        {"if": {"properties": {"role": {"enum": ["exact_source", "provider_technical", "stable_identity"]}},
+                "required": ["role"]},
+         "then": {"properties": {"exceptions": {"maxItems": 0}}}},
+        {"if": {"properties": {"verdict": {"const": "not_applicable"}}, "required": ["verdict"]},
+         "then": {"properties": {"exceptions": {"maxItems": 0}}}},
+    ]
+    schema["properties"]["coverage"]["items"] = {"allOf": [
+        {"$ref": "#/$defs/LanguageCoverage"}, *coverage_conditions]}
+
     if "providerLiterals" in frozen:
         schema["required"] = [*schema.get("required", []), "literalReview"]
         schema["properties"]["literalReview"] = {"$ref":"#/$defs/ProviderLiteralReview"}
         technical_paths = [item["path"] for item in frozen["inventory"]
             if item["role"] == "provider_technical" and leaves[item["path"]].strip()]
         if technical_paths:
-            schema["properties"]["coverage"]["items"] = {"allOf":[
-                {"$ref":"#/$defs/LanguageCoverage"},
+            schema["properties"]["coverage"]["items"]["allOf"].append(
                 {"if":{"properties":{"path":{"enum":technical_paths}},"required":["path"]},
-                 "then":{"properties":{"verdict":{"enum":["pass","reject","uncertain"]}}}}]}
+                 "then":{"properties":{"verdict":{"enum":["pass","reject","uncertain"]}}}})
 
     if DISCOVERY in frozen:
         schema["required"] = [*schema.get("required", []), DISCOVERY]
@@ -276,6 +293,12 @@ def language_check_instructions(frozen=None):
     technical = ("Provider technical residual instructions require English semantic review after only bound "
         "literal/spoken spans; technical classification never grants not_applicable to nonempty leaves. " if provider else
         "Provider technical English and stable IDs/enums are exempt only where inventory classifies them so. ")
+    exception_ownership = ("Only nonempty authored_prose coverage rows may contain exceptions; provider_technical, "
+        "exact_source, stable_identity and not_applicable rows must have empty exceptions. Provider technical "
+        "visible/spoken literal semantics belong in the required literalReview; the provider_technical row still "
+        "needs semantic language review of its residual English. " if provider else
+        "Only nonempty authored_prose coverage rows may contain exceptions; exact_source, stable_identity and "
+        "not_applicable rows must have empty exceptions. ")
     return ((literal_review_instructions() if provider else "") +
         (discovery_instructions() if frozen is not None and DISCOVERY in frozen else "") + (
         "Perform a distinct independent semantic language check, not creative writing. Read the COMPLETE "
@@ -289,6 +312,7 @@ def language_check_instructions(frozen=None):
         "Exceptions require explicit original-source support: proper names, verbatim quotes, intentional foreign "
         "speech and literal visible text only. For each exception supply its exact candidateSpan and matching "
         "sourceSpan under sources, plus kind. Do not infer intentional multilingual prose from the candidate. "
+        + exception_ownership +
         "Copy span paths verbatim from the response schema's canonical enums. candidateSpan and finding "
         "span paths are relative to candidate root (for example $.adaptation.core), never $.candidate. "
         "sourceSpan paths are relative to the sources object (for example $.source.text or "

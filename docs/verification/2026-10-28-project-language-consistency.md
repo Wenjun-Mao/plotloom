@@ -1,21 +1,22 @@
 # Project-language implementation evidence
 
-Status: **in progress**, updated 2026-10-29. Latest candidate `67f028fb`
-completed a real native English Outline primary draft and trusted validate/render,
-but both distinct language-check attempts failed on missing sandbox reads needed
-by their literal-policy hash. The candidate remains delivered and unadopted. Its
-run is paused, every exact native group/validator is absent, and the isolated
-runtime is stopped. Earlier `0fd56878` reached English 3/8 before the Art literal
-conflict; those retained outputs are unchanged. A precise checker-resource repair
-and complete no-provider sandbox validate/render proof are next, then the same
-English-through-Art journey. No all-eight installation, full local gate, wheel
-qualification, activation, old-slot application or image/H3/media acceptance has
-occurred. Hosted CI is not requested/not run and is not a release blocker. Earlier
-sections retain historical checkpoints and failures; later reassessments own the
-latest state. The [approved plan](../roadmap/2026-10-28-project-language-consistency.md)
-owns scope. [ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md)
-owns language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
-owns the approved retry/local-capacity policy.
+Status: **in progress**, updated2026-10-29. Latest native English run at
+54105858 passed and adopted Outline and Branches (2/8), then delivered Cast.
+Both distinct Cast-check attempts failed an existing coverage-exception ownership
+rule. The run is paused, every exact native group/validator is absent, and the
+isolated runtime is stopped. The reviewed response-schema/prompt repair expresses
+that existing rule without changing the binder; its next real native proof is
+pending. English Outline/report and deliberate 安 were inspected inside Chinese
+chrome. No all-eight installation, full local gate, exact-wheel qualification,
+activation, old-slot application or image/H3/media acceptance has occurred. Five
+manual draft-recovery browser cases pass, while fourteen readers retain a separate
+outdated test-data blocker. Hosted CI is not requested/not run and is not a release
+blocker. Earlier sections retain historical checkpoints/failures; later
+reassessments own the latest state. The
+[approved plan](../roadmap/2026-10-28-project-language-consistency.md) owns scope.
+[ADR0224](../adr/0224-project-language-and-derived-provider-adaptation.md) owns
+language/adaptation; [ADR0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
+owns retries and local capacity.
 
 ## Source and ownership
 
@@ -854,3 +855,80 @@ closes unsupported project-locale input, not the remaining old minimal Outline
 test-data blocker. The five draft-recovery browser passes remain valid. Complete
 reader fixtures and broad qualification later; return first to the original
 English-through-Art native proof under the new committed contract.
+
+## Current real two-stage progress and checker-shape failure
+
+Fresh English717d210f-59a1-4ddd-85dd-5804b1eed692/run
+7fb2603b-5c7c-48e0-8540-dcf02e4c1e15 at54105858 adopted Outline and Branches,
+then delivered Cast. Outline jobch_5d25d10056e24b598cea906c99964657 has no
+routePlan and langen. Its independent checkch_03cf16df53ad5d9eb15586753d5b4fe3,
+attempt91f28d4d-e2a0-5ea4-a6fb-bc493b643c82, passed91 leaves with zero retry;
+actual native receipt/plan/hash binding was rechecked. Both Chinese-UI/English
+report headings and prose, including the deliberate 安 in opening/ending text,
+were visually inspected in en-outline-contract-v2-report.png and
+en-outline-contract-v2-report-opening.png. An intermediate click-to-cell capture
+was blank and is not used as visual evidence; paragraph-scoped scrolling produced
+the inspected opening image. No visual media has been generated or accepted.
+
+Cast primarych_066f90189db24243b77e3786b84f5af8 delivered. Check anchor
+ch_477648a4d644588dbba1bc85b2152a54/attempt
+bde63aca-ba47-5af4-8d07-b8d9a5a38bee and its one automatic successor
+ch_96a885b08e6b5859bbdfe133caa17892/attempt
+b61640f9-e77a-57ce-8fcc-34d9b5c3de3c both failed trusted validation at
+“only authored prose can carry explicit semantic exceptions”. Each put a
+literal_visible_text exception on $.characters[0].image.sheet, classified
+provider_technical. Exact terminal stream/session/domain checks pass; this is a
+response-shape failure, not a runtime read failure or semantic rejection. Retry
+waited for positive local stop and retained distinct identities and possible cost.
+
+Both exact original outputs bind to pass only after that exception is omitted
+from temporary diagnostic copies. This is cause isolation, never adoption proof or
+normalization authority; original native checks remain failed. The response
+schema currently permits that shape while the binder forbids it. After two
+failures, amend only frozen per-role schema and prompt to express the existing
+authored-prose versus literalReview channel owner. ADR0224 precedes this repair.
+All seven task native worker/CLI groups are now absent, no validators remain,
+supported pause is retained and runtime stopped. Sanitized exact input/output,
+failures and absence proofs are in cast-check-coverage-shape/. Normal runtime/data,
+image/H3 generation, full gate and activation remain untouched.
+
+## Coverage-channel response-schema review closure
+
+The three-file worker patch
+258b6e8b3b939b1a45a59f1c21e3ebe33eaec70aab3a87332e3d7c21daa5caf4
+is integrated with exact before/after hashes. It separates authored-only
+exception coordinates from authored/provider-technical finding coordinates, adds
+empty-exception constraints for non-authored and not_applicable rows, and explicitly
+places provider visible/spoken semantics in required literalReview. Technical
+English verdicts/findings and visible-source discovery remain mandatory. The
+binder is unchanged; no normalization or old-schema rebinding is introduced.
+Independent review closed this source change. The cohesive contract owner is347
+lines, with no unrelated extraction. RequestedworkerLuna/Max; effective settings
+are unobservable.
+
+Four focused contract/span/binder checks passed, followed by the exact assembled
+current/retained prompt case after replacing its obsolete positional condition
+lookup with the frozen technical path lookup. The initial failed test log remains
+failed. Root exercised the direct changed-factory empty-coordinate edge, adding
+an explicit empty finding-path assertion alongside exception/source coordinates:
+one focused case passed in2.002 seconds total. Its separate coordinator before/
+after hashes are retained. Read-only normal-home checks still match14/16
+inspection and authority with zero new regressions.
+
+Root also checked both exact native failed responses against the decisive public
+schema constraints. Each offending provider-technical image.sheet span was allowed
+by its original frozen exception enum, is excluded from the new exception enum,
+and remains permitted for semantic findings. Each nonempty exception array violates
+the new role-specific maxItems0 rule. Original malformed results remain rejected
+by the unchanged binder; temporary omission alone still binds pass as a diagnostic.
+This is direct enum/role-constraint evaluation on genuine responses, not a full
+independent JSON-schema-engine run (none was available). No dependencies were
+installed or changed. Native evidence hashes remain unchanged. Proof is
+cast-check-coverage-shape-response-contract/actual-schema-constraint-proof.json.
+
+Commit the reviewed response contract and return to the original English-through-
+Art native proof. Do not retry old frozen jobs or treat old failed checking as a
+pass. The existing continuation contract refuses a completed but unadopted primary
+Cast after a changed execution freeze; no guard change is warranted for this
+disposable qualification fixture. Preserve source/receipt evidence and use fresh
+current authority.

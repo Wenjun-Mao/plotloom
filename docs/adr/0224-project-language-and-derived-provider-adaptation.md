@@ -179,3 +179,12 @@ Keep Outline story/choice/ending explanations in its existing authored fields.
 Do not add ID-looking exemptions or a second topology schema. Retained original
 candidate, check, report and native proof bytes remain readable with their original
 verdicts; they gain no current execution or adoption authority.
+
+Coverage exceptions belong only to authored_prose leaves. Stable identities, exact
+source echoes and provider_technical leaves use empty coverage exceptions; provider
+literal/spoken-span intent and preservation stay exclusively in literalReview.
+The frozen response schema must express this existing binder restriction per
+known inventory role, and the checker prompt must name the separate channels.
+Do not normalize, drop or relocate an untrusted exception to manufacture a pass.
+A prior malformed check remains failed even if a temporary diagnostic copy would
+bind after removing a duplicate exception.

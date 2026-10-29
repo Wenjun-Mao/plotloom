@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from plotloom.content_language_classifier import string_leaves
 from plotloom.content_language_contract import CHECK_INPUT, bind_language_result, language_result_schema
 from plotloom.content_language_service import ContentLanguageService
 from plotloom.persistence.project.creative_execution_pins import freeze_execution_pin
@@ -152,7 +153,10 @@ def test_assembled_current_prompt_schema_and_binder_agree_and_retained_prompt_st
     assert 'other roles and empty strings use not_applicable' not in assignment
     assert 'Provider technical English and stable IDs/enums are exempt' not in assignment
     assert 'zero writer claims or language exceptions' in assignment
-    conditional=schema['properties']['coverage']['items']['allOf'][1]
+    technical_paths=[row['path'] for row in frozen['inventory'] if row['role']=='provider_technical'
+        and dict(string_leaves(frozen['candidate']))[row['path']].strip()]
+    conditional=next(rule for rule in schema['properties']['coverage']['items']['allOf']
+        if rule.get('if',{}).get('properties',{}).get('path',{}).get('enum')==technical_paths)
     assert conditional['then']['properties']['verdict']['enum']==['pass','reject','uncertain']
     technical=next(row for row in result['coverage'] if row['role']=='provider_technical')
     assert technical['verdict']=='pass'
