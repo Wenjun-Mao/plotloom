@@ -1,15 +1,16 @@
-"""Exhaustive stage-owned string roles; unknown nonempty leaves fail closed."""
+"""Exhaustive string roles; only explicitly owned paths receive exemptions."""
 from __future__ import annotations
 
 import re
 from hashlib import sha256
 
-CLASSIFIER_VERSION = "plotloom.content-language-classifier.v1"
+CLASSIFIER_VERSION = "plotloom.content-language-classifier.v2"
 STAGES = ("outline", "branches", "characters", "art", "script", "storyboard",
           "bridge-intent", "bridge-presentation")
 
 # Paths are schema paths, not a vocabulary heuristic. New readable fields need
-# an explicit owner here; a model cannot create an exempt English field.
+# an explicit owner here to be exempt; all other strings require semantic review.
+# Extensible upstream output never lets a model create an exempt English field.
 _PROSE = {
     "outline": """params.genre params.preferences[] adaptation.core adaptation.cutNote
         adaptation.mergeNote adaptation.keep[].what adaptation.keep[].why
@@ -155,8 +156,6 @@ def classify_candidate(stage, candidate, sources):
                 role = kind
                 break
         if role is None:
-            if text.strip():
-                raise ValueError(f"unclassified nonempty candidate field: {path}")
             role = "authored_prose"
         origin = _owned_source_occurrence(normalized, text, sources) if role == "exact_source" else None
         if role == "exact_source" and origin is None:

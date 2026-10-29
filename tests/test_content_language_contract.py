@@ -9,6 +9,7 @@ import pytest
 from plotloom.codex_exec_validation import build_text_validation_plan
 from plotloom.content_language_classifier import (
     STAGES,
+    string_leaves,
 )
 from plotloom.content_language_contract import (
     CHECK_INPUT,
@@ -89,8 +90,15 @@ def test_incomplete_or_forged_semantic_results_fail_closed(tamper):
 @pytest.mark.parametrize("stage", STAGES)
 def test_unknown_nonempty_field_is_never_silently_exempt(stage):
     candidate = deepcopy(CANDIDATES[stage]) | {"plausibleEnglishMetadata": "But this is actually creative prose."}
-    with pytest.raises(ValueError, match="unclassified nonempty"):
-        checking_request(original_request(stage), candidate)
+    request = checking_request(original_request(stage), candidate)
+    field = next(item for item in request.input_artifacts[CHECK_INPUT]["inventory"]
+                 if item["path"] == "$.plausibleEnglishMetadata")
+    assert field["role"] == "authored_prose"
+    assert bind_language_result(request, result_for(request, rejected_path=field["path"])).verdict == "reject"
+    forged = result_for(request)
+    next(item for item in forged["coverage"] if item["path"] == field["path"])["verdict"] = "not_applicable"
+    with pytest.raises(ValueError, match="semantic language review"):
+        bind_language_result(request, forged)
 
 
 def test_source_name_quote_and_technical_english_have_explicit_separate_owners():
@@ -172,3 +180,22 @@ def test_video_technical_results_do_not_require_creative_candidate_lang(operatio
     result = exchange.read_delivery(request, PIN)
     assert result.candidate == {"targets": []}
     assert request.input_artifacts["language-contract.json"]["reportLocale"] == "zh"
+
+
+def test_native_outline_extensions_receive_complete_semantic_coverage():
+    # The real first Outline legitimately included saved settings, a topology
+    # echo and route prose. None of these model-authored echoes is authority.
+    candidate = CANDIDATES["outline"] | {
+        "params": {"aspectRatio": "16:9", "language": "zh-CN", "visualStyle": "真人写实"},
+        "sourceConstraints": {"soleDialogue": "把灯留在这里。", "visibleLabel": "Mira"},
+        "storyTopology": {"plannerVersion": "story_graph_topology.v3", "nodes": [{"kind": "start"}]},
+        "routePlan": {"description": "Wrong ordinary English route description.",
+                      "routes": [{"name": "留在桌上"}]},
+    }
+    request = checking_request(original_request(), candidate)
+    inventory = request.input_artifacts[CHECK_INPUT]["inventory"]
+    assert len(inventory) == len(dict(string_leaves(candidate)))
+    assert all(item["role"] == "authored_prose" for item in inventory
+               if item["path"].startswith(("$.params.", "$.sourceConstraints.", "$.storyTopology.", "$.routePlan.")))
+    assert bind_language_result(request, result_for(request,
+        rejected_path="$.routePlan.description")).verdict == "reject"

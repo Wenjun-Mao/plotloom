@@ -36,6 +36,14 @@ pass/reject/uncertain judgment. Names, quotations and intentional foreign/litera
 text require source support; technical English and stable identities are classified
 separately. Heuristics and writer-supplied flags never certify prose language.
 
+The first real Outline exposed valid upstream extension fields from the saved
+settings/topology instructions. Trusted classification grants technical/identity
+exemptions only to explicitly owned paths. Every other string is conservatively
+authored prose and requires actual semantic pass/reject/uncertain coverage; an
+unknown field cannot use not_applicable or create an exemption. This preserves the
+upstream extensible output shape without trusting model-authored setting echoes.
+Malformed inventory paths and incomplete/forged coverage still refuse.
+
 A genuine semantic rejection is a successful checking invocation, not a forged
 failure of the original drafting attempt. Existing typed correction lineage
 records the exact checker reference and original completed candidate. Corrected

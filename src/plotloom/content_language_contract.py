@@ -209,6 +209,8 @@ def language_check_instructions():
         "A Script flow.language different from project locale needs an intentional_foreign_speech exception "
         "covering the complete line and matching that supported language, or reject/uncertain coverage. "
         "Provider technical English and stable IDs/enums are exempt only where inventory classifies them so. "
+        "Unfamiliar fields are conservatively authored_prose: review them fully, never infer a technical or "
+        "identity exemption from their key, nesting, copied setting or topology-like value. "
         "Reject ordinary wrong-language prose even inside a name, short note or mixed-language explanation. "
         "Use uncertain when unable to decide; never silently pass unknown content. Explanations are display-only. "
         "Do not edit candidate/source, invent exceptions, claim creator review/media acceptance, execute another "

@@ -1,8 +1,9 @@
 # Project-language implementation evidence
 
-Status: **in progress**, 2026-10-28. No real native generation, full local gate,
-installed-wheel qualification, activation, new-policy local-slot application or
-media acceptance has occurred. Hosted CI is not requested/not run and is not a
+Status: **in progress**, 2026-10-28. The first real native Chinese Outline delivered, then blocked before semantic
+checking/adoption on a classifier contract defect. No full local gate, installed-wheel
+qualification, activation, new-policy local-slot application or media acceptance has
+occurred. Hosted CI is not requested/not run and is not a
 release blocker. The [approved plan](../roadmap/2026-10-28-project-language-consistency.md)
 owns scope. [ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md)
 owns language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
@@ -14,8 +15,8 @@ Coordinator `01a184ec-5035-7542-a6e1-869dbdc84660` owns integration, Git/index, 
 QA, qualification, activation and cleanup; Relay reporting to director
 `01a04525-e907-7630-9640-78790d69e8ae` was registered before writes. Retained source:
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`, `main`, clean starting baseline
-`d2e3c26d`. Current committed checkpoint `965c6d91` contains fork pin changes only;
-the broader implementation is being frozen as the next coherent checkpoint and remains unqualified.
+`d2e3c26d`. Coherent implementation checkpoint `708a56b8` follows fork-pin checkpoint
+`965c6d91`; integrated qualification remains pending.
 
 Owned fork: `third_party/shuohao-skills` at local `d905b83e`, following `f3beafdc`.
 No push or CI ran. Isolated worker finals were collected before integration;
@@ -61,10 +62,10 @@ Supported isolated runtime: `services/creator_workbench/isolated.py`; existing
 `AutopilotTextPrefix` holds the controller lease and advances only text, preventing
 early image dispatch. The task-local launcher uses these owners and stops after
 Outline for report inspection, then can continue the same frozen run to installation.
-The earlier QA API server was stopped cleanly; no QA server is currently running.
+The isolated runtime stopped cleanly after the first blocked native checkpoint.
 
 Two original QA homes were created through real HTTP on loopback 8851 and reopened
-with persisted locale; no source or native/autopilot run exists yet:
+with persisted locale; the Chinese home now retains the first failed native journey; English remains unstarted:
 
 | Locale / title | Project | Current fixture |
 | --- | --- | --- |
@@ -159,6 +160,35 @@ job/attempt IDs remain in technical provenance; normal wording refers to candida
 content rather than JSON. Final real desktop/native reader and media inspection
 remain pending. New language owners are cohesive modules under 250 lines; broader
 unrelated oversized-file restructuring is excluded.
+
+## First native Outline and causal repair
+
+At `708a56b8`, Chinese run `33afb185-1c06-4257-8356-3b3845f0feca` delivered
+Outline `ch_33d7552f4cda48eca3cba35211f545ff` through actual CLI attempt
+`b89b9588-bf94-42d4-b7bd-fc46dd092fbf`. The trusted upstream validator and renderer
+completed. Before semantic checking/adoption, the controller blocked on
+`unclassified nonempty candidate field: $.params.aspectRatio`. Candidate, native
+completion/receipt, report, immutable package and original failed log are retained
+unchanged in the isolated QA home and `zh-outline-native.log`. No image/H3 dispatch.
+
+Read-only independent diagnosis confirmed the open upstream/Outline metadata
+contract permits extensions, while classifier v1 rejected them. All ten current
+bilingual base examples classify fully, but the actual candidate also contains
+saved settings, topology echoes, source constraints and route notes. ADR 0224 now
+requires conservative authored-prose classification for every unowned string;
+explicit roles alone grant exemptions. Classifier v2/checker instructions preserve
+complete semantic pass/reject/uncertain coverage and reject forged not_applicable.
+No candidate fields are removed or promoted to trusted settings/topology authority.
+
+The exact retained candidate now inventories all 152 strings offline: 122 authored,
+24 stable identities and six exact-source fields, zero provider-technical fields.
+This is inventory evidence only, not a semantic pass. Fifty-four affected
+contract/correction/bridge-edit tests passed. First failure remains failed. Frozen
+source/profile identities will not be rewritten: use a replacement disposable
+Chinese home with the identical approved Brief after this repair, retain the failed
+home for evidence, and clean up its transient state through the supported lifecycle
+at closeout. English has no old run to replace. This is the same two original QA
+stories and provider scope, with no change to valued/current homes or old grants.
 
 ## Remaining product evidence
 
