@@ -21,6 +21,7 @@ from .content_language_contract import (
     ContentLanguageResult,
     freeze_language_candidate,
     language_check_instructions,
+    language_result_schema,
     render_language_report,
 )
 from .content_language_persistence import check_operation_key
@@ -67,7 +68,7 @@ class ContentLanguageService:
                         "checkAnchorJobId":prior_request.source.get("checkAnchorJobId", retry_parent),
                         **({"manualCommandId":str(manual_command_id)} if manual_command_id else {})} if retry_parent else {})},
             input_artifacts={CHECK_INPUT: frozen, LANGUAGE_CONTRACT_FILENAME: frozen["languageContract"],
-                             "content-language-schema.json": ContentLanguageResult.model_json_schema(by_alias=True)},
+                             "content-language-schema.json": language_result_schema(frozen)},
             creative_brief=language_check_instructions())
         request.assert_secret_free()
         projected, instructions, _template, _members = project_creative_package(

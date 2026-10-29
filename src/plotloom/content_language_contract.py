@@ -29,6 +29,30 @@ CHECK_INPUT = "content-language-candidate.json"
 HASH = r"^[a-f0-9]{64}$"
 
 
+def language_result_schema(frozen):
+    """Freeze separate root coordinates; neither span uses the envelope root."""
+    from copy import deepcopy
+
+    schema = ContentLanguageResult.model_json_schema(by_alias=True)
+    leaves = dict(string_leaves(frozen["candidate"]))
+    authored = [item["path"] for item in frozen["inventory"]
+                if item["role"] == "authored_prose" and leaves[item["path"]].strip()]
+    sources = [path for path, text in string_leaves(frozen["sources"]) if text]
+
+    def span(paths, description):
+        value = deepcopy(schema["$defs"]["LanguageSpan"])
+        value["properties"]["path"] |= ({"enum": paths} if paths else {"not": {}})
+        value["properties"]["path"]["description"] = description
+        return value
+
+    candidate = span(authored, "Copy a canonical candidate path exactly; relative to candidate root, never $.candidate.")
+    source = span(sources, "Copy a canonical source path exactly; relative to sources root, never $.sources.")
+    schema["$defs"]["LanguageException"]["properties"]["candidateSpan"] = candidate
+    schema["$defs"]["LanguageException"]["properties"]["sourceSpan"] = source
+    schema["$defs"]["LanguageFinding"]["properties"]["span"] = deepcopy(candidate)
+    return schema
+
+
 def identity(value):
     return sha256(canonical_json(value)).hexdigest()
 
@@ -204,6 +228,11 @@ def language_check_instructions():
         "Exceptions require explicit original-source support: proper names, verbatim quotes, intentional foreign "
         "speech and literal visible text only. For each exception supply its exact candidateSpan and matching "
         "sourceSpan under sources, plus kind. Do not infer intentional multilingual prose from the candidate. "
+        "Copy span paths verbatim from the response schema's canonical enums. candidateSpan and finding "
+        "span paths are relative to candidate root (for example $.adaptation.core), never $.candidate. "
+        "sourceSpan paths are relative to the sources object (for example $.source.text or "
+        "$.source.outline.outline.adaptation.keep[0].evidence), never $.sources.source. "
+        "Offsets count Unicode codepoints within that exact scalar string; do not count an outer JSON wrapper. "
         "For intentional_foreign_speech also supply language=zh-CN/en-US and sourceSpan pointing to the exact "
         "original author direction or source fact; this direction need not equal the newly written spoken line. "
         "A Script flow.language different from project locale needs an intentional_foreign_speech exception "

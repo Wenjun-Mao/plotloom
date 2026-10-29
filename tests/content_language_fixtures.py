@@ -16,7 +16,7 @@ from plotloom.codex_exec_validation import (
 from plotloom.content_language_contract import (
     CHECK_INPUT,
     CHECK_OPERATION,
-    ContentLanguageResult,
+    language_result_schema,
     freeze_language_candidate,
     render_language_report,
 )
@@ -44,7 +44,7 @@ def checking_request(original, candidate):
         section_id=original.section_id, stage=original.stage, expected_stage_revision=0,
         source={"operation": CHECK_OPERATION, "candidateJobId": original.job_id, "bindingHash": frozen["bindingHash"]},
         input_artifacts={CHECK_INPUT: frozen, LANGUAGE_CONTRACT_FILENAME: frozen["languageContract"],
-                         "content-language-schema.json": ContentLanguageResult.model_json_schema(by_alias=True)},
+                         "content-language-schema.json": language_result_schema(frozen)},
         creative_brief="Independently review the complete candidate.")
 
 

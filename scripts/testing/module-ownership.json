@@ -639,6 +639,7 @@
           "tests/test_content_language_execution_retry.py",
           "tests/test_content_language_runtime.py",
           "tests/test_content_language_admission_ack.py",
+          "tests/test_content_language_span_schema.py",
           "tests/test_h3_execution_retry.py",
           "tests/test_video_directions_execution_retry.py",
           "tests/test_codex_exec_validation.py",

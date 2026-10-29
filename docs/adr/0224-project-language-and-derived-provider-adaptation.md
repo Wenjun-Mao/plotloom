@@ -58,6 +58,14 @@ Retained package verification preserves each original fixed plan representation
 without granting replay authority. Primary/correction prompts require omission or exact copying,
 never translation of machine values. Classification grants no new canon authority.
 
+The first real branch checks exposed ambiguous source-span coordinates. Trusted
+code freezes the canonical candidate/source leaf paths in the existing response
+schema; model-selected sourceSpan paths are relative to the sources object,
+without an envelope `$.sources` prefix. Candidate paths are relative to the
+candidate object. The model owns semantic choices and spans; trusted code owns
+path vocabulary, byte hashes and exact Unicode validation. No automatic path or
+offset correction is permitted, and malformed retained replies remain failed.
+
 A genuine semantic rejection is a successful checking invocation, not a forged
 failure of the original drafting attempt. Existing typed correction lineage
 records the exact checker reference and original completed candidate. Corrected

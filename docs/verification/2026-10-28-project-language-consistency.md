@@ -1,9 +1,11 @@
 # Project-language implementation evidence
 
-Status: **in progress**, 2026-10-28. The first real native Chinese Outline delivered, then blocked before semantic
-checking/adoption on a classifier contract defect. No full local gate, installed-wheel
-qualification, activation, new-policy local-slot application or media acceptance has
-occurred. Hosted CI is not requested/not run and is not a
+Status: **in progress**, 2026-10-28. Both languages completed real native
+Outline/check/adoption/reopen and desktop report inspection at `32004ecd`.
+Both subsequent Branches creations delivered, but their checking attempts exhausted
+one automatic retry on a response-coordinate defect. No all-eight installation,
+full local gate, exact-wheel qualification, activation, old-slot application or
+image/H3/media acceptance has occurred. Hosted CI is not requested/not run and is not a
 release blocker. The [approved plan](../roadmap/2026-10-28-project-language-consistency.md)
 owns scope. [ADR 0224](../adr/0224-project-language-and-derived-provider-adaptation.md)
 owns language/adaptation; [ADR 0225](../adr/0225-bounded-generation-retries-and-local-capacity.md)
@@ -235,6 +237,52 @@ weakening the provenance assertion. The original failed results remain retained.
 Read-only prequalification preservation baseline covers 15 installed homes,
 681 persistent files (624,952,531 bytes) and 24 existing H5 files. A fresh quiescent
 baseline is still required at activation. Installed source/services remain unchanged.
+
+## Real bilingual Outline passes and branch coordinate failure
+
+Both original QA stories reached the real Outline checkpoint at clean local
+`32004ecd8c59fb07a7881a95f33694a1d48fa7e7`, profile
+`5f5e1b2775566a9a10f55d47aa274c66f59b412f331b389efd2168eed6d4ac7f`.
+
+| Story | Current home / run | Adopted Outline / independent checker |
+| --- | --- | --- |
+| Chinese | `68d9af27-8ec9-408e-9d8e-dc8637147772` / `582a86d4-d07b-4d02-9191-559a7163bb8c` | `ch_1adba3d0af7c4f55bd1b9a5c72d69f53` / `ch_f4a94b0ac1075f909b8e23260aa707a3`; pass, 119 strings, 19 source-supported exceptions |
+| English | `aaae94b7-8d7c-4d76-a086-6aaa61a1bc93` / `7c029aa1-08ea-4410-9918-09bd544da5ee` | `ch_b5fe37c42da04b9695fca208228b2bad` / `ch_507be8d5bf5d5d22afba2fc0a828af20`; pass, 118 strings, 31 exceptions |
+
+Each used one actual creation and one actual checker, zero retries/manual resumes.
+API re-read and runtime reopen retained zh-CN/zh and en-US/en, exact candidate hashes
+and adoption. Actual desktop reports were opened and inspected: Chinese/English
+report headings and prose respectively inside Chinese chrome. Mira's name/label and
+the explicit foreign visible word 安 remained source-bound exceptions, not dialogue
+translations. Screenshots/readbacks/check receipts are in the ignored task evidence
+and `output/playwright/project-language-20261028/`. Agent inspection is not the
+owner's personal creative acceptance.
+
+After this smallest bilingual proof, one existing text-prefix owner advanced both
+runs, with images disabled. Branches `ch_097e0bc302f54ffc8232d3e7d9fc12ee` (Chinese)
+and `ch_bc785c202c204b0cade2aca411f5cabf` (English) delivered. Each checking operation
+failed its initial attempt and exactly one authorized automatic successor; both
+runs blocked at branches, retaining their adopted Outlines. All four checker CLI
+processes exited zero but failed trusted result validation: sourceSpan.path used
+`$.sources.source.outline.outline…` rather than the sources-root-relative
+`$.source.outline.outline…`. Chinese replies had 11 such bad spans, English six.
+No output was normalized or accepted, no old allowance/status was reset, and no
+image/H3 job dispatched. After two unsuccessful checks, further launches stopped
+for method reassessment. Runtime stopped cleanly; exact failed worker/CLI PIDs
+were absent before source changes.
+
+The response contract had one unconstrained LanguageSpan path for both coordinate
+roots and ambiguous “under sources” wording. ADR 0224 now freezes separate canonical
+source/candidate path enums in the existing response schema, with explicit root
+examples. Nonempty authored candidate paths serve exception/findings; coverage still
+addresses every inventory role. Empty eligible sets use a false schema rather than
+an empty enum. Exact Unicode offset/text/coverage validation remains unchanged, and
+all malformed retained replies remain failed. Sixty-six affected tests passed in
+3.22 seconds (8.938 including selector validation), including actual API/package
+schema freezing. Independent review precedes a single new standalone native check
+of the retained ready Chinese branch candidate. That probe uses zero automatic
+retries to isolate the changed contract; it does not resume old frozen runs or
+claim all-eight completion.
 
 ## Remaining product evidence
 
