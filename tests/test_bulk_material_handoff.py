@@ -177,7 +177,7 @@ def test_exact_long_canonical_direction_is_source_endorsed_not_authored_input(tm
 
     def long_board(*args, **kwargs):
         value = original(*args, **kwargs)
-        value["episodes"][0]["segments"][0]["cuts"][0]["frame"] += exact_suffix
+        value["episodes"][0]["segments"][0]["cuts"][0]["composition"] += exact_suffix
         return value
 
     monkeypatch.setattr(autopilot_image_fixtures, "_compact_handoff_storyboard", long_board)

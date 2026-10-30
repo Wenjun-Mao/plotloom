@@ -88,13 +88,15 @@ def test_storyboard_v4_only_caps_one_and_v3_retains_script(version, limit):
     assert automatic_correction_limit(policy, 'script') == (min(limit, 1) if version.endswith(('v3', 'v4')) else 0)
 
 
-def test_storyboard_correction_accounting_preserves_eight_operations_and_no_third():
+def test_storyboard_correction_accounting_preserves_eight_operations_and_counts_actual_retries():
     from plotloom.alpha_receipts import NativeOperationReceipt
     from plotloom.alpha_workloads import NATIVE_OPERATIONS
     assert len(NATIVE_OPERATIONS) == 8
     assert not NativeOperationReceipt(stage='storyboard', attempt_count=2, accepted=True, first_pass=False, binding_hash='a' * 64).first_pass
+    retried = NativeOperationReceipt(stage='storyboard', attempt_count=3, accepted=True, first_pass=False, binding_hash='a' * 64)
+    assert retried.attempt_count == 3 and not retried.first_pass
     with pytest.raises(ValueError):
-        NativeOperationReceipt(stage='storyboard', attempt_count=3, accepted=True, first_pass=False, binding_hash='a' * 64)
+        NativeOperationReceipt(stage='storyboard', attempt_count=3, accepted=True, first_pass=True, binding_hash='a' * 64)
 
 
 def test_prior_v3_receipt_cannot_qualify_current_prospective_v4():

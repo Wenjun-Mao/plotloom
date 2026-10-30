@@ -28,8 +28,8 @@ def snapshot(material):
 
 
 def test_sutang_preview_registry_freezes_exact_current_material_and_preserves_all_nine():
-    assert len(SCOPES) == 10
-    assert {scope.id: stable_hash(asdict(scope)) for scope in SCOPES if scope.id != SCOPE.id} == OLD_SCOPE_HASHES
+    assert len(SCOPES) == 12
+    assert {scope.id: stable_hash(asdict(scope)) for scope in SCOPES if scope.id in OLD_SCOPE_HASHES} == OLD_SCOPE_HASHES
     assert stable_hash(asdict(SCOPE)) == "c40db7ef737a3fc3cbfc2565ccfc87b8576b0c00e94060a4f977963b8f46344c"
     assert SCOPE.project_id == "b9bc89b9-c7e3-4d6f-84c0-d2b493d4ccc6"
     assert SCOPE.storyboard_hash == "1b0b29a1df15481c68f304224717df8ac483e11ea9a4fc3d28ef239551122737"

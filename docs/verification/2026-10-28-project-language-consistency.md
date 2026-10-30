@@ -1,5 +1,41 @@
 # Project-language implementation evidence
 
+## Final local gate repair checkpoint — 2026-10-29
+
+The stable `c27d0141` full invocation remains **failed**: 4,968 Python cases passed,
+nine failed and18 errored at setup; total wall time2945.434s. The182 frontend
+files/1,684 unit cases, frontend types, lock/resource/tool checks and archived
+prompt reader passed before Python stopped the runner. The42-shot source-complete
+batch passed, including actual draft/check separation and consolidated evidence.
+No normal activation or recovery replacement follows from this failed invocation.
+
+Root repaired one production cold-import cycle by loading persistence schema only
+inside early discovery's ancestry branch; the discovery model remains usable
+without importing persistence. The other failures were stale fixtures/expectations:
+the required continuation source callback, authored composition rather than a
+technical frame, actual retry accounting without the obsolete two-attempt ceiling,
+and exact preservation of old grants alongside the two authorized bilingual grants.
+The early-Art test now separately proves required-scene blocking and independence
+of a genuinely unused Art scene. Production dependency and admission guards remain.
+
+The explicit focused repair union passed132 cases in126.20s (runner138.404s),
+covering every failed/errored selector and affected cold imports, projections,
+scope boundaries, bridge composition and receipts. Independent read-only review
+found no concrete issue. Scoped lint comparison has23 identical baseline findings
+before/after and zero new findings; whitespace checks pass. The495-line bridge test
+received one assertion-value correction, with no new responsibility or extraction.
+
+Reuse the unaffected successful native/frontend evidence: the only runtime change
+is import placement in the already-tested discovery branch; prompt/schema,
+persistence, provider, dependencies, frontend bytes and build tooling are unchanged.
+Run the full runner's exact remaining bundle/parity, unfiltered browser coverage/
+suite, wheel build and installed smoke steps on the repaired candidate. This is
+composite local qualification after diagnosed repair, not a retroactive full pass.
+Both real bilingual journeys and the prior exact-wheel proof remain retained;
+final-package verification, activation, preservation readback and cleanup are open.
+Evidence: `.local/project-language-20261028/final-full-qualified-candidate.log`,
+`final-full-focused-repair.log` and `final-full-repair-lint-baseline.json`.
+
 Live review-note checkpoint: at87e25dbd both exact scopes were bound only to their
 original runtime homes. The Chinese material-review dialog loaded all references,
 three frames and explicit agent-QA opt-in;1700px capture was inspected. Saving its

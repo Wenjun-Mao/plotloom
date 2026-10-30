@@ -12,7 +12,6 @@ from plotloom.stage_contracts import StageName
 from .exceptions import InvalidTransitionError
 from .image_job_contracts import ImageJobError
 from .source_structures import complete_routes
-from .persistence.schema import AutopilotCheckpointRow, AutopilotRunRow
 
 
 class EarlyReferenceDiscovery(CamelModel):
@@ -28,6 +27,7 @@ def discover_early_references(store, view):
     if view.policy.version != POLICY_VERSION or not view.policy.early_reference_limit:
         return None
     if view.predecessor_run_id and not any(item["operationKey"] == "installation" for item in view.checkpoints):
+        from .persistence.schema import AutopilotCheckpointRow, AutopilotRunRow
         with store.repository._read() as session:
             from .persistence.project.autopilot_lineage import current_run_id
             rows = session.scalars(select(AutopilotRunRow).where(AutopilotRunRow.project_id == view.project_id)).all()

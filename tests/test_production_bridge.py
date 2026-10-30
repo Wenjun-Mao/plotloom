@@ -85,7 +85,7 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
             assert shot.title == f"场次 1 · 镜头 {shot.order}"
             assert (
                 shot.composition
-                == "medium shot of an empty beacon room at dawn, cinematic film still, cool gray palette, 16:9"
+                == "黎明时空的航标室，中景，静止构图。"
             )
         assert revised.intent_package.review_state == "author_saved"
         assert revised.intent_package.suggestion_origin == "none"

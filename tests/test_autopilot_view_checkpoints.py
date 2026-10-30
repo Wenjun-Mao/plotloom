@@ -102,7 +102,11 @@ def view_context(monkeypatch):
             return "closure"
 
         monkeypatch.setattr(autopilot, "material_closure", closure)
-        owner = autopilot.AutopilotPersistence(None, claim_write=None)
+        def unexpected_continuation(*_args):
+            raise AssertionError("view projection must not read continuation sources")
+
+        owner = autopilot.AutopilotPersistence(None, claim_write=None,
+            continuation_source_context=unexpected_continuation)
         yield SimpleNamespace(owner=owner, session=session, row=row, events=events, queries=queries,
             checkpoints=checkpoints, attempt=retained_attempt, frame=retained_frame,
             evidence=evidence, policy=policy, frame_payload=frame)

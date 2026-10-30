@@ -100,8 +100,10 @@ def test_script_receipt_counts_correction_as_accepted_but_never_first_pass():
     from plotloom.alpha_receipts import NativeOperationReceipt
     row = NativeOperationReceipt(stage='script', attempt_count=2, accepted=True, first_pass=False, binding_hash='a' * 64)
     assert not row.first_pass
+    retried = NativeOperationReceipt(stage='script', attempt_count=3, accepted=True, first_pass=False, binding_hash='a' * 64)
+    assert retried.attempt_count == 3 and not retried.first_pass
     with pytest.raises(ValueError):
-        NativeOperationReceipt(stage='script', attempt_count=3, accepted=True, first_pass=False, binding_hash='a' * 64)
+        NativeOperationReceipt(stage='script', attempt_count=3, accepted=True, first_pass=True, binding_hash='a' * 64)
 
 
 @pytest.mark.parametrize('limit,expected', [(0, 0), (1, 1), (2, 1)])

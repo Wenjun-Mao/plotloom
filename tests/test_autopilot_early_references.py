@@ -66,13 +66,27 @@ def test_early_reference_delivery_precedes_installation_and_remains_candidate_on
         service.close()
 
 
-def test_pending_art_gallery_does_not_block_frames_with_current_canonical_character_references(tmp_path, monkeypatch):
+@pytest.mark.parametrize("held_scene", ["S01", "S02"], ids=["required-art-blocks", "unrelated-art-independent"])
+def test_pending_art_gallery_only_blocks_frames_that_require_its_subject(tmp_path, monkeypatch, held_scene):
+    from copy import deepcopy
+
     storage, registry, service, run, _calls = environment(tmp_path, monkeypatch, early_references=True)
     host = registry._codex_exec_test_host
+    candidate = host.candidate_factory
+
+    def with_unrelated_scene(store, request):
+        value = candidate(store, request)
+        if request.stage == "art":
+            scene = deepcopy(value["scenes"][0])
+            scene.update(id="S02", name="Unused gallery", primary=False)
+            value["scenes"].append(scene)
+        return value
+
+    host.candidate_factory = with_unrelated_scene
     status = host.status
     def hold_art(attempt_id):
         retained = host.statuses.get(str(attempt_id))
-        if retained is not None and retained.attempt.operation_key.startswith("art-reference:"):
+        if retained is not None and retained.attempt.operation_key == f"art-reference:scene:{held_scene}":
             return retained
         return status(attempt_id)
     monkeypatch.setattr(registry, "codex_exec_status", hold_art)
@@ -85,7 +99,15 @@ def test_pending_art_gallery_does_not_block_frames_with_current_canonical_charac
                 break
             assert view.state in {"running", "waiting"}, view.blocker
         else:
+            if held_scene == "S01":
+                assert any(item["operationKey"] == "installation" and item["state"] == "adopted"
+                    for item in view.checkpoints)
+                assert not any(item["evidence"]["owner"] == "image" for item in view.checkpoints)
+                required = next(item for item in view.checkpoints if item["operationKey"] == "art-reference:scene:S01")
+                assert required["state"] == "sent"
+                return
             raise AssertionError("own-character-ready frame blocked by unrelated Art gallery")
+        assert held_scene == "S02", "frame dispatched while its required Art reference was pending"
         art = [item for item in view.checkpoints if item["evidence"]["owner"] == "art-reference"]
         assert art and any(item["state"] != "adopted" for item in art)
         refs = [item for item in view.checkpoints if item["evidence"]["owner"] == "character-reference"]

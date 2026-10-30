@@ -27,6 +27,30 @@ missing media needed for uncovered functional routes, using existing approved
 profiles/grants; do not tune provider settings for quality. No push/CI, source
 evidence rewrite, uncertain-dispatch clearing or guard bypass is authorized.
 
+### Queued follow-up: separate media-quality responsibilities
+
+Owner decision: “Finish functional E2E first, then modularize media quality
+separately.” Queue this follow-up after the current functional closeout, including
+required final local qualification, installed/package verification,
+preservation-checked activation and cleanup. It is not an additional completion
+gate for this assignment; do not start the refactor during functional closeout.
+
+Separate four responsibilities: technical usability and functional lifecycle;
+post-generation quality assessment that returns independent evidence/findings for
+visual fidelity, lettering, continuity and audio; explicit selection policy for
+functional QA versus creative acceptance; and separately scoped quality-improvement
+experiments. Use the existing functional-only receipts as a starting point, preserve
+real historical judgments, and never infer a quality pass from generation or
+successful playback.
+
+Completion requires coherent owners/contracts and focused tests showing that
+functionally valid media with visible quality findings can complete an authorized
+functional workflow, while technical invalidity and source/provenance defects
+remain blockers. Quality failures must stay visible and ordinary creative
+acceptance must remain distinct. No new service or generic evaluation framework is
+required. This plan authorizes no tuning, new provider or generation campaign;
+later quality improvement needs its own scope, evidence and stopping condition.
+
 The smallest current functional blocker is lifecycle parity: the human H3 review
 reopen endpoint rejects QA-attributed jobs, and QA selection correctly requires a
 structured final audiovisual receipt. Root owns a bounded explicit QA reconsideration
