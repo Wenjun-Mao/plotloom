@@ -105,6 +105,7 @@ def duplicate_role_delivery(tmp_path):
     return ImageJobExchange(root, limits=ManagedMediaLimits()), publish, ingest
 
 
+@pytest.mark.usefixtures("offline_media")
 def test_same_bytes_distinct_roles_survive_telemetry_trusted_publication_and_ingestion(tmp_path):
     exchange, arguments, ingest = duplicate_role_delivery(tmp_path)
     manifest = publish_image_completion(**arguments)
@@ -114,6 +115,22 @@ def test_same_bytes_distinct_roles_survive_telemetry_trusted_publication_and_ing
     assert manifest.reference_use.viewed_reference_hashes == [arguments["reference_hashes"][0]]
     delivery = exchange.read_delivery(**ingest)
     assert delivery is not None and delivery.manifest.canonical_payload() == manifest.canonical_payload()
+
+
+@pytest.mark.usefixtures("offline_media")
+@pytest.mark.parametrize("changed", ["prompt", "transparent_background", "num_last_images_to_include"])
+def test_frozen_brief_cannot_substitute_for_changed_final_imagegen_arguments(tmp_path, changed):
+    from dataclasses import replace
+
+    _exchange, arguments, _ingest = duplicate_role_delivery(tmp_path)
+    call = arguments["call"]
+    values = {"prompt": "A different final prompt, despite an unchanged job brief.",
+        "transparent_background": True, "num_last_images_to_include": 1}
+    observed = replace(call, **{changed: values[changed]})
+    session = replace(arguments["session"], image_calls=(observed,))
+    with pytest.raises(ValueError, match="receipt differs from observed ImageGen arguments or bytes"):
+        publish_image_completion(**(arguments | {"call": observed, "session": session}))
+    assert not (arguments["job_root"] / "delivery" / "completion.json").exists()
 
 
 @pytest.mark.parametrize("defect", ["path", "call", "event", "ordinal", "order"])

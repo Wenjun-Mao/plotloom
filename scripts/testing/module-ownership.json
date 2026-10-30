@@ -660,6 +660,8 @@
           "tests/test_codex_exec_runtime.py",
           "tests/test_codex_exec_stage_routing.py",
           "tests/test_codex_exec_telemetry.py",
+          "tests/test_offline_media_guard.py",
+          "tests/test_h3_final_request.py",
           "tests/test_codex_exec_clock.py",
           "tests/test_native_execution_retry.py",
           "tests/test_handoff_source_ownership.py",

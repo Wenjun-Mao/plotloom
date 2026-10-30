@@ -1,11 +1,14 @@
 """Host completion preserves distinct role/path identities with identical pixels."""
-from contextlib import closing
 import os
+from contextlib import closing
 
 import pytest
+from codex_exec_supervisor_errors import CodexExecSupervisorError
 from codex_exec_supervisor_image import CodexExecSupervisorImageMixin
 
-from tests.services.creator_workbench.test_codex_exec_image_failure import _execute_image
+from tests.services.creator_workbench.test_codex_exec_image_failure import (
+    _execute_image,
+)
 from tests.test_codex_exec_duplicate_reference_roles import duplicate_role_delivery
 
 
@@ -14,6 +17,17 @@ def test_host_matches_every_ordered_reference_even_when_original_bytes_are_ident
     assert CodexExecSupervisorImageMixin._match_image_references(
         arguments["job_root"], arguments["request"], arguments["call"].reference_paths,
     ) == arguments["reference_hashes"]
+
+
+@pytest.mark.usefixtures("offline_media")
+@pytest.mark.parametrize("defect", ["missing", "reordered"])
+def test_final_imagegen_reference_arguments_must_match_the_frozen_inventory(tmp_path, defect):
+    _exchange, arguments, _ingest = duplicate_role_delivery(tmp_path)
+    paths = arguments["call"].reference_paths
+    changed = paths[:1] if defect == "missing" else tuple(reversed(paths))
+    with pytest.raises(CodexExecSupervisorError, match="references differ from the exact frozen package bytes"):
+        CodexExecSupervisorImageMixin._match_image_references(
+            arguments["job_root"], arguments["request"], changed)
 
 
 def test_real_host_completion_consumes_one_image_and_retains_both_role_views(supervisor, tmp_path, monkeypatch):

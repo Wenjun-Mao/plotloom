@@ -1,5 +1,10 @@
 # Plotloom roadmap entrypoint
 
+Plans use the [compact acceptance template](plan-template.md): one current status,
+explicit evidence per claim, and clearly historical superseded instructions.
+The [validation method](../development.md#validation-without-new-media) defaults
+internal changes to request comparisons and retained-media functional journeys.
+
 ## Authorized project-language implementation
 
 The owner agreed to independent interface/content language, project-language
@@ -14,8 +19,10 @@ presentation and timing extractions to this workflow; the owner accepted that
 bounded scope. The original planning reviews and both focused amendment reviews
 are complete. The owner has explicitly authorized Relay Direct implementation
 through end-to-end verification, local activation and cleanup, encouraged parallel
-tasks and delegated in-scope decisions. Coordinator dispatch/preflight are starting;
-completion and activation remain to be evidenced in the plan.
+tasks and delegated in-scope decisions. The language plan owns the single current
+status, acceptance table and remaining blockers; this entrypoint does not duplicate
+its next steps. The [validation-boundary receipt](../verification/2026-10-29-validation-boundaries.md)
+records the subsequent durable workflow/test changes separately from closeout.
 
 ## Completed writing-model comparison and owner-approved cleanup
 

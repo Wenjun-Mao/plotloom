@@ -81,7 +81,7 @@ general review or another full pipeline run requires an explicit causal reason.
 Unknown submission outcomes continue to follow existing recovery policy and
 must not be blindly replayed.
 
-### October 18, 2026: small real E2E before qualification detours
+### October 18, 2026: small real E2E before qualification detours (amended October 29)
 
 The batch-video retrospective found that the corrected feature checkpoint was
 ready around 12:42 EDT, but activation completed at 22:01. Much of the later
@@ -91,12 +91,28 @@ discovery of the supported ordinary idle-deletion path. Real H3 E2E remained
 unexercised because no current, already owner-reviewed fixture was available.
 Elapsed windows include waiting/coordination and are not active-work percentages.
 
-Prioritize one small authorized real user journey before broad qualification:
-establish its fixture, schema, review/dispatch authority, runtime and finite
-resource limits early; run focused safety checks, then prove real output/readback
-before scaling. Resolve the fixture transition before a breaking reset. If an
-external prerequisite is missing, report it at the outset rather than hiding it
-behind test totals. Never synthesize human approval or weaken dispatch guards.
+Prioritize one small authorized functional journey before broad qualification.
+For internal changes, use contracts, complete final-request comparisons and real
+UI/API/persistence with retained media. Fresh generation requires an explicit
+integration question those checks cannot answer. Establish schema, fixture,
+runtime and applicable authority early; resolve fixture transitions before a
+breaking reset. Never synthesize approval or weaken dispatch/provenance guards.
+
+The October 29 retrospective found that combining software correctness, request
+fidelity and generated-media quality had made lettering and pose experiments
+block bilingual workflow delivery. These are separate acceptance claims. Keep
+technical validity/provenance, quality findings, functional-QA selection and
+creative acceptance distinct, using existing receipts and review owners. A
+functional-only selection retains quality failures and cannot imply creative
+acceptance; corrupt or unproven media remains ineligible. No new evaluation
+service or general policy engine is needed.
+
+Each plan has one current status and a small acceptance table. Before another
+expensive attempt, identify the blocked row, insufficient existing evidence,
+changed inputs and expected information. Move superseded next steps into a
+clearly historical section. This is a reasoning requirement, not an additional
+approval process. The executable method is in
+[the developer guide](../development.md#validation-without-new-media).
 
 Preflight expensive execution environments with existing bounded probes, retain
 useful private failure context, and reuse unchanged evidence. Classify failures

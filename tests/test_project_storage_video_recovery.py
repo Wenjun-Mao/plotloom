@@ -24,6 +24,8 @@ from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 from tests.video_prompt_fixtures import reviewed_h3_body as _reviewed_video_body
 from tests.video_storage_fixtures import FakeH3, _approved_keyframe
 
+pytestmark = pytest.mark.usefixtures("offline_media")
+
 
 @pytest.mark.parametrize(
     "authored_units,in_frame,out_frame,playback_intent",

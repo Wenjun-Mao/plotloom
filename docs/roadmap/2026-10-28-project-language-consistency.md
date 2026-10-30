@@ -33,7 +33,54 @@ evidence and do not restart completed real routes or broad gates for this prose
 change. Existing generated clips already cover both bilingual routes. No new
 generation or modularization is requested now.
 
-## Owner amendment: functional acceptance with quality limits — 2026-10-29
+## Current status
+
+Updated 2026-10-29. The functional closeout coordinator owns integration and
+qualification in `b30f/plotloom`; its last committed base for this follow-up is
+`4af2db95`. Both bilingual projects have completed their real two-choice routes,
+pause/resume/restart, report export and exact-wheel retained-media readback.
+Required local qualification is still open: the earlier full run failed and
+browser checks have exposed editing/navigation defects under repair. Normal
+activation and cleanup remain pending. Next action: finish those functional
+repairs and their affected local gates, then preservation-checked activation and
+cleanup. New quality-tuning generations are stopped. Prior failed runs stay failed.
+
+## Acceptance
+
+| Claim | Required evidence | Fresh media | Current result / gap |
+|---|---|---|---|
+| Chinese UI and bilingual content | Current source/report/persistence checks and actual bilingual journeys | No for remaining internal repairs | Native journeys/reports observed; browser editing/navigation repairs remain |
+| Correct provider adaptation | Authored requirements → complete final request, exact references/audio, intended differences and omission controls | Only an uncovered integration question | Request/semantic evidence is distinct from media quality; offline regressions live in the existing test suite |
+| Functional playback, export and reopening | Retained-media routes, pause/restart, exact export and installed-wheel readback | No remaining media gap identified | Both languages/four routes and wheel readback observed; final qualification remains |
+| Technical validity and provenance | Ingestion, hashes, source/currentness and authorization refusals | No | Required throughout; functional-only authority never waives them |
+| Generated-media quality | Separate inspection/experiment with explicit criterion | Separately scoped | Known lettering/pose limits retained; no creative-quality pass |
+| Local qualification and activation | Required affected gates, package identity and preservation-checked normal readback | No | Coordinator owns remaining checks, activation and cleanup; CI/push not requested |
+
+## Current scope and decisions
+
+The outcome and architecture in sections A–D below remain the implementation
+specification. The October 29 functional-only amendment supersedes their earlier
+media-quality completion gates: keep quality findings/rejection history visible,
+use explicit functional-only receipts and never infer creative acceptance. Finish
+functional closeout first, then modularize media-quality responsibilities using
+existing owners and receipts. That refactor is a separate follow-up, not another
+closeout gate; no new service or quality-generation campaign is authorized.
+
+Use the [repository validation method](../development.md#validation-without-new-media).
+Before any expensive attempt, name the blocked row, why existing evidence cannot
+answer it, changed inputs and expected new information. This reasoning does not
+add an approval process. Keep protected projects/assets and unknown dispatch
+holds intact. The coordinator updates this current status in place when its
+source and qualification evidence changes; detailed results belong in the
+[verification record](../verification/2026-10-28-project-language-consistency.md).
+
+## Historical decisions and execution evidence
+
+The following record preserves decisions, evidence and failures. Earlier status
+paragraphs, launch instructions and next steps are historical; they do not
+restart work or supersede the current scope/table above.
+
+### Owner amendment: functional acceptance with quality limits — 2026-10-29
 
 The owner inspected the generation-quality work and explicitly decided:
 “Yes—finish functional E2E and record quality limits.” This changes acceptance for
@@ -60,7 +107,7 @@ missing media needed for uncovered functional routes, using existing approved
 profiles/grants; do not tune provider settings for quality. No push/CI, source
 evidence rewrite, uncertain-dispatch clearing or guard bypass is authorized.
 
-### Queued follow-up: separate media-quality responsibilities
+#### Queued follow-up: separate media-quality responsibilities
 
 Owner decision: “Finish functional E2E first, then modularize media quality
 separately.” Queue this follow-up after the current functional closeout, including
@@ -290,7 +337,7 @@ image/H3/media acceptance remain open.
 Source inspected: main `9de44e189a4295ce763afe514aab3f300434fc3f`;
 owned Shuohao gitlink `4f9b2128c82adf623f594ba714c97d0afcfc16a2`.
 
-## Outcome and owner decisions
+### Outcome and owner decisions
 
 A creator can use Plotloom's consistent Chinese interface to produce either a
 Chinese or an English story. Newly authored outlines, branches, character/art
@@ -334,7 +381,7 @@ Proper names, deliberate foreign quotations, source excerpts and literal screen
 text can remain in their authored language. This is language consistency, not a
 new dramatic-quality threshold or a claim of improved storytelling.
 
-## Architectural boundary and bounded modularization
+### Architectural boundary and bounded modularization
 
 The production brief is a coherent read projection of the existing authoritative
 story, shot, dialogue, presentation, reference and timing owners. It covers what
@@ -390,7 +437,7 @@ English UI, bulk translation and general story-quality/pacing work. If a broader
 refactor is claimed necessary, first identify the concrete dependency blocking
 the existing bilingual journey and make the smallest justified change.
 
-## Current findings and ownership
+### Current findings and ownership
 
 | Finding | Owning source / implication |
 | --- | --- |
@@ -411,7 +458,7 @@ Presentation. Manual stage entry and native automation must consume the same
 language contract. Fake-host compact fixtures are useful tests, not real generation
 evidence. Source paths in this plan are relative to the repository root.
 
-## A. One language contract, with explicit field ownership
+### A. One language contract, with explicit field ownership
 
 Add a small cohesive language-policy owner, rather than a general translation
 service. It maps content locale to report locale (`zh`/`en`) and selects the canonical
@@ -467,7 +514,7 @@ spec map, creator guidance and a concise language ADR. Keep this roadmap as the
 execution owner; the ADR records the boundary decisions and rationale. Allocate
 its number from the then-current repository to avoid another ADR collision.
 
-## B. Text generation, reports and timing
+### B. Text generation, reports and timing
 
 Update primary instructions, response schemas, binder/receiving checks, renderers
 and correction guidance together. Remove forced-English Script report metadata
@@ -513,7 +560,7 @@ and their pinned stage instructions. Export only through existing supported
 document/media paths; adding new formats is outside scope. Raw project JSON keeps
 its technical keys and source originals.
 
-## C. Consistent Chinese creator interface
+### C. Consistent Chinese creator interface
 
 Cover Creator and Professional, project directory/Brief/source, stage editors and
 readers, generation/status/recovery, media review, settings, and player controls.
@@ -532,7 +579,7 @@ Check loading, empty, ready, failed, stale, frozen and unsupported states, not j
 the successful happy path. A complete inventory of supported surfaces belongs in
 the implementation's existing verification record, not a new tracking subsystem.
 
-## D. Provider directions and truthful review
+### D. Provider directions and truthful review
 
 For new requests, the creator reviews the complete actionable production brief
 defined above, in the project language, and explicitly authorizes generation.
@@ -570,7 +617,7 @@ provider or a generic multi-agent translation platform. Document the actual draf
 and check roles and disclose AI semantic-review limits. The owner's approval of
 this workflow does not label an uninspected translation as checked.
 
-## Execution order and early real outcomes
+### Execution order and early real outcomes
 
 1. **Preflight and capability probe.** Confirm clean source/owned-fork identity,
    current native Sol/medium dispatch, source pins, installed package, supported
@@ -626,7 +673,7 @@ use the existing bounded correction/replacement mechanisms. After two unsuccessf
 attempts at the same criterion, reassess the cause/method as AGENTS requires;
 that is a diagnostic checkpoint, not automatic abandonment or an owner question.
 
-## Evidence required for completion
+### Evidence required for completion
 
 | Claim | Required evidence; passing tests alone is insufficient |
 | --- | --- |
@@ -660,7 +707,7 @@ execution. This is a cross-layer contract change: one stable final `full` local
 qualification and exact installed-wheel checks are required. Keep failed runs
 failed, reuse unchanged evidence and target repairs causally. GitHub CI is off.
 
-## Source organization, installation and permissions
+### Source organization, installation and permissions
 
 Default to one serial source owner in the retained checkout. Native reviews are
 read-only and attended. Separate task/model choices already have standing owner
@@ -707,7 +754,7 @@ backup collection or old-runtime graveyard. Refresh the one functional recovery
 only when a new installed candidate warrants it. The manager owns cleanup and
 collects actual worker/reviewer finals before releasing their access.
 
-## Forecast and review points
+### Forecast and review points
 
 Initial estimate: **18–30 hours of active implementation/review**, plus roughly
 **3–8 hours of native generation, media and qualification waiting**, some overlap
@@ -727,7 +774,7 @@ Provider changes, destructive valued-data conversion, a broader feature scope or
 an unavailable capability necessary for the promised outcome require a concrete
 decision rather than silent weakening of acceptance.
 
-## Planning reviews
+### Planning reviews
 
 The independent outcome/completeness review (requested Sol/xhigh) found that all
 generated QA paths could pass while English manual additions saved Chinese default
@@ -761,7 +808,7 @@ policy. That clarification changes no success criteria and needs no additional
 outcome review. Both actual finals were collected; the original reviews remain
 the baseline. No provider, campaign, framework or execution approval was added.
 
-## Final implementation handoff
+### Final implementation handoff
 
 The owner has settled the product direction and bounded modularization scope and
 has explicitly instructed Relay Direct to implement it end to end. There are no
@@ -779,7 +826,7 @@ records the agreed scope and makes the previously reviewed technical choices
 definite; it changes no outcome, evidence requirement or execution permission and
 therefore needs no additional review round.
 
-## Execution ownership
+### Execution ownership
 
 Director: native chat `01a04525-e907-7630-9640-78790d69e8ae`.
 Retained source and integration checkout: `/Users/wjmao/.codex/worktrees/b30f/plotloom`
@@ -799,7 +846,7 @@ Register Relay reporting at each level before work, collect actual results, and
 retire child assignments only after review and quiescence. The director owns final
 coordinator acceptance/archival and reporting-route retirement.
 
-### Execution checkpoint — 2026-10-28
+#### Execution checkpoint — 2026-10-28
 
 Coordinator `01a184ec-5035-7542-a6e1-869dbdc84660` registered Relay reporting to the
 director before implementation (route `7b6a4bdb-2210-41ba-ab16-6bd7a6854094`).
@@ -846,7 +893,7 @@ actual final reports nine selftest suites/1,426 passes; exact copied bytes and
 coordinator targeted checks were inspected. No fork/main publication or CI ran.
 The full implementation remains unqualified and the installed checkout untouched.
 
-## Approved execution-policy simplification — 2026-10-28
+### Approved execution-policy simplification — 2026-10-28
 
 The owner explicitly approved removing dedicated forensic/no-dispatch recovery and
 adopting configurable automatic retries, default one retry after the initial attempt.
@@ -878,7 +925,7 @@ playback/preservation readback and closeout. Software qualification, activation,
 slot application, media evidence and final acceptance stay distinct. No routine
 owner approval is required within this now-approved assignment. No push or CI.
 
-### Native checkpoint reassessment
+#### Native checkpoint reassessment
 
 At local `708a56b8`, actual Chinese Outline delivery exposed incomplete classifier
 coverage of upstream-permitted extension fields. Conservative v2 review at
@@ -893,7 +940,7 @@ retain failed frozen evidence and do not substitute new policies into old runs.
 The verification record owns exact jobs, results, source revisions and causal tests.
 
 
-### Cast and preservation reassessment — 2026-10-29
+#### Cast and preservation reassessment — 2026-10-29
 
 Real bilingual Outline and Branches adoption reached 2/8 in each latest original
 QA fixture at `4bda2275`. Cast exposed disagreement between primary receiving and
@@ -909,7 +956,7 @@ including valued 苏棠 and the two preexisting incomplete homes. All remaining
 qualification, activation, media, playback and cleanup criteria remain unchanged.
 
 
-### Provider-literal reassessment — 2026-10-29
+#### Provider-literal reassessment — 2026-10-29
 
 At local `0fd56878`, a fresh English run passed and adopted Outline, Branches and
 Cast with the repaired exact metadata owner. Art then exposed an English-provider
@@ -993,7 +1040,7 @@ and every native owner is absent. Align the frozen response schema and prompt
 with that existing restriction before another native run; do not normalize old
 results or weaken binding. ADR0224 records the channel owner before implementation.
 
-### Current native text checkpoint at 389bf861
+#### Current native text checkpoint at 389bf861
 
 Both original fixtures have completed all eight native stages and persisted current
 canon: EN e1894d73-7c75-4481-9f4a-84ab9f0a4c0b and ZH
@@ -1040,7 +1087,7 @@ complete sequential real images/H3, four route plays, export,
 preservation/recovery and closeout. CI/push are not requested; hosted CI is not a
 release blocker.
 
-### Candidate C failures and derived-presentation repair — 2026-10-29
+#### Candidate C failures and derived-presentation repair — 2026-10-29
 
 Candidate C is local main `8193c3ff1486f0ff75d263903f07da4e33865052`, fork
 `35fac2661d70c6c017f1c4a61360d0e74c732497`. Its root-owned full local gate
@@ -1114,7 +1161,7 @@ evidence. This avoids qualifying an intermediate candidate before its required
 bundle-bound authority exists. It changes no scope, budget, provider or acceptance
 requirement; source repairs invalidate only affected evidence as documented.
 
-### D4 real checker failure and compatible fixture — 2026-10-29
+#### D4 real checker failure and compatible fixture — 2026-10-29
 
 Root committed the reviewed77-file checkpoint asd4cb63f8. Quick passed13.343s;
 the exact source-identity case passed3.99s. The original English home's supported
@@ -1148,7 +1195,7 @@ This fixture replacement changes no product outcome, story source, provider,
 budget default or acceptance requirement. Both real corrected text installations
 remain prerequisites for images; all final qualification/activation work stays open.
 
-### Chinese installed outcome and pause ownership — 2026-10-29
+#### Chinese installed outcome and pause ownership — 2026-10-29
 
 Atbfa521cc the original Chinese home's successor4eba29e8 completed native intent,
 independent intent checking, native authored-composition presentation and its
@@ -1174,7 +1221,7 @@ media scope is original Chinese2458559c plus this replacement English home;
 retained failed English e1894d73 is excluded from media generation. Exact creation
 and procedural scope are retained under.local/project-language-20261028/.
 
-### Exact-occurrence source-intent repair — 2026-10-29
+#### Exact-occurrence source-intent repair — 2026-10-29
 
 The replacement English run e28b7d73 reached five adopted creative stages, then
 its F5 check and one configured retry both failed. All13 native attempts are
@@ -1214,7 +1261,7 @@ Both complete text installations remain image prerequisites. Final media, local
 qualification, exact wheel, preservation-checked activation and cleanup remain
 required; CI and push stay unrequested.
 
-### Presentation preservation checkpoint — 2026-10-29
+#### Presentation preservation checkpoint — 2026-10-29
 
 At88b7069e fresh original English7b85292b completed eight creative native attempts;
 seven independent checks passed and seven stages were adopted. Presentation check

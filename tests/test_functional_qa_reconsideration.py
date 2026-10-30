@@ -17,6 +17,8 @@ from tests.delegated_qa_fixtures import INSPECTION, qa_environment, qa_start
 from tests.test_video_batch_review import native_batch_take  # noqa: F401
 from tests.video_batch_fixtures import ready_batch
 
+pytestmark = pytest.mark.usefixtures("offline_media")
+
 
 def rejected_single(tmp_path, monkeypatch, take):
     storage, client, service, provider, project, view, actor = qa_environment(tmp_path, monkeypatch)
@@ -69,14 +71,31 @@ def test_explicit_functional_reconsideration_confirms_original_media_with_no_new
         service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
             basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
     inspection = INSPECTION | {"acceptanceBasis": "functional_workflow_only",
-        "qualityLimitations": ["Synthetic quality failure is waived only for functional workflow acceptance."]}
+        "qualityLimitations": ["Synthetic clip lettering is unreadable; creative quality remains unaccepted."]}
     with pytest.raises(InvalidTransitionError):
         service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=stale["reviewHash"],
             basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection))
+    # The same functional-only authority cannot waive corrupt retained bytes.
+    with closing(storage.projects.open(project)) as store:
+        artifact_type = type(store.artifacts)
+    original_get = artifact_type.get
+    def corrupt_take(self, uri):
+        data = original_get(self, uri)
+        return b"corrupt retained mp4" if data == native_batch_take else data
+    with monkeypatch.context() as corrupt:
+        corrupt.setattr(artifact_type, "get", corrupt_take)
+        assert not service.review(project)["ready"]
+        with pytest.raises(InvalidTransitionError, match="unresolved exceptions"):
+            service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
+                basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection))
     receipt = service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
         basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection,
         note="Functional-only acceptance, not a media-quality pass."))
     assert receipt["inspection"]["acceptanceBasis"] == "functional_workflow_only"
+    assert receipt["inspection"]["qualityLimitations"] == inspection["qualityLimitations"]
+    with pytest.raises(InvalidTransitionError, match="observations differ"):
+        service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
+            basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
     assert len(provider.submits) == 1
     with closing(storage.projects.open(project)) as store:
         job = next(item for item in service.video.jobs(store) if item["id"] == rejection["videoJobId"])
@@ -86,6 +105,22 @@ def test_explicit_functional_reconsideration_confirms_original_media_with_no_new
         assert job["reviews"][0]["note"] == rejection["note"]
         assert [r["decision"] for r in job["reviews"]] == ["reject", "reopen", "select"]
     assert client.get(base+"/playback").status_code == 200
+
+
+def test_functional_only_authority_does_not_waive_changed_generation_provenance(tmp_path, monkeypatch, native_batch_take):
+    from plotloom.persistence.schema import VideoJobRow
+
+    storage, client, _service, provider, project, _view, actor, base, rejection = rejected_single(tmp_path, monkeypatch, native_batch_take)
+    monkeypatch.setattr(functional_qa, "FUNCTIONAL_QA_SCOPES", ((project, actor.scope_id),))
+    with closing(storage.projects.open(project)) as store, store.repository.manual_command() as session:
+        row = session.get(VideoJobRow, rejection["videoJobId"])
+        row.snapshot = row.snapshot | {"compiledPrompt": "Tampered final provider request."}
+    response = client.post(base+"/review/reopen", json={
+        "attribution": actor.model_dump(mode="json", by_alias=True),
+        "acceptanceBasis": "functional_workflow_only", "reason": "Cannot waive provenance.",
+        "expectedSelectionRevision": 0})
+    assert response.status_code == 409, response.text
+    assert len(provider.submits) == 1
 
 
 def test_reconsideration_refuses_uncovered_actors_stale_cas_and_missing_runtime_context(tmp_path, monkeypatch, native_batch_take):
