@@ -58,6 +58,21 @@ cleanup. New quality-tuning generations are stopped. Prior failed runs stay fail
 
 ## Current scope and decisions
 
+The owner's final closeout direction is to judge whether the intended creator
+outcome is achieved, not merely whether this plan's requirements pass. Root owns
+that final outcome judgment: can the supported installed workflow carry Chinese
+and English projects through a consistent Chinese interface, understandable
+project-language review/reports, faithful provider adaptation, save/reopen,
+branch playback and export? Inspect the actual journeys and artifacts, including
+whether ordinary supported use preserves the work and exposes known limitations.
+State any assistance or workaround that limits the claim; authorized generation
+and agent-operated QA are not themselves failures. Reuse valid evidence and
+investigate only material gaps or contradictions. If every planned check passes
+but the promised workflow remains unusable, the plan was insufficient and the
+outcome remains incomplete. Report achieved, achieved with stated limitations, or
+not achieved, with decisive evidence. This is the existing final review, not a
+new approval gate, generation campaign or restoration of the waived quality bar.
+
 The outcome and architecture in sections A–D below remain the implementation
 specification. The October 29 functional-only amendment supersedes their earlier
 media-quality completion gates: keep quality findings/rejection history visible,
