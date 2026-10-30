@@ -16,7 +16,7 @@ export function CreatorProductionInspector({ project, read, graphCurrent, disabl
   const installation = bridge?.installation;
   const mapping = installation ?? bridge?.proposal;
   if (mapping && accepted && sectionId) {
-    try { scenes = nodeProductionScenes(mapping, accepted, sectionId); }
+    try { scenes = nodeProductionScenes(mapping, accepted, sectionId, installation ? project.sceneBeats.scenes : null); }
     catch (reason) { projectionError = reason instanceof Error ? reason.message : String(reason); }
   }
   const current = graphCurrent && data?.errors.length === 0 && accepted && script?.acceptedReviewState.status === "current" && installation?.status === "current" && installation.staleReasons.length === 0 && !projectionError;

@@ -71,7 +71,7 @@ test("opening-only UI save revalidates the retained sibling review without a pag
   await navigate(page, "剧本");
   const script = page.getByTestId("script-review");
   await script.getByRole("button", { name: "重新打开剧本" }).click();
-  await script.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await script.getByRole("combobox").selectOption("opening");
   const textarea = script.locator("textarea");
   const episode = JSON.parse(await textarea.inputValue());
   episode.cliff = "Deterministic edited route status; choice remains pending.";
@@ -137,7 +137,7 @@ test("navigation revalidation preserves a same-project unsaved scoped Script dra
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const script = page.getByTestId("script-review");
   await script.getByRole("button", { name: "重新打开剧本" }).click();
-  await script.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await script.getByRole("combobox").selectOption("opening");
   const textarea = script.locator("textarea");
   const draft = `${await textarea.inputValue()}\n `;
   await textarea.fill(draft);
@@ -155,7 +155,7 @@ for (const authority of ["head", "status"] as const) test(`dirty Script retains 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#script`);
   const panel = page.getByTestId("script-review");
   await panel.getByRole("button", { name: "重新打开剧本" }).click();
-  await panel.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await panel.getByRole("combobox").selectOption("opening");
   const draft = `${await panel.locator("textarea").inputValue()}\n `;
   await panel.locator("textarea").fill(draft);
   if (authority === "head") await changeScript(request, workbench.apiOrigin, id);

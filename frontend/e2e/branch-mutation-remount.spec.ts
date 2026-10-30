@@ -3,7 +3,7 @@ import { expect, test } from "./fixture";
 import { createAcceptedCastProject } from "./art-review-fixture";
 
 test("owns a held branch cancellation across Source Brief Source remount", async ({ page, request, workbench }, info) => {
-  const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "branch-remount");
+  const projectId = await createAcceptedCastProject(request, workbench, "branch-remount");
   const base = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
   const preparation = await request.post(`${base}/branch-suggestions`);
   expect(preparation.ok()).toBe(true);
@@ -49,7 +49,7 @@ test("owns a held branch cancellation across Source Brief Source remount", async
 
 for (const lifecycle of ["freeze", "snapshots"] as const) {
   test(`${lifecycle} joins branch cancellation without suspended-read deadlock`, async ({ page, request, workbench }) => {
-    const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, `branch-${lifecycle}`);
+    const projectId = await createAcceptedCastProject(request, workbench, `branch-${lifecycle}`);
     const base = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
     const preparation = await request.post(`${base}/branch-suggestions`);
     expect(preparation.ok()).toBe(true);

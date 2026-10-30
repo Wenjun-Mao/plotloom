@@ -1,5 +1,43 @@
 # Project-language implementation evidence
 
+## Browser repair and retained-media checkpoint — 2026-10-29
+
+The unfiltered browser gate on4af2db95 remains **failed**:289 passed/77 failed,
+878.690s. Its preserved traces exposed three product defects: Art tied editor
+availability to language adoption, installed navigation compared readable scene
+titles with source IDs, and fast single-shot setup froze before pending authored
+drafts settled. Independent review closed the narrow repairs. Adoption still needs
+the exact candidate pass; installed navigation binds canonical scene/node/location
+and all source/cut coordinates; H3 drains existing project writers and rechecks
+ownership without excluding drafts or replaying a stale request.
+
+Unfiltered frontend units passed1,691 cases in182 files; both type checks pass.
+Two deterministic asset builds have identical seven-file SHA-256 trees. The small
+real API/browser selection passed14 cases, covering edited Art checks/acceptance,
+Script lifecycle, offline H3 draft/check/selection, exact retained media under
+aspect staleness, and installed production guidance. No paid provider or new real
+media was used. Original failed runs remain retained under
+`.local/project-language-20261028/`, including `final-browser-first-failures/`.
+
+The text-retry seed's unexpected UNKNOWN was independently traced to a test
+envelope: `/var` resolved to `/private/var` at the native Python-cache marker's
+alias refusal, before CLI stdout/stderr existed. A direct read-only hash probe
+reproduced that refusal. The fixture now canonicalizes its already-owned temporary
+root; the unchanged alias guard and original UNKNOWN remain intact. The fresh
+original-temp-layout case passed in35.254s with retained diagnostics. See
+`text-retry-path-causal-proof.json` and `text-retry-canonical-path.log`.
+
+The4af2db95 wheel passed build/smoke. Its installed real-QA readback passed all20
+owner reads and all6 selected playback GETs with original hashes. All4 real routes,
+choices, pause/resume/restart passed; both project databases stayed unchanged.
+All6 complete saved H3 snapshots/requests match prior evidence exactly. This wheel
+differs from its predecessor only in the cold-import fix and RECORD; its static
+bytes are identical. The later UI repairs need their new exact package check, not
+fresh provider outputs. Current remaining work is the affected browser-owner union,
+final installed package, preservation-checked activation/recovery and cleanup.
+The separate9f8a19d2 retrospective commit is queued after functional closeout;
+quality modularization is a later assignment and adds no gate here.
+
 ## Final local gate repair checkpoint — 2026-10-29
 
 The stable `c27d0141` full invocation remains **failed**: 4,968 Python cases passed,

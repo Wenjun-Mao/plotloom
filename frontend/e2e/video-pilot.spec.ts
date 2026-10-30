@@ -10,13 +10,13 @@ import type { APIRequestContext, Locator, Page } from "@playwright/test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
-async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
+async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOrigin: string, projectId: string, inFrame: number): Promise<string> {
   // The production H3 catalog rejects the 16:9 reviewed still until the
   // author explicitly chooses its documented contain-pad preparation.
   const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  const reconciled = await freezeReviewedFixtureDirections(panel);
+  const reconciled = await freezeReviewedFixtureDirections(panel, apiOrigin);
   expect(reconciled).toMatchObject({
     state: "ingested", error: null,
     observed: { videoCodec: "h264", audioCodec: "aac" },
@@ -90,7 +90,7 @@ async function prepareSelectedPair(
   expect(reference.ok()).toBeTruthy();
   const panel = page.getByTestId("video-pilot-panel");
   await panel.locator("details.video-production > summary").click();
-  const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
+  const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, workbench.apiOrigin, projectId, 24);
   const source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
 
   // The adjoining fixture follows the same authored review/selection path.
@@ -103,7 +103,7 @@ async function prepareSelectedPair(
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, targetIntent);
-  const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);
+  const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, workbench.apiOrigin, projectId, 0);
 
   // An explicit route is required before the selected-path player appears;
   // its missing-clip status must remain visible rather than implying a full

@@ -87,14 +87,14 @@ for (const editor of ["cast", "art", "script"] as const) test(`Autosave resumes 
     await scope.locator("textarea.source-outline-json:not([disabled])").fill(text);
   } else if (editor === "script") {
     await scope.getByRole("button", { name: "重新打开剧本" }).click();
-    await scope.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+    await scope.getByRole("combobox").selectOption("opening");
     await scope.locator("textarea.source-outline-json").fill(text);
   }
   await page.locator(".brand-home").click();
   await expect.poll(async () => (await json(request.get(`${workbench.apiOrigin}/api/v2/projects/${id}/authoring-drafts`))).some((draft: any) => draft.editorScope === "review_buffer" && draft.payload.editor === editor && draft.payload.text.includes(text))).toBe(true);
   await workbench.restartBackend();
   await page.goto(url);
-  if (editor === "script") await scope.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  if (editor === "script") await scope.getByRole("combobox").selectOption("opening");
   if (editor === "cast") await expect(scope.getByLabel("气质与举止", { exact: true })).toHaveValue(text);
   else {
     if (editor === "art" && !await scope.locator("textarea.source-outline-json:not([disabled])").isVisible()) await scope.locator(".art-json-editor summary").last().click();

@@ -50,14 +50,14 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await panel.locator("#video-production > summary").click();
   await panel.getByLabel("允许黑边画布（完整保留已审核图）").check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  const prepared = await prepareOfflineCandidate(page, panel, projectId);
+  const prepared = await prepareOfflineCandidate(page, panel, workbench.apiOrigin, projectId);
   await selectPlaybackSegment(panel, prepared.id);
   const selectedPlaybackUrl = `${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${prepared.id}/playback`;
   expect((await request.get(selectedPlaybackUrl)).ok()).toBeTruthy();
   // A second deliberate generation uses a new client idempotency key.  It
   // must leave the first selected candidate playable until the reviewer makes
   // a fresh, explicit selection.
-  const alternative = await prepareOfflineCandidate(page, panel, projectId);
+  const alternative = await prepareOfflineCandidate(page, panel, workbench.apiOrigin, projectId);
   expect(alternative.id).not.toBe(prepared.id);
   await expect(panel.getByTestId(`video-segment-review-${prepared.id}`)).toContainText("已选择片段 · 正用于故事");
   expect((await request.get(selectedPlaybackUrl)).ok()).toBeTruthy();
@@ -67,7 +67,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await expect(panel.getByTestId(`video-job-${prepared.id}`).getByRole("button", { name: "永久删除", exact: true })).toHaveCount(0);
   // Retained proposals protect their originals even after selection changes.
   // Only this third, segment-free synthetic take is a disposable candidate.
-  const disposable = await prepareOfflineCandidate(page, panel, projectId);
+  const disposable = await prepareOfflineCandidate(page, panel, workbench.apiOrigin, projectId);
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
   await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
@@ -130,7 +130,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await workbench.restartBackend();
 });
 
-async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<{ id: string }> {
+async function prepareOfflineCandidate(page: Page, panel: Locator, apiOrigin: string, projectId: string): Promise<{ id: string }> {
   const preparedPost = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
   // All three deliberate candidates reuse one exact seed, while each new
@@ -142,7 +142,7 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: st
     expect(JSON.parse(await priorDirections.locator("pre").innerText())).toMatchObject({ seedText: "2325339575976657" });
     await priorDirections.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
   }
-  await freezeReviewedFixtureDirections(panel, "2325339575976657");
+  await freezeReviewedFixtureDirections(panel, apiOrigin, "2325339575976657");
   const response = await preparedPost;
   expect(response.ok(), await response.text()).toBeTruthy();
   expect(response.request().postDataJSON()).toMatchObject({ seed: 2325339575976657 });

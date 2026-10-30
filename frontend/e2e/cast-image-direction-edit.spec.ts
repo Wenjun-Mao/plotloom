@@ -2,7 +2,7 @@ import { expect, test } from "./fixture";
 import { createAcceptedCastOnlyProject } from "./fixtures/cast-reference";
 
 test("explicitly edits all cast image directions, cancels safely, and freezes the new reference context", async ({ page, request, workbench }) => {
-  const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "image-direction");
+  const projectId = await createAcceptedCastOnlyProject(request, workbench, "image-direction");
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
   // Cross-style edits must be refused, without damaging the accepted evidence.
   const initial = await getJson<any>(request.get(`${endpoint}/cast`));

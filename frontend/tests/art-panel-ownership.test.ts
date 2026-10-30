@@ -5,6 +5,8 @@ import { plotloomApi } from "../src/api";
 import { specialistsApi } from "../src/features/specialists/api";
 import { ArtPanel } from "../src/pages/ArtPanel";
 import type { ArtBinding, ArtReferenceProposal, ArtReviewState } from "../src/types";
+import { contentLanguageApi } from "../src/features/content-language/api";
+import { languagePass, languageRequired } from "./content-language-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -51,6 +53,35 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
+
+it.each(["reject", "uncertain"] as const)("keeps the actual Art editor writable before and after a language %s", async verdict => {
+  const art = { lang: "en", scenes: [], props: [] };
+  const binding: ArtBinding = { sourceRevision: 1, sourceContentHash: "source", outlineRevision: 1,
+    outlineContentHash: "outline", sectionMapRevision: 1, sectionMapContentHash: "map", graphRevision: 1,
+    graphContentHash: "graph", sectionIds: ["opening"], castRevision: 1, castContentHash: "cast" };
+  vi.spyOn(plotloomApi, "getArt").mockResolvedValue({ ...artState("old"), acceptedArt: null,
+    status: "candidate_ready", candidate: { jobId: "candidate", status: "ready", art, binding,
+      deliveryId: null, manifestHash: null, createdAt: "now", deliveredAt: null,
+      expectedArtRevision: 0, reportAvailable: false } });
+  vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [] });
+  vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
+  vi.spyOn(contentLanguageApi, "status").mockResolvedValue(languageRequired());
+  const check = vi.spyOn(contentLanguageApi, "check").mockResolvedValue({ ...languagePass(), verdict });
+  const accept = vi.spyOn(plotloomApi, "acceptArtCandidate");
+  await act(async () => root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })));
+  const editor = host.querySelector<HTMLTextAreaElement>("details.art-json-editor textarea")!;
+  const confirm = [...host.querySelectorAll("button")].find(button => button.textContent === "确认使用此美术提案")!;
+  expect(editor.disabled).toBe(false); expect(confirm.disabled).toBe(true);
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "检查当前完整候选语言")!.click());
+  expect(check).toHaveBeenCalledExactlyOnceWith("old", "art", "candidate", art, 1);
+  expect(editor.disabled).toBe(false); expect(confirm.disabled).toBe(true);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(editor, JSON.stringify({ ...art, summary: "Corrected authored text." }));
+    editor.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(editor.value).toContain("Corrected authored text.");
+  expect(editor.disabled).toBe(false); expect(confirm.disabled).toBe(true); expect(accept).not.toHaveBeenCalled();
+});
 
 it("uses creator-confirmation wording and selection labels for accepted Art", async () => {
   vi.spyOn(plotloomApi, "getArt").mockResolvedValue(artState("old"));

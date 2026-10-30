@@ -8,7 +8,7 @@ import {
 } from "./fixtures/cast-reference";
 
 test("revises a character using a retained image without reviving its old proposal or selection", async ({ page, request, workbench }, testInfo) => {
-  const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "retained-refinement");
+  const projectId = await createAcceptedCastOnlyProject(request, workbench, "retained-refinement");
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
   await page.setViewportSize({ width: 1700, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);

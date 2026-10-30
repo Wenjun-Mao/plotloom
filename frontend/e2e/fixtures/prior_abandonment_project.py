@@ -51,6 +51,14 @@ def main():
                 home, project = store.home, store.project()
                 with store.repository.engine.connect() as connection:
                     attempts = [json.loads(row[0]) for row in connection.exec_driver_sql("SELECT snapshot FROM v2_autopilot_exec_attempts ORDER BY id")]
+                if args.current_state is not None:
+                    from plotloom.project_storage.content_language_evidence import (
+                        retained_language_checks,
+                    )
+                    with store.repository.engine.connect() as connection:
+                        attempts.extend(item[2].model_dump(mode="json", by_alias=True) for item in
+                            retained_language_checks(connection.connection.driver_connection))
+                    attempts.sort(key=lambda item: item["attemptId"])
         finally:
             service.close()
     if args.current_state is None:

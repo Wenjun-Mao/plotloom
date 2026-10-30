@@ -1,7 +1,8 @@
+import { registerFixtureProofEnvironment } from "./fixtures/language-proof";
 import { expect, saveBriefAndContinue, test } from "./fixture";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { json, writeDelivery, type Preparation } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, json, writeDelivery, type Preparation } from "./f5a-fixture";
 import type { SourceOutlineReviewState, SourceTopology } from "../src/types";
 
 test("empty production pages identify missing upstream work before a rejected preparation", async ({ page, workbench }, info) => {
@@ -27,6 +28,7 @@ test("empty production pages identify missing upstream work before a rejected pr
   await expect(guide).not.toContainText("角色图像风格已选择");
   await page.screenshot({ path: info.outputPath("portrait-upstream-prerequisite.png") });
   const id = new URL(page.url()).searchParams.get("project")!;
+  registerFixtureProofEnvironment(id, workbench);
   let sourceFailed = true;
   await page.route(`**/api/v2/projects/${id}/source-outline`, async route => sourceFailed
     ? route.fulfill({ status: 503, json: { detail: "Temporary source read failure" } }) : route.continue());
@@ -140,11 +142,12 @@ test("names the real next branch control through delivery, import, confirmation 
   await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
+  registerFixtureProofEnvironment(id, workbench);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   await page.getByRole("button", { name: "确认改编内容" }).click();
   await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const outline = await json<Preparation>(request.post(`${base}/source-outline/candidates`));
-  await writeDelivery(outline, "outline", { source: "指引回归", episodes: [{ ep: 1, synopsis: "一个开场与两个互斥结局。" }] });
+  await writeDelivery(outline, "outline", { lang: "zh", source: "指引回归", episodes: [{ ep: 1, synopsis: "一个开场与两个互斥结局。" }] });
   await json(request.post(`${base}/source-outline/candidates/${outline.jobId}/refresh`));
   await json(request.post(`${base}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: 1, expectedOutlineRevision: 0 } }));
   let graphReadFailed = true;
@@ -174,11 +177,12 @@ test("names the real next branch control through delivery, import, confirmation 
   const topology = prepared.plannedTopology as SourceTopology;
   const packagePath = path.resolve(outline.packagePath, "../..", prepared.candidate.jobId, "package");
   await writeDelivery({ ...outline, jobId: prepared.candidate.jobId, packagePath, deliveryPath: path.resolve(packagePath, "../delivery") }, "branches", {
-    nodes: topology.nodes.map((node, index) => ({ id: node.id, title: `灯的剧情 ${index + 1}`, summary: "角色用简单动作决定灯的去留。" })),
+    lang: "zh", nodes: topology.nodes.map((node, index) => ({ id: node.id, title: `灯的剧情 ${index + 1}`, summary: "角色用简单动作决定灯的去留。" })),
     choices: topology.nodes.filter(node => node.kind === "decision").map(node => ({ nodeId: node.id, question: "带走还是留下？", options: topology.edges.filter(edge => edge.sourceNodeId === node.id).map((edge, index) => ({ id: edge.id, label: index === 0 ? "带走" : "留下", consequence: "进入对应的独立结局。" })) })),
     joins: [], clarifications: ["确定性技术夹具，不作创作验收。"],
   });
   await suggestion.getByRole("button", { name: "立即检查" }).click();
+  await checkCurrentCandidateLanguage(page, suggestion, id, "branches", prepared.candidate.jobId);
   await expect(guide).toContainText("如果满意，点击「带入可编辑草稿」");
   let stageReadFailed = true;
   await page.route(`**/api/v2/projects/${id}/stages`, async route => {

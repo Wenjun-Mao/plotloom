@@ -129,7 +129,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
   const letterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  const job = await freezeReviewedFixtureDirections(panel);
+  const job = await freezeReviewedFixtureDirections(panel, workbench.apiOrigin);
   expect(job).toMatchObject({ requestedSeconds: 8, state: "ingested", observed: { durationSeconds: 8, frameCount: 192 } });
   const jobsResponse = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
   expect(jobsResponse.ok()).toBeTruthy();

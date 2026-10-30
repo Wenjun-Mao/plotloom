@@ -62,7 +62,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=0)
     arguments = parser.parse_args()
-    fixture_root = Path(os.environ["PLOTLOOM_OUTPUTS_DIR"]).parent
+    # The owned tempfile may use macOS /var; native identity checks require its physical path.
+    fixture_root = Path(os.environ["PLOTLOOM_OUTPUTS_DIR"]).parent.resolve(strict=True)
     fixture_root.mkdir(parents=True, exist_ok=True)
     fixture_root = fixture_root / "text-runtime"
     fixture_root.mkdir()
@@ -86,6 +87,19 @@ def main():
             service.step(run.project_id)
             with closing(storage.projects.open(run.project_id)) as store:
                 current = store.repository.autopilot.current(run.project_id)
+                if os.environ.get("PLOTLOOM_E2E_STARTUP_DIAGNOSTICS") and any(
+                    item["operationKey"] == "art" and item["state"] == "outcome_unknown"
+                    for item in current.checkpoints
+                ):
+                    attempt, receipt = store.repository.autopilot.exec_attempt_evidence_for_operation(current.id, "art")
+                    status = host.status(attempt.attempt_id) if attempt is not None else None
+                    startup_phase("unexpected-art-unknown", projectId=run.project_id, runId=run.id,
+                        attempt=attempt.model_dump(mode="json", by_alias=True) if attempt else None,
+                        receipt=receipt.model_dump(mode="json", by_alias=True) if receipt else None,
+                        hostStatus=status.model_dump(mode="json", by_alias=True) if status else None,
+                        projectHome=str(store.home), supervisorDatabase=str(host.database),
+                        privateRoot=str(host.private_root))
+                    raise RuntimeError("diagnostic stopped at exact unexpected Art UNKNOWN; retained evidence required")
             if os.environ.get("PLOTLOOM_E2E_STARTUP_DIAGNOSTICS"):
                 summary = {"state": current.state, "runPhase": current.phase,
                     "blockerCode": current.blocker.get("code") if current.blocker else None,

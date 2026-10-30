@@ -82,7 +82,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`
   ));
-  await freezeReviewedFixtureDirections(panel);
+  await freezeReviewedFixtureDirections(panel, workbench.apiOrigin);
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({

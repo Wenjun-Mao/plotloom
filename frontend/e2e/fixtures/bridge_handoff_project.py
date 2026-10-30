@@ -13,6 +13,7 @@ from plotloom.production_bridge_contracts import (
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.script_contracts import ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
+from tests.content_language_fixtures import install_synthetic_language_check
 from tests.creative_delivery_fixtures import _accepted_f4_script, _deliver_stage
 from tests.production_bridge_fixtures import (
     _prepare_installable_bridge,
@@ -37,6 +38,7 @@ def repeated_scene_bridge(store, seconds):
     for cut in second["cuts"]:
         cut["beats"] = [value - 4 for value in cut["beats"]]
     ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "creator-multiple-scenes"))
+    install_synthetic_language_check(store, request, board)
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
     preparation = store.production_bridge_state().preparation
     assert preparation.status == "available"

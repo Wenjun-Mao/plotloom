@@ -1,5 +1,38 @@
 # Project language consistency: Chinese UI, Chinese and English content
 
+## Controlling validation amendment: compare final requests and reuse media
+
+Apply this prospectively to remaining functional closeout and the queued
+media-quality modularization. Default internal-change proof is focused contract/
+integration tests, exact final provider-request comparisons, and real playback,
+branch, export and persistence E2E using retained media. Fresh generation is not
+an automatic release or functional gate. This supersedes any conflicting current
+fresh-generation instruction below; historical results and judgments remain intact.
+
+Compare source to the complete resolved final request for completeness, language,
+exact speech/visible words, sound roles, negations and references. Compare before/
+after where applicable: require equivalence for unaffected behavior and
+source-grounded justification for intended differences. Include prompt,
+model/profile, reference content identities and role/order, timing, geometry,
+audio settings and every other behavior-affecting argument. Matching an old prompt
+alone does not prove either request correct.
+
+Use the existing H3 compiler/fidelity mechanisms. For ImageGen, distinguish the
+job brief from final agent-composed tool arguments and reuse available exact
+retained tool-call evidence. If final pre-submit arguments cannot be inspected,
+record that concrete boundary gap; never label the brief as the final request.
+Do not build another preparation/checker framework for this amendment.
+
+New media requires an identified provider/integration question, an explanation of
+why final-request comparisons and retained outputs cannot answer it, and the
+smallest relevant live probe with expected evidence and a stopping condition.
+Existing provider/authority constraints remain; this adds no routine human approval
+step or quality-tuning loop. Valid requests establish intended provider inputs,
+not output fidelity; keep quality findings separate and truthful. Reuse unchanged
+evidence and do not restart completed real routes or broad gates for this prose
+change. Existing generated clips already cover both bilingual routes. No new
+generation or modularization is requested now.
+
 ## Owner amendment: functional acceptance with quality limits — 2026-10-29
 
 The owner inspected the generation-quality work and explicitly decided:

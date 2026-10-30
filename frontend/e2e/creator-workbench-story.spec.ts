@@ -54,11 +54,11 @@ test("node Story retains every scene and losslessly saves the original dirty sec
   await expect(page).toHaveURL(/stage=graph/);
   await page.getByRole("button", { name: "创作工作台", exact: true }).click();
   await page.getByText("场景、动作与对白", { exact: true }).click();
-  await panel.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await panel.getByRole("combobox").selectOption("opening");
   await expect(editor).toHaveValue(text);
   await page.reload();
   await page.getByText("场景、动作与对白", { exact: true }).click();
-  await panel.getByRole("combobox").selectOption({ label: "opening · episode 1" });
+  await panel.getByRole("combobox").selectOption("opening");
   await expect(panel.getByRole("button", { name: "恢复编辑草稿", exact: true })).toHaveCount(0);
   await expect(editor).toHaveValue(text);
   expect((await json(request.get(url))).acceptedScript).toEqual(retained);
@@ -130,7 +130,11 @@ test("creator observes automatic result checking without another send or automat
   const panel = page.getByTestId("script-review");
   await expect(panel).toContainText("自动检查交付中");
   await writeDelivery(prepared, "script", await fixture("script.json"));
-  await expect(panel.getByRole("button", { name: "确认使用此剧本", exact: true })).toBeEnabled();
+  const accept = panel.getByRole("button", { name: "确认使用此剧本", exact: true });
+  await expect.poll(async () => (await json(request.get(url))).candidate.status).toBe("ready");
+  await expect(accept).toBeDisabled();
+  await checkCurrentCandidateLanguage(page, panel, id, "script", prepared.jobId);
+  await expect(accept).toBeEnabled();
   const state = await json(request.get(url));
   expect(state.candidate.status).toBe("ready");
   expect(state.acceptedScript).toBeNull();

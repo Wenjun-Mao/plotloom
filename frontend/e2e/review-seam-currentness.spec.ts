@@ -1,6 +1,6 @@
 import { acknowledgeGraphMapping, graphDraftRevision } from "./fixtures/graph-authoring";
 import { expect, test } from "./fixture";
-import { availableSpecialistWithoutSend, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
+import { availableSpecialistWithoutSend, checkCurrentCandidateLanguage, createScriptProject, fixture, json, writeDelivery } from "./f5a-fixture";
 import type { APIRequestContext } from "@playwright/test";
 import { captureDesktopActions, captureDesktopState } from "./fixtures/desktop-state";
 
@@ -76,6 +76,7 @@ for (const stage of ["cast", "script"] as const) {
     const browserUrl = `${workbench.frontendOrigin}/v2/?project=${id}&stage=${stage === "cast" ? "characters" : "source#script"}`;
     await page.goto(browserUrl);
     const panel = page.getByTestId(`${stage}-review`);
+    if (ready) await checkCurrentCandidateLanguage(page, panel, id, stage === "cast" ? "characters" : stage, prepared.jobId);
     await expect(panel.getByRole("button", { name: ready ? (stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本") : "发送给文字创作助手" })).toBeEnabled();
     await invalidate(request, workbench.apiOrigin, id, stage);
     const state = await json(request.get(url));
@@ -141,6 +142,7 @@ for (const stage of ["cast", "script"] as const) {
     await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
     await json(request.post(`${url}/candidates/${prepared.jobId}/refresh`));
     await page.reload();
+    await checkCurrentCandidateLanguage(page, panel, id, stage === "cast" ? "characters" : stage, prepared.jobId);
     const accept = panel.getByRole("button", { name: stage === "cast" ? "确认使用此角色设定" : "确认使用此剧本" });
     await expect(accept).toBeEnabled();
     await captureDesktopState(page, test.info(), `${stage}-replacement-ready`, accept);

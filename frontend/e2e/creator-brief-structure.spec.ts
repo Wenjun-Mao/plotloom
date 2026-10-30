@@ -1,5 +1,6 @@
+import { registerFixtureProofEnvironment } from "./fixtures/language-proof";
 import { expect, saveBriefAndContinue, test } from "./fixture";
-import { json, writeDelivery, type Preparation } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, json, writeDelivery, type Preparation } from "./f5a-fixture";
 import path from "node:path";
 import type { SourceTopology } from "../src/types";
 
@@ -119,6 +120,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   await saveBriefAndContinue(page);
   await expect(page).toHaveURL(/[?&]project=/);
   const id = new URL(page.url()).searchParams.get("project")!;
+  registerFixtureProofEnvironment(id, workbench);
   const base = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const sourceAck = page.waitForResponse(response => response.request().method() === "PUT"
     && new URL(response.url()).pathname === `/api/v2/projects/${id}/source-outline/source`);
@@ -127,7 +129,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   expect(savedSource.source.revision).toBe(1);
   await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const prepared = await json<Preparation>(request.post(`${base}/source-outline/candidates`));
-  await writeDelivery(prepared, "outline", { source: "潮汐灯", episodes: [{ ep: 1, synopsis: "两次选择、三个结局与一个汇合点。" }] });
+  await writeDelivery(prepared, "outline", { lang: "zh", source: "潮汐灯", episodes: [{ ep: 1, synopsis: "两次选择、三个结局与一个汇合点。" }] });
   await json(request.post(`${base}/source-outline/candidates/${prepared.jobId}/refresh`));
   await json(request.post(`${base}/source-outline/accept`, { data: { jobId: prepared.jobId, expectedSourceRevision: 1, expectedOutlineRevision: 0 } }));
   await page.reload();
@@ -143,6 +145,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
   const packagePath = path.resolve(prepared.packagePath, "../..", state.candidate.jobId, "package");
   await writeDelivery({ ...prepared, jobId: state.candidate.jobId, packagePath, deliveryPath: path.resolve(packagePath, "../delivery") }, "branches", prose(topology));
   await suggestion.getByRole("button", { name: "立即检查" }).click();
+  await checkCurrentCandidateLanguage(page, suggestion, id, "branches", state.candidate.jobId);
   await suggestion.getByRole("button", { name: "带入可编辑草稿" }).click();
   await expect(map.locator(".section-map-sections fieldset")).toHaveCount(topology.nodes.length);
   await expect(map.locator(".section-map-choice")).toHaveCount(2);
@@ -206,6 +209,7 @@ test("returns to the current Brief and rejects a branch proposal frozen before s
 
 function prose(topology: SourceTopology) {
   return {
+    lang: "zh",
     nodes: topology.nodes.map((node, index) => ({ id: node.id, title: `剧情 ${index + 1}`, summary: `林澈在第 ${index + 1} 段采取明确行动。` })),
     choices: topology.nodes.filter(node => node.kind === "decision").map(node => ({ nodeId: node.id, question: "林澈下一步怎样行动？", options: topology.edges.filter(edge => edge.sourceNodeId === node.id).map((edge, index) => ({ id: edge.id, label: `救援行动 ${index + 1}`, consequence: `林澈采取第 ${index + 1} 种行动，保留相应后果。` })) })),
     joins: topology.joins.map(join => ({ id: join.id, reconciliation: "人物承认先前不同的选择，再共同面对新的局面。" })),

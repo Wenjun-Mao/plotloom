@@ -1,3 +1,5 @@
+import { checkCurrentCandidateLanguage } from "./f5a-fixture";
+import { installSyntheticLanguageProof, type FixtureProofEnvironment } from "./fixtures/language-proof";
 import { expect, saveBriefAndContinue, test } from "./fixture";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -28,10 +30,12 @@ test("installs Tide Light routes, survives restart, and retains a readable outli
   await page.getByRole("button", { name: "准备大纲任务" }).click();
   const prepared = await preparedResponse;
   expect(prepared.ok()).toBeTruthy();
-  await writeFixtureOutline(await prepared.json() as PreparedOutline);
+  await writeFixtureOutline(await prepared.json() as PreparedOutline, workbench);
   await page.getByRole("button", { name: "立即检查" }).click();
   await expect(page.getByText("待审阅")).toBeVisible();
   await expect(page.getByText("确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。", { exact: true })).toBeVisible();
+  const candidateJobId = (await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json()).candidate.jobId;
+  await checkCurrentCandidateLanguage(page, page.locator("body"), projectId, "outline", candidateJobId);
   await page.getByRole("button", { name: "确认使用此大纲", exact: true }).click();
   await expect(page.getByTestId("source-outline-accepted").getByText("已确认 r1", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "阅读已确认大纲", exact: true }).click();
@@ -177,12 +181,12 @@ test("installs Tide Light routes, survives restart, and retains a readable outli
   await expect(page.getByRole("button", { name: "重新准备大纲任务", exact: true })).toBeEnabled();
 });
 
-async function writeFixtureOutline(prepared: PreparedOutline): Promise<void> {
+async function writeFixtureOutline(prepared: PreparedOutline, environment: FixtureProofEnvironment): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8")) as {
-    requestHash: string; executionPin: { specialistSkillHash: string; upstreamRevision: string; upstreamSkillHash: string };
+    projectId: string; requestHash: string; executionPin: { specialistSkillHash: string; upstreamRevision: string; upstreamSkillHash: string };
   };
   const outline = Buffer.from(JSON.stringify({
-    sections: ["S01 气象站", "S02 码头与灯塔"],
+    lang: "zh", sections: ["S01 气象站", "S02 码头与灯塔"],
     choice: "B02 电缆供电：码头或灯塔", endings: ["码头得电", "灯塔得电"],
   }));
   const report = Buffer.from("<!doctype html><title>F1B fixture</title><p>Unreviewed fixture candidate.</p>");
@@ -198,6 +202,7 @@ async function writeFixtureOutline(prepared: PreparedOutline): Promise<void> {
       model: "fixture", reasoningEffort: "high",
     }, limitations: ["F1B browser fixture; no creative approval."],
   }));
+  await installSyntheticLanguageProof(environment, request.projectId, "outline", prepared.jobId);
 }
 
 function hash(value: Buffer): string { return createHash("sha256").update(value).digest("hex"); }

@@ -116,11 +116,11 @@ function branchingFixture() {
   return project;
 }
 
-async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
+async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOrigin: string, projectId: string, inFrame: number): Promise<string> {
   const allowLetterbox = panel.getByLabel("允许黑边画布（完整保留已审核图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  const job = await freezeReviewedFixtureDirections(panel);
+  const job = await freezeReviewedFixtureDirections(panel, apiOrigin);
   const review = panel.getByTestId(`video-segment-review-${job.id}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
   await review.getByRole("button", { name: "准备播放片段" }).click();
@@ -189,7 +189,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
       }
       source = await reviewedFixtureSource(request, workbench.apiOrigin, projectId);
     }
-    jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, projectId, index === 0 ? 24 : 0));
+    jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, workbench.apiOrigin, projectId, index === 0 ? 24 : 0));
   }
 
   // Play must work from the shipped FastAPI static mount, not only Vite's

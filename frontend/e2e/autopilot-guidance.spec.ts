@@ -110,7 +110,7 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
 });
 
 test("saved-Brief style bindings survive Art and Characters navigation without generation", async ({ page, request, workbench }, testInfo) => {
-  const id = await createAcceptedArtProject(request, workbench.apiOrigin, "saved-brief-render-contract");
+  const id = await createAcceptedArtProject(request, workbench, "saved-brief-render-contract");
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const [cast, art] = await Promise.all([json(request.get(`${root}/cast`)), json(request.get(`${root}/art`))]);
   await page.route(`**/api/v2/projects/${id}/autopilot`, route => route.fulfill({ json: {

@@ -39,6 +39,10 @@ test(`pinned Art static reading preserves prompts, images and native disclosures
   const frame = page.frameLocator('iframe[title="美术设定报告静态预览"]');
   await expect(frame.locator("details.pr").first()).toHaveAttribute("open", "");
   const prompt = frame.locator("details.pr").first();
+  const technical = prompt.locator("xpath=ancestor::details[1]");
+  await expect(technical).not.toHaveAttribute("open");
+  await expect(prompt.locator("p")).toBeHidden();
+  await technical.locator(":scope > summary").click();
   await expect(prompt.locator("p")).toBeVisible();
   await captureReportFramePoint(page, preview.locator("iframe"), frame.locator("#sec-list h2"), test.info(), "art-inline-top");
   await captureReportFramePoint(page, preview.locator("iframe"), frame.locator(".anchors").first(), test.info(), "art-inline-anchors");

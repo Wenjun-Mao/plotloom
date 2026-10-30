@@ -1,7 +1,7 @@
 import { BatchExecutionRetries } from "./features/video-batch/ExecutionRetries";
 import { AutomaticRetryCount, automaticRetryCount } from "./features/generation-retry/AutomaticRetryCount";
-import { useEffect, useRef, useState } from "react";
-import { useReviewEditorDraft } from "./features/authoring/ReviewDraftContext";
+import { useContext, useEffect, useRef, useState } from "react";
+import { ReviewDraftContext, useReviewEditorDraft } from "./features/authoring/ReviewDraftContext";
 import { plotloomApi } from "./api";
 import type { H3PromptPreview, H3ReviewedDirections, VideoJobPrepareBody } from "./api";
 import { Button, ErrorNotice, Field } from "./components";
@@ -26,6 +26,7 @@ export function H3DirectionsReview({ projectId, shotId, sourceIdentity, sourceRe
   onFreeze: (packageValue: H3ReviewedDirections, seed: number, idempotencyKey: string) => Promise<void>;
   keyframeHash: string; endFrameHash?: string | null; quality: number; requestedSeconds: number; frameCount: number;
 }) {
+  const draftContext = useContext(ReviewDraftContext);
   const [sources, setSources] = useState<H3PromptPreview | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [batch, setBatch] = useState<Batch | null>(null);
@@ -118,6 +119,11 @@ export function H3DirectionsReview({ projectId, shotId, sourceIdentity, sourceRe
 
   const setup = () => execute(async owns => {
     if (!sources || sourceReadRequired) return;
+    if (draftContext?.enabled && draftContext.projectId === projectId) {
+      const settled = await draftContext.quiescence.flush(projectId);
+      if (!owns()) return;
+      if (!settled) throw new Error("当前项目的输入尚未保存或存在冲突；请先核对原输入，再准备制作简报。");
+    }
     const body = request(), current = await batchApi.current(projectId);
     if (!owns()) return;
     if (current && matchesSingleRequest(current, body, sources.sourceHash)) { setBatch(current); setOtherBatch(null); return; }

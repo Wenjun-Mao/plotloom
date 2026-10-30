@@ -109,12 +109,12 @@ test("repair refusal and unknown result preserve exact evidence without suggesti
     } };
     run.failureCode = unit.latestAttempt!.outcomeCode;
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${project.id}&stage=quarantine&run=${run.id}`);
-    await expect(page.locator(".repair-panel .notice")).toContainText(reason);
+    await expect(page.locator(".repair-panel .notice").filter({ hasText: reason })).toContainText(reason);
     if (outcomeUnknown) await expect(page.locator(".repair-rebuild-separator")).toContainText("也可能重复生成");
     await expect(page.getByRole("button", { name: "重新执行此子任务", exact: true })).toHaveCount(0);
     await expect(page.locator(".quarantine-list")).toContainText(status === "outcome_unknown" ? "请求结果不确定" : "输出未通过校验（已隔离）");
     await capture(page, info, `repair-${state}-list`, page.locator(".quarantine-list > button").first());
-    await capture(page, info, `repair-${state}-refusal`, page.locator(".repair-panel .notice"));
+    await capture(page, info, `repair-${state}-refusal`, page.locator(".repair-panel .notice").filter({ hasText: reason }));
     await capture(page, info, `repair-${state}-rebuild`, page.locator(".repair-rebuild-separator"));
   }
   expect(writes).toEqual([]);

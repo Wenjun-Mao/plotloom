@@ -1,3 +1,5 @@
+import { checkCurrentCandidateLanguage } from "./f5a-fixture";
+import { installSyntheticLanguageProof } from "./fixtures/language-proof";
 import { openProjectManagement } from "./project-directory-controls";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -7,7 +9,7 @@ import { createAcceptedCastProject, createAcceptedArtProject, writeArtReferenceD
 test.describe("F3A production art review", () => {
   test("F3B shows current reference bytes, restart persistence, stale art, and cancellation release", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
-    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-study");
+    const projectId = await createAcceptedArtProject(request, workbench, "f3b-study");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const studies = page.getByTestId("art-reference-studies");
     const scene = page.getByTestId("art-reference-scene-S01");
@@ -76,7 +78,7 @@ test.describe("F3A production art review", () => {
   });
 
   test("reviews an isolated, explicitly mocked five-candidate F3B browser demonstration", async ({ page, request, workbench }, testInfo) => {
-    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "mocked-gallery");
+    const projectId = await createAcceptedArtProject(request, workbench, "mocked-gallery");
     const proposalPath = `/api/v2/projects/${projectId}/art-reference-proposals`;
     await page.route(`**${proposalPath}`, async (route) => {
       if (route.request().method() !== "GET") return route.continue();
@@ -150,7 +152,7 @@ test.describe("F3A production art review", () => {
   });
 
   test("re-copies a frozen handoff, rejects it, and replaces it through the browser", async ({ page, request, workbench }) => {
-    const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "replace");
+    const projectId = await createAcceptedCastProject(request, workbench, "replace");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
 
@@ -181,7 +183,7 @@ test.describe("F3A production art review", () => {
 
   test("inspects the accepted revision without reopening and preserves it through restart", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
-    const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "accept");
+    const projectId = await createAcceptedCastProject(request, workbench, "accept");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
     const prepared = await prepareFromBrowser(page, panel, projectId);
@@ -205,6 +207,9 @@ test.describe("F3A production art review", () => {
     const candidate = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
     const acceptedCandidate = withSummary(candidate, "Author accepted wording, distinct from the original specialist candidate.");
     await editor.fill(JSON.stringify(acceptedCandidate, null, 2));
+    await expect(panel.getByRole("button", { name: "确认使用此美术提案" })).toBeDisabled();
+    await installSyntheticLanguageProof(workbench, projectId, "art", prepared.jobId, false, acceptedCandidate);
+    await checkCurrentCandidateLanguage(page, panel, projectId, "art", prepared.jobId);
     await panel.getByRole("button", { name: "确认使用此美术提案" }).click();
     await expect(panel).toContainText("已确认美术设定 r1");
 
@@ -261,7 +266,7 @@ test.describe("F3A production art review", () => {
   });
 
   test("blocks lifecycle operations while a browser-prepared publication is active, then releases them on cancellation", async ({ page, request, workbench }) => {
-    const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "lifecycle");
+    const projectId = await createAcceptedCastProject(request, workbench, "lifecycle");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
     const prepared = await prepareFromBrowser(page, panel, projectId);
@@ -297,8 +302,8 @@ test.describe("F3A production art review", () => {
   });
 
   test("does not let a held old-project response mutate the destination project UI", async ({ page, request, workbench }) => {
-    const firstProjectId = await createAcceptedCastProject(request, workbench.apiOrigin, "held-first");
-    const secondProjectId = await createAcceptedCastProject(request, workbench.apiOrigin, "held-second");
+    const firstProjectId = await createAcceptedCastProject(request, workbench, "held-first");
+    const secondProjectId = await createAcceptedCastProject(request, workbench, "held-second");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source#art`);
     const firstPanel = page.getByTestId("art-review");
     let release!: () => void;
@@ -335,8 +340,8 @@ test.describe("F3A production art review", () => {
   });
 
   test("contains a held F3B copy across A-to-B-to-A project ownership", async ({ page, request, workbench }) => {
-    const firstProjectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-held-first");
-    const secondProjectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-held-second");
+    const firstProjectId = await createAcceptedArtProject(request, workbench, "f3b-held-first");
+    const secondProjectId = await createAcceptedArtProject(request, workbench, "f3b-held-second");
     const prepared = await getJson<any>(request.post(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/art-reference-proposals`, {
       data: { subjectType: "scene", subjectId: "S01", renderDirection: "Held copy fixture." },
     }));
@@ -400,7 +405,7 @@ test.describe("F3A production art review", () => {
 
   test("F4 accepts the three-section script, preserves a scoped edit, and survives backend restart", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
-    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f4-script");
+    const projectId = await createAcceptedArtProject(request, workbench, "f4-script");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
     const panel = page.getByTestId("script-review");
     const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates`);
@@ -436,6 +441,7 @@ test.describe("F3A production art review", () => {
     const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/specialist-tasks/script/${prepared.jobId}/check`);
     await panel.getByRole("button", { name: "立即检查" }).click();
     expect((await refreshed).ok()).toBeTruthy();
+    await checkCurrentCandidateLanguage(page, panel, projectId, "script", prepared.jobId);
     await panel.getByRole("button", { name: "确认使用此剧本" }).click();
     await expect(panel).toContainText("已确认 r1");
     await panel.getByRole("button", { name: "重新打开剧本" }).click();

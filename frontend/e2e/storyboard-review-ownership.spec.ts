@@ -1,3 +1,4 @@
+import { checkCurrentCandidateLanguage } from "./f5a-fixture";
 import type { Page, Route, Request } from "@playwright/test";
 import { expect, test } from "./fixture";
 import { createScriptProject, endpoint, json, writeDelivery } from "./f5a-fixture";
@@ -88,6 +89,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           await expect(panel).toBeVisible();
           await expect(panel.getByLabel("分镜完整任务")).toHaveCount(0);
           await expect(panel.getByRole("alert")).toHaveCount(0);
+          if (operation === "refresh") await checkCurrentCandidateLanguage(page, panel, id, "storyboard", prepared.jobId);
           await expect(panel.getByRole("button", { name: operation === "refresh" ? "确认此分镜评审方案" : "取消此任务", exact: true })).toBeEnabled();
         } finally {
           release?.();

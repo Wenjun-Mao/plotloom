@@ -8,6 +8,8 @@ import { styledCastFixture } from "./fixtures/cast-style";
 import { writeImageDeliveryFromPackage } from "./fixtures/image-delivery";
 import { expect } from "@playwright/test";
 
+import { registerFixtureProofEnvironment, installDeliveredLanguageProof, type FixtureProofEnvironment } from "./fixtures/language-proof";
+
 export type Api = import("@playwright/test").APIRequestContext;
 
 export type ArtPreparation = {
@@ -26,17 +28,19 @@ export type ArtState = {
 
 export type ScriptPreparation = { jobId: string; packagePath: string; deliveryPath: string; expectedScriptRevision: number; binding: unknown };
 
-export async function createAcceptedCastProject(request: Api, apiOrigin: string, label: string): Promise<string> {
+export async function createAcceptedCastProject(request: Api, environment: FixtureProofEnvironment, label: string): Promise<string> {
+  const apiOrigin = environment.apiOrigin;
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f3a-art-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F3A browser ${label}` } },
+    data: { brief: { ...demoProject.brief, language: "en-US", decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F3A browser ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
+  registerFixtureProofEnvironment(projectId, environment);
   const source = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
     data: { expectedSourceRevision: 0, material: sourceMaterial(label) },
   }));
   const outline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/candidates`));
-  await writeStageDelivery(outline, "outline.json", { source: "F3A browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }, "f3a-outline", "outline");
+  await writeStageDelivery(outline, "outline.json", { lang: "en", source: "F3A browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }, "f3a-outline", "outline");
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/candidates/${outline.jobId}/refresh`));
   const acceptedOutline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/accept`, { data: { jobId: outline.jobId, expectedSourceRevision: source.source.revision, expectedOutlineRevision: 0 } }));
   const projectUrl = `${apiOrigin}/api/v2/projects/${projectId}`;
@@ -57,8 +61,9 @@ export async function createAcceptedCastProject(request: Api, apiOrigin: string,
   return projectId;
 }
 
-export async function createAcceptedArtProject(request: Api, apiOrigin: string, label: string): Promise<string> {
-  const projectId = await createAcceptedCastProject(request, apiOrigin, label);
+export async function createAcceptedArtProject(request: Api, environment: FixtureProofEnvironment, label: string): Promise<string> {
+  const apiOrigin = environment.apiOrigin;
+  const projectId = await createAcceptedCastProject(request, environment, label);
   const prepared = await getJson<ArtPreparation>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates`, { data: { renderStyle: "realistic" } }));
   await writeArtDelivery(prepared, `f3b-art-${label}`);
   const ready = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates/${prepared.jobId}/refresh`));
@@ -125,6 +130,7 @@ export async function writeArtDelivery(prepared: ArtPreparation, deliveryId: str
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
     limitations: ["F3A production browser fixture; no creative approval or media."],
   }));
+  await installDeliveredLanguageProof(request, prepared.jobId);
 }
 
 export async function writeStageDelivery(prepared: any, filename: string, candidate: Record<string, unknown>, deliveryId: string, stage: string): Promise<void> {
@@ -139,11 +145,12 @@ export async function writeStageDelivery(prepared: any, filename: string, candid
     candidate: { filename, sha256: hash(content) }, report: { filename: "report.html", sha256: hash(report) },
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" }, limitations: ["Fixture only."],
   }));
+  await installDeliveredLanguageProof(request, prepared.jobId);
 }
 
 export function sourceMaterial(label: string) { return { kind: "synopsis", title: `Beacon choice ${label}`, text: "A keeper must power the beacon or dock before the storm closes the channel.", attribution: "F3A production-browser fixture", rightsDeclaration: "Test fixture only; not a rights determination.", adaptationIntent: "Preserve one choice and two explicit endings." }; }
-export function castFixture() { return { source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
-export function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: render + ", empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: beaconMap().sections.map(section => ({ sectionId: section.sectionId, sceneIds: ["S01"], propIds: [] })) }; }
+export function castFixture() { return { lang: "en", source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
+export function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { lang: "en", source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", description: "Cold dawn light enters through the window.", prompt: "cold dawn through a window" }], image: { prompt: render + ", empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: beaconMap().sections.map(section => ({ sectionId: section.sectionId, sceneIds: ["S01"], propIds: [] })) }; }
 export function mockedArtReferenceStudies(projectId: string) {
   const createdAt = "2026-09-21T00:00:00Z";
   const candidates = Array.from({ length: 5 }, (_, index) => {
@@ -155,7 +162,7 @@ export function mockedArtReferenceStudies(projectId: string) {
   });
   return { configured: true, proposals: [{ id: "mock-f3b-read-only", projectId, subjectType: "scene", subjectId: "S01", request: { demonstration: "已隔离的只读浏览器演示（明确 mock）" }, requestHash: "mocked-read-only", state: "delivered", current: true, exportedAt: createdAt, cancelledAt: null, cancellationReason: null, createdAt, deliveries: [{ id: "mock-delivery", deliveryId: "mocked-read-only-browser-demo", state: "accepted", diagnosticCode: null, manifestHash: "mocked-read-only", createdAt, candidates }] }] };
 }
-export function scriptFixture() { const episode = (ep: number) => ({ ep, targetSeconds: 60, hook: `Section ${ep} begins in motion`, cliff: `Section ${ep} leaves a choice open`, hookBeat: [1, 1], beatsClaimed: [], scenes: [{ sceneId: "S01", lighting: "dawn", characters: [], props: [], flow: Array.from({ length: 24 }, (_, index) => ({ action: `Mira crosses the beacon room, action ${index}.` })) }] }); return { source: "F3A browser fixture", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }, { sectionId: "dock", episode: 3 }], episodes: [episode(1), episode(2), episode(3)] }; }
+export function scriptFixture() { const episode = (ep: number) => ({ ep, targetSeconds: 60, hook: `Section ${ep} begins in motion`, cliff: `Section ${ep} leaves a choice open`, hookBeat: [1, 1], beatsClaimed: [], scenes: [{ sceneId: "S01", lighting: "dawn", characters: [], props: [], flow: Array.from({ length: 24 }, (_, index) => ({ action: `Mira crosses the beacon room, action ${index}.` })) }] }); return { lang: "en", source: "F3A browser fixture", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }, { sectionId: "dock", episode: 3 }], episodes: [episode(1), episode(2), episode(3)] }; }
 export function withSummary(art: Record<string, unknown>, summary: string): Record<string, unknown> { return { ...art, scenes: (art.scenes as Array<Record<string, unknown>>).map((scene, index) => index === 0 ? { ...scene, summary } : scene) }; }
 
 export async function expectOnlySourceMapGraph(request: Api, apiOrigin: string, projectId: string): Promise<void> {

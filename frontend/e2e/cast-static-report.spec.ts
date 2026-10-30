@@ -72,8 +72,12 @@ test(`pinned multi-character static reader retains all roles, relations, long sy
   await expect(frame.locator(".graph-canvas")).toHaveAttribute("inert", "");
   for (const row of await frame.locator("button.grow").all()) { await expect(row).toBeDisabled(); await expect(row).not.toBeEmpty(); }
   await captureReportFramePoint(page, panel.locator("iframe"), frame.locator(".graph-h h2"), test.info(), "cast-relations");
-  await expect(frame.locator(".pr p").filter({ hasText: "Final prompt line." })).toBeVisible();
   const prompt = frame.locator("details.pr").first();
+  const technical = prompt.locator("xpath=ancestor::details[1]");
+  await expect(technical).not.toHaveAttribute("open");
+  await expect(prompt.locator("p")).toBeHidden();
+  await technical.locator(":scope > summary").click();
+  await expect(frame.locator(".pr p").filter({ hasText: "Final prompt line." })).toBeVisible();
   await expect(prompt).toHaveAttribute("open", "");
   await captureReportParagraphEnd(page, panel.locator("iframe"), prompt.locator("p"), test.info(), "cast-prompt-end");
   await prompt.locator("summary").click(); await expect(prompt.locator("p")).toBeHidden();

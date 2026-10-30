@@ -17,7 +17,7 @@ from plotloom.project_storage import ProjectFolderStorage
 from tests.content_language_fixtures import install_synthetic_language_check
 
 
-def install_for_job(store, stage: str, candidate_job_id: str) -> dict[str, str | bool]:
+def install_for_job(store, stage: str, candidate_job_id: str, edited_candidate=None) -> dict[str, str | bool]:
     from plotloom.creative_commands import CREATIVE_METHODS
 
     creative_stage = "storyboard" if stage == "storyboard-review" else stage
@@ -31,7 +31,9 @@ def install_for_job(store, stage: str, candidate_job_id: str) -> dict[str, str |
         original, store.creative_handoff_execution_pin(original))
     if delivery is None:
         raise ValueError("fixture delivery is incomplete")
-    candidate = delivery.candidate
+    candidate = delivery.candidate if edited_candidate is None else edited_candidate
+    if not isinstance(candidate, dict):
+        raise TypeError("synthetic fixture candidate must be one complete dictionary")
 
     check_job_id = install_synthetic_language_check(store, original, candidate)
     checking, data = store.repository.content_language.load(store.manifest.project_id, check_job_id)
@@ -65,13 +67,15 @@ def main() -> None:
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--candidate-job-id", required=True)
     parser.add_argument("--stage", required=True,
-        choices=("outline", "characters", "art", "script", "storyboard-review"))
+        choices=("outline", "branches", "characters", "art", "script", "storyboard-review"))
+    parser.add_argument("--candidate-json", help="Exact complete edited candidate for an explicit browser check")
     args = parser.parse_args()
     storage = ProjectFolderStorage(outputs_root=args.outputs_root,
         application_data_root=args.application_data_root)
     store = storage.projects.open(args.project_id)
     try:
-        proof = install_for_job(store, args.stage, args.candidate_job_id)
+        proof = install_for_job(store, args.stage, args.candidate_job_id,
+            json.loads(args.candidate_json) if args.candidate_json is not None else None)
     finally:
         store.close()
     print(json.dumps(proof, sort_keys=True))

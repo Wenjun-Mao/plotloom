@@ -4,7 +4,7 @@ import { expect, test } from "./fixture";
 import { createCastReadyProject } from "./fixtures/cast-reference";
 
 test("discards a delivered proposal without deleting evidence and freezes an explicit replacement style", async ({ page, request, workbench }, testInfo) => {
-  const { projectId, castPrepared } = await createCastReadyProject(request, workbench.apiOrigin, "render-choice");
+  const { projectId, castPrepared } = await createCastReadyProject(request, workbench, "render-choice");
   const endpoint = `${workbench.apiOrigin}/api/v2/projects/${projectId}/cast`;
   const evidence = path.join(castPrepared.deliveryPath, "cast.json");
   const original = await readFile(evidence);

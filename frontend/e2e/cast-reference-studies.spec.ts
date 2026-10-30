@@ -1,14 +1,13 @@
-import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./fixtures/graph-authoring";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
 import { expectInlineRequiredMark } from "./inline-required-mark";
 import { inspectLongProvenanceLayout } from "./provenance-layout";
-import { writeCastDelivery, writeProposalDelivery } from "./fixtures/cast-reference";
+import { createAcceptedCastOnlyProject, createCastReadyProject, writeCastDelivery, writeProposalDelivery } from "./fixtures/cast-reference";
+import { checkCurrentCandidateLanguage } from "./f5a-fixture";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 // Persistent, repository-owned technical fixture: five distinct existing
@@ -34,9 +33,10 @@ type Proposal = {
 
 test.describe("F2B cast-owned reference studies", () => {
   test("synchronizes browser cast accept, reopen, and save with the same character-reference session", async ({ page, request, workbench }) => {
-    const { projectId } = await createCastReadyProject(request, workbench.apiOrigin, "session-sync");
+    const { projectId, castPrepared } = await createCastReadyProject(request, workbench, "session-sync");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const cast = page.getByTestId("cast-review");
+    await checkCurrentCandidateLanguage(page, cast, projectId, "characters", castPrepared.jobId);
     await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeEnabled();
     const appearanceLabel = cast.locator("label").filter({ hasText: "外观" });
     await expectInlineRequiredMark(appearanceLabel);
@@ -53,6 +53,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(cast.getByRole("button", { name: "确认使用此角色设定" })).toBeDisabled();
     await expect(cast.getByRole("alert")).toContainText("请至少填写一个性格特点");
     await cast.getByLabel("性格特点 1", { exact: true }).fill("Careful");
+    await checkCurrentCandidateLanguage(page, cast, projectId, "characters", castPrepared.jobId);
 
     const accepting = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/accept`);
@@ -95,7 +96,7 @@ test.describe("F2B cast-owned reference studies", () => {
 
   test("uses a cast-only production fixture through original, refinement, and restart", async ({ page, request, workbench }, testInfo) => {
     test.setTimeout(75_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "journey");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "journey");
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
 
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
@@ -228,7 +229,7 @@ test.describe("F2B cast-owned reference studies", () => {
 
   test("compares any explicit two to four members from a five-image technical fixture", async ({ page, request, workbench }, testInfo) => {
     test.setTimeout(90_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "comparison-five");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "comparison-five");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
     const labels = ["Beacon console", "Review shortcut", "Workbench map", "Profile contact sheet", "Workspace correction"];
@@ -271,7 +272,7 @@ test.describe("F2B cast-owned reference studies", () => {
 
   test("imports five cast-bound appearance options through the browser without a delivery", async ({ page, request, workbench }, testInfo) => {
     test.setTimeout(90_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "imported-five");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "imported-five");
     const labels = ["Beacon console", "Review shortcut", "Workbench map", "Profile contact sheet", "Workspace correction"];
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
@@ -345,7 +346,7 @@ test.describe("F2B cast-owned reference studies", () => {
   });
 
   test("cancels prepared and exported handoffs, retaining late delivery as inapplicable across close/reopen", async ({ page, request, workbench }) => {
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "cancel");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "cancel");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const panel = page.getByTestId("character-reference-gallery");
     await expect(panel).toBeVisible();
@@ -381,7 +382,7 @@ test.describe("F2B cast-owned reference studies", () => {
   });
 
   test("marks stale cast context and contains held preparation to its original project session", async ({ page, request, workbench }) => {
-    const staleProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "stale");
+    const staleProjectId = await createAcceptedCastOnlyProject(request, workbench, "stale");
     const staleSource = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${staleProjectId}/source-outline`));
     const changed = await request.put(`${workbench.apiOrigin}/api/v2/projects/${staleProjectId}/source-outline/source`, {
       data: {
@@ -397,8 +398,8 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(staleCast.status).toBe("stale");
     await expect(page.getByTestId("character-reference-gallery")).toContainText("角色设定需重新确认");
 
-    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-first");
-    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-second");
+    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench, "held-first");
+    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench, "held-second");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=characters`);
     const firstPanel = page.getByTestId("character-reference-gallery");
     await expect(firstPanel).toBeVisible();
@@ -444,8 +445,8 @@ test.describe("F2B cast-owned reference studies", () => {
 
   test("contains held managed imports to their project and cast sessions", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
-    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-import-first");
-    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-import-second");
+    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench, "held-import-first");
+    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench, "held-import-second");
     const importedCount = async () => (await getJson<{ appearances: unknown[] }>(request.get(
       `${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/character-imported-appearances`,
     ))).appearances.length;
@@ -543,8 +544,8 @@ test.describe("F2B cast-owned reference studies", () => {
   });
 
   test("invalidates held gallery reads after a project change", async ({ page, request, workbench }) => {
-    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-first");
-    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-second");
+    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench, "gallery-held-first");
+    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench, "gallery-held-second");
     let release: (() => void) | undefined;
     let signal: (() => void) | undefined;
     const started = new Promise<void>((resolve) => { signal = resolve; });
@@ -573,92 +574,6 @@ test.describe("F2B cast-owned reference studies", () => {
     }
   });
 });
-
-async function createAcceptedCastOnlyProject(request: Api, apiOrigin: string, label: string): Promise<string> {
-  const ready = await createCastReadyProject(request, apiOrigin, label);
-  await getJson(request.post(`${apiOrigin}/api/v2/projects/${ready.projectId}/cast/accept`, {
-    data: {
-      jobId: ready.castPrepared.jobId,
-      expectedCastRevision: ready.castPrepared.expectedCastRevision,
-      binding: ready.castPrepared.binding,
-      cast: ready.readyCast.cast,
-      consumerMappings: ready.readyCast.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id })),
-    },
-  }));
-  return ready.projectId;
-}
-
-async function createCastReadyProject(request: Api, apiOrigin: string, label: string): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
-  const created = await request.post(`${apiOrigin}/api/v2/projects`, {
-    headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
-  });
-  const projectId = (await getJson<{ id: string }>(created)).id;
-  const saved = await request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
-    data: { expectedSourceRevision: 0, material: sourceMaterial(label) },
-  });
-  const sourceState = await getJson<any>(saved);
-  const outlinePrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/candidates`));
-  await writeOutlineDelivery(outlinePrepared);
-  await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/candidates/${outlinePrepared.jobId}/refresh`));
-  const acceptedOutline = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/accept`, {
-    data: { jobId: outlinePrepared.jobId, expectedSourceRevision: sourceState.source.revision, expectedOutlineRevision: 0 },
-  }));
-  const projectUrl = `${apiOrigin}/api/v2/projects/${projectId}`;
-  const mapping = await currentFixtureMapping(request, projectUrl, beaconMap());
-  const draftRevision = await acknowledgeGraphMapping(request, projectUrl, mapping);
-  const mapSaved = await getJson<any>(request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map`, {
-    data: {
-      expectedSectionMapRevision: 0,
-      expectedSourceRevision: acceptedOutline.source.revision,
-      expectedOutlineRevision: acceptedOutline.acceptedOutline.revision,
-      expectedOutlineContentHash: acceptedOutline.acceptedOutline.contentHash,
-      mapping, expectedGraphDraftRevision: draftRevision,
-    },
-  }));
-  await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/section-map/install-graph`, {
-    data: {
-      expectedSourceRevision: mapSaved.source.revision,
-      expectedSourceContentHash: mapSaved.source.contentHash,
-      expectedOutlineRevision: mapSaved.acceptedOutline.revision,
-      expectedOutlineContentHash: mapSaved.acceptedOutline.contentHash,
-      expectedSectionMapRevision: mapSaved.acceptedSectionMap.revision,
-      expectedSectionMapContentHash: mapSaved.acceptedSectionMap.contentHash,
-      expectedGraphRevision: 0, expectedGraphDraftRevision: await graphDraftRevision(request, projectUrl),
-    },
-  }));
-  const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`, { data: { renderStyle: "realistic" } }));
-  await writeCastDelivery(castPrepared);
-  const readyCast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates/${castPrepared.jobId}/refresh`));
-  return { projectId, castPrepared, readyCast };
-}
-
-function sourceMaterial(label: string) {
-  return {
-    kind: "synopsis",
-    title: `Beacon choice ${label}`,
-    text: "A keeper must power the beacon or the dock before the storm closes the channel.",
-    attribution: "F2B production-browser fixture author",
-    rightsDeclaration: "Test fixture only; not a rights determination.",
-    adaptationIntent: "Preserve one choice and two explicit endings.",
-  };
-}
-
-
-async function writeOutlineDelivery(prepared: any): Promise<void> {
-  const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const outline = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }));
-  const report = Buffer.from("<!doctype html><title>F2B fixture</title><p>Candidate only.</p>");
-  await mkdir(prepared.deliveryPath, { recursive: true });
-  await writeFile(path.join(prepared.deliveryPath, "outline.json"), outline);
-  await writeFile(path.join(prepared.deliveryPath, "report.html"), report);
-  await writeFile(path.join(prepared.deliveryPath, "completion.json"), JSON.stringify({
-    schemaVersion: 1, jobId: prepared.jobId, requestHash: request.requestHash, deliveryId: "f2b-outline-fixture", stage: "outline",
-    candidate: { filename: "outline.json", sha256: hash(outline) }, report: { filename: "report.html", sha256: hash(report) },
-    executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
-    limitations: ["F2B fixture; no creative approval."],
-  }));
-}
 
 async function copyProposalFromBrowser(page: import("@playwright/test").Page, projectId: string, proposalId: string): Promise<PackagePaths> {
   const proposalCard = page.locator(`[data-proposal-id="${proposalId}"]`);

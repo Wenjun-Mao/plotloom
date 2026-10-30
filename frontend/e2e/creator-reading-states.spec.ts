@@ -26,7 +26,7 @@ async function captureControl(page: Page, testInfo: TestInfo, name: string, cont
 }
 
 test("gallery read failure has read-only local retry, distinct from an empty image collection", async ({ page, request, workbench }, testInfo) => {
-  const id = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "ui-gallery-recovery");
+  const id = await createAcceptedCastOnlyProject(request, workbench, "ui-gallery-recovery");
   let failRead = true;
   await page.route(`**/api/v2/projects/${id}/character-references`, async route => {
     if (failRead) await route.fulfill({ status: 503, json: { message: "角色参考读取暂时不可用" } });
@@ -53,7 +53,7 @@ test("gallery read failure has read-only local retry, distinct from an empty ima
 });
 
 test("archived gallery offers reading rather than disabled mutation instructions", async ({ page, request, workbench }, testInfo) => {
-  const id = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "ui-gallery-archived");
+  const id = await createAcceptedCastOnlyProject(request, workbench, "ui-gallery-archived");
   const root = `${workbench.apiOrigin}/api/v2/projects/${id}`;
   const project = await json(request.get(root));
   await json(request.post(`${root}/archive`, { data: { expectedLifecycleRevision: project.lifecycleRevision } }));

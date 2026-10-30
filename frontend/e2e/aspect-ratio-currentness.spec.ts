@@ -70,7 +70,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   await panel.locator("details.video-production > summary").click();
   await panel.getByLabel("允许黑边画布（完整保留已审核图）").check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  const reconciled = await freezeReviewedFixtureDirections(panel, "20261011");
+  const reconciled = await freezeReviewedFixtureDirections(panel, workbench.apiOrigin, "20261011");
   expect(reconciled).toMatchObject({ state: "ingested", error: null });
   const segmentReview = panel.getByTestId(`video-segment-review-${reconciled.id}`);
   const frameInput = segmentReview.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });
@@ -137,9 +137,12 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   expect(after.shotReview.decisions).toHaveLength(baseline.shotReview.decisions.length);
   expect(after.videoJob).toMatchObject({ state: "ingested", inputStatus: "stale", productionEligible: false, current: false, selected: false });
   expect(after.videoJob.playbackSegment).toBeNull();
-  expect(after.videoJob.segments[0]).toMatchObject({ current: false, previewEligible: true, selected: false });
+  const retainedSegment = after.videoJob.segments.find((segment: { id: string }) => segment.id === baseline.videoJob.playbackSegment.id);
+  expect(retainedSegment).toMatchObject({ current: false, previewEligible: true, selected: false });
+  const segmentHashes = (segments: Array<{ id: string; derivativeHash: string }>) => segments.map(segment => [segment.id, segment.derivativeHash]).sort((a, b) => a[0].localeCompare(b[0]));
+  expect(segmentHashes(after.videoJob.segments)).toEqual(segmentHashes(baseline.videoJob.segments));
   expect(after.videoJob.outputHash).toBe(originalVideoHash);
-  expect(after.videoJob.segments[0].derivativeHash).toBe(originalSegmentHash);
+  expect(retainedSegment.derivativeHash).toBe(originalSegmentHash);
   expect(sha256(await readBytes(request, `${root}/video-jobs/${reconciled.id}/media`))).toBe(originalVideoHash);
   expect(sha256(await readBytes(request, `${root}/video-segments/${baseline.videoJob.playbackSegment.id}/preview`))).toBe(originalSegmentHash);
   expect((await request.get(`${root}/video-jobs/${reconciled.id}/playback`)).status()).toBe(404);
@@ -231,7 +234,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
       storyboardReview: after.storyboardSourceReview.status,
       canonicalStages: after.canonicalStages.map((stage: { status: string }) => stage.status),
       video: [after.videoJob.state, after.videoJob.inputStatus, after.videoJob.productionEligible, after.videoJob.current, after.videoJob.selected],
-      segment: after.videoJob.segments[0] && [after.videoJob.segments[0].previewEligible, after.videoJob.segments[0].current, after.videoJob.segments[0].selected],
+      segment: [retainedSegment.previewEligible, retainedSegment.current, retainedSegment.selected],
       recovery: Object.fromEntries(Object.entries(recoveryGuidance).map(([key, value]) => [key, value.controls.filter(control => /恢复|准备/.test(control.name))])),
     },
   };

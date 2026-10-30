@@ -2,7 +2,7 @@ import { expect, test } from "./fixture";
 import { createAcceptedCastProject } from "./art-review-fixture";
 
 test("reads clean errors and cancels a stale branch task without replacing source or graph", async ({ page, request, workbench }, info) => {
-  const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "branch-recovery");
+  const projectId = await createAcceptedCastProject(request, workbench, "branch-recovery");
   const base = `${workbench.apiOrigin}/api/v2/projects/${projectId}`;
   const branchUrl = `**/api/v2/projects/${projectId}/branch-suggestions`;
   await page.route(branchUrl, route => route.request().method() === "GET"

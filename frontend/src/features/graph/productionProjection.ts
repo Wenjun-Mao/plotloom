@@ -1,4 +1,4 @@
-import type { AcceptedScriptRevision, ProductionSceneMapping, Shot } from "../../types";
+import type { AcceptedScriptRevision, DramaticScene, ProductionSceneMapping, Shot } from "../../types";
 import { bridgeCut, type BridgeCut } from "../../production-bridge-handoff";
 import { sourceSecondsToMilliseconds } from "../../production-timing";
 import { sectionEpisode } from "./scriptProjection";
@@ -7,7 +7,8 @@ export interface NodeProductionScene { sceneId: string; episode: number; sceneIn
 const positiveInteger = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value > 0;
 
 /** Current F4 occurrence coordinates and F5 identities must agree; never infer. */
-export function nodeProductionScenes(proposal: ProductionSceneMapping, accepted: AcceptedScriptRevision, sectionId: string): NodeProductionScene[] {
+export function nodeProductionScenes(proposal: ProductionSceneMapping, accepted: AcceptedScriptRevision, sectionId: string,
+  installedScenes: ReadonlyArray<Pick<DramaticScene, "id" | "storyNodeId" | "locationId">> | null): NodeProductionScene[] {
   if (proposal.inputs.scriptRevision !== accepted.revision || proposal.inputs.scriptContentHash !== accepted.contentHash) throw new Error("投产映射使用的剧本版本已变化；原场次与媒体保留，请返回整包评审。");
   const episode = sectionEpisode(accepted.script, accepted.binding, sectionId);
   const scenes = proposal.scenes.filter(scene => scene.sectionId === sectionId);
@@ -20,7 +21,13 @@ export function nodeProductionScenes(proposal: ProductionSceneMapping, accepted:
   const identities = new Set<string>(), occurrences = new Set<number>(), sceneIds = new Set<string>(), coordinates = new Set<string>();
   const result = scenes.map(scene => {
     if (scene.episode !== episode.ep || !positiveInteger(scene.sceneIndex) || scene.sceneIndex > episode.scenes.length || occurrences.has(scene.sceneIndex)
-      || typeof scene.sceneId !== "string" || !scene.sceneId || sceneIds.has(scene.sceneId) || scene.title !== episode.scenes[scene.sceneIndex - 1].sceneId || !positiveInteger(scene.cutCount)) throw new Error("投产场次缺少唯一的当前出现坐标。");
+      || typeof scene.sceneId !== "string" || !scene.sceneId || sceneIds.has(scene.sceneId)
+      || typeof scene.title !== "string" || !scene.title.trim() || !positiveInteger(scene.cutCount)) throw new Error("投产场次缺少唯一的当前出现坐标。");
+    if (installedScenes) {
+      const canonical = installedScenes.filter(item => item.id === scene.sceneId);
+      if (canonical.length !== 1 || canonical[0].storyNodeId !== sectionId
+        || canonical[0].locationId !== episode.scenes[scene.sceneIndex - 1].sceneId) throw new Error("投产场次与当前已安装地点身份不一致。");
+    }
     occurrences.add(scene.sceneIndex); sceneIds.add(scene.sceneId);
     const selected = cuts.filter(cut => cut.sceneIndex === scene.sceneIndex).map(raw => {
       const cut = bridgeCut(raw);

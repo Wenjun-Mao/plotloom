@@ -14,7 +14,7 @@ import {
 test.describe("Characters delivery observation", () => {
   test("keeps repeated pre-final delivery observations pending and later admits one final result", async ({ page, request, workbench }) => {
     test.setTimeout(30_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "partial-final");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "partial-final");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
     await gallery.getByLabel("想法").fill("Observe a partial package before its final original study.");
@@ -54,7 +54,7 @@ test.describe("Characters delivery observation", () => {
 
   test("records a final-invalid Characters delivery without publishing a candidate", async ({ page, request, workbench }) => {
     test.setTimeout(20_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "final-invalid");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "final-invalid");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
     await gallery.getByLabel("想法").fill("Persist the final-invalid delivery diagnostic.");
@@ -97,7 +97,7 @@ test.describe("Characters delivery observation", () => {
 
   test("keeps a post-marker partial delivery visible as a final integrity failure", async ({ page, request, workbench }) => {
     test.setTimeout(20_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "final-partial");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "final-partial");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
     await gallery.getByLabel("想法").fill("Expose final output-set integrity failure.");
@@ -135,7 +135,7 @@ test.describe("Characters delivery observation", () => {
 
   test("stops automatic Characters polling after refreshed package-conflict state", async ({ page, request, workbench }) => {
     test.setTimeout(20_000);
-    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "conflict-stop");
+    const projectId = await createAcceptedCastOnlyProject(request, workbench, "conflict-stop");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
     await gallery.getByLabel("想法").fill("Expose the immutable package conflict in the gallery.");

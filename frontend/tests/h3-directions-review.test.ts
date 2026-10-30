@@ -8,6 +8,9 @@ import { batchApi } from "../src/features/video-batch/api";
 import { projectQaApi } from "../src/components/ProjectQaContext";
 import type { Batch } from "../src/features/video-batch/contracts";
 import { authorizeProductionBatch, productionBatch, readyProductionBatch, sourceHash } from "./h3-production-fixtures";
+import { ReviewDraftContext } from "../src/features/authoring/ReviewDraftContext";
+import { createReviewDraftStore } from "../src/features/authoring/reviewDraftStore";
+import { createProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root, host: HTMLDivElement, current: Batch | null;
@@ -44,6 +47,56 @@ afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount
 const load = async () => { await act(async () => button("读取当前来源").click()); };
 const setup = async () => { await load(); await act(async () => button("准备本镜头制作简报").click()); };
 const ready = async () => { await setup(); current = readyProductionBatch(current!.manifest.setup.singleRequest!); await load(); };
+
+async function withDraftWriters() {
+  sessionStorage.clear();
+  const quiescence = createProjectDraftQuiescence(), store = createReviewDraftStore(quiescence, sessionStorage);
+  const saved = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockImplementation(async (_project, body) =>
+    ({ projectId: "project", ...body, draftRevision: body.expectedDraftRevision + 1, updatedAt: "now" }));
+  await act(async () => root.render(createElement(ReviewDraftContext.Provider, {
+    value: { store, quiescence, projectId: "project", revision: 1, enabled: true },
+    children: createElement(H3DirectionsReview, { projectId: "project", shotId: "shot", sourceIdentity: "shot",
+      sourceReady: true, disabled: false, buildRequest, onFreeze: async () => {}, keyframeHash: "a".repeat(64),
+      quality: 8, requestedSeconds: 15, frameCount: 362 }),
+  })));
+  await load();
+  return { quiescence, saved };
+}
+
+it("settles H3 autosave and other project writers before freezing an exact manifest", async () => {
+  const { quiescence, saved } = await withDraftWriters();
+  const held = pending<boolean>();
+  const unregister = quiescence.register("project", "other-authored-input", () => held.promise);
+  await act(async () => button("准备本镜头制作简报").click());
+  expect(saved).toHaveBeenCalled(); expect(batchApi.command).not.toHaveBeenCalled();
+  await act(async () => held.resolve(true));
+  expect(batchApi.command).toHaveBeenCalledExactlyOnceWith("project", "setup", expect.objectContaining({
+    singleRequest: expect.objectContaining({ automaticRetryLimit: 1 }), shotIds: ["shot"],
+  }));
+  unregister();
+});
+
+it.each(["conflict", "failure"] as const)("refuses manifest setup when a project draft drain reports %s", async outcome => {
+  const { quiescence } = await withDraftWriters();
+  const unregister = quiescence.register("project", "unsettled-author-input", async () => {
+    if (outcome === "failure") throw new Error("fixture draft save failed");
+    return false;
+  });
+  await act(async () => button("准备本镜头制作简报").click());
+  expect(batchApi.command).not.toHaveBeenCalled(); expect(host.textContent).toContain("操作结果需要核实");
+  expect(button("授权本镜头制作意图并开始生成")).toBeUndefined();
+  unregister();
+});
+
+it("withdraws setup ownership when the source changes during a held project drain", async () => {
+  const { quiescence } = await withDraftWriters();
+  const held = pending<boolean>(); const unregister = quiescence.register("project", "pending-draft", () => held.promise);
+  await act(async () => button("准备本镜头制作简报").click());
+  await render("different-source");
+  await act(async () => held.resolve(true));
+  expect(batchApi.command).not.toHaveBeenCalled();
+  unregister();
+});
 
 it("binds single setup to every original setting and authorizes the complete brief after independent checking", async () => {
   const freeze = vi.fn(async () => {}); await render("shot", freeze); await input(seedInput(), "2325339575976657"); await setup();

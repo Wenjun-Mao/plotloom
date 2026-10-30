@@ -1,5 +1,24 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Browser admission and preparation synchronization — 2026-10-29
+
+Language authority gates Art adoption independently of editor availability. A
+current structurally delivered candidate remains editable before a check and after
+rejection/uncertainty; edits still invalidate the exact prior pass. Source staleness,
+read-only state and in-flight mutations retain their separate editor guards.
+
+Installed production scenes bind to current canonical scene/node/location identities
+and exact source occurrence/cut coordinates. Readable Art-derived scene titles are
+display text, never substitutes for source scene IDs. Candidate projections retain
+formal source-coordinate checks before canonical installation exists.
+
+Single-shot H3 setup drains existing project draft writers through the shared
+quiescence owner before freezing its manifest, then rechecks request ownership.
+Failed/conflicted drains refuse preparation; later genuine edits still invalidate
+the material closure. Do not exclude authored buffers or retry a stale manifest to
+hide the synchronization defect. Final provider inputs and output-quality judgments
+remain separate; these internal repairs require no fresh provider media.
+
 ### Owner amendment: functional-only disposable QA acceptance — 2026-10-29
 
 The owner explicitly changed this run's acceptance to functional E2E with recorded

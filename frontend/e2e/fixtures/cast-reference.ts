@@ -1,3 +1,4 @@
+import { registerFixtureProofEnvironment, installDeliveredLanguageProof, type FixtureProofEnvironment } from "./language-proof";
 import { acknowledgeGraphMapping, graphDraftRevision, currentFixtureMapping, beaconMap } from "./graph-authoring";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -37,10 +38,11 @@ export type Proposal = {
 
 export async function createAcceptedCastOnlyProject(
   request: Api,
-  apiOrigin: string,
+  environment: FixtureProofEnvironment,
   label: string,
 ): Promise<string> {
-  const ready = await createCastReadyProject(request, apiOrigin, label);
+  const apiOrigin = environment.apiOrigin;
+  const ready = await createCastReadyProject(request, environment, label);
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${ready.projectId}/cast/accept`, {
     data: {
       jobId: ready.castPrepared.jobId,
@@ -60,14 +62,16 @@ export async function createAcceptedCastOnlyProject(
 
 export async function createCastReadyProject(
   request: Api,
-  apiOrigin: string,
+  environment: FixtureProofEnvironment,
   label: string,
 ): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
+  const apiOrigin = environment.apiOrigin;
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
-    data: { brief: { ...demoProject.brief, decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
+    data: { brief: { ...demoProject.brief, language: "en-US", decisionPointsPerPath: 1, endingCount: 2, desiredJoinCount: 0, title: `F2B cast-only ${label}` } },
   });
   const projectId = (await getJson<{ id: string }>(created)).id;
+  registerFixtureProofEnvironment(projectId, environment);
   const saved = await request.put(`${apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
     data: { expectedSourceRevision: 0, material: sourceMaterial(label) },
   });
@@ -242,7 +246,7 @@ function sourceMaterial(label: string) {
 
 async function writeOutlineDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const outline = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }));
+  const outline = Buffer.from(JSON.stringify({ lang: "en", source: "F2B browser fixture", summary: "A bounded beacon choice.", sections: ["opening", "beacon", "dock"] }));
   const report = Buffer.from("<!doctype html><title>F2B fixture</title><p>Candidate only.</p>");
   await mkdir(prepared.deliveryPath, { recursive: true });
   await writeFile(path.join(prepared.deliveryPath, "outline.json"), outline);
@@ -253,11 +257,12 @@ async function writeOutlineDelivery(prepared: any): Promise<void> {
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
     limitations: ["F2B fixture; no creative approval."],
   }));
+  await installDeliveredLanguageProof(request, prepared.jobId);
 }
 
 export async function writeCastDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const cast = Buffer.from(JSON.stringify(styledCastFixture({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }, request.inputArtifacts["cast-style-contract.json"])));
+  const cast = Buffer.from(JSON.stringify(styledCastFixture({ lang: "en", source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }, request.inputArtifacts["cast-style-contract.json"])));
   const report = Buffer.from("<!doctype html><title>F2B cast fixture</title><p>Candidate only.</p>");
   await mkdir(prepared.deliveryPath, { recursive: true });
   await writeFile(path.join(prepared.deliveryPath, "cast.json"), cast);
@@ -268,6 +273,7 @@ export async function writeCastDelivery(prepared: any): Promise<void> {
     executorProvenance: { codeRevision: "abcdef0", skillVersion: "fixture", skillHash: request.executionPin.specialistSkillHash, upstreamRevision: request.executionPin.upstreamRevision, upstreamSkillHash: request.executionPin.upstreamSkillHash, model: "fixture", reasoningEffort: "high" },
     limitations: ["F2B fixture; no creative approval."],
   }));
+  await installDeliveredLanguageProof(request, prepared.jobId);
 }
 
 async function getJson<T>(responseOrPromise: Awaited<ReturnType<Api["get"]>> | Promise<Awaited<ReturnType<Api["get"]>>>): Promise<T> {

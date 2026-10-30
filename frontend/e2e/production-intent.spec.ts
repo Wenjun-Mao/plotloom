@@ -62,7 +62,7 @@ test("single shot preserves exact seed and request key through independent check
   await expect.poll(() => page.evaluate(() => (window as unknown as { frozen?: unknown }).frozen)).toBeTruthy();
   const setup = commands.find(command => command.name === "setup")!.body;
   const result = await page.evaluate(() => (window as unknown as { frozen: { seed: number; key: string; value: object } }).frozen);
-  expect(setup.singleRequest).toEqual({ ...request, idempotencyKey: result.key });
+  expect(setup.singleRequest).toEqual({ ...request, automaticRetryLimit: 1, idempotencyKey: result.key });
   expect(setup.shotIds).toEqual(["shot"]); expect(result.seed).toBe(42);
   expect(commands.filter(command => command.name === "start")).toHaveLength(1);
   expect(commands.find(command => command.name === "start")?.body.basis).toBe("production-intent.v2");

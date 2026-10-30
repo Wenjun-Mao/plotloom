@@ -69,7 +69,7 @@ test("preserves complete portrait and landscape candidate thumbnails at desktop 
 
 test("keeps expanded frozen image directions inside the desktop gallery", async ({ page, request, workbench }, testInfo) => {
   test.setTimeout(75_000);
-  const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "long-frozen-direction");
+  const projectId = await createAcceptedCastOnlyProject(request, workbench, "long-frozen-direction");
   const direction = `保留完整冻结方向，不截断：${"UnbrokenDirectionToken".repeat(80)}\n第二行仍可阅读。`;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
   const gallery = page.getByTestId("character-reference-gallery");

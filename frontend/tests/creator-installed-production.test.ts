@@ -31,6 +31,7 @@ it.each(["current", "outdated"] as const)("uses installed source identity, not n
   bridge.installation!.status = status;
   const onOpenShot = vi.fn();
   const project = { ...demoProject, id: "project", stageRevisions: { ...demoProject.stageRevisions, storyboard: 1 }, storyboard: { ...demoProject.storyboard, shots: [{ ...demoProject.storyboard.shots[0], id: cut.shotId, sceneId: "installed-scene", durationUnits: 5000 }] } };
+  project.sceneBeats = { ...project.sceneBeats, scenes: [{ ...project.sceneBeats.scenes[0], id: "installed-scene", storyNodeId: "opening", locationId: "S01" }] };
   try {
     await act(async () => root.render(createElement(CreatorProductionInspector, {
       project, graphCurrent: true, disabled: false, onNavigate: vi.fn(), onOpenShot,

@@ -85,8 +85,12 @@ describe.each(["creator", "graph"] as const)("state-driven production hints in %
       scenes: [{ sectionId: "opening", episode: 1, sceneIndex: 1, sceneId: "scene", title: "S01", cutCount: 1 }], cuts: [cut] });
     value.project.stageRevisions.storyboard = 1;
     value.project.storyboard.shots = [{ ...value.project.storyboard.shots[0], id: "cut", sceneId: "scene", durationUnits: 5000 }];
+    value.project.sceneBeats.scenes = [{ ...value.project.sceneBeats.scenes[0], id: "scene", storyNodeId: "opening", locationId: "S01" }];
     expect(next(value).text).toContain("点击该节点镜头下的「镜头审核与媒体」");
     expect(next(value).text).toContain("不代表影片已完成");
+    value.project.sceneBeats.scenes[0].locationId = "different-source-location";
+    expect(next(value).text).not.toContain("镜头审核与媒体");
+    value.project.sceneBeats.scenes[0].locationId = "S01";
     value.project.storyboard.shots[0].durationUnits = 6000;
     expect(next(value).text).not.toContain("镜头审核与媒体");
     expect(next(value).text).toContain("需核对");

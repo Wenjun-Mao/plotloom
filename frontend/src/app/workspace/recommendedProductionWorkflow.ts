@@ -55,7 +55,7 @@ export function appliedProductionRecommendation(input: RecommendedWorkflowInput,
   const bridge = data.bridge, installation = bridge.installation;
   if (installation?.status === "current" && installation.staleReasons.length === 0) {
     try {
-      const scenes = nodeProductionScenes(installation, accepted, sectionId);
+      const scenes = nodeProductionScenes(installation, accepted, sectionId, input.project.sceneBeats.scenes);
       const bound = scenes.some(scene => scene.cuts.some(cut => currentBridgeCut(bridge, input.project.stageRevisions.storyboard, cut.shotId)
         && installedCutMatches(cut, scene.sceneId, input.project.storyboard.shots.find(shot => shot.id === cut.shotId))));
       if (bound) return inspection("点击该节点镜头下的「镜头审核与媒体」，继续镜头与媒体审阅；不代表影片已完成");
