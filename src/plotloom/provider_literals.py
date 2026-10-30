@@ -1,15 +1,14 @@
 """Exact provider-literal provenance; semantic intent remains an independent judgment."""
 from __future__ import annotations
 
-from hashlib import sha256
-from pathlib import Path
 import re
+from hashlib import sha256
 from typing import Literal
 
 from pydantic import Field
 
-from .domain_base import CamelModel
 from .creative_handoff_identity import canonical_json
+from .domain_base import CamelModel
 
 LITERAL_INPUT = "provider-literal-contract.json"
 LITERAL_VERSION = "plotloom.provider-literals.v2"
@@ -53,10 +52,10 @@ def provider_path(stage, path, role):
 
 
 def literal_policy_identity():
-    root = Path(__file__).resolve().parents[2]
-    paths = ["src/plotloom/"+name for name in ("provider_literals.py", "provider_literal_dialogue.py", "provider_literal_review.py", "provider_literal_preparation.py", "provider_literal_discovery.py")]
+    from .validation_resources import policy_resource
+    paths = ["src/plotloom/"+name for name in ("provider_literals.py", "provider_literal_dialogue.py", "provider_literal_review.py", "provider_literal_preparation.py", "provider_literal_discovery.py", "validation_resources.py")]
     paths += [f"third_party/shuohao-skills/skills/{skill}/scripts/provider-literals.mjs" for skill in ("novel-art","novel-characters","novel-storyboard")]
-    values = {name: sha256((root/name).read_bytes()).hexdigest() for name in paths}
+    values = {name: sha256(policy_resource(name).read_bytes()).hexdigest() for name in paths}
     return digest(values), values[paths[-1]]
 
 

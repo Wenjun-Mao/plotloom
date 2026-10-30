@@ -778,7 +778,8 @@
           "tests/test_test_venv_provisioning.py",
           "tests/test_verification_module_ownership.py",
           "tests/test_verify_script.py",
-          "tests/test_media_service_boundaries.py"
+          "tests/test_media_service_boundaries.py",
+          "tests/test_validation_resources.py"
         ],
         "vitest": [
           "frontend/tests/static-report-reader.test.ts"

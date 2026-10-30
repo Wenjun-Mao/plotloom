@@ -45,6 +45,7 @@ INSTRUCTION_FILES = (
     ".agents/skills/plotloom-image-specialist/SKILL.md",
 )
 VALIDATOR_FILES = (
+    "src/plotloom/validation_resources.py",
     "src/plotloom/persistence/project/selected_media_policy.py",
     "src/plotloom/provider_literals.py",
     "src/plotloom/provider_literal_dialogue.py",

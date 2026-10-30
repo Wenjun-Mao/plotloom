@@ -27,6 +27,41 @@ work inventory, source hash, original fidelity and intent still bind it. Prepare
 undispatched work continues to require current preparation identity; this is not
 historical dispatch/replay authority.
 
+### Installed validation resources and terminal observation — 2026-10-29
+
+The genuine bilingual journeys exposed a standalone-wheel read defect: saved-Brief
+Cast/Art and F5 currentness assumed repository-side validation scripts existed next
+to the installed interpreter. Ship an explicit 21-file validation bundle, preserving
+relative Node imports, exact bytes and upstream notices, with a checked hash manifest.
+Source readers still use actual checkout files; installed readers use only verified
+package-owned files. Literal Python policy fingerprints resolve inside their owning
+package. No cwd/environment/other-checkout discovery, native pin or dispatch authority
+comes from this bundle. Verification checks generated resources against their owners.
+Installed scope is accepted-state readability/fingerprints and local Cast/Art style
+rules. F5 fingerprinting is supported; standalone F5 validation/admission is not
+established by the bundle. Its frozen-context validator and native preparation still
+require the real owning checkout, policy files and any explicit recipe inputs.
+
+This resolver change legitimately changes Python policy fingerprints. Preserve old
+accepted revisions, receipts and hashes; ordinary currentness may report stale
+generation policy. Do not rebind or regenerate merely to hide that result. Existing
+selected-media policy remains limited to retained selected playback. Trusted code
+still owns validation and exact fingerprinting; author/model field ownership and
+the real-checkout execution guard remain unchanged.
+
+The player entrypoint must not turn that ordinary generation-stale status into a
+false claim that the story changed. For an outdated installation, it rereads media
+after installation authority and requires the existing complete-cut selected-playback
+proof against both displayed and fresh identities. Canonical stale heads, revoked or
+changed selections, derivatives or source bindings still refuse. The normal choice
+hook then checks exact graph edges/labels again; no generation/adoption authority or
+receipt changes result.
+
+A durable image `request_integrity` refusal also caused repeated automatic refresh
+POSTs and identical rejection records. Automatic observation now stops for that
+diagnostic, as it already does for `package_conflict`. Retain the request, history
+and explicit operator inspection controls; partial delivery may still be observed.
+
 ### Prospective reuse of exact opening images as ending guidance — 2026-10-29
 
 Two actual Chinese clips withdrew the required held hand despite exact checked

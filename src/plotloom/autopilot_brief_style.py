@@ -84,7 +84,8 @@ def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
 def freeze_brief_style(direction: str | None) -> dict[str, Any]:
     payload = {"version": 1, "authority": "saved_brief", "stageInstructionContract": BRIEF_STAGE_INSTRUCTION_CONTRACT, "direction": direction,
         "emptyDirectionRule": EMPTY_DIRECTION if not direction else None}
-    project_root = Path(__file__).resolve().parents[2]
+    from .validation_resources import validation_resource_root
+    project_root = validation_resource_root()
     validator_paths = {
         "policy": Path(__file__),
         "artAdapter": project_root / "scripts" / "brief-art-style.mjs",

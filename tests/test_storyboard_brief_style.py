@@ -139,13 +139,15 @@ def test_saved_brief_f5_admission_acceptance_install_and_image_snapshot(tmp_path
         head = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
         installed = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
         frame = board["episodes"][0]["segments"][0]["cuts"][0]["frame"]
-        assert installed.shots[0].composition == frame
+        authored_composition = board["episodes"][0]["segments"][0]["cuts"][0]["composition"]
+        assert installed.shots[0].composition == authored_composition != frame
+        assert store.storyboard_review_state().accepted_review.storyboard == board
         approval = store.authoring.decide_storyboard_approval(project_id, expected_revision=head.revision, expected_content_hash=head.content_hash,
             decision="approve", reviewer="disposable fixture", gate_set_version="storyboard.v2")
         image = store.media.prepare_image_job(project_id, approval_id=approval.id, shot_id=installed.shots[0].id, storyboard_revision=head.revision,
             presentation_change="Frozen F5 frame propagation", contract_version=3)
         composition = image["job"]["request"]["frozenSnapshot"]["visualProposal"]["composition"]
-        assert composition == frame and "cinematic film still" not in composition
+        assert composition == authored_composition and "cinematic film still" not in composition
     finally:
         store.close()
 

@@ -109,6 +109,24 @@ it("refreshes project assets after an import ACK even if the shot changed during
   expect(upload).toHaveBeenCalledOnce();
 });
 
+it.each(["request_integrity", "package_conflict", null])("does not repeat automatic observation after durable refusal: %s", async diagnosticCode => {
+  const job: ImageJob = { ...exportedJob, deliveries: diagnosticCode ? [{ id: "refusal", deliveryId: null,
+    state: "rejected", diagnosticCode, manifestHash: null, createdAt: "2026-10-29T00:00:00Z", candidates: [] }] : [] };
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(emptyWorkbench);
+  vi.mocked(plotloomApi.getImageJobs).mockResolvedValue({ configured: true, jobs: [job] });
+  const poll = vi.spyOn(plotloomApi, "refreshImageJob").mockResolvedValue({ state: "awaiting_delivery", candidates: [] });
+  await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+    projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
+    graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
+    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1,
+    mediaDraftsEnabled: false, review: null, readOnly: false,
+  })));
+  await act(async () => vi.advanceTimersByTimeAsync(10_000));
+  if (diagnosticCode) expect(poll).not.toHaveBeenCalled();
+  else expect(poll).toHaveBeenCalled();
+  expect(host.querySelector<HTMLButtonElement>('[data-testid="refresh-image-job-job-1"]')?.disabled).toBe(false);
+});
+
 it("withdraws media owner controls and exported-job polling after a same-context read failure", async () => {
   vi.spyOn(plotloomApi, "getVisualWorkbench")
     .mockResolvedValueOnce(emptyWorkbench)

@@ -5,9 +5,57 @@ import { PlayView } from "../src/play/PlayView";
 import { plotloomApi } from "../src/api";
 import { bridgeState, installedProduction } from "./production-bridge-fixture";
 import { demoProject } from "../src/demo";
+import { branchingFixture } from "./video-pilot-fixtures";
+import { bindBridgePlayback } from "./bridge-playback-fixtures";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => { vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); });
+
+it.each(["policy-only", "selection", "derivative", "source"])("rebinds outdated generation to fresh selected authority: %s", async change => {
+  window.history.replaceState({}, "", "/?view=play&project=project");
+  const host = document.createElement("div"); const root = createRoot(host);
+  const fixture = branchingFixture();
+  const edges = fixture.graph.edges.filter(edge => edge.kind === "choice");
+  const media = bindBridgePlayback(fixture.selected.map(job => ({ ...job, current: false, inputStatus: "stale" })),
+    fixture.sceneBeats.scenes, [{ choiceId: "choice", sectionId: edges[0].sourceNodeId, prompt: "Choose a route.",
+      outcomes: edges.map(edge => ({ outcomeId: edge.id, endingSectionId: edge.targetNodeId,
+        label: edge.choiceText!, consequence: "Follow this route." })) }]);
+  media.installation.status = "outdated"; media.installation.staleReasons = ["accepted receiving policy changed"];
+  const fresh = structuredClone(media.jobs);
+  if (change === "selection") fresh[0].selected = false;
+  if (change === "derivative") fresh[0].playbackSegment!.derivativeHash = "d".repeat(64);
+  if (change === "source") (fresh[0].snapshot.sourceTiming as { admissionId: string }).admissionId = "changed-source";
+  let resolveFresh!: (value: { jobs: typeof fresh }) => void;
+  const pending = new Promise<{ jobs: typeof fresh }>(resolve => { resolveFresh = resolve; });
+  const order: string[] = [];
+  vi.spyOn(plotloomApi, "getProject").mockResolvedValue({ brief: { title: "Retained story" } } as Awaited<ReturnType<typeof plotloomApi.getProject>>);
+  vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [
+    { head: { stage: "story_graph", status: "ready" }, payload: fixture.graph },
+    { head: { stage: "scene_beats", status: "ready" }, payload: fixture.sceneBeats },
+    { head: { stage: "storyboard", status: "ready" }, payload: fixture.storyboard },
+  ] } as Awaited<ReturnType<typeof plotloomApi.getStages>>);
+  vi.spyOn(plotloomApi, "getProductionBridge").mockImplementation(async () => {
+    order.push("installation"); return bridgeState({ installation: media.installation });
+  });
+  const read = vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: fresh })
+    .mockImplementationOnce(async () => { order.push("old-media"); return { jobs: media.jobs }; })
+    .mockImplementationOnce(() => { order.push("fresh-media"); return pending; });
+  try {
+    await act(async () => root.render(createElement(PlayView)));
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(order).toEqual(["old-media", "installation", "fresh-media"]);
+    expect(host.querySelector('[data-testid="branching-video-preview"]')).toBeNull();
+    await act(async () => resolveFresh({ jobs: fresh }));
+    if (change === "policy-only") {
+      expect(host.querySelector('[data-testid="branching-video-preview"]')).not.toBeNull();
+      expect(host.querySelector("video")).not.toBeNull();
+      expect(host.textContent).not.toContain("需要重新建立制作内容");
+    } else {
+      expect(host.textContent).toContain("需要重新建立制作内容");
+      expect(host.querySelector("video")).toBeNull();
+    }
+  } finally { await act(async () => root.unmount()); }
+});
 
 it.each(["ready", "stale"])("explains archived lifecycle before %s production or missing media", async (status) => {
   window.history.replaceState({}, "", "/?view=play&project=project");

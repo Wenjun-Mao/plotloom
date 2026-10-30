@@ -8,11 +8,13 @@ from pathlib import Path
 from typing import Any, Literal
 
 from plotloom.domain_base import CamelModel
+
 from .style_contract_cache import derive_style_contract
+from .validation_resources import validation_resource_root
 
 ArtRenderStyle = Literal["live-action", "realistic", "ghibli"]
 CandidateArtRenderStyle = Literal["live-action", "realistic", "ghibli", "brief"]
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = validation_resource_root()
 ADAPTER = PROJECT_ROOT / "scripts" / "art-style.mjs"
 STYLE_RULE_DEPENDENCIES = (
     PROJECT_ROOT / "scripts" / "provider-literal-context.mjs",

@@ -90,6 +90,7 @@ def _run_steps(tier: str, steps: Sequence[Step]) -> int:
 def _quick_steps() -> list[Step]:
     return [
         _command("locked dependencies", "uv", "lock", "--check"),
+        _command("packaged validation resources", "uv", "run", "--locked", "--no-sync", "python", "scripts/sync_validation_resources.py", "--check"),
         _command(
             "API unused imports",
             "uv",
@@ -120,6 +121,7 @@ def _quick_steps() -> list[Step]:
 def _full_steps(wheel_dir: Path) -> list[Step]:
     return [
         _command("locked dependencies", "uv", "lock", "--check"),
+        _command("packaged validation resources", "uv", "run", "--locked", "--no-sync", "python", "scripts/sync_validation_resources.py", "--check"),
         _command("ffmpeg probe tool", "ffmpeg", "-version"),
         _command("ffprobe probe tool", "ffprobe", "-version"),
         _command(

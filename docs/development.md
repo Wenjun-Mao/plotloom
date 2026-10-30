@@ -312,11 +312,22 @@ npm --prefix frontend ci
 npm --prefix docs/prompt-pipeline-lab ci
 ```
 
-`quick` checks the lock, API-scoped unused imports, frontend unit tests, and both
+`quick` checks the lock, owned validation-resource parity, API-scoped unused imports, frontend unit tests, and both
 application and browser-fixture type contracts. It does not run Python
-integration or browser tests, the archived prompt reader, a bundle build/parity
+integration or browser tests, the archived prompt reader, a frontend bundle build/parity
 check, or wheel packaging. It is development feedback, never backend or release
 acceptance.
+
+When an owned Cast/Art/F5 validation adapter or its bundled upstream dependency
+changes, regenerate the explicit installed-reader resource bundle before checking:
+
+```sh
+uv run --locked --no-sync python scripts/sync_validation_resources.py --write
+```
+
+Quick and full verification compare that bundle with the actual checkout bytes.
+The bundle supports installed accepted-state reads and fingerprints; native/F5
+admission still requires its real owning checkout and execution pins.
 
 ```sh
 uv run --locked --no-sync python scripts/verify.py quick

@@ -3,6 +3,8 @@ import { plotloomApi } from "../api";
 import { BranchingVideoPreview } from "../branching-video-preview";
 import { Button, ErrorNotice, Spinner } from "../components";
 import { sourceWorkflowHref } from "../app/workspace/sourceWorkflowNavigation";
+import { selectedBridgeChoicesEligible } from "../features/media/selected-bridge-choice";
+import { isCurrentVideoSelection } from "../features/media/video-next-action";
 import type { SceneBeatPlan, StoryGraph, Storyboard, VideoJob } from "../types";
 
 type PlayData = {
@@ -45,7 +47,7 @@ export function PlayView() {
       plotloomApi.getStages(projectId, controller.signal),
       plotloomApi.getVideoJobs(projectId),
       plotloomApi.getProductionBridge(projectId, controller.signal),
-    ]).then(([project, stageResponse, videos, bridge]) => {
+    ]).then(async ([project, stageResponse, videos, bridge]) => {
       if (controller.signal.aborted) return;
       if (project.lifecycleStatus === "archived") {
         setPrerequisites({ kind: "archived" });
@@ -54,11 +56,23 @@ export function PlayView() {
       // Retained payloads and media are evidence, not current production. Check
       // their owning authority before a clip-level projection can misdiagnose
       // invalidated selections as missing clips to review.
-      if (bridge.installation?.status === "outdated" || stageResponse.stages.some(
+      if (stageResponse.stages.some(
         ({ head }) => ["story_bible", "story_graph", "scene_beats", "storyboard"].includes(head.stage) && head.status === "stale",
       )) {
         setPrerequisites({ kind: "outdated-production" });
         return;
+      }
+      let media = videos;
+      if (bridge.installation?.status === "outdated") {
+        // A generation-policy change cannot authorize old playback. Rebind the
+        // complete displayed cut set after reading its installed source owner.
+        media = await plotloomApi.getVideoJobs(projectId, controller.signal);
+        if (controller.signal.aborted) return;
+        if (!selectedBridgeChoicesEligible(projectId, bridge.installation,
+          videos.jobs.filter(isCurrentVideoSelection), media.jobs)) {
+          setPrerequisites({ kind: "outdated-production" });
+          return;
+        }
       }
       const graph = stagePayload<StoryGraph>(stageResponse.stages, "story_graph");
       const sceneBeats = stagePayload<SceneBeatPlan>(stageResponse.stages, "scene_beats");
@@ -67,7 +81,7 @@ export function PlayView() {
         setPrerequisites({ kind: "missing-production", missing: [!graph && "故事路线", !sceneBeats && "场景内容", !storyboard && "分镜内容"].filter((value): value is string => Boolean(value)) });
         return;
       }
-      setData({ title: project.brief.title || "未命名故事", graph, sceneBeats, storyboard, jobs: videos.jobs });
+      setData({ title: project.brief.title || "未命名故事", graph, sceneBeats, storyboard, jobs: media.jobs });
     }).catch((reason: unknown) => {
       if (controller.signal.aborted) return;
       setError(reason instanceof Error ? reason.message : "无法加载播放内容。");

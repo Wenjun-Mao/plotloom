@@ -20,10 +20,11 @@ sys.modules[SPEC.name] = VERIFY
 SPEC.loader.exec_module(VERIFY)
 
 
-def test_quick_tier_is_lock_lint_frontend_unit_and_type_only():
+def test_quick_tier_checks_lock_resources_lint_frontend_and_types():
     commands = [step.command for step in VERIFY._quick_steps()]
     assert commands == [
         ("uv", "lock", "--check"),
+        ("uv", "run", "--locked", "--no-sync", "python", "scripts/sync_validation_resources.py", "--check"),
         (
             "uv",
             "run",
@@ -124,6 +125,7 @@ def test_full_steps_include_all_release_gates_in_safe_build_order(tmp_path):
     labels = [step.label for step in steps]
     assert labels == [
         "locked dependencies",
+        "packaged validation resources",
         "ffmpeg probe tool",
         "ffprobe probe tool",
         "API unused imports",

@@ -49,6 +49,51 @@ selection passed with18 Vitest cases (overlapping selections). Both type checks 
 two identical static builds passed. These are implementation checks; actual opening
 selection/playback, four missing endings, full/wheel and activation remain pending.
 
+Functional native checkpoint at e068a33e: both original openings were explicitly
+reconsidered and selected with structured functional-only receipts. Original quality
+rejections and output/source hashes remain exact. Exactly four missing ending jobs
+were submitted (32 requested seconds), with no quality retry; all ingested and were
+inspected/selected through whole-pack UI review. Both real routes per language
+completed in the story player. The exact authored choice labels appeared; native
+pause held time unchanged, resume worked, and restart returned to opening/time zero.
+All four endings have native AAC; calibrated auto/forced-language ASR found no speech.
+No direct listening, exact lettering, pose continuity or media-quality pass is claimed.
+
+Genuine Chinese/English standalone F5 reports were inspected outside the workbench;
+their existing export buttons produced JSON equal to the retained native candidates,
+with `lang: zh/en` and story-specific filenames. Genuine fidelity reports were also
+inspected. Isolated native slots/queue were zero and both video batches approved;
+the runtime is stopped. Evidence is under `.local/project-language-20261028/`, notably
+`functional-native-e2e-checkpoint.json` and the `functional-*-route-complete.log` files.
+The protected H5 export remained24/24 exact hashes; normal checkout stayed unchanged.
+
+Final package work addresses the retained standalone-wheel resource failure with
+the bounded ADR0224 bundle, and stops automatic observation of durable image
+integrity refusals. Old accepted policy may honestly become generation-stale, while
+already selected playback remains separately qualified. Final full local checks,
+exact-wheel reopening/playback, preservation-checked activation and cleanup remain
+pending. Prior failed full/wheel results remain failed; CI/push remain unrequested.
+
+The bounded reader/observer repair and PlayView entrypoint fix passed independent
+review. Installed generation policy correctly remains stale; passive playback is
+admitted only after the existing exact complete-cut proof is rebound to media read
+after installation authority. Actual source/selection/derivative changes still refuse.
+Focused evidence passed131 initial cases,31 repaired-owner cases,48 language/resource
+cases,11 final resource cases,82 retained/profile/resource cases and35 entrypoint/choice
+cases (overlapping selections). Both type checks, identical second static builds,
+module ownership and quick14.794s passed. Current-contract installed smoke passed.
+
+Exact wheel99e526589ab45b18805a14b62dae5e7717d7d5e41cdf862b466cdd7b79ef8de3
+then read every requested owner for both real QA homes and all six selected clips
+returned200 with exact original derivative hashes. All four routes, exact choices,
+pause/resume and restart completed again through that installed wheel outside the
+checkout. Pixel captures were inspected. Logical project tables remained unchanged
+through the readback. See `final-wheel-functional-readback.json` and
+`final-wheel-real-qa-readback.json` in the retained evidence directory. This closes
+the installed-reader/retained-playback checkpoint, not source-free native/F5 admission.
+Full local qualification, preservation-checked normal activation and cleanup remain
+pending; no new media generation is needed or authorized for quality tuning.
+
 2026-10-29 endpoint-method reassessment: Chinese v9's checked replacement also
 withdrew its hand before the ending. English v9's checked opening moved its hand
 onto the cup and distorted the source 安. Both actual clips are agent-QA rejected;

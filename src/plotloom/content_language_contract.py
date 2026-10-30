@@ -4,7 +4,6 @@ from __future__ import annotations
 import json
 from hashlib import sha256
 from html import escape
-from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, model_validator
@@ -111,14 +110,15 @@ def freeze_language_candidate(original, candidate):
     assert_candidate_report_language(candidate, original.input_artifacts)
     language = ProjectLanguageContract.model_validate(original.input_artifacts[LANGUAGE_CONTRACT_FILENAME])
     sources = original_sources(original)
-    root = Path(__file__).resolve().parents[2]
+    from .validation_resources import policy_resource
     policy_files = ("content_language_contract.py", "content_language_schema.py", "content_language_classifier.py", "language_policy.py",
                     "codex_exec_profile.py", "codex_exec_prompts.py", "outline_echoes.py",
                     "creative_field_ownership.py", "dialogue_timing_policy.py", "art_structure.py",
                     "autopilot_brief_style.py", "provider_literals.py", "provider_literal_dialogue.py",
                     "provider_literal_preparation.py", "provider_literal_review.py", "provider_literal_discovery.py",
-                    "content_language_presentation.py", "production_presentation.py", "native_bridge_presentation_contract.py")
-    policy_hash = identity({name: sha256((root / "src/plotloom" / name).read_bytes()).hexdigest()
+                    "content_language_presentation.py", "production_presentation.py", "native_bridge_presentation_contract.py",
+                    "validation_resources.py")
+    policy_hash = identity({name: sha256(policy_resource("src/plotloom/" + name).read_bytes()).hexdigest()
                             for name in policy_files})
     from .provider_literals import literal_policy_identity
     policy_hash = identity({"checkerPolicy":policy_hash,"providerLiteralPolicy":literal_policy_identity()[0]})

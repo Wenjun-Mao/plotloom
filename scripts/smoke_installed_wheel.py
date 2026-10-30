@@ -127,9 +127,26 @@ def main() -> None:
             from plotloom.schema import SchemaMigrator
             from plotloom.alpha_acceptance import main as alpha_main
             from plotloom.art_structure import art_structure_artifact, art_structure_issues
-            assert art_structure_artifact(preset=False)["contract"] == "plotloom.art-structural-result.v1"
+            assert art_structure_artifact(preset=False)["contract"] == "plotloom.art-structural-result.v2"
             assert art_structure_issues({}, preset=True)
             from plotloom.alpha_provenance import source_checkout_root
+            from plotloom.validation_resources import validation_resource_root
+            from plotloom.autopilot_brief_style import freeze_brief_style, brief_style_current
+            from plotloom.cast_style import freeze_cast_style, cast_style_current
+            from plotloom.art_style import freeze_art_style, art_style_current
+            from plotloom.storyboard_brief_style import freeze_storyboard_brief_style, storyboard_brief_style_current
+            from plotloom.provider_literals import literal_policy_identity
+
+            # Ordinary accepted-stage reads must resolve package-owned validation
+            # bytes outside a checkout. These resources grant no native authority.
+            assert validation_resource_root().is_relative_to(Path(plotloom.__file__).resolve().parent)
+            direction = "Natural window light"
+            frozen_brief = freeze_brief_style(direction)
+            assert brief_style_current(frozen_brief, direction)
+            assert cast_style_current(freeze_cast_style("realistic", direction), direction)
+            assert art_style_current(freeze_art_style("realistic", direction), direction)
+            assert storyboard_brief_style_current(freeze_storyboard_brief_style(frozen_brief), frozen_brief)
+            assert all(len(value) == 64 for value in literal_policy_identity())
 
             # Packaged Alpha imports without unpackaged creator-workbench files.
             # Native execution requires its real owning checkout and cannot
@@ -246,7 +263,7 @@ def main() -> None:
             from plotloom.source_outline_contracts import OutlineAcceptRequest, SourceMaterial
 
             assert outline_report_metadata_schema()["additionalProperties"] is True
-            for candidate in ({}, {"lang": None}, {"lang": "zh"}, {"lang": "en"}):
+            for candidate in ({"lang": "zh"}, {"lang": "en"}):
                 assert_outline_report_metadata(candidate)
 
             def rejected(action):
@@ -257,7 +274,8 @@ def main() -> None:
                 else:
                     raise AssertionError("installed metadata guard was bypassed")
 
-            rejected(lambda: assert_outline_report_metadata({"lang": "zh-CN"}))
+            for candidate in ({}, {"lang": None}, {"lang": "zh-CN"}):
+                rejected(lambda: assert_outline_report_metadata(candidate))
             with closing(storage.projects.open(project_id)) as store:
                 store.save_source_material(expected_source_revision=0,
                     material=SourceMaterial(kind="synopsis", title="wheel", text="One choice."))
@@ -286,7 +304,7 @@ def main() -> None:
 
                 publish({"lang": "zh-CN"})
                 rejected(lambda: exchange.read_delivery(request, pin))
-                publish({"params": {"language": "zh-CN"}})
+                publish({"lang": "zh", "params": {"language": "zh-CN"}})
                 delivery = exchange.read_delivery(request, pin)
                 rejected(lambda: store.admit_outline_delivery(replace(delivery, candidate={"lang": "zh-CN"})))
                 store.admit_outline_delivery(delivery)

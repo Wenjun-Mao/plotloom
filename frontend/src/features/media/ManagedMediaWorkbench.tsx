@@ -16,6 +16,7 @@ import {
 } from "../../visual-intent-drafts";
 import { CharacterReferencesPanel } from "./references/CharacterReferencesPanel";
 import { ImageJobPanel } from "./image-jobs/ImageJobPanel";
+import { imageJobAutomaticallyObservable } from "./image-jobs/image-job-state";
 import { AssetImportPanel } from "./assets/AssetImportPanel";
 import { SamePersonReviewPanel } from "./references/SamePersonReviewPanel";
 import { KeyframeAndPreviewPanel } from "./keyframes/KeyframeAndPreviewPanel";
@@ -272,15 +273,11 @@ export function ManagedMediaWorkbench({
   useEffect(() => {
     if (!projectId || mediaReadPhase !== "ready") return;
     const timer = window.setInterval(() => {
-      const outstanding = imageJobs.filter(
-        (job) => job.current && job.state === "exported" && !job.deliveries.some(
-          (delivery) => delivery.diagnosticCode === "package_conflict",
-        ),
-      );
+      const outstanding = imageJobs.filter(imageJobAutomaticallyObservable);
       void Promise.all(outstanding.map((job) => plotloomApi.refreshImageJob(projectId, job.id)))
         .then((results) => results.some((result) => result.state !== "awaiting_delivery") ? refresh() : undefined)
         // A rejection is durable server state. Reload it before the next tick
-        // so a package conflict stops observation, while a normal partial
+        // so an integrity refusal stops observation, while a normal partial
         // delivery remains eligible for its next automatic check.
         .catch(() => refresh().catch(() => undefined));
     }, 3_000);

@@ -1,0 +1,26 @@
+{
+  "files": {
+    "scripts/art-style.mjs": "aa6fdc14b35ec91b4c059dc1b5d5afc3fd865d6243798b1f9e0a1740476a1b07",
+    "scripts/brief-art-style.mjs": "66eca86577f946315376486d1fef0736353785d6c190edcc3fa3c3b46a17612e",
+    "scripts/brief-cast-style.mjs": "c555b316a32e6668c5878dcc877db79d5093dac176bf25d236acc18fd348496b",
+    "scripts/brief-storyboard-style.mjs": "9c7857cbfa208a2ad733ffa1e0cddc8e72e62c4fc8353960c7332d654e1136de",
+    "scripts/cast-style.mjs": "22a5d2a12d14cec5318253cb69019651eb609cc03685a666a8a066e96aa7589c",
+    "scripts/provider-literal-context.mjs": "cc0427a081102ba1c4b4e71c7ec6bfe23745008a64274a6428ccadb83126bd48",
+    "scripts/storyboard-dialogue-timing.mjs": "32023d55201b759f7d283be8d2ff8695e4a6fe5e082d98ae661195f2aed6c6c7",
+    "third_party/shuohao-skills/LICENSE": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+    "third_party/shuohao-skills/NOTICE": "8e058725e75f146d9ba7cbfe92275302245ac0c4a49e9418e31affddf90e19ac",
+    "third_party/shuohao-skills/skills/novel-art/scripts/gate-summary.mjs": "91ba06c3226b64e3f29b4183b584f488e16a96f20199d400cabade00d3291f8c",
+    "third_party/shuohao-skills/skills/novel-art/scripts/novel-art.mjs": "1d9156737ddc3330e9f1747a6da0f2e9805d11dbb228c059559e3d913e447887",
+    "third_party/shuohao-skills/skills/novel-art/scripts/provider-literals.mjs": "97a7fa108fc5613a32731531aaebe577ff88fb5c1e26b247d655f9e11ee1abb9",
+    "third_party/shuohao-skills/skills/novel-art/scripts/report-language.mjs": "4b54f7368a1248df87016fde6f04136ffb82cd06b0353b5cd2aa90c6c7e79cc3",
+    "third_party/shuohao-skills/skills/novel-characters/scripts/novel-characters.mjs": "2d7233f0e6a6d8b52a2fde638e1453a9d9b964363b035ff71f96abe46c3c637b",
+    "third_party/shuohao-skills/skills/novel-characters/scripts/provider-literals.mjs": "97a7fa108fc5613a32731531aaebe577ff88fb5c1e26b247d655f9e11ee1abb9",
+    "third_party/shuohao-skills/skills/novel-characters/scripts/report-language.mjs": "4b54f7368a1248df87016fde6f04136ffb82cd06b0353b5cd2aa90c6c7e79cc3",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/dialogue-timing.mjs": "2c5070f201d7a0bfdfbcc425de34794cfd10a229026579209054d7b1a6930d89",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/gate-summary.mjs": "91ba06c3226b64e3f29b4183b584f488e16a96f20199d400cabade00d3291f8c",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs": "b59ec6c91486ee8dcf1c51118c614b2e87761c6135ad31b51b9ec9d553d2a8c2",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/provider-literals.mjs": "97a7fa108fc5613a32731531aaebe577ff88fb5c1e26b247d655f9e11ee1abb9",
+    "third_party/shuohao-skills/skills/novel-storyboard/scripts/report-language.mjs": "4b54f7368a1248df87016fde6f04136ffb82cd06b0353b5cd2aa90c6c7e79cc3"
+  },
+  "version": "plotloom.validation-resources.v1"
+}

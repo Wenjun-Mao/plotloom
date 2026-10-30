@@ -7,11 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from .autopilot_brief_style import BRIEF_STYLE, BRIEF_STYLE_LABEL
+from .validation_resources import validation_resource_root
 
 CONTRACT_VERSION = "plotloom.saved-brief.storyboard.v1"
 INSTRUCTION_VERSION = "plotloom.autopilot.saved-brief-storyboard-receiving-contract.v1"
 CONTRACT_FILENAME = "storyboard-style-contract.json"
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = validation_resource_root()
 ADAPTER = PROJECT_ROOT / "scripts/brief-storyboard-style.mjs"
 UPSTREAM = PROJECT_ROOT / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
 
