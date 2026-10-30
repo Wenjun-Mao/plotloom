@@ -672,6 +672,7 @@
           "tests/test_content_language_contract.py",
           "tests/test_content_language_correction.py",
           "tests/test_content_language_persistence.py",
+          "tests/test_retained_native_intent_reading.py",
           "tests/test_content_language_admission_ack.py",
           "tests/test_content_language_span_schema.py",
           "tests/test_creative_field_ownership.py",

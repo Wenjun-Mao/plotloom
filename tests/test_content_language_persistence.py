@@ -51,6 +51,21 @@ def prepare(store, registry, stage="outline", candidate=None):
 
 
 @pytest.mark.parametrize("stage", tuple(CANDIDATES))
+def test_retained_candidate_without_language_contract_has_no_check_or_adoption_authority(check_environment, stage):
+    _storage, store, _registry = check_environment
+    original = original_request(stage, project_id=store.manifest.project_id)
+    artifacts = dict(original.input_artifacts)
+    del artifacts["language-contract.json"]
+    retained = original.model_copy(update={"input_artifacts": artifacts})
+    candidate = deepcopy(CANDIDATES[stage])
+    assert store.repository.content_language.find(retained, candidate) is None
+    with store.repository._read() as session:
+        with pytest.raises(InvalidTransitionError, match="旧候选"):
+            require_language_pass(session, retained, candidate)
+        assert check_rows(session, original.project_id) == []
+
+
+@pytest.mark.parametrize("stage", tuple(CANDIDATES))
 def test_distinct_check_receipt_is_required_then_exact_results_reuse_for_each_stage(check_environment, stage):
     storage, store, registry = check_environment
     service, original, candidate, job, request = prepare(store, registry, stage)

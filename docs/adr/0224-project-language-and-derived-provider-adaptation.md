@@ -1,5 +1,15 @@
 # ADR 0224: Project language and derived provider adaptation
 
+### Retained native candidate status — 2026-10-30
+
+Passive checker lookup returns no prospective authority for a retained request
+without a frozen language contract. This keeps original native intent/status and
+installed player reads available; it does not reconstruct a contract, create a
+checker, change retained bytes or permit adoption. The separate adoption guard
+continues to refuse those requests. Present but malformed contracts still fail
+normal validation. An actual normal-install player read exposed this missing
+boundary after activation; current-contract generation paths are unchanged.
+
 ### Browser admission and preparation synchronization — 2026-10-29
 
 Language authority gates Art adoption independently of editor availability. A

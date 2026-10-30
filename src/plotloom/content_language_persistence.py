@@ -135,6 +135,10 @@ class ContentLanguagePersistence:
         self.access = access
 
     def find(self, original, candidate):
+        # Retained authored evidence has no prospective checker identity.
+        # Adoption still refuses these requests in require_language_pass.
+        if LANGUAGE_CONTRACT_FILENAME not in original.input_artifacts:
+            return None
         expected = freeze_language_candidate(original, candidate)
         with self.access.leases.read() as session:
             for row in check_rows(session, original.project_id, original.job_id):
