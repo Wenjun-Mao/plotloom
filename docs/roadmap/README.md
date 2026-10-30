@@ -5,7 +5,7 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## Authorized project-language implementation
+## Completed project-language functional delivery
 
 The owner agreed to independent interface/content language, project-language
 standalone reports, and provider-appropriate internal instructions. The
@@ -23,6 +23,10 @@ tasks and delegated in-scope decisions. The language plan owns the single curren
 status, acceptance table and remaining blockers; this entrypoint does not duplicate
 its next steps. The [validation-boundary receipt](../verification/2026-10-29-validation-boundaries.md)
 records the subsequent durable workflow/test changes separately from closeout.
+The [final functional outcome](../verification/2026-10-30-language-functional-closeout.md)
+is achieved with recorded quality limits: local composite qualification, normal
+activation, preservation, one functional recovery and scoped cleanup are complete.
+Media-quality modularization remains a separately queued follow-up.
 
 ## Completed writing-model comparison and owner-approved cleanup
 

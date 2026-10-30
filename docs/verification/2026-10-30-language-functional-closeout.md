@@ -6,16 +6,18 @@ amendment. It does not claim creative quality acceptance or personal owner revie
 
 ## Local qualification decision
 
-The runtime candidate is `01bacfba`, fork
-`35fac2661d70c6c017f1c4a61360d0e74c732497`. Subsequent changes repair browser
-fixtures only. The exact installed wheel SHA-256 is
-`4f43606cb7bb000b15bd5d7ec7e069b0467045fbf7bfaf8fa7fe936abc798890`.
+The final runtime candidate is `985693fe`, fork
+`35fac2661d70c6c017f1c4a61360d0e74c732497`. The exact installed wheel SHA-256 is
+`bc6f18925ce4eb962c2089e304142d93ef7d0bfc2b18b257702fd77a6f6da30b`.
+The subsequent approved validation-method commits (`c29c3b07`, `37e65c41`) change
+documentation and offline tests only. They do not alter runtime/package members.
 
 Qualification uses the existing evidence-reuse policy. The full invocation at
 `c27d0141` remains **failed**: 4,968 native cases passed, nine failed and 18 had
 setup errors. The responsible cold import and stale fixture contracts were
 repaired; all 132 selected failed/affected cases passed. Original logs remain.
-The cold-import repair was the last Python runtime change (`4af2db95`).
+The cold-import repair is `4af2db95`; the later bounded retained-reader repair is
+described below. Unchanged whole-suite evidence remains reusable for both repairs.
 
 The subsequent three frontend repairs separate writable Art editors from adoption
 authority, bind production scenes through canonical identities, and drain pending
@@ -44,15 +46,38 @@ Evidence is under `.local/project-language-20261028/`: `final-full-qualified-can
 `browser-final-wheel-gates.log`. This is composite local qualification, not a
 successful rerun of full or hosted CI. Hosted CI and publication were not requested.
 
+Actual normal-install playback then exposed a missing historical-read boundary:
+`production-bridge` returned HTTP500 because a retained native intent request had
+no `language-contract.json`. `985693fe` makes passive lookup return no prospective
+checker identity; adoption still refuses the old request. All 27 persistence/
+eight-stage/API cases and 23 downstream presentation/retained-reader cases passed
+(overlap). Independent review, scoped Ruff and diff checks passed. This branch-only
+read repair does not change current generation requests, schemas, persistence,
+admission or dependencies. Earlier current-contract evidence is reused; the changed
+retained read, package and actual installed player were verified freshly. No new
+media or broad suite rerun was warranted by this diagnosed gap.
+
+`retained-reader-wheel-member-comparison.json` proves that only
+`content_language_persistence.py` and wheel RECORD differ from the earlier tested
+wheel `4f43606c`. Updated wheel smoke and 20 bilingual owner/six exact selected-media
+reads passed, with all 84 tables unchanged per home. Native source tests use the
+checked lock; the isolated wheel smoke/runtime also exercised its separately
+resolved compatible dependency environment. Python was 3.12.13 on arm64; this is
+not a claim of Node18 or other-platform qualification. The integrated provider-free
+boundary selection passed eight cases; its unchanged wider 32-case worker evidence
+and independent review are retained in the October29 validation-boundary receipt.
+
 ## Actual creator outcome
 
 Both real stories completed all eight creative stages with separate native
 language checks, authored material generation, production review and H3 media.
 Both authored choices in each language reached the correct real selected ending.
 Actual standalone F5 reports and exact native JSON exports were inspected outside
-the editor; save/reopen retained source and candidate bytes. The last exact wheel
+the editor; save/reopen retained source and candidate bytes. Wheel `4f43606c`
 repeated one route per language, including pause/resume and restart. The other two
-routes reuse the prior exact-wheel proof; player source is unchanged.
+routes reuse the prior exact-wheel proof. Final wheel `bc6f1892` reuses those route
+results because its player and assets are identical; its owner/media readback is
+fresh, as is the repaired normal installed-player check.
 
 `release-wheel-owner-media-report-readback.json` records 20 owner HTTP200 reads,
 six full selected-media HTTP200 responses with exact derivative hashes, genuine
@@ -60,6 +85,17 @@ zh/en report reads, and all six complete source/request snapshots unchanged.
 `release-wheel-functional-readback.json` records both latest routes and all 84
 tables unchanged in each project. Generation policy remains honestly outdated;
 current installation authority and exact retained playback proof remain required.
+
+`final-provider-request-semantic-review.json` records the independent read-only
+source-to-final-request audit: six complete H3 snapshots and four native fidelity
+records, plus all six ImageGen `actualPrompt`/request pairs and their exact observed
+tool calls. References and content identities/order, source action/alternatives,
+exact speech/lettering, sound roles/prohibitions, timing, profile/geometry/audio and
+other client arguments were checked. No request-level semantic defect was found.
+ImageGen's frozen job brief is not substituted for composed tool arguments.
+Provider-internal checkpoint/model/sampling execution is unobservable; client
+profile and composing-agent model are not proof of those internals. Correct
+requests do not upgrade the separate output-quality findings.
 
 The workflow used explicit agent-QA functional selection, CLI/browser operation,
 synthetic checks only for offline regression fixtures, and calibrated ASR/probes
@@ -70,12 +106,72 @@ These examples establish functional use, not unattended creative acceptance or
 perceptual audiovisual quality. No further real/provider generation is authorized
 by this closeout.
 
-## Installed activation and recovery
+## Installed activation, preservation and recovery
 
-Pending at this source checkpoint. Before activation, pure read-only validation
-found 14/16 normal homes readable/admissible with zero new regressions; the two
-preexisting incomplete homes remain failed. The preservation witness binds 16
-homes/784 files, application/settings/configuration, 24 H5 files and both UNKNOWN
-attempts (two held slots, zero queued work). No automatic run is running/waiting.
-Activation, old selected-playback readback, exact eligible LOCAL capacity release,
-one functional recovery replacement and cleanup must be recorded before closure.
+Normal Docker core and cold native bridge are activated with runtime `985693fe` and
+the exact clean fork. Health/bridge checks pass. Both old selected playback
+endpoints now return HTTP200 with their original 161,055/266,902-byte derivatives;
+their preactivation HTTP404 results remain failed. The actual normal player opened
+the Chinese story, decoded/played/paused the original derivative, with zero mutation
+requests. All 98 read-only owner GETs across the 14 valid normal homes returned200.
+The two preexisting incomplete homes remain failed, with zero new readability or
+authority regressions. See `normal-installed-owner-readbacks.json`,
+`old-playback-normal-postactivation-readback.json`, `normal-installed-player-functional.log`
+and `normal-readability-final-activated.json`.
+
+`final-preservation-reconciliation.json` compares all 16 homes/784 files, application,
+settings/configuration and 24 protected H5 files. Material/canon/assets/checkpoints,
+application/claims, H5 authority and UNKNOWN evidence remain unchanged. Two
+already-taken-over runs acquired a fresh controller claim on each of the two
+activations: revisions41→43 and313→315; their state, phase, policy and lineage
+remain fixed. Independent source/timestamp review traced claim/revision/update-time
+writes to `claim()` and `_controller_claim_write`, not resume/retry/drain or material
+commands. The complete prior blocker was not retained, so no complete run-row
+equality or newly-written-blocker claim is made. The intentional launchd difference
+is solely its source-hash environment value, proven by reconstructing the prior
+plist hash. The first strict `allProtectedUnchanged:false` audit is retained.
+
+Both exact original LOCAL image holds were retired once through authenticated
+eligible previews with positive PID/whole-group absence and exact preview hashes.
+The two UNKNOWN attempt/status/receipt/manifest bytes and one reserved image output
+each are preserved. Final local slots/queue are zero. No remote result was settled,
+regenerated, cleared or recovered. See `capacity-preview-*.json`, `capacity-retired-*.json`
+and `capacity-retirement-preservation-readback.json`.
+
+The single `.local/current-qualified-recovery/manifest.json` now binds source
+`37e65c4154de56727c97ba77db5f3b1e07456612`, qualified runtime `985693fe`, clean fork
+`35fac266`, source archive SHA-256
+`160aca8dfd43777a1dc98e75ef4620c348720b8829f399eec896b639d7ae4401`
+and exact wheel `bc6f1892…`. The archive contains standalone shallow Git metadata
+and the pinned submodule. Extraction/clean identity and supported checked-Python
+provisioning preceded successful native v4 Outline package/resource preparation,
+with no admission or dispatch. The exact wheel separately passed snapshot restore,
+save/close/reopen and unchanged canon/authority/receipt checks. See
+`final-recovery-handle-refresh.json`, `recovery-native-prepare-readback.json` and
+`final-wheel-recovery-readback.json`. The superseded handle was removed only after
+these proofs. No runtime grants or credentials were copied into recovery projects.
+
+`scoped-cleanup-readback.json` records eight exact disposable environment/source/test
+directories removed (971,456,813 file bytes). Relevant fixture ledgers and frozen
+native-preparation package are retained in `cleanup-retained-evidence/`; real QA
+homes/media and normal/H5 work remain. Temporary wheel runtimes are stopped and
+the browser is blank. Root worktree/evidence remains for director archival.
+
+## Outcome judgment
+
+**Achieved with stated limitations.** The supported installed workflow carries
+Chinese and English content through Chinese UI, project-language review/reports,
+source-grounded provider requests, save/reopen, both authored branches, actual
+retained-media playback and exact exports while preserving existing work. This is
+agent-operated functional QA with explicit functional-only selections, not
+unattended creative acceptance. Generation-stale retained projects can be read and
+played through exact installation/selection proof; they gain no new generation
+authority. Audio playback was muted and no perceptual listening pass is claimed.
+Known quality findings and all historical failed checks remain visible. The queued
+media-quality modularization is a separate follow-up and has not started.
+
+Known execution durations are retained per command (including the failed full
+2,945.434s and original browser878.690s); overlapping runs must not be summed into
+total effort. Complete product/infrastructure/coordination elapsed times and usage/
+cost deltas were not measured. No new real media, push, hosted CI or automation was
+performed during this closeout.

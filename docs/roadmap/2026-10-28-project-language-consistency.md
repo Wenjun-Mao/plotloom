@@ -35,26 +35,37 @@ generation or modularization is requested now.
 
 ## Current status
 
-Updated 2026-10-29. The functional closeout coordinator owns integration and
-qualification in `b30f/plotloom`; its last committed base for this follow-up is
-`4af2db95`. Both bilingual projects have completed their real two-choice routes,
-pause/resume/restart, report export and exact-wheel retained-media readback.
-Required local qualification is still open: the earlier full run failed and
-browser checks have exposed editing/navigation defects under repair. Normal
-activation and cleanup remain pending. Next action: finish those functional
-repairs and their affected local gates, then preservation-checked activation and
-cleanup. New quality-tuning generations are stopped. Prior failed runs stay failed.
+Updated 2026-10-30. **Achieved with stated functional-only limitations.** Both
+bilingual stories completed real two-choice routes, pause/resume/restart,
+project-language reports, exact export and installed-wheel retained-media readback.
+Composite local qualification and independent review closed the diagnosed native,
+browser and retained-intent reader failures; original full/browser runs remain
+failed. Normal runtime `985693fe`, clean fork `35fac266` and wheel `bc6f1892…` are
+activated. All 98 owner reads across the 14 valid normal homes pass; the two
+preexisting incomplete homes remain failed. Original selected normal media now
+returns exact HTTP200 bytes and plays in the installed Chinese UI. Protected
+material/settings/H5/UNKNOWN evidence remains preserved, with two startup controller
+claim updates explicitly recorded. Exact eligible LOCAL holds were retired without
+settling UNKNOWN. The single functional recovery is verified/refreshed and scoped
+scratch cleanup is complete. Root evidence remains for director archival.
+
+The [final outcome record](../verification/2026-10-30-language-functional-closeout.md)
+owns exact paths, hashes, verification, assistance and limitations. Known lettering,
+pose/continuity and perceptual audio gaps remain; playback was muted. Retained
+generation-stale projects gain no new generation authority. No new media, push,
+CI or quality refactor followed this closeout. Media-quality modularization remains
+the separately queued follow-up, not unfinished functional acceptance.
 
 ## Acceptance
 
 | Claim | Required evidence | Fresh media | Current result / gap |
 |---|---|---|---|
-| Chinese UI and bilingual content | Current source/report/persistence checks and actual bilingual journeys | No for remaining internal repairs | Native journeys/reports observed; browser editing/navigation repairs remain |
-| Correct provider adaptation | Authored requirements → complete final request, exact references/audio, intended differences and omission controls | Only an uncovered integration question | Request/semantic evidence is distinct from media quality; offline regressions live in the existing test suite |
-| Functional playback, export and reopening | Retained-media routes, pause/restart, exact export and installed-wheel readback | No remaining media gap identified | Both languages/four routes and wheel readback observed; final qualification remains |
-| Technical validity and provenance | Ingestion, hashes, source/currentness and authorization refusals | No | Required throughout; functional-only authority never waives them |
+| Chinese UI and bilingual content | Current source/report/persistence checks and actual bilingual journeys | No remaining media gap | Both real native journeys/reports and installed Chinese UI observed; editing/navigation defects repaired |
+| Correct provider adaptation | Authored requirements → complete final request, exact references/audio, intended differences and omission controls | Only an uncovered integration question | Six H3 and six actual composed ImageGen requests reviewed; no semantic defect; provider internal sampling remains unobservable |
+| Functional playback, export and reopening | Retained-media routes, pause/restart, exact export and installed-wheel readback | No remaining media gap | Both languages/four routes, exact reports/exports, wheel and normal retained playback pass |
+| Technical validity and provenance | Ingestion, hashes, source/currentness and authorization refusals | No | Preserved; functional-only authority never waives these; generation-stale projects remain stale |
 | Generated-media quality | Separate inspection/experiment with explicit criterion | Separately scoped | Known lettering/pose limits retained; no creative-quality pass |
-| Local qualification and activation | Required affected gates, package identity and preservation-checked normal readback | No | Coordinator owns remaining checks, activation and cleanup; CI/push not requested |
+| Local qualification and activation | Required affected gates, package identity and preservation-checked normal readback | No | Composite-qualified, activated, 98 normal owner reads pass, recovery/cleanup complete; prior full failures retained; CI/push not requested |
 
 ## Current scope and decisions
 
