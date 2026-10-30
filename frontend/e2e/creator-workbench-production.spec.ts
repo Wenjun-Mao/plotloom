@@ -68,7 +68,7 @@ test("creator Production shows every repeated scene and exact cut, guards drafts
   const production = page.getByTestId("creator-production");
   await expect(production.locator("[data-production-scene]")).toHaveCount(2);
   await expect(production.locator("[data-production-shot]")).toHaveCount(9);
-  await expect(production.locator(`[data-production-scene="${secondScene.sceneId}"]`)).toContainText("场次 2 · S01 · 5 个镜头");
+  await expect(production.locator(`[data-production-scene="${secondScene.sceneId}"]`)).toContainText(`场次 2 · ${secondScene.title} · 5 个镜头`);
   await expect(page.getByRole("button", { name: "应用到故事路线", exact: true })).toBeDisabled();
   await expect(page.getByRole("region", { name: "整张剧情图 · 保存与应用", exact: true })).toContainText("当前图内容已应用到故事路线");
   await page.screenshot({ path: info.outputPath("production-1700-viewport.png") });

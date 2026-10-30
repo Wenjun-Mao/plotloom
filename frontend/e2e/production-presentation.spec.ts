@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { expect, test } from "./fixture";
-import { json } from "./f5a-fixture";
+import { checkCurrentCandidateLanguage, json } from "./f5a-fixture";
 
 test("current specialist advice is scene-grouped and needs one explicit save before separate production acceptance", async ({ page, request, workbench }, info) => {
   const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.presentation_advice_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], { cwd: path.resolve(".."), encoding: "utf8" }).trim();
@@ -13,6 +13,7 @@ test("current specialist advice is scene-grouped and needs one explicit save bef
   const save = presentation.getByRole("button", { name: "确认并保存呈现方式", exact: true });
   await expect(presentation).toContainText("助手建议 · 已填入下方");
   await expect(presentation.getByRole("checkbox")).toHaveCount(0);
+  await checkCurrentCandidateLanguage(page, presentation, id, "bridge-presentation", before.presentationJob.id);
   await expect(save).toBeEnabled();
   await expect(page.getByRole("button", { name: "确认投产提案", exact: true })).toBeDisabled();
   await expect(presentation.locator(".presentation-raw[open]")).toHaveCount(0);

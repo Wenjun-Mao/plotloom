@@ -128,7 +128,7 @@ export async function refresh(page: Page, panel: Locator, id: string, jobId: str
   await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();
 }
 export async function checkCurrentCandidateLanguage(page: Page, panel: Locator, projectId: string,
-  stage: "outline" | "branches" | "characters" | "art" | "script" | "storyboard", jobId: string): Promise<void> {
+  stage: "outline" | "branches" | "characters" | "art" | "script" | "storyboard" | "bridge-intent" | "bridge-presentation", jobId: string): Promise<void> {
   const response = page.waitForResponse(r => r.request().method() === "POST"
     && new URL(r.url()).pathname === `/api/v2/projects/${projectId}/content-language/${stage}/${jobId}/check`);
   await panel.getByRole("button", { name: "检查当前完整候选语言", exact: true }).click();

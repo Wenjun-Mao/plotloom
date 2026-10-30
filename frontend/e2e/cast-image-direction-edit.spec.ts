@@ -46,7 +46,7 @@ test("explicitly edits all cast image directions, cancels safely, and freezes th
   await expect(panel.getByLabel("角色图像风格", { exact: true })).toHaveValue(painterly.style);
   await expect(panel.getByLabel("角色图像提示词", { exact: true })).toHaveValue(painterly.prompt);
   const labels = {
-    style: "角色图像风格", prompt: "角色图像提示词", promptLocal: "角色图像中文提示词",
+    style: "角色图像风格", prompt: "角色图像提示词", promptLocal: "角色图像本地化说明（原文）",
     negativePrompt: "角色图像反向提示词", sheet: "角色设定图提示词",
   };
   const directions = {

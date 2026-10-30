@@ -67,6 +67,12 @@ test(`pinned Art static reading preserves prompts, images and native disclosures
   await expect(dialog.locator("iframe")).toHaveAttribute("referrerpolicy", "no-referrer");
   const enlarged = dialog.frameLocator("iframe");
   await expect(enlarged.locator("#sec-list")).toBeVisible();
+  const enlargedPrompt = enlarged.locator("details.pr").first();
+  const enlargedTechnical = enlargedPrompt.locator("xpath=ancestor::details[1]");
+  await expect(enlargedTechnical).not.toHaveAttribute("open");
+  await expect(enlargedPrompt.locator("p")).toBeHidden();
+  await enlargedTechnical.locator(":scope > summary").click();
+  await expect(enlargedPrompt.locator("p")).toBeVisible();
   await captureReportPoint(page, dialog.getByRole("heading", { name: "美术设定报告（静态阅读）", exact: true }), test.info(), "art-dialog-top");
   await captureReportFramePoint(page, dialog.locator("iframe"), enlarged.locator("details.pr p").first(), test.info(), "art-dialog-prompt");
   await captureReportFramePoint(page, dialog.locator("iframe"), enlarged.locator("#sec-gates .gsum"), test.info(), "art-dialog-bottom");

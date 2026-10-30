@@ -139,9 +139,16 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
 async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number, annotation = "") {
   const review = page.getByTestId(`video-segment-review-${jobId}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
+  const preparing = page.waitForResponse(response => response.request().method() === "POST"
+    && new URL(response.url()).pathname.endsWith(`/video-jobs/${jobId}/segments`));
   await review.getByRole("button", { name: "准备播放片段" }).click();
-  const preview = review.locator('video[data-testid^="video-segment-preview-"]');
+  const preparedResponse = await preparing;
+  expect(preparedResponse.status()).toBe(201);
+  const prepared = await preparedResponse.json() as { id: string; inFrame: number; outFrame: number };
+  expect(prepared).toMatchObject({ inFrame, outFrame: expectedOutFrame });
+  const preview = review.getByTestId(`video-segment-preview-${prepared.id}`);
   await expect(preview).toBeVisible();
+  await expect(review.getByLabel("片段入点（帧）")).toBeEnabled();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);
   await expect(review).toContainText(`${inFrame}–${expectedOutFrame} 帧`);
   const workflow = page.getByRole("navigation", { name: "镜头视频工作流" });

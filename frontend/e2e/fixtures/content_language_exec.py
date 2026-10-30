@@ -12,7 +12,7 @@ from plotloom.exceptions import InvalidTransitionError
 from tests.codex_exec_fixtures import install_profile
 
 _ACTIVE = ContextVar("browser_completed_language_check", default=False)
-_CHECK = re.compile(r"/api/v2/projects/[^/]+/(?:specialist-tasks|content-language)/(?:outline|branches|characters|art|script|storyboard)/[^/]+/check")
+_CHECK = re.compile(r"/api/v2/projects/[^/]+/(?:specialist-tasks|content-language)/(?:outline|branches|characters|art|script|storyboard|bridge-intent|bridge-presentation)/[^/]+/check")
 
 
 def install(app):

@@ -115,7 +115,7 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   expect(currentScript.contentHash).not.toBe(frozen.binding.scriptHash);
   await page.reload();
   await expect(review).toContainText("上下文已过期");
-  await expect(review).toContainText(`评审 r${frozen.revision} · 来源剧本 r${frozen.binding.scriptRevision} · hash ${frozen.contentHash.slice(0, 12)}`);
+  await expect(review).toContainText(`评审 r${frozen.revision} · 来源剧本 r${frozen.binding.scriptRevision} · 内容标识 ${frozen.contentHash.slice(0, 12)}`);
   await expect(review).not.toContainText("F4 script r");
   await expect(review).toContainText("确认方案不会自动建立镜头或生成媒体");
 });

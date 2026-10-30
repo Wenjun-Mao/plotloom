@@ -7,15 +7,19 @@ from hashlib import sha256
 from pathlib import Path
 from unittest.mock import patch
 
+from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_exchange import CreativeHandoffExchange, canonical_json
-from plotloom.native_bridge_presentation_contract import render_native_presentation_report
+from plotloom.native_bridge_presentation_contract import (
+    render_native_presentation_report,
+)
 from plotloom.native_bridge_presentation_service import NativeBridgePresentationService
 from plotloom.production_bridge_contracts import ProductionBridgeIntentUpdateRequest
 from plotloom.project_storage.composition import ProjectFolderStorage
+from tests.codex_exec_fixtures import install_completed_language_profile
+from tests.content_language_fixtures import install_synthetic_language_check
 from tests.production_bridge_fixtures import _prepare_installable_bridge
-from tests.test_specialist_settings import configured
 from tests.test_native_bridge_presentation import candidate_for
-from plotloom.conformance import FIXED_CHINESE_BRIEF
+from tests.test_specialist_settings import configured
 
 
 def main():
@@ -58,6 +62,9 @@ def main():
     manifest["executorProvenance"]["codeRevision"] = pin["upstreamRevision"]
     manifest["limitations"] = ["Software fixture: fake queue and authored deterministic spans, not a real specialist or creative acceptance."]
     (output / "completion.json").write_bytes(canonical_json(manifest))
+    with closing(storage.projects.open(project)) as store:
+        install_synthetic_language_check(store, request, json.loads(candidate))
+    install_completed_language_profile(service.registry)
     assert service.check(project, job)["candidateStatus"] == "ready"
     print(project)
 

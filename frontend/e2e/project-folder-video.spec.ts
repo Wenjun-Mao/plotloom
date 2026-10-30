@@ -65,9 +65,8 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await expect(panel.getByTestId(`video-segment-review-${prepared.id}`)).not.toContainText("已选择片段 · 正用于故事");
   await expect(panel.getByTestId(`video-job-${prepared.id}`)).toContainText("此原片已有保留片段，不能永久删除");
   await expect(panel.getByTestId(`video-job-${prepared.id}`).getByRole("button", { name: "永久删除", exact: true })).toHaveCount(0);
-  // Retained proposals protect their originals even after selection changes.
-  // Only this third, segment-free synthetic take is a disposable candidate.
-  const disposable = await prepareOfflineCandidate(page, panel, workbench.apiOrigin, projectId);
+  // Every native batch take retains its automatically prepared segment.
+  const third = await prepareOfflineCandidate(page, panel, workbench.apiOrigin, projectId);
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
   await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
@@ -98,6 +97,13 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   const restoredOutputs = path.join(isolatedRoot, "outputs");
   await mkdir(isolatedRoot, { recursive: true });
   await runFile("uv", ["run", "plotloom", "restore", "--source", snapshot.location, "--outputs-dir", restoredOutputs], { cwd: repositoryRoot });
+  // Exercise disposal separately through the supported direct API lifecycle,
+  // before a controller opens this isolated restored namespace.
+  const raw = await runFile("uv", ["run", "--locked", "--no-sync", "python", "-m", "frontend.e2e.fixtures.segment_free_video",
+    "--outputs", restoredOutputs, "--application", path.join(isolatedRoot, "application"),
+    "--project", projectId, "--body-json", JSON.stringify(third.requestBody)], { cwd: repositoryRoot });
+  const disposable = JSON.parse(raw.stdout.trim()) as { id: string; segments: unknown[]; liveProviderDispatch: boolean };
+  expect(disposable).toMatchObject({ segments: [], liveProviderDispatch: false });
   await workbench.restartBackend({
     PLOTLOOM_OUTPUTS_DIR: restoredOutputs,
     PLOTLOOM_APPLICATION_DATA_DIR: path.join(isolatedRoot, "application"),
@@ -114,6 +120,12 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   expect(restoredMedia.ok()).toBeTruthy();
   expect((await restoredMedia.body()).byteLength).toBeGreaterThan(100);
   await expect(page.getByTestId(`video-job-${prepared.id}`)).toContainText("此原片已有保留片段，不能永久删除");
+  for (const retained of [prepared, alternative, third]) {
+    const card = page.getByTestId(`video-job-${retained.id}`);
+    await expect(card).toContainText(retained.id === alternative.id
+      ? "已为当前镜头选择播放片段" : "此原片已有保留片段，不能永久删除");
+    await expect(card.getByRole("button", { name: "永久删除", exact: true })).toHaveCount(0);
+  }
   await page.getByTestId(`video-job-${disposable.id}`).getByRole("button", { name: "永久删除" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "取消", exact: true }).click();
   expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${disposable.id}/media`)).ok()).toBeTruthy();
@@ -130,7 +142,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await workbench.restartBackend();
 });
 
-async function prepareOfflineCandidate(page: Page, panel: Locator, apiOrigin: string, projectId: string): Promise<{ id: string }> {
+async function prepareOfflineCandidate(page: Page, panel: Locator, apiOrigin: string, projectId: string): Promise<{ id: string; requestBody: Record<string, unknown> }> {
   const preparedPost = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
   // All three deliberate candidates reuse one exact seed, while each new
@@ -149,7 +161,7 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, apiOrigin: st
   const prepared = await response.json() as { id: string; snapshot: { request: { seed: number } } };
   expect(prepared.snapshot.request.seed).toBe(2325339575976657);
   await expect(panel.getByTestId(`video-job-player-${prepared.id}`)).toBeVisible();
-  return prepared;
+  return { ...prepared, requestBody: response.request().postDataJSON() as Record<string, unknown> };
 }
 
 async function selectPlaybackSegment(panel: Locator, jobId: string) {
