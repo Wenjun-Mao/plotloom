@@ -17,13 +17,16 @@ original story directly, using Last Call's compact viability as the reference.
 The resulting [working draft, The Last Projection](2026-10-30-first-h5-story.md),
 has two characters, one room, two decision screens and three complete endings.
 Root checked routing and assembly practicality and retained the first draft.
-No product implementation or media generation has started. Next action: turn
-this draft into the bounded standalone-assembly implementation plan.
+Wenjun subsequently requested permanently disabling forced audiovisual inspection
+everywhere in Plotloom. The [implementation plan](2026-10-30-last-projection-h5-mvp.md)
+therefore owns global optional-review contracts as well as standalone assembly,
+and is the current status/next-action owner. No product implementation or media
+generation has started.
 
 ## First-milestone acceptance
 
-Owner requirements below frame the next plan; none claims a completed product.
-Device targets and detailed story scope will be fixed in that plan.
+Owner requirements below frame the linked implementation plan; none claims a
+completed product. Device targets and detailed evidence belong to that plan.
 
 | Claim | Required evidence | Fresh media | Status |
 |---|---|---|---|
@@ -31,6 +34,7 @@ Device targets and detailed story scope will be fixed in that plan.
 | Complete playable assembly | Start, play, choose, reach distinct authored endings, replay and resume through the delivered game; check correct asset bindings and basic loading/playback | Reuse unchanged assets; no quality rerolls | Working story drafted; assembly pending |
 | Lightly designed MVP presentation | The title, choice boxes, controls and endings have simple consistent styling, readable layout and usable states; a little more than plain text boxes is enough | No media-quality experiment needed | Required; beauty/final polish is not a gate |
 | Video/audio creative quality | No perceptual inspection, listening, artistic grading or quality-based regeneration during this milestone; preserve known limitations honestly | No quality campaign | Explicitly deferred by owner |
+| Globally optional media review | Remove compulsory inspection at current UI/API/persistence/guidance owners; truthful selection without fabricated quality claims survives reopening and new projects | Retained media | Subsequent owner requirement; implementation plan owns delivery |
 | Faithful production requests | Authored source compared with complete final requests and reference identities; intended differences explained | Provider-free by default for internal changes | Reuse existing request boundaries |
 | Foundation for later asset updates | Preserve the Plotloom source-to-game asset mapping and separate story/UI from physical asset files; avoid service URLs embedded as game dependencies | No extra media | Design now; full review-and-Apply workflow next iteration |
 | Production learning | Record observed workflow friction, consequence and smallest useful change while producing this game | No extra generation just to populate notes | Required throughout production |
@@ -155,15 +159,17 @@ choice routing and game UI design. Video/audio realism, voice quality, continuit
 cinematic merit and creative listening reviews are outside this milestone.
 Technical failures that prevent playback or progression still require repair.
 Do not turn this distinction into a new inspection or approval process. Preserve
-provenance and existing authorization contracts, using truthful functional-only
-selections where applicable; no creative-quality pass is implied.
+provenance and dispatch authority. The later global-disable instruction replaces
+QA-specific functional-only exceptions with truthful ordinary selection that
+does not require a quality judgment; no creative-quality pass is implied.
 
 Use retained footage for player, persistence and packaging regression checks.
 Produce original assets when the selected story needs them, without a quality-
 tuning loop. The prior queued media-quality modularization is not a prerequisite
 and is not started by this milestone. Let demonstrated assembly blockers drive
 necessary Plotloom changes. Scope story generation and the implementation path
-in the next plan; no new provider, hosted system or publication is initiated here.
+in the linked implementation plan; no new provider, hosted system or publication
+is initiated here.
 
 ## Next iteration: review and Apply updated assets
 
@@ -181,9 +187,10 @@ update UI in the first iteration:
   selected candidate/segment, including content identity and the playback window.
   Package only player-needed data; keep credentials and machine-specific paths
   out of the game.
-- Regeneration creates a candidate. A future explicit review/Apply step chooses
-  what enters the next export. Merely creating a candidate must not silently
-  replace the game asset.
+- Regeneration creates a candidate. A future explicit Apply step chooses what
+  enters the next export, with review available when wanted. The subsequent
+  global-disable direction rules out compulsory review. Merely creating a
+  candidate must not silently replace the game asset.
 - Asset-only application preserves story links, game styling and node-based
   progress. Changed duration, trim or subtitle timing must be reconciled before
   applying; structural story edits are a separate update case.
@@ -207,8 +214,8 @@ in `production_bridge_projection.py` include cut order, so do not assume they
 preserve semantic identity across arbitrary structural edits. Asset-only updates
 can bind the unchanged source; changed structure needs explicit reconciliation.
 
-Keep production observations here or in this milestone's eventual implementation
-plan, using a small table: **step, observed friction, effect on the game, smallest
+Keep production observations in the linked implementation plan, using a small
+table: **step, observed friction, effect on the game, smallest
 useful change, disposition**. Record repeated manual work, unclear asset selection,
 source-to-game binding problems, preview/export differences and regeneration
 friction when actually encountered. Fix demonstrated in-scope blockers; queue
@@ -220,7 +227,8 @@ another tracking/evaluation system.
 The initial reference-review proposal included unfamiliar-player comprehension
 and audiovisual creative review as first-milestone gates. Wenjun's subsequent
 direction replaces those gates with functional assembly and designed game UI.
-Perceptual video/audio inspection is deferred. The earlier tentative 3–5 minute
+Perceptual video/audio inspection is excluded from this build; the subsequent
+instruction also makes review optional across the product. The earlier tentative 3–5 minute
 shape is superseded by the compact working story; it was never an owner-selected
 quota. Historical benchmark observations above are unchanged.
 

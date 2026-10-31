@@ -10,6 +10,9 @@ canonical story installation or media generation has been created from it yet.
 The [MVP boundary](2026-10-30-first-real-game-benchmarks.md) remains controlling:
 standalone browser delivery, lightly styled game UI, no audiovisual quality
 inspection during the first build, and source-to-asset bindings for later updates.
+The [implementation plan](2026-10-30-last-projection-h5-mvp.md) owns assembly,
+verification and the later instruction to remove compulsory media inspection
+globally. This story remains the source draft rather than a second execution plan.
 
 ## Concept
 

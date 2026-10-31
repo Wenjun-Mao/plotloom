@@ -5,7 +5,7 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## First original H5 product: benchmark discovery
+## First original H5 product: implementation planning
 
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
 for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
@@ -15,10 +15,15 @@ inspection during the first build. Viability is the bar; final beauty/story poli
 is not required. The owner-requested Terra / Max
 [working story, The Last Projection](2026-10-30-first-h5-story.md), is drafted:
 two characters, one location and three endings, with complete route mappings.
-Preserve source-to-asset bindings for next iteration's
-edit/regenerate/review/Apply workflow and record concrete Plotloom production
-friction. The detailed assembly plan remains next; production has not started.
-The separately queued media-quality work is not a prerequisite for assembly.
+The [standalone MVP implementation plan](2026-10-30-last-projection-h5-mvp.md)
+also incorporates Wenjun's subsequent direction: remove compulsory audiovisual
+inspection globally across Plotloom, while preserving technical integrity,
+source bindings and dispatch authority. Review becomes optional, with truthful
+unreviewed selection and no project-specific exception. Preserve source-to-asset
+bindings for the later edit/regenerate/Apply workflow and record concrete
+production friction. The plan owns current status and acceptance; implementation
+and production have not started. The separately queued media-quality work is not
+a prerequisite for assembly.
 
 ## Completed project-language functional delivery
 
