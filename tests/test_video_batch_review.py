@@ -91,19 +91,47 @@ def test_late_target_rejection_rolls_back_the_entire_selection_transaction(tmp_p
 
 
 def test_historical_rejection_remains_and_explicit_selection_is_not_a_quality_pass(tmp_path, native_batch_take):
-    storage, _client, service, project_id, current = complete_batch(tmp_path, native_batch_take)
+    from plotloom.project_storage.project_video import ProjectVideoRepository
+    storage, client, service, project_id, current = complete_batch(tmp_path, native_batch_take)
     review = service.review(project_id)
     final = review["proposals"][-1]
     with closing(storage.projects.open(project_id)) as store:
         service.video.review(store, final["jobId"], reviewer="Fixture creator", decision="reject", note="Fixture audio is unacceptable.", expected_selection_revision=0)
     changed = service.review(project_id)
-    assert changed["ready"]
-    receipt = service.confirm(project_id, confirmation(current, changed))
-    assert receipt["selections"][-1]["jobId"] == final["jobId"]
+    assert not changed["ready"]
+    base = f"/api/v2/projects/{project_id}"
+    # Neither a fresh aggregate choice nor direct segment selection may bypass
+    # the disposition transition, even though the unselected shot CAS stays 0.
+    with pytest.raises(InvalidTransitionError):
+        service.confirm(project_id, confirmation(current, changed))
+    refused = client.post(f"{base}/video-segments/{final['segmentId']}/select",
+        json={"expectedSelectionRevision": 0})
+    assert refused.status_code == 409 and "explicitly rejected" in refused.text
+    reopened = client.post(f"{base}/video-jobs/{final['jobId']}/review/reopen", json={
+        "reviewer": "Fixture creator", "reason": "Explicit new selection; quality remains unaccepted.",
+        "expectedSelectionRevision": 0})
+    assert reopened.status_code == 201, reopened.text
+    assert reopened.json()["selectionRevision"] == 1
+    with closing(storage.projects.open(project_id)) as store:
+        proposal = ProjectVideoRepository(store, storage.application).prepare_video_segment(
+            project_id, final["jobId"], in_frame=final["segment"]["inFrame"],
+            out_frame=final["segment"]["outFrame"], expected_selection_revision=1)
+    current = service.current(project_id)
+    changed = service.review(project_id)
+    assert not changed["ready"]  # The aggregate still freezes its original CAS.
+    with pytest.raises(InvalidTransitionError):
+        service.confirm(project_id, confirmation(current, changed))
+    selected_response = client.post(f"{base}/video-segments/{proposal['id']}/select",
+        json={"expectedSelectionRevision": 1})
+    assert selected_response.status_code == 201, selected_response.text
+    assert selected_response.json()["selectedRevision"] == 2
+    assert len(service.video._provider.submits) == 6
     with closing(storage.projects.open(project_id)) as store:
         selected = next(job for job in service.video.jobs(store) if job["id"] == final["jobId"])
         decisions = [item["decision"] for item in selected["reviews"]]
-        assert selected["selected"] and "reject" in decisions and decisions[-1] == "select"
+        assert selected["selected"] and decisions == ["reject", "reopen", "select"]
+        with store.repository._read() as session:
+            assert not session.scalars(select(VideoBatchReceiptRow)).all()
 
 
 def test_manual_native_window_rebinds_batch_and_invalidates_old_confirmation(tmp_path, native_batch_take):

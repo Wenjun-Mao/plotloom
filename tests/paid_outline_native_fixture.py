@@ -177,16 +177,17 @@ def receive(case, source, action, mode):
         return pair_receiver.main()
     import paid_receiver
     result = paid_receiver.main(["--phase-root", str(root), "--phase-sha", phase_sha])
-    if action == "inner" and mode == "invalid-candidate":
-        observe_failed_fixture_owner(case)
+    if action == "inner" and mode in {"success", "invalid-candidate"}:
+        observe_terminal_fixture_owner(case, failed=mode == "invalid-candidate")
     return result
 
 
-def observe_failed_fixture_owner(case):
+def observe_terminal_fixture_owner(case, *, failed):
     """Observe natural worker exit through its exact existing supervisor owner."""
     from paid_outline_contracts import PaidOutlineAllocation
     from paid_outline_composition import compose_registry
     from tests.cli_handoff_fixtures import exclusive
+    from handoff_files import canonical, digest
     allocation = PaidOutlineAllocation.model_validate_json((case / "bundle/paid-allocation.json").read_bytes())
     ns = allocation.namespace
     registry = compose_registry(ns.source_root.path, ns.executable.path, ns.application_root.path,
@@ -197,12 +198,19 @@ def observe_failed_fixture_owner(case):
     while time.monotonic() < deadline:
         status = host.status(ns.attempt.attempt_id)
         assert status.attempt.attempt_id == ns.attempt.attempt_id
-        assert status.state == "failed" and status.receipt is None
+        assert status.state == ("failed" if failed else "completed")
+        if failed:
+            assert status.receipt is None
+        else:
+            retained = json.loads((case / "phase/paid-result.json").read_bytes())
+            assert status.receipt is not None
+            assert digest(canonical(status.receipt.model_dump(mode="json", by_alias=True))) == retained["receiptSha256"]
         if status.local_execution_stopped:
-            exclusive(case / "receipts/observed-failed-owner.json", status.model_dump_json(by_alias=True).encode())
+            name = "observed-failed-owner.json" if failed else "observed-completed-owner.json"
+            exclusive(case / "receipts" / name, status.model_dump_json(by_alias=True).encode())
             return
         time.sleep(0.05)
-    raise AssertionError("failed fixture worker did not naturally stop")
+    raise AssertionError(f"terminal fixture worker did not naturally stop: {status.model_dump_json(by_alias=True)}")
 
 
 if __name__ == "__main__":

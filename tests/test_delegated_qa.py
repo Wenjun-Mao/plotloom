@@ -22,7 +22,7 @@ from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.project_storage.project_handle import ProjectStore
 from plotloom.video_batch_contracts import BatchConfirmation, BatchStart
 from plotloom.video_ingestion import probe_video
-from tests.delegated_qa_fixtures import INSPECTION, qa_environment, qa_start
+from tests.delegated_qa_fixtures import qa_environment, qa_start
 from tests.test_storyboard_creator_confirmation import board  # noqa: F401
 from tests.test_video_batch_review import native_batch_take  # noqa: F401
 
@@ -253,7 +253,7 @@ def test_qa_actual_rejection_is_attributed_and_blocks_final_selection(tmp_path, 
     assert not service.review(project)["ready"]
     with pytest.raises(InvalidTransitionError):
         service.confirm(project, BatchConfirmation(expectedRevision=view["revision"], reviewHash=review["reviewHash"],
-            basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
+            basis="source-bound-selections.v1", attribution=actor))
     with closing(storage.projects.open(project)) as store:
         assert not any(job["selected"] for job in service.video.jobs(store))
         home, manifest = store.home, store.manifest

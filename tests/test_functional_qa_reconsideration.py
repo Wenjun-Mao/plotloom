@@ -67,14 +67,9 @@ def test_explicit_functional_reconsideration_confirms_original_media_with_no_new
     assert current["state"] == "awaiting_review", current["execution"].get("error")
     review = service.review(project)
     assert review["ready"] and review["reviewHash"] != stale["reviewHash"]
-    with pytest.raises(InvalidTransitionError, match="functional-only"):
-        service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
-            basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
-    inspection = INSPECTION | {"acceptanceBasis": "functional_workflow_only",
-        "qualityLimitations": ["Synthetic clip lettering is unreadable; creative quality remains unaccepted."]}
     with pytest.raises(InvalidTransitionError):
         service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=stale["reviewHash"],
-            basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection))
+            basis="source-bound-selections.v1", attribution=actor))
     # The same functional-only authority cannot waive corrupt retained bytes.
     with closing(storage.projects.open(project)) as store:
         artifact_type = type(store.artifacts)
@@ -87,15 +82,14 @@ def test_explicit_functional_reconsideration_confirms_original_media_with_no_new
         assert not service.review(project)["ready"]
         with pytest.raises(InvalidTransitionError, match="unresolved exceptions"):
             service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
-                basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection))
-    receipt = service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
-        basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=inspection,
-        note="Functional-only acceptance, not a media-quality pass."))
-    assert receipt["inspection"]["acceptanceBasis"] == "functional_workflow_only"
-    assert receipt["inspection"]["qualityLimitations"] == inspection["qualityLimitations"]
-    with pytest.raises(InvalidTransitionError, match="observations differ"):
-        service.confirm(project, BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
-            basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
+                basis="source-bound-selections.v1", attribution=actor))
+    confirmation = BatchConfirmation(expectedRevision=current["revision"], reviewHash=review["reviewHash"],
+        basis="source-bound-selections.v1", attribution=actor)
+    receipt = service.confirm(project, confirmation)
+    assert receipt["version"] == "source-bound-selections.v1"
+    assert receipt["attribution"] == actor.model_dump(mode="json", by_alias=True)
+    assert "inspection" not in receipt and "confirmation" not in receipt
+    assert service.confirm(project, confirmation) == receipt
     assert len(provider.submits) == 1
     with closing(storage.projects.open(project)) as store:
         job = next(item for item in service.video.jobs(store) if item["id"] == rejection["videoJobId"])

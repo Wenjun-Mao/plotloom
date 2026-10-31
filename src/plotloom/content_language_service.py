@@ -77,7 +77,7 @@ class ContentLanguageService:
         files = {"request.json": canonical_json(projected), "COPY_ASSIGNMENT.txt": instructions,
                  **{f"inputs/{name}": canonical_json(value) for name, value in request.input_artifacts.items()}}
         from .creative_handoff_package_exchange import _json_file_limit
-        if any(name.endswith(".json") and len(content) > _json_file_limit(request) for name, content in files.items()):
+        if any(name.endswith(".json") and len(content) > _json_file_limit(request, relative_path=name) for name, content in files.items()):
             raise InvalidTransitionError("完整语言检查包超过现有单文件容量；未截断来源或提交任务。")
         package_hash = package_manifest_hash(tuple(CodexExecPackageFile(relative_path=name,
             sha256=sha256(content).hexdigest(), size_bytes=len(content)) for name, content in sorted(files.items())))

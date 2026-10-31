@@ -262,7 +262,7 @@ def test_qa_replacement_requires_exact_actor_and_preserves_cumulative_claims(tmp
     from plotloom.project_storage.delegated_qa_grants import qa_command
     from plotloom.video_batch_contracts import BatchConfirmation
     from plotloom.video_ingestion import probe_video
-    from tests.delegated_qa_fixtures import INSPECTION, qa_environment, qa_start
+    from tests.delegated_qa_fixtures import qa_environment, qa_start
     storage, _client, service, provider, project, view, actor = qa_environment(tmp_path, monkeypatch,
         limits="finite" if finite else (None, None))
     provider._outputs = [native_batch_take]
@@ -304,7 +304,8 @@ def test_qa_replacement_requires_exact_actor_and_preserves_cumulative_claims(tmp
         assert completed["state"] == "awaiting_review" and len(provider.submits) == 7
         review = service.review(project)
         receipt = service.confirm(project, BatchConfirmation(expectedRevision=completed["revision"],
-            reviewHash=review["reviewHash"], basis="whole-pack-video-native-audio.v1", attribution=actor, inspection=INSPECTION))
+            reviewHash=review["reviewHash"], basis="source-bound-selections.v1", attribution=actor))
         assert receipt["attribution"] == actor.model_dump(mode="json", by_alias=True)
-        assert receipt["inspection"] == INSPECTION
+        assert receipt["version"] == "source-bound-selections.v1"
+        assert "inspection" not in receipt and "quality" not in receipt
         assert identifier not in {fact["jobId"] for fact in receipt["selections"]}

@@ -677,6 +677,7 @@
           "tests/test_content_language_execution_retry.py",
           "tests/test_content_language_runtime.py",
           "tests/test_content_language_service.py",
+          "tests/test_content_language_package_capacity.py",
           "tests/test_renderer_language_boundary.py",
           "tests/test_content_language_bridge_edits.py",
           "tests/test_content_language_contract.py",

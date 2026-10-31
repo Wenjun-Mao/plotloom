@@ -343,14 +343,12 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             "storyboardRevision": storyboard["head"]["revision"],
             "approvalId": approval.json()["decision"]["id"],
         }
-        refused = client.post(
+        unreviewed = client.post(
             f"/api/v2/projects/{project_id}/still-previews", json=preview_payload
         )
-        assert refused.status_code == 409
-        assert refused.json()["code"] == "same_person_review_required"
-        assert refused.json()["shotId"] == shot["id"]
-        assert refused.json()["bindingId"] == binding.json()["id"]
-        assert "无法确认身份时不要标记通过" in refused.json()["message"]
+        assert unreviewed.status_code == 201, unreviewed.text
+        assert "identityReviewId" not in unreviewed.json()["manifest"]["frames"][0]
+        assert client.get(f"/api/v2/projects/{project_id}/same-person-reviews").json()["reviews"] == []
         review = client.post(
             f"/api/v2/projects/{project_id}/same-person-reviews",
             json={
@@ -365,7 +363,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
                         "stateNotes": "Shot state remains authored.",
                     }
                 ],
-                "notes": "Human visual review, not face-recognition evidence.",
+                "notes": "Synthetic optional observation, not a live identity review.",
             },
         )
         assert review.status_code == 201, review.text
@@ -373,10 +371,8 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             f"/api/v2/projects/{project_id}/still-previews", json=preview_payload
         )
         assert preview.status_code == 201
-        assert (
-            preview.json()["manifest"]["frames"][0]["identityReviewId"]
-            == review.json()["id"]
-        )
+        assert preview.json()["manifest"] == unreviewed.json()["manifest"]
+        assert "identityReviewId" not in preview.json()["manifest"]["frames"][0]
         from tests.identity_review_assertions import assert_explicit_identity_decisions
 
         assert_explicit_identity_decisions(

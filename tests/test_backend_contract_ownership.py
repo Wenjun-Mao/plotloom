@@ -12,7 +12,8 @@ import pytest
 
 # Reviewed schemas: class names, aliases, defaults and validators.
 # ADR 0224 timing extraction changes only DialogueDeliveryPace.description in
-# StageEnvelope/ProjectCreation; the regression below binds that exact delta.
+# StageEnvelope/ProjectCreation; ADR 0228 adds the exact source-route description.
+# Normalize only that separately asserted description to retain the original hashes.
 SCHEMAS = {
     "project_contracts:Project": "64166a788f2fa56c6058a4128f81e7eb48fe0ff5e11614727993aa5f8ef8fca9",
     "project_contracts:ProjectCreation": "7b7a5641b813991cbc9c373afce4421571ed32ea2de178919fe5f9ce7858f624",
@@ -27,13 +28,21 @@ SCHEMAS = {
 }
 
 
+def _prior_source_route_description(schema):
+    brief = schema.get("$defs", {}).get("ProjectBrief")
+    if brief is not None:
+        field = brief["properties"]["decisionPointsPerPath"]
+        assert field.pop("description") == "Exact planning target; maximum for explicitly adopted source routes"
+    return schema
+
+
 @pytest.mark.parametrize(
     "module,name,digest", [(*key.split(":"), value) for key, value in SCHEMAS.items()]
 )
 def test_contract_schema_identity(module, name, digest):
     model = getattr(importlib.import_module("plotloom." + module), name)
     payload = json.dumps(
-        model.model_json_schema(),
+        _prior_source_route_description(model.model_json_schema()),
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),
@@ -69,7 +78,7 @@ assert validate_public_api_root is leaf
 ])
 def test_timing_owner_extraction_changes_only_enum_description(module, name, previous):
     model = getattr(importlib.import_module("plotloom." + module), name)
-    schema = model.model_json_schema()
+    schema = _prior_source_route_description(model.model_json_schema())
     pace = schema["$defs"]["DialogueDeliveryPace"]
     assert pace["description"] == "Only explicit bounded pace changes timing; free-form notes do not."
     pace["description"] = "The bounded timing input; expressive direction belongs in notes."

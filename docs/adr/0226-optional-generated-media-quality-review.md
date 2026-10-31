@@ -13,6 +13,12 @@ continuation, currentness, persistence/reopen, playback, snapshot/restore or
 export. No QA-project allowlist, opt-out switch, expiry, replacement form or
 implied human/agent quality pass is part of the current contract.
 
+An explicit H3 video-candidate `reject` is a disposition, separate from an optional
+failed or uncertain quality observation. Selection must respect that rejection
+until the existing explicit reconsideration or replacement operation permits a
+new choice, with its actor and CAS checks intact. This requires no viewing,
+listening, passing quality judgment or mandatory observation form.
+
 Keep four owners distinct:
 
 1. Authoritative source and explicit adoption own story intent and source-to-final-

@@ -9,7 +9,9 @@ from plotloom.persistence.schema import Base
 
 def test_reference_schema_matches_pre_extraction_ddl_and_registration(tmp_path):
     baseline = json.loads((Path(__file__).parent / 'fixtures/reference_schema_baseline.json').read_text())
-    assert list(Base.metadata.tables) == baseline['registrationOrder']
+    # ADR 0227 adds only the export inventory; retain every prior registration
+    # position and the complete pre-extraction DDL below unchanged.
+    assert list(Base.metadata.tables) == [*baseline['registrationOrder'], 'v2_player_exports']
     engine = create_engine(f"sqlite:///{tmp_path / 'reference.sqlite3'}")
     Base.metadata.create_all(engine)
     names = {row[2] for row in baseline['ddl']}

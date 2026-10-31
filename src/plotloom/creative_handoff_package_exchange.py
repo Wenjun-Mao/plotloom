@@ -12,7 +12,14 @@ from .creative_package_projection import project_creative_package
 from .creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 
 
-def _json_file_limit(request: CreativeHandoffRequest) -> int:
+MAX_LANGUAGE_CHECK_ENVELOPE_JSON_BYTES = 2_000_000
+
+
+def _json_file_limit(request: CreativeHandoffRequest, *, relative_path: str = "request.json") -> int:
+    from .content_language_contract import is_language_check
+
+    if is_language_check(request):
+        return MAX_LANGUAGE_CHECK_ENVELOPE_JSON_BYTES if relative_path == "request.json" else 1_000_000
     if request.stage in {"bridge-intent", "bridge-presentation"}:
         from .native_bridge_request import MAX_NATIVE_BRIDGE_PACKAGE_JSON_BYTES
 
@@ -59,7 +66,7 @@ class CreativeHandoffPackageExchange:
         if directory_names(inputs, package=True) != set(request.input_artifacts):
             raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
         for filename, payload in request.input_artifacts.items():
-            if _read_regular(inputs / filename, max_bytes=json_limit, package=True) != canonical_json(payload):
+            if _read_regular(inputs / filename, max_bytes=_json_file_limit(request, relative_path=f"inputs/{filename}"), package=True) != canonical_json(payload):
                 raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
         return job_root, projected
 
@@ -122,11 +129,12 @@ class CreativeHandoffPackageExchange:
         }
         if executor_backend == "specialist_chat":
             files[TEMPLATE_FILENAME] = template
-        if request.stage in {"bridge-intent", "bridge-presentation"} and any(
-            len(content) > _json_file_limit(request)
+        from .content_language_contract import is_language_check
+        if (request.stage in {"bridge-intent", "bridge-presentation"} or is_language_check(request)) and any(
+            len(content) > _json_file_limit(request, relative_path=name)
             for name, content in files.items() if name.endswith(".json")
         ):
-            raise CreativeHandoffError("package_conflict", "native bridge package JSON exceeds its file limit")
+            raise CreativeHandoffError("package_conflict", "native package JSON exceeds its file limit")
         publish_package(package, digest=request_hash(request), files=files, write_once=_write_once)
         self.verify_frozen_package(
             request,

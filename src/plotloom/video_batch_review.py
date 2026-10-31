@@ -41,6 +41,12 @@ def review_projection(store, application, view):
     manifest, execution = view["manifest"], view["execution"]
     repository = ProjectVideoRepository(store, application)
     jobs = {item["id"]: item for item in repository.list_video_jobs(view["projectId"])}
+    from .persistence.project.media_video_disposition import (
+        h3_video_rejection_is_current,
+    )
+    with store.repository._read() as session:
+        rejected_jobs = {identifier for identifier in execution["jobs"].values()
+                         if h3_video_rejection_is_current(session, identifier)}
     errors, proposals = [], []
     from .video_batch_work_inventory import assert_work_inventory
     try:
@@ -74,6 +80,8 @@ def review_projection(store, application, view):
         reason = None
         if not job or job["state"] != "ingested" or not job["current"]:
             reason = "视频缺失、失败或来源过期。"
+        elif job_id in rejected_jobs:
+            reason = "视频已明确拒绝；请先重新考虑该素材或选择替代素材。"
         elif view["state"] != "approved" and job["selectionRevision"] != target["selectionRevision"]:
             reason = "视频选择版本已变化。"
         elif not proposal or not proposal["current"]:

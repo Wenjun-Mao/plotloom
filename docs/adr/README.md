@@ -182,3 +182,7 @@ language verification record owns qualification/activation evidence.
 [ADR 0225](0225-bounded-generation-retries-and-local-capacity.md) adopts bounded
 generation retries and dead local-slot release while preserving remote uncertainty
 and possible-cost accounting; dedicated forensic recovery is retired.
+
+[ADR 0229](0229-native-language-check-envelope-capacity.md) gives complete native
+language-check envelopes a finite 2 MB bound while preserving 1 MB inputs and
+independent semantic/source evidence.

@@ -12,7 +12,7 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
     url = f"/api/v2/projects/{project_id}"
     review_body = {
         "bindingId": binding["id"], "expectedReviewRevision": passed["stateRevision"],
-        "reviewer": "Human fixture reviewer", "notes": "Explicit uncertainty policy fixture.",
+        "reviewer": "Synthetic observation fixture", "notes": "Explicit uncertainty policy fixture.",
         "comparisons": [{"characterId": "fixture-hero", "judgment": "unassessable",
                          "identityNotes": "Hands alone cannot identify this person.",
                          "stateNotes": "The frozen hand-only crop remains intentional."}],
@@ -32,16 +32,15 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
     def reviews():
         return client.get(f"{url}/same-person-reviews").json()
 
-    def frozen_projections_are_refused():
+    def frozen_projections_remain_current():
         old_preview = next(item for item in client.get(f"{url}/still-previews").json()["previews"] if item["id"] == preview["id"])
-        assert old_preview["state"] == "stale"
+        assert old_preview["state"] == "current"
         assert old_preview["manifest"] == preview["manifest"]
         jobs = client.get(f"{url}/video-jobs").json()["jobs"]
         old = next(item for item in jobs if item["id"] == frozen_pass_video["id"])
         assert old["snapshot"] == frozen_pass_video["snapshot"]
         assert old["inputStatus"] == "current"  # source facts have not changed
-        assert old["productionEligible"] is False and old["current"] is False
-        assert client.post(f"{url}/video-jobs/{old['id']}/submit").status_code == 409
+        assert old["productionEligible"] and old["current"]
 
     for additions in [{}, {"productionDecision": "authorize"},
                       {"uncertaintyReason": "Intentional hand-only framing."},
@@ -51,7 +50,7 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
         assert client.post(f"{url}/same-person-reviews", json=invalid).status_code == 422
         assert reviews()["revision"] == passed["stateRevision"]
 
-    for judgment, decision in [("fail", None), ("unassessable", "hold"), ("unassessable", "authorize")]:
+    for index, (judgment, decision) in enumerate([("fail", None), ("unassessable", "hold"), ("unassessable", "authorize")]):
         body = deepcopy(review_body)
         body["comparisons"][0]["judgment"] = judgment
         if decision:
@@ -65,16 +64,22 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
         assert saved["productionEligible"] is (decision == "authorize")
         older_pass = next(item for item in reviews()["reviews"] if item["id"] == passed["id"])
         assert older_pass["current"] and not older_pass["latest"] and not older_pass["productionEligible"]
-        frozen_projections_are_refused()
-        if decision != "authorize":
-            assert client.post(f"{url}/still-previews", json=preview_body).status_code == 409
-            assert client.post(f"{url}/video-jobs/prompt-preview", json=video_body).status_code == 409
-            assert client.post(f"{url}/video-jobs", json=video_body).status_code == 409
-        else:
+        frozen_projections_remain_current()
+        current_preview = client.post(f"{url}/still-previews", json=preview_body)
+        assert current_preview.status_code == 201, current_preview.text
+        assert current_preview.json()["manifest"] == preview["manifest"]
+        prepared = client.post(f"{url}/video-jobs", json=reviewed_h3_body(client, project_id, {
+            **video_body, "idempotencyKey": f"optional-observation-{index}",
+        }))
+        assert prepared.status_code == 201, prepared.text
+        assert prepared.json()["current"] and prepared.json()["productionEligible"]
+        assert prepared.json()["snapshot"]["samePersonReviewId"] == saved["id"]
+        if decision == "authorize":
             accepted = saved
 
     accepted_preview = client.post(f"{url}/still-previews", json=preview_body).json()
-    assert accepted_preview["manifest"]["frames"][0]["identityReviewId"] == accepted["id"]
+    assert accepted_preview["manifest"] == preview["manifest"]
+    assert "identityReviewId" not in accepted_preview["manifest"]["frames"][0]
     fresh_video = client.post(f"{url}/video-jobs", json=reviewed_h3_body(client, project_id, {
         **video_body, "idempotencyKey": "explicit-authorized-review-fixture",
     }))
@@ -86,7 +91,7 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
     assert provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0
 
     # Mutate only fixture-owned input records, then restore exact bytes: currentness
-    # must be a source fact independent of which judgment authorized production.
+    # must be a source fact independent of optional quality judgments.
     for table, column, row_id, value in [
         ("v2_managed_assets", "original_hash", binding["assetId"], "0" * 64),
         ("v2_reviewed_shot_bindings", "visual_intent_revision", binding["id"], 999),
@@ -113,7 +118,7 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
     accepted_cast.update(cast_before)
     assert reviews()["reviews"][0]["productionEligible"]
 
-    # Tampering with the immutable request cannot be repaired by a valid review.
+    # Tampering with the immutable request cannot be repaired by an optional observation.
     with sqlite3.connect(database_path) as connection:
         stored = connection.execute("SELECT snapshot FROM v2_video_jobs WHERE id=?", (fresh_video["id"],)).fetchone()[0]
         changed = json.loads(stored)
@@ -129,9 +134,8 @@ def assert_explicit_identity_decisions(client, project_id, preview_body, binding
     assert refused.status_code == 201, refused.text
     assert refused.json()["current"] and not refused.json()["productionEligible"]
     retained = next(item for item in client.get(f"{url}/video-jobs").json()["jobs"] if item["id"] == fresh_video["id"])
-    assert retained["inputStatus"] == "current" and not retained["productionEligible"]
+    assert retained["inputStatus"] == "current" and retained["productionEligible"] and retained["current"]
     assert retained["snapshot"] == fresh_video["snapshot"]
     retained_preview = next(item for item in client.get(f"{url}/still-previews").json()["previews"] if item["id"] == accepted_preview["id"])
-    assert retained_preview["state"] == "stale" and retained_preview["manifest"] == accepted_preview["manifest"]
-    assert client.post(f"{url}/video-jobs/{fresh_video['id']}/submit").status_code == 409
+    assert retained_preview["state"] == "current" and retained_preview["manifest"] == accepted_preview["manifest"]
     assert provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0

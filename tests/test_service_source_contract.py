@@ -29,7 +29,7 @@ def _assert_declared_services(root: Path, tracked_paths: list[Path]) -> None:
     assert services_root.is_dir() and not services_root.is_symlink(), (
         "services must be a real directory"
     )
-    children = {path.name for path in services_root.iterdir()}
+    children = {path.name for path in services_root.iterdir() if path.name != ".DS_Store"}
     assert children == ALLOWED_SERVICE_DIRECTORIES, (
         "services permits only the declared service subtrees: "
         + ", ".join(sorted(children))
@@ -86,6 +86,7 @@ def service_tree(tmp_path: Path) -> tuple[Path, list[Path]]:
         (tmp_path / relative).parent.mkdir(parents=True)
         (tmp_path / relative).write_text("fixture service", encoding="utf-8")
         tracked.append(relative)
+    (tmp_path / "services/.DS_Store").write_bytes(b"fixture Finder metadata")
     _assert_declared_services(tmp_path, tracked)
     return tmp_path, tracked
 

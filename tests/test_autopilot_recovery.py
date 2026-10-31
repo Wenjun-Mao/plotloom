@@ -91,7 +91,7 @@ def test_creative_evidence_inventory_remains_confined_and_secret_free(tmp_path, 
     storage = storage_at(tmp_path / "source")
     project_id, home = accepted_outline(storage)
     jobs = home / "outputs" / "creative-handoff" / "jobs"
-    job = next(jobs.iterdir())
+    job = jobs / ("ch_" + "a" * 32)
     if mutation == "foreign":
         (job / "delivery" / "unowned.txt").write_text("foreign")
     elif mutation == "secret":

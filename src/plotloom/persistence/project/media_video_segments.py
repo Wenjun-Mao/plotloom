@@ -22,6 +22,7 @@ from ..schema import (
 )
 from .access import ProjectPersistenceAccess
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_disposition import assert_h3_video_not_rejected
 from .media_video_integrity import (
     frozen_video_request_is_valid,
     frozen_video_source_is_valid,
@@ -173,6 +174,7 @@ class VideoSegmentPersistence:
             assert_rejected_take_mutable(session, project_id, segment.video_job_id)
             if job is None or job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("video segment source is stale")
+            assert_h3_video_not_rejected(session, job.id)
             from ...delegated_qa import (
                 direction_attribution,
                 reject_reserved_reviewer,

@@ -60,11 +60,50 @@ export proof, source recovery regressions and credential-refusal checks. General
 review found credential-publication and stale seedless-recovery defects; the
 candidate fixes both, including secret-bearing dictionary keys and safe error
 responses. Both review findings are closed; final stable-source qualification is pending.
-No original-story project/media, live provider dispatch, final standalone game,
-normal runtime activation or final installed-package qualification has occurred.
-Next: close the scoped review/checks, preserve the coherent development checkpoint
-on local `main`, then create the source-bound original story through the supported
-native workflow. Keep final-request fidelity and creative quality distinct.
+The coherent source checkpoint is now `aa6e8754` on local `main`; full local
+qualification is running against that frozen runtime candidate. The original
+story project was created in an isolated supported runtime on port 8863, leaving
+the qualified normal installation unchanged. F1's manual specialist candidate
+passed the genuine independent native language check and was adopted. A
+coordinator source audit confirms seven exact source excerpts and all 19 original
+dialogue lines. The authored seven-node/six-edge graph is now installed through
+the normal draft → section-map → graph API. Its first install request used the
+draft revision from before section-map save and correctly refused; rereading the
+advanced revision allowed exact installation without weakening CAS. F2 characters and F3 scene/prop direction also passed their genuine independent
+native language checks and were adopted. F4 script also passed and was adopted. F5 delivered a 15-shot storyboard;
+its scheduled routes are 72.4/110.1/117.0 seconds, with eight shots in the first
+original slice. The first original character reference was generated
+once, ingested and selected with explicit unreviewed agent attribution. Its
+actual ImageGen arguments match the frozen sheet/exclusions and its completion
+prompt byte for byte. The second reference is also generated, ingested and selected; both actual
+ImageGen requests have exact frozen-sheet/exclusion and byte-exact prompt evidence. Retained receipts
+are `original-*.json` under the existing local evidence directory.
+
+Original shot/video media, final standalone game, normal runtime activation and final
+installed-package qualification remain pending. The current H3 catalogue offers
+landscape/native-audio profiles and 5–15-second clips; the selected functional
+production direction is the fast quality-1 832×480 landscape profile, with up to
+15-second storyboard cuts and no aesthetic rerolls. Final-request fidelity and
+creative quality remain separate. Next: finish native F2–F5 adoption and produce
+the missing source-bound assets, beginning with the original opening/first ending.
+F5's complete native language-check envelope was refused twice before dispatch:
+1,215,985 bytes versus the former 1 MB envelope bound, although each individual
+input is below 1 MB. No check job, package or remote attempt exists for those
+probes. The reviewed ADR 0229 repair gives only native checker `request.json` a
+2 MB bound and keeps 1 MB inputs; first focused preparation/publication/reopening
+and byte-boundary checks passed. A same-candidate native check remains required.
+
+The immutable `aa6e8754` full invocation finished **failed**: 5,036 Python cases
+passed and 13 failed, before downstream browser/wheel gates. Its failed result
+is retained. Current-contract fixture repairs preserve frozen schema/DDL evidence,
+actor/CAS/byte/source safeguards and exact native-worker quiescence. Independent
+review also identified a real rejected-H3 disposition bypass: shared batch/direct
+selection now requires the existing explicit reconsideration, with no quality
+pass prerequisite. Fresh targeted proof retains stale old-aggregate refusal and
+uses a newly bound direct window after reopen, preserving reject → reopen → select
+without another dispatch. Required downstream qualification and installed proof
+remain pending; this is not a successful full rerun.
+
 Stop when the final standalone game, global optional-review behavior, required
 local qualification, activation, single recovery proof and scoped cleanup are
 complete, with evidence and material decisions ready for the owner's review.
@@ -76,7 +115,7 @@ complete, with evidence and material decisions ready for the owner's review.
 | Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | Development candidate; normal/QA source-bound selection, absent/failed/note-only observations and reopen checks passed; final affected browser/local qualification pending |
 | Complete standalone game | Final exported ZIP unpacks outside the checkout; start → all three authored routes/endings → restart/last-choice replay and HTTP reload/Continue work with Plotloom unavailable; request audit permits only packaged files | Retained media for early slice; original media for final game | Provider-free four-node fixture API/HTTP slice passed; final seven-role game pending |
 | Lightly styled usable MVP | Desktop and 390px viewport inspection shows legible title, choices, controls, dialogue and ending cards with focus/pressed states; no blocked progression or clipped essential controls | No quality experiment | Planned; responsive viewport is not real-phone qualification |
-| Faithful story and final requests | All seven draft roles and six edges mapped to project/runtime identities; exact choices, dialogue and endings retained; full final image/H3 requests compared with source, references, timing and authorized settings | Provider-free comparisons; actual production dispatch receipts also retained | Planned; frozen briefs alone do not prove final tool arguments |
+| Faithful story and final requests | All seven draft roles and six edges mapped to project/runtime identities; exact choices, dialogue and endings retained; full final image/H3 requests compared with source, references, timing and authorized settings | Provider-free comparisons; actual production dispatch receipts also retained | F1 exact seven source excerpts/19 original lines and seven-node/six-edge graph verified; final image/H3 requests pending. Frozen briefs alone do not prove final tool arguments |
 | Technical validity and provenance | Selected bytes decode/play; hashes, sources, revisions, references and frame windows match; stale/wrong-source/unauthorized/concurrent selections still refuse; reopening preserves current project assets and facts | No by default | Planned |
 | Original story production and future update seam | Actual Plotloom project produces this story's assets, records selection and exports them; build-side slot/source/candidate bindings survive reopening; replacing a fixture slot leaves graph/UI unchanged | Yes for the original assets the project lacks; no quality rerolls | Planned; retained unrelated clips cannot satisfy final story production |
 | Local qualification and activation | Stable candidate passes applicable full local qualification, exact installed-package export, normal runtime activation and preservation/readback; refreshed single recovery restores the new selection contract; final package exercised after material repairs | No extra generation by default | Planned; hosted CI not requested and not a release gate |
@@ -270,6 +309,25 @@ Unknown dispatch is reconciled through the supported operation; never clear it
 or submit duplicates to move forward. After two unsuccessful attempts at the
 same criterion, retain evidence and reassess cause/method before another attempt;
 this is not an invented two-attempt budget or an automatic permission gate.
+
+## Original production attempts
+
+The first fresh-media acceptance gap is the original story's missing character
+reference assets, under the original-production row. Retained unrelated people
+cannot satisfy the adopted C01/C02 identities or prove this source's production
+integration. Inputs are the newly adopted F2 cast revision 1, live-action style,
+exact separate character identities and the frozen reference proposals. Expected
+information: whether built-in ImageGen can produce, publish and ingest technically
+valid original references through the current native package contract. Stop each
+job after its first technically valid result; no visual-quality verdict, beauty
+retry or identity-quality pass is requested. Required input viewing does not
+establish output quality. C01 was sent once through the normal Plotloom native
+queue, delivered, ingested and selected without a quality verdict. Its redundant
+staging cleanup initially refused mode 0755; after exact task-directory ownership,
+identity and hash checks, that directory alone became private (0700) and the
+bounded helper removed the redundant staged file. The initial refusal is retained.
+C02 was then sent once through the same serial native queue. These two jobs do not
+claim final game assets, H3 integration or creative acceptance.
 
 ## Verification, ownership and operational boundaries
 
