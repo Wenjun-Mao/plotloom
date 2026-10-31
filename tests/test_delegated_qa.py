@@ -149,8 +149,26 @@ def test_qa_start_cannot_expand_granted_scope(tmp_path, monkeypatch, change):
             if change == "asset": manifest["targets"][0]["snapshot"]["keyframe"]["assetId"] = new_id()
             row.manifest = manifest
         view = store.repository.video_batches.change(project, view["id"], mutate=mutate)
-    with pytest.raises(ProjectStorageCorruptionError if change == "asset" else InvalidTransitionError):
+    # The native check commits setup as well as target bytes. A rewritten
+    # manifest is corrupt before Start can consider its runtime QA grant.
+    with pytest.raises(ProjectStorageCorruptionError):
         qa_start(service, project, view, actor)
+    assert not provider.submits
+
+
+@pytest.mark.parametrize("change", ["profile", "budget"])
+def test_qa_authorizer_independently_refuses_setup_expansion(tmp_path, monkeypatch, change):
+    from plotloom.delegated_qa_video import assert_manifest_actor
+    storage, _client, _service, provider, project, view, actor = qa_environment(tmp_path, monkeypatch)
+    with closing(storage.projects.open(project)) as store, qa_command(store, storage.application, actor):
+        manifest = deepcopy(view["manifest"])
+        assert assert_manifest_actor(store, manifest, actor) == actor.model_dump(mode="json", by_alias=True)
+        if change == "profile":
+            manifest["setup"]["profileId"] = "another-profile"
+        else:
+            manifest["setup"]["maxRequestedSeconds"] += 5
+        with pytest.raises(InvalidTransitionError, match="granted profile, shots or caps"):
+            assert_manifest_actor(store, manifest, actor)
     assert not provider.submits
 
 
