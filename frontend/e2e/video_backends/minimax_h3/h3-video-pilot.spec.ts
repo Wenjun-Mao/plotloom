@@ -65,7 +65,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const profile = panel.getByLabel("H3 输出尺寸（必选）");
   await expect(profile).toHaveValue("minimax_h3_quality8_portrait_576x1024_v2");
   const duration = panel.getByLabel("H3 时长（已审核）");
-  await expect(duration).toHaveValue("5");
+  await expect(duration).toHaveValue("6");
   await duration.selectOption("8");
   await panel.getByTestId("h3-directions-review").locator("summary").click();
   await expect(panel.getByTestId("h3-directions-review").getByRole("button", { name: "读取当前来源" })).toBeDisabled();

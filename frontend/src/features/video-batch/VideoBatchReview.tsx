@@ -1,3 +1,4 @@
+import { durationDeviationNotice } from "../../video-backends/minimax-h3-timing";
 import { GenerationRetryStatus } from "../generation-retry/GenerationRetryStatus";
 import { useEffect, useRef, useState } from "react";
 import { Button, Spinner } from "../../components";
@@ -52,7 +53,8 @@ export function VideoBatchReview({ projectId, batch, disabled, actor = null, onB
         <h3>{item.title} · {item.shotId}</h3>
         {batch.manifest.targets.filter(target => target.shotId === item.shotId).map(target => <ProductionBriefReview key={target.shotId} target={target} />)}
         {item.segment && <><video controls preload="none" src={`/api/v2/projects/${encodeURIComponent(projectId)}/video-segments/${encodeURIComponent(item.segmentId)}/preview`} />
-          <p>播放 {item.segment.inFrame}–{item.segment.outFrame} 帧 · {item.segment.authoredDurationUnits / 1000} 秒 · 24 fps · 原生音频</p></>}
+          <p>播放 {item.segment.inFrame}–{item.segment.outFrame} 帧 · {((item.segment.outFrame - item.segment.inFrame) / 24).toFixed(2)} 秒 · 目标 {item.segment.authoredDurationUnits / 1000} 秒 · 24 fps · 原生音频</p></>}
+        {item.segment && item.job?.observed && <small className="warning">{durationDeviationNotice(item.segment.authoredDurationUnits, item.job.observed.durationSeconds)}</small>}
         <GenerationRetryStatus status={item.job?.retry} />
         {item.error && <p role="alert">{item.error}</p>}
         <details><summary>原片与生成证据</summary><p>请求 {item.job?.requestedSeconds} 秒 · 原片与播放窗口分别审阅。</p>

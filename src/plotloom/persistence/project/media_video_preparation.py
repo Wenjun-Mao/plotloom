@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ...production_timing import h3_playback_intent_valid
+
 from hashlib import sha256
 from typing import Any
 
@@ -31,7 +33,7 @@ class VideoJobPreparation:
     def prepare_video_job(
         self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
         expected_selection_revision: int, idempotency_key: str,
-        playback_intent: str = "source_exact",
+        playback_intent: str | None = None,
         production_contract: VideoProductionContract,
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
@@ -43,8 +45,6 @@ class VideoJobPreparation:
         if production_contract is None:
             raise InvalidTransitionError("video preparation requires an explicit production contract")
         requested_seconds = production_contract.requested_seconds
-        resolution = production_contract.resolution
-        audio = production_contract.audio
         compiler_version = (
             COMPILER_VERSION if production_contract.profile_id is not None
             else "p2-video-adapters-v1"
@@ -86,19 +86,14 @@ class VideoJobPreparation:
             )
             authored_units = source_timing["durationUnits"]
             if production_contract.adapter_id == "minimax_h3_gateway":
-                frame_count = production_contract.frame_count
-                if authored_units <= 0 or authored_units * 24 % 1_000:
-                    raise InvalidTransitionError("authored shot duration is not representable at 24 fps")
-                if frame_count is None or frame_count * 1_000 < authored_units * 24:
-                    raise InvalidTransitionError("H3 request cannot cover authored shot frames")
-                expected_intent = ("source_exact" if frame_count * 1_000 == authored_units * 24
-                                   else "segment_required")
-                if playback_intent != expected_intent:
-                    raise InvalidTransitionError("H3 request needs explicit authored-to-request playback intent")
-            elif playback_intent != "source_exact" or (
+                playback_intent = playback_intent or "whole_take"
+                if not h3_playback_intent_valid(playback_intent, authored_units, production_contract.frame_count):
+                    raise InvalidTransitionError("H3 request has invalid playback timing for its selected intent")
+            elif (playback_intent or "source_exact") != "source_exact" or (
                 authored_units in {6_000, 8_000} or source_timing["kind"] == "f5_bridge"
             ) and requested_seconds * 1_000 != authored_units:
                 raise InvalidTransitionError("non-H3 video needs exact authored request timing")
+            playback_intent = playback_intent or "source_exact"
             binding = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
             if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
                 raise InvalidTransitionError("video job needs the current reviewed selected keyframe")

@@ -138,6 +138,7 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
 
 async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number, annotation = "") {
   const review = page.getByTestId(`video-segment-review-${jobId}`);
+  await review.getByRole("checkbox", { name: "手动截取目标时长" }).check();
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
   const preparing = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname.endsWith(`/video-jobs/${jobId}/segments`));
@@ -148,7 +149,7 @@ async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expe
   expect(prepared).toMatchObject({ inFrame, outFrame: expectedOutFrame });
   const preview = review.getByTestId(`video-segment-preview-${prepared.id}`);
   await expect(preview).toBeVisible();
-  await expect(review.getByLabel("片段入点（帧）")).toBeEnabled();
+  await expect(review.getByRole("checkbox", { name: "手动截取目标时长" })).toBeEnabled();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);
   await expect(review).toContainText(`${inFrame}–${expectedOutFrame} 帧`);
   const workflow = page.getByRole("navigation", { name: "镜头视频工作流" });
@@ -196,7 +197,7 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   expect(chosen.playbackSegment!.derivativeHash).not.toEqual(chosen.outputHash);
   const chosenEnding = exerciseJobs.find((job) => job.id === exerciseEndingJob)!;
   expect(chosenEnding).toMatchObject({ requestedSeconds: 8, current: true, selected: true, playbackSegment: { inFrame: 0, outFrame: 192, selected: true } });
-  expect(chosenEnding.playbackSegment!.derivativeHash).not.toEqual(chosenEnding.outputHash);
+  expect(chosenEnding.playbackSegment!.derivativeHash).toEqual(chosenEnding.outputHash);
   await workbench.restartBackend();
   const persisted = await request.get(`${workbench.apiOrigin}/api/v2/projects/${exerciseProject}/video-jobs`);
   expect(persisted.ok()).toBeTruthy();

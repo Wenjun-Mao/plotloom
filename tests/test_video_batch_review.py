@@ -65,7 +65,8 @@ def test_one_confirmation_selects_every_proposal_and_reconciles_lost_ack(tmp_pat
             assert len(retained) == 1
             assert all(segment.confirmation_receipt_id == receipt["id"] for segment in session.scalars(select(VideoSegmentRow)))
         playback = client.get(f"/api/v2/projects/{project_id}/video-jobs/{jobs[0]['id']}/playback")
-        assert playback.status_code == 200 and playback.content
+        assert playback.status_code == 200 and playback.content == native_batch_take
+        assert all(job["playbackSegment"]["outFrame"] == 124 and job["playbackSegment"]["derivativeHash"] == job["outputHash"] for job in jobs)
 
 
 def test_late_target_rejection_rolls_back_the_entire_selection_transaction(tmp_path, native_batch_take, monkeypatch):

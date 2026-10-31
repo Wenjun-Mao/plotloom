@@ -21,7 +21,6 @@ from plotloom.persistence.schema import (
 from plotloom.production_bridge_contracts import ProductionBridgeAcceptRequest
 from plotloom.stage_contracts import StageName
 from plotloom.story_workloads import FIXED_CHINESE_BRIEF
-from plotloom.video_segments import derive_playback_segment
 from tests.autopilot_controller_fixtures import PIN
 from tests.production_bridge_fixtures import _prepare_installable_bridge
 from tests.test_frozen_video_integrity import _job
@@ -54,13 +53,6 @@ def exportable_bridge(tmp_path, monkeypatch):
     digest = sha256(original).hexdigest()
     duration = board.shots[0].duration_units
     assert all(shot.duration_units == duration for shot in board.shots)
-    # One real decoded trim reused only for identical immutable fixture inputs.
-    derived = derive_playback_segment(original, in_frame=0, out_frame=duration * 24 // 1000, authored_duration_units=duration)
-    derived_by_hash = {digest: derived}
-    def derive_same(raw, *, in_frame, out_frame, authored_duration_units):
-        assert in_frame == 0 and out_frame == derived.out_frame and authored_duration_units == duration
-        return derived_by_hash[sha256(raw).hexdigest()]
-    monkeypatch.setattr("plotloom.project_storage.project_video.derive_playback_segment", derive_same)
     approval = None
     base = f"/api/v2/projects/{project}"
     snapshots = {}
@@ -76,7 +68,7 @@ def exportable_bridge(tmp_path, monkeypatch):
                 asset = session.get(ManagedAssetRow, selection["assetId"])
                 decision = session.get(ApprovalDecisionRow, approval["id"])
                 frozen = deepcopy(_job().snapshot)
-                frozen.update(shot=shot.model_dump(mode="json", by_alias=True),
+                frozen.update(playbackIntent="whole_take", shot=shot.model_dump(mode="json", by_alias=True),
                     sourceTiming=store.repository._media.direct_video._source_timing.binding_in_session(session, project, shot.id, duration),
                     approvalId=approval["id"], storyboardEntityRevisionId=decision.entity_revision_id,
                     languageContract=language_contract("zh-CN"),
@@ -89,14 +81,13 @@ def exportable_bridge(tmp_path, monkeypatch):
                     state="ingested", requested_seconds=8, output_uri=uri, output_hash=digest,
                     snapshot=frozen, snapshot_hash=stable_hash(frozen),
                     request_hash=stable_hash({"snapshot": frozen, "idempotencyKey": key}), created_at=utc_now(), updated_at=utc_now()))
-        result = client.post(f"{base}/video-jobs/{identifier}/segments", json={"inFrame": 0, "outFrame": derived.out_frame, "expectedSelectionRevision": 0})
+        result = client.post(f"{base}/video-jobs/{identifier}/segments", json={"expectedSelectionRevision": 0})
         assert result.status_code == 201, result.text
         result = client.post(f"{base}/video-segments/{result.json()['id']}/select", json={"expectedSelectionRevision": 0})
         assert result.status_code == 201, result.text
     def replace_first_slot():
         raw = synthetic_video(tmp_path / "alternate-slot.mp4", "maroon")
         digest = sha256(raw).hexdigest()
-        derived_by_hash[digest] = derive_playback_segment(raw, in_frame=0, out_frame=derived.out_frame, authored_duration_units=duration)
         frozen = snapshots[board.shots[0].id]
         identifier, key = new_video_job_id(), "synthetic-alternate-slot"
         with closing(storage.projects.open(project)) as store:
@@ -106,7 +97,7 @@ def exportable_bridge(tmp_path, monkeypatch):
                     state="ingested", requested_seconds=8, output_uri=uri, output_hash=digest,
                     snapshot=frozen, snapshot_hash=stable_hash(frozen),
                     request_hash=stable_hash({"snapshot": frozen, "idempotencyKey": key}), created_at=utc_now(), updated_at=utc_now()))
-        result = client.post(f"{base}/video-jobs/{identifier}/segments", json={"inFrame": 0, "outFrame": derived.out_frame, "expectedSelectionRevision": 1})
+        result = client.post(f"{base}/video-jobs/{identifier}/segments", json={"expectedSelectionRevision": 1})
         assert result.status_code == 201, result.text
         result = client.post(f"{base}/video-segments/{result.json()['id']}/select", json={"expectedSelectionRevision": 1})
         assert result.status_code == 201, result.text

@@ -5,6 +5,11 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## Whole-take playback
+
+The [implementation and qualification record](2026-10-31-whole-take-playback.md)
+owns the full-take default and informational timing deviation.
+
 ## First original H5 product: functional MVP complete
 
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks

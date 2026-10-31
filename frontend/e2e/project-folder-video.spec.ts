@@ -111,7 +111,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId(`video-segment-review-${alternative.id}`)).toContainText("已选择片段 · 正用于故事");
-  await expectAuthoredDuration(page.getByTestId(`video-segment-review-${alternative.id}`).locator('video[data-testid^="video-segment-preview-"]'));
+  await expectWholeDuration(page.getByTestId(`video-segment-review-${alternative.id}`).locator('video[data-testid^="video-segment-preview-"]'));
   await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
   const restoredPlayback = await request.get(alternativePlaybackUrl);
   expect(restoredPlayback.ok()).toBeTruthy();
@@ -166,16 +166,17 @@ async function prepareOfflineCandidate(page: Page, panel: Locator, apiOrigin: st
 
 async function selectPlaybackSegment(panel: Locator, jobId: string) {
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
+  await expect(review).toContainText("时长偏差较大 · 目标 6 秒 · 原片 8.00 秒（+33.3%）");
   await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
-  await expectAuthoredDuration(preview);
+  await expectWholeDuration(preview);
   await review.getByRole("button", { name: "选择用于故事" }).click();
   await expect(review).toContainText("已选择片段 · 正用于故事");
 }
 
-async function expectAuthoredDuration(video: Locator) {
-  const expectedSeconds = demoProject.storyboard.shots[0].durationUnits / 1000;
+async function expectWholeDuration(video: Locator) {
+  const expectedSeconds = 8; // This fixture explicitly requests an eight-second original.
   await expect.poll(async () => Math.abs(await video.evaluate(element => (element as HTMLVideoElement).duration) - expectedSeconds)).toBeLessThanOrEqual(1 / 24);
 }
 

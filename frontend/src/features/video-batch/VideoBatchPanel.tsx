@@ -124,7 +124,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
       <section aria-label="完整制作简报"><p>请逐项审阅以下完整简报与可见设置。授权会开始视频生成；助手保真检查不等于媒体接受，也不代表你亲自核对了英文。</p>{batch.manifest.targets.map(target => <ProductionBriefReview key={target.shotId} target={target} />)}</section>
       <details><summary>供应商英文候选编辑与完整指令（技术详情）</summary>
         {batch.manifest.targets.map(target => <article key={target.shotId}><h4>{target.title} · {target.shotId}</h4>
-          <p>作者播放 {target.authoredDurationUnits / 1000} 秒（{target.authoredDurationUnits * 24 / 1000} 帧）；请求源 {target.requestedSeconds} 秒 / {target.requestedFrames} 帧 · {({ generate: "新制作", prepared: "已准备原任务", observe: "跟踪原任务", reuse: "复用已有原片" })[target.mode]}</p>
+          <p>作者目标 {target.authoredDurationUnits / 1000} 秒；请求源 {target.requestedSeconds} 秒 / {target.requestedFrames} 帧 · {({ generate: "新制作", prepared: "已准备原任务", observe: "跟踪原任务", reuse: "复用已有原片" })[target.mode]}</p>
           <p>本项冻结规格 {target.args.profile_id} · 比例处理 {target.args.aspect_policy}；复用或跟踪的原任务保持其原始设置。</p>
           <p>种子 {target.args.seed} · 首尾帧及意图来源均冻结于本清单；完整编译提示词保留下方的作者对白与画面文字。</p>
           {target.sources.map(source => <Field key={source.path} label={`${source.label} · ${source.path}`}><p>{source.text}</p>

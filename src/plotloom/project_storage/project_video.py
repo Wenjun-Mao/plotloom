@@ -9,7 +9,7 @@ from plotloom.contract_identity import utc_now
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..persistence.schema import ProjectVideoDispatchRow, VideoJobRow
 from ..video_provider import VideoBackendBinding, VideoProductionContract
-from ..video_segments import derive_playback_segment
+from ..video_segments import derive_playback_segment, whole_take_playback
 from .application_store import ApplicationStore
 from .project_handle import ProjectStore
 
@@ -53,7 +53,7 @@ class ProjectVideoRepository:
         storyboard_revision: int,
         expected_selection_revision: int,
         idempotency_key: str,
-        playback_intent: str = "source_exact",
+        playback_intent: str | None = None,
         production_contract: VideoProductionContract,
         backend_binding: VideoBackendBinding | None = None,
         reviewed_directions: dict[str, Any] | None = None,
@@ -242,7 +242,7 @@ class ProjectVideoRepository:
 
     def prepare_video_segment(
         self, project_id: str, video_job_id: str, *, in_frame: int,
-        out_frame: int, expected_selection_revision: int,
+        out_frame: int | None = None, expected_selection_revision: int,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         self.store.require_recovery_acknowledged()
@@ -253,11 +253,15 @@ class ProjectVideoRepository:
         original = self.store.artifacts.get(candidate["uri"])
         if sha256(original).hexdigest() != candidate["hash"]:
             raise InvalidTransitionError("original video take hash changed")
-        derived = derive_playback_segment(
-            original, in_frame=in_frame, out_frame=out_frame,
-            authored_duration_units=candidate["durationUnits"],
-        )
-        uri = self.store.artifacts.put(derived.content, expected_hash=derived.digest)
+        if in_frame == 0 and out_frame in (None, candidate["requestedFrames"]):
+            derived = whole_take_playback(original, candidate["requestedFrames"])
+            uri = candidate["uri"]
+        else:
+            if out_frame is None:
+                raise InvalidTransitionError("an explicit trim needs its ending frame")
+            derived = derive_playback_segment(original, in_frame=in_frame, out_frame=out_frame,
+                authored_duration_units=candidate["durationUnits"])
+            uri = self.store.artifacts.put(derived.content, expected_hash=derived.digest)
         return self.store.media.video_segments.save_proposal(
             project_id, video_job_id,
             expected_selection_revision=expected_selection_revision,

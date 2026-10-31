@@ -5,7 +5,7 @@ import { Button } from "../../components";
 import { currentBridgeCut } from "../../production-bridge-handoff";
 import { sourceSecondsToMilliseconds } from "../../production-timing";
 import { isMiniMaxH3Capability } from "../../video-backends/minimax-h3";
-import { h3RequestFrameCount, h3SourceFrameCount, h3Timing } from "../../video-backends/minimax-h3-timing";
+import { closestH3Request } from "../../video-backends/minimax-h3-timing";
 import type { ProductionBridgeState, Shot, StoryboardReview, VideoBackend, VisualWorkbench } from "../../types";
 import type { MediaReadPhase } from "./useMediaWorkbenchData";
 import { revealMediaOwner } from "./media-owner-navigation";
@@ -80,17 +80,11 @@ export function ShotPreparationSummary({
   const exactSeconds = cut?.seconds ?? shot.durationUnits / 1000;
   const sourceMilliseconds = sourceSecondsToMilliseconds(exactSeconds);
   const h3Backend = isMiniMaxH3Capability(current?.backend);
-  const h3Catalog = qualified?.filter((seconds) => h3RequestFrameCount(seconds) !== undefined).sort((left, right) => left - right);
-  const coveringRequest = h3Catalog?.map((seconds) => ({ seconds, timing: h3Timing(sourceMilliseconds ?? 0, seconds, qualified) }))
-    .find(({ timing }) => timing.playbackIntent !== undefined);
-  const reviewNotice = "原片输出须通过技术核验，连续片段须明确选择；音画质量观察可选，不会自动裁切或用于故事";
+  const recommended = closestH3Request(sourceMilliseconds ?? 0, qualified);
   const durationStatus = !qualified?.length ? "未知（请求目录不可用）"
     : h3Backend
-      ? !h3Catalog?.length ? "H3 请求目录不可用，不能准备请求"
-        : sourceMilliseconds === undefined || h3SourceFrameCount(sourceMilliseconds) === undefined
-          ? `${exactSeconds} 秒不在 24 fps 整数帧网格上；不能准备 H3 请求`
-          : !coveringRequest ? `当前 H3 请求目录容量不足以覆盖 ${exactSeconds} 秒原稿；不能准备请求`
-            : `${exactSeconds} 秒原稿需要 ${coveringRequest.timing.sourceFrames} 帧；目录内 ${coveringRequest.seconds} 秒请求提供 ${coveringRequest.timing.requestFrames} 帧容量。${reviewNotice}；${current?.backend?.enabled ? "当前后端已配置，其他准备条件仍须审核" : "当前后端未配置，暂不能提交请求"}`
+      ? !recommended ? "H3 请求目录或原稿时长不可用，不能准备请求"
+        : `${exactSeconds} 秒目标；最接近的目录请求为 ${recommended.seconds} 秒（${recommended.requestFrames} 帧）。完整原片用于播放，音画质量观察可选；${current?.backend?.enabled ? "当前后端已配置，其他准备条件仍须审核" : "当前后端未配置，暂不能提交请求"}`
       : qualified.includes(exactSeconds)
         ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长、可选片段或故事播放资格`
         : `${exactSeconds} 秒不在当前请求目录（${qualified.join(" / ")} 秒）；不能通过选择其他时长绕过精确来源约束`;

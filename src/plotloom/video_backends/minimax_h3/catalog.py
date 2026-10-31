@@ -179,3 +179,9 @@ H3_QUALIFIED_DURATION_FRAMES = {
     seconds: seconds * 24 + (5 - seconds * 24 % 17) % 17
     for seconds in range(5, 16)
 }
+
+
+def closest_h3_duration(target_ms: int) -> int:
+    """Choose the qualified frame count closest to the author's pacing target."""
+    return min(H3_QUALIFIED_DURATION_FRAMES, key=lambda seconds:
+        (abs(H3_QUALIFIED_DURATION_FRAMES[seconds] * 1000 - target_ms * 24), seconds))

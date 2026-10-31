@@ -107,7 +107,7 @@ export type H3PromptPreview = {
 export type VideoJobPrepareBody = {
   approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
   requestedDurationSeconds?: number; resolution?: string; audio?: true;
-  playbackIntent?: "source_exact" | "segment_required";
+  playbackIntent?: "whole_take" | "source_exact" | "segment_required";
   aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
   allowLetterbox?: boolean; allowCenterCrop?: boolean; seed?: number; profileId?: string;
   reviewedDirections?: H3ReviewedDirections;

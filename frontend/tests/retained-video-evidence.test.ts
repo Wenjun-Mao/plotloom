@@ -75,10 +75,10 @@ it.each([null, [], "broken"])("contains malformed raw snapshot %j without invent
   expect(host.textContent).not.toContain("尚无冻结的视频请求");
 });
 
-it("preserves a genuine timing failure separately from archive guidance", async () => {
+it("preserves missing frame evidence separately from archive guidance", async () => {
   await act(async () => root.render(createElement(VideoSegmentReview, {
-    projectId: "project", job: job({ observed: { ...job().observed!, frameCount: 119 } }), readOnly: true, onRefresh: async () => {},
+    projectId: "project", job: job({ observed: { ...job().observed!, frameCount: 0 } }), readOnly: true, onRefresh: async () => {},
   })));
   expect(host.textContent).toContain("项目已归档");
-  expect(host.textContent).toContain("没有足够");
+  expect(host.textContent).toContain("尚无已核验的视频帧");
 });

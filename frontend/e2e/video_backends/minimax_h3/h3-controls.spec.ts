@@ -23,7 +23,7 @@ test("H3 browser exposes quality and duration without granting playback eligibil
   const duration = panel.getByLabel("H3 时长（已审核）");
   await expect(quality).toHaveValue("8");
   await expect(resolution).toHaveValue("minimax_h3_quality8_portrait_576x1024_v2");
-  await expect(duration).toHaveValue("5");
+  await expect(duration).toHaveValue("6");
   await expect(panel.getByText("先为当前镜头审核选择一张关键帧")).toBeVisible();
   await quality.selectOption("1");
   await expect(resolution).toHaveValue("minimax_h3_quality1_portrait_576x1024_v2");
@@ -34,7 +34,7 @@ test("H3 browser exposes quality and duration without granting playback eligibil
   }
   await duration.selectOption("15");
   await expect(panel.getByTestId("h3-authored-timing")).toContainText("362 帧");
-  await expect(panel.getByTestId("h3-authored-timing")).toContainText("原稿需要 144 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择");
+  await expect(panel.getByTestId("h3-authored-timing")).toContainText("技术核验后可选择完整原片。与目标时长相差超过 15% 时显示提示。");
   await expect(panel.getByTestId("h3-directions-review").locator("button").first()).toBeDisabled();
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 1080 });

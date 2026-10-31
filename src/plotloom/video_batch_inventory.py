@@ -9,7 +9,7 @@ from .persistence.project.autopilot_closure import material_closure
 from .production_brief import production_brief
 from .project_storage.project_video import ProjectVideoRepository
 from .provider_budgets import exceeds_budget
-from .video_backends.minimax_h3.catalog import H3_QUALIFIED_DURATION_FRAMES
+from .video_backends.minimax_h3.catalog import closest_h3_duration
 from .video_provider import VideoProviderError
 
 
@@ -40,19 +40,14 @@ def prepare_args(store, shot, approval, setup, *, seed):
             "resolution": request.resolution, "audio": request.audio, "aspect_policy": setup.aspect_policy,
             "allow_letterbox": request.allow_letterbox, "allow_center_crop": request.allow_center_crop,
             "seed": request.seed, "profile_id": setup.profile_id, "playback_intent": request.playback_intent}
-    units = shot.duration_units
-    if units <= 0 or units * 24 % 1000:
-        raise InvalidTransitionError(f"{shot.id}: authored duration is not frame-exact at 24 fps")
-    duration = next((seconds for seconds,frames in sorted(H3_QUALIFIED_DURATION_FRAMES.items()) if frames * 1000 >= units * 24), None)
-    if duration is None:
-        raise InvalidTransitionError(f"{shot.id}: no qualified source duration covers this shot")
+    duration = closest_h3_duration(shot.duration_units)
     return {"approval_id": approval.id, "shot_id": shot.id, "storyboard_revision": approval.subject_revision,
         "expected_selection_revision": store.media.visual_selection_revision(store.manifest.project_id),
         "idempotency_key": "batch-preview-" + shot.id, "automatic_retry_limit": setup.automatic_retry_limit, "requested_seconds": duration,
         "resolution": None, "audio": True, "aspect_policy": setup.aspect_policy,
         "allow_letterbox": setup.aspect_policy == "contain_pad", "allow_center_crop": setup.aspect_policy == "cover_center_crop",
         "seed": seed, "profile_id": setup.profile_id,
-        "playback_intent": "source_exact" if H3_QUALIFIED_DURATION_FRAMES[duration]*1000 == units*24 else "segment_required"}
+        "playback_intent": "whole_take"}
 
 
 def inventory(store, video, setup, *, rejected_history=()):
@@ -106,6 +101,11 @@ def inventory(store, video, setup, *, rejected_history=()):
                     "playback_intent": frozen["playbackIntent"]}
                 preview = direction_sources(frozen) | {"snapshot": frozen}
             else:
+                if job and job["state"] == "prepared" and not manual:
+                    # Adoption keeps the job's frozen generation timing; this batch
+                    # owns its prospective playback selection independently.
+                    args.update(requested_seconds=job["snapshot"]["request"]["durationSeconds"],
+                                playback_intent=job["snapshot"]["playbackIntent"])
                 preview = video.prepare(store, **args, reviewed_directions=None, preview_only=True)
                 if job:
                     frozen = {key: value for key,value in job["snapshot"].items() if key not in {"reviewedDirections", "compiledPrompt"}}
@@ -131,7 +131,8 @@ def inventory(store, video, setup, *, rejected_history=()):
     from .language_policy import language_contract
     return {"version": "video-batch.manifest.v2", "languageContract": language_contract(store.project().brief.language), "projectId": project_id, "sourceBinding": source_binding(store),
         "setup": setup.model_dump(mode="json", by_alias=True), "scopeShotIds": sorted(seen), "kept": kept,
-        "targets": targets, "blockers": blockers, "newJobs": len(new_targets), "requestedSeconds": seconds,
+        "targets": targets, "blockers": blockers,
+        "wholeTakePlayback": not setup.single_request or setup.single_request.playback_intent in (None, "whole_take"), "newJobs": len(new_targets), "requestedSeconds": seconds,
         "maxConcurrentJobs": 1, "attemptsPerTarget": 1 + setup.automatic_retry_limit, "nativeAudio": True, "monetaryEstimate": None,
         "backend": video._configured_backend_binding().snapshot()}
 

@@ -73,6 +73,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   const reconciled = await freezeReviewedFixtureDirections(panel, workbench.apiOrigin, "20261011");
   expect(reconciled).toMatchObject({ state: "ingested", error: null });
   const segmentReview = panel.getByTestId(`video-segment-review-${reconciled.id}`);
+  await segmentReview.getByRole("checkbox", { name: "手动截取目标时长" }).check();
   const frameInput = segmentReview.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });
   await frameInput.fill("24");
   await segmentReview.getByRole("button", { name: "准备播放片段" }).click();

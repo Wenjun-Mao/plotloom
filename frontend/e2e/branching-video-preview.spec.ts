@@ -122,6 +122,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOr
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   const job = await freezeReviewedFixtureDirections(panel, apiOrigin);
   const review = panel.getByTestId(`video-segment-review-${job.id}`);
+  await review.getByRole("checkbox", { name: "手动截取目标时长" }).check();
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
   await review.getByRole("button", { name: "准备播放片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');

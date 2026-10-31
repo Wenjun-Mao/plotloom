@@ -33,6 +33,8 @@ pytestmark = pytest.mark.usefixtures("offline_media")
         (6_000, 24, 168, "segment_required"),
         (7_500, 6, 186, "segment_required"),
         (8_000, 0, 192, "source_exact"),
+        (9_301, 0, 192, "whole_take"),
+        (6_707, 0, 192, "whole_take"),
     ],
 )
 def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
@@ -113,8 +115,19 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
         ).revision,
     )
     store.close()
-    approval, context = _approved_keyframe(client, storage, project_id)
+    approval, context = _approved_keyframe(client, storage, project_id, author_frame_grid=False)
     base = f"/api/v2/projects/{project_id}"
+    if playback_intent == "whole_take":
+        # Ordinary direct API preparation can omit both duration and playback intent.
+        preview = client.post(f"{base}/video-jobs/prompt-preview", json={
+            "approvalId": approval["id"], "shotId": context["shot"].id, "storyboardRevision": context["revision"],
+            "expectedSelectionRevision": context["selection"]["selectionRevision"], "idempotencyKey": "whole-take-default",
+            "aspectPolicy": "reject_mismatch", "seed": 31,
+        })
+        assert preview.status_code == 200, preview.text
+        expected_seconds = 9 if authored_units == 9301 else 6
+        assert preview.json()["snapshot"]["request"]["durationSeconds"] == expected_seconds
+        assert preview.json()["snapshot"]["playbackIntent"] == "whole_take"
     prepared = client.post(
         f"{base}/video-jobs",
         json=_reviewed_video_body(
@@ -164,7 +177,10 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
     )
     assert proposed.status_code == 201, proposed.text
     segment = proposed.json()
-    assert segment["derivativeProbe"]["frameCount"] == authored_units * 24 // 1_000
+    assert segment["derivativeProbe"]["frameCount"] == out_frame - in_frame
+    if playback_intent == "whole_take":
+        assert segment["derivativeHash"] == sha256(source.read_bytes()).hexdigest()
+        assert segment["authoredDurationUnits"] == authored_units
     assert (
         client.get(f"{base}/video-segments/{segment['id']}/preview").status_code == 200
     )

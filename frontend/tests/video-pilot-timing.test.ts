@@ -42,7 +42,7 @@ async function render(durationUnits: number, requestSeconds: number) {
   return Array.from(host.querySelectorAll("button")).find((button) => button.textContent === "读取当前来源")!;
 }
 
-it.each([[2500, 5, 124, "segment_required"], [6000, 6, 158, "segment_required"], [12000, 12, 294, "segment_required"], [8000, 8, 192, "source_exact"]])(
+it.each([[1001, 5, 124, "whole_take"], [6000, 5, 124, "whole_take"], [16000, 15, 362, "whole_take"], [2500, 5, 124, "whole_take"], [6000, 6, 158, "whole_take"], [12000, 12, 294, "whole_take"], [8000, 8, 192, "whole_take"]])(
   "binds source %s ms to the actual %s-second/%s-frame request and %s intent", async (milliseconds, seconds, frames, intent) => {
     const preview = vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValue({ sourceHash: "a".repeat(64), sources: [], compiledPrompt: null });
     const load = await render(Number(milliseconds), Number(seconds));
@@ -52,12 +52,6 @@ it.each([[2500, 5, 124, "segment_required"], [6000, 6, 158, "segment_required"],
     expect(preview).toHaveBeenCalledWith("project", expect.objectContaining({ requestedDurationSeconds: seconds, playbackIntent: intent }));
   },
 );
-
-it.each([[1001, 5], [6000, 5], [16000, 15]])("does not read a prompt for off-grid or uncovered source %s ms/request %s", async (milliseconds, seconds) => {
-  const preview = vi.spyOn(plotloomApi, "previewH3Prompt");
-  expect((await render(milliseconds, seconds)).disabled).toBe(true);
-  expect(preview).not.toHaveBeenCalled();
-});
 
 it("does not infer a qualified request from an unavailable catalog", async () => {
   vi.mocked(plotloomApi.getVideoBackend).mockResolvedValue({ ...backend, qualifiedDurationSeconds: undefined });

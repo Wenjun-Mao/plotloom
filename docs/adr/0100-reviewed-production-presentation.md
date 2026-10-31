@@ -70,8 +70,7 @@ capability projection identifies H3 through `enabled: false` and
 `reason: h3_video_not_configured` when no adapter is configured; this permits
 read-only catalog explanation, never configured-backend controls or dispatch.
 An unrelated adapter or a generic duration list does not identify H3.
-A covering request requires
-segment review unless its frame count exactly matches the authored duration.
+The [whole-take amendment to ADR 0082](0082-proposed-production-playback-timing.md#whole-take-playback-amendment-2026-10-31) supersedes the original covering-request and exact-window display policy. Show target time, qualified request and measured take distinctly. A large deviation is advisory.
 This replaces the obsolete six-second/eight-second display exception without
 changing canonical timing, provider contracts or media selection authority.
 

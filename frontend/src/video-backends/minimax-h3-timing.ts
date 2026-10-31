@@ -4,28 +4,24 @@ export function h3RequestFrameCount(seconds: number): number | undefined {
   return 17 * Math.ceil((seconds * 24 - 5) / 17) + 5;
 }
 
-export function h3SourceFrameCount(milliseconds: number): number | undefined {
-  const scaled = milliseconds * 24;
-  if (!Number.isSafeInteger(milliseconds) || milliseconds <= 0
-    || !Number.isSafeInteger(scaled) || scaled % 1000 !== 0) return undefined;
-  return scaled / 1000;
+export function h3Timing(targetMs: number, seconds: number, qualified: readonly number[] | undefined) {
+  const requestFrames = qualified?.includes(seconds) ? h3RequestFrameCount(seconds) : undefined;
+  const playbackIntent = requestFrames && Number.isSafeInteger(targetMs) && targetMs > 0 ? "whole_take" as const : undefined;
+  return { requestFrames, playbackIntent };
 }
 
-/** Catalog, source frame grid and request capacity are independent requirements. */
-export function h3Timing(
-  sourceMilliseconds: number,
-  requestedSeconds: number,
-  qualifiedSeconds: readonly number[] | undefined,
-): {
-  sourceFrames: number | undefined;
-  requestFrames: number | undefined;
-  playbackIntent: "source_exact" | "segment_required" | undefined;
-} {
-  const sourceFrames = h3SourceFrameCount(sourceMilliseconds);
-  const requestFrames = qualifiedSeconds?.includes(requestedSeconds)
-    ? h3RequestFrameCount(requestedSeconds) : undefined;
-  const playbackIntent = sourceFrames !== undefined && requestFrames !== undefined && sourceFrames <= requestFrames
-    ? sourceFrames === requestFrames ? "source_exact" : "segment_required"
-    : undefined;
-  return { sourceFrames, requestFrames, playbackIntent };
+export function closestH3Request(targetMs: number, qualified: readonly number[] | undefined) {
+  return qualified?.map(seconds => ({ seconds, ...h3Timing(targetMs, seconds, qualified) }))
+    .filter(item => item.playbackIntent)
+    .sort((a, b) => Math.abs(a.requestFrames! * 1000 - targetMs * 24) - Math.abs(b.requestFrames! * 1000 - targetMs * 24)
+      || a.seconds - b.seconds)[0];
+}
+
+/** Compare the measured original with the target before rounding the percentage for display. */
+export function durationDeviationNotice(targetMs: number, actualSeconds: number): string | undefined {
+  if (!(targetMs > 0 && actualSeconds > 0)) return undefined;
+  const targetUs = targetMs * 1000;
+  const delta = Math.round(actualSeconds * 1_000_000) - targetUs;
+  if (Math.abs(delta) * 100 <= targetUs * 15) return undefined;
+  return `时长偏差较大 · 目标 ${targetMs / 1000} 秒 · 原片 ${actualSeconds.toFixed(2)} 秒（${delta > 0 ? "+" : ""}${(100 * delta / targetUs).toFixed(1)}%）`;
 }

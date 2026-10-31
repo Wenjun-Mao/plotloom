@@ -205,6 +205,25 @@ def _probe(path: Path, *, strict_container: bool = False) -> SegmentProbe:
     )
 
 
+def whole_take_playback(content: bytes, expected_frames: int) -> DerivedSegment:
+    """Reuse the original encoded picture and sound without trimming or re-encoding."""
+    if len(content) > 128 * 1024 * 1024:
+        raise VideoSegmentError("source take is too large for bounded local playback")
+    with TemporaryDirectory(prefix="plotloom-whole-take-") as directory:
+        path = Path(directory) / "source.mp4"
+        path.write_bytes(content)
+        probe = _probe(path)
+    if probe.frame_count != expected_frames:
+        raise VideoSegmentError("whole take frame count differs from the frozen request")
+    video_end = probe.video_start + Fraction(probe.frame_count, 24)
+    if abs(probe.format_duration - Fraction(expected_frames, 24)) > Fraction(1, 24):
+        raise VideoSegmentError("whole take duration differs from the qualified media timeline")
+    if probe.audio_start > probe.video_start + Fraction(1, 24) or probe.audio_end < video_end - Fraction(1, 24):
+        raise VideoSegmentError("native audio does not cover the whole take")
+    evidence = probe.evidence()
+    return DerivedSegment(content, evidence, evidence, 0, probe.frame_count)
+
+
 def derive_playback_segment(content: bytes, *, in_frame: int, out_frame: int, authored_duration_units: int) -> DerivedSegment:
     """Return verified MP4 bytes; caller persists them only as a proposal."""
 

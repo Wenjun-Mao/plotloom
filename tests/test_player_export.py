@@ -33,6 +33,12 @@ def test_export_real_installed_source_api_selection_reopen_and_snapshot(exportab
         archive.extractall(tmp_path / "standalone")
     with closing(storage.projects.open(project)) as store:
         receipt = json.loads(store.artifacts.get(receipt_uri))
+        for media in receipt["media"]:
+            assert media["playbackDurationUnits"] == 8000
+            assert media["durationUnits"] == 3000
+            assert media["originalHash"] == media["hash"]
+            assert (media["inFrame"], media["outFrame"]) == (0, 192)
+        assert all(clip["durationUnits"] == 8000 for node in public["nodes"] for clip in node["clips"])
         assert receipt["archiveHash"] == sha256(result.content).hexdigest()
         assert receipt["presentation"]["admissionId"] == request["admissionId"]
         with store.repository._read() as session:
@@ -69,13 +75,14 @@ def test_export_real_installed_source_api_selection_reopen_and_snapshot(exportab
     import plotloom.player_export as exporting
     check = exporting._check_media
     mutated = False
-    def change_during_copy(content, frames):
+    def change_during_copy(content, frames, **kwargs):
         nonlocal mutated
-        check(content, frames)
+        actual_ms = check(content, frames, **kwargs)
         if not mutated:
             mutated = True
             with closing(storage.projects.open(project)) as store, store.repository._write() as session:
                 session.scalar(select(VideoCandidateSelectionRow)).revision += 1
+        return actual_ms
     monkeypatch.setattr(exporting, "_check_media", change_during_copy)
     raced = client.post(f"/api/v2/projects/{project}/player-exports", json=request)
     assert raced.status_code in {404, 409}, raced.text

@@ -78,13 +78,16 @@ def capture_player_export(repository, project_id, request, *, in_session=None):
                         raise InvalidTransitionError("selected media source asset is missing")
                     sources.append({"assetId": asset.id, "uri": asset.original_uri, "hash": asset.original_hash})
                 evidence["sourceArtifacts"] = sources
-                if (evidence["outFrame"] - evidence["inFrame"]) * 1000 != shot["durationUnits"] * 24:
-                    raise InvalidTransitionError("selected segment does not cover the exact authored shot")
+                playback_ms = evidence.pop("playbackDurationUnits")
+                if evidence.pop("authoredDurationUnits") != shot["durationUnits"]:
+                    raise InvalidTransitionError("selected media belongs to a different authored shot duration")
                 path = f"media/{evidence['hash']}.mp4"
                 media.append(evidence | {"shotId": shot["id"], "jobId": selection.selected_video_job_id,
                     "path": path, "durationUnits": shot["durationUnits"]})
+                if playback_ms != shot["durationUnits"]:
+                    media[-1]["playbackDurationUnits"] = playback_ms
                 clips.append({"slot": next((k for k,v in request.slot_bindings.items() if v == shot["id"]), shot["id"]),
-                    "src": path, "durationUnits": shot["durationUnits"],
+                    "src": path, "durationUnits": playback_ms,
                     "dialogue": [{"speaker": names.get(cues[c]["speakerId"], cues[c]["voiceOver"] or ""),
                         "text": cues[c]["text"]} for c in shot["cueIds"]],
                     "visibleText": [t["text"] for t in shot.get("visibleTexts", [])]})

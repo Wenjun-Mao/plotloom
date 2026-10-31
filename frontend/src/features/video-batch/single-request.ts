@@ -5,7 +5,7 @@ import { sameCodexOperator } from "../../operator-attribution";
 const requestKeys = ["approvalId", "shotId", "storyboardRevision", "expectedSelectionRevision", "idempotencyKey", "requestedDurationSeconds",
   "playbackIntent", "resolution", "audio", "aspectPolicy", "allowLetterbox", "allowCenterCrop", "seed", "profileId", "automaticRetryLimit"] as const;
 function normalized(request: VideoJobPrepareBody) {
-  const values = { requestedDurationSeconds: null, playbackIntent: "source_exact", resolution: null, audio: null, aspectPolicy: null,
+  const values = { requestedDurationSeconds: null, playbackIntent: null, resolution: null, audio: null, aspectPolicy: null,
     allowLetterbox: false, allowCenterCrop: false, seed: null, profileId: null, automaticRetryLimit: 0, ...request };
   return requestKeys.map(key => values[key] ?? null);
 }

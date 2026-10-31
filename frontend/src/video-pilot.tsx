@@ -15,7 +15,7 @@ import { useH3MediaIdentity } from "./h3-review-context";
 import type { MediaReadPhase } from "./features/media/useMediaWorkbenchData";
 import { VideoEndFrameChoice } from "./video-end-frame";
 import { useConfirmation } from "./confirmation";
-import { h3Timing } from "./video-backends/minimax-h3-timing";
+import { closestH3Request, h3Timing } from "./video-backends/minimax-h3-timing";
 import { shotLabel } from "./shot-label";
 import { nodeFootageGaps } from "./node-footage";
 import { verifiedVideoGeometry } from "./features/media/verified-video-geometry";
@@ -226,7 +226,8 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
   const jobs = videoReadCurrent ? loadedJobs : [];
   const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, shot?.id, selectionRevision, jobs.map(job => [job.id, job.selectionRevision, job.state, job.selected, job.current, job.segments?.map(segment => segment.id)])]), readOnly);
   const [h3ProfileId, setH3ProfileId] = useState("");
-  const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
+  const [chosenSeconds, setH3DurationSeconds] = useState<number>();
+  const h3DurationSeconds = chosenSeconds ?? closestH3Request(shot?.durationUnits ?? 0, backend?.qualifiedDurationSeconds)?.seconds ?? 5;
   const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
   const endFrameScope = JSON.stringify([projectId, shot?.id, approvalId, storyboardRevision]);
   const [endFrameState, setEndFrameState] = useState<{ scope: string; decision: VideoEndFrameDecision } | null>(null);
@@ -257,8 +258,8 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
     }
   };
   useEffect(() => {
-    setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
-  }, [projectId]);
+    setH3ProfileId(""); setH3DurationSeconds(undefined); setH3InputFrameMode("reject_mismatch");
+  }, [projectId, shot?.id]);
   useEffect(() => {
     setLoadedContext(undefined); setError("");
     void refresh().catch((reason) => {
@@ -279,7 +280,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
     const h3 = isMiniMaxH3Backend(backend);
     const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
     if (h3 && !profile) throw new Error("请先选择 H3 视频规格");
-    if (h3 && !currentH3Timing.playbackIntent) throw new Error("当前 H3 请求目录、原稿帧网格或请求容量不适用");
+    if (h3 && !currentH3Timing.playbackIntent) throw new Error("当前 H3 请求目录或目标时长不可用");
     return {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
@@ -408,7 +409,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && shot && <small className={h3TimingMismatch ? "notice warning" : "notice"} data-testid="h3-authored-timing">
       原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames ?? "未知"} 帧{h3RequestedFrames !== undefined && `（约 ${(h3RequestedFrames / 24).toFixed(2)} 秒）`}。
-      {h3TimingMismatch ? "当前请求目录不适用，或无法覆盖 24 fps 帧网格上的原稿时长，请审阅请求与原稿。" : `原稿需要 ${currentH3Timing.sourceFrames} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
+      {h3TimingMismatch ? "请核对目标时长与当前 H3 请求目录。" : "技术核验后可选择完整原片。与目标时长相差超过 15% 时显示提示。"}
     </small>}
     {h3 && projectId && shot && <VideoEndFrameChoice key={endFrameScope} projectId={projectId} shotId={shot.id}
       approvalId={approvalId} storyboardRevision={storyboardRevision} profile={selectedProfile}

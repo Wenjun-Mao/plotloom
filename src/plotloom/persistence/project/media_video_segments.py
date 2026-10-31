@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
 from typing import Any
 
 from sqlalchemy import select
@@ -79,6 +80,19 @@ class VideoSegmentPersistence:
                 or not isinstance(row.derivative_hash, str) or len(row.derivative_hash) != 64):
             return False
         frames = row.out_frame - row.in_frame
+        original_bytes = row.derivative_hash == row.original_hash
+        if original_bytes:
+            try:
+                duration = Fraction(row.source_probe["formatDuration"])
+                if abs(duration - Fraction(frames, 24)) > Fraction(1, 24):
+                    return False
+            except (KeyError, ValueError, TypeError, ZeroDivisionError, OverflowError):
+                return False
+        whole_original = (original_bytes and row.derivative_uri == job.output_uri
+            and row.in_frame == 0 and row.out_frame == row.source_probe["frameCount"]
+            and row.source_probe == row.derivative_probe
+            and frames == job.snapshot["request"].get("frameCount"))
+
         return bool(
             job.state == "ingested" and isinstance(job.output_uri, str) and job.output_uri
             and isinstance(job.output_hash, str) and len(job.output_hash) == 64
@@ -91,7 +105,7 @@ class VideoSegmentPersistence:
             and row.proposal_hash == stable_hash(cls._immutable(row))
             and row.authored_duration_units == binding["durationUnits"]
             and row.in_frame >= 0 and frames > 0 and row.out_frame <= row.source_probe["frameCount"]
-            and frames * 1_000 == row.authored_duration_units * 24
+            and (whole_original if original_bytes else frames * 1_000 == row.authored_duration_units * 24)
             and row.source_probe.get("fps") == "24/1"
             and row.derivative_probe.get("frameCount") == frames
             and row.derivative_probe.get("fps") == "24/1"
@@ -110,24 +124,16 @@ class VideoSegmentPersistence:
             source = self._source(job)
             if job.snapshot.get("provider", {}).get("adapterId") != "minimax_h3_gateway":
                 raise InvalidTransitionError("segment proposal requires a qualified H3 take")
-            authored_units = source["durationUnits"]
-            request = job.snapshot.get("request", {})
-            expected_frames = request.get("frameCount")
-            if (type(authored_units) is not int or authored_units <= 0
-                    or authored_units * 24 % 1_000 != 0
-                    or type(expected_frames) is not int
-                    or expected_frames * 1_000 < authored_units * 24):
-                raise InvalidTransitionError("segment proposal needs a frame-representable shot covered by its frozen H3 request")
-            expected_intent = "source_exact" if expected_frames * 1_000 == authored_units * 24 else "segment_required"
-            if job.snapshot.get("playbackIntent") != expected_intent:
-                raise InvalidTransitionError("video job lacks its explicit authored-to-request timing intent")
+            if not frozen_video_request_is_valid(job):
+                raise InvalidTransitionError("segment proposal requires a valid frozen H3 request")
             shot_id = job.snapshot["shot"]["id"]
             selection = self._selection(session, project_id, shot_id)
             actual = selection.revision if selection is not None else 0
             if actual != expected_selection_revision:
                 raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual)
             return {"uri": job.output_uri, "hash": job.output_hash, "source": source,
-                    "durationUnits": source["durationUnits"], "shotId": shot_id}
+                    "durationUnits": source["durationUnits"], "shotId": shot_id,
+                    "requestedFrames": job.snapshot["request"]["frameCount"]}
 
     def save_proposal(
         self, project_id: str, video_job_id: str, *, expected_selection_revision: int,
@@ -271,6 +277,9 @@ class VideoSegmentPersistence:
         if segment is None or not self._valid_metadata(segment, job) or not segment_confirmation_valid(session, segment):
             raise NotFoundError("video job has no current reviewed playback segment")
         return {"uri": segment.derivative_uri, "hash": segment.derivative_hash, "mimeType": "video/mp4",
+                "authoredDurationUnits": segment.authored_duration_units,
+                "playbackDurationUnits": (round(Fraction(segment.source_probe["formatDuration"]) * 1000)
+                    if segment.derivative_hash == job.output_hash else segment.authored_duration_units),
                 "segmentId": segment.id, "selectionRevision": selection.revision,
                 "inFrame": segment.in_frame, "outFrame": segment.out_frame,
                 "originalHash": segment.original_hash, "originalUri": job.output_uri,

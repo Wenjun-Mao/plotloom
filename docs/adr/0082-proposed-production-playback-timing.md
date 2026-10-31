@@ -2,6 +2,26 @@
 
 **Status:** Accepted for the bounded reviewed-playback-segment implementation, 2026-09-23. This authorizes synthetic-media contract work and an explicit creator-reviewed local derivative, not provider generation, source retiming, or creative/media acceptance. The original proposal text below remains the decision basis; its former open product choices are settled by the approval noted under “First slice.”
 
+## Whole-take playback amendment (2026-10-31)
+
+A storyboard duration expresses pacing intent. For ordinary H3 production,
+choose a supported request closest to that target in expected playback time.
+An explicit supported request can produce a take shorter or longer than the
+target. Freeze the authored target and the actual request independently.
+
+Use the measured complete original by default, preserving its bytes and native
+audio. Explicit selection, source binding, technical checks and frozen dispatch
+authority still apply. Compare the measured playback length with the authored
+target. A difference greater than 15% in either direction gets an informational
+high-duration-deviation label. Exactly 15% is within tolerance. The label does
+not block selection, playback or export. Choices follow natural media completion.
+Record actual playback time for standalone resume and retain the authored target
+in the private build evidence.
+
+This supersedes the mandatory exact-duration window for ordinary new takes.
+Existing explicitly chosen edits and immutable request/selection evidence retain
+their meaning. Optional editing remains an explicit operation.
+
 ## Proposed follow-on: pacing-first timing and broader H3 inputs (2026-09-25)
 
 ### F5 review timing choice for the longer trial

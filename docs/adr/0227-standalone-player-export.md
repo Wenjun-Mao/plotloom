@@ -40,6 +40,11 @@ truncates abandoned route history.
 
 ## Consequences
 
+Under the [whole-take amendment to ADR 0082](0082-proposed-production-playback-timing.md#whole-take-playback-amendment-2026-10-31),
+the player uses the selected media's measured playback length for resume and
+plays through its natural end. The private source binding retains the storyboard
+target separately. A pacing deviation carries no export restriction.
+
 Provider-free export and real-browser playback precede fresh story generation.
 Selection remains a technical use decision under ADR 0226. Final qualification
 also checks the exact installed package, all authored routes, browser requests,

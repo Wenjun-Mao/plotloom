@@ -372,8 +372,11 @@ class VideoBatchService:
             if job["state"] == "ingested" and shot_id not in view["execution"]["segments"]:
                 if job["reviews"] and job["reviews"][-1]["decision"] == "reject":
                     raise InvalidTransitionError(f"{shot_id}: latest review rejected this take")
-                frames = target["authoredDurationUnits"] * 24 // 1000
-                eligible = [segment for segment in job["segments"] if segment["current"]]
+                whole_take = view["manifest"].get("wholeTakePlayback", False)
+                frames = target["requestedFrames"] if whole_take else target["authoredDurationUnits"] * 24 // 1000
+                eligible = [segment for segment in job["segments"] if segment["current"] and
+                    (not whole_take or segment["derivativeHash"] == job["outputHash"] and segment["inFrame"] == 0
+                     and segment["outFrame"] == frames)]
                 proposal = eligible[-1] if eligible else repository.prepare_video_segment(project_id, identifier,
                     in_frame=0, out_frame=frames, expected_selection_revision=target["selectionRevision"])
                 owner.change(project_id, view["id"], mutate=lambda row: setattr(row, "execution", row.execution | {"segments": row.execution["segments"] | {shot_id: proposal["id"]}}))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ...production_timing import source_seconds_to_milliseconds
+from ...production_timing import h3_playback_intent_valid, source_seconds_to_milliseconds
 from ...video_provider import VideoProductionContract
 from ..codec import stable_hash
 from ..schema import VideoJobRow
@@ -145,11 +145,7 @@ def frozen_video_request_is_valid(row: VideoJobRow) -> bool:
         duration = snapshot["shot"]["durationUnits"]
         frames = request.get("frameCount")
         if (type(request.get("fps")) is not int or request["fps"] != 24
-                or not _positive_integer(frames) or duration * 24 % 1_000
-                or frames * 1_000 < duration * 24
-                or not isinstance(snapshot.get("endFrame"), dict)):
-            return False
-        intent = "source_exact" if frames * 1_000 == duration * 24 else "segment_required"
-        if snapshot.get("playbackIntent") != intent:
+                or not isinstance(snapshot.get("endFrame"), dict)
+                or not h3_playback_intent_valid(snapshot.get("playbackIntent"), duration, frames)):
             return False
     return True

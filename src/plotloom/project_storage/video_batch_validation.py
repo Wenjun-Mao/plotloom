@@ -26,6 +26,9 @@ def assert_video_batch_contracts(connection):
             if not {"maxJobs", "maxRequestedSeconds"}.issubset(manifest["setup"]):
                 raise ValueError("frozen batch setup requires explicit maxJobs and maxRequestedSeconds; null means unlimited")
             setup = BatchSetup.model_validate(manifest["setup"])
+            if "wholeTakePlayback" in manifest and manifest["wholeTakePlayback"] is not (
+                    setup.single_request is None or setup.single_request.playback_intent in (None, "whole_take")):
+                raise ValueError("batch playback policy differs from its frozen setup")
             from ..video_batch_replacement import assert_rejected_history
             assert_rejected_history(lambda sql, params: connection.execute(sql, params).fetchall(), project_id, manifest)
             ids = [target["shotId"] for target in manifest["targets"]] + [fact["shotId"] for fact in manifest["kept"]]

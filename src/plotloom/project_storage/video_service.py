@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from ..stage_contracts import StageName
+from ..video_backends.minimax_h3.catalog import closest_h3_duration
 from ..video_ingestion import ObservedVideo, probe_video
 from ..video_jobs import VideoJobService
 from ..video_provider import (
@@ -42,9 +44,14 @@ class ProjectVideoService:
         return self._application.video_accounting_budget()
 
     def prepare(self, store: ProjectStore, **kwargs: Any) -> dict[str, Any]:
-        return self._job_service(
-            store, backend_binding=self._configured_backend_binding()
-        ).prepare(store.manifest.project_id, **kwargs)
+        binding = self._configured_backend_binding()
+        if (binding.adapter_id == "minimax_h3_gateway" and kwargs.get("requested_seconds") is None
+                and kwargs.get("playback_intent") in (None, "whole_take")):
+            board = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
+            shot = next((shot for shot in board.shots if shot.id == kwargs["shot_id"]), None)
+            if shot is not None:
+                kwargs["requested_seconds"] = closest_h3_duration(shot.duration_units)
+        return self._job_service(store, backend_binding=binding).prepare(store.manifest.project_id, **kwargs)
 
     def submit(self, store: ProjectStore, video_job_id: str) -> dict[str, Any]:
         repository = self._repository(store)

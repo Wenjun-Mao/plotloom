@@ -34,7 +34,7 @@ def test_whole_job_review_annotations_are_optional_and_trimmed() -> None:
     assert whitespace.reviewer == "" and whitespace.note == "短"
 
 
-def test_h3_off_grid_authored_shot_is_rejected_before_review_or_dispatch(
+def test_explicit_exact_trim_refuses_off_grid_shot_before_dispatch(
     tmp_path: Path,
 ) -> None:
     provider = FakeH3()
@@ -56,13 +56,13 @@ def test_h3_off_grid_authored_shot_is_rejected_before_review_or_dispatch(
             "shotId": context["shot"].id,
             "storyboardRevision": context["revision"],
             "expectedSelectionRevision": context["selection"]["selectionRevision"],
-            "idempotencyKey": "off-grid-source-must-fail",
+            "idempotencyKey": "off-grid-explicit-trim",
             "aspectPolicy": "reject_mismatch",
             "seed": 31,
             "playbackIntent": "segment_required",
         },
     )
-    assert response.status_code == 409 and "not representable" in response.text
+    assert response.status_code == 409 and "invalid playback timing for its selected intent" in response.text
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"] == []
     assert provider.submits == []
 

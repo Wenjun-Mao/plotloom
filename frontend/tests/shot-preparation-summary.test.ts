@@ -34,15 +34,15 @@ async function render(seconds: number, projectId = "one", mediaReadPhase: "loadi
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
-it("shows the conditional eight-to-six path while keeping disabled dispatch distinct", async () => {
+it("shows the nearest whole take while keeping disabled dispatch distinct", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(6));
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, adapterId: "minimax_h3_gateway", qualifiedDurationSeconds: [5, 8] });
   await render(6);
   expect(host.textContent).toContain("精确来源时长 6 秒");
   expect(host.textContent).toContain("缺少当前批准");
   expect(host.textContent).toContain("未配置；不能准备或提交视频");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("6 秒原稿需要 144 帧；目录内 8 秒请求提供 192 帧容量");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续片段须明确选择；音画质量观察可选");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("6 秒目标；最接近的目录请求为 5 秒（124 帧）");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("完整原片用于播放，音画质量观察可选");
   expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("当前后端未配置，暂不能提交请求");
   expect(host.textContent).not.toContain("已明确选择");
 });
@@ -57,8 +57,8 @@ it("does not call a catalog-matching eight-second shot ready when prerequisites 
   expect(host.textContent).toContain("批准分镜、审核素材和选用故事片段仍需在对应步骤完成");
 });
 
-it.each([[2.5, 60, 5, 124], [6, 144, 6, 158], [8, 192, 8, 192]])(
-  "explains %s-second source coverage using the actual disabled H3 API projection", async (seconds, sourceFrames, requestSeconds, requestFrames) => {
+it.each([[2.5, 5, 124], [6, 6, 158], [8, 8, 192]])(
+  "explains %s-second source coverage using the actual disabled H3 API projection", async (seconds, requestSeconds, requestFrames) => {
     vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(seconds));
     vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
       enabled: false, tracksPaidWanPilot: false, reason: "h3_video_not_configured",
@@ -66,7 +66,7 @@ it.each([[2.5, 60, 5, 124], [6, 144, 6, 158], [8, 192, 8, 192]])(
     });
     await render(seconds);
     const timing = host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent;
-    expect(timing).toContain(`${seconds} 秒原稿需要 ${sourceFrames} 帧；目录内 ${requestSeconds} 秒请求提供 ${requestFrames} 帧容量`);
+    expect(timing).toContain(`${seconds} 秒目标；最接近的目录请求为 ${requestSeconds} 秒（${requestFrames} 帧）`);
     expect(timing).toContain("当前后端未配置，暂不能提交请求");
     expect(host.textContent).toContain("未配置；不能准备或提交视频");
     expect(host.textContent).not.toContain("其他准备条件仍须审核");
@@ -109,7 +109,7 @@ it("recovers bridge and backend read failures through a same-mounted-root retry"
   await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试来源与视频能力读取"))!.click());
   await act(async () => { await Promise.resolve(); });
   expect(host.textContent).toContain("精确来源时长 6 秒");
-  expect(host.textContent).toContain("目录内 8 秒请求提供 192 帧容量");
+  expect(host.textContent).toContain("最接近的目录请求为 5 秒（124 帧）");
   expect(host.textContent).not.toContain("投产来源暂不可读取");
 });
 
@@ -121,26 +121,24 @@ it.each([2.5, 1.001, 0.001])("reports actual current fractional source %s second
   expect(host.textContent).toContain("段 1 / 段内场次 1 / 镜头 1");
   expect(host.querySelector('[data-testid="bridge-source-unavailable"]')).toBeNull();
   const timing = host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent;
-  if (seconds === 2.5) {
-    expect(timing).toContain("2.5 秒原稿需要 60 帧；目录内 5 秒请求提供 124 帧容量");
-    expect(timing).toContain("不会自动裁切或用于故事");
-    expect(timing).toContain("其他准备条件仍须审核");
-  } else expect(timing).toContain("不在 24 fps 整数帧网格上");
+  expect(timing).toContain(`${seconds} 秒目标；最接近的目录请求为 5 秒（124 帧）`);
+  expect(timing).toContain("完整原片用于播放");
+  expect(timing).toContain("其他准备条件仍须审核");
 });
 
 it("uses the actual covering H3 catalog rather than the retired six-to-eight exception", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(6));
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: true, adapterId: "minimax_h3_gateway", qualifiedDurationSeconds: [5, 6, 8] });
   await render(6);
-  expect(host.textContent).toContain("目录内 6 秒请求提供 158 帧容量");
+  expect(host.textContent).toContain("最接近的目录请求为 6 秒（158 帧）");
   expect(host.textContent).not.toContain("仅接受 8 秒原片");
 });
 
-it("reports insufficient capacity and an unavailable H3 catalog without admission claims", async () => {
+it("reports the closest shorter take and an unavailable H3 catalog without admission claims", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(16));
   const backend = vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: true, adapterId: "minimax_h3_gateway", qualifiedDurationSeconds: [5, 15] });
   await render(16);
-  expect(host.textContent).toContain("容量不足以覆盖 16 秒原稿");
+  expect(host.textContent).toContain("16 秒目标；最接近的目录请求为 15 秒（362 帧）");
   backend.mockResolvedValue({ enabled: true, adapterId: "minimax_h3_gateway" });
   await render(16, "new");
   expect(host.textContent).toContain("未知（请求目录不可用）");

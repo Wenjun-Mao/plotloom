@@ -41,13 +41,14 @@ def current_export_presentation(store):
     return PlayerExportRequest(admission_id=installed.admission_id, game_id=f"project-{project_id}")
 
 
-def _check_media(content, expected_frames):
+def _check_media(content, expected_frames, *, whole_take=False):
     with TemporaryDirectory(prefix="plotloom-player-probe-") as directory:
         path = Path(directory) / "segment.mp4"
         path.write_bytes(content)
-        observed = _probe(path, strict_container=True)
-        if observed.frame_count != expected_frames or observed.video_start != 0 or observed.audio_start != 0:
+        observed = _probe(path, strict_container=not whole_take)
+        if observed.frame_count != expected_frames or (not whole_take and (observed.video_start != 0 or observed.audio_start != 0)):
             raise VideoSegmentError("exported segment differs from its exact selected timeline")
+        return round(observed.format_duration * 1000)
 
 
 def export_player(store, request):
@@ -56,7 +57,7 @@ def export_player(store, request):
     story, private = snapshot["public"], snapshot["private"]
     assert_public_player_data(story)
     files = {}
-    verified_sources, frame_counts = set(), {}
+    verified_sources, timelines = set(), {}
     for media in private["media"]:
         for source in [{"uri": media["originalUri"], "hash": media["originalHash"]}, *media["sourceArtifacts"]]:
             identity = (source["uri"], source["hash"])
@@ -64,19 +65,24 @@ def export_player(store, request):
                 if sha256(store.artifacts.get(source["uri"])).hexdigest() != source["hash"]:
                     raise InvalidTransitionError("selected media source bytes differ from their provenance")
                 verified_sources.add(identity)
+        whole = media["hash"] == media["originalHash"]
+        frames = media["outFrame"] - media["inFrame"]
+        measured_ms = media.get("playbackDurationUnits", media["durationUnits"])
         if media["path"] in files:
-            if frame_counts[media["path"]] != media["outFrame"] - media["inFrame"]:
+            if timelines[media["path"]] != (frames, measured_ms):
                 raise InvalidTransitionError("identical selected bytes cannot claim different frame counts")
             continue
         content = store.artifacts.get(media["uri"])
         if sha256(content).hexdigest() != media["hash"]:
             raise InvalidTransitionError("selected media bytes changed during standalone export")
         try:
-            _check_media(content, media["outFrame"] - media["inFrame"])
+            actual_ms = _check_media(content, frames, whole_take=whole)
+            if whole and actual_ms != measured_ms:
+                raise VideoSegmentError("whole take duration differs from selected playback evidence")
         except VideoSegmentError as error:
             raise InvalidTransitionError(str(error)) from error
         files[media["path"]] = content
-        frame_counts[media["path"]] = media["outFrame"] - media["inFrame"]
+        timelines[media["path"]] = (frames, measured_ms)
     static = Path(__file__).with_name("player_static")
     for name in ("player.js", "player.css"):
         files[name] = (static / name).read_bytes()

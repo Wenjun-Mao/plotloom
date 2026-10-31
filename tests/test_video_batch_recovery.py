@@ -95,6 +95,8 @@ def test_adopted_prepared_job_obeys_pause_and_its_original_prompt(tmp_path):
     service.control(project_id, BatchControl(batchId=single["id"], expectedControlRevision=single["controlRevision"], action="cancel"))
     adopted = service.setup(project_id, BatchSetup(profileId="minimax_h3_quality8_portrait_576x1024_v2"))
     target = next(item for item in adopted["manifest"]["targets"] if item["shotId"] == args["shot_id"])
+    assert adopted["manifest"]["wholeTakePlayback"] is True
+    assert target["snapshot"]["playbackIntent"] == existing["snapshot"]["playbackIntent"]
     assert target["mode"] == "prepared" and target["compiledPrompt"] == existing["snapshot"]["compiledPrompt"]
     ready = ready_batch(service, project_id, adopted)
     started = start_batch(service, project_id, ready)

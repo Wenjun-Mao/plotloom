@@ -67,7 +67,7 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   await expect(directions.getByRole("button", { name: "读取当前来源" })).toBeDisabled();
   await endFrame.getByRole("button", { name: "保存当前镜头末帧决定" }).click();
   await expect(endFrame).toContainText("当前已保存：末帧");
-  await expect(panel.getByTestId("h3-authored-timing")).toContainText("原稿需要 180 帧");
+  await expect(panel.getByTestId("h3-authored-timing")).toContainText("原稿镜头时长 7.500 秒");
 
   await directions.getByRole("button", { name: "读取当前来源" }).click();
   await directions.getByRole("button", { name: "准备本镜头制作简报", exact: true }).click();
@@ -100,6 +100,7 @@ test("shipped H3 UI reviews an end frame and selects a seven-and-half-second pla
   }, { timeout: 30000 }).toBe("ingested");
   const review = panel.getByTestId(`video-segment-review-${jobId}`);
   await expect(review).toBeVisible();
+  await review.getByRole("checkbox", { name: "手动截取目标时长" }).check();
   await review.getByLabel("片段入点（帧）").fill("6");
   await review.getByRole("button", { name: "准备播放片段" }).click();
   await expect(review).toContainText("6–186 帧");

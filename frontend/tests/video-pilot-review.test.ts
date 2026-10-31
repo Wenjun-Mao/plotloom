@@ -53,7 +53,7 @@ it("prepares a synthetic review window without auto-selecting and ignores late u
   const refresh = vi.fn().mockResolvedValue(undefined);
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "old", job: candidate, readOnly: false, onRefresh: refresh })));
   await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备播放片段"))?.click(); });
-  expect(prepare).toHaveBeenCalledWith("old", candidate.id, 0, 144, 0);
+  expect(prepare).toHaveBeenCalledWith("old", candidate.id, 0, 192, 0);
   expect(select).not.toHaveBeenCalled();
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "new", job: candidate, readOnly: false, onRefresh: refresh })));
   delayed.resolve({ ...selectedJob("segment-candidate", 1).playbackSegment!, id: "old-proposal", selected: false });
@@ -207,7 +207,7 @@ it("allows a current ingested take with no prepared segment to be rejected", asy
     projectId: "project", job: candidate, readOnly: false, onRefresh: refresh,
   })));
   expect(host.querySelector('[data-testid^="video-segment-preview-"]')).toBeNull();
-  const [reviewer, note] = [host.querySelector("input:not([type=number])")!, host.querySelector("textarea")!];
+  const [reviewer, note] = [host.querySelector("input:not([type=number]):not([type=checkbox])")!, host.querySelector("textarea")!];
   await act(async () => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(reviewer, "creator");
     reviewer.dispatchEvent(new Event("input", { bubbles: true }));

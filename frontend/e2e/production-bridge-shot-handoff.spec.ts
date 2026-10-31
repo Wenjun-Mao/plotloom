@@ -45,8 +45,8 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await expect(summary).toContainText("视频生成服务：已配置");
   await expect(summary).toContainText("精确来源时长 2.5 秒 · 当前绑定");
   await expect(summary.getByTestId("bridge-source-unavailable")).toHaveCount(0);
-  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("2.5 秒原稿需要 60 帧；目录内 5 秒请求提供 124 帧容量");
-  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("不会自动裁切或用于故事");
+  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("2.5 秒目标；最接近的目录请求为 5 秒（124 帧）");
+  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("完整原片用于播放，音画质量观察可选");
 
   await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
   const keyframeOwner = page.locator("details.workbench-support").filter({ has: page.locator("#shot-keyframe-review") });

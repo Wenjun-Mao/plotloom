@@ -63,7 +63,7 @@ class VideoJobService:
         allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
-        playback_intent: str = "source_exact",
+        playback_intent: str | None = None,
         reviewed_directions: dict[str, Any] | None = None,
         preview_only: bool = False,
         automatic_retry_limit: int = 1,

@@ -149,3 +149,20 @@ def test_hash_tampering_and_probe_window_bounds_are_not_preview_eligible() -> No
         segment.source_probe = probe
         _rehash_segment(segment)
         assert not VideoSegmentPersistence._valid_metadata(segment, job)
+
+
+def test_whole_take_binds_original_bytes_and_measured_timeline_even_if_rehashed():
+    job = _job()
+    job.snapshot["playbackIntent"] = "whole_take"
+    _rehash(job)
+    row = _segment(job)
+    row.out_frame = 192
+    row.derivative_hash, row.derivative_uri = job.output_hash, job.output_uri
+    row.source_probe = {"frameCount": 192, "fps": "24/1", "formatDuration": "8"}
+    row.derivative_probe = dict(row.source_probe)
+    _rehash_segment(row)
+    assert VideoSegmentPersistence._valid_metadata(row, job)
+    for invalid in ("999", "0", None, "invalid"):
+        row.source_probe["formatDuration"] = row.derivative_probe["formatDuration"] = invalid
+        _rehash_segment(row)
+        assert not VideoSegmentPersistence._valid_metadata(row, job)

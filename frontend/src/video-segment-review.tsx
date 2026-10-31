@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { durationDeviationNotice } from "./video-backends/minimax-h3-timing";
 import type { VideoJob, VideoSegment } from "./types";
 import { useReviewEditorDraft } from "./features/authoring/ReviewDraftContext";
 import { ApiError, plotloomApi } from "./api";
@@ -33,6 +34,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   const requiredFrames = sourceUnits != null ? sourceUnits * 24 / 1000 : NaN;
   const availableFrames = job.observed?.frameCount ?? 0;
   const maxStart = Number.isInteger(requiredFrames) ? Math.max(0, availableFrames - requiredFrames) : 0;
+  const [trim, setTrim] = useState(false);
   const [inFrame, setInFrame] = useState(0);
   const [proposalId, setProposalId] = useState("");
   const [reviewer, setReviewer] = useState("");
@@ -45,7 +47,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   const requestRef = useRef(0);
   useEffect(() => {
     activeRef.current = true;
-    setInFrame(0); setProposalId(""); setReviewer(""); setNote("");
+    setTrim(false); setInFrame(0); setProposalId(""); setReviewer(""); setNote("");
     setReopenReviewer(""); setReopenReason(""); setBusy(false); setError("");
     return () => { activeRef.current = false; requestRef.current += 1; };
   }, [projectId, job.id]);
@@ -68,8 +70,10 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   }, readOnly || busy, undefined, job.id);
   const remember = (patch: Partial<{ note: string; reopenReason: string }>) => working.changed(JSON.stringify({ note, reopenReason, ...patch }));
   const timingReady = job.state === "ingested" && sourceUnits != null
-    && sourceUnits > 0 && Number.isInteger(requiredFrames)
-    && availableFrames >= requiredFrames;
+    && sourceUnits > 0 && availableFrames > 0;
+  const trimAvailable = timingReady && Number.isInteger(requiredFrames) && availableFrames >= requiredFrames;
+  const editingWindow = trim && trimAvailable;
+  const deviation = durationDeviationNotice(sourceUnits ?? 0, job.observed?.durationSeconds ?? 0);
   const canPrepare = timingReady && job.current && !readOnly;
   const prepare = async () => {
     if (!canPrepare || busy) return;
@@ -77,7 +81,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     setBusy(true); setError("");
     try {
       const proposal = await plotloomApi.prepareVideoSegment(
-        projectId, job.id, inFrame, inFrame + requiredFrames, job.selectionRevision,
+        projectId, job.id, editingWindow ? inFrame : 0, editingWindow ? inFrame + requiredFrames : availableFrames, job.selectionRevision,
       );
       if (!activeRef.current || request !== requestRef.current) return;
       setProposalId(proposal.id);
@@ -142,17 +146,20 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
     {working.notice}<strong>{job.current ? "调整片段 · 预览 · 用于故事" : "保留片段 · 预览与记录"}</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
-    <small>{job.current ? <>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；来源、窗口与素材字节会绑定到本次选择。</> : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格或改变选择。"}</small>
+    <small>{job.current ? "默认使用完整原片与同期声音。来源、窗口与素材字节会绑定到本次选择。" : "原片和已准备片段仍保留。这里可查看核验通过的片段证据；预览不会恢复制作资格或改变选择。"}</small>
     {job.lifecycleStatus === "archived" && <small className="notice">项目已归档。核验通过的保留片段可预览；恢复项目并重新核对后，才能准备或选用。</small>}
     {rejected && <small className="notice warning">此原片保留此前拒绝记录；再次选择只记录用途，不会改写该质量判断。素材当前且技术有效时，可以直接选择。</small>}
     {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已重新开放审阅。重新开放本身不会准备片段或将视频用于故事。</small>}
-    {!timingReady && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖冻结的原稿时长，或该时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
-    {timingReady && <Field label="片段入点（帧）" hint={`出点（不含）：${inFrame + requiredFrames} / 原片 ${availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。`}>
+    {deviation && <small className="notice warning">{deviation}</small>}
+    {!timingReady && <small className="notice warning">尚无已核验的视频帧或有效目标时长。</small>}
+    {trimAvailable && <label><input type="checkbox" checked={trim} disabled={!canPrepare || busy}
+      onChange={event => setTrim(event.target.checked)} />手动截取目标时长</label>}
+    {editingWindow && <Field label="片段入点（帧）" hint={`出点（不含）：${inFrame + requiredFrames} / 原片 ${availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。`}>
       <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={!canPrepare || busy}
         onChange={(event) => setInFrame(Math.max(0, Math.min(maxStart, Math.trunc(Number(event.target.value) || 0))))} />
     </Field>}
     <Button disabled={busy || !canPrepare} onClick={() => void prepare()}>准备播放片段</Button>
-    <small>从原片截取可预览片段，不会重新生成视频，也不会自动加入故事。</small>
+    <small>准备后可预览，选用后才加入故事。</small>
     {available.length > 0 && <label>{job.current ? "待审片段" : "保留片段预览"}
       <select value={chosen?.id ?? ""} disabled={busy} onChange={(event) => setProposalId(event.target.value)}>
         {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : item.current ? " · 待审" : " · 保留证据"}</option>)}
