@@ -2,18 +2,19 @@
 
 ## Current status
 
-Updated: 2026-10-30. Owner: root, with one implementation/qualification owner on
-`/Users/wjmao/.codex/worktrees/b30f/plotloom`, local `main` at `d77af4c4` before
-this plan. Result: the [working story](2026-10-30-first-h5-story.md) and current
-export/selection boundaries are inspected; both independent plan reviews are
-complete and their justified finding is resolved. Implementation has not started.
-This is the requested implementation plan, including Wenjun's subsequent
-direction to permanently disable forced audiovisual inspection everywhere in
-Plotloom. No unresolved planning decision; implementation acceptance below is
-unexecuted. Next action when implementation is requested: phase 1 preflight and
-the global optional-review contract slice. Planning stopping condition is met:
-the reviewed plan and scope are saved. This planning request does not itself
-start implementation, deployment or media generation.
+Updated: 2026-10-30. Director: root; execution is delegated to a separate Relay
+coordinator with one source/qualification owner on
+`/Users/wjmao/.codex/worktrees/b30f/plotloom`, local `main` at reviewed plan
+`323439ce` before execution authorization. Result: the
+[working story](2026-10-30-first-h5-story.md) and current boundaries are inspected;
+both independent plan reviews are complete and their justified finding is
+resolved. Wenjun has now explicitly authorized Relay Direct implementation E2E,
+including parallel tasks/subagents and delegated judgment while he is unavailable.
+Implementation acceptance below remains unexecuted. Next action: coordinator
+registration, phase 1 preflight and the global optional-review contract slice.
+Stop when the final standalone game, global optional-review behavior, required
+local qualification, activation, single recovery proof and scoped cleanup are
+complete, with evidence and material decisions ready for the owner's review.
 
 ## Acceptance
 
@@ -254,11 +255,17 @@ browser playback means decoding/progression/control checks, not listening or
 judging footage. UI pixel inspection covers layout and controls only. Claim
 direct-file and browser coverage exactly as exercised, not all-browser support.
 
-Implementation permission is distinct from this planning request. When execution
-is requested, the planned run includes ordinary project creation/source adoption,
+Wenjun explicitly authorized this plan E2E with Relay Direct on 2026-10-30, after
+the two independent plan reviews. The authorized run includes ordinary project creation/source adoption,
 truthful agent selections, in-scope fixes/reviews, required local tests, supported
 local activation, normal recovery and scoped scratch cleanup; do not insert
-routine review/selection/restart approval gates. Existing owner authorization
+routine review/selection/restart approval gates. He reaffirmed standing approval
+for separate Codex tasks and model/reasoning choices under Relay Direct,
+encouraged parallel work and delegated ordinary implementation decisions while
+unavailable. Record only material decisions in this plan for the final E2E review;
+do not block routine in-scope work waiting for answers. Native selector rules
+still apply, and material changes outside this agreed scope remain distinct.
+Existing owner authorization
 already covers Codex ImageGen and the H3 gateway for development/test generation,
 with no invented cumulative cap. Preserve existing frozen grants/provider limits
 and native tool confirmations. Other paid providers, material outcome expansion,
