@@ -10,6 +10,24 @@ technical integrity, source fidelity and dispatch authority remain required.
 Media quality is unreviewed. M2 edit/regenerate/Apply and creative polish remain
 separate work. No hosted CI, push or public hosting was requested or performed.
 
+**Player sound follow-up, 2026-10-31.** Wenjun reported that sound reverted to
+mute while playing the delivered game. Root owns this player-only repair,
+browser verification and cleanup of its disposable export project.
+
+| Claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| Sound follows the player's choice | Open the original game, change sound with either control, advance a clip and reopen. Check volume, mute and the game button together. | No, reuse the 15 original clips | Passed on local files in WebKit 26.5 and Chromium 151. Sound on and 35% volume survived native clip ends, a choice, and reload/Continue. Intentional mute and storage-denied playback also passed. |
+| Corrected delivery | Play the fixed standalone export and compare every archive member with the original | No | Delivered. Only `player.js` changed. The unpacked game retains its path and progress key. The new sibling ZIP is `the-last-projection-sound-fix.zip`, SHA-256 `331eea9c72eef7c7d850d3ee28cdf84dab1a2f0ec0b67058071aed0cfe82d39d`. |
+
+The previous game reproduced the failure in WebKit: unmuting through the
+native control at 35% volume yielded a muted next clip at 100%. Sound and
+volume now live on one persistent video element. The corrected delivery
+restored the same clip and time after reload and allowed Play to recover from
+a simulated autoplay refusal. The focused tests, quick tier (1,715 frontend
+cases and both type checks), deterministic assets and independent source review
+passed. The full local gate runs on the stable candidate because the preference
+is persisted. Retained evidence is in `.local/player-sound/`.
+
 The [final receipt](../verification/2026-10-31-last-projection-functional-closeout.md)
 owns artifact paths, exact revisions, executed evidence, production learning and
 limitations. Source/runtime checkpoint: `3e23eec5` (runtime code `e0f00881`, plus

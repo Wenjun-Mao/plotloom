@@ -38,6 +38,11 @@ Local Continue is best effort and validates stored routes against this story
 revision. Denied storage must still permit play. Choices are untimed; replay
 truncates abandoned route history.
 
+The standalone game starts with sound enabled unless the player has saved a
+different preference. Native and game controls share one video element across
+clips. Mute and volume are remembered per game when browser storage is
+available. The player can still change both during a storage-denied session.
+
 ## Consequences
 
 Under the [whole-take amendment to ADR 0082](0082-proposed-production-playback-timing.md#whole-take-playback-amendment-2026-10-31),
