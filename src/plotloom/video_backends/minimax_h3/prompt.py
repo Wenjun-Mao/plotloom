@@ -23,8 +23,8 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     description = [
         (
             "[Shot 1] <Picture 1> establishes the opening visual style, composition, "
-            "subjects, objects, and spatial relationships; preserve them as the "
-            "action develops in one continuous shot."
+            "subjects, objects, and spatial relationships. Follow the authored "
+            "action and shot structure below."
         )
     ]
     for field in ("composition", "visualIntent", "action", "motionIntent"):
@@ -103,7 +103,7 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         description.append(
             "Continue the visible actions and camera movement from Picture 1 toward "
             "the subject pose, object state, spatial arrangement, and composition in "
-            "Picture 2 at the end of this single shot."
+            "Picture 2 at the end of the target video."
         )
     description.append("Do not add text overlays or words absent from the reviewed pictures and authored shot.")
 

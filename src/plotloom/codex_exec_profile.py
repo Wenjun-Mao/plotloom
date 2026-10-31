@@ -71,6 +71,7 @@ VALIDATOR_FILES = (
     "src/plotloom/dialogue_timing_policy.py",
     "src/plotloom/language_policy.py",
     "src/plotloom/production_brief.py",
+    "src/plotloom/production_brief_contract.py",
     "src/plotloom/production_brief_display.py",
     "src/plotloom/production_brief_labels.py",
     "src/plotloom/project_storage/content_language_evidence.py",

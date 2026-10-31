@@ -68,15 +68,32 @@ def assert_direction_basis(session, snapshot):
     if stable_hash(frozen) != target["sourceHash"]:
         raise InvalidTransitionError("batch source lineage changed")
     if basis["version"] == "production-intent.v2":
-        from .production_brief import production_brief
+        from .production_brief_contract import assert_frozen_brief
         from .video_fidelity import assert_target_fidelity
-        expected = intent_authorization(row.project_id, row.execution, production_brief(frozen)["briefHash"])
+        brief = target.get("productionBrief")
+        assert_frozen_brief(frozen, brief)
+        expected = intent_authorization(row.project_id, row.execution, brief["briefHash"])
         if (row.manifest.get("version") != "video-batch.manifest.v2"
                 or row.execution.get("intentReviewVersion") != "production-intent.v2"
-                or package.get("intentAuthorization") != expected
-                or target.get("productionBrief") != production_brief(frozen)):
+                or package.get("intentAuthorization") != expected):
             raise InvalidTransitionError("制作简报或生成授权已变化。")
         assert_target_fidelity(session, row.project_id, target)
+
+
+def current_direction_compilation_matches(snapshot):
+    """Current generation policy; never reinterpret the retained authority."""
+    package = snapshot.get("reviewedDirections") or {}
+    if (package.get("reviewBasis") or {}).get("version") != "production-intent.v2":
+        return True  # Existing new-dispatch schema checks remain authoritative.
+    from .production_brief import production_brief
+    from .video_backends.minimax_h3.prompt import compile_i2va_prompt
+    frozen = {key: value for key, value in snapshot.items()
+        if key not in {"reviewedDirections", "compiledPrompt", "executionRetry"}}
+    try:
+        return (package["intentAuthorization"]["briefHash"] == production_brief(frozen)["briefHash"]
+            and snapshot["compiledPrompt"] == compile_i2va_prompt(frozen, package, draft=True))
+    except (ValueError, TypeError, KeyError):
+        return False
 
 
 def assert_new_dispatch_authority(snapshot):
@@ -87,6 +104,8 @@ def assert_new_dispatch_authority(snapshot):
             or not package.get("fidelityCheck") or not package.get("intentAuthorization")
             or package.get("reviewedEnglish")):
         raise InvalidTransitionError("旧英文审阅记录仅保留原有证据；新派发需要独立保真检查及制作意图授权。")
+    if not current_direction_compilation_matches(snapshot):
+        raise InvalidTransitionError("制作指令编译规则已变化；请重新准备并检查当前候选。")
 
 
 def batch_for_job(session, project_id, video_job_id):

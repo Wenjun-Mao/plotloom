@@ -8,7 +8,6 @@ from ..video_backends.minimax_h3.directions import (
     direction_sources,
     validate_direction_fields,
 )
-from ..video_backends.minimax_h3.prompt import compile_i2va_prompt
 from ..video_batch_contracts import BatchDirectionsTarget, BatchSetup
 from .format import ProjectStorageCorruptionError
 
@@ -50,16 +49,16 @@ def assert_video_batch_contracts(connection):
                 if target["directions"] is not None:
                     BatchDirectionsTarget.model_validate({key: target["directions"][key] for key in ("sourceHash", "fields")} | {"shotId": target["shotId"]})
                     validate_direction_fields(target["snapshot"], target["directions"])
-                    if compile_i2va_prompt(target["snapshot"], target["directions"], draft=True) != target["compiledPrompt"]:
-                        raise ValueError("batch compiled prompt changed")
+                    if not isinstance(target["compiledPrompt"], str) or not target["compiledPrompt"].strip():
+                        raise ValueError("batch compiled prompt is missing")
             if execution.get("authorizedManifestHash") is not None and (execution["authorizedManifestHash"] != digest or manifest["blockers"]
                     or exceeds_budget(manifest["newJobs"], setup.max_jobs) or exceeds_budget(manifest["requestedSeconds"], setup.max_requested_seconds)):
                 raise ValueError("batch authorization or limits changed")
             if manifest.get("version") == "video-batch.manifest.v2":
-                from ..production_brief import production_brief
+                from ..production_brief_contract import assert_frozen_brief
                 for target in manifest["targets"]:
-                    if "languageContract" in target["snapshot"] and target.get("productionBrief") != production_brief(target["snapshot"]):
-                        raise ValueError("production brief projection changed")
+                    if "languageContract" in target["snapshot"]:
+                        assert_frozen_brief(target["snapshot"], target.get("productionBrief"))
                 for target in manifest["targets"]:
                     reference = (target.get("directions") or {}).get("fidelityCheck")
                     required = target["mode"] in {"generate", "prepared"} and (state == "ready" or execution.get("authorizedManifestHash"))
@@ -69,11 +68,11 @@ def assert_video_batch_contracts(connection):
                         from ..video_fidelity_contracts import FidelityReference
                         from ..video_fidelity import validate_retained_fidelity
                         parsed = FidelityReference.model_validate(reference)
-                        owner = connection.execute("SELECT project_id,execution FROM v2_video_batches WHERE id=?", (parsed.batch_id,)).fetchone()
+                        owner = connection.execute("SELECT project_id,execution,manifest FROM v2_video_batches WHERE id=?", (parsed.batch_id,)).fetchone()
                         if owner is None or owner[0] != project_id:
                             raise ValueError("fidelity evidence owner changed")
                         check = validate_retained_fidelity(json.loads(owner[1]).get("fidelity"), project_id,
-                            parsed.batch_id, target, parsed, require_pass=bool(required))
+                            parsed.batch_id, target, parsed, manifest=json.loads(owner[2]), require_pass=bool(required))
                         if target.get("fidelity") not in (None, check):
                             raise ValueError("displayed fidelity verdict changed")
                 if execution.get("authorizedManifestHash"):

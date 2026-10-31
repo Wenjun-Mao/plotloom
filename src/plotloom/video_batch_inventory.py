@@ -157,6 +157,10 @@ def validate_manifest(store, video, manifest, *, compiled=True, verified=True, l
     retained = {job["id"]: job for job in video.jobs(store)} if links or any(
         target["mode"] in {"observe", "reuse"} for target in manifest["targets"]) else {}
     for target in manifest["targets"]:
+        if "languageContract" in target["snapshot"]:
+            from .production_brief import production_brief
+            if target.get("productionBrief") != production_brief(target["snapshot"]):
+                raise InvalidTransitionError("production brief rules changed; prepare a fresh manifest")
         linked = (links or {}).get(target["shotId"])
         existing = retained.get(linked)
         if target["mode"] in {"observe", "reuse"} or existing and existing["state"] in {"submitted", "retrieve_needed", "ingested"}:

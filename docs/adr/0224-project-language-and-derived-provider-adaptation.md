@@ -531,3 +531,18 @@ still require explicit semantic mapping and complete source coverage. Missing or
 reassigned spans supply no witness, nonempty literal rendering remains invalid,
 and uncertainty blocks adoption. Raw candidate bytes/hash and prose coverage remain
 unchanged. No historical result is upgraded and no new retry/replay path is added.
+
+### 2026-10-31 clarification: source owns shot structure
+
+A genuine pre-dispatch fidelity check found that the trusted H3 prefix required
+one continuous shot even when the authored action explicitly permitted an insert.
+The source owns action, continuity and permitted cuts/inserts; the model translates
+those fields, while trusted code binds the opening reference and exact words.
+The active compiler and bilingual production brief must therefore use a neutral
+opening-reference instruction and defer shot structure to the authored sources.
+Do not repair this by adding contradictory English or weakening the checker.
+
+The field schema, timing, references, settings and authorization are unchanged.
+Fresh checking binds newly compiled prompt bytes before any new submission.
+Already submitted requests, receipts and selected clips retain their original
+bytes and authority; no historical request is recompiled or replayed by this fix.

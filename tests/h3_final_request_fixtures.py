@@ -13,8 +13,10 @@ from tests.test_h3_authored_soundtrack import package, source
 from tests.video_backends.minimax_h3.test_transport import _job, _Response
 
 
-def authored_request():
+def authored_request(*, action=None):
     snapshot = source()
+    if action is not None:
+        snapshot["shot"]["action"] = action[0]
     snapshot.pop("shotPresentation")
     for state in ("entryState", "exitState"):
         snapshot["shot"][state]["sound"] = "房间底噪"
@@ -37,6 +39,8 @@ def authored_request():
         "resolvedContext.dialogueCues.0.delivery": "natural",
         "resolvedContext.dialogueCues.0.performanceNotes": "Speak with restraint.",
     }
+    if action is not None:
+        translations["shot.action"] = action[1]
     for field in target["fields"]:
         if field["path"] in translations:
             field["english"] = translations[field["path"]]

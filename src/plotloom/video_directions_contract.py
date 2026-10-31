@@ -38,6 +38,15 @@ def bind_draft(request, candidate):
 
 def bind_fidelity(request, candidate):
     """Only trusted host provenance can turn this typed verdict into evidence."""
+    return _bind_fidelity(request, candidate, current_compilation=True)
+
+
+def bind_frozen_fidelity(request, candidate):
+    """Validate the recorded check without running today's compiler/projection."""
+    return _bind_fidelity(request, candidate, current_compilation=False)
+
+
+def _bind_fidelity(request, candidate, *, current_compilation):
     result = FidelityResult.model_validate(candidate)
     targets = request.input_artifacts["video-targets.json"]["targets"]
     expected = {item["shotId"]: item for item in targets}
@@ -52,9 +61,13 @@ def bind_fidelity(request, candidate):
         snapshot, directions = target["snapshot"], target["directions"]
         if request.input_artifacts.get("language-contract.json") != snapshot.get("languageContract"):
             raise ValueError("checker language differs from its complete frozen source")
-        assert_adaptable(snapshot)
+        if current_compilation:
+            assert_adaptable(snapshot)
         validate_direction_fields(snapshot, directions)
-        prompt = compile_i2va_prompt(snapshot, directions, draft=True)
+        prompt = (compile_i2va_prompt(snapshot, directions, draft=True)
+            if current_compilation else target["compiledPrompt"])
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("frozen checker prompt is missing")
         check = actual[shot_id]
         paths = {field["path"] for field in directions["fields"]}
         if (check.source_hash != stable_hash(snapshot) or check.candidate_hash != candidate_identity(directions)

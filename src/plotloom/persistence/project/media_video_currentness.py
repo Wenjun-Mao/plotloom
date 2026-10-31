@@ -101,6 +101,11 @@ class VideoJobCurrentness:
             assert_direction_basis(session, row.snapshot)
         except (InvalidTransitionError, ValueError, KeyError, TypeError):
             return "invalid"
+        from ...video_batch_basis import current_direction_compilation_matches
+        from .selected_media_policy import selected_playback_read
+        retained_read = row.state == "ingested" and selected_playback_read(row.project_id)
+        if not retained_read and not current_direction_compilation_matches(row.snapshot):
+            return "stale"
         return "current" if self._inputs_match_in_session(session, row) else "stale"
 
     def _inputs_match_in_session(self, session: Session, row: VideoJobRow) -> bool:

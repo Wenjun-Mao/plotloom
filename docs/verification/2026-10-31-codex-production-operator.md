@@ -37,12 +37,30 @@ and `codex-operator-asset-determinism.json`. The first focused run's two
 test-harness failures are retained; they were corrected without weakening
 product safeguards. Tests use synthetic task UUIDs.
 
-This stable authorization change requires a new final full local gate and exact
-installed-package proof. The earlier `06992e24` 366-case browser pass and wheel
+Historical pre-submission checkpoint (superseded by the full result below):
+this authorization change required a fresh full local gate and exact installed-
+package proof. The earlier `06992e24` 366-case browser pass and wheel
 smoke remain evidence for that earlier checkpoint, not a pass for this delta.
 The original ready first-shot directions/fidelity evidence stays unchanged;
 the operator field is trusted authorization provenance, never model-owned prose.
-No H3 submission occurred before this repair. Resume the original ready batch
-only after focused qualification, exact-package checking and safe runtime
-restart/readback. Final activation still requires the complete release gate.
+No H3 submission occurred before this repair. The original ready batch resumed
+after focused qualification, exact-package checking and safe runtime restart/
+readback. Original-game completion and final activation remain plan-owned checks.
 Hosted CI and push were not requested or run.
+
+## Stable full local qualification
+
+The full gate passed on runtime source `765e4ea5` in 4,024.925 seconds:
+5,067 Python cases (2,534 and 2,533 whole-file workers), all 1,704 frontend cases,
+both type checks, deterministic production bundle/parity, all 366 unfiltered
+browser cases, wheel build and installed-wheel smoke. The log is
+`.local/last-projection-resume/full-765e4ea5.log`; exit code is zero. Subsequent
+plan progress edits are documentation only. Earlier failed runs remain failed.
+
+The separately retained exact wheel has SHA-256
+`194d591b9ecb65659bd33c68dfc116d55eb6b4bc0bfdbe52f2131cdca3e822f3`
+and passed its recorded installed smoke on this same unchanged runtime source.
+The full runner's temporary wheel is cleaned by the runner; no unrecorded
+byte-identity claim is made for that deleted temporary artifact. Exact retained-
+wheel original-game export and activation/recovery remain separate product checks.
+No hosted CI or publication was requested or run.

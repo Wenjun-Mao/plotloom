@@ -1,5 +1,6 @@
 """Exact persisted assistant-check evidence at prepare, dispatch and readback."""
 from hashlib import sha256
+from copy import deepcopy
 
 from .codex_exec_contracts import (
     CodexExecAttempt,
@@ -11,7 +12,7 @@ from .creative_handoff_contracts import CreativeHandoffRequest
 from .creative_handoff_identity import canonical_json, request_hash
 from .exceptions import InvalidTransitionError
 from .persistence.schema import VideoBatchRow
-from .video_directions_contract import bind_fidelity
+from .video_directions_contract import bind_frozen_fidelity
 from .video_fidelity_contracts import FidelityReference
 
 
@@ -27,12 +28,12 @@ def assert_target_fidelity(session, project_id, target):
         row = session.get(VideoBatchRow, reference.batch_id)
         if row is None or row.project_id != project_id or stable_hash(row.manifest) != row.manifest_hash:
             raise ValueError("missing retained check")
-        return validate_retained_fidelity(row.execution.get("fidelity"), project_id, row.id, target, reference)
+        return validate_retained_fidelity(row.execution.get("fidelity"), project_id, row.id, target, reference, manifest=row.manifest)
     except (ValueError, TypeError, KeyError, StopIteration) as error:
         raise InvalidTransitionError("助手保真检查缺失、未通过或来源已变化；请检查当前完整候选。") from error
 
 
-def validate_retained_fidelity(data, project_id, batch_id, target, reference, *, require_pass=True):
+def validate_retained_fidelity(data, project_id, batch_id, target, reference, *, manifest, require_pass=True):
     """Pure shared validator for portable admission and runtime authority."""
     if not data or not data.get("result"):
         raise ValueError("missing fidelity result")
@@ -51,7 +52,20 @@ def validate_retained_fidelity(data, project_id, batch_id, target, reference, *,
         raise ValueError("fidelity identity changed")
     if (receipt.text_validation is None or receipt.text_validation.candidate_hash != data.get("deliveryCandidateHash")):
         raise ValueError("fidelity result lacks exact validated native output")
-    bound = bind_fidelity(request, data["result"])
+    # The checker request commits the entire pre-check manifest, including the
+    # frozen brief. Only trusted checking projections are added afterward.
+    checked_manifest = deepcopy(manifest)
+    for item in checked_manifest["targets"]:
+        if item.get("mode") == "generate":
+            item.pop("fidelity", None)
+            if item.get("directions"):
+                item["directions"].pop("fidelityCheck", None)
+    if stable_hash(checked_manifest) != request.source.get("manifestHash"):
+        raise ValueError("fidelity checked manifest or production brief changed")
+    owners = [item for item in manifest["targets"] if item["shotId"] == target["shotId"]]
+    if len(owners) != 1 or owners[0].get("productionBrief") != target.get("productionBrief"):
+        raise ValueError("fidelity owner production brief changed")
+    bound = bind_frozen_fidelity(request, data["result"])
     check = bound[target["shotId"]]
     frozen = next(item for item in request.input_artifacts["video-targets.json"]["targets"] if item["shotId"] == target["shotId"])
     if ((require_pass and check["verdict"] != "pass") or frozen["snapshot"] != target["snapshot"]

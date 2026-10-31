@@ -11,21 +11,20 @@ qualification in the normal `main` checkout, reporting to director
 reused serially; no other source writer is active. No CI, push, public hosting,
 aesthetic rerolls or media-quality acceptance is authorized by this milestone.
 
-Current committed implementation: `06992e24`; frontend wording/browser-fixture
-corrections are complete. The full 366-case unfiltered browser suite and exact
-wheel/installed smoke passed on that checkpoint. A newly demonstrated generation-
-operator attribution blocker is now being repaired under ADR 0230 before any H3
-submission: normal Start must identify this Codex task rather than an unnamed
-creator. Both independently frozen keyframe deliveries are complete, and scoped staging
-cleanup is complete. The ADR 0230 repair passed independent review, 126 affected
-Python cases, 19 frontend authorization cases, quick/type checks and identical
-second-build asset hashes. A stable checkpoint and fresh full local gate follow;
-no active execution or frozen evidence is rewritten. ADRs 0226–0229 own optional review, standalone
-export, authenticated authored topology and native-check envelope capacity.
-Source, API/persistence/reopen/export/selection and dispatch-safety checks passed
-at their recorded scopes. The early provider-free standalone journey uses
-synthetic retained media: real HTTP playback, branching, ending, restart,
-reopening, deterministic export and storage-denied play passed. That fixture
+Prior fully qualified implementation: `765e4ea5`. The current candidate also
+repairs authored shot structure and retained video authority; focused checks
+and actual eight-clip recovery pass, with fresh full qualification pending.
+The normal-production Codex
+operator contract is implemented under ADR 0230 and independently reviewed;
+126 affected Python cases, 19 frontend cases, quick/type checks, identical
+second-build assets and exact installed-wheel smoke passed. The fresh full local gate passed all 5,067 Python, 1,704 frontend and 366 browser
+cases, both type checks, bundle parity, wheel build and installed smoke on this
+runtime checkpoint. The
+prior `06992e24` unfiltered browser suite passed all 366 cases, with its scope
+retained separately. ADRs 0226–0229 own optional review, standalone export,
+authenticated authored topology and native-check envelope capacity. The early
+provider-free standalone fixture passed real HTTP playback, branching, ending,
+restart, reopening, deterministic export and storage-denied play. That fixture
 proves functional contracts, not final original-game completion.
 
 The original valued story project is retained in the isolated supported runtime
@@ -36,18 +35,21 @@ The seven source roles, six edges and all 19 dialogue lines are preserved. The
 72.625, 110.500 and 117.375 seconds. Its first complete route needs eight shots.
 Two original character references were generated once each, ingested and selected
 with truthful unreviewed agent attribution and actual final-argument fidelity
-audits. The first original keyframe is ingested/selected, with literal actual ImageGen
-arguments and frozen reference hashes verified. Two more shot stills are
-published; the third request prematurely separates the hands before N10's
-authored release and remains unselected pending an author-owned opening-state
-brief repair. This is a source-to-request finding, not a judgment of unseen
-pixels. The second request passed its bounded source audit. The first one-shot
-H3 batch is ready after genuine separate native drafting/fidelity checking, but
-no shot video has been submitted before the operator attribution repair. The source-bound native intent package
+audits. All eight first-route shot keyframes are now selected with literal actual ImageGen
+arguments, reference hashes and durable output bytes verified. The original
+n00-s3-c1 request prematurely released hand contact before N10; its candidate
+and receipt remain unselected and unchanged. A single corrected author-owned
+opening-state package was generated, verified and selected instead. These are
+source-to-request decisions, without pixel quality judgments. The first live
+H3 job succeeded with native audio and an exact 0–60-frame selected window;
+its complete compiled prompt, settings, start-image digest and output digest
+match the actual gateway receipt. Codex operator attribution is preserved.
+The other seven first-route clips passed distinct native drafting/fidelity checks, completed their frozen batch and are selected with exact authored windows. A known conversation prediction initially reported `retrieval_or_probe_failed`; exact gateway bytes passed transport/adapter/decode checks, and ordinary same-ID reconciliation returned its exact ingested output. The first cause remains unproven and the failure is retained; no replacement generation or code change followed. The source-bound native intent package
 covers 39 targets, passed its genuine language check and was saved after agent
 source inspection; native presentation covers 47 sources / 70 spans, passed its genuine language check and agent source inspection, and was explicitly saved. The full 15-shot source-bound production is installed with no admission conflicts.
 
-Qualification remains **incomplete**. The immutable `aa6e8754` full run failed:
+Source local qualification is **complete** on `765e4ea5`; original-game, exact
+installed-export, activation and recovery acceptance remain **incomplete**. The immutable `aa6e8754` full run failed:
 5,036 Python cases passed and 13 failed before browser/wheel gates. All 13 failures
 have since been closed by diagnosed focused repairs; 112 downstream affected
 contracts passed on `cef4b65b`. This reuses unchanged whole-file backend evidence
@@ -61,22 +63,28 @@ passed. The latest quick gate passed 1,703 frontend cases and both type checks.
 Independent review found only product wording and current-contract fixture changes;
 backend/API/request/persistence/provider/dependency inputs are unchanged.
 Generated assets and their second-build comparison, exact wheel/installed
-smoke and the complete unfiltered browser suite passed on `06992e24`. The new
-operator repair changes an authorization contract and needs its own focused and
-stable final local qualification before activation. Hosted CI is not requested and is not a release blocker.
+smoke and the complete unfiltered browser suite passed on `06992e24`. The operator repair changes an authorization contract; its separate fresh full
+local gate passed on `765e4ea5`, as recorded in the operator verification receipt. Hosted CI is not requested and is not a release blocker.
 
-**Next smallest outcome:** generate only the opening → first choice → first
-ending's eight keyframes/videos, select exact technical playback windows and
-play that original route before producing the other seven shots. The exporter
-requires selected media for every shot in the installed graph: retain its
-incomplete-inventory refusal at this checkpoint, then export the complete game
-after the remaining media exists. The earlier plan conflated a first-route media
-checkpoint with a partial-export capability. This sequencing correction preserves
-the early provider-free standalone proof and the final full-game export requirement;
-it adds no partial-export API or placeholder provenance. Then complete all three original routes outside
-the checkout with Plotloom unavailable, install/activate the exact qualified
-package, refresh/prove the single recovery and clean only identified disposable
-artifacts. No fresh-media experiment is needed for the frontend fixture repair.
+**Next smallest outcome:** repair the demonstrated trusted H3 prefix conflict
+before submitting the final seven clips. All fifteen original keyframes are
+selected, and eight exact source-bound clips are already selected. The final
+batch's genuine checker passed six targets but rejected E03 because the compiler
+adds one-continuous-shot even though the source permits a fragment insert. The
+model's English retained the permission correctly; fix the compiler/brief owner,
+not the authored story, candidate meaning or checker. Provider-free final-request
+comparisons must preserve both explicit continuity and permitted inserts. Then
+prepare a fresh unchanged-source candidate and obtain a genuine exact-prompt
+fidelity pass. Existing selected bytes and all failed/rejected evidence remain.
+The provider-free boundary repair now restores and reopens all eight existing
+clips with identical playback hashes, no provider calls and no original-project
+mutation. New generation remains current-compiler-only. See the
+[shot-structure verification](../verification/2026-10-31-authored-shot-structure.md)
+for exact evidence and pending qualification.
+The earlier eight-shot checkpoint correctly refused incomplete-graph playback
+and export. Finish the final seven clips, then complete all three routes in the
+external installed export, activation, recovery and scoped cleanup.
+
 Earlier next-step descriptions in retained receipts/logs are historical.
 
 Stop only when the complete original standalone game, optional-review behavior,
@@ -263,12 +271,12 @@ Retry last choice from its saved branch point and discard the abandoned suffix.
    valid returned assets without visual/audio quality inspection. Use a current
    supported landscape profile from the catalogue; exact model/settings become
    part of the frozen production record. Exercise actual final-request capture,
-   completion, ingestion and selection for N00/C01/E01, then play it through the
-   normal Plotloom player. Attempt export and retain the expected incomplete-
-   inventory refusal; the exporter deliberately requires every installed shot.
-   The earlier partial-export wording was a plan-method gap, not a claim that
-   this contract supported partial games. Complete standalone export follows
-   the remaining seven original shots in step 6.
+   completion, ingestion and selection for N00/C01/E01, then attempt the normal
+   Plotloom player and export. Both current surfaces require every installed
+   shot; retain their incomplete-inventory refusals and check the selected
+   clips technically. The earlier instruction to play/export this partial route
+   is superseded as a plan-method gap. Complete branching playback and standalone
+   export follow the remaining seven original shots in step 6.
 6. **Complete the story.** Produce only the missing N10/E02/E03 inventory and
    assemble all routes. Authored dialogue, choices and endings remain real UI
    text, not generated lettering. Native audio is retained when technically
@@ -413,8 +421,12 @@ activation, push or CI was run for this plan.
 
 | Production step | Observed friction | Effect | Smallest useful change | Disposition |
 |---|---|---|---|---|
-| Planning: media selection | Current contracts require AV attestations and restrict functional-only exceptions to old QA projects | Conflicts with owner instruction and truthful real-story assembly | Remove compulsory inspection globally at its owners | In this plan; not yet implemented |
-| Video batch selection | The final selection command bundled AV observations and four unconditional `True` claims with source/window choice | A technically valid unreviewed candidate could not be selected; authorization was represented as human observation | Version selection receipts separately and keep optional judgments out of admission | In progress; new selection receipt and UI copy in place, focused backend passes; final UI rerun and QA regressions pending |
+| Planning: media selection | Old contracts required AV attestations and restricted functional-only exceptions to old QA projects | Conflicted with owner instruction and truthful real-story assembly | Remove compulsory inspection globally at its owners | Implemented under ADR 0226; normal original-project selections executed without quality attestations |
+| Video batch selection | Old final selection bundled AV observations and four unconditional `True` claims with source/window choice | A technically valid unreviewed candidate could not be selected | Version selection receipts separately and keep optional judgments out of admission | Implemented; first original H3 window selected with Codex attribution and no quality claims |
+| Normal H3 Start | The old request could only identify an unnamed creator or a bounded QA actor | Would misattribute this real-story agent operation | Add explicit source-bound Codex operator ownership | ADR 0230 implemented/reviewed; first real gateway job carries this operator; fresh full gate passed |
+| Conversation still request | A model-owned actual prompt released hand contact and put down the card before the authored N10 branch | Published candidate could not support a faithful source-to-request claim | Clarify current state in the author-owned target direction and create one fresh immutable job | Old candidate retained unselected; corrected request and literal call audited/selected; no pixel judgment |
+| Early eight-shot route | Normal player and exporter both require complete installed-graph media inventory | Eight-shot route cannot be played in the existing complete-graph surface while seven other slots are absent | Retain supported refusals, verify selected first-route clips, then finish full inventory | Method correction recorded; no partial-player/export feature, altered graph or fabricated media |
+| Known-ID H3 retrieval | A successful 362-frame gateway output initially stayed `retrieve_needed` with a generic retrieval/probe error | Batch progression paused while retaining the known prediction and original outcome | Read exact output/hash and transport/adapter/probe evidence, then reconcile the same ID through the ordinary public service | Same output ingested, frozen batch resumed; first cause remains unproven, no replacement generation or source fix claimed |
 
 Add actual production observations as encountered. Fix blockers to this outcome;
 queue convenience/polish separately. Test totals, generated clips and worker

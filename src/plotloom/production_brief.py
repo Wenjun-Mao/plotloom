@@ -3,37 +3,24 @@ from copy import deepcopy
 
 from .contract_hash import stable_hash
 from .production_brief_display import DISPLAY_VERSION, readable_sections
-
-BRIEF_VERSION = "plotloom.production-brief.v2"
+from .production_brief_contract import BRIEF_VERSION, source_groups
 
 
 def production_brief(snapshot):
     """No prose generation, translation or writes: edits belong to source owners."""
     language = snapshot["languageContract"]["contentLocale"]
     english = language == "en-US"
-    shot, context = snapshot["shot"], snapshot["resolvedContext"]
-    groups = (
-        ("shot", "画面、动作、镜头与连续性", "Picture, action, camera and continuity", shot),
-        ("context", "人物、场景、表演与对白原文", "Characters, scene, performance and exact dialogue", context),
-        ("presentation", "画面文字与呈现方式", "Exact visible words and presentation", snapshot.get("shotPresentation")),
-        ("references", "已审阅的首尾帧、人物与物料参考", "Reviewed frames, identities and material references", {
-            "keyframe": snapshot["keyframe"], "endFrame": snapshot.get("endFrame"),
-            "identityLineage": snapshot.get("identityLineage", []), "samePersonReviewId": snapshot.get("samePersonReviewId")}),
-        ("timing", "作者播放时长与原片窗口", "Authored timing and source window", {
-            "sourceTiming": snapshot["sourceTiming"], "playbackIntent": snapshot["playbackIntent"]}),
-        ("settings", "本次生成规格与可见效果", "Generation settings and visible effects", {
-            "provider": snapshot["provider"], "request": snapshot["request"]}),
-    )
+    groups = source_groups(snapshot)
     body = {"version": BRIEF_VERSION, "displayVersion": DISPLAY_VERSION, "contentLocale": language,
         "sourceHash": stable_hash({key:value for key,value in snapshot.items() if key != "executionRetry"}), "sections": [
             {"id": key, "label": en if english else zh, "content": deepcopy(value)}
             for key, zh, en, value in groups],
         "adapterConstraints": ([
-            "Preserve the reviewed first frame's style, subjects, objects and positions in one continuous shot.",
+            "Use the reviewed first frame as the opening reference; follow the authored action and shot structure.",
             "Speak each authored cue once in its authored language; preserve off-screen and nonspoken roles.",
             "Show only exact authored visible words; do not add captions, replies, speech or sound events.",
             "Follow the reviewed ending frame when one is selected; use the frozen timing and input-frame treatment."] if english else [
-            "以已审阅首帧的风格、人物、物体和位置为依据，连续完成此镜头。",
+            "以已审阅首帧为开场参考，按作者指定的动作和镜头结构呈现。",
             "各条作者对白只说一次，保留原语言、画外音与非发声角色。",
             "仅显示作者指定的原文，不新增字幕、回复、对白或声音事件。",
             "如已选择尾帧则向该尾帧衔接，遵循冻结的时长和首尾帧比例处理。"]),

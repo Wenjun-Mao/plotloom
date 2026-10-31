@@ -57,3 +57,45 @@ def test_audio_cannot_be_disabled_to_satisfy_a_functional_request():
     snapshot["request"]["audio"] = False
     with pytest.raises(VideoProviderError, match="does not match its profile"):
         capture_request(snapshot, prompt, images)
+
+
+@pytest.mark.parametrize("action", [
+    (
+        "人物只抬起信封，可以插入同一信封的近景，不要求连续完成动作。",
+        "The person only raises the envelope. An insert of that same envelope is permitted; continuous execution of the action is not required.",
+    ),
+    (
+        "人物只抬起信封，以一个连续固定机位长镜头完成，不允许插入或剪辑。",
+        "The person only raises the envelope in one continuous static-camera shot, with no inserts or cuts.",
+    ),
+])
+def test_final_request_shot_structure_remains_authored(action):
+    snapshot, prompt, images = authored_request(action=action)
+    original = deepcopy(snapshot)
+    actual = capture_request(snapshot, prompt, images)
+    final = actual["data"]["prompt"]
+    assert action[1] in final
+    assert final.count("one continuous") == action[1].count("one continuous")
+    assert "at the end of this single shot" not in final
+    assert_authored_requirements(actual)
+    assert snapshot == original
+
+
+@pytest.mark.parametrize("locale", ["zh-CN", "en-US"])
+def test_production_brief_does_not_override_authored_insert_permission(locale):
+    from plotloom.production_brief import production_brief
+    from tests.test_production_brief_display import snapshot_for
+
+    snapshot = snapshot_for(locale)
+    snapshot["shot"]["action"] = (
+        "可以插入同一信封的近景，不要求连续完成动作。" if locale == "zh-CN"
+        else "An insert of the same envelope is permitted; continuous action is not required."
+    )
+    original = deepcopy(snapshot)
+    brief = production_brief(snapshot)
+    constraints = " ".join(brief["adapterConstraints"])
+    assert "one continuous shot" not in constraints
+    assert "连续完成" not in constraints
+    shot = next(section for section in brief["sections"] if section["id"] == "shot")
+    assert any(item["value"] == snapshot["shot"]["action"] for item in shot["items"])
+    assert snapshot == original
