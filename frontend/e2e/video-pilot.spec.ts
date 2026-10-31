@@ -22,6 +22,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOr
     observed: { videoCodec: "h264", audioCodec: "aac" },
   });
   const review = panel.getByTestId(`video-segment-review-${reconciled.id}`);
+  await review.getByRole("checkbox", { name: "手动截取目标时长" }).check();
   const frameInput = review.getByRole("spinbutton", { name: "片段入点（帧）", exact: true });
   await expect(frameInput).toHaveAccessibleDescription(/出点（不含）.*原片.*严格按原稿时长/);
   await frameInput.fill(String(inFrame));
