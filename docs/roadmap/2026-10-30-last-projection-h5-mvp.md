@@ -30,7 +30,12 @@ An isolated v5 persistence case passed. The later combined API run had no captur
 summary and remains unknown, not a pass. Generated frontend assets are not yet
 refreshed; no standalone product slice, generation or activation occurred.
 Next action is only source/evidence consolidation and safe worktree cleanup.
-After an explicit resume, continue the currentness, material adoption/readers,
+On explicit resume, first verify that the existing coordinator and Relay
+completion hook still target this chat and the normal `main` checkout after
+worktree removal. Re-register and verify completion delivery if needed; reuse
+the paused coordinator when healthy, otherwise establish a replacement with the
+frozen candidate/evidence handoff before implementation. Do not assume the old
+hook survived relocation. Then continue the currentness, material adoption/readers,
 operator attribution and UI/guidance gaps from this frozen diff before the
 provider-free product slice. Do not treat the checkpoint on main as a release.
 Stop when the final standalone game, global optional-review behavior, required
