@@ -2,13 +2,11 @@
 
 ## Current status
 
-Completed 2026-10-31. Starting from `ce5b3c2c`, root implemented and qualified
-`543df21c` on local main and activated that revision in the installed workbench.
-The original H3 specialist reviewed the repo skill and compiler wording. Both
-native roles receive the hash-verified skill. All 15 prospective prompts from
-the installed compiler matched the offline captures. No functional or
-request-fidelity acceptance row remains open. The effect on newly generated
-frames under this exact policy has yet to be measured.
+The two-shot live trial on the installed `543df21c` is complete. Both
+replacement takes contain burned-in subtitles. Both gateway prompts matched
+their independently checked directions. The comparison game uses both new
+takes immediately before the first choice. They failed the picture-quality
+criterion and the installed project retained its original selections.
 
 | Claim | Evidence required | Fresh media | Status |
 |---|---|---|---|
@@ -18,7 +16,45 @@ frames under this exact policy has yet to be measured.
 | Frozen dispatch and provenance remain valid | Stale new dispatch refusal and known-prediction reconciliation | No | Passed focused authority and fidelity regressions |
 | Local qualification | Full local gate on the stable source candidate | No | Passed `full` on `543df21c` |
 | Installed runtime applies the rule | Quiescence, exact revision and protected-state comparison | No | Passed both installed worker roles, all 15 compiler comparisons and data preservation |
-| Generated picture quality | Specialist's reviewed trials and Wenjun's observation, with their limits | No new output-quality experiment | Recipe-dependent historical evidence only, current subtitle defect retained |
+| Live generation | Two checked single-shot requests through the installed workbench and owner's H3 gateway | Yes | Passed, two successful jobs and 20 requested seconds |
+| Generated picture and dialogue | Compare original and new MP4 frames and verify spoken cue content | Yes | Both failed visual inspection. Local speech recognition recovered all three lines. Direct listening and voice-quality review were unavailable. |
+| Playable replacement | Play both new takes in context and verify the other 13 media hashes | Reuse trial outputs | Passed in the separate comparison game in WebKit and Chromium |
+
+## Two-shot live replacement trial
+
+The installed Last Projection home came from a portable restore. Before
+generation the operator inspected its recovery record and used the supported
+acknowledgement operation. All 17 historical operation records were preserved.
+Each shot went through a new native draft, a separate fidelity check and an
+explicit single-shot Start under Codex task attribution. All four native
+attempts used the pinned skill. The original per-shot seed, first frame,
+Quality 1 profile, 832×480 resolution, duration, aspect policy and native
+audio setting matched. The original MP4s already exhibited subtitles.
+
+| Shot | Actual output | Observation |
+|---|---|---|
+| `n00-s3-c3`, A Lan explains the handover | 277 frames at 24 fps, 11 seconds requested | Two lines of distorted writing appear across the worktable. The four-second comparison shows the defect in both versions. |
+| `n00-s3-c4`, Xu Wei responds and A Lan asks to explain | 226 frames at 24 fps, 9 seconds requested | The new take renders Chinese-like and English-like subtitles, visible at 1.5 seconds. |
+
+The gateway's stored prompt bytes, scalar controls, start-image digest and
+output digest matched each checked job. Four visual samples per second were
+inspected across each new clip. Offline Mandarin speech recognition recovered
+the authored words in order without supplying the target transcript.
+This two-shot result concerns the installed skill and compiler together at
+the original settings. It does not isolate a sampler, seed, or wording cause.
+
+The operator ended each completed batch without selecting the failed take.
+All 15 production selections were verified. For comparison, a separate copy of
+the installed standalone export received the two exact new MP4s, their actual
+durations and its own save namespace. The other 13 media files and the player
+code matched the delivered choices edition byte for byte. Both test takes
+decoded and ended naturally at accelerated playback in WebKit and Chromium,
+and the first choice led into the next branch. No third job was dispatched.
+
+The playable test copy, ZIP and side-by-side frame comparison are in the
+Downloads game directory under `h3-subtitle-trial/`. Private gateway receipts,
+contact sheets, machine transcripts and browser results are in
+`.local/h3-final-skill/live-two/`.
 
 ## Scope and method
 
@@ -30,7 +66,7 @@ The independently authored sign “出口” can also be read aloud. The skill a
 compiler preserve both sources. The existing gateway catalog, selected profile,
 settings, source, grant and UNKNOWN evidence remain protected.
 
-The full gate covered the changed prompt and native-worker runtime contracts.
+The implementation's full gate covered the changed prompt and native-worker runtime contracts.
 The stable candidate received one full local qualification after independent
 review. Provider qualification here used offline captures and test doubles.
 
@@ -79,6 +115,5 @@ review. Provider qualification here used offline captures and test doubles.
 
 Historical media trials and their limits are linked in the
 [H3 playbook](../operations/h3-prompt-writing-playbook.md#current-final-h3-skill).
-The new compiler policy has provider-free request evidence. Fresh generated
-frames under this exact policy have not been evaluated. Hosted CI was not
-requested.
+The live replacement trial above extends the original provider-free check.
+Hosted CI was not requested.

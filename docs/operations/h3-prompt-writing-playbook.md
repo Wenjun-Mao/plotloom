@@ -35,6 +35,11 @@ reported issue in the 36 Quality 8 clips. Those were controlled, short clips
 from two related scenes. Preserve the selected profile. The current tagged
 three-field adaptation is a request policy, not a guarantee about new pixels.
 
+In the installed Last Projection trial, the gateway received the exact checked
+prompt for two dialogue shots at their original Quality 1 settings. Both new
+MP4s still contained burned-in subtitles. Inspect the generated picture before
+selecting a replacement intended to fix this defect. [Two-shot trial](../roadmap/2026-10-31-h3-final-video-skill.md#two-shot-live-replacement-trial)
+
 ## Ownership and review workflow
 
 1. Start from the current accepted shot, resolved dialogue, visible cast,
