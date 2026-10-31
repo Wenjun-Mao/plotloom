@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from plotloom.contract_identity import new_id, utc_now
 
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
+from ...human_confirmation_contracts import UnnamedCreatorConfirmation
 from ...video_batch_replacement import assert_rejected_take_mutable
 from ...video_segments import DerivedSegment
 from ..codec import _stored_utc, stable_hash
@@ -179,12 +180,21 @@ class VideoSegmentPersistence:
                 reviewer_for,
             )
             from ...delegated_qa_contracts import AgentQaAttribution
+            from ...operator_attribution import CodexTaskAttribution
             actor = direction_attribution(job.snapshot)
             if isinstance(reviewer, AgentQaAttribution):
                 require_qa_write(session, project_id, reviewer)
                 if actor != reviewer.model_dump(mode="json", by_alias=True) or not session.info.get("pending_video_pack_receipt"):
                     raise InvalidTransitionError("QA selection requires the exact final audiovisual receipt")
                 reviewer = reviewer_for(reviewer)
+            elif isinstance(reviewer, CodexTaskAttribution):
+                if actor or not session.info.get("pending_video_pack_receipt"):
+                    raise InvalidTransitionError("Codex task selection requires its current source-bound receipt")
+                reviewer = f"Codex task {reviewer.task_id}"
+            elif isinstance(reviewer, UnnamedCreatorConfirmation):
+                if actor:
+                    raise InvalidTransitionError("agent QA selection cannot be attributed as a local operator")
+                reviewer = ""
             else:
                 reject_reserved_reviewer(reviewer)
                 if actor:
@@ -195,12 +205,6 @@ class VideoSegmentPersistence:
             actual = selection.revision if selection is not None else 0
             if actual != expected_selection_revision:
                 raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual)
-            latest_reject = session.scalar(
-                select(VideoReviewRow).where(VideoReviewRow.video_job_id == job.id)
-                .order_by(VideoReviewRow.created_at.desc(), VideoReviewRow.id.desc()).limit(1)
-            )
-            if latest_reject is not None and latest_reject.decision == "reject":
-                raise InvalidTransitionError("rejected audiovisual take cannot be selected as a segment")
             now = utc_now()
             revision = actual + 1
             if selection is None:

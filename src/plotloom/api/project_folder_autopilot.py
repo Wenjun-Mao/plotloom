@@ -10,7 +10,7 @@ from ..autopilot_contracts import (
     RunControlRequest,
     RunView,
 )
-from ..autopilot_handoff_contracts import BulkHumanHandoffRequest, HumanHandoffRequest
+from ..autopilot_handoff_contracts import BulkHumanHandoffRequest, HumanHandoffRequest, MaterialSelectionHandoffRequest
 from ..autopilot_service import AutopilotService
 from ..generation_retry_policy import ManualExecutionRetry
 from ..persistence.project.autopilot_handoff import record_handoff, review_material
@@ -107,7 +107,7 @@ def register_autopilot_routes(app: FastAPI, opened_project, service):
         return service.continue_material(project_id, body)
 
     @app.post("/api/v2/projects/{project_id}/autopilot/handoff", response_model=RunView)
-    def handoff(project_id: str, body: BulkHumanHandoffRequest | HumanHandoffRequest):
+    def handoff(project_id: str, body: MaterialSelectionHandoffRequest | BulkHumanHandoffRequest | HumanHandoffRequest):
         from ..project_storage.delegated_qa_grants import qa_command
         with opened_project(project_id) as store, qa_command(store, app.state.project_folder_storage.application, body.attribution):
             return record_handoff(store, body)

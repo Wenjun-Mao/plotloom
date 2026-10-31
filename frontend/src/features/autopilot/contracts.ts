@@ -39,6 +39,8 @@ export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: 
 export type FrameDraft = { direction: string; sources: string; compatibility: string; comparisons: SamePersonComparisonDraft[] };
 export type Handoff = { expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
   frames: Array<{ shotId: string; assetId: string; intent: Omit<VisualIntent["intent"], "targetUse">; compatibilityNote: string; comparisons: SamePersonComparison[] }> };
+export type MaterialSelectionHandoff = { attribution?: { kind: "codex_task"; taskId: string }; expectedRunRevision: number; bundleHash: string;
+  frames: Array<{ shotId: string; assetId: string; intentContext: IntentContext; intent: IntentContext["intent"] }> };
 
 export function completeFrame(draft: FrameDraft) {
   return Boolean(draft.direction.trim() && draft.sources.trim() && draft.compatibility.trim() && draft.comparisons.every(item =>

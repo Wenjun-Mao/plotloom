@@ -1,10 +1,10 @@
-import type { BulkComparison, BulkHandoff, GalleryFrame, ReviewMaterial } from "./contracts";
+import type { BulkComparison, BulkHandoff, GalleryFrame, MaterialSelectionHandoff, ReviewMaterial } from "./contracts";
 
 export type GalleryDraft = { intent: GalleryFrame["intentContext"]["intent"]; compatibility: "pass" | "fail" | "hold"; comment: string; comparisons: BulkComparison[] };
 
 export function galleryDraft(frame: GalleryFrame): GalleryDraft {
-  return { intent: structuredClone(frame.intentContext.intent), compatibility: "pass", comment: "",
-    comparisons: frame.characterIds.map(characterId => ({ characterId, judgment: "pass" })) };
+  return { intent: structuredClone(frame.intentContext.intent), compatibility: "hold", comment: "",
+    comparisons: frame.characterIds.map(characterId => ({ characterId, judgment: "unassessable", productionDecision: "hold" })) };
 }
 
 export function galleryFrameReady(draft: GalleryDraft) {
@@ -22,4 +22,10 @@ export function bulkHandoff(material: ReviewMaterial, drafts: GalleryDraft[], no
     frames: material.bundle.frames.map((frame, index) => ({ shotId: frame.shotId, assetId: frame.assetId,
       intentContext: frame.intentContext, intent: drafts[index].intent, compatibility: drafts[index].compatibility,
       ...(drafts[index].comment.trim() ? { comment: drafts[index].comment } : {}), comparisons: drafts[index].comparisons })) };
+}
+
+export function materialSelectionHandoff(material: ReviewMaterial): MaterialSelectionHandoff {
+  return { expectedRunRevision: material.runRevision, bundleHash: material.bundleHash,
+    frames: material.bundle.frames.map(frame => ({ shotId: frame.shotId, assetId: frame.assetId,
+      intentContext: frame.intentContext, intent: frame.intentContext.intent })) };
 }

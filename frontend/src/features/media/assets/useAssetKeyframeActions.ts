@@ -180,10 +180,6 @@ export function useAssetKeyframeActions({
       setError("先保存或放弃意图草稿，再审核选择。");
       return;
     }
-    if (!compatibility.trim()) {
-      setError("请记录此关键帧与已批准镜头的兼容性说明。");
-      return;
-    }
     setBusy(true);
     setError("");
     try {
@@ -194,7 +190,7 @@ export function useAssetKeyframeActions({
         expectedSelectionRevision: workbench.selectionRevision,
         storyboardRevision,
         approvalId: currentApproval.id,
-        compatibilityNote: compatibility.trim(),
+        ...(compatibility.trim() ? { compatibilityNote: compatibility.trim() } : {}),
         visualIntentId: activeIntent.id,
         visualIntentRevision: activeIntent.revision,
         expectedPresentationRevision: presentationRevision ?? 0,

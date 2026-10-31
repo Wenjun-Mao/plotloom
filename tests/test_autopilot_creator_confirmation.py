@@ -13,10 +13,12 @@ from plotloom.api.approval_views import _approval_decision_view
 from plotloom.autopilot_contracts import OperationScope
 from plotloom.autopilot_handoff_contracts import (
     HumanHandoffRequest,
+    MaterialSelectionHandoffRequest,
     parse_handoff_receipt,
 )
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.human_confirmation_contracts import UnnamedCreatorConfirmation
+from plotloom.operator_attribution import CodexTaskAttribution
 from plotloom.persistence.codec import stable_hash
 from plotloom.persistence.project.autopilot_authority import video_eligible
 from plotloom.persistence.project.autopilot_closure import material_closure
@@ -128,6 +130,43 @@ def test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_com
             assert copy.receipt == raw and copy.receipt_hash == stable_hash(raw)
             assert video_eligible(session, view.project_id)
     assert len(retained_image_job_ids) == len(complete.frames) + 2
+
+
+def test_source_bound_material_selection_needs_no_quality_observations_and_reopens(tmp_path, awaiting_handoff_seed):
+    from fastapi.testclient import TestClient
+    from plotloom.api import create_project_folder_authoring_app
+
+    storage, view, _ = copy_awaiting_handoff_seed(awaiting_handoff_seed, tmp_path / "selection-copy")
+    actor = CodexTaskAttribution(task_id="00000000-0000-4000-8000-000000000022")
+    with closing(storage.projects.open(view.project_id)) as store:
+        current = review_material(store)
+        request = MaterialSelectionHandoffRequest(
+            attribution=actor, expectedRunRevision=current["runRevision"], bundleHash=current["bundleHash"],
+            frames=[{"shotId": frame["shotId"], "assetId": frame["assetId"],
+                "intentContext": frame["intentContext"], "intent": frame["intentContext"]["intent"]}
+                for frame in current["bundle"]["frames"]])
+        response = TestClient(create_project_folder_authoring_app(storage)).post(
+            f"/api/v2/projects/{view.project_id}/autopilot/handoff",
+            json=request.model_dump(mode="json", by_alias=True))
+        assert response.status_code == 200, response.text
+        result = store.repository.autopilot.current(view.project_id)
+        assert result.state == "handed_off"
+        with store.repository._read() as session:
+            retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
+            assert retained.receipt["version"] == "pre-video.handoff.v5"
+            assert retained.receipt["attribution"] == actor.model_dump(mode="json", by_alias=True)
+            assert not retained.receipt["observation"].get("endorsedReferenceIds")
+            assert all(not frame.get("comparisons") and not frame.get("compatibilityNote")
+                for frame in retained.receipt["observation"]["frames"])
+            assert all("samePersonReviewId" not in fact for fact in retained.receipt["bindings"])
+            assert session.scalar(select(ApprovalDecisionRow).where(ApprovalDecisionRow.id == retained.approval_id)).reviewer == f"Codex task {actor.task_id}"
+            assert video_eligible(session, view.project_id)
+        assert parse_handoff_receipt(retained.receipt).attribution == actor
+    with closing(storage.projects.open(view.project_id)) as reopened:
+        with reopened.repository._read() as session:
+            retained = session.get(AutopilotHandoffRow, result.handoff["receiptId"])
+            assert retained.receipt["version"] == "pre-video.handoff.v5"
+            assert video_eligible(session, view.project_id)
 
 
 def _install_synthetic_retained_v1(store, result):

@@ -108,12 +108,13 @@ def assert_video_batch_contracts(connection):
             receipt = json.loads(raw)
             batch = connection.execute("SELECT project_id,manifest,manifest_hash,execution FROM v2_video_batches WHERE id=?", (batch_id,)).fetchone()
             if (batch is None or receipt.get("id") != identifier or receipt.get("batchId") != batch_id or receipt.get("projectId") != batch[0]
-                    or stable_hash(receipt) != digest or receipt.get("version") != "whole-pack-video-native-audio.v1"
-                    or receipt.get("confirmation") != {"clips": True, "nativeAudio": True, "intent": True, "windows": True}
+                    or stable_hash(receipt) != digest or receipt.get("version") not in {"whole-pack-video-native-audio.v1", "source-bound-selections.v1"}
+                    or (receipt.get("version") == "whole-pack-video-native-audio.v1" and receipt.get("confirmation") != {"clips": True, "nativeAudio": True, "intent": True, "windows": True})
                     or receipt.get("manifestHash") != batch[2]):
                 raise ValueError("video pack human confirmation changed")
             from ..delegated_qa_video import assert_receipt_actor
-            assert_receipt_actor(batch[0], receipt, json.loads(batch[3]).get("reviewAttribution"))
+            assert_receipt_actor(batch[0], receipt, json.loads(batch[3]).get("reviewAttribution"),
+                historical=receipt.get("version") == "whole-pack-video-native-audio.v1")
             manifest = json.loads(batch[1])
             if receipt["kept"] != manifest["kept"] or [fact["shotId"] for fact in receipt["selections"]] != [target["shotId"] for target in manifest["targets"]]:
                 raise ValueError("video pack confirmation is incomplete")

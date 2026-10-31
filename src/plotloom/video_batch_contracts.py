@@ -5,7 +5,9 @@ from pydantic import Field, field_validator
 
 from plotloom.domain_base import CamelModel
 
-from .delegated_qa_contracts import AgentQaAttribution, QaAvInspection
+from .delegated_qa_contracts import AgentQaAttribution
+from .human_confirmation_contracts import UnnamedCreatorConfirmation
+from .operator_attribution import CodexTaskAttribution
 from .video_contracts import H3DirectionField, VideoJobRequest
 
 
@@ -53,9 +55,8 @@ class BatchControl(CamelModel):
     action: Literal["pause", "resume", "cancel"]
 
 class BatchConfirmation(CamelModel):
-    attribution: AgentQaAttribution | None = None
-    inspection: QaAvInspection | None = None
+    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation | AgentQaAttribution = Field(
+        default_factory=UnnamedCreatorConfirmation)
     expected_revision: int = Field(strict=True, ge=1)
     review_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    basis: Literal["whole-pack-video-native-audio.v1"]
-    note: str = Field(default="", max_length=2000)
+    basis: Literal["source-bound-selections.v1"]

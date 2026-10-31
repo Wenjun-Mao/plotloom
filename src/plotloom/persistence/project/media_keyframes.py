@@ -8,19 +8,13 @@ from sqlalchemy import select
 
 from plotloom.stage_contracts import StageName
 from plotloom.contract_identity import new_id, utc_now
-from ...exceptions import (
-    InvalidTransitionError,
-    NotFoundError,
-    RevisionConflictError,
-    SamePersonReviewRequiredError,
-)
+from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ImageJobCandidateRow,
     ImageJobRow,
     ManagedAssetRow,
     ReviewedShotBindingRow,
-    SamePersonReviewRow,
     StillPreviewRow,
     VisualIntentRow,
     VisualSelectionStateRow,
@@ -59,7 +53,7 @@ class ReviewedKeyframePersistence:
         expected_selection_revision: int,
         storyboard_revision: int,
         approval_id: str,
-        compatibility_note: str,
+        compatibility_note: str = "",
         visual_intent_id: str,
         visual_intent_revision: int,
         expected_presentation_revision: int = 0,
@@ -71,8 +65,6 @@ class ReviewedKeyframePersistence:
         require_human_command(self._access)
         if bulk_basis is not None:
             bulk_basis.require(self._access)
-        elif not compatibility_note.strip():
-            raise InvalidTransitionError("manual frame compatibility requires an authored observation")
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
@@ -216,10 +208,6 @@ class ReviewedKeyframePersistence:
                 }
                 identity_mapping = self._same_person.identity_mapping_for_binding_in_session(session, binding)
                 if identity_mapping:
-                    review = self._same_person.current_same_person_review_for_binding(session, project_id, binding)
-                    if review is None or not self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review):
-                        raise SamePersonReviewRequiredError(shot_id=shot_id, binding_id=binding.id)
-                    frame["identityReviewId"] = review.id
                     frame["identityReferenceDecisionIds"] = [item["referenceDecisionId"] for item in identity_mapping]
                 frames.append(frame)
             manifest = {
@@ -276,12 +264,6 @@ class ReviewedKeyframePersistence:
                 return False
             if not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding):
                 return False
-            review_id = frame.get("identityReviewId")
-            if review_id is None:
-                # Historic/P0 frames and V3 character-free shots have no
-                # same-person dependency. A visible V3 cast must have had a
-                # review attached during preview admission.
-                return not self._same_person.identity_mapping_for_binding_in_session(session, binding)
-            review = session.get(SamePersonReviewRow, review_id)
-            return (review is not None and review.binding_id == binding.id
-                    and self._same_person.same_person_review_is_production_eligible_in_session(session, project_id, review))
+            mapping = self._same_person.identity_mapping_for_binding_in_session(session, binding)
+            current_reference_ids = [item["referenceDecisionId"] for item in mapping] if mapping else []
+            return current_reference_ids == frame.get("identityReferenceDecisionIds", [])

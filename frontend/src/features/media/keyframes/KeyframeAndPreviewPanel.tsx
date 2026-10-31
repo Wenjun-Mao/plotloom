@@ -297,11 +297,10 @@ export function KeyframeAndPreviewPanel({
           </div>
         </section>
       )}
-      <Field label="审核兼容性说明" required>
+      <Field label="兼容性备注（可选）">
         <textarea
-          aria-required="true"
           rows={2}
-          placeholder="说明此参考与当前已批准镜头为何兼容"
+          placeholder="可选记录素材用途或上下文"
           disabled={readOnly || busy || compatibilityStale}
           value={compatibility}
           onChange={(event) => setCompatibility(event.target.value)}
@@ -318,12 +317,11 @@ export function KeyframeAndPreviewPanel({
             !keptAssetId ||
             !selectedShot ||
             !currentApproval ||
-            !activeIntent ||
-            compatibilityStale || !compatibility.trim()
+            !activeIntent
           }
           onClick={() => void onSelectKeyframe()}
         >
-          审核为当前镜头关键帧
+          选择为当前镜头关键帧
         </Button>
         <Field label="连续预览镜头数">
           <select

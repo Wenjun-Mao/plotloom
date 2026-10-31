@@ -150,11 +150,11 @@ def assert_autopilot_contracts(connection, *, asset_home=None, continuation=True
             if runs.get(run_id, (None,))[0] != project:
                 raise ValueError("human handoff run changed")
             receipt = assert_handoff(connection, identifier, run_id, project, approval, json.loads(raw), digest, asset_home=asset_home, continuation=continuation)
-            if receipt.version in {"pre-video.handoff.v3", "pre-video.handoff.v4"}:
+            if receipt.version in {"pre-video.handoff.v3", "pre-video.handoff.v4", "pre-video.handoff.v5"}:
                 source_intents.update(fact["intentId"] for fact, observation in zip(receipt.bindings, receipt.observation.frames, strict=True)
                     if "sourceEndorsement" in observation.intent.model_dump(mode="json", by_alias=True))
             receipts[identifier] = (run_id, digest, receipt.bundle_hash, receipt.material_closure)
-            if receipt.version in {"pre-video.handoff.v2", "pre-video.handoff.v3"}:
+            if receipt.version in {"pre-video.handoff.v2", "pre-video.handoff.v3", "pre-video.handoff.v5"}:
                 unnamed_reviews.update(fact["samePersonReviewId"] for fact in receipt.bindings if "samePersonReviewId" in fact)
         # Storyboard decisions also admit explicit unnamed manual clicks. Their
         # write owner enforces human scope and exact canonical gates. Handoff

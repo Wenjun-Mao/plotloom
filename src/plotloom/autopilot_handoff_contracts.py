@@ -9,10 +9,12 @@ from plotloom.public_values import contains_secret_setting, contains_secret_valu
 from .geometry_preparation_contracts import GeometryPreparation
 from .human_confirmation_contracts import UnnamedCreatorConfirmation
 from .delegated_qa_contracts import AgentQaAttribution
+from .operator_attribution import CodexTaskAttribution
 from .managed_media import VisualIntentInput
 from .cross_shot_image_contracts import CrossShotTargetUse
 from .same_person_review_contracts import SamePersonReviewItem
 from .bulk_material_contracts import BulkFrameObservation, SavedIntentContext
+from .source_endorsed_intent import SourceEndorsedIntent
 
 
 class ReviewAsset(CamelModel):
@@ -67,15 +69,8 @@ class FrameObservation(CamelModel):
     shot_id: str
     asset_id: str
     intent: VisualIntentInput
-    compatibility_note: str = Field(min_length=1, max_length=2000)
-    comparisons: list[SamePersonReviewItem] = Field(max_length=8)
-
-    @field_validator("compatibility_note")
-    @classmethod
-    def nonblank(cls, value):
-        if not value.strip():
-            raise ValueError("frame compatibility requires an authored observation")
-        return value.strip()
+    compatibility_note: str = Field(default="", max_length=2000)
+    comparisons: list[SamePersonReviewItem] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode="after")
     def shot_role(self):
@@ -149,6 +144,33 @@ class BulkHumanHandoffRequest(HumanHandoffRequest):
     frames: list[BulkFrameObservation]
 
 
+class MaterialSelectionFrame(CamelModel):
+    shot_id: str = Field(min_length=1, max_length=100)
+    asset_id: str = Field(min_length=1, max_length=36)
+    intent_context: SavedIntentContext
+    intent: SourceEndorsedIntent | VisualIntentInput
+    compatibility_note: str = Field(default="", max_length=2000)
+    comparisons: list[SamePersonReviewItem] = Field(default_factory=list, max_length=8)
+
+    @model_validator(mode="after")
+    def selection_intent(self):
+        if self.intent.role != "shot_keyframe":
+            raise ValueError("material selection intent must have shot_keyframe role")
+        ids = [item.character_id for item in self.comparisons]
+        if len(ids) != len(set(ids)):
+            raise ValueError("optional identity observations must not duplicate characters")
+        return self
+
+
+class MaterialSelectionHandoffRequest(CamelModel):
+    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation = Field(default_factory=UnnamedCreatorConfirmation)
+    expected_run_revision: int = Field(ge=1)
+    bundle_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    notes: str | None = Field(default=None, max_length=2000, exclude_if=lambda value: value is None)
+    endorsed_reference_ids: list[str] = Field(default_factory=list, max_length=256)
+    frames: list[MaterialSelectionFrame] = Field(max_length=256)
+
+
 class BulkHumanHandoffReceipt(HandoffReceiptFacts):
     version: Literal["pre-video.handoff.v3"] = "pre-video.handoff.v3"
     attribution: UnnamedCreatorConfirmation
@@ -189,14 +211,30 @@ class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
         return self.observation.reviewer
 
 
-_receipt_reader = TypeAdapter(Annotated[QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt, Field(discriminator="version")])
+class MaterialSelectionHandoffReceipt(HandoffReceiptFacts):
+    version: Literal["pre-video.handoff.v5"] = "pre-video.handoff.v5"
+    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation
+    observation: MaterialSelectionHandoffRequest
+
+    @property
+    def stored_reviewer(self) -> str:
+        if isinstance(self.attribution, UnnamedCreatorConfirmation):
+            return ""
+        if isinstance(self.attribution, CodexTaskAttribution):
+            return f"Codex task {self.attribution.task_id}"
+        return f"Codex task {self.attribution.task_id}"
 
 
-def parse_handoff_receipt(raw) -> QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt:
+_receipt_reader = TypeAdapter(Annotated[QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt | MaterialSelectionHandoffReceipt, Field(discriminator="version")])
+
+
+def parse_handoff_receipt(raw) -> QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt | MaterialSelectionHandoffReceipt:
     receipt = _receipt_reader.validate_python(raw)
     # The retained v1 observation has an `attribution` validator method, not
     # an actor field. Discriminate the typed receipt before reading actor data.
-    if isinstance(receipt, LegacyHumanHandoffReceipt):
+    if isinstance(receipt, (LegacyHumanHandoffReceipt, MaterialSelectionHandoffReceipt)):
+        if isinstance(receipt, MaterialSelectionHandoffReceipt) and receipt.observation.attribution != receipt.attribution:
+            raise ValueError("material selection attribution differs from its retained receipt")
         return receipt
     actor = receipt.observation.attribution
     if isinstance(receipt, QaMaterialHandoffReceipt):

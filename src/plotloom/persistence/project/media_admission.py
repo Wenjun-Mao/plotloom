@@ -89,10 +89,6 @@ class KeyframeAdmission:
         """Exact frozen intent/presentation/approval; selection position is separate."""
         if binding.project_id != project_id or not ShotPresentations.binding_matches(session, binding):
             return False
-        if not binding.compatibility_note.strip():
-            from .bulk_handoff_basis import binding_has_basis
-            if not binding_has_basis(session, binding):
-                return False
         intent = session.get(VisualIntentRow, binding.visual_intent_id)
         if (
             intent is None

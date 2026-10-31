@@ -448,7 +448,7 @@ export class PlotloomApiClient {
 
   selectReviewedKeyframe(projectId: string, body: {
     assetId: string; shotId: string; sceneId: string; expectedSelectionRevision: number;
-    storyboardRevision: number; approvalId: string; compatibilityNote: string;
+    storyboardRevision: number; approvalId: string; compatibilityNote?: string;
     visualIntentId: string; visualIntentRevision: number;
     expectedPresentationRevision?: number;
   }): Promise<{ id: string; selectionRevision: number }> {

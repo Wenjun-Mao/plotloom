@@ -93,21 +93,25 @@ def assert_dispatch(session, project_id, job):
         raise InvalidTransitionError("unsettled QA dispatch blocks another submission")
 
 
-def assert_receipt_actor(project_id, receipt, intent_actor, *, new_confirmation=False):
+def assert_receipt_actor(project_id, receipt, intent_actor, *, new_confirmation=False, historical=False):
     actor = receipt.get("attribution")
+    if isinstance(actor, dict) and actor.get("kind") == "codex_task":
+        from .operator_attribution import CodexTaskAttribution
+        if "inspection" in receipt or "confirmation" in receipt:
+            raise InvalidTransitionError("selection attribution cannot claim audiovisual inspection")
+        if CodexTaskAttribution.model_validate(actor).model_dump(mode="json", by_alias=True) != actor:
+            raise InvalidTransitionError("Codex task selection attribution is not canonical")
+        if intent_actor is not None:
+            raise InvalidTransitionError("Codex task selection cannot replace frozen QA generation authority")
+        return
     if intent_actor is None:
-        if actor != {"kind": "unnamed_creator"} or "inspection" in receipt:
+        if actor != {"kind": "unnamed_creator"} or (not historical and ("inspection" in receipt or "confirmation" in receipt)):
             raise InvalidTransitionError("human video confirmation attribution changed")
     else:
         require_scope(project_id, actor)
         if actor != intent_actor:
             raise InvalidTransitionError("QA final review attribution differs from generation authorization")
-        inspection = QaAvInspection.model_validate(receipt.get("inspection"))
-        from .functional_qa import functional_qa_authorized
-        if new_confirmation and functional_qa_authorized(project_id, actor) and not inspection.acceptance_basis:
-            raise InvalidTransitionError("this disposable QA confirmation requires its functional-only basis and quality limits")
-        if inspection.acceptance_basis:
-            from .functional_qa import assert_functional_qa
-            assert_functional_qa(project_id, actor)
-        if inspection.model_dump(mode="json", by_alias=True) != receipt["inspection"]:
-            raise InvalidTransitionError("QA final inspection is not canonical")
+        if "inspection" in receipt and not historical:
+            inspection = QaAvInspection.model_validate(receipt["inspection"])
+            if inspection.model_dump(mode="json", by_alias=True) != receipt["inspection"]:
+                raise InvalidTransitionError("QA inspection is not canonical")

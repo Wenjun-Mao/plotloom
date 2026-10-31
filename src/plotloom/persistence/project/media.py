@@ -53,7 +53,7 @@ class ProjectMediaPersistence:
         source_timing = VideoSourceTiming(access, bridge)
         end_frames = VideoEndFrames(access, canonical, admission, source_timing)
         video_currentness = VideoJobCurrentness(
-            access, canonical, admission, references, same_person, source_timing, end_frames
+            access, canonical, admission, references, source_timing, end_frames
         )
         video_segments = VideoSegmentPersistence(access, video_currentness)
         self.assets: ManagedAssetPersistence = ManagedAssetPersistence(access, admission)

@@ -198,14 +198,11 @@ def complete_qa(tmp_path, monkeypatch, take):
 def test_qa_native_av_receipt_selection_readback_and_copy(tmp_path, monkeypatch, native_batch_take):
     storage, client, service, provider, project, view, actor = complete_qa(tmp_path, monkeypatch, native_batch_take)
     review = service.review(project)
-    body = {"expectedRevision": view["revision"], "reviewHash": review["reviewHash"], "basis": "whole-pack-video-native-audio.v1"}
-    for extra in ({}, {"attribution": actor}):
-        with pytest.raises((InvalidTransitionError, ValueError)):
-            service.confirm(project, BatchConfirmation(**body, **extra))
-    receipt = service.confirm(project, BatchConfirmation(**body, attribution=actor, inspection=INSPECTION))
+    body = {"expectedRevision": view["revision"], "reviewHash": review["reviewHash"], "basis": "source-bound-selections.v1"}
+    receipt = service.confirm(project, BatchConfirmation(**body, attribution=actor))
     assert receipt["attribution"] == actor.model_dump(mode="json", by_alias=True)
-    assert receipt["inspection"] == INSPECTION
-    assert service.confirm(project, BatchConfirmation(**body, attribution=actor, inspection=INSPECTION)) == receipt
+    assert "inspection" not in receipt and "confirmation" not in receipt
+    assert service.confirm(project, BatchConfirmation(**body, attribution=actor)) == receipt
     with closing(storage.projects.open(project)) as store:
         jobs = service.video.jobs(store)
         assert all(job["selected"] and job["playbackSegment"]["attribution"] == receipt["attribution"] for job in jobs)

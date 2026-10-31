@@ -7,6 +7,7 @@ from sqlalchemy import select
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.persistence.schema import VideoBatchReceiptRow, VideoSegmentRow, VideoReviewRow
 from plotloom.video_batch_contracts import BatchConfirmation
+from plotloom.operator_attribution import CodexTaskAttribution
 from plotloom.video_ingestion import probe_video
 from tests.video_batch_fixtures import batch_environment, ready_batch, start_batch
 
@@ -43,7 +44,8 @@ def complete_batch(tmp_path, take):
 
 
 def confirmation(view, review):
-    return BatchConfirmation(expectedRevision=view["revision"], reviewHash=review["reviewHash"], basis="whole-pack-video-native-audio.v1")
+    return BatchConfirmation(expectedRevision=view["revision"], reviewHash=review["reviewHash"],
+        basis="source-bound-selections.v1", attribution=CodexTaskAttribution(task_id="00000000-0000-4000-8000-000000000001"))
 
 
 def test_one_confirmation_selects_every_proposal_and_reconciles_lost_ack(tmp_path, native_batch_take):
@@ -52,7 +54,8 @@ def test_one_confirmation_selects_every_proposal_and_reconciles_lost_ack(tmp_pat
     assert review["ready"] and review["readyCount"] == 6
     body = confirmation(current, review)
     receipt = service.confirm(project_id, body)
-    assert receipt["attribution"] == {"kind": "unnamed_creator"} and not receipt["note"]
+    assert receipt["attribution"] == {"kind": "codex_task", "taskId": "00000000-0000-4000-8000-000000000001"}
+    assert "inspection" not in receipt and "confirmation" not in receipt
     assert service.confirm(project_id, body) == receipt
     with closing(storage.projects.open(project_id)) as store:
         jobs = service.video.jobs(store)
@@ -87,17 +90,20 @@ def test_late_target_rejection_rolls_back_the_entire_selection_transaction(tmp_p
     assert len(calls) == 6
 
 
-def test_latest_reject_blocks_whole_pack_and_cannot_fall_back(tmp_path, native_batch_take):
+def test_historical_rejection_remains_and_explicit_selection_is_not_a_quality_pass(tmp_path, native_batch_take):
     storage, _client, service, project_id, current = complete_batch(tmp_path, native_batch_take)
     review = service.review(project_id)
     final = review["proposals"][-1]
     with closing(storage.projects.open(project_id)) as store:
         service.video.review(store, final["jobId"], reviewer="Fixture creator", decision="reject", note="Fixture audio is unacceptable.", expected_selection_revision=0)
     changed = service.review(project_id)
-    assert not changed["ready"]
-    with pytest.raises(InvalidTransitionError): service.confirm(project_id, confirmation(current, review))
+    assert changed["ready"]
+    receipt = service.confirm(project_id, confirmation(current, changed))
+    assert receipt["selections"][-1]["jobId"] == final["jobId"]
     with closing(storage.projects.open(project_id)) as store:
-        assert not any(job["selected"] for job in service.video.jobs(store))
+        selected = next(job for job in service.video.jobs(store) if job["id"] == final["jobId"])
+        decisions = [item["decision"] for item in selected["reviews"]]
+        assert selected["selected"] and "reject" in decisions and decisions[-1] == "select"
 
 
 def test_manual_native_window_rebinds_batch_and_invalidates_old_confirmation(tmp_path, native_batch_take):

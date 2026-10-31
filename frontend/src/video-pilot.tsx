@@ -41,7 +41,7 @@ function canDiscard(job: VideoJob): boolean {
 
 /**
  * A selected candidate is the only video that may enter ordered playback.
- * Keeping this projection here means stale, rejected, pending, and merely
+ * Keeping this projection here means stale, pending, and merely
  * ingested candidates cannot be made to look like an accepted adjoining cut.
  */
 export type SelectedRouteSequence = {
@@ -206,7 +206,7 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   </section>;
 }
 
-export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
+export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, lifecycleRevision, lifecycleStatus, shot, approvalId, approvalCurrent, storyboardRevision, selectionRevision, keyframe, reviewedBinding, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
   videoReadVersion?: number;
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
   lifecycleRevision?: number;
@@ -214,7 +214,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
   approvalCurrent?: boolean;
   lifecycleStatus?: "active" | "archived";
   keyframe?: ManagedAsset; storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId?: string; readOnly: boolean;
-  reviewedBinding?: ReviewedKeyframe; samePersonReviewId?: string; mediaReadPhase: MediaReadPhase;
+  reviewedBinding?: ReviewedKeyframe; mediaReadPhase: MediaReadPhase;
 }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
@@ -351,7 +351,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
   const endFrameApprovalReady = !currentEndFrame?.revision || (currentEndFrame.approvalId === approvalId && currentEndFrame.storyboardRevision === storyboardRevision);
   const mediaReady = mediaReadPhase === "ready" && videoReadCurrent;
   const mediaIdentity = useH3MediaIdentity({ projectId, shotId: shot?.id, ready: mediaReady,
-    binding: reviewedBinding, keyframe, samePersonReviewId });
+    binding: reviewedBinding, keyframe });
   const cannotPrepare = readOnly || !mediaReady || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || !endFrameReady || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
   const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
   const h3RequestedFrames = currentH3Timing.requestFrames;
@@ -365,7 +365,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
     stage: "shot-media", status: videoReadCurrent && mediaReadPhase === "ready" ? "ready" : error || mediaReadPhase === "error" ? "failed" : "loading",
     busy: false, dirty: readOnly, shotId: shot?.id, allRoutesReady,
     nextText: shotWorkflowNextText({ videoReady: videoReadCurrent, videoError: Boolean(error), mediaPhase: mediaReadPhase,
-      shot, availableShots: storyboard.shots.length, readOnly, approvalCurrent: approvalCurrent === true, keyframeReady: Boolean(keyframe && reviewedBinding), identityReviewed: Boolean(samePersonReviewId),
+      shot, availableShots: storyboard.shots.length, readOnly, approvalCurrent: approvalCurrent === true, keyframeReady: Boolean(keyframe && reviewedBinding),
       backendEnabled: backend?.enabled, h3: h3 || h3Unavailable, jobs: visibleJobs, allRoutesReady }),
   });
   // Empty jobs mean "none" only after an owned, complete project read. Do not
@@ -477,7 +477,7 @@ export function VideoPilotPanel({ videoReadVersion, projectId, projectRevision, 
       {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
         <strong>已选择路径片段</strong>
         <small>{selectedSequence.jobs.length} 个已选择视频 / {selectedSequence.jobs.length + selectedSequence.missingShotTitles.length} 个路径镜头</small>
-        {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。请回到对应镜头，审核片段后确认用于故事。</small>}
+        {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。请回到对应镜头，选择技术有效片段用于故事。</small>}
       </section>}
       {projectId && selectedSequence && selectedSequence.jobs.length > 0 && selectedSequence.missingShotTitles.length === 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
       {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}

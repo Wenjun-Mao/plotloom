@@ -2,16 +2,33 @@
 
 ## Current status
 
-Updated: 2026-10-30. Director: root; execution is delegated to a separate Relay
-coordinator with one source/qualification owner on
-`/Users/wjmao/.codex/worktrees/b30f/plotloom`, local `main` at reviewed plan
-`323439ce` before execution authorization. Result: the
+Updated: 2026-10-30. **Paused at Wenjun's explicit request.** The coordinator
+released source ownership to root for checkout consolidation; implementation,
+generation and qualification must not resume until Wenjun asks. The frozen
+candidate started from local `main` at `afc475b9` in
+`/Users/wjmao/.codex/worktrees/b30f/plotloom`; consolidation will retain it on
+`main` in `/Users/wjmao/projects/HU/plotloom`. Result: the
 [working story](2026-10-30-first-h5-story.md) and current boundaries are inspected;
 both independent plan reviews are complete and their justified finding is
 resolved. Wenjun has now explicitly authorized Relay Direct implementation E2E,
 including parallel tasks/subagents and delegated judgment while he is unavailable.
-Implementation acceptance below remains unexecuted. Next action: coordinator
-registration, phase 1 preflight and the global optional-review contract slice.
+Preflight: clean baseline checkout; macOS arm64; Node 24.18.0; uv 0.13.6; locked
+project interpreter Python 3.12.13; `uv.lock` SHA-256
+`e8b1fe5099e46b69e89c3b466923aef174ddb0849b8258ed1cc3f30460186658`.
+ADR 0226 is added before source changes. Video batch selection no longer creates
+AV inspection claims; initial keyframe/H3 currentness paths no longer require
+compatibility prose or same-person judgments. Material selection request/receipt
+v5 plumbing, a normal UI selection path, unresolved optional-review defaults and
+an API/persistence/reopen regression are also present but incomplete/unqualified.
+The first focused Python selector passed 23 cases. One frontend prompt expectation
+failed; its copy was adjusted, but the affected selector still needs a rerun.
+An isolated v5 persistence case passed. The later combined API run had no captured
+summary and remains unknown, not a pass. Generated frontend assets are not yet
+refreshed; no standalone product slice, generation or activation occurred.
+Next action is only source/evidence consolidation and safe worktree cleanup.
+After an explicit resume, continue the currentness, material adoption/readers,
+operator attribution and UI/guidance gaps from this frozen diff before the
+provider-free product slice. Do not treat the checkpoint on main as a release.
 Stop when the final standalone game, global optional-review behavior, required
 local qualification, activation, single recovery proof and scoped cleanup are
 complete, with evidence and material decisions ready for the owner's review.
@@ -20,7 +37,7 @@ complete, with evidence and material decisions ready for the owner's review.
 
 | Claim | Required evidence | Fresh media | Status / evidence |
 |---|---|---|---|
-| Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | Planned; current mandatory gates mapped below |
+| Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | In progress; ADR 0226 and initial keyframe/video owners changed; remaining currentness, handoff and reader evidence outstanding |
 | Complete standalone game | Final exported ZIP unpacks outside the checkout; start → all three authored routes/endings → restart/last-choice replay and HTTP reload/Continue work with Plotloom unavailable; request audit permits only packaged files | Retained media for early slice; original media for final game | Planned |
 | Lightly styled usable MVP | Desktop and 390px viewport inspection shows legible title, choices, controls, dialogue and ending cards with focus/pressed states; no blocked progression or clipped essential controls | No quality experiment | Planned; responsive viewport is not real-phone qualification |
 | Faithful story and final requests | All seven draft roles and six edges mapped to project/runtime identities; exact choices, dialogue and endings retained; full final image/H3 requests compared with source, references, timing and authorized settings | Provider-free comparisons; actual production dispatch receipts also retained | Planned; frozen briefs alone do not prove final tool arguments |
@@ -321,6 +338,7 @@ activation, push or CI was run for this plan.
 | Production step | Observed friction | Effect | Smallest useful change | Disposition |
 |---|---|---|---|---|
 | Planning: media selection | Current contracts require AV attestations and restrict functional-only exceptions to old QA projects | Conflicts with owner instruction and truthful real-story assembly | Remove compulsory inspection globally at its owners | In this plan; not yet implemented |
+| Video batch selection | The final selection command bundled AV observations and four unconditional `True` claims with source/window choice | A technically valid unreviewed candidate could not be selected; authorization was represented as human observation | Version selection receipts separately and keep optional judgments out of admission | In progress; new selection receipt and UI copy in place, focused backend passes; final UI rerun and QA regressions pending |
 
 Add actual production observations as encountered. Fix blockers to this outcome;
 queue convenience/polish separately. Test totals, generated clips and worker

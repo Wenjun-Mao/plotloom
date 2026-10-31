@@ -25,6 +25,7 @@ def assert_handoff(connection, identifier, run_id, project_id, approval_id, raw,
 def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw, digest, *, asset_home=None, continuation=True):
     receipt = parse_handoff_receipt(raw)
     bulk = receipt.version in {"pre-video.handoff.v3", "pre-video.handoff.v4"}
+    selection = receipt.version == "pre-video.handoff.v5"
     if stable_hash(raw) != digest or (receipt.id, receipt.run_id, receipt.project_id, receipt.approval_id) != (identifier, run_id, project_id, approval_id):
         raise ValueError("human handoff identity changed")
     bundle = receipt.bundle.model_dump(mode="json", by_alias=True)
@@ -33,6 +34,11 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
         if receipt.observation.attribution != receipt.attribution:
             raise ValueError("QA handoff observation attribution differs")
         require_native_bundle(require_scope(project_id, receipt.attribution), bundle, receipt.bundle_hash)
+    if receipt.version == "pre-video.handoff.v5":
+        from ..delegated_qa_contracts import AgentQaAttribution
+        if isinstance(receipt.attribution, AgentQaAttribution):
+            from ..delegated_qa import require_scope, require_native_bundle
+            require_native_bundle(require_scope(project_id, receipt.attribution), bundle, receipt.bundle_hash)
     if stable_hash(bundle) != receipt.bundle_hash or receipt.observation.bundle_hash != receipt.bundle_hash or receipt.bundle.run_id != run_id:
         raise ValueError("human review bundle changed")
     run_policy = connection.execute("SELECT policy FROM v2_autopilot_runs WHERE id=? AND project_id=?", (run_id, project_id)).fetchone()
@@ -67,7 +73,9 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
     cast = connection.execute("SELECT consumer_mappings FROM v2_cast_revisions WHERE project_id=? AND revision=?", (project_id, receipt.bundle.inventory.cast_revision)).fetchone()
     consumers = {item["castCharacterId"]: item["consumerCharacterId"] for item in json.loads(cast[0])}
     required = [(item.owner, item.subject_type, item.id) for item in receipt.bundle.inventory.subjects if item.owner != "image"]
-    if [(item.owner, item.subject_type, item.subject_id) for item in references] != required or sorted(receipt.observation.endorsed_reference_ids) != sorted(item.decision_id for item in references):
+    if ([(item.owner, item.subject_type, item.subject_id) for item in references] != required
+            or (not selection and sorted(receipt.observation.endorsed_reference_ids) != sorted(item.decision_id for item in references))
+            or (selection and receipt.observation.endorsed_reference_ids and sorted(receipt.observation.endorsed_reference_ids) != sorted(item.decision_id for item in references))):
         raise ValueError("human handoff reference endorsements are incomplete")
     for reference in references:
         table = "v2_character_reference_decisions" if reference.owner == "character-reference" else "v2_art_reference_decisions"
@@ -116,7 +124,11 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
                     raise ValueError("source-endorsed intent cannot claim authored edits")
         if frame.title != shot["title"] or frame.description != shot["action"] or frame.direction != shot["visualIntent"] + " " + shot["composition"] or frame.scene_name != scenes_by_id[frame.scene_id]:
             raise ValueError("displayed human frame context differs from its historical shot")
-        if frame.character_ids != subject.character_ids or frame.scene_id != subject.scene_id or observation.asset_id != frame.asset_id or observation.shot_id != frame.shot_id or [item.character_id for item in observation.comparisons] != frame.character_ids:
+        comparison_ids = [item.character_id for item in observation.comparisons]
+        if (frame.character_ids != subject.character_ids or frame.scene_id != subject.scene_id
+                or observation.asset_id != frame.asset_id or observation.shot_id != frame.shot_id
+                or (not selection and comparison_ids != frame.character_ids)
+                or (selection and comparison_ids not in ([], frame.character_ids))):
             raise ValueError("human frame observation identity changed")
         source_table = "v2_autopilot_frames" if frame.origin == "machine_provisional" else "v2_reviewed_shot_bindings"
         source = connection.execute(f'SELECT project_id,shot_id,asset_id FROM "{source_table}" WHERE id=?', (frame.source_id,)).fetchone()
@@ -146,7 +158,7 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
                 or json.loads(intent[2]).get("targetUse") != frozen_use
                 or json.loads(intent[2]).get("attribution") != (receipt.attribution.model_dump(mode="json", by_alias=True) if receipt.version == "pre-video.handoff.v4" else None)):
             raise ValueError("human authored intent changed")
-        if frame.character_ids:
+        if frame.character_ids and fact.get("samePersonReviewId") is not None:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()
             if bulk:
                 from ..bulk_material_contracts import stored_bulk_comparisons
@@ -156,7 +168,9 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
             from ..persistence.project.media_same_person_reviews import (
                 SamePersonReviewPersistence,
             )
-            if review is None or review[:4] != (project_id, fact["bindingId"], receipt.stored_reviewer, observation.compatibility_note) or json.loads(review[4]) != comparisons or not SamePersonReviewPersistence.comparisons_authorize_production(comparisons):
+            if (review is None or review[:4] != (project_id, fact["bindingId"], receipt.stored_reviewer, observation.compatibility_note)
+                    or json.loads(review[4]) != comparisons
+                    or (not selection and not SamePersonReviewPersistence.comparisons_authorize_production(comparisons))):
                 raise ValueError("human identity observations changed")
             mapping = json.loads(review[5])
             if [item.get("characterId") for item in mapping] != frame.character_ids:
@@ -173,6 +187,8 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
                     raise ValueError("cross-shot target lacks its independent identity observation")
                 if item.get("comparisonOrigin") is not None and (item["comparisonOrigin"] != expected_origin or item.get("frameHash") != frame.original_hash):
                     raise ValueError("manual comparison context changed")
-        elif fact.get("samePersonReviewId") is not None or observation.comparisons:
+        elif not selection and frame.character_ids:
+            raise ValueError("historical human handoff lacks its identity observation")
+        elif fact.get("samePersonReviewId") is not None or (observation.comparisons and frame.character_ids):
             raise ValueError("character-free frame cannot fabricate an identity pass")
     return receipt

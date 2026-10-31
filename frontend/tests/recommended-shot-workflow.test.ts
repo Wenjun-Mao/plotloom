@@ -8,7 +8,7 @@ import type { StoryboardReview } from "../src/types";
 const shot = { ...demoProject.storyboard.shots[0], durationUnits: 6_000 };
 const ready: Parameters<typeof shotWorkflowNextText>[0] = {
   videoReady: true, videoError: false, mediaPhase: "ready", shot, availableShots: 1, readOnly: false,
-  approvalCurrent: true, keyframeReady: true, identityReviewed: true,
+  approvalCurrent: true, keyframeReady: true,
   backendEnabled: true, h3: true, jobs: [], allRoutesReady: false,
 };
 const text = (change: Partial<typeof ready> = {}) => shotWorkflowNextText({ ...ready, ...change });
@@ -23,7 +23,6 @@ it("prioritizes unknown, failed and read-only owner state over retained readines
 it("names each missing prerequisite and never equates installed shots with videos", () => {
   expect(text({ approvalCurrent: false })).toContain("前往分镜审核");
   expect(text({ keyframeReady: false })).toContain("查看关键帧");
-  expect(text({ identityReviewed: false })).toContain("记录视觉复核");
   expect(text({ backendEnabled: false })).toContain("不能准备或提交新视频");
   expect(text({ backendEnabled: undefined })).toContain("尚未核实");
   expect(text({ availableShots: 0, shot: undefined })).toContain("当前分镜没有镜头");

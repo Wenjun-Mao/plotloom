@@ -14,7 +14,6 @@ from ..schema import (
     ManagedAssetRow,
     ProjectRow,
     ReviewedShotBindingRow,
-    SamePersonReviewRow,
     VideoJobRow,
 )
 from .access import ProjectPersistenceAccess
@@ -22,7 +21,6 @@ from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_identifiers import new_video_job_id
-from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_source import VideoSourceTiming
 from .media_video_end_frames import VideoEndFrames
 from .media_shot_presentations import ShotPresentations
@@ -38,7 +36,6 @@ class VideoJobCurrentness:
         canonical: ProjectCanonicalPersistence,
         admission: KeyframeAdmission,
         references: CharacterReferencePersistence,
-        same_person: SamePersonReviewPersistence,
         source_timing: VideoSourceTiming,
         end_frames: VideoEndFrames,
     ) -> None:
@@ -46,7 +43,6 @@ class VideoJobCurrentness:
         self._canonical = canonical
         self._admission = admission
         self._references = references
-        self._same_person = same_person
         self._source_timing = source_timing
         self._end_frames = end_frames
         self.presentations = ShotPresentations(access, canonical, admission)
@@ -59,7 +55,7 @@ class VideoJobCurrentness:
         project = self._access.rows.project(session, row.project_id)
         lifecycle = ProjectLifecycleStatus(project.lifecycle_status)
         input_status = self.video_job_input_status_in_session(session, row)
-        production_eligible = input_status == "current" and self._identity_review_authorizes_in_session(session, row)
+        production_eligible = input_status == "current"
         admitted = lifecycle == ProjectLifecycleStatus.ACTIVE and production_eligible
         return {
             "retry": video_retry_projection(row),
@@ -87,8 +83,7 @@ class VideoJobCurrentness:
         project = session.get(ProjectRow, row.project_id)
         if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
             return False
-        return (self.video_job_input_status_in_session(session, row) == "current"
-                and self._identity_review_authorizes_in_session(session, row))
+        return self.video_job_input_status_in_session(session, row) == "current"
 
     def selected_video_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
         """Passive eligibility for an ingested selection; generation stays current-only."""
@@ -97,16 +92,6 @@ class VideoJobCurrentness:
         from .selected_media_policy import selected_playback_policy
         with selected_playback_policy(row.project_id):
             return self.video_job_current_in_session(session, row)
-
-    def _identity_review_authorizes_in_session(self, session: Session, row: VideoJobRow) -> bool:
-        review_id = row.snapshot.get("samePersonReviewId")
-        if review_id is None:
-            binding = session.get(ReviewedShotBindingRow, row.snapshot.get("keyframe", {}).get("bindingId"))
-            return binding is not None and not self._same_person.identity_mapping_for_binding_in_session(session, binding)
-        review = session.get(SamePersonReviewRow, review_id)
-        return (review is not None
-                and review.binding_id == row.snapshot.get("keyframe", {}).get("bindingId")
-                and self._same_person.same_person_review_is_production_eligible_in_session(session, row.project_id, review))
 
     def video_job_input_status_in_session(self, session: Session, row: VideoJobRow) -> Literal["current", "stale", "invalid"]:
         if not frozen_video_request_is_valid(row):
@@ -160,7 +145,6 @@ class VideoJobCurrentness:
         identity = snapshot.get("identityLineage", [])
         if not isinstance(identity, list):
             return False
-        review_id = snapshot.get("samePersonReviewId")
         if identity:
             try:
                 bible = self._canonical._load_stage_payload(session, row.project_id, StageName.STORY_BIBLE)
@@ -190,19 +174,6 @@ class VideoJobCurrentness:
                         for item in frozen_assets
                     )
                 ):
-                    return False
-            # A generated V3 keyframe additionally needs its independent,
-            # explicitly attributed same-person review. An imported selected
-            # keyframe follows the separate provenance path: its attributed
-            # keyframe-selection comparison and current character-reference
-            # decision are frozen together below.
-            if binding is not None and self._same_person.identity_mapping_for_binding_in_session(session, binding) and review_id is None:
-                return False
-            if review_id is not None:
-                review = session.get(SamePersonReviewRow, review_id)
-                if review is None or not self._same_person.same_person_review_is_current_in_session(session, row.project_id, review):
-                    return False
-                if binding is None or review.binding_id != binding.id:
                     return False
         return bool(
             approval.project_id == row.project_id

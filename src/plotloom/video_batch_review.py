@@ -22,11 +22,16 @@ def segment_confirmation_valid(session, segment):
         try:
             if batch is None:
                 return False
-            assert_receipt_actor(segment.project_id, row.receipt, batch.execution.get("reviewAttribution"))
+            assert_receipt_actor(segment.project_id, row.receipt, batch.execution.get("reviewAttribution"),
+                historical=row.receipt.get("version") == "whole-pack-video-native-audio.v1")
         except (ValueError, InvalidTransitionError):
             return False
-    return bool(row and stable_hash(row.receipt) == row.receipt_hash
-        and row.receipt.get("version") == "whole-pack-video-native-audio.v1"
+    version = row.receipt.get("version") if row else None
+    selection_facts_valid = bool(row and (
+        version == "source-bound-selections.v1"
+        or (version == "whole-pack-video-native-audio.v1"
+            and row.receipt.get("confirmation") == {"clips": True, "nativeAudio": True, "intent": True, "windows": True})))
+    return bool(row and stable_hash(row.receipt) == row.receipt_hash and selection_facts_valid
         and any(fact.get("segmentId") == segment.id and fact.get("jobId") == segment.video_job_id
             and fact.get("derivativeHash") == segment.derivative_hash and type(fact.get("selectionRevision")) is int and segment.selected_revision is not None and fact["selectionRevision"] <= segment.selected_revision
             for fact in row.receipt.get("selections", [])))
@@ -69,8 +74,6 @@ def review_projection(store, application, view):
         reason = None
         if not job or job["state"] != "ingested" or not job["current"]:
             reason = "视频缺失、失败或来源过期。"
-        elif job["reviews"] and job["reviews"][-1]["decision"] == "reject":
-            reason = "最新审阅已拒绝；须从原任务明确处理。"
         elif view["state"] != "approved" and job["selectionRevision"] != target["selectionRevision"]:
             reason = "视频选择版本已变化。"
         elif not proposal or not proposal["current"]:
@@ -89,9 +92,6 @@ def review_projection(store, application, view):
             "segmentId": proposal_id, "segment": proposal, "job": job, "error": reason})
     bundle = {"batchId": view["id"], "manifestHash": view["manifestHash"], "kept": manifest["kept"],
         "proposals": proposals, "errors": errors}
-    from .functional_qa import functional_qa_authorized
-    if functional_qa_authorized(view["projectId"], execution.get("reviewAttribution")):
-        bundle["acceptanceBasis"] = "functional_workflow_only"
     return bundle | {"reviewHash": stable_hash(bundle), "ready": not errors,
         "readyCount": sum(not item["error"] for item in proposals), "blockedCount": len(errors)}
 
@@ -100,22 +100,22 @@ def confirm_pack(store, application, view, request):
     owner = store.repository.video_batches
     from .delegated_qa_video import assert_receipt_actor
     actor = request.attribution.model_dump(mode="json", by_alias=True) if request.attribution else {"kind": "unnamed_creator"}
-    inspection = {"inspection": request.inspection.model_dump(mode="json", by_alias=True)} if request.inspection else {}
     prior = owner.receipt(view["id"])
-    assert_receipt_actor(view["projectId"], {"attribution": actor, **inspection},
+    assert_receipt_actor(view["projectId"], {"attribution": actor},
         view["execution"].get("reviewAttribution"), new_confirmation=prior is None)
     if prior:
         if prior["reviewHash"] != request.review_hash:
             raise InvalidTransitionError("this batch already has a different immutable confirmation")
-        if prior["attribution"] != actor or {key: prior[key] for key in inspection if key in prior} != inspection:
-            raise InvalidTransitionError("retained final confirmation attribution or observations differ")
+        if prior["attribution"] != actor:
+            raise InvalidTransitionError("retained selection attribution differs")
         return prior
     with store.repository.manual_command() as session:
         row = session.get(VideoBatchRow, view["id"])
         if row.revision != request.expected_revision:
             raise RevisionConflictError("video-batch", request.expected_revision, row.revision)
         current = owner.view(row)
-        if request.attribution:
+        from .delegated_qa_contracts import AgentQaAttribution
+        if isinstance(request.attribution, AgentQaAttribution):
             from .delegated_qa import require_qa_write
             require_qa_write(session, view["projectId"], request.attribution)
         review = review_projection(store, application, current)
@@ -126,15 +126,23 @@ def confirm_pack(store, application, view, request):
         facts = []
         repository = ProjectVideoRepository(store, application)
         try:
+            from .delegated_qa_contracts import AgentQaAttribution
+            from .operator_attribution import CodexTaskAttribution
+            selection_actor = request.attribution
+            if isinstance(selection_actor, AgentQaAttribution):
+                selection_reviewer = selection_actor
+            elif isinstance(selection_actor, CodexTaskAttribution):
+                selection_reviewer = selection_actor
+            else:
+                selection_reviewer = ""
             for target, proposal in zip(row.manifest["targets"], review["proposals"], strict=True):
-                selected = repository.select_video_segment(view["projectId"], proposal["segmentId"], reviewer=request.attribution or "",
+                selected = repository.select_video_segment(view["projectId"], proposal["segmentId"], reviewer=selection_reviewer,
                     note="", expected_selection_revision=target["selectionRevision"])
                 facts.append({"shotId": target["shotId"], "jobId": proposal["jobId"], "segmentId": selected["id"],
                     "selectionRevision": selected["selectedRevision"], "derivativeHash": selected["derivativeHash"]})
             receipt = {"id": identifier, "version": request.basis, "batchId": row.id, "projectId": row.project_id,
                 "manifestHash": row.manifest_hash, "reviewHash": request.review_hash,
-                "attribution": actor, **inspection, "confirmation": {"clips": True, "nativeAudio": True, "intent": True, "windows": True},
-                "note": request.note, "kept": row.manifest["kept"], "selections": facts}
+                "attribution": actor, "kept": row.manifest["kept"], "selections": facts}
             session.add(VideoBatchReceiptRow(id=identifier, batch_id=row.id, receipt=receipt, receipt_hash=stable_hash(receipt), created_at=utc_now()))
             row.state, row.revision, row.updated_at = "approved", row.revision + 1, utc_now()
             session.flush()
