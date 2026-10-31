@@ -5,7 +5,7 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## First original H5 product: implementation resumed
+## First original H5 product: functional MVP complete
 
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
 for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
@@ -21,13 +21,12 @@ inspection globally across Plotloom, while preserving technical integrity,
 source bindings and dispatch authority. Review becomes optional, with truthful
 unreviewed selection and no project-specific exception. Preserve source-to-asset
 bindings for the later edit/regenerate/Apply workflow and record concrete
-production friction. The plan owns current status and acceptance. Wenjun resumed
-implementation after checkout consolidation. The director verified Relay delivery
-from the existing coordinator, which continues from the unfinished candidate on
-local `main`. The
-[consolidation receipt](../verification/2026-10-31-worktree-consolidation.md)
-records source/evidence retention and the separate qualified installation.
-The separately queued media-quality work is not a prerequisite for assembly.
+production friction. The plan owns current status and acceptance. The
+[final functional receipt](../verification/2026-10-31-last-projection-functional-closeout.md)
+records the completed original 15-clip game, all three standalone routes, normal
+activation/export, composite local qualification, single refreshed recovery and
+scoped cleanup. Media quality remains unreviewed; the separately queued quality
+work and M2 edit/regenerate/Apply are outside this completed milestone.
 
 ## Completed project-language functional delivery
 

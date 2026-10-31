@@ -21,8 +21,9 @@ submission validation; no retry, replay or reservation-clearing path was added.
 
 ## Evidence
 
-Qualification candidate: the local authored-shot-structure checkpoint; the
-revision and full result will be recorded when qualification completes.
+Qualified runtime code: `e0f00881`; test-only closure checkpoint: `3e23eec5`.
+See the [final receipt](2026-10-31-last-projection-functional-closeout.md) for
+composite qualification, final production, activation and recovery.
 
 - The old runtime's supported original-project snapshot contains three retained
   batches, fifteen selected keyframes and eight selected real H3 clips. Before
@@ -52,9 +53,12 @@ The 435-line project-video facade gains one transactional call to the existing
 new-dispatch authority owner; no new responsibility or extraction was warranted.
 Frozen brief validation is a separate cohesive module. No frontend sources changed.
 
-Full local qualification, exact updated wheel, runtime restart and fresh native
-fidelity checking of the final seven targets remain pending. The earlier full
-`765e4ea5` pass remains valid only for that previous source. Old failed checks and
-rejected candidates remain factual. Hosted CI is not requested or a release
-blocker. Media quality was not assessed, and the final original game, activation
-and recovery closeout remain unfinished.
+The full `e0f00881` invocation failed two retired QA fixture expectations after
+5,077 Python passes. The test-only `3e23eec5` repair and seven focused cases close
+those failures while retaining separate profile/budget scope-guard coverage.
+Every declared downstream full step passed, including all 366 browser cases and
+exact-wheel smoke. This is composite qualification, not a relabelled full pass.
+The final seven targets passed genuine new exact-request fidelity checking and
+were generated/selected; all 15 clips now export and play through all three routes.
+Normal activation, exact export and refreshed recovery passed. The earlier
+`765e4ea5` full pass remains historical. No hosted CI or quality judgment occurred.

@@ -2,109 +2,58 @@
 
 ## Current status
 
-Updated: 2026-10-31. **Relay Direct implementation E2E is active under Wenjun's
-explicit authorization, including parallel support, generation, delegated
-in-scope decisions, local activation, recovery and cleanup while he is unavailable.**
-The coordinator chat `01a18ffa-6108-7f73-aedb-2ae75b61cf3a` owns source changes and
-qualification in the normal `main` checkout, reporting to director
-`01a1902a-80b6-7d80-a166-9c980850982f`. Existing text/image specialist chats are
-reused serially; no other source writer is active. No CI, push, public hosting,
-aesthetic rerolls or media-quality acceptance is authorized by this milestone.
+Updated: 2026-10-31. **The authorized original standalone H5 MVP is complete.**
+The original 15-shot game has all three routes and endings, exact source text,
+truthful unreviewed selections, normal-install export and functional recovery.
+Compulsory audiovisual quality review is removed globally under ADR 0226;
+technical integrity, source fidelity and dispatch authority remain required.
+Media quality is unreviewed. M2 edit/regenerate/Apply and creative polish remain
+separate work. No hosted CI, push or public hosting was requested or performed.
 
-Prior fully qualified implementation: `765e4ea5`. The current candidate also
-repairs authored shot structure and retained video authority; focused checks
-and actual eight-clip recovery pass, with fresh full qualification pending.
-The normal-production Codex
-operator contract is implemented under ADR 0230 and independently reviewed;
-126 affected Python cases, 19 frontend cases, quick/type checks, identical
-second-build assets and exact installed-wheel smoke passed. The fresh full local gate passed all 5,067 Python, 1,704 frontend and 366 browser
-cases, both type checks, bundle parity, wheel build and installed smoke on this
-runtime checkpoint. The
-prior `06992e24` unfiltered browser suite passed all 366 cases, with its scope
-retained separately. ADRs 0226–0229 own optional review, standalone export,
-authenticated authored topology and native-check envelope capacity. The early
-provider-free standalone fixture passed real HTTP playback, branching, ending,
-restart, reopening, deterministic export and storage-denied play. That fixture
-proves functional contracts, not final original-game completion.
+The [final receipt](../verification/2026-10-31-last-projection-functional-closeout.md)
+owns artifact paths, exact revisions, executed evidence, production learning and
+limitations. Source/runtime checkpoint: `3e23eec5` (runtime code `e0f00881`, plus
+QA test-fixture repairs). The following closeout commit changes documentation
+only. Normal installation is activated on that checkpoint; all 17 previous homes
+are preserved, with the completed story restored as the eighteenth through the
+supported operation. Its HTTP export is byte-identical to the delivered ZIP.
+The single qualified recovery handle is refreshed and proven. Disposable copied
+projects/environments and owned test browsers/server are retired; the original
+valued production home, snapshots and evidence are retained.
 
-The original valued story project is retained in the isolated supported runtime
-on port 8863; normal qualified installation and user projects remain unchanged.
-F1–F5 now all passed genuine independent native language checks and were adopted.
-The seven source roles, six edges and all 19 dialogue lines are preserved. The
-15-shot storyboard has exact 125 ms / 24 fps timing; three complete routes are
-72.625, 110.500 and 117.375 seconds. Its first complete route needs eight shots.
-Two original character references were generated once each, ingested and selected
-with truthful unreviewed agent attribution and actual final-argument fidelity
-audits. All eight first-route shot keyframes are now selected with literal actual ImageGen
-arguments, reference hashes and durable output bytes verified. The original
-n00-s3-c1 request prematurely released hand contact before N10; its candidate
-and receipt remain unselected and unchanged. A single corrected author-owned
-opening-state package was generated, verified and selected instead. These are
-source-to-request decisions, without pixel quality judgments. The first live
-H3 job succeeded with native audio and an exact 0–60-frame selected window;
-its complete compiled prompt, settings, start-image digest and output digest
-match the actual gateway receipt. Codex operator attribution is preserved.
-The other seven first-route clips passed distinct native drafting/fidelity checks, completed their frozen batch and are selected with exact authored windows. A known conversation prediction initially reported `retrieval_or_probe_failed`; exact gateway bytes passed transport/adapter/decode checks, and ordinary same-ID reconciliation returned its exact ingested output. The first cause remains unproven and the failure is retained; no replacement generation or code change followed. The source-bound native intent package
-covers 39 targets, passed its genuine language check and was saved after agent
-source inspection; native presentation covers 47 sources / 70 spans, passed its genuine language check and agent source inspection, and was explicitly saved. The full 15-shot source-bound production is installed with no admission conflicts.
+Final local qualification is **composite**, not a successful full invocation:
+the `e0f00881` full run passed 5,077 Python cases and failed two obsolete QA
+fixture expectations. The test-only `3e23eec5` repair passed seven focused cases,
+including independent QA scope guards. All authoritative downstream full steps
+then passed, including 366 unfiltered browser cases, deterministic assets/parity,
+wheel build and installed smoke. Earlier failed/interrupted runs remain failed.
+The exact wheel also restores all 15 clips, exports, snapshots, closes and
+reopens without source-checkout reads or provider calls.
 
-Source local qualification is **complete** on `765e4ea5`; original-game, exact
-installed-export, activation and recovery acceptance remain **incomplete**. The immutable `aa6e8754` full run failed:
-5,036 Python cases passed and 13 failed before browser/wheel gates. All 13 failures
-have since been closed by diagnosed focused repairs; 112 downstream affected
-contracts passed on `cef4b65b`. This reuses unchanged whole-file backend evidence
-and does not relabel the failed full invocation. The first complete-browser
-attempt was interrupted after shared retired mandatory-review selectors caused
-failures: 120 passed, eight failed, four interrupted, 234 not run. A focused run
-then exposed more retired controls and expectations: 23 passed, eight failed.
-Their failure context is retained. An independent audit identified the finite
-selector/optional-observation drift; all 34 affected focused browser cases then
-passed. The latest quick gate passed 1,703 frontend cases and both type checks.
-Independent review found only product wording and current-contract fixture changes;
-backend/API/request/persistence/provider/dependency inputs are unchanged.
-Generated assets and their second-build comparison, exact wheel/installed
-smoke and the complete unfiltered browser suite passed on `06992e24`. The operator repair changes an authorization contract; its separate fresh full
-local gate passed on `765e4ea5`, as recorded in the operator verification receipt. Hosted CI is not requested and is not a release blocker.
+Journey: original N00 → C01 → E01, and N00 → C01 → N10 → C02 → E02/E03.
+Runtime: activated normal Plotloom plus an exported static game outside the
+checkout. Functional HTTP tests used Chromium/WebKit with Plotloom denied;
+ordinary Safari file opening covered the complete short route. Desktop/390px
+layout inspection passed. The original H3 work used 15 jobs / 161 requested
+seconds under its prospective normal-production authority, without quality
+rerolls or new provider experiments. Coordinator owns cleanup. No next action
+is required for this milestone; the downloadable game is ready for owner use.
 
-**Next smallest outcome:** repair the demonstrated trusted H3 prefix conflict
-before submitting the final seven clips. All fifteen original keyframes are
-selected, and eight exact source-bound clips are already selected. The final
-batch's genuine checker passed six targets but rejected E03 because the compiler
-adds one-continuous-shot even though the source permits a fragment insert. The
-model's English retained the permission correctly; fix the compiler/brief owner,
-not the authored story, candidate meaning or checker. Provider-free final-request
-comparisons must preserve both explicit continuity and permitted inserts. Then
-prepare a fresh unchanged-source candidate and obtain a genuine exact-prompt
-fidelity pass. Existing selected bytes and all failed/rejected evidence remain.
-The provider-free boundary repair now restores and reopens all eight existing
-clips with identical playback hashes, no provider calls and no original-project
-mutation. New generation remains current-compiler-only. See the
-[shot-structure verification](../verification/2026-10-31-authored-shot-structure.md)
-for exact evidence and pending qualification.
-The earlier eight-shot checkpoint correctly refused incomplete-graph playback
-and export. Finish the final seven clips, then complete all three routes in the
-external installed export, activation, recovery and scoped cleanup.
-
-Earlier next-step descriptions in retained receipts/logs are historical.
-
-Stop only when the complete original standalone game, optional-review behavior,
-required local qualification, activation, recovery proof and scoped cleanup are
-complete, with source/selection/build bindings ready for the owner's review.
-Functional correctness, final-request fidelity and creative quality remain
-separate; media quality is unreviewed and outside this milestone.
+Superseded next-step descriptions in earlier receipts are historical. The
+approved scope and implementation method below remain the retained plan.
 
 ## Acceptance
 
 | Claim | Required evidence | Fresh media | Status / evidence |
 |---|---|---|---|
-| Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | Development candidate; normal/QA source-bound selection, absent/failed/note-only observations and reopen checks passed; final affected browser/local qualification pending |
-| Complete standalone game | Final exported ZIP unpacks outside the checkout; start → all three authored routes/endings → restart/last-choice replay and HTTP reload/Continue work with Plotloom unavailable; request audit permits only packaged files | Retained media for early slice; original media for final game | Provider-free four-node fixture API/HTTP slice passed; final seven-role game pending |
-| Lightly styled usable MVP | Desktop and 390px viewport inspection shows legible title, choices, controls, dialogue and ending cards with focus/pressed states; no blocked progression or clipped essential controls | No quality experiment | Planned; responsive viewport is not real-phone qualification |
-| Faithful story and final requests | All seven draft roles and six edges mapped to project/runtime identities; exact choices, dialogue and endings retained; full final image/H3 requests compared with source, references, timing and authorized settings | Provider-free comparisons; actual production dispatch receipts also retained | F1–F5 genuinely language-checked/adopted; exact seven source excerpts, 19 dialogue lines, seven-node/six-edge graph and 15-shot timing verified. Two actual reference ImageGen requests audited; shot image/H3 requests pending. Frozen briefs alone do not prove final tool arguments |
-| Technical validity and provenance | Selected bytes decode/play; hashes, sources, revisions, references and frame windows match; stale/wrong-source/unauthorized/concurrent selections still refuse; reopening preserves current project assets and facts | No by default | Planned |
-| Original story production and future update seam | Actual Plotloom project produces this story's assets, records selection and exports them; build-side slot/source/candidate bindings survive reopening; replacing a fixture slot leaves graph/UI unchanged | Yes for the original assets the project lacks; no quality rerolls | Planned; retained unrelated clips cannot satisfy final story production |
-| Local qualification and activation | Stable candidate passes applicable full local qualification, exact installed-package export, normal runtime activation and preservation/readback; refreshed single recovery restores the new selection contract; final package exercised after material repairs | No extra generation by default | Planned; hosted CI not requested and not a release gate |
-| Audiovisual creative quality | No required inspection, listening, score, identity-quality verdict, creative pass or quality-based retry; accurately label unreviewed media | No | Explicitly outside this milestone |
+| Optional media review throughout Plotloom | Normal/QA selection, adoption, generation, trim, playback, reopen/export without fabricated watch/listen/quality attestations; technical/source guards retained | No extra generation for policy | Complete: affected contracts, full frontend/types, normal original production, installed recovery and unfiltered browser evidence |
+| Complete standalone game | Outside-checkout ZIP; all routes/endings, restart/last-choice, HTTP Continue; packaged-only network with Plotloom unavailable | Original production media | Complete: Chromium and WebKit all 15 clips/all three routes; Safari local-file complete E01 route; storage-denied E01/reload |
+| Lightly styled usable MVP | Legible desktop and 390px title, dialogue, choices, controls and endings; no essential clipping | No quality experiment | Complete: pixel inspection, width/scroll-width and control-size readbacks; no real-phone claim |
+| Faithful story and final requests | Seven source roles/six edges; exact 19 dialogue lines, four labels, three endings; actual image arguments/H3 receipts and settings compared | Production receipts | Complete: native F1–F8 checks, literal ImageGen calls/ref hashes, exact gateway prompts/input digests and private source-to-build map; erroneous image request retained unselected |
+| Technical validity and provenance | Selected media decode/hash/window/currentness; unsafe/tampered/unauthorized inputs refuse; portable reopening retains facts | No extra generation | Complete: all 15 decoded in each HTTP engine, exact selected bytes, focused authority regressions and installed 15-clip restore/save/close/reopen |
+| Original story production and future update seam | Actual project selects/exports original media; private slot/source/candidate bindings retained; fixture slot replacement preserves graph/UI | Original missing assets only | Complete: 15 selected real H3 clips, private immutable build receipt and source-to-build map; M2 Apply remains excluded |
+| Local qualification, activation and recovery | All applicable local gates, exact installed export, preservation and single recovery proof | No extra generation | Complete through composite closure on `3e23eec5`; normal export exact; prior 17 homes and UNKNOWN facts unchanged; source extraction/native preparation and exact-wheel recovery passed |
+| Audiovisual creative quality | Record only judgments actually made | No | Unreviewed, explicitly outside this milestone |
 
 ## Outcome and settled boundaries
 
@@ -425,7 +374,7 @@ activation, push or CI was run for this plan.
 | Video batch selection | Old final selection bundled AV observations and four unconditional `True` claims with source/window choice | A technically valid unreviewed candidate could not be selected | Version selection receipts separately and keep optional judgments out of admission | Implemented; first original H3 window selected with Codex attribution and no quality claims |
 | Normal H3 Start | The old request could only identify an unnamed creator or a bounded QA actor | Would misattribute this real-story agent operation | Add explicit source-bound Codex operator ownership | ADR 0230 implemented/reviewed; first real gateway job carries this operator; fresh full gate passed |
 | Conversation still request | A model-owned actual prompt released hand contact and put down the card before the authored N10 branch | Published candidate could not support a faithful source-to-request claim | Clarify current state in the author-owned target direction and create one fresh immutable job | Old candidate retained unselected; corrected request and literal call audited/selected; no pixel judgment |
-| Early eight-shot route | Normal player and exporter both require complete installed-graph media inventory | Eight-shot route cannot be played in the existing complete-graph surface while seven other slots are absent | Retain supported refusals, verify selected first-route clips, then finish full inventory | Method correction recorded; no partial-player/export feature, altered graph or fabricated media |
+| Early eight-shot route | Normal player and exporter both require complete installed-graph media inventory | Eight-shot route cannot be played in the existing complete-graph surface while seven other slots are absent | Retain supported refusals, verify selected first-route clips, then finish full inventory | Complete: all 15 selected and all three standalone routes exercised; no partial-player/export feature, altered graph or fabricated media |
 | Known-ID H3 retrieval | A successful 362-frame gateway output initially stayed `retrieve_needed` with a generic retrieval/probe error | Batch progression paused while retaining the known prediction and original outcome | Read exact output/hash and transport/adapter/probe evidence, then reconcile the same ID through the ordinary public service | Same output ingested, frozen batch resumed; first cause remains unproven, no replacement generation or source fix claimed |
 
 Add actual production observations as encountered. Fix blockers to this outcome;
