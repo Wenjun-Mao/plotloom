@@ -8,6 +8,9 @@ is explicit and technically validated, with truthful agent attribution. Generate
 media remains creatively unreviewed. The [plan](../roadmap/2026-10-30-last-projection-h5-mvp.md)
 owns the approved outcome and exclusions.
 
+The [branching-game production playbook](../creative-workflow/branching-game-production-playbook.md)
+uses this run as a worked example.
+
 ## Deliverable and identities
 
 - Delivery ZIP: `/Users/wjmao/Downloads/plotloom-the-last-projection-2026-10-31/the-last-projection.zip`.
