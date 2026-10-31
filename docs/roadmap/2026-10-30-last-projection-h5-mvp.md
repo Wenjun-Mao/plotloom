@@ -29,8 +29,9 @@ failed; its copy was adjusted, but the affected selector still needs a rerun.
 An isolated v5 persistence case passed. The later combined API run had no captured
 summary and remains unknown, not a pass. Generated frontend assets are not yet
 refreshed; no standalone product slice, generation or activation occurred.
-Next action is only source/evidence consolidation and safe worktree cleanup.
-On explicit resume, first verify that the existing coordinator and Relay
+All extra development worktrees are archived and this chat now uses the normal
+`main` checkout. The implementation remains paused. On explicit resume, first
+verify that the existing coordinator and Relay
 completion hook still target this chat and the normal `main` checkout after
 worktree removal. Re-register and verify completion delivery if needed; reuse
 the paused coordinator when healthy, otherwise establish a replacement with the

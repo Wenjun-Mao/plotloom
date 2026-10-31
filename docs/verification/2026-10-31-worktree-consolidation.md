@@ -28,13 +28,10 @@ Ignored evidence moved intact, with directory inode/device checks, to
 qualified recovery moved unchanged to `.local/current-qualified-recovery/`.
 `evidence-moves.json` records the mapping; retained records keep historical paths.
 Only disposable environments/caches and preserved obsolete source were removed.
-The `448f`, `8f80`, `f4b3` and `b30f` linked worktrees are retired. The chat's
-validation worktree is the last checkout awaiting native handoff and retirement.
-Native archive refuses to remove the chat's primary checkout; native handoff
-twice refused because this chat has pending composer state. No draft was sent
-or discarded and neither safeguard was bypassed. Both checkouts contain the
-same current committed source; send or clear the pending composer state before
-retrying that final handoff. On implementation resume, verify/re-register Relay
+All five extra linked worktrees, including the chat's validation worktree, are
+archived. The native handoff moved this chat to `/Users/wjmao/projects/HU/plotloom`,
+and the normal checkout is restored to clean local `main`. Codex archived the old
+worktree after the handoff. When implementation resumes, verify/re-register Relay
 completion routing before reuse, replacing the coordinator if necessary.
 
 ## Qualified installation remains separate
