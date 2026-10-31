@@ -42,7 +42,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("Local synthetic fixture source.");
   await page.getByTestId("save-visual-intent").click();
-  await page.getByLabel("审核兼容性说明").fill("Current selected shot keyframe for the bounded probe.");
+  await page.getByLabel("兼容性备注（可选）").fill("Current selected shot keyframe for the bounded probe.");
   const keyframePost = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`);
   await page.getByTestId("select-reviewed-keyframe").click();
@@ -79,7 +79,7 @@ test("a saved aspect-ratio change withdraws dependent review and clip eligibilit
   const preview = segmentReview.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate(video => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
-  await segmentReview.getByRole("button", { name: "确认用于故事" }).click();
+  await segmentReview.getByRole("button", { name: "选择用于故事" }).click();
   await expect(segmentReview.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
 
   const baseline = await currentnessSnapshot(request, root, projectId, reconciled.id);

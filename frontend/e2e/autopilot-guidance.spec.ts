@@ -59,7 +59,8 @@ test("actual stage workspaces distinguish automatic ownership while keeping manu
     await expect(guide).toContainText("当前自动阶段：美术设定");
     await expect(guide).toContainText("保存手动修改将接管自动运行");
     const stageGuide = page.locator(".stage-guide-content:visible").first();
-    await expect(stageGuide).toContainText("一次完整人工审阅");
+    await expect(stageGuide).toContainText("明确选择当前素材");
+    await expect(stageGuide).toContainText("媒体质量观察为可选");
     await expect(stageGuide).not.toContainText("下一步准备");
     if (target === "source#source") {
       const open = page.getByRole("button", { name: "阅读AI 已采用大纲", exact: true });

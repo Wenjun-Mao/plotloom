@@ -216,7 +216,7 @@ export function KeyframeAndPreviewPanel({
                 {workbench.reviewedKeyframes.filter((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id).map((binding) =>
                   <option key={binding.id} value={binding.id}>复用 {binding.shotId} 的审核画面 · {binding.id.slice(0, 8)}</option>)}
               </select>
-              {intentDraft.sourceBindingId && <small>原始画面来源保留；以下意图与兼容审核仅适用于 {selectedShot?.id}。人物出现时需要当前镜头独立同人审核。</small>}
+              {intentDraft.sourceBindingId && <small>原始画面来源保留；以下意图与所选关键帧绑定仅适用于 {selectedShot?.id}。人物身份观察可选，记录仅适用于当前镜头。</small>}
               {activeIntent?.intent.targetUse && <small>原始生成镜头：{activeIntent.intent.targetUse.source.originShotId ?? "手动导入"}；目标使用：{activeIntent.intent.targetUse.targetShotId}。</small>}
             </Field>
             <Field label="身份意图">

@@ -91,7 +91,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
   const locked = controlLocked || dirty || working.stale;
   const edited = Object.keys(edits).length > 0;
   return <Panel className="video-batch-panel form-card" id="video-batch-production"><h2>{batch?.manifest.setup.singleRequest && !setupMode ? "本镜头制作批次" : "批量制作视频"}</h2>
-    <p>{batch?.manifest.setup.singleRequest && !setupMode ? "此清单来自手动制作中的单镜头请求，沿用其原种子、规格、播放窗口与请求标识。生成后仍须实际审阅视频与原生音频。" : "覆盖全部路线的唯一制作镜头。保留已有可用视频，只为真正缺失项制作；全部生成后由你一次审阅视频与原生音频。"}</p>
+    <p>{batch?.manifest.setup.singleRequest && !setupMode ? "此清单来自手动制作中的单镜头请求，沿用其原种子、规格、播放窗口与请求标识。生成后仍须明确选择视频与播放窗口；音画质量观察可选。" : "覆盖全部路线的唯一制作镜头。保留已有可用视频，只为真正缺失项制作；全部生成后统一选择视频与播放窗口；音画质量观察可选。"}</p>
     <ProjectQaContext qa={qa} />{working.notice}
     {error && <p role="alert">{error}<Button variant="quiet" onClick={() => setEpoch(value => value + 1)}>重新读取原批次</Button></p>}
     {busy && <p role="status" aria-live="polite">{busy}；请勿重复提交。</p>}
@@ -150,7 +150,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         {["cancelled", "blocked"].includes(batch.state) && !!Object.keys(batch.execution.segments || {}).length && <Button disabled={locked} onClick={() => setReview(true)}>审阅已完成视频与重做镜头</Button>}
         {batch.state === "approved" && <Button variant="primary" onClick={onStory}>已保存 · 查看故事播放</Button>}
         <Button variant="quiet" onClick={() => { const target = document.getElementById("video-batch-next-action"); if (target) revealWorkspaceTarget(target); }}>查看结果</Button>
-      </div></section><p>暂停与取消保留已派发作业及结果；不代表远程取消。结果不确定时，仅在确认本地执行已停止且本次权限与预算允许后，按冻结次数使用新任务身份重试；可能重复生成并产生费用。每个新视频须完成最终整包音画审阅与确认才用于故事。</p>
+      </div></section><p>暂停与取消保留已派发作业及结果；不代表远程取消。结果不确定时，仅在确认本地执行已停止且本次权限与预算允许后，按冻结次数使用新任务身份重试；可能重复生成并产生费用。每个新视频须通过技术核验并明确选用才用于故事；音画质量观察可选。</p>
     </>}
     {review && batch && projectId && <VideoBatchReview key={`${projectId}:${batch.id}`} actor={qa.actor} onBatchRead={value => { if (identity.current === owner) setBatch(value); }} onReplaced={value => { if (identity.current === owner) { setBatch(value); setReview(false); setEdits({}); } }} onConfirmStart={completion.arm} projectId={projectId} batch={batch} disabled={disabled || dirty || !ready || qa.blocked} onClose={() => { completion.clear(); setReview(false); }}
       onSaved={async () => { setReview(false); setBusy("已保存，正在刷新制作状态");

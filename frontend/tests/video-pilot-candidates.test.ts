@@ -65,7 +65,7 @@ it("only recommends playback for current selected segments matching the authored
 it("guides current unselected segments to review and rejected history to recovery", () => {
   const current = selectedJob("current", 1);
   const pending = { ...current, selected: false, playbackSegment: null, segments: [{ ...current.playbackSegment!, selected: false }] };
-  expect(videoNextAction([pending], 6_000)).toContain("听看待审片段");
+  expect(videoNextAction([pending], 6_000)).toContain("明确选择当前片段用于故事；音画质量观察可选");
   expect(videoNextAction([{ ...pending, reviews: [{ id: "r", reviewer: "", note: "", decision: "reject", createdAt: "2026-10-04T00:00:00Z" }] }], 6_000)).toContain("被拒绝");
   expect(videoNextAction([], 6_000)).toContain("检查关键帧与视频请求");
 });

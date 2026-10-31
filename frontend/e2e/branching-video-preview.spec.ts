@@ -127,7 +127,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOr
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
-  await review.getByRole("button", { name: "确认用于故事" }).click();
+  await review.getByRole("button", { name: "选择用于故事" }).click();
   await expect(review.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
   return job.id;
 }
@@ -167,7 +167,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
       await page.getByTestId(/^keep-candidate-/).click();
       targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source!, project.storyboard.shots[index].id);
     }
-    await page.getByLabel("审核兼容性说明").fill(`Current approved ${shotName} fixture keyframe.`);
+    await page.getByLabel("兼容性备注（可选）").fill(`Current approved ${shotName} fixture keyframe.`);
     const selectedKeyframeResponse = page.waitForResponse((response) => (
       response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`

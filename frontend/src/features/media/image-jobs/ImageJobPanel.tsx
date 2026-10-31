@@ -74,7 +74,7 @@ export function ImageJobPanel({
           </div>
         )}
         <p className="muted">
-          当前分镜须先通过批准。准备任务会固定当前镜头和角色参考；发送后由图像生成助手执行。结果通过检查后才会显示为候选，还需要你审核选择。排队不代表生成完成，也不会自动批准或选用。
+          当前分镜须先通过批准。准备任务会固定当前镜头和角色参考；发送后由图像生成助手执行。结果通过检查后才会显示为候选，还需要你明确选择，质量观察可选。排队不代表生成完成，也不会自动批准或选用。
         </p>
         {mediaKnown && imageJobPrerequisite && (
           <div className="notice warning" data-testid="image-job-prerequisite">
@@ -130,7 +130,7 @@ export function ImageJobPanel({
             {reviewedKeyframes.filter((binding) => binding.shotId !== shotId).map((binding) =>
               <option key={binding.id} value={binding.id}>{binding.shotId} · 当前审核画面 {binding.assetId.slice(0, 8)}</option>)}
           </select>
-          <small>冻结原始画面作为场景外观参考。当前镜头决定动作、构图、光线和物体状态；新图仍需审核，不保证模型忠实度。</small>
+          <small>冻结原始画面作为场景外观参考。当前镜头决定动作、构图、光线和物体状态；新图仍须明确选择，质量观察可选，不保证模型忠实度。</small>
         </Field>}
         <Field label={imageJobTarget.kind === "keyframe_adaptation" ? "冻结的画面呈现 / 比例适配方向" : "冻结的画面呈现 / 细化变化"} required>
           <textarea

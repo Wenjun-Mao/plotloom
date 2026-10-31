@@ -41,7 +41,7 @@ export function MiniMaxH3QualityField({ profiles, value, onChange, disabled }: {
   }} disabled={disabled}>
     <option value={8}>质量 8 · 制作审核候选（推荐）</option>
     <option value={1}>质量 1 · 开发迭代</option>
-  </select><small>导演反馈质量 8 的随机抖动较少；每条原片仍需实际审看，切换质量不会回退或改写已有任务。</small></label>;
+  </select><small>导演反馈质量 8 的随机抖动较少；每条原片仍须明确选用，音画质量观察可选，切换质量不会回退或改写已有任务。</small></label>;
 }
 
 export function MiniMaxH3ProfileField({ profiles, value, onChange, disabled }: {

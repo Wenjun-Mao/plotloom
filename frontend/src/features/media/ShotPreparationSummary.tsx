@@ -83,7 +83,7 @@ export function ShotPreparationSummary({
   const h3Catalog = qualified?.filter((seconds) => h3RequestFrameCount(seconds) !== undefined).sort((left, right) => left - right);
   const coveringRequest = h3Catalog?.map((seconds) => ({ seconds, timing: h3Timing(sourceMilliseconds ?? 0, seconds, qualified) }))
     .find(({ timing }) => timing.playbackIntent !== undefined);
-  const reviewNotice = "原片输出须核验，连续片段须经人工听看并明确选择；不会自动裁切或用于故事";
+  const reviewNotice = "原片输出须通过技术核验，连续片段须明确选择；音画质量观察可选，不会自动裁切或用于故事";
   const durationStatus = !qualified?.length ? "未知（请求目录不可用）"
     : h3Backend
       ? !h3Catalog?.length ? "H3 请求目录不可用，不能准备请求"

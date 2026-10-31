@@ -93,7 +93,7 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
   });
   return <details open className="presentation-review" data-testid="production-presentation-review"><summary>逐项审阅内容的呈现方式</summary>
     {working.notice}<p>{knownAutomatic ? `${adoption}的呈现方案仍待整包人工审阅；手动保存修改将接管自动运行。` : automatic || "按场次查看，修改呈现方式后确认保存。原始剧本与分镜保持不变。"}</p>
-    <details><summary>呈现方式说明</summary><p>实体动作与限制须完整保留；画面文字保留原文且不发声。选择问题与按钮由播放器呈现。混合描述可展开原文并拆分；实际媒体仍需单独审核。</p></details>
+    <details><summary>呈现方式说明</summary><p>实体动作与限制须完整保留；画面文字保留原文且不发声。选择问题与按钮由播放器呈现。混合描述可展开原文并拆分；实际媒体仍须单独制作并选用；质量观察可选。</p></details>
     {currentCandidate && <div className="notice" role="status">{appliedJob === currentCandidate.jobId ? "助手建议 · 已填入下方，可逐项修改；尚未确认保存。" : "助手建议已返回；你的本地编辑保留，未被覆盖。"}
       {appliedJob !== currentCandidate.jobId && <Button disabled={disabled || working.stale || busy} onClick={() => { edited.current = true; onEdited?.(); apply(); }}>使用助手建议替换本地呈现编辑</Button>}
     </div>}
@@ -135,7 +135,7 @@ export function ProductionPresentationReview({ projectId, proposal, candidate, d
           .finally(() => { if (ownership.current === epoch) setBusy(false); });
       }}>确认并保存呈现方式</Button>
     </div>}
-    {pkg.reviewed && <p>{accepted ? "呈现方式审阅已保存；实际媒体仍需单独审核并选用。" : "呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。"}</p>}
+    {pkg.reviewed && <p>{accepted ? "呈现方式审阅已保存；实际媒体仍须单独制作并选用；质量观察可选。" : "呈现方式审阅已保存；修改后请重新保存。实际媒体仍须单独制作并选用；质量观察可选。"}</p>}
     {error && <ErrorNotice message={error} />}
   </details>;
 }

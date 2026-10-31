@@ -42,7 +42,7 @@ it("shows the conditional eight-to-six path while keeping disabled dispatch dist
   expect(host.textContent).toContain("缺少当前批准");
   expect(host.textContent).toContain("未配置；不能准备或提交视频");
   expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("6 秒原稿需要 144 帧；目录内 8 秒请求提供 192 帧容量");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续片段须经人工听看并明确选择");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续片段须明确选择；音画质量观察可选");
   expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("当前后端未配置，暂不能提交请求");
   expect(host.textContent).not.toContain("已明确选择");
 });

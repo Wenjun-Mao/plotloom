@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "./fixture";
 import { inspectLongProvenanceLayout } from "./provenance-layout";
-import { inspectIdentityReviewRefusal } from "./image-jobs/identity-review-refusal";
+import { inspectIdentityObservationEligibility } from "./image-jobs/identity-observation-eligibility";
 import { inspectFullImageReview } from "./image-jobs/full-image-review";
 import {
   createCanonicalProject, imageJob, latestImageJob, prepareImageJob,
@@ -290,7 +290,7 @@ test.describe("P1 self-contained specialist image brief", () => {
     await page.getByTestId("save-visual-intent").click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page
-      .getByLabel("审核兼容性说明")
+      .getByLabel("兼容性备注（可选）")
       .fill(
         "The accepted original candidate matches the approved arrival shot.",
       );
@@ -299,7 +299,7 @@ test.describe("P1 self-contained specialist image brief", () => {
       "画面意图 r1",
     );
     await inspectFullImageReview(page, originalCandidate, testInfo);
-    await inspectIdentityReviewRefusal(page, request, workbench.apiOrigin, projectId, testInfo);
+    await inspectIdentityObservationEligibility(page, request, workbench.apiOrigin, projectId, testInfo);
     await recordSamePersonReview(page, "char_ruanxing");
     const frozenComparison = page.getByTestId("frozen-reference-comparison");
     await expect(

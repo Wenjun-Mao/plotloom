@@ -64,7 +64,7 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("Synthetic test-only opening still.");
   await page.getByTestId("save-visual-intent").click();
-  await page.getByLabel("审核兼容性说明").fill("Technical fixture prerequisite for segment UI; not creative acceptance.");
+  await page.getByLabel("兼容性备注（可选）").fill("Technical fixture prerequisite for segment UI; not creative acceptance.");
   const selectedKeyframe = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`);
   await page.getByTestId("select-reviewed-keyframe").click();
@@ -105,7 +105,7 @@ async function selectEndingKeyframe(page: Page, request: APIRequestContext, work
   await page.getByTestId("save-visual-intent").click();
   const intent = await intentResponse;
   expect(intent.ok(), await intent.text()).toBeTruthy();
-  await page.getByLabel("审核兼容性说明").fill("Technical fixture prerequisite; synthetic ending shot only.");
+  await page.getByLabel("兼容性备注（可选）").fill("Technical fixture prerequisite; synthetic ending shot only.");
   const selected = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`);
   await page.getByTestId("select-reviewed-keyframe").click();
@@ -164,12 +164,12 @@ async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expe
   await preview.evaluate((video) => (video as HTMLVideoElement).pause());
   if (annotation) {
     await review.locator("details.review-annotations > summary").click();
-    await review.getByLabel("说明（可选）").fill(annotation);
+    await review.getByLabel("可选观察或备注").fill(annotation);
   }
   const selection = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname.includes(`/video-segments/`)
     && new URL(response.url()).pathname.endsWith("/select"));
-  await review.getByRole("button", { name: "确认用于故事" }).click();
+  await review.getByRole("button", { name: "选择用于故事" }).click();
   const response = await selection;
   expect(response.ok(), await response.text()).toBeTruthy();
   await expect(review).toContainText("已选择片段 · 正用于故事");
@@ -254,10 +254,10 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   await storyboardDisclosure.locator(":scope > summary").click();
   await expect(titleDraft).toHaveValue("门开 · 本地草稿");
   await directReview.locator("details.review-annotations > summary").click();
-  await directReview.getByLabel("说明（可选）").fill("短");
+  await directReview.getByLabel("可选观察或备注").fill("短");
   await directReview.locator("details.review-annotations > summary").click();
   await directReview.locator("details.review-annotations > summary").click();
-  await expect(directReview.getByLabel("说明（可选）")).toHaveValue("短");
+  await expect(directReview.getByLabel("可选观察或备注")).toHaveValue("短");
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 900 });
     for (const disclosure of await page.locator("details.workbench-support").all()) {

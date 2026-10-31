@@ -42,8 +42,8 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   const held = await save();
   expect(held).toMatchObject({ current: true, latest: true, productionEligible: false });
   await expect(panel).toContainText("无法判断 · 暂缓投产");
-  await expect(page.getByTestId("create-still-preview")).toBeDisabled();
-  expect((await request.post(`${url}/video-jobs/prompt-preview`, { data: videoBody })).status()).toBe(409);
+  await expect(page.getByTestId("create-still-preview")).toBeEnabled();
+  expect((await request.post(`${url}/video-jobs/prompt-preview`, { data: videoBody })).status()).toBe(200);
 
   await production.selectOption("authorize");
   await panel.getByLabel("复核备注").fill("Human explicitly accepts unobservable identity for the frozen framing.");
@@ -66,7 +66,7 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   const previewResponse = await request.post(`${url}/still-previews`, { data: previewBody });
   expect(previewResponse.status()).toBe(201);
   const preview = await previewResponse.json();
-  expect(preview.manifest.frames[0].identityReviewId).toBe(authorized.id);
+  expect(preview.manifest.frames[0]).not.toHaveProperty("identityReviewId");
   for (const size of [{ width: 1700, height: 900 }, { width: 1280, height: 768 }, { width: 1280, height: 460 }]) {
     await page.setViewportSize(size);
     const status = panel.getByText("当前复核", { exact: false });
@@ -78,12 +78,12 @@ export async function inspectUnassessableReview(page: Page, request: APIRequestC
   await expect(production).toHaveCount(0);
   await panel.getByLabel("复核备注").fill("New explicit refusal supersedes accepted uncertainty and every older approval.");
   await save();
-  await expect(panel).toContainText("此决定阻止生成视频或创建连续静帧预览");
-  await expect(page.getByTestId("create-still-preview")).toBeDisabled();
-  expect((await request.post(`${url}/video-jobs/prompt-preview`, { data: videoBody })).status()).toBe(409);
+  await expect(panel).toContainText("此观察不决定视频生成或连续静帧预览的技术资格。");
+  await expect(page.getByTestId("create-still-preview")).toBeEnabled();
+  expect((await request.post(`${url}/video-jobs/prompt-preview`, { data: videoBody })).status()).toBe(200);
   const previews = (await request.get(`${url}/still-previews`).then(response => response.json())).previews;
   const old = previews.find((item: { id: string }) => item.id === preview.id);
-  expect(old.state).toBe("stale");
+  expect(old.state).toBe("current");
   expect(old.manifest).toEqual(preview.manifest);
   expect((await request.get(`${url}/video-jobs`).then(response => response.json())).jobs).toEqual([]);
 }

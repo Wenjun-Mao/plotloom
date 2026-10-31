@@ -172,7 +172,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await page.getByLabel("候选图像比较").locator(".media-candidate").getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("snapshot media lineage fixture");
   await page.getByTestId("save-visual-intent").click();
-  await page.getByLabel("审核兼容性说明").fill("The stored fixture is reviewed for this exact shot.");
+  await page.getByLabel("兼容性备注（可选）").fill("The stored fixture is reviewed for this exact shot.");
   const selectionResponse = page.waitForResponse((response) =>
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`,

@@ -25,7 +25,7 @@ for (const boundary of ["cancel-failed", "cancel-response-lost", "successor-resp
     await page.getByRole("button", { name: "审阅全部视频", exact: true }).click({ timeout: 30000 });
     const before = await (await page.request.get(api)).json();
     const original = await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${project}/video-jobs`)).json();
-    const dialog = page.getByRole("dialog", { name: "审阅全部视频", exact: true });
+    const dialog = page.getByRole("dialog", { name: "视频素材与播放窗口", exact: true });
     await dialog.getByRole("button", { name: /重新制作这个镜头…/ }).first().click();
     await dialog.getByLabel("重做原因或期望变化").fill("QA creative variation: retain tighter camera framing; no invented provider failure.");
     await dialog.getByRole("button", { name: "保存拒绝与修改原因", exact: true }).click();
@@ -46,7 +46,7 @@ for (const boundary of ["cancel-failed", "cancel-response-lost", "successor-resp
     await dialog.getByRole("button", { name: "仅重做这些镜头", exact: true }).click();
     if (boundary !== "successor-response-lost") {
       await expect(dialog.getByText(/已核实：/)).toBeVisible();
-      await dialog.getByRole("button", { name: "关闭审阅", exact: true }).click();
+      await dialog.getByRole("button", { name: "关闭", exact: true }).click();
       await page.reload();
       const current = await (await page.request.get(api)).json();
       expect(current.id).toBe(before.id);
@@ -87,17 +87,17 @@ test("native batch survives reload and awaits one atomic audiovisual decision", 
   const generated=await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`)).json();
   expect(generated.jobs).toHaveLength(6); expect(generated.jobs.every((job:{selected:boolean})=>!job.selected)).toBe(true);
   await page.getByRole("button",{name:"审阅全部视频",exact:true}).click();
-  const dialog=page.getByRole("dialog",{name:"审阅全部视频",exact:true});
+  const dialog=page.getByRole("dialog",{name:"视频素材与播放窗口",exact:true});
   await expect(dialog.locator("video")).toHaveCount(6);
   for(const video of await dialog.locator("video").all()) await expect(video).toHaveAttribute("preload","none");
-  await dialog.getByRole("button",{name:"关闭审阅"}).click();
+  await dialog.getByRole("button",{name:"关闭"}).click();
   expect((await (await page.request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`)).json()).jobs.every((job:{selected:boolean})=>!job.selected)).toBe(true);
   await page.getByRole("button",{name:"审阅全部视频",exact:true}).click();
   let release!:()=>void, acknowledged!:()=>void;
   const held=new Promise<void>(resolve=>{release=resolve;});
   const committed=new Promise<void>(resolve=>{acknowledged=resolve;});
   await page.route("**/video-batch/confirm",async route=>{const response=await route.fetch(); acknowledged(); await held; await route.fulfill({response});});
-  await dialog.getByRole("button",{name:"确认全部视频并用于故事",exact:true}).click();
+  await dialog.getByRole("button",{name:"选择全部素材用于故事",exact:true}).click();
   await committed;
   await page.evaluate(()=>{
     Object.defineProperty(document,"visibilityState",{configurable:true,get:()=>"hidden"}); document.dispatchEvent(new Event("visibilitychange"));
@@ -128,7 +128,7 @@ test("storyboard batch refreshes the existing player after whole-pack approval",
   await page.getByRole("button",{name:"授权全部制作意图并开始生成",exact:true}).click();
   await expect(page.getByRole("button",{name:"审阅全部视频",exact:true})).toBeVisible({timeout:30000});
   await page.getByRole("button",{name:"审阅全部视频",exact:true}).click();
-  await page.getByRole("button",{name:"确认全部视频并用于故事",exact:true}).click();
+  await page.getByRole("button",{name:"选择全部素材用于故事",exact:true}).click();
   await page.getByRole("button",{name:"已保存 · 查看故事播放",exact:true}).click();
   await page.locator("#shot-story-preview").getByRole("button",{name:"播放当前",exact:true}).click();
   await expect(page.locator("#shot-story-preview video").first()).toBeAttached();

@@ -40,7 +40,7 @@ test.describe("project-folder still-image workflow", () => {
       .fill("project-folder retained fixture");
     await page.getByTestId("save-visual-intent").click();
     await page
-      .getByLabel("审核兼容性说明")
+      .getByLabel("兼容性备注（可选）")
       .fill("The retained still is an explicit review choice for this fixture shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect.poll(async () => {

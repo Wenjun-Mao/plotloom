@@ -41,7 +41,7 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
   await page.getByTestId("visual-intent-source-refs").fill("Retained scene fixture reviewed for source shot");
   await page.getByTestId("save-visual-intent").click();
   await expect(page.getByText(/已保存 r1/)).toBeVisible();
-  await page.getByLabel("审核兼容性说明").fill("Source shot scene layout was inspected.");
+  await page.getByLabel("兼容性备注（可选）").fill("Source shot scene layout was inspected.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r1");
   const before = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
@@ -69,7 +69,7 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
   await expect(page.getByText(/已保存 r2/)).toBeVisible();
   await expect(page.getByText(`目标使用：${targetShotId}`, { exact: false })).toBeVisible();
   await expect(page.getByText(`原始生成镜头：${nativeSource ? sourceShotId : "手动导入"}`, { exact: false })).toBeVisible();
-  await page.getByLabel("审核兼容性说明").fill("Unchanged pixels independently inspected against target shot.");
+  await page.getByLabel("兼容性备注（可选）").fill("Unchanged pixels independently inspected against target shot.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r2");
   await recordSamePersonReview(page, "char_ruanxing");
@@ -81,7 +81,7 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
   // Reselect A without changing its intent; B keeps its pinned source proof.
   await picker.selectOption(sourceShotId);
   await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r1");
-  await page.getByLabel("审核兼容性说明").fill("A reselection with unchanged source intent.");
+  await page.getByLabel("兼容性备注（可选）").fill("A reselection with unchanged source intent.");
   const reselected = page.waitForResponse(response => response.request().method() === "POST" && response.url().endsWith("/reviewed-keyframes"));
   await page.getByTestId("select-reviewed-keyframe").click();
   expect((await reselected).status()).toBe(201);
@@ -99,7 +99,7 @@ test(`explicit cross-shot ${nativeSource ? "native" : "imported"} pixels and sce
   await priorB.getByText("查看保留内容", { exact: true }).click();
   await expect(priorB.locator("pre")).toContainText("Unchanged pixels independently inspected against target shot.");
   await priorB.getByRole("button", { name: "丢弃保留草稿", exact: true }).click();
-  await page.getByLabel("审核兼容性说明").fill("B reviewed again after both unselected intent edits.");
+  await page.getByLabel("兼容性备注（可选）").fill("B reviewed again after both unselected intent edits.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("画面意图 r4");
 });

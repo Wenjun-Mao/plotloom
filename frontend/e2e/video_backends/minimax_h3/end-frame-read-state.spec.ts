@@ -33,7 +33,7 @@ for (const [width, height] of [[1280, 768], [1280, 460], [1700, 900]]) {
     await page.getByTestId(/^keep-candidate-/).click();
     await page.getByTestId("visual-intent-source-refs").fill("Synthetic fixture source.");
     await page.getByTestId("save-visual-intent").click();
-    await page.getByLabel("审核兼容性说明").fill("Technical fixture prerequisite only.");
+    await page.getByLabel("兼容性备注（可选）").fill("Technical fixture prerequisite only.");
     await page.getByTestId("select-reviewed-keyframe").click();
 
     const panel = page.getByTestId("video-pilot-panel");

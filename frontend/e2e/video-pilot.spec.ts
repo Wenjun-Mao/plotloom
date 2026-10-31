@@ -29,7 +29,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, apiOr
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
-  await review.getByRole("button", { name: "确认用于故事" }).click();
+  await review.getByRole("button", { name: "选择用于故事" }).click();
   await expect(review.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
   return reconciled.id;
 }
@@ -66,7 +66,7 @@ async function prepareSelectedPair(
   await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("P2 fixture source");
   await page.getByTestId("save-visual-intent").click();
-  await page.getByLabel("审核兼容性说明").fill("Current approved first shot keyframe.");
+  await page.getByLabel("兼容性备注（可选）").fill("Current approved first shot keyframe.");
   const selectionPost = page.waitForResponse((response) => (
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`
@@ -100,7 +100,7 @@ async function prepareSelectedPair(
   await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
   await page.getByTestId(/^keep-candidate-/).click();
   const targetIntent = await saveFixtureTargetIntent(page, request, workbench.apiOrigin, projectId, source, "shot_03");
-  await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
+  await page.getByLabel("兼容性备注（可选）").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
   await reviewFixtureTarget(page, request, workbench.apiOrigin, projectId, source, targetIntent);
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, workbench.apiOrigin, projectId, 0);

@@ -27,8 +27,8 @@ function bridgeNextText(read?: BridgeWorkflowObservation): { text: string } {
   const state = read.state, proposal = state.proposal, job = state.intentJob, presentationJob = state.presentationJob;
   if (state.status === "accepted" && state.installation?.status === "current" && !state.installation.staleReasons.length) return { text: read.canonicalReady
     ? read.canOpenShot && state.installation.cuts.some(cut => bridgeCut(cut) !== undefined)
-      ? "投产提案已确认，场景与镜头数据已建立。点击下方「继续：打开第一个镜头」；逐镜头批准、参考图、关键帧与影片仍需单独制作和审核。"
-      : "投产提案已确认。点击左侧「创作工作台」，选择需拍摄节点的「制作」标签，查看已建立的镜头；实际媒体仍需单独制作和审核。"
+      ? "投产提案已确认，场景与镜头数据已建立。点击下方「继续：打开第一个镜头」；逐镜头批准、参考图、关键帧与影片仍须单独制作并选用；质量观察可选。"
+      : "投产提案已确认。点击左侧「创作工作台」，选择需拍摄节点的「制作」标签，查看已建立的镜头；实际媒体仍须单独制作并选用；质量观察可选。"
     : "投产已确认，正在核对正式镜头数据；请等待刷新完成，不要重复确认。" };
   if (job?.transport === "text_api" && ["queued", "dispatched", "outcome_unknown"].includes(job.status)) return { text: job.status === "queued"
     ? state.intentGeneration.status === "available" ? "API 戏剧意图任务正在排队。点击「继续排队任务」继续原任务；不要另建重复任务。"

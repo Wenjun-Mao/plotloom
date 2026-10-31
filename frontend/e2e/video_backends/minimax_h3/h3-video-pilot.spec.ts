@@ -27,7 +27,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("H3 fixture source");
   await page.getByTestId("save-visual-intent").click();
-  await page.getByLabel("审核兼容性说明").fill("Current approved H3 fixture keyframe.");
+  await page.getByLabel("兼容性备注（可选）").fill("Current approved H3 fixture keyframe.");
   const selectedPost = page.waitForResponse((response) => (
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/reviewed-keyframes`
@@ -96,7 +96,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const segment = panel.getByTestId(`video-segment-review-${prepared.id}`);
   await segment.getByRole("button", { name: "准备播放片段" }).click();
   await expect(segment.locator('video[data-testid^="video-segment-preview-"]')).toBeVisible();
-  await segment.getByRole("button", { name: "确认用于故事" }).click();
+  await segment.getByRole("button", { name: "选择用于故事" }).click();
   await expect(segment.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
 
   await expect.poll(async () => {

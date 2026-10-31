@@ -123,7 +123,7 @@ test("whole presentation review preserves source evidence and requires explicit 
   expect(after.proposal.presentation.runtimeChoice).toEqual(before.proposal.presentation.runtimeChoice);
   expect(after.proposal.installable).toBe(false);
   await page.reload();
-  await expect(presentation).toContainText("呈现方式审阅已保存；修改后请重新保存。实际媒体仍需单独审核并选用。");
+  await expect(presentation).toContainText("呈现方式审阅已保存；修改后请重新保存。实际媒体仍须单独制作并选用；质量观察可选。");
   const textareas = panel.locator(".bridge-intent-field textarea");
   for (let index = 0; index < await textareas.count(); index++) await textareas.nth(index).fill(`明确的技术测试戏剧目的 ${index + 1}`);
   const saveBar = panel.getByRole("group", { name: "戏剧意图整包 · 保存", exact: true });

@@ -15,11 +15,11 @@ export function videoNextAction(jobs: readonly VideoJob[], authoredDurationUnits
     return "当前镜头已有用于故事的片段；可在下方检查路径预览。";
   }
   if (authoredDurationUnits !== undefined && jobs.some(isCurrentVideoSelection)) {
-    return "已选择片段的时长与当前镜头不一致。请重新准备并审核匹配的片段；旧选择不会进入故事播放。";
+    return "已选择片段的时长与当前镜头不一致。请重新准备并选择匹配的片段；旧选择不会进入故事播放。";
   }
   const reviewable = jobs.filter(job => job.state === "ingested" && job.current && job.reviews.at(-1)?.decision !== "reject");
   if (reviewable.some(job => job.segments?.some(segment => segment.current))) {
-    return "下一步：听看待审片段，再明确确认用于故事。";
+    return "下一步：明确选择当前片段用于故事；音画质量观察可选。";
   }
   if (reviewable.length) return "下一步：从原片选择连续帧，准备播放片段。";
   if (jobs.some(job => job.state === "ingested" && job.inputStatus === "invalid")) {
