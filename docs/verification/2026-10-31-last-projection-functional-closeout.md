@@ -66,7 +66,7 @@ first-cause claim was made. Failed/rejected evidence remains factual.
 | Storage unavailable | Injected denied local storage before load; complete eight-clip E01 route passed; truthful no-save notice; reload returned Start without false Continue |
 | Ordinary Safari local file | Native file opening without security changes; complete N00 → C01 → E01 route, ending/restart controls; game left at title, existing user tabs preserved |
 | Layout | Desktop and 390px title/choice/dialogue/control/ending pixel inspection; no essential clipping; 390px scroll width equals viewport; controls at least 44px |
-| Normal Plotloom | Original complete short route played in production runtime; after normal activation, restored project read back 15 selected clips, decoded 832×480 video in UI and exported the identical ZIP |
+| Normal Plotloom | Original complete short route played in production runtime. After normal activation, the restored project read back 15 selected clips and decoded 832×480 video in the UI. The director clicked **导出独立 H5 游戏** on the installed story page and verified that the downloaded 13,053,452-byte ZIP matched the owner delivery byte for byte. |
 | Exact installed wheel | Python isolated from checkout; source-read audit guard installed before Plotloom import; supported 15-clip restore, playback-byte hashes, exact export, new snapshot, explicit close/reopen and export readback; zero provider calls/source reads |
 
 Accelerated route tests used native 8× playback and real ended/decoded events,
@@ -139,7 +139,11 @@ cancelled through their supported outline contract and ordinarily deleted.
 Disposable installed environments, cloned/extracted source copies and redundant
 staging archive were retired. Owned CLI browsers and generic static server were
 stopped. Specialist chats were confirmed idle, archived and unregistered from
-Relay. The coordinator's reporting route remains for director closeout. No valued
+Relay. After inspecting the downloaded ZIP, its media hashes, three routes,
+exact dialogue and installed/recovery evidence, the director archived the idle
+coordinator and removed its reporting route. The installed UI download readback
+is retained in `normal-activation/director-ui-download.json` under the evidence
+directory. No valued
 story/media, failed evidence, old user home or UNKNOWN reservation was deleted.
 
 ## Retained evidence and remaining scope
