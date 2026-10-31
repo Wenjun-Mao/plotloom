@@ -30,6 +30,12 @@ qualified recovery moved unchanged to `.local/current-qualified-recovery/`.
 Only disposable environments/caches and preserved obsolete source were removed.
 The `448f`, `8f80`, `f4b3` and `b30f` linked worktrees are retired. The chat's
 validation worktree is the last checkout awaiting native handoff and retirement.
+Native archive refuses to remove the chat's primary checkout; native handoff
+twice refused because this chat has pending composer state. No draft was sent
+or discarded and neither safeguard was bypassed. Both checkouts contain the
+same current committed source; send or clear the pending composer state before
+retrying that final handoff. On implementation resume, verify/re-register Relay
+completion routing before reuse, replacing the coordinator if necessary.
 
 ## Qualified installation remains separate
 
