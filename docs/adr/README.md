@@ -186,3 +186,7 @@ and possible-cost accounting; dedicated forensic recovery is retired.
 [ADR 0229](0229-native-language-check-envelope-capacity.md) gives complete native
 language-check envelopes a finite 2 MB bound while preserving 1 MB inputs and
 independent semantic/source evidence.
+
+[ADR 0230](0230-codex-production-authorization-operator.md) records an explicit
+Codex production operator separately from creator/QA authorization, preserving
+exact replay, dispatch, recovery and existing bounded QA safeguards.

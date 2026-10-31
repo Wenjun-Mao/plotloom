@@ -72,6 +72,21 @@ it("reads authority only from exact saved authorization, not from a fidelity pas
   authorized.authorizedDirections!.shot.intentAuthorization.briefHash = "f".repeat(64); expect(authorizedSingleDirections(authorized, request, sourceHash)).toBeNull();
 });
 
+it("preserves the exact Codex operator through manual readback without creating QA or human review", () => {
+  const batch = authorizeProductionBatch(readyProductionBatch(request));
+  const operator = { kind: "codex_task" as const, taskId: "00000000-0000-4000-8000-000000000001" };
+  batch.execution.intentReviewActor = operator;
+  const value = batch.authorizedDirections!.shot;
+  expect(authorizedSingleDirections(batch, request, sourceHash)).toBeNull();
+  value.intentAuthorization.operator = operator;
+  expect(authorizedSingleDirections(batch, request, sourceHash)?.intentAuthorization.operator).toEqual(operator);
+  expect(value.reviewBasis).not.toHaveProperty("attribution");
+  value.intentAuthorization.operator = { ...operator, taskId: "00000000-0000-4000-8000-000000000002" };
+  expect(authorizedSingleDirections(batch, request, sourceHash)).toBeNull();
+  value.intentAuthorization.operator = { ...operator, scopeId: "forged" } as typeof operator;
+  expect(authorizedSingleDirections(batch, request, sourceHash)).toBeNull();
+});
+
 
 it("a whole-pack review cannot adopt a different current batch returned during a race", async () => {
   const batch = readyProductionBatch(request);

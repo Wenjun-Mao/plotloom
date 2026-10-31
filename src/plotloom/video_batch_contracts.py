@@ -1,7 +1,7 @@
 """Bounded batch requests and truthful structured human confirmation."""
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from plotloom.domain_base import CamelModel
 
@@ -45,9 +45,16 @@ class BatchDirectionsDraft(CamelModel):
 
 class BatchStart(CamelModel):
     attribution: AgentQaAttribution | None = None
+    operator: CodexTaskAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
     expected_revision: int = Field(strict=True, ge=1)
     manifest_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     basis: Literal["production-intent.v2"]
+
+    @model_validator(mode="after")
+    def distinct_operator_and_qa_authority(self):
+        if self.operator is not None and self.attribution is not None:
+            raise ValueError("Codex operator cannot replace bounded QA authorization")
+        return self
 
 class BatchControl(CamelModel):
     batch_id: str = Field(min_length=36, max_length=36)

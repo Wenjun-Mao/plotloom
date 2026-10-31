@@ -336,6 +336,7 @@
           "tests/test_retained_video_evidence.py",
           "tests/test_image_source_lineage.py",
           "tests/test_video_batch.py",
+          "tests/test_codex_generation_operator.py",
           "tests/test_production_brief_display.py",
           "tests/test_video_fidelity.py",
           "tests/test_video_single_replacement.py",

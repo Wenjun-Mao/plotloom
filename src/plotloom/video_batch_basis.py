@@ -4,6 +4,7 @@ from .provider_budgets import exceeds_budget
 from .exceptions import InvalidTransitionError
 from .persistence.codec import stable_hash
 from .persistence.schema import VideoBatchRow
+from .video_batch_operator import intent_authorization
 
 
 def valid_direction_endorsement(package):
@@ -34,7 +35,7 @@ def authorized_directions(view, target):
     if view["execution"].get("reviewAttribution"):
         basis["attribution"] = view["execution"]["reviewAttribution"]
     return target["directions"] | {"reviewBasis": basis,
-        "intentAuthorization": {"version": "production-intent.v2", "briefHash": target["productionBrief"]["briefHash"]},
+        "intentAuthorization": intent_authorization(view["projectId"], view["execution"], target["productionBrief"]["briefHash"]),
         "promptSha256": sha256(target["compiledPrompt"].encode()).hexdigest()}
 
 
@@ -69,7 +70,7 @@ def assert_direction_basis(session, snapshot):
     if basis["version"] == "production-intent.v2":
         from .production_brief import production_brief
         from .video_fidelity import assert_target_fidelity
-        expected = {"version": "production-intent.v2", "briefHash": production_brief(frozen)["briefHash"]}
+        expected = intent_authorization(row.project_id, row.execution, production_brief(frozen)["briefHash"])
         if (row.manifest.get("version") != "video-batch.manifest.v2"
                 or row.execution.get("intentReviewVersion") != "production-intent.v2"
                 or package.get("intentAuthorization") != expected

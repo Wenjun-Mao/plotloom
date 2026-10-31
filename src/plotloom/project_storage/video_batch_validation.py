@@ -76,8 +76,9 @@ def assert_video_batch_contracts(connection):
                             parsed.batch_id, target, parsed, require_pass=bool(required))
                         if target.get("fidelity") not in (None, check):
                             raise ValueError("displayed fidelity verdict changed")
-                if execution.get("authorizedManifestHash") and execution.get("intentReviewActor") != (execution.get("reviewAttribution") or {"kind": "unnamed_creator"}):
-                    raise ValueError("generation authorization actor changed")
+                if execution.get("authorizedManifestHash"):
+                    from ..video_batch_operator import retained_production_actor
+                    retained_production_actor(project_id, execution)
                 if execution.get("authorizedManifestHash") and execution.get("intentReviewVersion") != "production-intent.v2":
                     raise ValueError("new batch lacks production-intent authorization")
             if execution.get("reviewAttribution"):
@@ -102,6 +103,18 @@ def assert_video_batch_contracts(connection):
                 shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
                 if job is None or job[0] != project_id or not isinstance(shot, dict) or shot.get("id") != shot_id:
                     raise ValueError("batch job lineage changed")
+                package = snapshot.get("reviewedDirections") or {}
+                if not isinstance(package, dict):
+                    raise ValueError("generation authorization package changed")
+                basis = package.get("reviewBasis") or {}
+                if not isinstance(basis, dict):
+                    raise ValueError("generation authorization basis changed")
+                if basis.get("version") == "production-intent.v2":
+                    origin = connection.execute("SELECT project_id,execution FROM v2_video_batches WHERE id=?", (basis.get("batchId"),)).fetchone()
+                    if origin is None or origin[0] != project_id:
+                        raise ValueError("generation authorization owner changed")
+                    from ..video_batch_operator import assert_authorization_operator
+                    assert_authorization_operator(project_id, json.loads(origin[1]), package.get("intentAuthorization"))
         from .video_batch_evidence import retained_batch_drafts
         retained_batch_drafts(connection)
         for identifier, batch_id, raw, digest in connection.execute("SELECT id,batch_id,receipt,receipt_hash FROM v2_video_batch_receipts"):

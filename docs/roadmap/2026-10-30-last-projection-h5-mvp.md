@@ -11,8 +11,16 @@ qualification in the normal `main` checkout, reporting to director
 reused serially; no other source writer is active. No CI, push, public hosting,
 aesthetic rerolls or media-quality acceptance is authorized by this milestone.
 
-Current committed implementation: `cef4b65b`; a bounded frontend wording/browser-
-fixture correction is in progress. ADRs 0226–0229 own optional review, standalone
+Current committed implementation: `06992e24`; frontend wording/browser-fixture
+corrections are complete. The full 366-case unfiltered browser suite and exact
+wheel/installed smoke passed on that checkpoint. A newly demonstrated generation-
+operator attribution blocker is now being repaired under ADR 0230 before any H3
+submission: normal Start must identify this Codex task rather than an unnamed
+creator. Both independently frozen keyframe deliveries are complete, and scoped staging
+cleanup is complete. The ADR 0230 repair passed independent review, 126 affected
+Python cases, 19 frontend authorization cases, quick/type checks and identical
+second-build asset hashes. A stable checkpoint and fresh full local gate follow;
+no active execution or frozen evidence is rewritten. ADRs 0226–0229 own optional review, standalone
 export, authenticated authored topology and native-check envelope capacity.
 Source, API/persistence/reopen/export/selection and dispatch-safety checks passed
 at their recorded scopes. The early provider-free standalone journey uses
@@ -28,7 +36,14 @@ The seven source roles, six edges and all 19 dialogue lines are preserved. The
 72.625, 110.500 and 117.375 seconds. Its first complete route needs eight shots.
 Two original character references were generated once each, ingested and selected
 with truthful unreviewed agent attribution and actual final-argument fidelity
-audits. No shot video has been submitted. The source-bound native intent package
+audits. The first original keyframe is ingested/selected, with literal actual ImageGen
+arguments and frozen reference hashes verified. Two more shot stills are
+published; the third request prematurely separates the hands before N10's
+authored release and remains unselected pending an author-owned opening-state
+brief repair. This is a source-to-request finding, not a judgment of unseen
+pixels. The second request passed its bounded source audit. The first one-shot
+H3 batch is ready after genuine separate native drafting/fidelity checking, but
+no shot video has been submitted before the operator attribution repair. The source-bound native intent package
 covers 39 targets, passed its genuine language check and was saved after agent
 source inspection; native presentation covers 47 sources / 70 spans, passed its genuine language check and agent source inspection, and was explicitly saved. The full 15-shot source-bound production is installed with no admission conflicts.
 
@@ -45,9 +60,10 @@ selector/optional-observation drift; all 34 affected focused browser cases then
 passed. The latest quick gate passed 1,703 frontend cases and both type checks.
 Independent review found only product wording and current-contract fixture changes;
 backend/API/request/persistence/provider/dependency inputs are unchanged.
-Generated assets, deterministic second-build comparison, exact wheel/install,
-final browser qualification and activation remain to be completed on the stable
-candidate. Hosted CI is not requested and is not a release blocker.
+Generated assets and their second-build comparison, exact wheel/installed
+smoke and the complete unfiltered browser suite passed on `06992e24`. The new
+operator repair changes an authorization contract and needs its own focused and
+stable final local qualification before activation. Hosted CI is not requested and is not a release blocker.
 
 **Next smallest outcome:** generate only the opening → first choice → first
 ending's eight keyframes/videos, select exact technical playback windows and

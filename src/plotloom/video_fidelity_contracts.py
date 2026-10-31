@@ -5,6 +5,7 @@ from pydantic import Field, model_validator
 
 from .delegated_qa_contracts import AgentQaAttribution
 from .domain_base import CamelModel
+from .operator_attribution import CodexTaskAttribution
 
 HASH = r"^[a-f0-9]{64}$"
 CHECK_DIMENSIONS = ("actions", "identities", "positions", "sound_roles", "negation",
@@ -52,6 +53,7 @@ class FidelityReference(CamelModel):
 class IntentAuthorization(CamelModel):
     version: Literal["production-intent.v2"] = "production-intent.v2"
     brief_hash: str = Field(pattern=HASH)
+    operator: CodexTaskAttribution | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class DirectionReviewBasis(CamelModel):

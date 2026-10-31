@@ -93,7 +93,7 @@ export type H3ReviewedDirections = {
   fields: Array<{ path: string; english: string }>;
   promptSha256: string;
   fidelityCheck: { version: "assistant-fidelity.v1"; batchId: string; attemptId: string; resultHash: string };
-  intentAuthorization: { version: "production-intent.v2"; briefHash: string };
+  intentAuthorization: { version: "production-intent.v2"; briefHash: string; operator?: import("./operator-attribution").CodexTaskAttribution };
   reviewBasis: { version: "production-intent.v2"; batchId: string; manifestHash: string; shotId: string; attribution?: { kind: "agent_operated_qa"; scopeId: string } };
 };
 

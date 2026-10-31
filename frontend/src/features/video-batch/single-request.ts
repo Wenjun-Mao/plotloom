@@ -1,5 +1,6 @@
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "../../api";
 import type { Batch } from "./contracts";
+import { sameCodexOperator } from "../../operator-attribution";
 
 const requestKeys = ["approvalId", "shotId", "storyboardRevision", "expectedSelectionRevision", "idempotencyKey", "requestedDurationSeconds",
   "playbackIntent", "resolution", "audio", "aspectPolicy", "allowLetterbox", "allowCenterCrop", "seed", "profileId", "automaticRetryLimit"] as const;
@@ -28,12 +29,14 @@ export function authorizedSingleDirections(batch: Batch, request: VideoJobPrepar
   if (["stale", "cancelled"].includes(batch.state) || !matchesSingleRequest(batch, request, sourceHash) || batch.execution.authorizedManifestHash !== batch.manifestHash
     || batch.execution.intentReviewVersion !== "production-intent.v2") return null;
   const value = batch.authorizedDirections?.[request.shotId], target = batch.manifest.targets[0];
+  const operator = batch.execution.intentReviewActor?.kind === "codex_task" ? batch.execution.intentReviewActor : undefined;
   return value?.reviewBasis?.version === "production-intent.v2" && value.reviewBasis.batchId === batch.id
     && value.reviewBasis.manifestHash === batch.manifestHash && value.reviewBasis.shotId === request.shotId
     && value.sourceHash === sourceHash && value.intentAuthorization?.version === "production-intent.v2"
     && JSON.stringify(value.fields) === JSON.stringify(target.directions?.fields)
     && JSON.stringify(value.fidelityCheck) === JSON.stringify(target.directions?.fidelityCheck)
     && value.intentAuthorization?.briefHash === target.productionBrief?.briefHash
+    && sameCodexOperator(value.intentAuthorization?.operator, operator)
     && value.fidelityCheck?.version === "assistant-fidelity.v1" && value.fidelityCheck.batchId === batch.id
     && /^[a-f0-9]{64}$/.test(value.promptSha256) ? value : null;
 }

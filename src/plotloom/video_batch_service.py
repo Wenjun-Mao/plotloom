@@ -169,9 +169,12 @@ class VideoBatchService:
             if view is None:
                 raise InvalidTransitionError("batch setup is missing")
             from .delegated_qa_video import assert_manifest_actor
+            from .video_batch_operator import production_actor
             actor = assert_manifest_actor(store, view["manifest"], request.attribution)
+            authorizer = production_actor(project_id, actor, request.operator)
             if view["execution"].get("authorizedManifestHash") == request.manifest_hash:
-                if view["execution"].get("reviewAttribution") != actor:
+                if (view["execution"].get("reviewAttribution") != actor
+                        or view["execution"].get("intentReviewActor") != authorizer):
                     raise InvalidTransitionError("retained production intent attribution differs")
                 return view
             if view["state"] != "ready" or view["manifestHash"] != request.manifest_hash:
@@ -182,10 +185,13 @@ class VideoBatchService:
                 if row.state != "ready":
                     raise InvalidTransitionError("batch is not ready")
                 validate_manifest(store, self.require_video(), row.manifest)
+                if production_actor(project_id,
+                        assert_manifest_actor(store, row.manifest, request.attribution), request.operator) != authorizer:
+                    raise InvalidTransitionError("production authorization operator changed")
                 row.state = "running"
                 row.execution = row.execution | {"authorizedManifestHash": row.manifest_hash,
                     "intentReviewVersion": "production-intent.v2",
-                    "intentReviewActor": actor or {"kind": "unnamed_creator"},
+                    "intentReviewActor": authorizer,
                     **({"reviewAttribution": actor} if actor else {}),
                     "jobs": {target["shotId"]: target["jobId"] for target in row.manifest["targets"] if target["jobId"]},
                     "segments": {}, "error": None}
