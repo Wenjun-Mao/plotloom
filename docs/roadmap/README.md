@@ -9,10 +9,12 @@ internal changes to request comparisons and retained-media functional journeys.
 
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
 for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
-records actual public playthroughs, their inspection limits and a recommendation
-for one complete short original game. Story, size and delivery remain design
-decisions; production has not started. This product direction should guide the
-separately queued media-quality work through concrete story needs.
+records actual public playthroughs and the owner's refined milestone: a complete
+standalone browser game with designed UI, without video/audio quality inspection
+during the first build. Preserve source-to-asset bindings for next iteration's
+edit/regenerate/review/Apply workflow and record concrete Plotloom production
+friction. Story and size remain design decisions; production has not started.
+The separately queued media-quality work is not a prerequisite for assembly.
 
 ## Completed project-language functional delivery
 
