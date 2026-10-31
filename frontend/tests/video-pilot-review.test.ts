@@ -62,7 +62,7 @@ it("prepares a synthetic review window without auto-selecting and ignores late u
   expect(select).not.toHaveBeenCalled();
 });
 
-it("keeps a rejected H3 take locked until its review is explicitly reopened", async () => {
+it("preserves a rejected H3 quality observation without gating current technical selection", async () => {
   const segment = selectedJob("rejected-h3", 1).playbackSegment!;
   const candidate = selectedJob("rejected-h3", 1, {
     segments: [{ ...segment, selected: false }], playbackSegment: null, selected: false,
@@ -74,9 +74,9 @@ it("keeps a rejected H3 take locked until its review is explicitly reopened", as
   await act(async () => root.render(createElement(VideoSegmentReview, {
     projectId: "project", job: candidate, readOnly: false, onRefresh: async () => undefined,
   })));
-  expect(host.textContent).toContain("此原片已拒绝");
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备播放片段"))?.disabled).toBe(true);
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认用于故事"))?.disabled).toBe(true);
+  expect(host.textContent).toContain("此原片保留此前拒绝记录");
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备播放片段"))?.disabled).toBe(false);
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("选择用于故事"))?.disabled).toBe(false);
   const reopenPanel = host.querySelector('[data-testid="video-review-reopen-rejected-h3"]')!;
   expect(reopenPanel.querySelector("input")?.required).toBe(true);
   expect(reopenPanel.querySelector("textarea")?.required).toBe(true);

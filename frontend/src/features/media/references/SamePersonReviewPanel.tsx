@@ -63,7 +63,7 @@ export function SamePersonReviewPanel({
             跨镜头同一人物视觉复核
           </strong>
           <p className="muted">
-            生成视频或创建连续静帧预览前，逐一比较此候选与任务冻结的主参考图和补充参考图。
+            可选比较此候选与任务冻结的主参考图和补充参考图，并记录实际观察。
             记录实际审阅者的视觉判断；由 Codex 完成的技术或视觉检查，审阅者须写为
             Codex，不能记作真人的创作确认。此复核不使用人脸识别，也不替代作者对服装、道具和镜头状态的设定。
           </p>
@@ -246,12 +246,12 @@ export function SamePersonReviewPanel({
               当前复核{" "}
               {currentReviewByBinding.get(selectedBinding.id)?.id.slice(0, 8)}{" "}
               ：{samePersonReviewSummary(currentReviewByBinding.get(selectedBinding.id)!)}。
-              {currentReviewByBinding.get(selectedBinding.id)?.productionEligible ? "此决定允许生成视频或创建连续静帧预览。" : "此决定阻止生成视频或创建连续静帧预览。"}
+              此观察不决定视频生成或连续静帧预览的技术资格。
               身份参考或已审核关键帧变化时会自动过期。
             </small>
           ) : (
             <div className="notice warning">
-              此关键帧没有适用于当前内容的人物身份复核。每位角色通过，或无法判断且明确授权投产后，才能生成视频或创建连续静帧预览。无法确认身份时不要标记通过；不通过或暂缓投产都会阻止这两项操作。
+              此关键帧尚未记录当前人物身份观察；该观察为可选。无法确认身份时请如实记录，不要标记通过。
             </div>
           )}
           {workbench.samePersonReviews.reviews

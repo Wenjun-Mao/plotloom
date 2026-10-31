@@ -24,8 +24,8 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 it("uses Chinese review instructions while retaining the actual reviewer and judgment values", async () => {
   await act(async () => root.render(createElement(SamePersonReviewPanel, props)));
   expect(host.textContent).toContain("由 Codex 完成的技术或视觉检查，审阅者须写为 Codex");
-  expect(host.textContent).toContain("每位角色通过，或无法判断且明确授权投产后");
-  expect(host.textContent).toContain("无法确认身份时不要标记通过");
+  expect(host.textContent).toContain("该观察为可选");
+  expect(host.textContent).toContain("无法确认身份时请如实记录，不要标记通过");
   expect(host.querySelector("select")?.value).toBe("pass");
   expect(host.querySelector('option[value="pass"]')?.textContent).toBe("通过");
   expect(host.querySelector('option[value="fail"]')?.textContent).toBe("不通过");
@@ -77,7 +77,7 @@ it("labels an authorized unassessable review truthfully and a later refusal bloc
   const map = latestCurrentReviewsByBinding([failed, passed]);
   expect(map.get("binding")?.id).toBe("failed");
   await act(async () => root.render(createElement(SamePersonReviewPanel, { ...props, currentReviewByBinding: map })));
-  expect(host.textContent).toContain("此决定阻止生成视频或创建连续静帧预览");
+  expect(host.textContent).toContain("此观察不决定视频生成或连续静帧预览的技术资格");
 });
 
 it("does not let localized required markers bypass incomplete review notes", async () => {

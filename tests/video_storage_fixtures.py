@@ -176,6 +176,9 @@ def _approved_keyframe(
     *,
     keyframe_bytes: bytes | None = None,
     author_frame_grid: bool = True,
+    shot_id: str | None = None,
+    approval: dict | None = None,
+    selection_revision: int = 0,
 ) -> tuple[dict, dict]:
     store = storage.projects.open(project_id)
     try:
@@ -202,12 +205,11 @@ def _approved_keyframe(
                 ).revision,
             )
         board = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
-        shot = store.authoring.get_stage_payload(
-            project_id, StageName.STORYBOARD
-        ).shots[0]
+        shots = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD).shots
+        shot = next(item for item in shots if item.id == shot_id) if shot_id else shots[0]
     finally:
         store.close()
-    approval = client.post(
+    approval = approval or client.post(
         f"/api/v2/projects/{project_id}/storyboard-approval",
         json={
             "expectedRevision": board.revision,
@@ -263,7 +265,7 @@ def _approved_keyframe(
             "assetId": asset["id"],
             "shotId": shot.id,
             "sceneId": shot.scene_id,
-            "expectedSelectionRevision": 0,
+            "expectedSelectionRevision": selection_revision,
             "storyboardRevision": board.revision,
             "approvalId": approval["id"],
             "compatibilityNote": "The fixture matches the frozen H3 profile.",

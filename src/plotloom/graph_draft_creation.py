@@ -5,6 +5,8 @@ from .source_graph_structure import structure_from_seed
 
 def create_graph_draft(*, binding_hash, seed, mapping=None) -> GraphAuthoringDraft:
     if mapping is None:
+        if seed is None:
+            raise ValueError("seedless graph initialization requires the exact accepted author mapping")
         mapping = {
             "seedTopology": seed.model_dump(mode="json", by_alias=True),
             "topologyOrigin": "planner",

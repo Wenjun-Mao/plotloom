@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { demoProject } from "../src/demo";
 import { GraphWorkbenchContext } from "../src/features/graph/GraphWorkbenchContext";
-import { graphControllerFixture } from "./graph-workbench-fixture";
+import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
 import { SourceOutlinePage } from "../src/pages/SourceOutlinePage";
 import { specialistsApi } from "../src/features/specialists/api";
 import { branchOperationFixture, branchOperationView } from "./branch-operation-fixture";
@@ -14,6 +14,27 @@ import { fixtureRun } from "./autopilot-fixture";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 afterEach(() => vi.restoreAllMocks());
+
+it("displays and preserves imported author structure on an ordinary source text save", async () => {
+  const host = document.createElement("div"), root = createRoot(host);
+  const mapping = graphDraftFixture().mapping;
+  const authoredStructure = { topology: mapping.topology, sections: mapping.sections, choices: mapping.choices, joinReconciliations: {} };
+  const state = { source: { revision: 1, material: { kind: "imported_text", title: "作者来源", text: "原始正文", adaptationIntent: "保留作者路线", authoredStructure } }, candidate: null,
+    acceptedOutline: null, outlineStatus: "missing", sectionMapStaleReasons: [] };
+  vi.spyOn(plotloomApi, "getSourceOutline").mockResolvedValue(state as never);
+  vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: [] });
+  const save = vi.spyOn(plotloomApi, "saveSourceMaterial").mockResolvedValue(state as never);
+  try {
+    await act(async () => root.render(branchOperationView(branchOperationFixture(), createElement(GraphWorkbenchContext.Provider, { value: graphControllerFixture(),
+      children: createElement(SourceOutlinePage, { projectId: "project", briefSeed: demoProject.brief, readOnly: false, onProductionInstalled: async () => undefined }) }))));
+    expect(host.textContent).toContain("来源中已保存的剧情结构");
+    expect(host.textContent).toContain(mapping.sections[0].title);
+    const text = host.querySelector<HTMLTextAreaElement>(".source-outline-source textarea")!;
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(text, "作者修改正文"); text.dispatchEvent(new Event("input", { bubbles: true })); });
+    await act(async () => [...host.querySelectorAll("button")].find(item => item.textContent === "确认改编内容")!.click());
+    expect(save).toHaveBeenCalledExactlyOnceWith("project", 1, expect.objectContaining({ text: "作者修改正文", authoredStructure }));
+  } finally { await act(async () => root.unmount()); }
+});
 
 it.each(["ai", "manual", "failed"])("accepted outline candidate heading retains %s provenance", async kind => {
   const host = document.createElement("div"); const root = createRoot(host);

@@ -58,6 +58,11 @@ class SourceOutlineMutations:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            if material.authored_structure is not None:
+                from ...source_structures import compile_structure
+                from ...source_outline_contracts import validate_section_map_graph
+                from ...brief_contracts import ProjectBrief
+                validate_section_map_graph(compile_structure(material.authored_structure), ProjectBrief.require_confirmed(project.brief))
             if material.brief_origin is not None:
                 from ...autopilot_contracts import OperationScope
                 from .autopilot_authority import require_machine_scope

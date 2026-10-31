@@ -5,7 +5,7 @@ import { BriefPage } from "../src/pages/BriefPage";
 import { demoProject } from "../src/demo";
 import { graphControllerFixture, graphDraftFixture } from "./graph-workbench-fixture";
 import { briefStructureBasis } from "../src/features/graph/briefStructureBasis";
-import { creatorStructure, canonicalStructure } from "../src/features/graph/creatorStructure";
+import { creatorStructure, canonicalStructure, topologyStructure } from "../src/features/graph/creatorStructure";
 import { graphActionProjection } from "../src/features/graph/graphActionProjection";
 import { ProfessionalPresentationProvider, useProfessionalPresentation, type ProfessionalPresentation } from "../src/features/graph/ProfessionalPresentation";
 import type { ProductionBridgeState, SourceOutlineReviewState, StoryGraph } from "../src/types";
@@ -17,6 +17,17 @@ const draft = graphDraftFixture();
 const owner = () => graphControllerFixture({ draft: structuredClone(draft), state: { bindingHash: draft.bindingHash, baseCanonicalRevision: 1, draft: null, initialPayload: draft, readOnlyReason: null } });
 const brief = { ...demoProject.brief, endingCount: 1, desiredJoinCount: 0, decisionPointsPerPath: 0 };
 const canonical: StoryGraph = { startNodeId: "opening", nodes: draft.mapping.topology.nodes.map(node => ({ ...node, title: node.id, summary: "正文", footageMode: "footage" })), edges: draft.mapping.topology.edges.map(edge => ({ ...edge, sourceNodeId: edge.sourceNodeId!, targetNodeId: edge.targetNodeId!, choiceText: null })), joinContracts: [] };
+
+it("reports the authored one/two/two routes within their choice bound", () => {
+  const nodes = ["n00", "c01", "n10", "c02", "e01", "e02", "e03"].map(id => ({ id,
+    kind: id === "n00" ? "start" as const : id.startsWith("c") ? "decision" as const : id.startsWith("e") ? "ending" as const : "scene" as const }));
+  const topology = { startNodeId: "n00", nodes, joins: [], edges: [["n00", "c01"], ["c01", "e01"], ["c01", "n10"], ["n10", "c02"], ["c02", "e02"], ["c02", "e03"]].map(([sourceNodeId, targetNodeId], index) => ({ id: `edge-${index}`, sourceNodeId, targetNodeId, kind: sourceNodeId.startsWith("c") ? "choice" as const : "continuation" as const, stateEffects: {}, entityStateEffects: [] })) };
+  const target = { ...brief, decisionPointsPerPath: 2, endingCount: 3, nodeBudget: 7, desiredJoinCount: 0, maxOutDegree: 2 };
+  const result = topologyStructure(topology, target);
+  expect(result.actual.choices.sort()).toEqual([1, 2]); expect(result.actual.routes).toBe(3);
+  expect(result.mismatches).toEqual([]); expect(result.incomplete).toBe(false);
+  expect(topologyStructure(topology, { ...target, decisionPointsPerPath: 1 }).mismatches).toContain("完整播放的选择次数超过简报上限");
+});
 
 it("keeps launch dirty and saved visual direction bound to canonical Brief after recovery", async () => {
   const root = createRoot(document.createElement("div"));

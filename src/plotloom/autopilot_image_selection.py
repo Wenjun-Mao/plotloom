@@ -46,7 +46,7 @@ def select_image(store, view, subject, checkpoint, inventory):
             current = next((item for item in values["states"] if item["characterId"] == character_id), None)
             decision = store.media.create_character_reference_decision(view.project_id, character_id=character_id,
                 primary_asset_id=asset.id, complementary_asset_ids=[], expected_reference_revision=current["revision"] if current else 0,
-                reviewer=None, notes="AI 暂选；待完整素材包人类审阅。", authority="story_bible")
+                reviewer=None, notes="AI 暂选；等待操作者选择当前完整素材包，质量观察为可选。", authority="story_bible")
             result["referenceDecisionId"] = decision["id"]
             result["consumerCharacterId"] = character_id
             result["canonicalCharacterContextHash"] = decision["characterContextHash"]

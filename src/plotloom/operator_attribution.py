@@ -11,4 +11,4 @@ class CodexTaskAttribution(CamelModel):
     """Identifies the task that operated a selection without claiming review."""
 
     kind: Literal["codex_task"] = "codex_task"
-    task_id: str = Field(min_length=36, max_length=36)
+    task_id: str = Field(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")

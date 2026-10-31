@@ -195,8 +195,8 @@ export function GraphWorkbenchProvider(input: Input) {
   };
   const adoptMapping = (mapping: SectionMap) => {
     if (!writable() || !state) return;
-    const seed = liveDraft.current?.mapping.seedTopology;
-    if (seed && JSON.stringify(seed) !== JSON.stringify(mapping.seedTopology)) {
+    const origin = liveDraft.current?.mapping;
+    if (origin && (JSON.stringify(origin.seedTopology) !== JSON.stringify(mapping.seedTopology) || origin.authorSourceHash !== mapping.authorSourceHash)) {
       setError("建议与当前草稿的原始种子不同，请先明确处理当前草稿。"); return;
     }
     const next: GraphAuthoringDraft = { bindingHash: state.bindingHash, mapping: structuredClone(mapping), rowHints: {}, selectedNodeId: mapping.topology.startNodeId, detachedEndpoints: {}, fieldBuffers: {} };

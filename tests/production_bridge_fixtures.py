@@ -104,9 +104,9 @@ def _review_fixture_presentation(store, proposal):
 
 
 def _prepare_installable_bridge(
-    store: ProjectStore, seconds: float = 3, structure_factory=None
+    store: ProjectStore, seconds: float = 3, structure_factory=None, *, source_material=None
 ) -> ProductionBridgeProposal:
-    _accepted_f4_script(store, structure_factory)
+    _accepted_f4_script(store, structure_factory, source_material=source_material)
     candidate, request = store.prepare_storyboard_review_candidate("ch_" + "b" * 32)
     ready = store.admit_storyboard_review_delivery(
         _deliver_stage(

@@ -9,9 +9,9 @@ export function automaticGuidance(run: AutopilotRun | null, ready: boolean): str
   const phase = phases[run.phase] || "制作规划";
   const activity = run.state === "paused" ? "自动素材已暂停"
     : run.state === "blocked" ? "自动素材需要处理，请查看上方运行状态"
-    : run.state === "awaiting_review" ? "完整素材已准备，等待你在上方一次审阅"
+    : run.state === "awaiting_review" ? "完整素材已准备，等待你在上方选择当前素材"
     : "AI 正在自动准备素材，无需手动准备或发送当前任务";
-  return `${activity}。当前自动阶段：${phase}。全部路线和图片准备完成后，仍需一次完整人工审阅。你可以继续阅读或手动编辑；保存手动修改将接管自动运行。阅读报告不会确认、接管或发送任务。`;
+  return `${activity}。当前自动阶段：${phase}。全部路线和图片准备完成后，仍需明确选择当前素材；媒体质量观察为可选。你可以继续阅读或手动编辑；保存手动修改将接管自动运行。阅读报告不会确认、接管或发送任务。`;
 }
 
 export function useKnownAutomaticRun() {

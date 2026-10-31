@@ -83,7 +83,7 @@ def select_geometry_frame(store, view, claim, subject, inventory, record):
                 AutopilotCheckpointRow.operation_key == subject.operation_key + ":geometry"))
             decision = repository.autopilot.decide(checkpoint, subject={"preparationHash": record.preparation_hash},
                 selected_assets=[{"assetId": record.output.asset_id, "originalHash": record.output.original_hash}],
-                rationale="暂选确定性处理的新字节；完整素材仍待真实人工审阅。")
+                rationale="暂选确定性处理的新字节；完整素材仍待明确选择；质量观察为可选。")
             job = session.get(ImageJobRow, source.job_id)
             unit = session.get(ProductionUnitRow, job.production_unit_id)
             repository.autopilot.select_frame(ProvisionalFrame(shot_id=subject.id, scene_id=subject.scene_id,

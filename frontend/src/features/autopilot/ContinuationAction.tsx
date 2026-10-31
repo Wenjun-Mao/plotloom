@@ -26,7 +26,7 @@ export function ContinuationAction({ projectId, revision, run, disabled, execute
       }
       if (!context.eligible) { setMessage(context.blockers.join("；")); return; }
       confirmation.requestConfirmation({ title: "继续剩余素材", message: "保留已完成素材，为尚未准备的工作授权新的自动运行。",
-        details: `继承 ${context.inheritedOperations} 项已采用工作。项目累计 ${context.lifetimeJobs} 个任务、${context.lifetimeImages} 项图片。\n旧任务、执行版本、交付和审阅事实保持原始来源；原任务身份不会重复发送；新尝试依照本次自动重试次数和剩余预算，结果不明时可能产生重复费用。仍需完整人工审阅。`,
+        details: `继承 ${context.inheritedOperations} 项已采用工作。项目累计 ${context.lifetimeJobs} 个任务、${context.lifetimeImages} 项图片。\n旧任务、执行版本、交付和审阅事实保持原始来源；原任务身份不会重复发送；新尝试依照本次自动重试次数和剩余预算，结果不明时可能产生重复费用。仍需明确选择完整当前素材；媒体质量观察为可选。`,
         action: () => execute(() => autopilotApi.continueMaterial(projectId, {
           expectedBriefRevision: revision, expectedRunId: context.runId, expectedRunRevision: context.runRevision,
           expectedMaterialClosure: context.materialClosure, styleAuthority: run.policy.styleAuthority || "preset",

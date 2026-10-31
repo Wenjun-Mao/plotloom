@@ -85,8 +85,8 @@ def assert_database_contract(path: Path, manifest: ProjectManifest, *, allow_pre
             assert_current_review_bindings(
                 connection,
                 asset_home=asset_home,
-                continuation=not previous,
-                batch_layout="prior_without_video_batches" if previous else "current",
+                continuation=not previous or layout == "pre_player_export",
+                batch_layout="prior_without_video_batches" if previous and layout != "pre_player_export" else "current",
             )
             integrity = [row[0] for row in connection.execute("PRAGMA integrity_check")]
             foreign_keys = list(connection.execute("PRAGMA foreign_key_check"))
@@ -170,6 +170,21 @@ def referenced_asset_paths(database: Path) -> set[PurePosixPath]:
     finally:
         connection.close()
     paths: set[PurePosixPath] = set()
+    # This utility also inventories explicitly admitted frozen prior layouts.
+    connection = database_connection(database)
+    try:
+        tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        export_rows = list(connection.execute(
+            "SELECT receipt_uri, receipt_hash, archive_uri, archive_hash FROM v2_player_exports"
+        )) if "v2_player_exports" in tables else []
+    finally:
+        connection.close()
+    for receipt_uri, receipt_hash, archive_uri, archive_hash in export_rows:
+        for uri, digest in ((receipt_uri, receipt_hash), (archive_uri, archive_hash)):
+            path = _asset_path(uri)
+            if path.name != digest:
+                raise ProjectStorageCorruptionError("standalone export URI differs from its hash")
+            paths.add(path)
     for original_uri, original_hash, display_uri, display_hash in rows:
         for uri, declared_hash in (
             (original_uri, original_hash),

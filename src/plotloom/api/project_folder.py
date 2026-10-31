@@ -140,6 +140,8 @@ def create_project_folder_authoring_app(
     register_project_canonical_routes(app, opened_project)
 
     register_project_authoring_view_routes(app, storage, opened_project)
+    from .project_folder_player import register_player_export_routes
+    register_player_export_routes(app, opened_project)
 
     # The direct storage workbench deliberately reuses the existing media
     # repository contract.  The only composition difference is that each

@@ -90,23 +90,13 @@ it("functional QA retains explicit quality limits and cannot present them as a q
   const actor = { kind: "agent_operated_qa" as const, scopeId: "synthetic-functional-scope" };
   await act(async () => root.render(createElement(VideoBatchReview, { projectId: "project", batch, actor,
     disabled: false, onClose: vi.fn(), onSaved: vi.fn() })));
-  expect(host.textContent).toContain("不代表画面、文字或媒体创作质量通过");
-  expect(button("确认全部视频并用于故事")).toBeUndefined();
+  expect(host.textContent).toContain("不表示已检查或认可媒体质量");
+  expect(host.querySelector('[aria-label="代理 QA 实际观察"]')).toBeNull();
   expect(save).not.toHaveBeenCalled();
-  const fields = host.querySelectorAll<HTMLTextAreaElement>('[aria-label="代理 QA 实际观察"] textarea');
-  async function fill(index: number, text: string) {
-    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(fields[index], text);
-      fields[index].dispatchEvent(new Event("input", { bubbles: true })); });
-  }
-  await fill(0, "实际片段可播放，画面文字不清晰。");
-  await fill(1, "机器音轨与 ASR 检查；未直接聆听。");
-  await fill(2, "retained-frame-and-asr-evidence");
-  expect(button("确认功能流程并用于故事").disabled).toBe(true);
-  await fill(3, "画面文字无法验证\n姿态保留问题");
-  await act(async () => button("确认功能流程并用于故事").click());
-  expect(save).toHaveBeenCalledExactlyOnceWith("project", expect.objectContaining({ attribution: actor,
-    inspection: expect.objectContaining({ acceptanceBasis: "functional_workflow_only",
-      qualityLimitations: ["画面文字无法验证", "姿态保留问题"] }) }));
+  await act(async () => button("选择全部素材用于故事").click());
+  expect(save).toHaveBeenCalledExactlyOnceWith("project", { expectedRevision: batch.revision,
+    reviewHash: "f".repeat(64), basis: "source-bound-selections.v1", attribution: actor });
+  expect(save.mock.calls[0][1]).not.toHaveProperty("inspection");
 });
 
 

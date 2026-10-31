@@ -62,7 +62,7 @@ function control<T extends HTMLElement>(testId: string) { return host.querySelec
 function kept(assetId: string) { return control(`keep-candidate-${assetId}`).getAttribute("aria-pressed"); }
 function compatibility() {
   return Array.from(host.querySelectorAll("label"))
-    .find((label) => label.textContent?.includes("审核兼容性说明"))!.control as HTMLTextAreaElement;
+    .find((label) => label.textContent?.includes("兼容性备注（可选）"))!.control as HTMLTextAreaElement;
 }
 async function click(testId: string) { await act(async () => control<HTMLButtonElement>(testId).click()); await settle(); }
 async function edit(element: HTMLTextAreaElement, value: string) {
@@ -128,10 +128,10 @@ it("reviews the explicitly retained replacement after intent save withdraws and 
   expect(control("save-visual-intent").textContent).toBe("保存意图修改");
   expect(kept("old-asset")).toBe("false");
   expect(control<HTMLTextAreaElement>("visual-intent-source-refs").value).toBe("new-asset-source");
-  const compatibility = Array.from(host.querySelectorAll("label")).find((label) => label.textContent?.includes("审核兼容性说明"))!.control as HTMLTextAreaElement;
+  const compatibility = Array.from(host.querySelectorAll("label")).find((label) => label.textContent?.includes("兼容性备注（可选）"))!.control as HTMLTextAreaElement;
   await edit(compatibility, "Replacement matches the approved shot.");
   expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
-  expect(control("select-reviewed-keyframe").textContent).toBe("审核为当前镜头关键帧");
+  expect(control("select-reviewed-keyframe").textContent).toBe("选择为当前镜头关键帧");
   await click("select-reviewed-keyframe");
   expect(select).toHaveBeenCalledWith("project", expect.objectContaining({
     assetId: "new-asset", visualIntentId: "new-asset-intent", visualIntentRevision: 1,
@@ -191,11 +191,11 @@ it("does not carry authored compatibility observations into another Shot, candid
   await edit(compatibility(), "First Shot's lamp is off.");
   await click("keep-candidate-new-asset");
   expect(compatibility().value).toBe("");
-  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
   await edit(compatibility(), "Replacement is reviewed for the first Shot.");
   await render(otherShot);
   expect(compatibility().value).toBe("");
-  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
   await edit(compatibility(), "Other Shot's lamp is lit.");
   await render(otherShot, "other-project");
   expect(compatibility().value).toBe("");
@@ -226,7 +226,7 @@ it("preserves observations through unchanged read withdrawal, failure and retry 
   }));
 });
 
-it("requires new observations when the same candidate's reviewed intent or bytes actually change", async () => {
+it("clears optional observations when the same candidate's reviewed intent or bytes actually change", async () => {
   const pending = deferred<VisualWorkbench>();
   const nextIntent = { ...intent("old-asset"), revision: 2 };
   const nextBytes = { ...snapshot([binding()], [nextIntent]),
@@ -239,11 +239,11 @@ it("requires new observations when the same candidate's reviewed intent or bytes
   expect(compatibility().value).toBe("Intent r1 observations.");
   await act(async () => pending.resolve(snapshot([binding()], [nextIntent]))); await settle();
   expect(compatibility().value).toBe("");
-  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
   await edit(compatibility(), "Intent r2 observations.");
   await refreshThroughImport();
   expect(compatibility().value).toBe("");
-  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+  expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
 });
 
 it("clears observations immediately on approval/source revision changes, even before the new read settles", async () => {
@@ -365,7 +365,7 @@ it("retains only current typed authoring proof after binding withdrawal, without
     expect(kept("old-asset")).toBe("true");
     expect(control<HTMLTextAreaElement>("visual-intent-source-refs").value).toBe(`B edit ${revision}`);
     expect(compatibility().value).toBe("");
-    expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(true);
+    expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
     expect(host.querySelector('[data-testid="current-reviewed-keyframe"]')).toBeNull();
   }
   await refreshThroughImport();

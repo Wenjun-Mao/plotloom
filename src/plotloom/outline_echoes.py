@@ -64,6 +64,14 @@ def outline_echo_roles(candidate, original):
                   source_path=None if key in {"kind", "briefOrigin"} else "$.source." + key)
 
     topology = original.input_artifacts.get("story-topology.json")
+    if "sourceStructure" in candidate:
+        from .outline_structure_authority import SOURCE_STRUCTURE_FILENAME
+        authored = original.input_artifacts.get(SOURCE_STRUCTURE_FILENAME)
+        if authored is None:
+            raise OutlineEchoError("$.sourceStructure")
+        exact("$.sourceStructure", candidate["sourceStructure"], authored)
+        exact("$.sourceStructure.structure", candidate["sourceStructure"]["structure"], original.source["authoredStructure"],
+            role="exact_source", source_path="$.source.authoredStructure")
     if "storyTopology" in candidate:
         from .generation.story_graph_topology_contracts import StoryGraphTopology
         if topology is None:

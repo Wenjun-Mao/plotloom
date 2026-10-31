@@ -108,6 +108,9 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
     if [item.shot_id for item in frames] != [item.id for item in shots] or len(receipt.bindings) != len(frames) or len(receipt.observation.frames) != len(frames):
         raise ValueError("human handoff shot coverage changed")
     for frame, subject, observation, fact in zip(frames, shots, receipt.observation.frames, receipt.bindings, strict=True):
+        quality = getattr(observation, "quality_observation", None)
+        if quality and any(item.character_id not in frame.character_ids for item in quality.comparisons):
+            raise ValueError("optional quality observation character differs from its frame")
         shot = shots_by_id[frame.shot_id]
         if frame.intent_context is not None:
             from ..persistence.project.handoff_intent_context import assert_saved_context
@@ -156,7 +159,7 @@ def _assert_handoff(connection, identifier, run_id, project_id, approval_id, raw
         if (intent is None or intent[:2] != (project_id, frame.asset_id)
                 or authored_intent(json.loads(intent[2])) != observation.intent.model_dump(mode="json", by_alias=True)
                 or json.loads(intent[2]).get("targetUse") != frozen_use
-                or json.loads(intent[2]).get("attribution") != (receipt.attribution.model_dump(mode="json", by_alias=True) if receipt.version == "pre-video.handoff.v4" else None)):
+                or json.loads(intent[2]).get("attribution") != (receipt.attribution.model_dump(mode="json", by_alias=True) if receipt.version == "pre-video.handoff.v4" or selection and receipt.attribution.kind == "agent_operated_qa" else None)):
             raise ValueError("human authored intent changed")
         if frame.character_ids and fact.get("samePersonReviewId") is not None:
             review = connection.execute("SELECT project_id,binding_id,reviewer,notes,comparisons,reference_bindings FROM v2_same_person_reviews WHERE id=?", (fact.get("samePersonReviewId"),)).fetchone()

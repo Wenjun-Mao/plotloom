@@ -4,7 +4,7 @@ export const batchStateLabels: Record<string, string> = {
   setup: "制作清单已准备", drafting: "助手正在起草供应商指令", checking: "独立助手正在检查指令保真性",
   translation_rejected: "指令保真检查未通过，尚未发送视频", ready: "请审阅完整制作简报并授权生成",
   running: "正在制作视频", paused: "已暂停新派发", cancelled: "已取消新派发", blocked: "需要处理原任务",
-  stale: "来源已变化，未发送工作已暂停", awaiting_review: "视频已返回，等待音画审阅", approved: "视频已保存审阅确认",
+  stale: "来源已变化，未发送工作已暂停", awaiting_review: "视频已返回，等待选择播放片段", approved: "视频已保存片段选择",
 };
 const sectionIds = ["shot", "context", "presentation", "references", "timing", "settings"];
 export function reviewableBrief(brief: ProductionBrief | null | undefined): boolean {
@@ -43,11 +43,11 @@ export function ProductionBriefReview({ target }: { target: Target }) {
 export function FidelityReview({ target }: { target: Target }) {
   const check = target.fidelity, reference = target.directions?.fidelityCheck;
   return <section aria-label="助手指令保真检查">
-    <p>{check?.verdict === "pass" && reference ? "独立助手保真检查已通过；尚需授权生成，视频返回后仍需审阅音画。"
+    <p>{check?.verdict === "pass" && reference ? "独立助手保真检查已通过；尚需授权生成，视频返回后可选择技术有效的片段；音画质量观察为可选。"
       : check?.verdict === "reject" ? "助手发现以下语义问题，请回到创作来源或修正供应商候选；未通过前不能生成视频。"
       : "尚无当前候选的独立助手检查通过记录。"}</p>
     {check?.findings.map((finding, index) => <p role="alert" key={index}>{finding.message}<small>来源位置：{finding.sourcePath || finding.path}{finding.sourceOwner ? `；修改位置：${finding.sourceOwner}` : ""}</small></p>)}
     {reference && <details><summary>助手检查溯源</summary><p>检查执行：{reference.attemptId}；结果标识：{reference.resultHash}</p></details>}
-    <small>AI 语义检查可能遗漏问题；不替代创作者对完整制作意图的判断与后续实际媒体审阅。</small>
+    <small>AI 语义检查可能遗漏问题；不替代创作者对完整制作意图的判断；后续媒体质量观察为可选。</small>
   </section>;
 }

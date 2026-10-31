@@ -101,12 +101,13 @@ def test_current_outline_constraints_preserve_authored_content_and_structural_ga
 def test_prepared_outline_prompt_and_schema_share_current_candidate_constraint():
     from types import SimpleNamespace
     from plotloom.outline_preparation import outline_request
+    from plotloom.source_outline_contracts import SourceMaterial
     original, _ = echo_fixture()
     brief = ProjectBrief(title="小灯", synopsis="她把灯留下。", language="zh-CN")
     store = SimpleNamespace(
         manifest=SimpleNamespace(project_id=original.project_id),
         source_outline_state=lambda: SimpleNamespace(accepted_outline=None,
-            source=SimpleNamespace(material=SimpleNamespace(model_dump=lambda **kwargs: original.source))),
+            source=SimpleNamespace(material=SourceMaterial(kind="synopsis", title=brief.title, text=brief.synopsis))),
         project=lambda: SimpleNamespace(require_brief=lambda: brief))
     request = outline_request(store)
     assert request.input_artifacts[ECHO_CONTRACT_FILENAME] == outline_echo_contract()

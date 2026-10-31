@@ -246,25 +246,34 @@ class VideoSegmentPersistence:
 
     def selected_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
-            job = session.get(VideoJobRow, video_job_id)
-            if job is None or job.project_id != project_id or not self._currentness.selected_video_current_in_session(session, job):
-                raise NotFoundError("current selected video job not found")
-            shot_id = self._source(job).get("cut", {}).get("shotId") or job.snapshot["shot"]["id"]
-            selection = self._selection(session, project_id, shot_id)
-            if selection is None or selection.selected_video_job_id != job.id:
-                raise NotFoundError("video job has no reviewed playback segment")
-            segment = session.scalar(
-                select(VideoSegmentRow).where(
-                    VideoSegmentRow.project_id == project_id,
-                    VideoSegmentRow.shot_id == shot_id,
-                    VideoSegmentRow.video_job_id == job.id,
-                    VideoSegmentRow.selected_revision == selection.revision,
-                )
+            evidence = self.selected_storage_in_session(session, project_id, video_job_id)
+            return {key: evidence[key] for key in ("uri", "hash", "mimeType")}
+
+    def selected_storage_in_session(self, session, project_id: str, video_job_id: str) -> dict[str, Any]:
+        job = session.get(VideoJobRow, video_job_id)
+        if job is None or job.project_id != project_id or not self._currentness.selected_video_current_in_session(session, job):
+            raise NotFoundError("current selected video job not found")
+        shot_id = self._source(job).get("cut", {}).get("shotId") or job.snapshot["shot"]["id"]
+        selection = self._selection(session, project_id, shot_id)
+        if selection is None or selection.selected_video_job_id != job.id:
+            raise NotFoundError("video job has no reviewed playback segment")
+        segment = session.scalar(
+            select(VideoSegmentRow).where(
+                VideoSegmentRow.project_id == project_id,
+                VideoSegmentRow.shot_id == shot_id,
+                VideoSegmentRow.video_job_id == job.id,
+                VideoSegmentRow.selected_revision == selection.revision,
             )
-            from ...video_batch_review import segment_confirmation_valid
-            if segment is None or not self._valid_metadata(segment, job) or not segment_confirmation_valid(session, segment):
-                raise NotFoundError("video job has no current reviewed playback segment")
-            return {"uri": segment.derivative_uri, "hash": segment.derivative_hash, "mimeType": "video/mp4"}
+        )
+        from ...video_batch_review import segment_confirmation_valid
+        if segment is None or not self._valid_metadata(segment, job) or not segment_confirmation_valid(session, segment):
+            raise NotFoundError("video job has no current reviewed playback segment")
+        return {"uri": segment.derivative_uri, "hash": segment.derivative_hash, "mimeType": "video/mp4",
+                "segmentId": segment.id, "selectionRevision": selection.revision,
+                "inFrame": segment.in_frame, "outFrame": segment.out_frame,
+                "originalHash": segment.original_hash, "originalUri": job.output_uri,
+                "snapshotHash": job.snapshot_hash, "requestHash": job.request_hash,
+                "sourceBindingHash": segment.source_binding_hash}
 
     def segments_for_jobs(self, session: Session, jobs: list[VideoJobRow]) -> dict[str, list[VideoSegmentRow]]:
         result: dict[str, list[VideoSegmentRow]] = {}

@@ -20,19 +20,16 @@ from plotloom.outline_report_metadata import (
     outline_report_metadata_schema,
 )
 from plotloom.outline_settings import OUTLINE_SETTINGS_FILENAME, outline_settings
+from plotloom.outline_structure_authority import outline_structure_inputs
 from plotloom.script_contracts import (
     ScriptAcceptRequest,
 )
 from plotloom.source_outline_contracts import (
-    BranchOutcome,
     OutlineAcceptRequest,
-    SectionChoice,
-    SectionMap,
     SectionMapGraphInstallRequest,
     SourceMaterial,
-    StorySection,
 )
-from plotloom.source_structures import planned_structure
+from tests.creative_story_mapping_fixtures import default_story_mapping
 from tests.art_delivery_fixtures import _deliver
 from tests.cast_style_fixtures import style_fixture
 from tests.graph_draft_fixtures import graph_draft_revision, graph_map_save_request
@@ -155,7 +152,7 @@ def run_brief_instruction_delivery(
     return commands, names | {"completion.json"}
 
 
-def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, render_style="realistic") -> None:
+def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, render_style="realistic", source_material=None) -> None:
     project = store.project()
     if structure_factory is None:
         store.update_brief(
@@ -168,7 +165,7 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
             ),
             expected_revision=project.revision,
         )
-    source = SourceMaterial(
+    source = source_material or SourceMaterial(
         kind="synopsis",
         title="Tide Light",
         text="Lin chooses the beacon or dock.",
@@ -187,9 +184,8 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
         input_artifacts={
             OUTLINE_REPORT_SCHEMA_FILENAME: outline_report_metadata_schema(),
             OUTLINE_SETTINGS_FILENAME: outline_settings(store.project().brief),
-            "story-topology.json": planned_structure(
-                store.manifest.project_id, store.project().brief
-            ).model_dump(mode="json", by_alias=True),
+            **outline_structure_inputs(
+                store.manifest.project_id, store.project().brief, source),
         },
         creative_brief="fixture",
     )  # type: ignore[attr-defined]
@@ -214,89 +210,7 @@ def _prepare_accepted_f4_cast_context(store: object, structure_factory=None, *, 
         )
     )  # type: ignore[attr-defined]
     assert state.source and state.accepted_outline
-    mapping = SectionMap(
-        seed_topology=planned_structure(
-            store.manifest.project_id, store.project().brief
-        ),
-        topology_origin="author",
-        topology={
-            "startNodeId": "opening",
-            "nodes": [
-                {"id": "opening", "kind": "start"},
-                {"id": "choose", "kind": "decision"},
-                {"id": "ending-a", "kind": "ending"},
-                {"id": "ending-b", "kind": "ending"},
-            ],
-            "edges": [
-                {
-                    "id": key,
-                    "sourceNodeId": source_id,
-                    "targetNodeId": target,
-                    "kind": kind,
-                    "stateEffects": {},
-                    "entityStateEffects": [],
-                }
-                for key, source_id, target, kind in [
-                    ("to-choice", "opening", "choose", "continuation"),
-                    ("beacon", "choose", "ending-a", "choice"),
-                    ("dock", "choose", "ending-b", "choice"),
-                ]
-            ],
-            "joins": [],
-        },
-        sections=[
-            StorySection(
-                section_id="opening",
-                title="Opening",
-                summary="Lin chooses.",
-                footage_mode="footage",
-            ),
-            StorySection(
-                section_id="choose",
-                title="Choose",
-                summary="Lin chooses a route.",
-                footage_mode="route_only",
-            ),
-            StorySection(
-                section_id="ending-a",
-                title="Beacon",
-                summary="Beacon.",
-                ending=True,
-                footage_mode="footage",
-            ),
-            StorySection(
-                section_id="ending-b",
-                title="Dock",
-                summary="Dock.",
-                ending=True,
-                footage_mode="footage",
-            ),
-        ],
-        choices=[
-            SectionChoice(
-                choice_id="choose",
-                section_id="choose",
-                prompt="Where?",
-                outcomes=[
-                    BranchOutcome(
-                        outcome_id="beacon",
-                        label="Beacon",
-                        consequence="Beacon.",
-                        ending_section_id="ending-a",
-                    ),
-                    BranchOutcome(
-                        outcome_id="dock",
-                        label="Dock",
-                        consequence="Dock.",
-                        ending_section_id="ending-b",
-                    ),
-                ],
-            )
-        ],
-        join_reconciliations={},
-    )
-    if structure_factory is not None:
-        mapping = structure_factory(store)
+    mapping = structure_factory(store) if structure_factory else default_story_mapping(store)
     state = store.save_section_map(
         graph_map_save_request(
             store,
@@ -412,8 +326,8 @@ def _pilot_script() -> dict[str, object]:
     }
 
 
-def _accepted_f4_script(store: object, structure_factory=None, *, render_style="realistic") -> None:
-    _prepare_accepted_f4_cast_context(store, structure_factory, render_style=render_style)
+def _accepted_f4_script(store: object, structure_factory=None, *, render_style="realistic", source_material=None) -> None:
+    _prepare_accepted_f4_cast_context(store, structure_factory, render_style=render_style, source_material=source_material)
     art_candidate, art_request = store.prepare_art_candidate(
         "ch_" + "k" * 32, render_style=render_style
     )  # type: ignore[attr-defined]

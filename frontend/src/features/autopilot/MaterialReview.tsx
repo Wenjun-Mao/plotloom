@@ -4,7 +4,7 @@ import { plotloomApi } from "../../api";
 import { ScriptContentReview } from "../graph/ScriptContentReview";
 import { autopilotApi } from "./api";
 import type { AutopilotRun, ReviewMaterial } from "./contracts";
-import { bulkHandoff, galleryDraft, galleryFrameReady, materialSelectionHandoff, type GalleryDraft } from "./bulkMaterialReview";
+import { galleryDraft, materialSelectionHandoff, hasGalleryObservations, type GalleryDraft } from "./bulkMaterialReview";
 import { useReviewEditorDraft } from "../authoring/ReviewDraftContext";
 import { materialWorkingInput, resumeMaterialWorkingInput } from "./materialWorkingInput";
 import { GalleryFrameReview } from "./GalleryFrameReview";
@@ -51,21 +51,20 @@ export function MaterialReview({ projectId, readOnly = false, onConfirmStart, on
   const failedPixels = Object.keys(imageFailures);
   const contextReady = material && material.bundle.references.every(reference => reference.assets.every(asset => disclosure(asset.assetId, asset.originalHash).status !== "unknown")) &&
     material.bundle.frames.every(frame => disclosure(frame.assetId, frame.originalHash, frame.geometryPreparation).status !== "unknown");
-  const problems = material?.bundle.frames.filter((_, index) => drafts[index] && !galleryFrameReady(drafts[index])) || [];
-  const reviewReady = pixelsReady && failedPixels.length === 0 && contextReady && deliveries.state?.status === "ready" && drafts.length === material?.bundle.frames.length && problems.length === 0;
-  const valid = material && (!qualityReview || reviewReady);
+  const hasObservations = drafts.some(hasGalleryObservations);
+  const valid = material;
   const submit = async () => {
     if (!material || !valid || command.current || readOnly || qa.blocked) return;
     onConfirmStart?.();
     command.current = true; setBusy(true); setError(""); const submittedProject = projectId;
     const clearApplied = working.clear;
     let committed = false;
-    try { const body = qualityReview ? { ...bulkHandoff(material, drafts, notes), ...(qa.actor ? { attribution: qa.actor } : {}) } : materialSelectionHandoff(material);
+    try { const body = { ...materialSelectionHandoff(material, drafts, notes), ...(qa.actor ? { attribution: qa.actor } : {}) };
       const result = await autopilotApi.handoff(projectId, body);
       committed = true; await clearApplied();
       if (active.current && identity.current === submittedProject) await onAccepted(result);
     } catch (failure) { if (active.current && identity.current === submittedProject) {
-      const message = failure instanceof Error ? failure.message : String(failure); setError(committed ? `已保存审阅；刷新制作状态失败：${message}` : message); onUncertain(message);
+      const message = failure instanceof Error ? failure.message : String(failure); setError(committed ? `已保存选择；刷新制作状态失败：${message}` : message); onUncertain(message);
     } }
     finally { command.current = false; if (active.current && identity.current === submittedProject) setBusy(false); }
   };
@@ -80,10 +79,10 @@ export function MaterialReview({ projectId, readOnly = false, onConfirmStart, on
     {!material && error && <Button disabled={busy} onClick={() => setRetry(value => value + 1)}>重新读取当前素材</Button>}
     {material && <><p>{material.bundle.inventory.routeCount} 条完整路线 · {material.bundle.references.length} 项参考（{material.bundle.references.reduce((count, item) => count + item.assets.length, 0)} 张图片） · {material.bundle.frames.length} 个镜头首帧</p>
       <label><input type="checkbox" checked={qualityReview} disabled={busy || qa.blocked} onChange={event => setQualityReview(event.target.checked)} /> 可选：打开图片并记录画面/身份观察</label>
-      {!qualityReview && <p>直接选择会保留每项素材的原始来源、当前修订、保存的画面意图和技术校验，不会记录观看、聆听或质量通过结论。</p>}
+      {!qualityReview && <p>直接选择会保留每项素材的原始来源、当前修订、保存的画面意图和技术校验。{hasObservations ? "已填写的可选观察和备注也会保留。" : "不会记录观看、聆听或质量通过结论。"}</p>}
       {qualityReview && <>
       {deliveries.state?.status === "failed" && <p role="status">图片交付说明读取失败，已有编辑仍保留。<Button variant="quiet" disabled={busy} onClick={deliveries.retry}>重试读取图片交付说明</Button></p>}
-      {failedPixels.length > 0 && <p role="alert">有 {failedPixels.length} 张当前图片或保留原图无法读取，整包确认已暂停。<Button disabled={busy} onClick={() => { setPixels({}); setImageFailures({}); setImageEpoch(value => value + 1); }}>重试读取图片</Button></p>}
+      {failedPixels.length > 0 && <p role="alert">有 {failedPixels.length} 张当前图片或保留原图无法读取，可按需重试查看；素材选择仍会校验原始字节。<Button disabled={busy} onClick={() => { setPixels({}); setImageFailures({}); setImageEpoch(value => value + 1); }}>重试读取图片</Button></p>}
       <details><summary>完整故事与全部路线</summary>
         {material.bundle.story.graph.nodes.map(node => <article key={node.id}><h3>{node.title}</h3><p>{node.summary}</p></article>)}
         <ol>{material.bundle.story.routes?.map((route, index) => <li key={index}>{route.map(id => material.bundle.story.graph.nodes.find(node => node.id === id)?.title || id).join(" → ")}</li>)}</ol>
@@ -100,20 +99,17 @@ export function MaterialReview({ projectId, readOnly = false, onConfirmStart, on
         </figure>)}</div>
       </article>)}</div>
       <h3>可选画面与身份观察</h3><p>这些观察仅在你主动填写时保存；未观察、失败或不确定不会改变当前素材的来源与技术选择资格。</p>
-      {problems.length > 0 && <nav aria-label="待解决镜头"><strong>{problems.length} 个镜头待处理：</strong>{problems.map(frame => <a key={frame.shotId} href={`#review-${frame.shotId}`} onClick={() => { const detail = document.getElementById(`review-${frame.shotId}`)?.querySelector("details"); if (detail) detail.open = true; }}>{frame.title} · {frame.shotId} </a>)}</nav>}
       {Array.from(new Set(material.bundle.frames.map(frame => frame.sceneId))).map(sceneId => <section key={sceneId} aria-label={`场景 ${sceneId}`}>
         <h4>场景 · {material.bundle.frames.find(frame => frame.sceneId === sceneId)?.sceneName}</h4>
         <div className="autopilot-frame-gallery">{material.bundle.frames.map((frame, index) => frame.sceneId === sceneId && <GalleryFrameReview key={`${frame.shotId}:${imageEpoch}`} projectId={projectId} frame={frame} draft={drafts[index]} characters={material.bundle.story.characters} disabled={busy || readOnly || working.stale}
           imageEvents={imageEvents(frame.assetId)} onChange={next => changeDraft(index, next)}
           disclosure={<DeliveryDisclosure projectId={projectId} value={disclosure(frame.assetId, frame.originalHash, frame.geometryPreparation)} />} />)}</div>
       </section>)}
-      <Field label="备注（可选）"><textarea value={notes} disabled={busy || readOnly || working.stale} onChange={event => { setNotes(event.target.value); if (material) working.changed(materialWorkingInput(material, drafts, event.target.value)); }} /></Field>
-      <footer><p>{qualityReview ? `将保存填写的可选观察并选择 ${material.bundle.frames.length} 个当前首帧。` : `将选择 ${material.bundle.references.length} 项完整参考集与 ${material.bundle.frames.length} 个当前首帧；不记录质量判断。`}之后可从工作台打开视频制作，设置参数并开始制作。</p>
-        {!contextReady && deliveries.state?.status === "ready" && <p role="status">有素材来源说明尚待核实，请重新读取当前素材。<Button disabled={busy} onClick={deliveries.retry}>重新核对素材来源</Button></p>}
-        {!pixelsReady && !failedPixels.length && <p role="status">正在核对当前图片是否可读取…</p>}
-        <Button variant="primary" busy={busy} disabled={busy || readOnly || working.stale || !valid || qa.blocked} onClick={() => void submit()}>{busy ? "正在保存…" : qualityReview ? "保存观察并继续" : "选择当前素材并继续"}</Button></footer>
+      {!contextReady && deliveries.state?.status === "ready" && <p role="status">有素材来源说明尚待核实，请按需重新读取。<Button disabled={busy} onClick={deliveries.retry}>重新核对素材来源</Button></p>}
+      {!pixelsReady && !failedPixels.length && <p role="status">正在核对当前图片是否可读取…</p>}
       </>}
-      {!qualityReview && <footer><Button variant="primary" busy={busy} disabled={busy || readOnly || working.stale || !valid || qa.blocked} onClick={() => void submit()}>{busy ? "正在保存…" : "选择当前素材并继续"}</Button></footer>}
+      <Field label="备注（可选）"><textarea value={notes} disabled={busy || readOnly || working.stale} onChange={event => { setNotes(event.target.value); if (material) working.changed(materialWorkingInput(material, drafts, event.target.value)); }} /></Field>
+      <footer><p>{hasObservations ? "将保留已填写的可选观察和备注。" : "本次不记录质量判断。"}之后可从工作台打开视频制作，设置参数并开始制作。</p><Button variant="primary" busy={busy} disabled={busy || readOnly || working.stale || !valid || qa.blocked} onClick={() => void submit()}>{busy ? "正在保存…" : hasObservations ? "保留观察并选择素材" : "选择当前素材并继续"}</Button></footer>
     </>}
   </dialog>;
 }

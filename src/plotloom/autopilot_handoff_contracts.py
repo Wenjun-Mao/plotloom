@@ -15,6 +15,7 @@ from .cross_shot_image_contracts import CrossShotTargetUse
 from .same_person_review_contracts import SamePersonReviewItem
 from .bulk_material_contracts import BulkFrameObservation, SavedIntentContext
 from .source_endorsed_intent import SourceEndorsedIntent
+from .media_quality_observations import MaterialQualityObservation
 
 
 class ReviewAsset(CamelModel):
@@ -151,6 +152,7 @@ class MaterialSelectionFrame(CamelModel):
     intent: SourceEndorsedIntent | VisualIntentInput
     compatibility_note: str = Field(default="", max_length=2000)
     comparisons: list[SamePersonReviewItem] = Field(default_factory=list, max_length=8)
+    quality_observation: MaterialQualityObservation | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def selection_intent(self):
@@ -163,12 +165,19 @@ class MaterialSelectionFrame(CamelModel):
 
 
 class MaterialSelectionHandoffRequest(CamelModel):
-    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation = Field(default_factory=UnnamedCreatorConfirmation)
+    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation | AgentQaAttribution = Field(default_factory=UnnamedCreatorConfirmation)
     expected_run_revision: int = Field(ge=1)
     bundle_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     notes: str | None = Field(default=None, max_length=2000, exclude_if=lambda value: value is None)
     endorsed_reference_ids: list[str] = Field(default_factory=list, max_length=256)
     frames: list[MaterialSelectionFrame] = Field(max_length=256)
+
+    @model_validator(mode="after")
+    def protect_credentials(self):
+        raw = self.model_dump(mode="json", by_alias=True)
+        if contains_secret_setting(raw) or contains_secret_value(raw):
+            raise ValueError("material selection must not contain credentials")
+        return self
 
 
 class BulkHumanHandoffReceipt(HandoffReceiptFacts):
@@ -213,7 +222,7 @@ class LegacyHumanHandoffReceipt(HandoffReceiptFacts):
 
 class MaterialSelectionHandoffReceipt(HandoffReceiptFacts):
     version: Literal["pre-video.handoff.v5"] = "pre-video.handoff.v5"
-    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation
+    attribution: CodexTaskAttribution | UnnamedCreatorConfirmation | AgentQaAttribution
     observation: MaterialSelectionHandoffRequest
 
     @property
@@ -222,7 +231,8 @@ class MaterialSelectionHandoffReceipt(HandoffReceiptFacts):
             return ""
         if isinstance(self.attribution, CodexTaskAttribution):
             return f"Codex task {self.attribution.task_id}"
-        return f"Codex task {self.attribution.task_id}"
+        from .delegated_qa import reviewer_for
+        return reviewer_for(self.attribution)
 
 
 _receipt_reader = TypeAdapter(Annotated[QaMaterialHandoffReceipt | BulkHumanHandoffReceipt | HumanHandoffReceipt | LegacyHumanHandoffReceipt | MaterialSelectionHandoffReceipt, Field(discriminator="version")])

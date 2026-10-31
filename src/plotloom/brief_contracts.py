@@ -27,7 +27,7 @@ class ProjectBrief(CamelModel):
     language: str = "zh-CN"
     aspect_ratio: str = "16:9"
     target_playthrough_seconds: Annotated[int, Field(ge=1)] = 180
-    decision_points_per_path: Annotated[int, Field(ge=0)] = 2
+    decision_points_per_path: Annotated[int, Field(ge=0, description="Exact planning target; maximum for explicitly adopted source routes")] = 2
     ending_count: Annotated[int, Field(ge=1)] = 3
     node_budget: Annotated[int, Field(ge=1)] = 10
     max_out_degree: Annotated[int, Field(ge=1)] = 3

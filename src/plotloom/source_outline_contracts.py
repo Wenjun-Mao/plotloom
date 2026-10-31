@@ -5,15 +5,21 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field, ValidationInfo, field_validator, model_serializer, model_validator
+from pydantic import (
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
+
+from plotloom.domain_base import CamelModel
+from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
+from plotloom.public_values import contains_secret_setting, contains_secret_value
 
 from .canonical_schema import StoryGraphV2
-from plotloom.generation.story_graph_topology_contracts import StoryGraphTopology
-from plotloom.domain_base import CamelModel
-from plotloom.public_values import contains_secret_setting, contains_secret_value
-from .source_structures import MAX_SOURCE_OPTIONS
 from .source_graph_structure import SourceStructure, structure_from_seed
-
+from .source_structures import MAX_SOURCE_OPTIONS
 
 SourceKind = Literal["synopsis", "imported_text", "existing_work"]
 CandidateStatus = Literal["prepared", "ready", "accepted", "cancelled"]
@@ -38,6 +44,7 @@ class SourceMaterial(CamelModel):
     rights_declaration: str | None = Field(default=None, max_length=4_000)
     adaptation_intent: str = Field(default="", max_length=8_000)
     invented_additions: str | None = Field(default=None, max_length=8_000)
+    authored_structure: SourceAuthoredStructure | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @field_validator("title", "text")
     @classmethod
@@ -60,11 +67,13 @@ class SourceMaterial(CamelModel):
         return value.strip()
 
     @model_validator(mode="after")
-    def require_imported_adaptation_goal(self) -> "SourceMaterial":
-        if self.brief_origin is not None and (self.kind != "synopsis" or self.attribution is not None or self.rights_declaration is not None or self.adaptation_intent or self.invented_additions is not None):
+    def require_imported_adaptation_goal(self) -> SourceMaterial:
+        if self.brief_origin is not None and (self.kind != "synopsis" or self.attribution is not None or self.rights_declaration is not None or self.adaptation_intent or self.invented_additions is not None or self.authored_structure is not None):
             raise ValueError("Brief-derived source contains only the exact synopsis and origin")
         if self.kind != "synopsis" and not self.adaptation_intent:
             raise ValueError("imported stories require an explicit adaptation goal")
+        if self.authored_structure is not None:
+            self.authored_structure.validate_links()
         return self
 
     @field_validator("attribution", "rights_declaration")
@@ -140,12 +149,9 @@ class SectionChoice(CamelModel):
     outcomes: list[BranchOutcome] = Field(min_length=2, max_length=MAX_SOURCE_OPTIONS)
 
 
-class SectionMap(CamelModel):
-    """One reviewed author structure with the original immutable planner seed."""
-
+class SourceAuthoredStructure(CamelModel):
+    """Explicit author topology and prose, without a claimed planner result."""
     sections: list[StorySection] = Field(min_length=1, max_length=128)
-    seed_topology: StoryGraphTopology
-    topology_origin: Literal["planner", "author"]
     topology: SourceStructure
     choices: list[SectionChoice]
     join_reconciliations: dict[str, str]
@@ -168,6 +174,22 @@ class SectionMap(CamelModel):
     def validate_links(self) -> None:
         from .source_structure_validation import validate_structure_links
         validate_structure_links(self)
+
+
+class SectionMap(SourceAuthoredStructure):
+    """Adopted author structure with immutable, authenticated origin evidence."""
+    seed_topology: StoryGraphTopology | None
+    author_source_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None)
+    topology_origin: Literal["planner", "author"]
+
+    def validate_links(self) -> None:
+        super().validate_links()
+        if self.seed_topology is None:
+            if self.topology_origin != "author" or self.author_source_hash is None:
+                raise ValueError("seedless source maps require exact author source identity")
+            return
+        if self.author_source_hash is not None:
+            raise ValueError("a planner-seeded map cannot claim seedless author authority")
         planner_membership = [(node.id, node.footage_mode) for node in self.seed_topology.nodes]
         authored_membership = [(section.section_id, section.footage_mode) for section in self.sections]
         if self.topology_origin == "planner" and (
@@ -177,7 +199,7 @@ class SectionMap(CamelModel):
             raise ValueError("author-edited structure must declare author provenance")
 
     @model_validator(mode="after")
-    def require_complete_structure(self) -> "SectionMap":
+    def require_complete_structure(self) -> SectionMap:
         self.validate_links()
         return self
 
@@ -191,17 +213,17 @@ def compile_section_map_graph(mapping: SectionMap) -> StoryGraphV2:
 
 
 def validate_section_map_graph(graph: StoryGraphV2, brief: Any, bible: Any = None) -> None:
-    """Validate actual viewer choices and endings against the saved Brief."""
+    """Validate adopted viewer routes against the Brief's choice upper bound."""
 
-    from .validation import DomainValidationError, validate_story_graph
     from .node_footage import route_only_state_issues
+    from .validation import DomainValidationError, validate_story_graph
     issues = route_only_state_issues(graph)
     if issues:
         raise DomainValidationError(issues)
     if any(edge.entity_state_effects for edge in graph.edges) and bible is None:
         raise ValueError("typed entity state effects require a current accepted Story Bible")
 
-    validate_story_graph(graph, brief, bible=bible)
+    validate_story_graph(graph, brief, bible=bible, path_decisions="bounded")
 
 
 
@@ -281,3 +303,6 @@ class SectionMapGraphInstallRequest(CamelModel):
     expected_section_map_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     expected_graph_revision: int = Field(ge=0)
     expected_graph_draft_revision: int = Field(ge=1)
+
+
+SourceMaterial.model_rebuild()

@@ -175,8 +175,13 @@ it.each(["binding", "intent", "review"])("invalidates the buffer for a genuine r
   const nextBinding = change === "binding" ? { ...binding, id: "new-binding" }
     : change === "intent" ? { ...binding, visualIntentId: "new-intent", visualIntentRevision: 2 } : binding;
   await act(async () => pending.resolve(snapshot(nextBinding, 8, change === "review" ? "new-review" : "a1-review"))); await settle();
-  expect(editor()).toBeNull(); expect(authorityDisabled()).toBe(true);
-  expect(host.textContent).not.toContain("来源绑定：");
+  if (change === "review") {
+    expect(editor().value).toBe("The keeper crosses the doorway.");
+    expect(editor().disabled).toBe(true); // Still needs an explicit fresh source read.
+  } else {
+    expect(editor()).toBeNull(); expect(authorityDisabled()).toBe(true);
+    expect(host.textContent).not.toContain("来源绑定：");
+  }
 });
 
 it("retains English and seed through archive/restore reads while withdrawing consent and freeze authority", async () => {

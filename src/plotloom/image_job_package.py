@@ -200,7 +200,7 @@ def project_image_package(
             "It freezes another shot's reviewed scene appearance and object layout only. "
             "The target shot and its shotPresentation control action, framing, lighting and current object states. "
             "Do not copy the reference shot's action or override target facts; scene_continuity is not parent_output "
-            "or character_identity. The output is a new unselected target candidate; continuity fidelity needs review. "
+            "or character_identity. The output is a new unselected target candidate; quality and continuity observations are optional; exact source bindings remain required. "
             if request.get("frozenSnapshot", {}).get("sceneContinuity") is not None else ""
         )
         from .image_reference_roles import (

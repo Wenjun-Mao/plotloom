@@ -1249,6 +1249,7 @@ export interface TextProviderProfileProbe {
 export type SourceKind = "synopsis" | "imported_text" | "existing_work";
 
 export interface SourceMaterial {
+  authoredStructure?: SourceAuthoredStructure;
   briefOrigin?: { kind: "saved_brief"; revision: number; contentHash: string };
   kind: SourceKind;
   title: string;
@@ -1310,7 +1311,8 @@ export interface BranchOutcome { outcomeId: string; label: string; consequence: 
 export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: BranchOutcome[]; }
 export interface SourceTopology { plannerVersion: "story_graph_topology.v3"; projectId: string; startNodeId: string; topologyHash: string; structuralParameters: Record<string, number>; nodes: Array<{ id: string; kind: "start" | "scene" | "decision" | "join" | "ending"; footageMode: "footage" | "route_only" }>; edges: Array<{ id: string; sourceNodeId: string; targetNodeId: string; kind: "choice" | "continuation" }>; joins: Array<{ id: string; joinNodeId: string; incomingNodeIds: string[] }>; }
 export interface SourceStructure { startNodeId: string; nodes: Array<Omit<SourceTopology["nodes"][number], "footageMode">>; edges: Array<SourceTopology["edges"][number] & { stateEffects: Record<string, unknown>; entityStateEffects: RequiredEntityState[] }>; joins: Array<SourceTopology["joins"][number] & { requiredStateKeys: string[]; allowedDifferences: string[]; notes: string }>; }
-export interface SectionMap { sections: StorySection[]; seedTopology: SourceTopology; topologyOrigin: "planner" | "author"; topology: SourceStructure; choices: SectionChoice[]; joinReconciliations: Record<string, string>; }
+export interface SourceAuthoredStructure { sections: StorySection[]; topology: SourceStructure; choices: SectionChoice[]; joinReconciliations: Record<string, string>; }
+export interface SectionMap extends SourceAuthoredStructure { seedTopology: SourceTopology | null; authorSourceHash?: string; topologyOrigin: "planner" | "author"; }
 export interface AcceptedSectionMapRevision {
   revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
   contentHash: string; mapping: SectionMap; acceptedAt: string;

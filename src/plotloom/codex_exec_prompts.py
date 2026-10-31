@@ -84,5 +84,5 @@ def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, d
         "use another provider, or contact services outside those enabled tools. "
         + completion_claim_contract
         + "The result remains a candidate "
-        "for Plotloom validation and human review."
+        "for Plotloom validation and explicit source adoption. Generated-media quality inspection is optional."
     )

@@ -81,7 +81,8 @@
           "tests/test_autopilot_early_references.py",
           "tests/test_autopilot_early_reference_limits.py",
           "tests/test_autopilot_view_checkpoints.py",
-          "tests/test_autopilot_text_prefix.py"
+          "tests/test_autopilot_text_prefix.py",
+          "tests/test_authored_source_structure.py"
         ],
         "vitest": [
           "frontend/tests/authoring-autosave-admission.test.ts",
@@ -149,7 +150,8 @@
           "tests/test_graph_commands.py",
           "tests/test_graph_safety_diagnostics.py",
           "tests/test_graph_workbench_api.py",
-          "tests/test_source_graph_installed_guards.py"
+          "tests/test_source_graph_installed_guards.py",
+          "tests/test_source_route_lengths.py"
         ],
         "vitest": [
           "frontend/tests/graph-command-dialog.test.ts",
@@ -400,7 +402,9 @@
           "tests/test_video_review_reopen.py",
           "tests/test_video_review_reopen_refusals.py",
           "tests/test_video_review_reopen_retention.py",
-          "tests/test_video_segments.py"
+          "tests/test_video_segments.py",
+          "tests/test_player_export.py",
+          "tests/test_player_graph_scope.py"
         ],
         "vitest": [
           "frontend/tests/play-view-read-recovery.test.ts",
@@ -409,7 +413,9 @@
           "frontend/tests/video-pilot-playback.test.ts",
           "frontend/tests/video-segment-reopen-wording.test.ts",
           "frontend/tests/delegated-qa-attribution.test.ts",
-          "frontend/tests/provider-budgets.test.ts"
+          "frontend/tests/provider-budgets.test.ts",
+          "frontend/tests/player-state.test.ts",
+          "frontend/tests/player-export-action.test.ts"
         ],
         "playwright": [
           "frontend/e2e/archived-play-guidance.spec.ts",
@@ -481,7 +487,8 @@
           "tests/test_stage_repair_retirement.py",
           "tests/test_storyboard_brief_style.py",
           "tests/test_working_project_autosave.py",
-          "tests/test_working_project_rollback.py"
+          "tests/test_working_project_rollback.py",
+          "tests/test_player_export_upgrade.py"
         ],
         "vitest": [
           "frontend/tests/app-state-navigation.test.ts",
@@ -551,7 +558,8 @@
           "tests/test_conformance.py",
           "tests/test_secret_value_contract.py",
           "tests/test_service_source_contract.py",
-          "tests/test_backend_contract_ownership.py"
+          "tests/test_backend_contract_ownership.py",
+          "tests/test_player_export_privacy.py"
         ],
         "vitest": [
           "frontend/tests/api-text-pipeline-commands.test.ts",
@@ -930,43 +938,63 @@
       "suite": "pytest",
       "path": "tests/content_language_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["creative-production", "graph", "media-lifecycle", "project-lifecycle", "shared-provider-dispatch", "story-authoring"]
+      "consumers": [
+        "creative-production",
+        "graph",
+        "media-lifecycle",
+        "project-lifecycle",
+        "shared-provider-dispatch",
+        "story-authoring"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/creative_field_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/art_structure_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/art_structure_host_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/storyboard_correction_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/retained_storyboard_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch", "project-lifecycle"]
+      "consumers": [
+        "shared-provider-dispatch",
+        "project-lifecycle"
+      ]
     },
     {
       "suite": "pytest",
       "path": "tests/storyboard_correction_host_fixtures.py",
       "kind": "shared-fixture-or-helper",
-      "consumers": ["shared-provider-dispatch"]
+      "consumers": [
+        "shared-provider-dispatch"
+      ]
     },
     {
       "suite": "pytest",

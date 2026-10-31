@@ -17,7 +17,7 @@ export function ArtReferencePreparation({ style, subject, study, actionable, gen
   const image = record(content.image);
   return <section className="appearance-ideas">
     <h3>生成参考图片</h3>
-    <p>准备只保存任务，发送给图像生成助手后才开始生成。返回的图片仍需你审阅和选用。</p>
+    <p>准备只保存任务，发送给图像生成助手后才开始生成。返回的图片需要明确选用；图片质量观察为可选。</p>
     <p>美术风格：{artStyleLabel(style)}</p>
     <ArtSubjectDescription content={content} />
     <label>{frozen ? "本次任务的图片要求（已冻结）" : !generationActionable ? "图片要求（暂不可编辑）" : revising ? "新一轮图片要求" : "图片要求"}<textarea

@@ -19,10 +19,10 @@ it("keeps reopen guidance true after preparing and selecting a playback segment"
       await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "project", job: { ...job, segments }, readOnly: false, onRefresh: async () => {} })));
       expect(host.textContent).toContain("重新开放本身不会准备片段或将视频用于故事");
       expect(host.textContent).not.toContain("尚未准备片段或选择故事播放");
-      expect(host.textContent).toContain("请完整播放并检查画面和声音");
-      expect(host.textContent).toContain("确认前请检查片段开头和结尾的画面与声音");
+      expect(host.textContent).toContain("来源、窗口与素材字节会绑定到本次选择");
+      expect(host.textContent).toContain("可选观察或备注");
       expect(host.textContent).not.toContain("听看");
-      if (segments.length) expect(host.textContent).toContain(segment.selected || segments[0].selected ? "已选择片段 · 正用于故事" : "待审片段 · 尚未用于故事");
+      if (segments.length) expect(host.textContent).toContain(segment.selected || segments[0].selected ? "已选择片段 · 正用于故事" : "可用片段 · 尚未用于故事");
     }
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

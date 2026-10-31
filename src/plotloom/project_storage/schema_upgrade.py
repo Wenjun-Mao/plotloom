@@ -23,6 +23,7 @@ from .snapshot_files import _safe_directory, _safe_regular
 PRIOR_LAYOUT_HASH = "ea9facef83198e8b5abdd8693923f51add1376c0b416041dbfa245b92011b825"
 SERIAL_EXEC_LAYOUT_HASH = "a6e41b2a3ab1745521886f8db4b2a16e57bc2562835f2af4689be8d424a1a0e6"
 PRIOR_LAYOUTS = {"prior": ("pre_autopilot.json", PRIOR_LAYOUT_HASH),
+    "pre_player_export": ("pre_player_export.json", "3298451bca9238f4559d0528b92dd43f44de6c7a925faea56ac1d4c18c3bac11"),
     "serial_exec": ("pre_pool_exec.json", SERIAL_EXEC_LAYOUT_HASH),
     "pre_continuation": ("pre_continuation.json", "dd718bfba215c9f70e1db31edae1302ad1f619de2ab3fb85687a344c4cb61d19")}
 
@@ -88,8 +89,8 @@ def assert_prior_database(connection, project_id, *, layout="prior"):
         raise ProjectStorageCorruptionError("explicit upgrade requires the exact immediate-prior layout")
     assert_current_review_bindings(
         connection,
-        continuation=False,
-        batch_layout="prior_without_video_batches",
+        continuation=layout == "pre_player_export",
+        batch_layout="current" if layout == "pre_player_export" else "prior_without_video_batches",
     )
     assert_integrity_identity(connection, project_id)
 

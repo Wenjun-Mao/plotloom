@@ -67,7 +67,8 @@ def native_environment(seed, tmp_path, monkeypatch):
     return storage, client, view.project_id, review, scope, actor
 
 
-def test_native_bundle_qa_handoff_is_atomic_attributed_and_portable(tmp_path, monkeypatch, awaiting_handoff_seed):
+@pytest.mark.parametrize("selection", [False, True])
+def test_native_bundle_qa_handoff_is_atomic_attributed_and_portable(tmp_path, monkeypatch, awaiting_handoff_seed, selection):
     from plotloom.persistence.project.autopilot_authority import video_eligible
     from plotloom.project_storage.current_schema import assert_current_project_database
     storage, client, project, review, scope, actor = native_environment(awaiting_handoff_seed, tmp_path, monkeypatch)
@@ -86,6 +87,10 @@ def test_native_bundle_qa_handoff_is_atomic_attributed_and_portable(tmp_path, mo
     assert client.get(path + "/qa-context").json() == {"eligible": True, "attribution": actor, "required": True, "reason": None}
     assert client.post(path + "/autopilot/handoff", json=bulk_observation(review)).status_code == 409
     body = bulk_observation(review) | {"attribution": actor}
+    if selection:
+        body = {"attribution": actor, "expectedRunRevision": review["runRevision"], "bundleHash": review["bundleHash"],
+            "frames": [{"shotId": frame["shotId"], "assetId": frame["assetId"], "intentContext": frame["intentContext"],
+                "intent": frame["intentContext"]["intent"]} for frame in review["bundle"]["frames"]]}
     response = client.post(path + "/autopilot/handoff", json=body)
     assert response.status_code == 200, response.text
     assert response.json()["handoffAttribution"] == actor
@@ -95,7 +100,7 @@ def test_native_bundle_qa_handoff_is_atomic_attributed_and_portable(tmp_path, mo
             raw = session.connection().exec_driver_sql("SELECT receipt FROM v2_autopilot_handoffs").scalar()
             import json
             receipt = json.loads(raw)
-            assert receipt["version"] == "pre-video.handoff.v4" and receipt["attribution"] == actor
+            assert receipt["version"] == ("pre-video.handoff.v5" if selection else "pre-video.handoff.v4") and receipt["attribution"] == actor
             assert receipt["observation"]["attribution"] == actor
             assert all(json.loads(row[0])["attribution"] == actor for row in session.connection().exec_driver_sql("SELECT intent FROM v2_visual_intents"))
             assert all(row[0] == delegated_qa.REVIEWER_PREFIX + scope.id for row in session.connection().exec_driver_sql("SELECT reviewer FROM v2_same_person_reviews"))

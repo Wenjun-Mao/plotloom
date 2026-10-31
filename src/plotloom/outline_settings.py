@@ -26,9 +26,11 @@ def assert_outline_settings_current(request: CreativeHandoffRequest, brief: Proj
             "outline_settings_stale",
             "project settings changed; cancel the old task and prepare a current outline candidate",
         )
-    from .source_structures import planned_structure
-    topology = planned_structure(request.project_id, brief).model_dump(mode="json", by_alias=True)
-    if request.input_artifacts.get("story-topology.json") != topology:
+    from .outline_structure_authority import outline_structure_inputs
+    from .source_outline_contracts import SourceMaterial
+    expected = outline_structure_inputs(request.project_id, brief, SourceMaterial.model_validate(request.source))
+    actual = {key: request.input_artifacts[key] for key in ("story-topology.json", "source-structure.json") if key in request.input_artifacts}
+    if actual != expected:
         raise CreativeHandoffError(
             "outline_topology_stale", "大纲任务缺少当前简报的完整结构，请取消旧任务后重新准备。",
         )

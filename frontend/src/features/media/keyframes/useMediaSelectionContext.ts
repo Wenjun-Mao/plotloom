@@ -187,15 +187,6 @@ export function useMediaSelectionContext({
       latestCurrentReviewsByBinding(workbench.samePersonReviews.reviews),
     [workbench.samePersonReviews.reviews],
   );
-  const identityReviewMissingShotIds = previewShotIds.filter((shotId) => {
-    const binding = workbench.reviewedKeyframes.find(
-      (item) => item.shotId === shotId,
-    );
-    return (
-      mappingForBinding(binding).length > 0 &&
-      !currentReviewByBinding.get(binding?.id ?? "")?.productionEligible
-    );
-  });
   const originJob = imageJobs.find((job) => job.deliveries.some((delivery) => delivery.candidates.some((candidate) => candidate.assetId === keptAssetId)));
   const foreignOrigin = (originJob?.request.frozenSnapshot?.shot?.id && originJob.request.frozenSnapshot.shot.id !== selectedShot?.id)
     || workbench.reviewedKeyframes.some((binding) => binding.assetId === keptAssetId && binding.shotId !== selectedShot?.id);
@@ -353,7 +344,6 @@ export function useMediaSelectionContext({
     selectedIdentityMapping,
     retainedIdentityMapping,
     currentReviewByBinding,
-    identityReviewMissingShotIds,
     activeIntent,
     intentEditor,
     intentDraft,

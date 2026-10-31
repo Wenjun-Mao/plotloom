@@ -68,7 +68,7 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
             scope = require_scope(project_id, qa_attribution)
             if is_selection or bulk:
                 require_native_bundle(scope, bundle, request.bundle_hash)
-            if bulk:
+            if bulk or is_selection:
                 session.info["native_qa_handoff_bundle"] = scope.bundle_hash
             require_qa_write(session, project_id, qa_attribution)
         elif isinstance(scope, NativeMaterialQaScope):
@@ -82,6 +82,9 @@ def record_handoff(store, request: HumanHandoffRequest | BulkHumanHandoffRequest
         if [item.shot_id for item in request.frames] != [item["shotId"] for item in expected]:
             raise InvalidTransitionError("review every filmed shot exactly once in displayed order")
         for observation, frame in zip(request.frames, expected, strict=True):
+            quality = getattr(observation, "quality_observation", None)
+            if quality and any(item.character_id not in frame["characterIds"] for item in quality.comparisons):
+                raise InvalidTransitionError("optional quality observation targets a character outside this frame")
             if is_selection and observation.intent_context.model_dump(mode="json", by_alias=True) != frame.get("intentContext"):
                 raise InvalidTransitionError("material selection intent context is not the exact current saved context")
             if bulk and (observation.compatibility != "pass" or observation.intent_context.model_dump(mode="json", by_alias=True) != frame.get("intentContext")):

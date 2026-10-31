@@ -49,7 +49,7 @@ export function GraphNodeDetails({ disabled }: { disabled: boolean }) {
         <Button variant="danger" disabled={disabled} onClick={() => void owner.prepareCommand({ operation: "remove_join", joinId: join.id })}>删除此汇合合同</Button>
       </section>)}
     </details>
-    <details><summary>身份与来源</summary><p>{node.id} · 原始规划 {mapping.seedTopology.topologyHash} · {mapping.topologyOrigin === "author" ? "作者修改" : "规划种子"}</p></details>
+    <details><summary>身份与来源</summary><p>{node.id} · {mapping.seedTopology ? `原始规划 ${mapping.seedTopology.topologyHash}` : `作者结构来源 ${mapping.authorSourceHash}`} · {mapping.topologyOrigin === "author" ? "作者修改" : "规划种子"}</p></details>
     <Button variant="danger" disabled={disabled || node.id === mapping.topology.startNodeId} onClick={() => setDeleting(node.id)}>删除节点…</Button>
     {deleting === node.id && <section aria-label="选择删除方法"><p>请选择方法。仅删除保留待连接输入和下游内容；安全绕过逐条验证输入，不猜测选择。</p>
       <Button disabled={disabled} onClick={() => { setDeleting(null); void owner.prepareCommand({ operation: "delete", nodeId: node.id, method: "only_delete" }); }}>仅删除，保留待连接</Button>

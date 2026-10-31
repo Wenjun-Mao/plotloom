@@ -132,7 +132,8 @@ def test_exact_choices_succeed_without_a_name_and_store_no_invented_actor_or_com
     assert len(retained_image_job_ids) == len(complete.frames) + 2
 
 
-def test_source_bound_material_selection_needs_no_quality_observations_and_reopens(tmp_path, awaiting_handoff_seed):
+@pytest.mark.parametrize("observed", [False, True, "notes_only"])
+def test_source_bound_material_selection_needs_no_quality_observations_and_reopens(tmp_path, awaiting_handoff_seed, observed):
     from fastapi.testclient import TestClient
     from plotloom.api import create_project_folder_authoring_app
 
@@ -145,6 +146,12 @@ def test_source_bound_material_selection_needs_no_quality_observations_and_reope
             frames=[{"shotId": frame["shotId"], "assetId": frame["assetId"],
                 "intentContext": frame["intentContext"], "intent": frame["intentContext"]["intent"]}
                 for frame in current["bundle"]["frames"]])
+        if observed:
+            from plotloom.media_quality_observations import MaterialQualityObservation
+            character = current["bundle"]["frames"][0]["characterIds"][0]
+            request.frames[0].quality_observation = MaterialQualityObservation(
+                **({"compatibility": "fail"} if observed is True else {}), comment="Actual optional fixture observation.",
+                comparisons=[{"characterId": character, **({"judgment": "unassessable"} if observed is True else {}), "uncertaintyReason": "Fixture back view."}])
         response = TestClient(create_project_folder_authoring_app(storage)).post(
             f"/api/v2/projects/{view.project_id}/autopilot/handoff",
             json=request.model_dump(mode="json", by_alias=True))
@@ -159,6 +166,15 @@ def test_source_bound_material_selection_needs_no_quality_observations_and_reope
             assert all(not frame.get("comparisons") and not frame.get("compatibilityNote")
                 for frame in retained.receipt["observation"]["frames"])
             assert all("samePersonReviewId" not in fact for fact in retained.receipt["bindings"])
+            if observed:
+                quality = retained.receipt["observation"]["frames"][0]["qualityObservation"]
+                assert quality["comment"] == "Actual optional fixture observation."
+                if observed is True:
+                    assert quality["compatibility"] == "fail" and quality["comparisons"][0]["judgment"] == "unassessable"
+                else:
+                    assert "compatibility" not in quality and "judgment" not in quality["comparisons"][0]
+            else:
+                assert all("qualityObservation" not in frame for frame in retained.receipt["observation"]["frames"])
             assert session.scalar(select(ApprovalDecisionRow).where(ApprovalDecisionRow.id == retained.approval_id)).reviewer == f"Codex task {actor.task_id}"
             assert video_eligible(session, view.project_id)
         assert parse_handoff_receipt(retained.receipt).attribution == actor

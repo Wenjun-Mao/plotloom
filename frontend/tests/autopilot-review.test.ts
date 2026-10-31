@@ -48,15 +48,15 @@ it("projects complete image progress from the frozen inventory and hides stale e
 });
 it("shows machine adoption only for the exact adopted owner revision/hash", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValue(fixtureRun);
-  await render(); expect(host.textContent).toContain("AI 已采用 / 已采用 · 来源待核实"); expect(host.textContent).toContain("尚未获得完整人工审阅");
+  await render(); expect(host.textContent).toContain("AI 已采用 / 已采用 · 来源待核实"); expect(host.textContent).toContain("尚未选择完整素材");
 });
 
 it("retained native QA handoff is labelled as delegated QA rather than personal creator review", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValue({ ...fixtureRun, state: "handed_off", handoff: { receiptId: "qa-receipt" },
     handoffAttribution: { kind: "agent_operated_qa", scopeId: "native-qa" } });
-  await render(); expect(host.textContent).toContain("素材已记录代理 QA 审阅");
-  expect(host.textContent).toContain("已记录完整代理 QA 审阅（经用户授权）");
-  expect(host.textContent).not.toContain("已记录完整人工审阅");
+  await render(); expect(host.textContent).toContain("素材已记录代理 QA 选择");
+  expect(host.textContent).toContain("已记录完整代理 QA 选择（经用户授权）");
+  expect(host.textContent).not.toContain("已记录完整素材选择");
 });
 it("keeps labels neutral until provenance is successfully read", async () => {
   let release!: (value: typeof fixtureRun) => void;
@@ -81,7 +81,7 @@ it("fresh no-run Start begins polling through server progress to review without 
   await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
   expect(read).toHaveBeenCalledTimes(2); expect(host.textContent).toContain("参考图片");
   await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-  expect(read).toHaveBeenCalledTimes(3); expect(host.textContent).toContain("等待你审阅");
+  expect(read).toHaveBeenCalledTimes(3); expect(host.textContent).toContain("等待选择素材");
 });
 it("retries transient progress read errors and restores exact provenance without replay", async () => {
   vi.useFakeTimers();
@@ -90,7 +90,7 @@ it("retries transient progress read errors and restores exact provenance without
   await render(); await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
   expect(host.textContent).toContain("temporary fixture error"); expect(host.textContent).toContain("来源待核实"); expect(host.textContent).not.toContain("已确认");
   await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-  expect(read).toHaveBeenCalledTimes(3); expect(send).not.toHaveBeenCalled(); expect(host.textContent).toContain("AI 已采用"); expect(host.textContent).toContain("等待你审阅");
+  expect(read).toHaveBeenCalledTimes(3); expect(send).not.toHaveBeenCalled(); expect(host.textContent).toContain("AI 已采用"); expect(host.textContent).toContain("等待选择素材");
 });
 it("reads an admitted run after an uncertain Start response and retains the command error without replay", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValueOnce(null).mockResolvedValue(fixtureRun);
@@ -98,7 +98,7 @@ it("reads an admitted run after an uncertain Start response and retains the comm
   function Start() { const owner = useAutopilot()!; return createElement("button", { onClick: () => void owner.start({ styleAuthority: "preset", renderStyle: "live-action", artRenderStyle: "live-action", maxImages: 80, maxJobs: 96 }) }, "start fixture"); }
   await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "disposable", revision: 1, readOnly: false, onChanged: async () => undefined, onVideo: () => undefined, children: createElement(Start) })));
   await act(async () => host.querySelector<HTMLButtonElement>("button")!.click());
-  expect(start).toHaveBeenCalledOnce(); expect(host.textContent).toContain("等待你审阅"); expect(host.textContent).toContain("Start acknowledgment lost");
+  expect(start).toHaveBeenCalledOnce(); expect(host.textContent).toContain("等待选择素材"); expect(host.textContent).toContain("Start acknowledgment lost");
 });
 it.each(["reference", "frame"])("observes handoff withdrawal after a %s edit without changing Brief", async edit => {
   vi.useFakeTimers();
@@ -106,17 +106,17 @@ it.each(["reference", "frame"])("observes handoff withdrawal after a %s edit wit
   const read = vi.spyOn(autopilotApi, "current").mockResolvedValueOnce(reviewed).mockResolvedValue({ ...reviewed, state: "taken_over", revision: 13, blocker: { code: "material_changed", message: `${edit} changed` } });
   const video = vi.fn();
   await act(async () => root.render(createElement(AutopilotWorkspace, { projectId: "disposable", revision: 1, readOnly: false, onChanged: async () => undefined, onVideo: video, children: createElement(Label) })));
-  expect(host.textContent).toContain("已记录完整人工审阅"); expect(host.textContent).toContain("进入手动视频制作");
+  expect(host.textContent).toContain("已记录完整素材选择"); expect(host.textContent).toContain("进入手动视频制作");
   await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
   expect(read).toHaveBeenCalledTimes(2); expect(host.textContent).toContain(`${edit} changed`);
-  expect(host.textContent).toContain("尚未获得完整人工审阅"); expect(host.textContent).not.toContain("进入手动视频制作"); expect(video).not.toHaveBeenCalled();
+  expect(host.textContent).toContain("尚未选择完整素材"); expect(host.textContent).not.toContain("进入手动视频制作"); expect(video).not.toHaveBeenCalled();
 });
 it("unreadable handoff currentness hides manual video entrance until a successful read", async () => {
   vi.useFakeTimers();
   const reviewed = { ...fixtureRun, state: "handed_off" as const, handoff: { receiptId: "previous-human" } };
   vi.spyOn(autopilotApi, "current").mockResolvedValueOnce(reviewed).mockRejectedValueOnce(new Error("currentness unavailable")).mockResolvedValue(reviewed);
   await render(); await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-  expect(host.textContent).toContain("人工审阅状态待核实"); expect(host.textContent).not.toContain("已记录完整人工审阅"); expect(host.textContent).not.toContain("进入手动视频制作");
+  expect(host.textContent).toContain("素材选择状态待核实"); expect(host.textContent).not.toContain("已记录完整素材选择"); expect(host.textContent).not.toContain("进入手动视频制作");
   await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
   expect(host.textContent).toContain("进入手动视频制作");
 });
@@ -125,7 +125,7 @@ it("does not display an old project's late read after project switch", async () 
   vi.spyOn(autopilotApi, "current").mockImplementation(id => id === "disposable" ? new Promise(done => { release = done; }) : Promise.resolve(null));
   vi.spyOn(autopilotApi, "launchContext").mockResolvedValue({ eligible: false, briefRevision: 1 });
   await render(); await render("different-project"); await act(async () => release(fixtureRun));
-  expect(host.textContent).not.toContain("等待你审阅"); expect(host.textContent).toContain("已确认 / 已确认");
+  expect(host.textContent).not.toContain("等待选择素材"); expect(host.textContent).toContain("已确认 / 已确认");
 });
 it("keeps automatic Start disabled for an existing manual project", async () => {
   vi.spyOn(autopilotApi, "current").mockResolvedValue(null); vi.spyOn(autopilotApi, "launchContext").mockResolvedValue({ eligible: false, briefRevision: 1 });
@@ -282,6 +282,7 @@ it("discloses the immediate chained reuse source separately from original genera
   vi.spyOn(autopilotApi, "review").mockResolvedValue(material);
   await act(async () => root.render(createElement(MaterialReview, { projectId: "disposable", onClose: () => undefined,
     onAccepted: async () => undefined, onUncertain: () => undefined })));
+  await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click());
   expect(host.textContent).toContain("来源 B → 当前 C");
   expect(host.textContent).toContain("原始生成：A");
 });
@@ -290,9 +291,9 @@ it("a review already open becomes read-only with its workspace and keeps close a
   const submit = vi.spyOn(autopilotApi, "handoff");
   const props = { projectId: "disposable", onClose: () => undefined, onAccepted: async () => undefined, onUncertain: () => undefined };
   await act(async () => root.render(createElement(MaterialReview, props)));
-  expect(host.querySelector<HTMLSelectElement>('select')!.disabled).toBe(false);
+  expect(host.querySelector<HTMLTextAreaElement>('textarea')!.disabled).toBe(false);
   await act(async () => root.render(createElement(MaterialReview, { ...props, readOnly: true })));
-  expect([...host.querySelectorAll("input, textarea, select")].every(element => element.matches(":disabled"))).toBe(true);
+  expect([...host.querySelectorAll("textarea, select")].every(element => element.matches(":disabled"))).toBe(true);
   expect(host.querySelector<HTMLButtonElement>("button")!.disabled).toBe(false);
   expect(submit).not.toHaveBeenCalled();
 });
@@ -306,8 +307,8 @@ it("offers no reviewer input and an optional comment while waiting for genuine m
   const comment = label.control as HTMLTextAreaElement;
   expect(comment.required).toBe(false);
   expect(comment.value).toBe("");
-  const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "确认全部素材并继续")!;
-  expect(confirm.disabled).toBe(true);
+  const confirm = [...host.querySelectorAll<HTMLButtonElement>("button")].find(item => item.textContent === "选择当前素材并继续")!;
+  expect(confirm.disabled).toBe(false);
   expect(host.textContent).toContain("之后可从工作台打开视频制作");
   expect(submit).not.toHaveBeenCalled();
 });

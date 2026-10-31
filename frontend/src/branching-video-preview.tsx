@@ -9,6 +9,7 @@ import { nodeFootageGaps } from "./node-footage";
 import { frozenVideoSnapshot } from "./features/media/frozen-video-snapshot";
 import { isCurrentVideoSelection } from "./features/media/video-next-action";
 import { bridgePlaybackProof } from "./features/media/selected-bridge-choice";
+import { PlayerExportAction } from "./features/media/PlayerExportAction";
 
 type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
@@ -250,6 +251,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
   return <section className="video-sequence" data-testid="branching-video-preview">
     <strong>{title}</strong>
+    <PlayerExportAction projectId={projectId} disabled={!bridgeOwned || !choiceReady || incompleteShots.length > 0} />
     <small>当前段落：{node.node.title || node.node.id}。选择历史：{choiceLabels.length ? choiceLabels.join(" → ") : "尚未选择"}</small>
     {missingMedia.length > 0 && <div className="notice warning branching-missing-media" data-testid="branching-missing-media">
       <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : returnShotIds.length ? `故事还不能播放：${returnShotIds.length} 个镜头缺少当前已确认的播放片段。` : "故事还不能播放：请先处理下方的画面编排问题。"}待审原片不会自动用于故事。</small>

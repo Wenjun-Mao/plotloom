@@ -8,7 +8,7 @@ export function BriefTargetPreview({ before, after, basis, busy, onCancel, onCon
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   const actual = basis.structure;
-  const labels = ["节点上限", "最多选项", "每条路线选择次数", "结局数量", "汇合数量"];
+  const labels = ["节点上限", "最多选项", "来源路线选择上限", "结局数量", "汇合数量"];
   return <dialog ref={dialog} className="graph-command-dialog" aria-label="确认结构目标调整" onCancel={event => { event.preventDefault(); if (!busy) onCancel(); }}>
     <h2>确认结构目标调整</h2><p>调整简报目标会使相关建议与后续证据需要重新检查。图的节点、连接、正文和已有媒体均保留；不会自动改图或生成内容。</p>
     <table><thead><tr><th>目标</th><th>当前</th><th>调整后</th></tr></thead><tbody>{structureTargets.map((key, index) => <tr key={key}><td>{labels[index]}</td><td>{before[key]}</td><td>{after[key]}</td></tr>)}</tbody></table>

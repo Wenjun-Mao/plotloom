@@ -73,7 +73,7 @@ def brief_stage_instructions(stage: Literal["cast", "art"]) -> str:
         "marker `Saved Brief direction`. Do not copy non-English direction text into machine fields or add unrelated "
         "photographic/Ghibli defaults. For an empty direction, use story-informed discretion without a preset and "
         "do not copy emptyDirectionRule into machine fields. "
-        f"{ownership} Semantic visual fidelity remains subject to human review. "
+        f"{ownership} Generated-media quality observations are optional; source fidelity and technical validation remain required. "
         "Resolve PACKAGE_ROOT as the absolute task-package directory containing request.json and inputs/, and "
         "DELIVERY_ROOT as the absolute assigned delivery directory. From the Plotloom repository root, run exactly:\n"
         + "\n".join(commands)

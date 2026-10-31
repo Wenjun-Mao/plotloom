@@ -155,7 +155,6 @@ export function ManagedMediaWorkbench({
     selectedIdentityMapping,
     retainedIdentityMapping,
     currentReviewByBinding,
-    identityReviewMissingShotIds,
     activeIntent,
     intentEditor,
     intentDraft,
@@ -486,7 +485,6 @@ export function ManagedMediaWorkbench({
         setPreviewLength={setPreviewLength}
         previewShotIds={previewShotIds}
         missingPreviewShotIds={missingPreviewShotIds}
-        identityReviewMissingShotIds={identityReviewMissingShotIds}
         preview={preview}
         previewId={previewId}
         frameIndex={frameIndex}

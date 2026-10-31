@@ -348,7 +348,9 @@ class ProjectDraftPersistence:
                 assert_graph_draft_seed(session, self._access, project_id, draft, prior)
                 from ...graph_edit_safety import assert_edit_safe
                 from ...graph_draft_creation import create_graph_draft
-                baseline = prior or create_graph_draft(binding_hash=draft.binding_hash, seed=draft.mapping.seed_topology)
+                from .graph_draft_context import source_author_graph_mapping
+                baseline = prior or create_graph_draft(binding_hash=draft.binding_hash, seed=draft.mapping.seed_topology,
+                    mapping=source_author_graph_mapping(session, self._access, project_id) if draft.mapping.seed_topology is None else None)
                 assert_edit_safe(baseline, draft, ProjectBrief.require_confirmed(project.brief))
             now = utc_now()
             if row is None:

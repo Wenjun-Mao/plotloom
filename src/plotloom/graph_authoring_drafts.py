@@ -55,7 +55,8 @@ class DraftSectionChoice(CamelModel):
 
 
 class GraphMapDraft(CamelModel):
-    seed_topology: StoryGraphTopology
+    seed_topology: StoryGraphTopology | None
+    author_source_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$", exclude_if=lambda value: value is None)
     topology_origin: Literal["planner", "author"]
     topology: DraftSourceStructure
     sections: list[DraftStorySection] = Field(max_length=128)
@@ -64,6 +65,10 @@ class GraphMapDraft(CamelModel):
 
     @model_validator(mode="after")
     def require_section_identity(self):
+        if self.seed_topology is None and (self.topology_origin != "author" or self.author_source_hash is None):
+            raise ValueError("seedless drafts require exact author source identity")
+        if self.seed_topology is not None and self.author_source_hash is not None:
+            raise ValueError("planner-seeded drafts cannot claim seedless source authority")
         if [node.id for node in self.topology.nodes] != [section.section_id for section in self.sections]:
             raise ValueError("draft sections must exactly match node identity and order; prose may be blank")
         return self

@@ -30,9 +30,9 @@ export function useAdoptionLabel() {
     return "已确认";
   };
 }
-const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待你审阅", handed_off: "素材已记录人工审阅" };
-const runStateLabel = (run: AutopilotRun) => run.state === "handed_off" && run.handoffAttribution?.kind === "agent_operated_qa" ? "素材已记录代理 QA 审阅" : stateLabels[run.state];
-const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材审阅", "manual-video": "手动视频制作" };
+const stateLabels: Record<AutopilotRun["state"], string> = { running: "正在准备", waiting: "等待助手交付", paused: "已暂停", blocked: "需要处理", cancelled: "已取消", stale: "素材已变化", taken_over: "已手动接管", awaiting_review: "等待选择素材", handed_off: "素材已记录选择" };
+const runStateLabel = (run: AutopilotRun) => run.state === "handed_off" && run.handoffAttribution?.kind === "agent_operated_qa" ? "素材已记录代理 QA 选择" : stateLabels[run.state];
+const phaseLabels: Record<string, string> = { source: "故事来源", outline: "故事大纲", branches: "故事路线", characters: "角色设定", art: "美术方向", script: "完整剧本", storyboard: "分镜", "bridge-intent": "戏剧意图", "bridge-presentation": "画面呈现", references: "参考图片", "first-frames": "镜头首帧", "material-review": "完整素材选择", "manual-video": "手动视频制作" };
 
 function ActivityIndicator() {
   return <span className="autopilot-activity-indicator" aria-hidden="true" />;
@@ -93,8 +93,8 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
     if (pendingHandoff.current?.projectId !== projectId || pendingHandoff.current.runId !== value.id) return;
     pendingHandoff.current = null;
     setBusy(true); setSavedStatus("已保存，正在刷新制作状态");
-    try { await onChanged(); if (identity.current === projectId) setSavedStatus("已保存完整素材审阅"); }
-    catch { if (identity.current === projectId) setSavedStatus("已保存完整素材审阅；刷新制作状态失败，请重新读取。"); }
+    try { await onChanged(); if (identity.current === projectId) setSavedStatus("已保存完整素材选择"); }
+    catch { if (identity.current === projectId) setSavedStatus("已保存完整素材选择；刷新制作状态失败，请重新读取。"); }
     finally { if (identity.current === projectId) setBusy(false); }
     completion.reveal("material-next-action");
   }
@@ -164,7 +164,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
   return <Context.Provider value={owner}>
     {run && <section className="autopilot-status" aria-label="视频素材准备" role="region">
       <div><strong>{ready ? runStateLabel(run) : "素材状态待核实"}</strong><span>{phaseLabels[run.phase] || "制作规划"}</span>
-      <small>AI 初稿与暂选图片 · {!ready ? run.handoffAttribution?.kind === "agent_operated_qa" ? "代理 QA 审阅状态待核实" : "人工审阅状态待核实" : run.handoff && run.state === "handed_off" ? run.handoffAttribution?.kind === "agent_operated_qa" ? "已记录完整代理 QA 审阅（经用户授权）" : "已记录完整人工审阅" : "尚未获得完整人工审阅"}</small></div>
+      <small>AI 初稿与暂选图片 · {!ready ? run.handoffAttribution?.kind === "agent_operated_qa" ? "代理 QA 选择状态待核实" : "素材选择状态待核实" : run.handoff && run.state === "handed_off" ? run.handoffAttribution?.kind === "agent_operated_qa" ? "已记录完整代理 QA 选择（经用户授权）" : "已记录完整素材选择" : "尚未选择完整素材"}</small></div>
       {ready && progress ? <p>文字初稿 {progress.textAdopted}/{progress.textRequired} 已采用 · {progress.imagesSelected} 项图片已暂选{progress.imagesRequired !== null ? ` / ${progress.imagesRequired} 项必需素材` : ""} · 任务上限 {budgetSummary(run.policy.maxJobs, "项")} · 图片上限 {budgetSummary(run.policy.maxImages, "张")}</p> : <p>正在重新读取；暂不显示上次读取的进度统计。</p>}
       {ready && progress && <p>已保留 {progress.imagesRetained} 张图片候选{progress.imagesRequired === null ? "；图片总量待完整发现。" : "。"}</p>}
       {ready && run.policy.executorBinding && <p>本次生成：Codex · {run.policy.executorBinding.model} · 最多同时运行 {run.policy.executorBinding.maxProcesses} 项任务</p>}
@@ -181,7 +181,7 @@ export function AutopilotWorkspace({ projectId, revision, admissionVersion = 0, 
         if (commandContext.current !== context || !value || value.id !== run.id) throw new Error("当前运行已变化，请刷新素材准备。");
         setRun(previous => previous?.id === value.id && previous.revision > value.revision ? previous : value); setReady(true); setError("");
       }} />
-      {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；仍需你审阅。</p>}
+      {["plotloom.pre-video.v2", "plotloom.pre-video.v3"].includes(run.policy.version || "") && <p>首帧比例不符时，将保留原图并按冻结目标居中裁剪、缩放为独立素材；可按需查看；质量观察为可选。</p>}
       {ready && run.blocker && run.blocker.code !== "text_content_rejected" && <p role="status">{run.blocker.message}</p>}
       {["outline", "characters", "art", "script", "storyboard"].includes(run.phase) && <TextFailureCard key={`${projectId}:${run.id}:${run.phase}`} projectId={projectId} run={run} disabled={busy || readOnly || !ready} readingDisabled={busy} execute={execute} />}
       {["outline", "characters", "art", "script", "storyboard"].filter(stage => stage !== run.phase && run.checkpoints.some(item =>
@@ -245,7 +245,7 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
       ? <div className="autopilot-admission-error"><p role="status">暂时无法核对自动准备条件；可重试核对或继续手动创作。</p><Button variant="quiet" disabled={disabled || dirty || owner.busy} onClick={retryAdmission}>重试核对</Button></div>
       : <p role="status">此项目当前不符合自动准备条件；可继续手动创作。</p>)}
     {dirty && <p>当前编辑尚未应用；先明确应用简报修改，再开始准备。</p>}
-    {open && eligible && <div className="stack"><p>使用已保存简报，AI 自动采用故事初稿并暂选角色、场景与每个镜头的首帧。全部路线准备完成后，由你一次审阅。</p>
+    {open && eligible && <div className="stack"><p>使用已保存简报，AI 自动采用故事初稿并暂选角色、场景与每个镜头的首帧。全部路线准备完成后，可明确选择当前素材继续。</p>
       <p>角色与美术设定就绪后，可先准备最多四项参考图，计入本次任务与图片上限。总预算默认不限；设置有限上限后，完整素材发现若超出上限，将停止新增任务，保留候选供你手动接管。</p>
       <section className="autopilot-brief-style" aria-label="本次冻结的简报视觉方向"><strong>角色、美术与图片将遵循已保存简报的视觉风格</strong>
         <p>{visualDirection?.trim() || "简报未指定视觉风格；交由专业助手结合故事内容判断，不默认真人实拍或其他预设。"}</p></section>
@@ -254,7 +254,7 @@ export function AutopilotLaunch({ saved, dirty, disabled, visualDirection, onCon
       <div className="field-grid two"><AggregateBudget label="最多图片数" value={images} minimum={1} onChange={setImages} disabled={disabled || owner.busy} /><AggregateBudget label="最多任务数" value={jobs} minimum={9} onChange={setJobs} disabled={disabled || owner.busy} /></div>
       <CorrectionCount value={corrections} onChange={setCorrections} disabled={disabled || owner.busy} />
       <AutomaticRetryCount value={retries} onChange={setRetries} disabled={disabled || owner.busy} />
-      <p>本次不生成视频、声音或可选尾帧。图片质量、构图与人物身份仍需你审阅；暂停或取消会保留已发送任务的结果。</p>
+      <p>本次不生成视频、声音或可选尾帧。图片质量、构图与人物身份观察均为可选；暂停或取消会保留已发送任务的结果。</p>
       <Button variant="primary" busy={owner.busy} disabled={disabled || dirty || owner.busy || imageLimit === undefined || jobLimit === undefined || correctionLimit === undefined || retryLimit === undefined} onClick={() => { if (imageLimit !== undefined && jobLimit !== undefined && correctionLimit !== undefined && retryLimit !== undefined) void owner.start({ styleAuthority: "brief", maxImages: imageLimit, maxJobs: jobLimit, textCorrectionLimit: correctionLimit, automaticRetryLimit: retryLimit }); }}>{owner.busy && <ActivityIndicator />}{owner.busy ? "正在开始自动准备…" : "开始准备已保存简报的素材"}</Button>
     </div>}
   </Panel>;

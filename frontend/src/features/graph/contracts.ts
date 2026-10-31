@@ -52,7 +52,8 @@ export interface GraphCommandPreview {
 export function readGraphDraft(value: unknown): GraphAuthoringDraft {
   const draft = value as GraphAuthoringDraft;
   if (!draft || !/^[a-f0-9]{64}$/.test(draft.bindingHash) || !draft.mapping || !draft.rowHints || !draft.detachedEndpoints || !draft.fieldBuffers
-    || draft.mapping.seedTopology?.plannerVersion !== "story_graph_topology.v3"
+    || !(draft.mapping.seedTopology?.plannerVersion === "story_graph_topology.v3"
+      || draft.mapping.seedTopology === null && draft.mapping.topologyOrigin === "author" && /^[a-f0-9]{64}$/.test(draft.mapping.authorSourceHash || ""))
     || !Array.isArray(draft.mapping.topology?.nodes) || !Array.isArray(draft.mapping.topology?.edges)
     || !Array.isArray(draft.mapping.sections) || !Array.isArray(draft.mapping.choices)
     || draft.mapping.sections.some(section => !["footage", "route_only"].includes(section.footageMode))) {

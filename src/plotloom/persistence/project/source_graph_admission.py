@@ -23,7 +23,7 @@ from ..schema import (
     SourceOutlineSourceRevisionRow,
 )
 from ..schema.project_source_outline import SourceGraphIdentityRow
-from .graph_draft_context import assert_graph_draft_context, graph_draft_binding
+from .graph_draft_context import assert_graph_draft_context, assert_graph_draft_seed, graph_draft_binding
 from .production_rebuild_quiescence import assert_production_quiescent
 
 
@@ -40,6 +40,7 @@ class SourceGraphAdmission:
             raise RevisionConflictError("story graph authoring draft", expected_revision, row.draft_revision if row else 0)
         draft = GraphAuthoringDraft.model_validate(row.payload)
         assert_graph_draft_context(session, self._access, project_id, draft)
+        assert_graph_draft_seed(session, self._access, project_id, draft, draft)
         return row, draft
 
     def save_section_map(self, project_id: str, request: SectionMapSaveRequest) -> SourceOutlineReviewState:

@@ -49,7 +49,7 @@ it("an externally replaced run cannot consume the foreground Start intent", asyn
   await render(); await start();
   await poll({ ...running, id: "other-run", revision: 1 });
   await poll({ ...fixtureRun, id: "other-run", revision: 2 });
-  expect(host.textContent).toContain("等待你审阅");
+  expect(host.textContent).toContain("等待选择素材");
   expect(scroll).not.toHaveBeenCalled();
 });
 it.each(["cancelled", "taken_over", "stale"] as const)("external %s permanently withdraws that run's completion intent", async state => {

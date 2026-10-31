@@ -1,6 +1,6 @@
 import type { GeometryPreparation } from "./geometryContracts";
 import type { ArtRenderStyle, VisualIntent, ScriptBinding } from "../../types";
-import type { SamePersonComparison, SamePersonComparisonDraft } from "../../same-person-review-types";
+import type { SamePersonComparison } from "../../same-person-review-types";
 
 export type AutopilotActivity = {
   operationKey: string; owner: string; subjectId: string; jobId: string;
@@ -36,17 +36,12 @@ export type ReviewMaterial = { runRevision: number; bundleHash: string; bundle: 
   inventory: { routeCount: number }; references: ReviewReference[]; frames: GalleryFrame[];
   story: { characters: Record<string, string>; graph: { nodes: Array<{ id: string; title: string; summary: string }> }; routes?: string[][]; script: Record<string, unknown>; scriptBinding: ScriptBinding; reports?: Array<{ name: string; url: string }> };
 } };
-export type FrameDraft = { direction: string; sources: string; compatibility: string; comparisons: SamePersonComparisonDraft[] };
 export type Handoff = { expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];
   frames: Array<{ shotId: string; assetId: string; intent: Omit<VisualIntent["intent"], "targetUse">; compatibilityNote: string; comparisons: SamePersonComparison[] }> };
-export type MaterialSelectionHandoff = { attribution?: { kind: "codex_task"; taskId: string }; expectedRunRevision: number; bundleHash: string;
-  frames: Array<{ shotId: string; assetId: string; intentContext: IntentContext; intent: IntentContext["intent"] }> };
-
-export function completeFrame(draft: FrameDraft) {
-  return Boolean(draft.direction.trim() && draft.sources.trim() && draft.compatibility.trim() && draft.comparisons.every(item =>
-    item.identityNotes.trim() && item.stateNotes.trim() && (item.judgment === "pass" ||
-      item.judgment === "unassessable" && item.productionDecision === "authorize" && item.uncertaintyReason?.trim())));
-}
+export type MaterialSelectionHandoff = { attribution?: { kind: "codex_task"; taskId: string } | import("../../components/ProjectQaContext").QaActor; expectedRunRevision: number; bundleHash: string;
+  notes?: string;
+  frames: Array<{ shotId: string; assetId: string; intentContext: IntentContext; intent: IntentContext["intent"];
+    qualityObservation?: { compatibility?: "pass" | "fail" | "hold"; comment?: string; comparisons: Array<{ characterId: string; judgment?: BulkComparison["judgment"]; comment?: string; uncertaintyReason?: string }> } }> };
 
 export type BulkComparison = { characterId: string; judgment: "pass" | "fail" | "unassessable"; comment?: string; productionDecision?: "hold" | "authorize"; uncertaintyReason?: string };
 export type BulkHandoff = { attribution?: import("../../components/ProjectQaContext").QaActor; basis: "whole-pack-material.v1"; expectedRunRevision: number; bundleHash: string; notes?: string; endorsedReferenceIds: string[];

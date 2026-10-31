@@ -24,18 +24,47 @@ project interpreter Python 3.12.13; `uv.lock` SHA-256
 ADR 0226 is added before source changes. Video batch selection no longer creates
 AV inspection claims; initial keyframe/H3 currentness paths no longer require
 compatibility prose or same-person judgments. Material selection request/receipt
-v5 plumbing, a normal UI selection path, unresolved optional-review defaults and
-an API/persistence/reopen regression are also present but incomplete/unqualified.
-The first focused Python selector passed 23 cases. One frontend prompt expectation
-failed; its copy was adjusted, but the affected selector still needs a rerun.
-An isolated v5 persistence case passed. The later combined API run had no captured
-summary and remains unknown, not a pass. Generated frontend assets are not yet
-refreshed; no standalone product slice, generation or activation occurred.
-At resumption, the coordinator confirmed `af8998af` is retained in `0168082f`
-and reported no outstanding H5 execution. Next, resolve the affected focused
-checks and currentness, material adoption/reader, actor and guidance gaps for a
-normal project. Exercise the first exported N00 → C01 → E01 → Restart journey
-on an isolated origin with retained media, before original-story production.
+v5 selection, optional/note-only observations and a normal UI path now have
+API/persistence/reopen evidence; final qualification remains pending.
+The current development candidate adds standalone source-bound export,
+a separate classic-JavaScript player, immutable private build receipts and their
+snapshot inventory (ADR 0227). The provider-free API fixture now proves normal
+selection → export → reopen → deterministic re-export → snapshot inclusion;
+replacing one selected slot changes only its media/asset version, and a selection
+race refuses publication. Its four-node fixture has one choice and synthetic
+FFmpeg media; it does not establish the final story's nested routes or media.
+Real isolated-HTTP browser playback reached opening → untimed choice → ending →
+restart; desktop and 390px screenshots were inspected. Storage-denial injection
+shows the visible no-save notice and retains play. Direct-file access was refused
+by the CLI browser; the exact final ZIP still needs an ordinary supported Mac
+browser open, without changing browser security controls.
+
+ADR 0228 resolves the approved story's 1/2/2 route count at source-map admission
+while leaving generic planner/generation exact counts intact. Because that
+uniform planner cannot produce two decisions on every route with three endings
+and no joins, accepted sources can now carry a typed `authoredStructure`.
+Trusted code freezes it into F1 with the source hash; a seedless author draft
+requires that authenticated source, followed by the normal edit/adopt/CAS path.
+Existing sources omit the optional field without hash churn; real planner seeds
+remain immutable. The API/F1 preparation/currentness, seven-role/six-edge graph
+adoption/reopen/snapshot and installed-production contract tests passed. Their
+language-check receipts are explicitly synthetic; genuine native execution is
+still required for the final story. Source UI save preserves and displays the
+structure. Native language-check pinning requires a clean committed source, so
+a locally verified development checkpoint is the next prerequisite.
+
+Retained logs in `.local/last-projection-resume/` include the affected optional-
+review checks, 28 Python/23 frontend source-consumer cases, slot substitution/CAS
+export proof, source recovery regressions and credential-refusal checks. General
+`quick-3.log` passed all 1,703 frontend cases and both type checks. Independent
+review found credential-publication and stale seedless-recovery defects; the
+candidate fixes both, including secret-bearing dictionary keys and safe error
+responses. Both review findings are closed; final stable-source qualification is pending.
+No original-story project/media, live provider dispatch, final standalone game,
+normal runtime activation or final installed-package qualification has occurred.
+Next: close the scoped review/checks, preserve the coherent development checkpoint
+on local `main`, then create the source-bound original story through the supported
+native workflow. Keep final-request fidelity and creative quality distinct.
 Stop when the final standalone game, global optional-review behavior, required
 local qualification, activation, single recovery proof and scoped cleanup are
 complete, with evidence and material decisions ready for the owner's review.
@@ -44,8 +73,8 @@ complete, with evidence and material decisions ready for the owner's review.
 
 | Claim | Required evidence | Fresh media | Status / evidence |
 |---|---|---|---|
-| Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | In progress; ADR 0226 and initial keyframe/video owners changed; remaining currentness, handoff and reader evidence outstanding |
-| Complete standalone game | Final exported ZIP unpacks outside the checkout; start → all three authored routes/endings → restart/last-choice replay and HTTP reload/Continue work with Plotloom unavailable; request audit permits only packaged files | Retained media for early slice; original media for final game | Planned |
+| Optional media review throughout Plotloom | Normal non-QA project can select references/keyframes, prepare and adopt materials, generate, select/trim clips, play, reopen and export without watch/listen/quality attestations; UI, API, storage readers and generated instructions agree; restart/new-project checks preserve this behavior | No; retained valid media and transport fakes cover policy | Development candidate; normal/QA source-bound selection, absent/failed/note-only observations and reopen checks passed; final affected browser/local qualification pending |
+| Complete standalone game | Final exported ZIP unpacks outside the checkout; start → all three authored routes/endings → restart/last-choice replay and HTTP reload/Continue work with Plotloom unavailable; request audit permits only packaged files | Retained media for early slice; original media for final game | Provider-free four-node fixture API/HTTP slice passed; final seven-role game pending |
 | Lightly styled usable MVP | Desktop and 390px viewport inspection shows legible title, choices, controls, dialogue and ending cards with focus/pressed states; no blocked progression or clipped essential controls | No quality experiment | Planned; responsive viewport is not real-phone qualification |
 | Faithful story and final requests | All seven draft roles and six edges mapped to project/runtime identities; exact choices, dialogue and endings retained; full final image/H3 requests compared with source, references, timing and authorized settings | Provider-free comparisons; actual production dispatch receipts also retained | Planned; frozen briefs alone do not prove final tool arguments |
 | Technical validity and provenance | Selected bytes decode/play; hashes, sources, revisions, references and frame windows match; stale/wrong-source/unauthorized/concurrent selections still refuse; reopening preserves current project assets and facts | No by default | Planned |

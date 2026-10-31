@@ -19,7 +19,7 @@ from ..schema import (
     SourceOutlineSectionMapRevisionRow,
 )
 from .drafts import ProjectDraftPersistence
-from .graph_draft_context import assert_graph_draft_context, assert_graph_draft_seed, graph_draft_binding
+from .graph_draft_context import assert_graph_draft_context, assert_graph_draft_seed, graph_draft_binding, source_author_graph_mapping
 
 
 class GraphWorkbenchState(CamelModel):
@@ -73,6 +73,9 @@ class ProjectGraphWorkbenchPersistence:
                     ))
                     if accepted:
                         mapping = SectionMap.model_validate(accepted.mapping)
+                authored = source_author_graph_mapping(session, self._access, project_id)
+                if authored and (mapping is None or mapping.seed_topology is None and mapping.author_source_hash != authored["authorSourceHash"]):
+                    mapping = SectionMap.model_validate(authored)
                 seed = mapping.seed_topology if mapping else planned_structure(project_id, ProjectBrief.require_confirmed(project.brief))
                 initial = create_graph_draft(binding_hash=binding, seed=seed,
                     mapping=mapping.model_dump(mode="json", by_alias=True) if mapping else None)
@@ -135,6 +138,8 @@ class ProjectGraphWorkbenchPersistence:
                 mapping = SectionMap.model_validate(accepted.mapping) if accepted else None
                 if mapping and mapping.seed_topology != request.payload.mapping.seed_topology:
                     mapping = None
+                if mapping is None and request.payload.mapping.seed_topology is None:
+                    mapping = SectionMap.model_validate(source_author_graph_mapping(session, self._access, project_id))
                 # Seed authentication does not authenticate author edits. Recovery
                 # without a prior receipt must use the same trusted baseline as
                 # first-save admission, never compare untrusted content to itself.
@@ -147,11 +152,13 @@ class ProjectGraphWorkbenchPersistence:
             else:
                 draft = GraphAuthoringDraft.model_validate(row.payload)
             if request.payload is not None:
-                if request.payload.mapping.seed_topology != draft.mapping.seed_topology:
+                if (request.payload.mapping.seed_topology != draft.mapping.seed_topology
+                        or request.payload.mapping.author_source_hash != draft.mapping.author_source_hash):
                     raise InvalidTransitionError("恢复内容必须保留此图草稿已认证的原始种子。")
                 from ...graph_edit_safety import assert_edit_safe
                 assert_edit_safe(draft, request.payload, ProjectBrief.require_confirmed(project.brief))
                 draft = request.payload.model_copy(deep=True)
+            assert_graph_draft_seed(session, self._access, project_id, draft, draft)
             # An explicit recovery retains authenticated original seed/content,
             # but receives no old acceptance authority on the changed base.
             draft.binding_hash = binding

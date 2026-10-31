@@ -60,7 +60,6 @@ export function KeyframeAndPreviewPanel({
   setPreviewLength,
   previewShotIds,
   missingPreviewShotIds,
-  identityReviewMissingShotIds,
   preview,
   previewId,
   frameIndex,
@@ -95,7 +94,6 @@ export function KeyframeAndPreviewPanel({
   setPreviewLength: Dispatch<SetStateAction<number>>;
   previewShotIds: string[];
   missingPreviewShotIds: string[];
-  identityReviewMissingShotIds: string[];
   preview: StillPreview | undefined;
   previewId: string;
   frameIndex: number;
@@ -348,7 +346,6 @@ export function KeyframeAndPreviewPanel({
             busy ||
             !previewShotIds.length ||
             !!missingPreviewShotIds.length ||
-            !!identityReviewMissingShotIds.length ||
             !currentApproval
           }
           onClick={() => void onCreatePreview()}
@@ -366,9 +363,7 @@ export function KeyframeAndPreviewPanel({
           {previewShotIds.join(" → ")} ·{" "}
           {missingPreviewShotIds.length
             ? `尚缺 ${missingPreviewShotIds.length} 个审核关键帧：${missingPreviewShotIds.join("、")}`
-            : identityReviewMissingShotIds.length
-              ? `尚缺 ${identityReviewMissingShotIds.length} 个身份感知关键帧的人工复核：${identityReviewMissingShotIds.join("、")}`
-              : "所有镜头已有当前审核关键帧和所需身份复核，可创建静帧预览。"}
+            : "所有镜头已有当前所选关键帧，可创建静帧预览。人物身份观察为可选。"}
         </small>
       )}
       <div className="preview-history">

@@ -72,7 +72,7 @@ function CreatorCanvas({ project, readOnly, sourceReview, onNavigate, onOpenShot
     {owner.stale && <p className="notice warning">简报、来源或已确认规范已变化。当前图草稿仍保留。<Button disabled={owner.busy || owner.readStatus !== "ready"} onClick={() => void owner.recover()}>在当前版本恢复为新草稿</Button></p>}
     <details className="creator-structure-check"><summary>结构检查 · {structure.incomplete ? "未完成" : structure.mismatches.length ? "与简报目标不同" : "可进入内容确认"}</summary>
       <p>实际：{structure.actual.nodes} 节点 · {structure.actual.endings} 结局 · {structure.actual.joins} 汇合 · {structure.actual.routes}{structure.truncated ? "+" : ""} 条完整路线 · 每条路线 {structure.actual.choices.join(" / ") || "尚未完成"} 次选择。</p>
-      <p>简报目标：节点上限 {project.brief.nodeBudget} · {project.brief.endingCount} 结局 · {project.brief.desiredJoinCount} 汇合 · 每次完整播放 {project.brief.decisionPointsPerPath} 次选择 · 最多 {Math.min(6, project.brief.maxOutDegree)} 个选项。</p>
+      <p>简报目标：节点上限 {project.brief.nodeBudget} · {project.brief.endingCount} 结局 · {project.brief.desiredJoinCount} 汇合 · 每条来源路线最多 {project.brief.decisionPointsPerPath} 次选择 · 最多 {Math.min(6, project.brief.maxOutDegree)} 个选项。</p>
       <p>{structure.actual.pending} 条待连接 · {structure.actual.detached} 个未接入节点。{structure.mismatches.join("；")}</p><p>实际结构与简报分别保留。修改目标请返回简报预览并确认；不会自动改图或提高容量。最终确认由当前来源与规范验证。</p>
     </details>
     <GraphWorkflowActions

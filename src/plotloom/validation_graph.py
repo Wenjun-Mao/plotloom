@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from typing import Literal
 from pydantic import ValidationError
 from .canonical_schema import EntityType, StoryBibleV2, StoryGraphV2, V2StoryEdgeKind, V2StoryNodeKind
 from plotloom.brief_contracts import ProjectBrief
@@ -14,7 +15,10 @@ def validate_story_graph(
     brief: ProjectBrief,
     *,
     bible: StoryBibleV2 | None = None,
+    path_decisions: Literal["exact", "bounded"] = "exact",
 ) -> None:
+    if path_decisions not in {"exact", "bounded"}:
+        raise ValueError("unsupported graph path decision policy")
     issues: list[ValidationIssue] = []
     from .node_footage import route_only_state_issues
     issues.extend(ValidationIssue(**issue) for issue in route_only_state_issues(graph))
@@ -241,12 +245,14 @@ def validate_story_graph(
             next_count = decision_count + int(any(edge.source_node_id == node_id and edge.kind == V2StoryEdgeKind.CHOICE for edge in graph.edges))
             next_path = (*path, node_id)
             if node.kind == V2StoryNodeKind.ENDING:
-                if next_count != brief.decision_points_per_path:
+                if (next_count > brief.decision_points_per_path if path_decisions == "bounded"
+                        else next_count != brief.decision_points_per_path):
                     issues.append(
                         _issue(
                             "decision_points_per_path_mismatch",
                             "edges",
                             f"path {' -> '.join(next_path)} has {next_count} decision points; expected "
+                            f"{'at most ' if path_decisions == 'bounded' else ''}"
                             f"{brief.decision_points_per_path}",
                         )
                     )

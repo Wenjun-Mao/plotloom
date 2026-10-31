@@ -46,7 +46,7 @@ it.each([["outline", "故事大纲"], ["characters", "角色设定"], ["art", "�
   ["storyboard", "分镜"], ["bridge-intent", "戏剧意图"], ["bridge-presentation", "画面呈现"], ["references", "参考图片"], ["first-frames", "镜头首帧"]])("automatic guidance identifies %s and keeps final review/manual takeover separate", (phase, name) => {
   const text = automaticGuidance({ ...fixtureRun, state: "running", phase }, true)!;
   expect(text).toContain(`当前自动阶段：${name}`); expect(text).toContain("无需手动准备或发送当前任务");
-  expect(text).toContain("一次完整人工审阅"); expect(text).toContain("保存手动修改将接管自动运行");
+  expect(text).toContain("仍需明确选择当前素材；媒体质量观察为可选"); expect(text).toContain("保存手动修改将接管自动运行");
   expect(text).toContain("阅读报告不会确认、接管或发送任务");
 });
 it("paused, blocked, unknown and manual states do not masquerade as running or human acceptance", () => {
