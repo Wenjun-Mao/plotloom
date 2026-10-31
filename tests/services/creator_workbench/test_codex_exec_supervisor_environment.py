@@ -227,3 +227,41 @@ def test_runtime_drift_after_a_successful_renderer_cannot_create_validation_evid
         supervisor._validate_text_delivery(attempt, profile, package_request, job, private, resources)
     assert len(calls) == 2
     assert not (job / "delivery/completion.json").exists()
+
+def test_final_h3_skill_reaches_the_native_cli_assignment(supervisor, monkeypatch, tmp_path):
+    from hashlib import sha256
+    from types import SimpleNamespace
+    import pytest
+    from plotloom import codex_exec_prompts
+    from plotloom.codex_exec_resources import codex_exec_source_resources, upstream_skill_path_for_stage
+
+    source = supervisor.source_root
+    skill = (source / ".agents/skills/plotloom-video-directions-specialist/SKILL.md").read_bytes()
+    document = upstream_skill_path_for_stage("video-directions")
+    revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+    pin = {"upstreamRevision": revision, "upstreamSkillHash": sha256((source / document).read_bytes()).hexdigest(),
+        "specialistSkillHash": sha256(skill).hexdigest()}
+    profile = SimpleNamespace(profile_hash="offline-prompt-boundary")
+    monkeypatch.setattr(supervisor, "profile", lambda: profile)
+    monkeypatch.setattr(supervisor, "codex_exec_readiness", lambda: SimpleNamespace(ready=True))
+    composed = []
+    original = codex_exec_prompts.assignment_prompt
+    def capture(**kwargs):
+        result = original(**kwargs)
+        composed.append(result)
+        return result
+    monkeypatch.setattr(codex_exec_prompts, "assignment_prompt", capture)
+    class StopBeforeSpawn(Exception):
+        pass
+    def stop(*args, **kwargs):
+        raise StopBeforeSpawn
+    monkeypatch.setattr(supervisor, "_cli_command", stop)
+    for operation in ("draft", "fidelity-check"):
+        package = {"stage": "video-directions", "source": {"operation": operation},
+            "upstreamSkillPath": document, "executionPin": pin}
+        resources = codex_exec_source_resources(source, package)
+        with pytest.raises(StopBeforeSpawn):
+            supervisor._execute(SimpleNamespace(domain="text", job_id=operation), profile, package,
+                tmp_path, tmp_path / "private", resources)
+    assert len(composed) == 2
+    assert all(text.endswith(skill.decode()) and text.count(skill.decode()) == 1 for text in composed)

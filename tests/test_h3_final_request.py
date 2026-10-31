@@ -14,7 +14,12 @@ EXPECTED = Path(__file__).parent / "fixtures" / "h3-final-request.json"
 
 def assert_authored_requirements(request):
     prompt = request["data"]["prompt"]
-    assert "Ada，等一下。" in prompt, "authored dialogue missing"
+    picture, audio = prompt.split("Audio/dialogue: ", 1)
+    assert "no captions, subtitles" in picture and "typography" in picture, "missing visual exclusion"
+    assert "each dialogue cue only as speech in the audio track" in audio, "missing audio-only instruction"
+    assert "Do not transcribe or translate dialogue into subtitles" in audio, "missing transcription exclusion"
+    assert "Ada，等一下。" not in picture
+    assert audio.count("Ada，等一下。") == 1 and "<d>[Chinese] Ada，等一下。</d>" in audio, "authored dialogue missing"
     assert "NO ENTRY / 请勿进入" in prompt, "authored lettering missing"
     assert "Only continuous quiet room tone besides the authored cue. No other voices or action sounds." in prompt
     assert "non_diegetic_music: No music." in prompt, "authored music prohibition missing"
@@ -30,6 +35,35 @@ def test_complete_final_request_preserves_authored_requirements_and_reference_by
         snapshot["keyframe"]["originalHash"], snapshot["endFrame"]["originalHash"]]
 
 
+@pytest.mark.parametrize("read_aloud", [False, True])
+def test_picture_text_and_a_spoken_reading_have_independent_owners(read_aloud):
+    from plotloom.video_backends.minimax_h3.prompt import compile_i2va_prompt
+    from tests.test_h3_authored_soundtrack import package
+
+    snapshot, _, images = authored_request()
+    if read_aloud:
+        literal = "出口"
+        snapshot["resolvedContext"]["dialogueCues"][0]["text"] = literal
+    else:
+        literal = "明天见。"
+        snapshot["resolvedContext"]["dialogueCues"] = []
+        snapshot["shotPresentation"] = {"review": {"messagePresentation": "popped_out_draft"}}
+    snapshot["shot"]["visibleTexts"][0]["text"] = literal
+    _, candidate = package(snapshot)
+    prompt = compile_i2va_prompt(snapshot, candidate, draft=True)
+    sent = capture_request(snapshot, prompt, images)["data"]["prompt"]
+    assert f'on its designated carrier: "{literal}".' in sent
+    assert "no captions, subtitles" in sent
+    if read_aloud:
+        picture, speech = sent.split("Audio/dialogue: ")
+        assert picture.count(literal) == speech.count(literal) == 1
+        assert f"<d>[Chinese] {literal}</d>" in speech
+        assert "Do not transcribe or translate dialogue into subtitles" in speech
+    else:
+        assert sent.count(literal) == 1 and "popped-out message preview" in sent
+        assert "Audio/dialogue:" not in sent and "<d>" not in sent
+
+
 def test_seed_only_change_has_exactly_one_intended_final_request_difference():
     snapshot, prompt, images = authored_request()
     before = capture_request(snapshot, prompt, images)
@@ -40,13 +74,14 @@ def test_seed_only_change_has_exactly_one_intended_final_request_difference():
     assert_authored_requirements(after)
 
 
-@pytest.mark.parametrize("omission", ["dialogue", "reference", "audio"])
+@pytest.mark.parametrize("omission", ["dialogue", "reference", "audio", "visual rule", "audio-only rule"])
 def test_omission_controls_fail_the_same_authored_requirement_assertions(omission):
     actual = json.loads(EXPECTED.read_text())
     if omission == "reference":
         actual["files"].pop()
     else:
-        text = "Ada，等一下。" if omission == "dialogue" else "non_diegetic_music: No music."
+        text = {"dialogue": "Ada，等一下。", "audio": "non_diegetic_music: No music.",
+            "visual rule": "no captions, subtitles", "audio-only rule": "each dialogue cue only as speech in the audio track"}[omission]
         actual["data"]["prompt"] = actual["data"]["prompt"].replace(text, "")
     with pytest.raises(AssertionError):
         assert_authored_requirements(actual)

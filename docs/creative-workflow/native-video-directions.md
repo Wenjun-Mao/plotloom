@@ -8,6 +8,12 @@ The host validates and deterministically renders the report. Write directions.js
 only. Never call image/video providers, dispatch, change canon, authorize generation,
 claim creator observations, or accept unseen media.
 
+Both roles receive the hash-verified `plotloom-video-directions-specialist`
+repo skill in their native assignment. Apply its picture-text and audio-only
+dialogue rules to every final H3 prompt, including single-shot and batch
+work. The checker compares the compiled prompt with the authored visual and
+spoken sources. The same words can belong to both an authored sign and a separately authored speech cue. Keep each on its own channel. Player-rendered captions and choices are separate.
+
 ## Draft role: source.operation = draft
 
 Return `{"version":"video-directions.draft.v1","targets":[{"shotId":"...",

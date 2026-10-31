@@ -546,3 +546,16 @@ The field schema, timing, references, settings and authorization are unchanged.
 Fresh checking binds newly compiled prompt bytes before any new submission.
 Already submitted requests, receipts and selected clips retain their original
 bytes and authority; no historical request is recompiled or replayed by this fix.
+
+### Final H3 speech and picture text (2026-10-31)
+
+The author owns what is spoken and what is legible in the scene, including any
+explicitly selected message treatment. The H5 player owns its dialogue display
+and choices. H3 must receive spoken cues in their original language only as
+audio, with an explicit visual instruction against invented writing and
+burned-in subtitles. Preserve required lettering on its authored carrier.
+The H3 specialist skill guides the native drafter and independent checker.
+The supervisor supplies the hash-verified repo skill to both; the trusted
+compiler owns the final prompt wording. Current request, fidelity and authority
+checks bind the resulting bytes before new dispatch. The existing technical
+and optional creative review contracts still apply.

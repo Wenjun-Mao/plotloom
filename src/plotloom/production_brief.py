@@ -18,11 +18,11 @@ def production_brief(snapshot):
         "adapterConstraints": ([
             "Use the reviewed first frame as the opening reference; follow the authored action and shot structure.",
             "Speak each authored cue once in its authored language; preserve off-screen and nonspoken roles.",
-            "Show only exact authored visible words; do not add captions, replies, speech or sound events.",
+            "Keep dialogue in the audio track only. No burned-in captions or subtitles. Show only authored in-scene writing or the chosen message presentation; do not invent replies, speech or sounds.",
             "Follow the reviewed ending frame when one is selected; use the frozen timing and input-frame treatment."] if english else [
             "以已审阅首帧为开场参考，按作者指定的动作和镜头结构呈现。",
             "各条作者对白只说一次，保留原语言、画外音与非发声角色。",
-            "仅显示作者指定的原文，不新增字幕、回复、对白或声音事件。",
+            "对白仅进入音轨，画面不生成对白字幕。只显示作者指定的场景文字或已选的消息呈现；不新增回复、对白或声音事件。",
             "如已选择尾帧则向该尾帧衔接，遵循冻结的时长和首尾帧比例处理。"]),
         "discretion": ("Faithful wording only; no new creative facts, speech, text or sounds."
             if english else "仅可忠实调整表述；不可新增创作事实、对白、文字或声音。"),

@@ -31,6 +31,7 @@ class CodexExecSourceResources:
     python_environment: Path | None = None
     python_environment_hash: str | None = None
     python_source_hash: str | None = None
+    h3_directions_skill: str | None = None
 
 
 _PROVIDER_LITERAL_POLICY_PATHS = tuple(
@@ -273,7 +274,8 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
     if hashlib.sha256(skill.read_bytes()).hexdigest() != pin["upstreamSkillHash"]:
         raise CodexExecResourceError("frozen upstream skill bytes no longer match the package pin")
     specialist_skill = _source_path(root, plan.specialist_skill_path)
-    if not specialist_skill.is_file() or hashlib.sha256(specialist_skill.read_bytes()).hexdigest() != pin["specialistSkillHash"]:
+    specialist_bytes = specialist_skill.read_bytes() if specialist_skill.is_file() else None
+    if specialist_bytes is None or hashlib.sha256(specialist_bytes).hexdigest() != pin["specialistSkillHash"]:
         raise CodexExecResourceError("frozen Plotloom specialist instructions no longer match the package pin")
 
     if plan.submodule_stage_path is not None:
@@ -371,6 +373,7 @@ def codex_exec_source_resources(source_root: Path, package_request: dict) -> Cod
         environment.root if environment else None,
         environment.identity_hash if environment else None,
         source_hash,
+        specialist_bytes.decode("utf-8") if stage == "video-directions" and not checking_language else None,
     )
 
 

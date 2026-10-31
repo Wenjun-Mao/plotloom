@@ -16,6 +16,25 @@ when it suits the shot, not as a prompt-writing default. Do not reuse this form
 for T2VA or full-reference modes without reading their official guide and
 recording a new contract.
 
+## Current final H3 skill
+
+For final Plotloom video production, the native draft and independent
+fidelity-check workers receive the exact pinned [H3 directions skill](../../.agents/skills/plotloom-video-directions-specialist/SKILL.md).
+Trusted code compiles the visual exclusion and audio-only instruction into
+the prompt before it is checked and authorized. A sign on a door or a chosen
+phone-message treatment can retain exact authored text. Dialogue belongs in
+the audio track. The H5 player displays its own captions and choices.
+
+The specialist's [landscape study](../verification/2026-09-19-h3-prompt-robustness-study.md)
+reported no subtitles in the six audio-only/no-text renders and a subtitle
+in one inline-dialogue render. In the [portrait study](../verification/2026-09-20-h3-vertical-recipe-qualification.md),
+all six Quality 2 dialogue clips still showed subtitle-like artifacts under
+explicit no-text wording. The [cross-geometry review](../verification/2026-09-20-h3-portrait-cross-geometry-review.md)
+reported clean dialogue results for Qualities 1 and 3 in that test and no
+reported issue in the 36 Quality 8 clips. Those were controlled, short clips
+from two related scenes. Preserve the selected profile. The current tagged
+three-field adaptation is a request policy, not a guarantee about new pixels.
+
 ## Ownership and review workflow
 
 1. Start from the current accepted shot, resolved dialogue, visible cast,
@@ -23,7 +42,7 @@ recording a new contract.
    The canonical Chinese story is the content authority; the image is the
    actual first frame. Source changes invalidate the direction review.
 2. Draft English provider directions for every displayed non-dialogue source
-   field. An agent may draft them. A person reviews the full package once,
+   field. The independent checker compares the full candidate and compiled prompt,
    checking who moves what, where, and when. Do not turn “between two sockets”
    into “inserted into a socket” or promote an inferred consequence to fact.
 3. Describe voice quality and performance in English outside `<d>`. Keep the
@@ -41,10 +60,10 @@ recording a new contract.
    dialogue block, sound roles, and exact duration/profile. The preview hash
    and current source hash must match at job preparation. Preparation freezes
    the prompt; dispatch is a separate action.
-6. Review the resulting full original with sound, then any proposed playback
-   segment with sound, including boundaries. Record observations separately
-   from hypotheses. A technically admitted clip is still unselected until an
-   explicit audiovisual decision.
+6. When inspecting an actual result, distinguish unwanted lettering already in
+   a reference, writing generated inside the MP4, and player-rendered captions.
+   Record only the frames or audio actually reviewed. Quality observations
+   remain optional under [ADR 0226](../adr/0226-optional-generated-media-quality-review.md).
 
 ### Annotated opening-shot example (generated, audiovisual review pending)
 
@@ -221,7 +240,5 @@ agent-authored test timing into a presumed user requirement. Gateway support for
 narrower qualified Plotloom path. End-frame conditioning does not guarantee an
 exact boundary, and a nominal request duration is not measured playback time.
 
-Keep this playbook as the single knowledge source. A future thin repo skill may
-point to it once agents can repeat the review and one or more representative
-guide-compliant trials are assessed. Promote stable rules and examples only;
-leave hypotheses and failed conditions visibly labelled here.
+Retain experiment conditions and limits here. The pinned final-video skill and
+trusted compiler own the operational rule for new Plotloom H3 work.

@@ -86,6 +86,7 @@ class CodexExecSupervisorProcessMixin(
             package_path=job_root / "package",
             delivery_path=delivery,
             domain=attempt.domain,
+            h3_directions_skill=source_resources.h3_directions_skill,
         )
         command = self._cli_command(
             profile, job_root, private_dir, domain=attempt.domain,

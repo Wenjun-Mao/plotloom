@@ -154,7 +154,8 @@ def test_original_language_authored_visible_label_remains_visible() -> None:
     snapshot["shot"]["composition"] = 'A switchboard label reading "营业中" is visible.'
     prompt = compile_i2va_prompt(snapshot, _review(snapshot))
     assert 'label reading "营业中"' in prompt
-    assert "No captions, subtitles, or newly visible words" not in prompt
+    assert "no captions, subtitles" in prompt
+    assert "writing explicitly required as visible" in prompt
 
 
 @pytest.mark.parametrize("injected", [
@@ -177,7 +178,8 @@ def test_visible_phone_words_are_exact_nonspoken_and_source_bound():
     snapshot["shot"]["visibleTexts"] = [{"text": "我还在老地方。", "sourceCoordinates": {"flowIndex": 2}, "sourceContentHash": "a"*64}, {"text": "今晚不去了，明天见。", "sourceCoordinates": {"flowIndex": 3}, "sourceContentHash": "b"*64}]
     prompt = compile_i2va_prompt(snapshot, _review(snapshot))
     assert prompt.count("我还在老地方。") == 1 and prompt.count("今晚不去了，明天见。") == 1
-    assert "without speaking it" in prompt and "<d>" not in prompt
+    assert "only if a separate dialogue cue requires it" in prompt and "<d>" not in prompt
+    assert "no captions, subtitles" in prompt and "Audio/dialogue:" not in prompt
     package = _review(snapshot)
     snapshot["shot"]["visibleTexts"][0]["text"] = "changed"
     with pytest.raises(ValueError, match="source changed"):
@@ -190,5 +192,5 @@ def test_diegetic_words_can_overlap_legitimate_physical_direction(text):
     snapshot["shot"]["visibleTexts"] = [{"text": text}]
     prompt = compile_i2va_prompt(snapshot, _review(snapshot))
     assert "Push In" in prompt
-    assert f'visible text, without speaking it or adding captions: "{text}".' in prompt
+    assert f'in-scene text on its designated carrier: "{text}".' in prompt
     assert "<d>" not in prompt

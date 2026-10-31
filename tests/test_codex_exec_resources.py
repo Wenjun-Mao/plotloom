@@ -57,29 +57,39 @@ def _sha256(path: Path) -> str:
 
 def _pin(stage: str) -> dict[str, str]:
     upstream_path = upstream_skill_path_for_stage(stage)
-    upstream_revision_root = (
-        ROOT / "third_party" / "shuohao-skills"
-        if not stage.startswith("bridge-")
-        else ROOT
-    )
+    native = stage.startswith("bridge-") or stage == "video-directions"
+    upstream_revision_root = ROOT if native else ROOT / "third_party" / "shuohao-skills"
     revision = subprocess.run(
         ["git", "-C", str(upstream_revision_root), "rev-parse", "HEAD"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout.strip()
-    specialist_path = (
-        ".agents/skills/plotloom-intent-specialist/SKILL.md"
-        if stage == "bridge-intent"
-        else ".agents/skills/plotloom-presentation-specialist/SKILL.md"
-        if stage == "bridge-presentation"
-        else ".agents/skills/plotloom-shuohao-specialist/SKILL.md"
-    )
+    specialist_name = stage.removeprefix("bridge-") if native else "shuohao"
+    specialist_path = f".agents/skills/plotloom-{specialist_name}-specialist/SKILL.md"
     return {
         "upstreamRevision": revision,
         "upstreamSkillHash": _sha256(ROOT / upstream_path),
         "specialistSkillHash": _sha256(ROOT / specialist_path),
     }
+
+
+@pytest.mark.parametrize("operation", ["draft", "fidelity-check"])
+def test_final_h3_assignment_includes_only_the_exact_pinned_skill(tmp_path, operation):
+    from plotloom.codex_exec_prompts import assignment_prompt
+
+    stage = "video-directions"
+    request = {"stage": stage, "source": {"operation": operation},
+        "upstreamSkillPath": upstream_skill_path_for_stage(stage), "executionPin": _pin(stage)}
+    skill = (ROOT / ".agents/skills/plotloom-video-directions-specialist/SKILL.md").read_text()
+    resources = codex_exec_source_resources(ROOT, request)
+    prompt = assignment_prompt(job_id="test", package_path=tmp_path / "package",
+        delivery_path=tmp_path / "delivery", domain="text", h3_directions_skill=resources.h3_directions_skill)
+    assert prompt.endswith(skill) and prompt.count(skill) == 1
+
+    request["executionPin"]["specialistSkillHash"] = "0" * 64
+    with pytest.raises(CodexExecResourceError, match="specialist instructions"):
+        codex_exec_source_resources(ROOT, request)
 
 
 def test_shuohao_source_allowlist_is_stage_bound_and_pinned():

@@ -7,7 +7,8 @@ PROMPT_VERSION = "plotloom.codex-exec-assignment.v8"
 IMAGE_PROMPT_VERSION = "plotloom.codex-exec-assignment.v6"
 
 
-def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, domain: str) -> str:
+def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, domain: str,
+                      h3_directions_skill: str | None = None) -> str:
     """Tell one attempt worker how its trusted package and delivery are owned."""
     if domain not in {"text", "image"}:
         raise ValueError("Codex Exec assignment requires a supported delivery domain")
@@ -85,4 +86,6 @@ def assignment_prompt(*, job_id: str, package_path: Path, delivery_path: Path, d
         + completion_claim_contract
         + "The result remains a candidate "
         "for Plotloom validation and explicit source adoption. Generated-media quality inspection is optional."
+        + ("\n\nApply this pinned Plotloom skill to the final H3 directions assignment:\n\n" + h3_directions_skill
+           if h3_directions_skill is not None else "")
     )

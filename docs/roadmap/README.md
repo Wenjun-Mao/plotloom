@@ -5,6 +5,11 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## Final H3 video skill
+
+The [H3 final-video skill record](2026-10-31-h3-final-video-skill.md) covers
+spoken dialogue, intentional picture text and final provider requests.
+
 ## Whole-take playback
 
 The [implementation and qualification record](2026-10-31-whole-take-playback.md)

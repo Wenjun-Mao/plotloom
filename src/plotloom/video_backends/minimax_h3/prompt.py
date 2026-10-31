@@ -25,7 +25,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
             "[Shot 1] <Picture 1> establishes the opening visual style, composition, "
             "subjects, objects, and spatial relationships. Follow the authored "
             "action and shot structure below."
-        )
+        ),
+        "Visual: Keep the frame free of added writing: no captions, subtitles, titles, lower thirds, "
+        "signage, interface text, or typography. Preserve only writing explicitly required as visible "
+        "in the authored scene, on its specified object or message.",
     ]
     for field in ("composition", "visualIntent", "action", "motionIntent"):
         value = str(shot.get(field) or "").strip()
@@ -41,8 +44,9 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
 
     for visible in shot.get("visibleTexts", []):
         description.append(
-            "Show this exact authored diegetic visible text, without speaking it or adding captions: "
-            + json.dumps(visible["text"], ensure_ascii=False) + "."
+            "Show this exact authored in-scene text on its designated carrier: "
+            + json.dumps(visible["text"], ensure_ascii=False)
+            + ". The writing does not create speech; speak it only if a separate dialogue cue requires it."
         )
     treatment = message_direction(snapshot.get("shotPresentation"))
     if treatment:
@@ -56,6 +60,11 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     for event_index, event in enumerate(events):
         if event.get("kind") in {"diegetic_sound", "diegetic_music"} and event.get("description"):
             description.append(_timed_event(snapshot, event_index, rendered))
+    if any(cue.get("text") for cue in cues):
+        description.append(
+            "Audio/dialogue: Render each dialogue cue only as speech in the audio track. "
+            "Do not transcribe or translate dialogue into subtitles, captions or other added writing."
+        )
     for cue_index, cue in enumerate(cues):
         text = str(cue.get("text") or "")
         if not text:
@@ -105,7 +114,6 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
             "the subject pose, object state, spatial arrangement, and composition in "
             "Picture 2 at the end of the target video."
         )
-    description.append("Do not add text overlays or words absent from the reviewed pictures and authored shot.")
 
     soundscape = " ".join(
         _timed_event(snapshot, index, rendered)
