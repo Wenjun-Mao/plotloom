@@ -69,10 +69,36 @@ function title() {
   root.append(panel);
   showStorageNotice();
 }
+function lastFrame(src: string) {
+  if (video.getAttribute("src") === src && video.ended && video.readyState >= 2) {
+    const canvas = element("canvas");
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (context && canvas.width && canvas.height) {
+      context.drawImage(video, 0, 0);
+      return canvas;
+    }
+  }
+  // Continue or backtracking may reach the choice without a decoded frame in memory.
+  const still = element("video");
+  still.muted = true; still.playsInline = true; still.preload = "auto";
+  still.onloadedmetadata = () => {
+    if (still.videoHeight) still.parentElement?.style.setProperty("--frame-ratio", String(still.videoWidth / still.videoHeight));
+    if (Number.isFinite(still.duration)) still.currentTime = Math.max(0, still.duration - 0.5 / 24);
+  };
+  still.src = src;
+  return still;
+}
+
 function render() {
+  const node = story.nodes.find(node => node.id === path.at(-1))!;
+  const hasChoices = node.edges.some(edge => edge.label !== null);
+  const choosing = hasChoices && (finished || !node.clips.length);
+  const source = choosing && path.slice().reverse()
+    .map(id => story.nodes.find(item => item.id === id)?.clips.at(-1)).find(Boolean);
+  const frame = source ? lastFrame(source.src) : null;
   stop(); root.replaceChildren();
   const captured = epoch;
-  const node = story.nodes.find(node => node.id === path.at(-1))!;
   const shell = element("section", "", "player");
   const top = element("header");
   top.append(element("span", story.title, "game-title"));
@@ -80,6 +106,7 @@ function render() {
     pausedByUser = !video.paused;
     if (pausedByUser) video.pause(); else play();
   });
+  pause.hidden = choosing;
   pause.disabled = !node.clips.length;
   const mute = button("", () => {
     if (video.volume === 0) { video.volume = 1; video.muted = false; } else video.muted = !video.muted;
@@ -95,7 +122,11 @@ function render() {
   video.onvolumechange = () => { updateSoundButton(); rememberAudio(); };
   top.append(pause, mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
   shell.append(top);
-  const stage = element("div", "", "stage");
+  const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
+  if (frame) {
+    if (frame instanceof HTMLCanvasElement) stage.style.setProperty("--frame-ratio", String(frame.width / frame.height));
+    frame.setAttribute("aria-hidden", "true"); stage.append(frame);
+  }
   const caption = element("div", "", "captions");
   const status = element("p", "", "status"); status.setAttribute("role", "status");
   const actions = element("div", "", "actions");
@@ -105,7 +136,7 @@ function render() {
       if (epoch === captured && video.paused) { pause.textContent = "播放"; status.textContent = "点击播放以继续。"; }
     });
   }
-  if (current) {
+  if (current && !choosing) {
     const resumeTime = time;
     video.src = current.src;
     video.setAttribute("aria-label", node.title);
@@ -133,10 +164,17 @@ function render() {
     actions.replaceChildren();
     if (node.ending) {
       actions.append(element("h2", node.ending.title), element("p", node.ending.text, "ending-text"));
-    } else if (node.edges.some(edge => edge.label !== null)) {
-      if (node.question) actions.append(element("h2", node.question));
-      for (const edge of node.edges) actions.append(button(edge.label!, () => move(edge.to), "choice"));
+    } else if (hasChoices) {
+      if (!choosing) { render(); return; }
+      const overlay = element("div", "", "choice-overlay");
+      overlay.append(element("h2", node.question || node.title));
+      for (const edge of node.edges) overlay.append(button(edge.label!, () => move(edge.to), "choice"));
+      stage.append(overlay);
     } else if (node.edges.length === 1) {
+      const next = story.nodes.find(item => item.id === node.edges[0].to);
+      if (current && next && !next.clips.length && next.edges.some(edge => edge.label !== null)) {
+        move(next.id); return;
+      }
       actions.append(button("继续", () => move(node.edges[0].to), "primary"));
     }
     if (node.ending) actions.append(button("重新开始", () => { path = [story.start]; clip = time = 0; finished = false; save(); render(); }, "primary"));
@@ -144,7 +182,8 @@ function render() {
     if (previous) actions.append(button("返回上个选择", () => { path = previous; const target = story.nodes.find(item => item.id === path.at(-1))!; clip = Math.max(0, target.clips.length - 1); time = 0; finished = true; save(); render(); }));
     save();
   }
-  shell.append(element("p", node.title, "node-title"), stage, caption, status, actions);
+  if (!choosing) shell.append(element("p", node.title, "node-title"));
+  shell.append(stage, caption, status, actions);
   root.append(shell);
   showStorageNotice();
   if (finished) showActions();

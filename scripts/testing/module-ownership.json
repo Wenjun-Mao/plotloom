@@ -416,6 +416,7 @@
           "frontend/tests/delegated-qa-attribution.test.ts",
           "frontend/tests/provider-budgets.test.ts",
           "frontend/tests/player-audio.test.ts",
+          "frontend/tests/player-choice.test.ts",
           "frontend/tests/player-state.test.ts",
           "frontend/tests/player-export-action.test.ts"
         ],

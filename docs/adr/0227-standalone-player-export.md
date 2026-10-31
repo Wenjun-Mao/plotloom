@@ -43,6 +43,11 @@ different preference. Native and game controls share one video element across
 clips. Mute and volume are remembered per game when browser storage is
 available. The player can still change both during a storage-denied session.
 
+When a scene ends at a decision, hold its final frame and place the untimed
+choice buttons over it. A sole continuation directly into a footage-free choice
+opens that choice as the clip ends. On Continue or backtracking, use the most
+recent footage on the player's saved path to restore the decision's backdrop.
+
 ## Consequences
 
 Under the [whole-take amendment to ADR 0082](0082-proposed-production-playback-timing.md#whole-take-playback-amendment-2026-10-31),

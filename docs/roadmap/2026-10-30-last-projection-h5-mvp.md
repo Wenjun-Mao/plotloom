@@ -25,8 +25,35 @@ volume now live on one persistent video element. The corrected delivery
 restored the same clip and time after reload and allowed Play to recover from
 a simulated autoplay refusal. The focused tests, quick tier (1,715 frontend
 cases and both type checks), deterministic assets and independent source review
-passed. The full local gate runs on the stable candidate because the preference
-is persisted. Retained evidence is in `.local/player-sound/`.
+passed. The full local gate on `3dfe8490` passed 5,084 Python and 366 browser
+cases, deterministic assets and installed-wheel smoke. Retained evidence is
+in `.local/player-sound/`.
+
+**In-frame choices follow-up.** Both decisions now hold the final image of
+the preceding clip and show clickable options over it. The choice opens as
+the clip ends. Back and Continue use the actual visited route to find its last
+frame. The second choice's two labels stay inside the picture on desktop and
+at 390 px. The updated unpacked game is at the original address and the
+sibling `the-last-projection-choices.zip` includes both player fixes.
+
+| Claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| Both decisions appear in frame | Natural clip ends, clickable buttons within the picture, resume and back on the actual path | No | Passed in WebKit and Chromium using the real game |
+| Existing game and save still work | Same story and progress identity, sound on in the next branch, archive member comparison | No | Passed. Only `player.js` and `player.css` differ from the sound-fixed ZIP. |
+
+The confirmed ZIP SHA-256 is
+`14839aa6e9ea5c548fc0134c1721cf65c67fe3ff5650c191502d2849f76711b0`.
+The diff from `3dfe8490` changes standalone presentation, its focused browser
+DOM regression, test ownership and documentation. The player still consumes
+the same exported graph, media, stored progress and audio settings. APIs,
+source-to-request bindings, project storage, admission, provider behavior,
+dependencies, build procedure and wheel resource paths are unchanged. Root
+owns the disposable export and browser checks. Focused player tests (11),
+the unfiltered frontend suite (1,716), both type checks, two identical builds,
+the real API export regression and an exact wheel-to-delivery asset comparison
+passed. Both decision layouts were inspected. Independent review found no
+material issue. This is scoped frontend qualification on top of the completed
+sound gate. Evidence is in `.local/player-choices/`.
 
 The [final receipt](../verification/2026-10-31-last-projection-functional-closeout.md)
 owns artifact paths, exact revisions, executed evidence, production learning and
