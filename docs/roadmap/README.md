@@ -5,6 +5,15 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## First original H5 product: benchmark discovery
+
+Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
+for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
+records actual public playthroughs, their inspection limits and a recommendation
+for one complete short original game. Story, size and delivery remain design
+decisions; production has not started. This product direction should guide the
+separately queued media-quality work through concrete story needs.
+
 ## Completed project-language functional delivery
 
 The owner agreed to independent interface/content language, project-language
