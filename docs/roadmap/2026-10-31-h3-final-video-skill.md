@@ -2,13 +2,13 @@
 
 ## Current status
 
-Updated 2026-10-31. Baseline `ce5b3c2c` on local main. Root owns implementation
-and qualification. The original H3 specialist reviewed the repo skill and
-compiler wording. Both native roles receive the exact hash-verified skill.
-The focused contracts and retained-project restore/export pass. Full local
-qualification and installed-runtime activation remain open. Next action is
-one full run on the stable candidate, followed by preservation-checked activation.
-Stop after the qualified implementation is active and its evidence is recorded.
+Completed 2026-10-31. Starting from `ce5b3c2c`, root implemented and qualified
+`543df21c` on local main and activated that revision in the installed workbench.
+The original H3 specialist reviewed the repo skill and compiler wording. Both
+native roles receive the hash-verified skill. All 15 prospective prompts from
+the installed compiler matched the offline captures. No functional or
+request-fidelity acceptance row remains open. The effect on newly generated
+frames under this exact policy has yet to be measured.
 
 | Claim | Evidence required | Fresh media | Status |
 |---|---|---|---|
@@ -16,8 +16,8 @@ Stop after the qualified implementation is active and its evidence is recorded.
 | Submitted prompt matches the policy | Offline multipart capture for dialogue, silent shots, intentional lettering, message treatment and reference bindings | No | Passed golden capture, omission controls and 15 retained request replays |
 | Existing story remains usable | Retained request audit and selected project restore/export with no regeneration | No | Passed supported restore and byte-identical export of all 15 selected clips |
 | Frozen dispatch and provenance remain valid | Stale new dispatch refusal and known-prediction reconciliation | No | Passed focused authority and fidelity regressions |
-| Local qualification | Full local gate on the stable source candidate | No | Pending |
-| Installed runtime applies the rule | Quiescence, exact revision and protected-state comparison | No | Pending |
+| Local qualification | Full local gate on the stable source candidate | No | Passed `full` on `543df21c` |
+| Installed runtime applies the rule | Quiescence, exact revision and protected-state comparison | No | Passed both installed worker roles, all 15 compiler comparisons and data preservation |
 | Generated picture quality | Specialist's reviewed trials and Wenjun's observation, with their limits | No new output-quality experiment | Recipe-dependent historical evidence only, current subtitle defect retained |
 
 ## Scope and method
@@ -30,10 +30,9 @@ The independently authored sign “出口” can also be read aloud. The skill a
 compiler preserve both sources. The existing gateway catalog, selected profile,
 settings, source, grant and UNKNOWN evidence remain protected.
 
-The full gate covers the changed prompt and native-worker runtime contracts.
-Focused evidence cannot establish the remaining cross-layer release checks.
-Run it once after the stable diff and independent review, then diagnose any
-failure before selecting a rerun. Qualification uses fake/offline providers.
+The full gate covered the changed prompt and native-worker runtime contracts.
+The stable candidate received one full local qualification after independent
+review. Provider qualification here used offline captures and test doubles.
 
 ## Evidence
 
@@ -55,12 +54,28 @@ failure before selecting a rerun. Qualification uses fake/offline providers.
   `.local/h3-final-skill/policy.log` and `contract-native.log`.
 - `quick` passed the unfiltered frontend tests and both type checks.
   The repo skill passed the skill-creator structure validator.
+- `uv run --locked --no-sync python scripts/verify.py full` passed on
+  `543df21c` in 3,881 seconds. All 1,716 frontend tests, 5,091 Python tests
+  and 366 browser tests passed. Deterministic frontend build and parity,
+  wheel build and installed-wheel smoke also passed. The full log is
+  `.local/h3-final-skill/full.log`.
 - Supported restore/export produced the same selected-game ZIP SHA-256,
   `14839aa6e9ea5c548fc0134c1721cf65c67fe3ff5650c191502d2849f76711b0`.
   Receipt is `.local/h3-final-skill/retained-export.log`.
 - The approximately 400-line source-resource and process modules gained narrow
   additions to their existing pinned-resource and assignment responsibilities.
   Those changes fit their existing ownership without a new abstraction.
+- Before activation, all 71 video jobs across the 18 installed homes were
+  ingested. The native queue, execution slots and validator-process table
+  were empty. The workbench and native bridge restarted on `543df21c`. In
+  the installed checkout, ordinary pin discovery and both assignment builders
+  produced the expected skill bytes. The installed container reproduced all
+  15 prospective prompt hashes and 19 dialogue cues from retained project
+  state. Neither readback admitted a job or dispatched a provider request.
+- Pre/post comparison found zero changes across 1,836 file digests, 27
+  databases and six protected files, including both native UNKNOWN outcomes.
+  The installed readback and preservation receipts live under
+  `.local/h3-final-skill/`.
 
 Historical media trials and their limits are linked in the
 [H3 playbook](../operations/h3-prompt-writing-playbook.md#current-final-h3-skill).
