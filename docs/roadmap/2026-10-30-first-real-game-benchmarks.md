@@ -5,15 +5,20 @@
 Updated 2026-10-30. Owner: root. The bilingual functional closeout at `eae289ee`
 remains accepted; reference discovery was recorded at `2bc05bfe`. Wenjun chose
 **original games using the two references as benchmarks** and refined the first
-milestone: assemble a standalone H5 game with designed game UI, without video
-or audio quality inspection. The game must run without the Plotloom service.
+milestone: assemble a standalone H5 prototype/MVP with lightly designed game UI,
+without video or audio quality inspection. Viable is the bar; a beautiful UI or
+polished story is not required. The game must run without the Plotloom service.
 Editing/regeneration/review followed by one-click asset application belongs to
 the next iteration; preserve the necessary bindings in the first iteration.
 Capture concrete production friction in the existing Plotloom workflow as work
 proceeds. These owner requirements supersede the initial proposed creative-
-quality acceptance. Story, release size and detailed implementation plan remain
-open. No production implementation or generation has started. Next action:
-choose the original premise and define its smallest complete assembly journey.
+quality acceptance. Wenjun then requested a Terra / Max subagent to draft an
+original story directly, using Last Call's compact viability as the reference.
+The resulting [working draft, The Last Projection](2026-10-30-first-h5-story.md),
+has two characters, one room, two decision screens and three complete endings.
+Root checked routing and assembly practicality and retained the first draft.
+No product implementation or media generation has started. Next action: turn
+this draft into the bounded standalone-assembly implementation plan.
 
 ## First-milestone acceptance
 
@@ -23,8 +28,8 @@ Device targets and detailed story scope will be fixed in that plan.
 | Claim | Required evidence | Fresh media | Status |
 |---|---|---|---|
 | Standalone browser game | A self-contained H5 folder/ZIP loads story, UI and media independently; complete its routes with Plotloom unavailable and verify no Plotloom/API/key dependency | Retained media for package development; story assets as production requires | Required; portable package still to be built |
-| Complete playable assembly | Start, play, choose, reach distinct authored endings, replay and resume through the delivered game; check correct asset bindings and basic loading/playback | Reuse unchanged assets; no quality rerolls | Required; story pending |
-| Designed game presentation | Inspect the actual game shell, title, choice boxes, control states and ending screens for a coherent theme, readable layout and usable interactions | No media-quality experiment needed | Required in the first iteration |
+| Complete playable assembly | Start, play, choose, reach distinct authored endings, replay and resume through the delivered game; check correct asset bindings and basic loading/playback | Reuse unchanged assets; no quality rerolls | Working story drafted; assembly pending |
+| Lightly designed MVP presentation | The title, choice boxes, controls and endings have simple consistent styling, readable layout and usable states; a little more than plain text boxes is enough | No media-quality experiment needed | Required; beauty/final polish is not a gate |
 | Video/audio creative quality | No perceptual inspection, listening, artistic grading or quality-based regeneration during this milestone; preserve known limitations honestly | No quality campaign | Explicitly deferred by owner |
 | Faithful production requests | Authored source compared with complete final requests and reference identities; intended differences explained | Provider-free by default for internal changes | Reuse existing request boundaries |
 | Foundation for later asset updates | Preserve the Plotloom source-to-game asset mapping and separate story/UI from physical asset files; avoid service URLs embedded as game dependencies | No extra media | Design now; full review-and-Apply workflow next iteration |
@@ -117,19 +122,21 @@ language do not establish voice, music or mix quality.
 
 ## First iteration: assembly and game presentation
 
-Start with **one complete original short interactive H5 game**. Use Last Call to
-bound the first release and Xuanwu Gate to guide world context, consequence
-explanations and later expansion. Proposed planning target: 3–5 minutes for a
-first route, two or three major decision points, three distinguishable endings,
-a small cast and few locations. Adjust those numbers after outlining so pacing
-and causal clarity govern the work. Wenjun has not yet selected these numbers
-or a genre; they are not fixed production quotas or budget grants.
+Start with **one complete original short interactive H5 game**, using
+[The Last Projection](2026-10-30-first-h5-story.md) as the working draft. Use
+Last Call to bound the first release and Xuanwu Gate to guide consequence
+explanations and later expansion. The draft needs two characters, one location,
+one or two decisions per route and three endings. Its rough 1–2 minute estimate
+depends on actual scene/read time; do not pad to the earlier tentative 3–5 minute
+proposal. Story text is a working draft, not a new runtime contract or grant.
 
 Give the player a themed entry, subtitles where authored, sound controls,
 designed untimed choices, ending screens, local resume and easy replay. Choices
 need intentional typography, spacing, colors, framing and hover/focus/pressed
 states. The title, player controls and endings should share that treatment.
-Polish can remain modest. Keep the design in the game UI, independently editable
+This is a viable prototype: simple consistent styling is sufficient, and neither
+visual beauty nor a polished story is an acceptance gate. Keep the design in the
+game UI, independently editable
 from the generated footage; it must not depend on asking a video model to draw
 working controls or exact choice text. A codex or chapter map is optional when
 the chosen story benefits.
@@ -213,9 +220,9 @@ another tracking/evaluation system.
 The initial reference-review proposal included unfamiliar-player comprehension
 and audiovisual creative review as first-milestone gates. Wenjun's subsequent
 direction replaces those gates with functional assembly and designed game UI.
-Perceptual video/audio inspection is deferred. The 3–5 minute/three-ending shape
-remains an assistant proposal, not an owner-selected quota. Historical benchmark
-observations above are unchanged.
+Perceptual video/audio inspection is deferred. The earlier tentative 3–5 minute
+shape is superseded by the compact working story; it was never an owner-selected
+quota. Historical benchmark observations above are unchanged.
 
 ## Relation to completed work
 

@@ -10,10 +10,14 @@ internal changes to request comparisons and retained-media functional journeys.
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
 for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
 records actual public playthroughs and the owner's refined milestone: a complete
-standalone browser game with designed UI, without video/audio quality inspection
-during the first build. Preserve source-to-asset bindings for next iteration's
+standalone browser MVP with lightly styled UI, without video/audio quality
+inspection during the first build. Viability is the bar; final beauty/story polish
+is not required. The owner-requested Terra / Max
+[working story, The Last Projection](2026-10-30-first-h5-story.md), is drafted:
+two characters, one location and three endings, with complete route mappings.
+Preserve source-to-asset bindings for next iteration's
 edit/regenerate/review/Apply workflow and record concrete Plotloom production
-friction. Story and size remain design decisions; production has not started.
+friction. The detailed assembly plan remains next; production has not started.
 The separately queued media-quality work is not a prerequisite for assembly.
 
 ## Completed project-language functional delivery
