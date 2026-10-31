@@ -1,6 +1,8 @@
-# ADR 0082 (proposed): Authored shot time versus reviewed playback time
+# ADR 0082 — Authored shot timing and H3 playback
 
-**Status:** Accepted for the bounded reviewed-playback-segment implementation, 2026-09-23. This authorizes synthetic-media contract work and an explicit creator-reviewed local derivative, not provider generation, source retiming, or creative/media acceptance. The original proposal text below remains the decision basis; its former open product choices are settled by the approval noted under “First slice.”
+**Accepted and implemented.** The 2026-10-31 amendment governs current H3 playback.
+The storyboard duration is a pacing target. Plotloom plays the complete selected
+take by default. [Implementation and verification](../roadmap/2026-10-31-whole-take-playback.md)
 
 ## Whole-take playback amendment (2026-10-31)
 
@@ -21,6 +23,10 @@ in the private build evidence.
 This supersedes the mandatory exact-duration window for ordinary new takes.
 Existing explicitly chosen edits and immutable request/selection evidence retain
 their meaning. Optional editing remains an explicit operation.
+
+The sections below record the earlier decisions. The 2026-09-23 approval
+covered synthetic-media contract work and explicitly reviewed local
+derivatives. Its exact-window requirement is historical for ordinary playback.
 
 ## Proposed follow-on: pacing-first timing and broader H3 inputs (2026-09-25)
 
