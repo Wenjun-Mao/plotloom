@@ -5,7 +5,7 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## First original H5 product: implementation paused
+## First original H5 product: implementation resumed
 
 Wenjun selected Choices of Xuanwu Gate and Elseworld's Last Call as benchmarks
 for **original games**. The [reference review and proposed first milestone](2026-10-30-first-real-game-benchmarks.md)
@@ -21,9 +21,10 @@ inspection globally across Plotloom, while preserving technical integrity,
 source bindings and dispatch authority. Review becomes optional, with truthful
 unreviewed selection and no project-specific exception. Preserve source-to-asset
 bindings for the later edit/regenerate/Apply workflow and record concrete
-production friction. The plan owns current status and acceptance. Wenjun paused
-implementation and requested checkout consolidation; the unfinished candidate is
-retained on local `main`, without qualification or activation. The
+production friction. The plan owns current status and acceptance. Wenjun resumed
+implementation after checkout consolidation. The director verified Relay delivery
+from the existing coordinator, which continues from the unfinished candidate on
+local `main`. The
 [consolidation receipt](../verification/2026-10-31-worktree-consolidation.md)
 records source/evidence retention and the separate qualified installation.
 The separately queued media-quality work is not a prerequisite for assembly.

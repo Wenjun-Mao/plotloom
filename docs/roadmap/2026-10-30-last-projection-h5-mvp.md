@@ -2,10 +2,12 @@
 
 ## Current status
 
-Updated: 2026-10-31. **Paused at Wenjun's explicit request.** The coordinator
-released source ownership to root for checkout consolidation; implementation,
-generation and qualification must not resume until Wenjun asks. The frozen
-candidate started from local `main` at `afc475b9` in
+Updated: 2026-10-31. **Implementation resumed under Relay Direct at Wenjun's
+request.** This director chat received the existing coordinator's genuine Stop
+report `H5-RESUME-0168082f` after its route was moved from the old chat to this
+one. Both use the normal `main` checkout. The coordinator owns source changes
+and qualification through final standalone delivery. The paused candidate
+started from local `main` at `afc475b9` in
 `/Users/wjmao/.codex/worktrees/b30f/plotloom`; checkpoint `af8998af` is now retained
 on `main` in `/Users/wjmao/projects/HU/plotloom`. The old checkout is removed;
 its evidence moved to `.local/retained-worktree-evidence/b30f/` in the normal
@@ -29,16 +31,11 @@ failed; its copy was adjusted, but the affected selector still needs a rerun.
 An isolated v5 persistence case passed. The later combined API run had no captured
 summary and remains unknown, not a pass. Generated frontend assets are not yet
 refreshed; no standalone product slice, generation or activation occurred.
-All extra development worktrees are archived and this chat now uses the normal
-`main` checkout. The implementation remains paused. On explicit resume, first
-verify that the existing coordinator and Relay
-completion hook still target this chat and the normal `main` checkout after
-worktree removal. Re-register and verify completion delivery if needed; reuse
-the paused coordinator when healthy, otherwise establish a replacement with the
-frozen candidate/evidence handoff before implementation. Do not assume the old
-hook survived relocation. Then continue the currentness, material adoption/readers,
-operator attribution and UI/guidance gaps from this frozen diff before the
-provider-free product slice. Do not treat the checkpoint on main as a release.
+At resumption, the coordinator confirmed `af8998af` is retained in `0168082f`
+and reported no outstanding H5 execution. Next, resolve the affected focused
+checks and currentness, material adoption/reader, actor and guidance gaps for a
+normal project. Exercise the first exported N00 → C01 → E01 → Restart journey
+on an isolated origin with retained media, before original-story production.
 Stop when the final standalone game, global optional-review behavior, required
 local qualification, activation, single recovery proof and scoped cleanup are
 complete, with evidence and material decisions ready for the owner's review.
