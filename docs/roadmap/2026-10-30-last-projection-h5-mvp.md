@@ -2,12 +2,16 @@
 
 ## Current status
 
-Updated: 2026-10-30. **Paused at Wenjun's explicit request.** The coordinator
+Updated: 2026-10-31. **Paused at Wenjun's explicit request.** The coordinator
 released source ownership to root for checkout consolidation; implementation,
 generation and qualification must not resume until Wenjun asks. The frozen
 candidate started from local `main` at `afc475b9` in
-`/Users/wjmao/.codex/worktrees/b30f/plotloom`; consolidation will retain it on
-`main` in `/Users/wjmao/projects/HU/plotloom`. Result: the
+`/Users/wjmao/.codex/worktrees/b30f/plotloom`; checkpoint `af8998af` is now retained
+on `main` in `/Users/wjmao/projects/HU/plotloom`. The old checkout is removed;
+its evidence moved to `.local/retained-worktree-evidence/b30f/` in the normal
+project. The running app uses the separate qualified installation described in
+the [consolidation receipt](../verification/2026-10-31-worktree-consolidation.md).
+Result: the
 [working story](2026-10-30-first-h5-story.md) and current boundaries are inspected;
 both independent plan reviews are complete and their justified finding is
 resolved. Wenjun has now explicitly authorized Relay Direct implementation E2E,
