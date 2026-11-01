@@ -97,7 +97,7 @@ export function CompletedClips({ projectId, disabled, onBatch, onOperator }: { p
     {publication && <p><a href={publication.gameUrl} target="_blank" rel="noreferrer">打开当前 V2 游戏</a> · <a href={publication.downloadUrl}>下载当前 V2</a></p>}
     <div className="video-batch-gallery">{completed.map(job => { const shot = snapshot(job).shot;
       const take = jobs.filter(item => snapshot(item).shot?.id === shot?.id).slice().reverse().findIndex(item => item.id === job.id) + 1;
-      const published = shot && publication?.slots[shot.id]?.sha256 === job.outputHash;
+      const published = shot && publication?.slots[shot.id]?.jobId === job.id && publication.slots[shot.id].sha256 === job.outputHash;
       const chosen = job.selected || (shot && publication?.nativeSelections?.[shot.id]?.jobId === job.id);
       return <article key={job.id} data-job-id={job.id}><h4>{shot?.sceneId} / {shot?.id} / 原片 {take}</h4>
         <p>{shot?.title} · {chosen ? job.current ? "当前选择" : "保留选择（来源已变化）" : "候选"}{published ? " · 已发布 V2" : ""} · {job.observed?.durationSeconds.toFixed(2)} 秒</p>

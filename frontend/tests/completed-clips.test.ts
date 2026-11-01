@@ -72,3 +72,18 @@ it("shows and freezes the exact continuity bundle before explicit Apply", async 
       expectedReceiptHash: publication.receiptHash, expectedSourceHash: publication.sourceHash });
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
 });
+
+it("keeps a byte-identical alternative as a distinct unselected candidate", async () => {
+  const old = { ...job("old", "ingested"), selected: true, outputHash: "same", snapshot: { shot: { id: "slot", sceneId: "scene" } } };
+  const alternative = { ...old, id: "alternative", selected: false };
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [alternative, old] });
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ receiptHash: "a", sourceHash: "b", slots: { slot: { jobId: "old", sha256: "same" } }, gameUrl: "/game", downloadUrl: "/download" }) }));
+  const host = document.createElement("div"), root = createRoot(host); document.body.append(host);
+  try {
+    await act(async () => root.render(createElement(CompletedClips, { projectId: "p", disabled: false, onBatch: vi.fn(), onOperator: vi.fn() })));
+    const candidate = host.querySelector('[data-job-id="alternative"]')!;
+    expect(candidate.textContent).toContain("候选"); expect(candidate.textContent).not.toContain("已发布 V2");
+    expect(candidate.textContent).toContain("应用到 V2 并重建");
+    expect(host.querySelector('[data-job-id="old"]')?.textContent).toContain("已发布 V2");
+  } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
+});
