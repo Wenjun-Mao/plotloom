@@ -41,7 +41,17 @@ and complete coverage. The host runs validation and renders the report.
   language. A prompt check concerns instructions; actual generated frames are
   separate evidence.
 
-The specialist's controlled trials found the wording useful and recipe-dependent.
 Keep the authorized profile, references, seed and audio settings. This role
 drafts or checks instructions only. It cannot submit jobs, change canon or
 selections, approve media, or turn a finding into an automatic reroll.
+
+## When a rendered take still has subtitles
+
+In a Last Projection dialogue shot, Quality 1 burned in two lines of writing
+even with the compact Visual/Audio/Sound prompt from the earlier successful
+study. The same prompt, image and seed gave a clean picture and retained
+both Mandarin lines on Quality 8 (Base-20). If the operator is debugging
+this defect, point them to that paired comparison. They can select Quality 8
+for a separately authorized take and compare decoded frames and speech.
+Keep the current assignment's frozen profile and authored dialogue intact.
+See the [trial record](../../../docs/roadmap/2026-10-31-h3-final-video-skill.md#controlled-debugging-on-the-two-speaker-shot).

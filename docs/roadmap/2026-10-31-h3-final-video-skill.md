@@ -2,23 +2,99 @@
 
 ## Current status
 
-The two-shot live trial on the installed `543df21c` is complete. Both
-replacement takes contain burned-in subtitles. Both gateway prompts matched
-their independently checked directions. The comparison game uses both new
-takes immediately before the first choice. They failed the picture-quality
-criterion and the installed project retained its original selections.
+The bounded subtitle investigation is complete. Both previously failing shots
+have Quality 8 replacements with clean sampled pictures and all three intended
+Mandarin cues recovered by unprompted speech recognition. The operator-tested
+comparison game places both before the first choice. The other 13 clips match
+the original game. The first Quality 1 trial remains a recorded failure.
+Root owned the three serial debug renders (29 requested seconds), local
+evidence and comparison delivery. The original H3 specialist independently
+reviewed the diagnosis and operator guidance. Quality 8 remains opt-in.
 
 | Claim | Evidence required | Fresh media | Status |
 |---|---|---|---|
+| Debug the failure | Same-shot controlled renders with decoded picture and spoken-cue comparison | Yes, existing outputs could not predict a changed prompt or recipe's effect | Both fixed-seed pairs passed the scoped picture and speech criteria on Quality 8 |
 | Final video workers receive the repo skill | Both draft and independent check use the exact hash-verified skill in native task input | No | Passed through the real supervisor assignment boundary |
 | Submitted prompt matches the policy | Offline multipart capture for dialogue, silent shots, intentional lettering, message treatment and reference bindings | No | Passed golden capture, omission controls and 15 retained request replays |
 | Existing story remains usable | Retained request audit and selected project restore/export with no regeneration | No | Passed supported restore and byte-identical export of all 15 selected clips |
 | Frozen dispatch and provenance remain valid | Stale new dispatch refusal and known-prediction reconciliation | No | Passed focused authority and fidelity regressions |
 | Local qualification | Full local gate on the stable source candidate | No | Passed `full` on `543df21c` |
 | Installed runtime applies the rule | Quiescence, exact revision and protected-state comparison | No | Passed both installed worker roles, all 15 compiler comparisons and data preservation |
-| Live generation | Two checked single-shot requests through the installed workbench and owner's H3 gateway | Yes | Passed, two successful jobs and 20 requested seconds |
-| Generated picture and dialogue | Compare original and new MP4 frames and verify spoken cue content | Yes | Both failed visual inspection. Local speech recognition recovered all three lines. Direct listening and voice-quality review were unavailable. |
-| Playable replacement | Play both new takes in context and verify the other 13 media hashes | Reuse trial outputs | Passed in the separate comparison game in WebKit and Chromium |
+| Initial Quality 1 generation | Two checked single-shot requests through the installed workbench and owner's H3 gateway | Yes | Passed, two successful jobs and 20 requested seconds |
+| Initial Quality 1 picture and dialogue | Compare original and new MP4 frames and verify spoken cue content | Yes | Both failed visual inspection. Local speech recognition recovered all three lines. |
+| Playable Quality 8 replacements | Play both new takes in context and verify the other 13 media hashes | Reuse debug outputs | Passed in the separate comparison game in WebKit and Chromium |
+
+## Controlled debugging on the two-speaker shot
+
+The original H3 specialist compared the failed requests, reference frames,
+historical prompts and installed encoder. Both reference frames are free of
+subtitles. In the failed `n00-s3-c4` take, part of the lower line resembles
+the English performance note “Point out responsibility”. The gateway passes
+one prompt to the H3 image-to-video node and one conditioning stream to
+`BasicGuider`. The encoder recognizes the dialogue tag. Neither the tag nor
+the headings provide a separate negative prompt or an isolated audio input.
+
+The historical landscape success used a much shorter Visual/Audio/Sound
+prompt and the same V1.2 Turbo four-step Euler recipe as Quality 1 here.
+For an operator experiment, root used the supported owner gateway transport
+outside the production batch. The compact prompt removed both dialogue tags,
+the English performance note, the visual paraphrase of the lines and the
+duplicate exclusions. It kept both Mandarin lines in order, with a pictured
+speaker for each. The actual gateway start-image digest, seed, aspect policy,
+832×480 resolution, 9 requested seconds and 226 frames matched the failing
+take. The gateway's stored text and downloaded MP4 digest were checked.
+
+| Input on `n00-s3-c4` | Picture evidence | Speech evidence |
+|---|---|---|
+| Installed production prompt, Quality 1 | Burned-in two-line subtitles. Lower-frame OCR returned text on 123 of 226 frames. | Local ASR recovered both lines. |
+| Compact historical prompt shape, Quality 1 | Burned-in two-line subtitles again. Lower-frame OCR returned text on 117 of 226 frames. | Local ASR again recovered both lines. |
+| Identical compact prompt, Quality 8 | No subtitles visible in samples taken four times per second. Lower-frame OCR found text on zero of 226 frames. | Local ASR recovered both lines in order. |
+
+The compact test shows that the long prompt and the quoted English direction
+are unnecessary for the defect to occur on this shot. It cannot establish
+whether any single wording change altered the risk. The OCR count records
+frames with detections in the lower 45% of the picture. Visual inspection
+establishes that the marks are baked into the video.
+
+For the last pair, the gateway's frozen execution snapshots differ only in
+quality and recipe. Quality 8 is the Base-20 recipe with no Turbo LoRA. The
+result isolates the complete recipe difference for this pair. It does not
+isolate step count, sampler or any other individual setting. The specialist
+independently checked both requests, transcripts, OCR results and the two
+Quality 8 contact sheets. Quality 1 took 97 seconds of gateway generation
+time and Quality 8 took 380 seconds. Queue waits are excluded.
+
+### Confirmation on the handover shot
+
+For `n00-s3-c3`, root used the exact production prompt that had failed on
+Quality 1, including its dialogue tag. The input image and all controls
+apart from quality/recipe matched. The Quality 1 video had visible subtitles
+and OCR detections on 154 of 277 frames. The Quality 8 video had clean
+full-frame samples and zero lower-frame detections across all 277 frames.
+Unprompted Mandarin ASR recovered the complete handover line in each.
+Generation took 138 seconds and 504 seconds, respectively. No direct listening,
+voice-quality or general creative acceptance is claimed. The two-speaker
+shot's original long production prompt was not tried at Quality 8.
+[Paired prompt, input and output hashes, compact prompt and transcripts](../verification/supporting/2026-10-31-h3-subtitle-debug.json).
+
+The comparison build at `Downloads/plotloom-the-last-projection-2026-10-31/h3-subtitle-debug/`
+contains the two Quality 8 MP4s. The other 13 videos, player code and
+branching choices matched the original. Both new takes played to completion
+in WebKit and Chromium, then the first choice led into the next branch.
+Project selections stayed intact. Root stopped after the second shot
+confirmed the practical recipe choice. No pronunciation change was needed.
+
+The repo skill adds operator troubleshooting advice only. The author, model,
+compiler and operator retain their existing responsibilities. The 15 retained
+multipart comparisons reproduced the prior receipt byte for byte. The skill
+structure validator and 34 focused native-assignment, request and I2VA
+regressions passed. Full qualification on the executable implementation
+remains the earlier `543df21c` result. Exact debug receipts, all-frame
+OCR observations and browser logs are in `.local/h3-final-skill/debug/`.
+The new operator note is on local main. The installed workbench still uses
+`543df21c` and already offers Quality 8. At closeout its database recorded
+a submitted video in a running batch and another batch awaiting review.
+The operator left that checkout and its active execution pins in place.
 
 ## Two-shot live replacement trial
 

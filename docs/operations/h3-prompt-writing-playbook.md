@@ -40,6 +40,15 @@ prompt for two dialogue shots at their original Quality 1 settings. Both new
 MP4s still contained burned-in subtitles. Inspect the generated picture before
 selecting a replacement intended to fix this defect. [Two-shot trial](../roadmap/2026-10-31-h3-final-video-skill.md#two-shot-live-replacement-trial)
 
+When investigating that specific failure, compare the sampling profile as
+well as the prompt. On the two-speaker shot, the compact prompt still produced
+subtitles at Quality 1. An operator-selected Quality 8 take with the exact
+same text, image, seed and duration kept both spoken lines and had no visible
+subtitles. Its generation took about 6 minutes 20 seconds versus 1 minute
+37 seconds on Quality 1. Select the profile explicitly for any new take and
+compare its picture and speech when the task calls for a subtitle fix.
+[Paired renders](../roadmap/2026-10-31-h3-final-video-skill.md#controlled-debugging-on-the-two-speaker-shot)
+
 ## Ownership and review workflow
 
 1. Start from the current accepted shot, resolved dialogue, visible cast,
