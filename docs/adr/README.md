@@ -197,3 +197,7 @@ scene assembly, logical player memory and explicit atomic Apply contract.
 [ADR 0232](0232-corrected-source-text-batch-successor.md) records an explicit
 corrected-source text successor that preserves cancelled UNKNOWN evidence and
 freezes the prospective execution envelope before fresh authorization.
+
+[ADR 0233](0233-explicit-h3-speaker-identity-bindings.md) makes the model-owned
+pictured speaker aliases explicit while preserving compiler-owned cue labels,
+order and original speech.

@@ -9,6 +9,15 @@ START and output readback. The baseline retains two completed routes/2-of-3
 endings after reload and a six-second logical `n00-s3-c4` save before Apply.
 Stale/wrong/incomplete proposals preserved the actual package and selections.
 
+Current fidelity reassessment: c4's independent check caught generic S1/S2
+labels without an explicit pictured identity mapping. The earlier three
+unselected requests share that ambiguity and are superseded, not reclassified
+as satisfying the stronger binding. ADR 0233 assigns the existing composition
+adaptation its complete frozen identity context. Next prove its correction
+through native English edit/check without media, clarify the pinned directions
+skill, then produce one source-correct 13-take chain with fresh actual frame
+inputs. No fourth final-chain H3 submission occurred. No beauty reroll loop.
+
 The next native draft was cancelled before H3 so its source could preserve
 shot 3's actual final hand arrangement. Cancellation retained text `UNKNOWN`
 with local stop. ADR 0232 adds an explicit corrected-source successor that
