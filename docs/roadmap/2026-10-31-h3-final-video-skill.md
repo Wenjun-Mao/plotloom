@@ -2,6 +2,22 @@
 
 ## Current status
 
+Use Quality 8 for new final H3 production. Plotloom already defaults to this
+profile. The directions skill owns prompt writing and checking. Generation
+continues on technical success. Investigate rendered media when an issue is
+reported, as described in [ADR 0226](../adr/0226-optional-generated-media-quality-review.md).
+
+| Claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| The production instructions reach both final-direction roles | Exact pinned skill at native draft and fidelity-check handoff, stale pin refused | None | Passed both assignment checks and mismatched-hash refusals |
+| A normal Plotloom request uses Quality 8 and preserves authored dialogue | Existing backend-default and offline final-request capture tests | None | Passed catalog default and complete Quality 8 request capture |
+
+Five focused cases passed locally using the existing disposable fixtures.
+Root verified the source-checkout handoff. The installed checkout is still
+on `543df21c`.
+
+## Historical trials and qualification
+
 The lower-quality investigation is complete. Tone-marked Pinyin eliminated
 visible subtitles in the two-speaker test at Qualities 1, 2 and 3. Both
 Mandarin lines were recognized in order. On a longer Quality 1 line the
@@ -16,7 +32,8 @@ comparison game places both before the first choice. The other 13 clips match
 the original game. The first Quality 1 trial remains a recorded failure.
 Root owned the three serial debug renders (29 requested seconds), local
 evidence and comparison delivery. The original H3 specialist independently
-reviewed the diagnosis and operator guidance. Quality 8 remains opt-in.
+reviewed the diagnosis and operator guidance. At that point the investigation
+recommended Quality 8 as an operator-selected remedy.
 
 | Claim | Evidence required | Fresh media | Status |
 |---|---|---|---|
@@ -81,7 +98,7 @@ hand despite the hold direction.
 The specialist stopped after six serial renders and 56 requested seconds.
 Root independently verified the gateway records and reviewed the original
 dialogue corpus. The normal compiler continues to insert verbatim authored
-dialogue. The repo skill records the diagnostic finding for operators.
+dialogue. At the time, the repo skill recorded the finding for operators.
 Private receipts are in `.local/h3-final-skill/lower-quality/` and
 `.local/h3-final-skill/q1-corpus/`. No deployment was needed for this study.
 [Matched controls, prompt substitutions, transcripts and corpus results](../verification/supporting/2026-10-31-h3-lower-quality-subtitles.json).
@@ -146,7 +163,7 @@ in WebKit and Chromium, then the first choice led into the next branch.
 Project selections stayed intact. Root stopped after the second shot
 confirmed the practical recipe choice. No pronunciation change was needed.
 
-The repo skill adds operator troubleshooting advice only. The author, model,
+At this checkpoint the repo skill added operator troubleshooting advice. The author, model,
 compiler and operator retain their existing responsibilities. The 15 retained
 multipart comparisons reproduced the prior receipt byte for byte. The skill
 structure validator and 34 focused native-assignment, request and I2VA

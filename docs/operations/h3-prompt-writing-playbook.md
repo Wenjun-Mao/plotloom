@@ -18,12 +18,17 @@ recording a new contract.
 
 ## Current final H3 skill
 
-For final Plotloom video production, the native draft and independent
+Use Quality 8 for new final Plotloom video production. The native draft and independent
 fidelity-check workers receive the exact pinned [H3 directions skill](../../.agents/skills/plotloom-video-directions-specialist/SKILL.md).
 Trusted code compiles the visual exclusion and audio-only instruction into
 the prompt before it is checked and authorized. A sign on a door or a chosen
 phone-message treatment can retain exact authored text. Dialogue belongs in
 the audio track. The H5 player displays its own captions and choices.
+
+### Troubleshooting a reported subtitle defect
+
+Distinguish lettering in an input reference, writing generated inside the MP4,
+and captions displayed by the player. Record only what was actually observed.
 
 The specialist's [landscape study](../verification/2026-09-19-h3-prompt-robustness-study.md)
 reported no subtitles in the six audio-only/no-text renders and a subtitle
@@ -85,10 +90,6 @@ are gateway choices and are outside the Plotloom workbench catalog.
    dialogue block, sound roles, and exact duration/profile. The preview hash
    and current source hash must match at job preparation. Preparation freezes
    the prompt; dispatch is a separate action.
-6. When inspecting an actual result, distinguish unwanted lettering already in
-   a reference, writing generated inside the MP4, and player-rendered captions.
-   Record only the frames or audio actually reviewed. Quality observations
-   remain optional under [ADR 0226](../adr/0226-optional-generated-media-quality-review.md).
 
 ### Annotated opening-shot example (generated, audiovisual review pending)
 
@@ -230,19 +231,17 @@ Historical failed jobs and the independent trial remain unchanged. The owner
 now prioritizes a usable E2E workflow with acceptable media; final-film polish
 and new sound acceptance remain separate reviews.
 
-## Quality choice: development versus production review
+## Historical quality comparison
 
 On 2026-09-25 the director clarified that earlier visual defects were mainly
 shaking: intermittent in their quality 1/2/3 tests and largely resolved with
 quality 8. This is director-reported experience, not a controlled Plotloom
 comparison and not proof that every earlier defect has the same cause.
-Use quality 1 for fast development evaluation; prefer quality 8 for production
-review once integrated and qualified. Neither setting confers creative acceptance.
+The director used quality 1 for fast development evaluation and preferred
+quality 8 for production review once integrated and qualified.
 The gateway guide identifies quality 8 as Base-20 without Turbo LoRA; quality
 and resolution are separate controls. The gateway advertises qualities 1, 2,
-3, and 8; Plotloom's reviewed adapter currently admits 1 and 8. Quality 8
-remains an explicit reviewed job choice, not a runtime-default change or
-creative acceptance.
+3, and 8. Plotloom's adapter currently offers 1 and 8 and defaults to 8.
 Keep quality/seed/prompt/images/duration in every receipt. A different quality,
 longer take and new boundary design together test the new workflow, not an
 isolated quality-effect hypothesis. Do not add anti-shaking prompt instructions

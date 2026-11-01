@@ -16,9 +16,7 @@ In the opening, A-Lan still has her hand on Xu Wei’s. Only on the “hear her 
 
 ## 3. Keep dialogue out of the generated picture
 
-Give H3 the authored words as speech. The standalone player displays captions and choice labels. Keep any writing the story actually calls for, such as a sign, on its specified object. To check a suspected burn-in, open the MP4 outside the player and inspect the picture while the characters speak. Check the spoken words separately against the script. [Final H3 directions skill](../../.agents/skills/plotloom-video-directions-specialist/SKILL.md)
-
-If a Quality 1 take burns in subtitles, try the same shot at Quality 8 with the same prompt, keyframe and seed. That produced clean pictures on both tested shots and speech recognition recovered all three Mandarin cues. Selecting a quality changes the sampling recipe. Plotloom still sends the original dialogue. Tone-marked Pinyin cleared the two-speaker shot at Qualities 1, 2 and 3 in gateway experiments, but a longer Quality 1 line failed the exact-speech check. [Matched H3 trials](../roadmap/2026-10-31-h3-final-video-skill.md#lower-quality-investigation)
+Use Quality 8 for final H3 clips. Give H3 the exact authored words as speech and place intentional writing, such as a sign, on its specified object. The standalone player displays captions and choice labels. Once the clip is technically usable, continue production. [Final H3 directions skill](../../.agents/skills/plotloom-video-directions-specialist/SKILL.md)
 
 ## 4. Put choices on the frame where the action stops
 
