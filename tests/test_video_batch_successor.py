@@ -79,7 +79,7 @@ def corrected(env, *, change_source=True):
             'idempotency_key':'corrected-source','expected_selection_revision':store.media.visual_selection_revision(pid)})})
         return CorrectedSourceSuccessor(commandId=uuid4(),predecessorBatchId=old['id'],expectedRevision=old['revision'],
             predecessorJobId=env['attempt'].job_id,predecessorAttemptId=env['attempt'].attempt_id,
-            expectedSourceHash=stable_hash(source_binding(store)),setup=setup)
+            expectedSourceHash=stable_hash(source_binding(store)),expectedExecutionProfileHash=env['service'].registry.codex_exec_profile().profile_hash,setup=setup)
 
 
 def rows(env):
@@ -143,7 +143,7 @@ def test_production_authorization_cannot_use_this_successor(tmp_path):
     with closing(storage.projects.open(pid)) as store:
         command=CorrectedSourceSuccessor(commandId=uuid4(),predecessorBatchId=stopped['id'],expectedRevision=stopped['revision'],
             predecessorJobId=data['attempt']['jobId'],predecessorAttemptId=data['attempt']['attemptId'],
-            expectedSourceHash=stable_hash(source_binding(store)),setup=BatchSetup.model_validate(stopped['manifest']['setup']))
+            expectedSourceHash=stable_hash(source_binding(store)),expectedExecutionProfileHash=service.registry.codex_exec_profile().profile_hash,setup=BatchSetup.model_validate(stopped['manifest']['setup']))
     with pytest.raises(InvalidTransitionError,match='unstarted'):
         service.corrected_source_successor(pid,command)
     assert service.current(pid)['id']==stopped['id'] and not provider.submits
@@ -225,3 +225,43 @@ def test_fresh_native_draft_check_and_authorization_can_prepare_its_own_job(canc
     linked=service.current(pid)
     assert len(linked['execution']['jobs'])==1 and not env['provider'].submits
     assert rows(env)[env['before']['id']]['execution']['draft']['attempt']==env['attempt'].model_dump(mode='json',by_alias=True)
+
+
+def test_source_validator_upgrade_keeps_model_and_instructions_frozen(cancelled):
+    env=cancelled;original=env['service'].registry.codex_exec_profile()
+    upgraded=original.model_copy(update={'validator_hash':'d'*64})
+    env['service'].registry.codex_exec_profile=lambda:upgraded
+    command=corrected(env);before=rows(env)
+    env['service'].step(env['pid'])
+    assert rows(env)==before  # no reblock, admission or attempted old-package rewrite
+    result=env['service'].corrected_source_successor(env['pid'],command)
+    assert result['execution']['correctedSourcePredecessor']['executionProfile']['validatorHash']=='d'*64
+    assert rows(env)[env['before']['id']]['execution']['draft']['attempt']==env['attempt'].model_dump(mode='json',by_alias=True)
+
+
+@pytest.mark.parametrize('change',[{'model':'another-model'},{'instruction_hash':'d'*64},{'max_text_processes':1}])
+def test_source_repair_cannot_change_execution_envelope(cancelled,change):
+    env=cancelled;profile=env['service'].registry.codex_exec_profile().model_copy(update=change)
+    env['service'].registry.codex_exec_profile=lambda:profile
+    command=corrected(env);before=rows(env)
+    with pytest.raises(InvalidTransitionError,match='profile or reservation'):
+        env['service'].corrected_source_successor(env['pid'],command)
+    assert rows(env)==before and not env['provider'].submits
+
+
+@pytest.mark.parametrize('checking',[False,True])
+def test_prospective_profile_drift_refuses_before_draft_or_check_write(cancelled,checking):
+    from plotloom.video_batch_directions import prepare_directions
+    env=cancelled;service=env['service'];current=service.corrected_source_successor(env['pid'],corrected(env))
+    if checking:
+        # Freeze the draft under the original profile, then simulate a source
+        # upgrade before its separate fidelity preparation.
+        with patch.object(CreativeHandoffExchange,'current_execution_pin',return_value=PIN):
+            current=service.draft(env['pid'],current['revision'])
+    upgraded=service.registry.codex_exec_profile().model_copy(update={'validator_hash':'e'*64})
+    service.registry.codex_exec_profile=lambda:upgraded
+    before=rows(env)
+    with closing(env['storage'].projects.open(env['pid'])) as store:
+        with pytest.raises(InvalidTransitionError,match='profile changed before directions'):
+            prepare_directions(store,service.registry,service.grants,current,checking=checking)
+    assert rows(env)==before and not env['provider'].submits

@@ -20,6 +20,7 @@ class CorrectedSourceSuccessor(CamelModel):
     predecessor_job_id: str = Field(min_length=1, max_length=64)
     predecessor_attempt_id: UUID
     expected_source_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    expected_execution_profile_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     setup: BatchSetup
 
 
@@ -35,6 +36,12 @@ def _settings(setup):
     single.pop("idempotencyKey", None)
     value["singleRequest"] = single
     return value
+
+
+def same_execution_envelope(before, after):
+    # A causal source repair changes the validator's complete Python-tree hash.
+    # It never grants a model, executable, instruction, permission or limit change.
+    return {k:v for k,v in before.items() if k != 'validatorHash'} == {k:v for k,v in after.items() if k != 'validatorHash'}
 
 
 def assert_corrected_manifest(original, manifest):
@@ -76,17 +83,19 @@ def _stopped_predecessor(service, view, command):
             or attempt.domain != "text" or attempt.reserved_image_outputs != 0 or attempt.image_budget_state != "none"):
         _refuse("requires the exact cancelled text-only UNKNOWN with no image reservation")
     profile = CodexExecProfile.model_validate(service.registry.codex_exec_profile())
+    if profile.profile_hash != command.expected_execution_profile_hash:
+        _refuse('prospective execution profile changed')
     for data in active:
         prior = CodexExecAttempt.model_validate(data["attempt"])
         if (prior.domain != "text" or prior.reserved_image_outputs or prior.image_budget_state != "none"
-                or data["profile"] != profile.model_dump(mode="json", by_alias=True)):
+                or not same_execution_envelope(data["profile"], profile.model_dump(mode="json", by_alias=True))):
             _refuse("native text profile or reservation changed")
         status = service.registry.codex_exec_status(prior.attempt_id)
         if (status.attempt != prior or not status.local_execution_stopped
                 or prior.state not in {"completed", "failed", "settled", "outcome_unknown"}
                 or prior.state == "outcome_unknown" and prior.attempt_id != attempt.attempt_id):
             _refuse("native host has not proved every exact text attempt stopped")
-    return attempt
+    return attempt, profile
 
 
 def create_successor(service, store, session, project_id, command):
@@ -104,7 +113,7 @@ def create_successor(service, store, session, project_id, command):
             or view["revision"] != command.expected_revision):
         _refuse("predecessor batch or revision changed")
     store.require_recovery_acknowledged()
-    attempt = _stopped_predecessor(service, view, command)
+    attempt, profile = _stopped_predecessor(service, view, command)
     if stable_hash(source_binding(store)) != command.expected_source_hash:
         _refuse("current corrected source changed")
     new_setup = command.setup.model_dump(mode="json", by_alias=True)
@@ -122,6 +131,7 @@ def create_successor(service, store, session, project_id, command):
     validate_manifest(store, service.require_video(), manifest, compiled=False)
     link = {"commandId": str(command.command_id), "requestHash": request_hash,
             "request": command.model_dump(mode="json", by_alias=True),
+            "executionProfile": profile.model_dump(mode="json", by_alias=True),
             "batchId": view["id"], "revision": view["revision"], "attempt": attempt.model_dump(mode="json", by_alias=True),
             "possiblePriorCost": True, "nativeLocalExecutionStopped": True,
             "oldSourceHash": old_targets[0]["sourceHash"], "newSourceHash": new_targets[0]["sourceHash"]}

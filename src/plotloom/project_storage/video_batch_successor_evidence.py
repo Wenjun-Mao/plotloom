@@ -19,8 +19,8 @@ def validate_successor_links(connection):
                 raise ValueError('corrected-source successor backlink changed')
         if not link:
             continue
-        from ..video_batch_successor import CorrectedSourceSuccessor, assert_corrected_manifest
-        from ..codex_exec_contracts import CodexExecAttempt
+        from ..video_batch_successor import CorrectedSourceSuccessor, assert_corrected_manifest, same_execution_envelope
+        from ..codex_exec_contracts import CodexExecAttempt, CodexExecProfile
         command = CorrectedSourceSuccessor.model_validate(link['request'])
         old = rows.get(str(command.predecessor_batch_id))
         if not old or old[1] != project_id or old[2] != 'cancelled':
@@ -46,6 +46,11 @@ def validate_successor_links(connection):
                 raise ValueError('corrected-source request identity belongs to another video job')
         attempt = CodexExecAttempt.model_validate(link['attempt'])
         active = [previous[key] for key in ('draft','fidelity') if previous.get(key)]
+        profile = CodexExecProfile.model_validate(link['executionProfile'])
+        if (profile.profile_hash != command.expected_execution_profile_hash
+                or any(not same_execution_envelope(data['profile'],link['executionProfile']) for data in active)
+                or any(execution[key]['profile'] != link['executionProfile'] for key in ('draft','fidelity') if execution.get(key))):
+            raise ValueError('corrected-source execution envelope changed')
         if (previous.get('authorizedManifestHash') or previous.get('jobs') or previous.get('segments')
                 or not active or active[-1]['attempt'] != link['attempt']
                 or attempt.state != 'outcome_unknown' or attempt.execution_failure != 'cancelled'

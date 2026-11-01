@@ -48,6 +48,9 @@ def prepare_directions(store, registry, grants, view, *, checking=False, retryin
         if not manual_command_id and used >= view["manifest"]["setup"].get("automaticRetryLimit", 0):
             raise InvalidTransitionError("directions automatic retry allowance is exhausted")
     profile = CodexExecProfile.model_validate(registry.codex_exec_profile())
+    predecessor = view['execution'].get('correctedSourcePredecessor')
+    if predecessor and predecessor['executionProfile'] != profile.model_dump(mode='json', by_alias=True):
+        raise InvalidTransitionError('corrected-source successor execution profile changed before directions preparation')
     exchange = store.creative_handoff_exchange()
     pin = exchange.current_execution_pin("video-directions")
     if retrying and (previous["pin"] != pin or previous["profile"] != profile.model_dump(mode="json", by_alias=True)):
@@ -121,6 +124,12 @@ def advance_directions(store, registry, grants, view, *, allow_admission=True, c
     attempt = CodexExecAttempt.model_validate(data["attempt"])
     profile = CodexExecProfile.model_validate(data["profile"])
     request = CreativeHandoffRequest.model_validate(data["request"])
+    if (view['state'] == 'cancelled' and attempt.domain == 'text'
+            and attempt.state == 'outcome_unknown' and attempt.execution_failure == 'cancelled'
+            and not attempt.reserved_image_outputs and data.get('localExecutionStopped')):
+        # Observation cannot revive a cancelled stopped UNKNOWN when source-code
+        # validation fingerprints change. A successor still needs fresh host proof.
+        return view
     if registry.codex_exec_profile() != profile:
         raise InvalidTransitionError("directions executor configuration changed; original attempt retained")
     grants.require(store, data.get("grantId", "draft-" + view["id"]), data["grantHash"])

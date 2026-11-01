@@ -13,9 +13,11 @@ The next native draft was cancelled before H3 so its source could preserve
 shot 3's actual final hand arrangement. Cancellation retained text `UNKNOWN`
 with local stop. ADR 0232 adds an explicit corrected-source successor that
 preserves that uncertainty/cost and requires fresh draft/check/Start. Independent
-Sol/High review findings are fixed; 18 focused successor contracts pass,
+Sol/High review findings are fixed; 24 focused successor contracts pass,
 including native fake-host preparation, competing commands, rollback and
-reopening. Native activation is next, followed by the remaining ten continuity
+reopening. The prospective execution profile allows only the causal validator
+fingerprint change, freezing every other execution setting; drift before draft
+or check refuses before persistence. Native activation is next, followed by the remaining ten continuity
 takes, real declared Apply, final ZIP/routes/restart. No fourth final-chain H3
 submission has occurred. Keep the same saved-game origin.
 

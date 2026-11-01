@@ -190,3 +190,10 @@ independent semantic/source evidence.
 [ADR 0230](0230-codex-production-authorization-operator.md) records an explicit
 Codex production operator separately from creator/QA authorization, preserving
 exact replay, dispatch, recovery and existing bounded QA safeguards.
+
+[ADR 0231](0231-v2-prototype-assembly-and-apply.md) records the V2 immutable
+scene assembly, logical player memory and explicit atomic Apply contract.
+
+[ADR 0232](0232-corrected-source-text-batch-successor.md) records an explicit
+corrected-source text successor that preserves cancelled UNKNOWN evidence and
+freezes the prospective execution envelope before fresh authorization.
