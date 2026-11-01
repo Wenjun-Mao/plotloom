@@ -10,7 +10,7 @@ Decision history, delivery scope and executed evidence remain separate.
 ## Creator guide
 
 - [中文创作者手册](creator/manual.zh-CN.md) — 从故事想法、审阅和双结局分支，到镜头媒体选择与播放检查。
-- [Branching-game production playbook](creative-workflow/branching-game-production-playbook.md) — three practices from *The Last Projection* for taking an authored story to a playable standalone game.
+- [Branching-game production playbook](creative-workflow/branching-game-production-playbook.md) — practices from *The Last Projection* for taking an authored story to a playable standalone game.
 
 ## Current product contracts
 
