@@ -52,6 +52,16 @@ per field or more than 100 fields per shot. An unsupported/lossy requirement is 
 failure to correct at its owning source, not permission to adapt the story silently.
 A drafter's success claim is not a semantic check or authorization.
 
+In `shot.composition` English, explicitly bind each visible S label to the
+authored character ID/name and pictured identifying features from the complete
+frozen keyframe intent or resolved character context. This is faithful identity
+adaptation, not new canon. Labels reset per shot and follow first encounter of
+unique identities among nonempty cues; repeated identities reuse their label.
+Match the compiler's speaker/voice-over identity order. S1 never implies C01.
+Keep voice fields voice-only, preserve off-screen status, and do not guess from
+screen position or invent absent identifying context. These aliases must not be
+drawn as text. See ADR 0233; an unsupported binding fails before authorization.
+
 ## Checker role: source.operation = fidelity-check
 
 This is a separate native invocation with original sources, complete candidate
@@ -63,6 +73,8 @@ Check actions, identities, positions, sound_roles, negation, completeness,
 exact_text and creative_discretion. Check the compiled prompt as well as the
 translation: omitted constraints, wrong roles or invented decisions reject the
 candidate even when each English field is grammatical and schema-valid.
+Verify every S-label alias against the full frozen identity context and the
+complete compiled prompt, including repeated and off-screen identities.
 
 Return `{"version":"video-directions.fidelity.v1","targets":[{"shotId":"...",
 "sourceHash":"...","candidateHash":"...","compiledPromptSha256":"...",

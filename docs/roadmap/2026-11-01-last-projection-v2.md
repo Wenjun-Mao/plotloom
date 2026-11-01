@@ -4,43 +4,34 @@
 
 Updated 2026-11-01, America/Toronto. Execution owner: Codex task
 `01a19575-c336-7c30-b7c3-d08913f4140d`, sole source and qualification owner.
-Three final Q8 takes are retained and unselected, with exact gateway request,
-START and output readback. The baseline retains two completed routes/2-of-3
-endings after reload and a six-second logical `n00-s3-c4` save before Apply.
-Stale/wrong/incomplete proposals preserved the actual package and selections.
+The baseline game retains two completed routes/2-of-3 endings after reload and
+a six-second logical `n00-s3-c4` save before Apply. Real stale/wrong/incomplete
+proposals preserved the actual package and selections. Completed candidates
+arrived inline and native controls played/scrubbed them without navigation.
 
-Current fidelity reassessment: c4's independent check caught generic S1/S2
-labels without an explicit pictured identity mapping. The earlier three
-unselected requests share that ambiguity and are superseded, not reclassified
-as satisfying the stronger binding. ADR 0233 assigns the existing composition
-adaptation its complete frozen identity context. Next prove its correction
-through native English edit/check without media, clarify the pinned directions
-skill, then produce one source-correct 13-take chain with fresh actual frame
-inputs. No fourth final-chain H3 submission occurred. No beauty reroll loop.
+Current fidelity checkpoint: native English edit/check resolved an ambiguous
+S1/S2 speaker mapping without media. ADR 0233 and the pinned directions skill
+now make complete frozen pictured-identity aliases explicit. Three earlier Q8
+continuity candidates are retained as superseded evidence; their requests were
+not retroactively upgraded. The next action is real selected-take Regenerate,
+then one fresh source-correct 13-take chain using actual predecessor final PNGs,
+explicit alias checks and independent full-prompt fidelity before each Start.
+No beauty reroll loop. Final Apply, rebuilt ZIP, all routes and owner restart
+remain pending. The current package and saved progress stay in place.
 
-The next native draft was cancelled before H3 so its source could preserve
-shot 3's actual final hand arrangement. Cancellation retained text `UNKNOWN`
-with local stop. ADR 0232 adds an explicit corrected-source successor that
-preserves that uncertainty/cost and requires fresh draft/check/Start. Independent
-Sol/High review findings are fixed; 24 focused successor contracts pass,
-including native fake-host preparation, competing commands, rollback and
-reopening. The prospective execution profile allows only the causal validator
-fingerprint change, freezing every other execution setting; drift before draft
-or check refuses before persistence. Native activation is next, followed by the remaining ten continuity
-takes, real declared Apply, final ZIP/routes/restart. No fourth final-chain H3
-submission has occurred. Keep the same saved-game origin.
+The demonstrated cancelled-text UNKNOWN blocker has an independently reviewed
+explicit corrected-source successor (ADR 0232), exercised on the real instance.
+Its exact UNKNOWN and possible cost remain intact. Twenty-four focused owner
+contracts pass; selected recovery/replacement regressions passed (47), and prompt/
+fidelity checks passed (40). Quick's 1,724 frontend tests, both types and identical
+asset trees remain unchanged evidence. No full/CI/push or owner personal creative
+acceptance is claimed. Stop at the playable V2 folder/ZIP, separate working
+creator/game addresses, a local-main checkpoint and an honest handoff.
 
-Existing unchanged evidence: quick passed all 1,724 frontend tests and both type
-checks; deterministic asset SHA-256 trees match. Media-quality finding: new shot
-2 contains embedded subtitles despite the exact audio-only prompt. It is
-retained as a scoped quality limitation; the plan excludes extra beauty takes.
-No owner personal creative acceptance is claimed. Stop at the playable V2
-folder/ZIP, working separate creator/game addresses, scoped local-main checkpoint
-and an honest handoff.
-
-| Repair claim | Required evidence | Fresh media | Status |
+| Claim | Required evidence | Fresh media | Status |
 |---|---|---|---|
-| Corrected source can leave one cancelled pre-H3 text draft behind safely | Exact predecessor CAS/native local-stop proof, immutable UNKNOWN/cost link, same settings/budgets/backend, fresh identity/authorization, refusal and reopening tests | None for contract checks; resume only the approved chain | Provider-free checks and independent review passed; native activation pending |
+| Corrected source safely leaves one cancelled pre-H3 text draft behind | Exact native stopped identity/CAS, immutable UNKNOWN/cost, frozen settings/backend/prospective envelope, fresh authorization, refusal/reopen tests | None for contract checks | Passed provider-free and real native successor creation; no old attempt replay |
+| Explicit pictured speaker aliases resolve the request gap | Existing English composition edit and independent complete compiled-prompt check; new final requests use the clarified pin | None for correction proof; actual final chain uses fresh references | Provider-free native edit/check passed; 40 prompt/fidelity checks passed; final media pending |
 
 ## Intended experience
 

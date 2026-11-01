@@ -30,6 +30,16 @@ and complete coverage. The host runs validation and renders the report.
   In the compiled prompt, look for the explicit instruction to keep speech in
   the audio track and prohibit dialogue-derived overlays. Preserve on-screen and
   off-screen speakers, cue order and intentional silence.
+- Bind speaker labels explicitly in the existing English `shot.composition`
+  field. Labels reset each shot: number unique identities by first encounter
+  among nonempty dialogue cues, matching the compiler; repeated identities keep
+  their label. Never assume S1 is C01. Bind each visible S label to its authored
+  character ID/name and discriminating pictured features from the complete frozen
+  keyframe intent or resolved character context. These aliases are instructions,
+  never writing to draw in the picture. Keep voice fields voice-only, and keep
+  off-screen speakers off-screen. Do not infer identity from screen position or
+  invent missing context. The checker verifies every alias against the complete
+  compiled prompt; insufficient identity context must fail before handoff.
 - The first frame and any selected end frame condition the picture. Preserve
   their bindings. If the frozen source shows conflicting lettering, identify
   the reference. Its ID alone cannot establish what it shows. Player
