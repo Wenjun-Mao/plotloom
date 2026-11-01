@@ -1,0 +1,245 @@
+{
+  "scope": "Last Projection lower-quality Mandarin subtitle investigation, 2026-10-31",
+  "newRenders": 6,
+  "requestedSeconds": 56,
+  "runtime": "Owner H3 gateway. Plotloom workbench exposes Qualities 1 and 8.",
+  "visualMethod": "New takes sampled full-frame at 4 fps and scanned with Apple Vision OCR in the lower 45% of every frame. Counts below are frames with one or more detections.",
+  "speechMethod": "Local Whisper small, Mandarin language, no supplied transcript. No independent listening verdict.",
+  "comparisons": [
+    {
+      "shot": "n00-s3-c4",
+      "baselinePromptKind": "compact",
+      "inputSha256": "0e4bc483bdb40511d5c7a9450cad525fba0bb0149d6260f12e6efbb8f87cb7fc",
+      "seed": "4433825919846515280",
+      "resolution": "832x480",
+      "fps": 24,
+      "aspectPolicy": "contain_pad",
+      "requestedSeconds": 9,
+      "frames": 226,
+      "originalCues": [
+        "你的名字也会留在记录里。",
+        "我知道。你能先听我解释吗？"
+      ],
+      "experimentalCues": [
+        "Nǐ de míngzi yě huì liú zài jìlù lǐ。",
+        "Wǒ zhīdào。Nǐ néng xiān tīng wǒ jiěshì ma？"
+      ],
+      "hanziPromptSha256": "8ca60e2caedc65f0b63e0fa1135036c68a25a34d47699e3bf25f229d06d0a1ac",
+      "pinyinPromptSha256": "04491c582a6033a0258ebd6b6133f9f20f2c76967f646310e4fc4a89dc362077",
+      "retainedQuality1Hanzi": {
+        "outputSha256": "b4eead5f84d2cbba5a22418b4e0237632adcbf4cd4dde8a6dcd8f7238715433a",
+        "lowerFrameOcrDetections": 117,
+        "generationMs": 96770
+      },
+      "newTakes": [
+        {
+          "quality": 1,
+          "recipe": "lightx2v_fl2va_turbo4_v1_2",
+          "spokenRepresentation": "Pinyin",
+          "outputSha256": "44c1d6d2adb9adaf68aa21213695b65fbbeed10c9ff9ff5221eb8ce300650906",
+          "generationMs": 107429,
+          "lowerFrameOcrDetections": 0,
+          "unpromptedAsr": [
+            "你的名字也会留在纪录里",
+            "我知道",
+            "你能先听我解释吗"
+          ]
+        },
+        {
+          "quality": 2,
+          "recipe": "lightx2v_fl2va_turbo4_v1_0",
+          "spokenRepresentation": "Hanzi",
+          "outputSha256": "3710800a317f4a426cfa7ed699e1eac880b9a5f2b578da7e16468d340f94d229",
+          "generationMs": 107246,
+          "lowerFrameOcrDetections": 111,
+          "unpromptedAsr": [
+            "你的名字也會留在記錄裏",
+            "我知道",
+            "你能先聽我解釋嗎"
+          ]
+        },
+        {
+          "quality": 2,
+          "recipe": "lightx2v_fl2va_turbo4_v1_0",
+          "spokenRepresentation": "Pinyin",
+          "outputSha256": "f5459d15244716acdb9ad3ed158a4ef97d358724a47b46eebec236018fbe6d4c",
+          "generationMs": 106983,
+          "lowerFrameOcrDetections": 0,
+          "unpromptedAsr": [
+            "你的名字也會留在記錄裏",
+            "我知道",
+            "你能先聽我解釋嗎"
+          ]
+        },
+        {
+          "quality": 3,
+          "recipe": "lightx2v_fl2va_turbo8_v1_0",
+          "spokenRepresentation": "Hanzi",
+          "outputSha256": "674d00456779e7bf2c4c5865af4a1f22496bd743f45a8de975e9304c8dae7713",
+          "generationMs": 176216,
+          "lowerFrameOcrDetections": 105,
+          "unpromptedAsr": [
+            "你的名字也会留在记录里",
+            "我知道",
+            "你能先听我解释吗"
+          ]
+        },
+        {
+          "quality": 3,
+          "recipe": "lightx2v_fl2va_turbo8_v1_0",
+          "spokenRepresentation": "Pinyin",
+          "outputSha256": "9105ac009d2ad7c8f652d313778d9e7456aac5881925a6ed534d9c048cb93fb1",
+          "generationMs": 176560,
+          "lowerFrameOcrDetections": 0,
+          "unpromptedAsr": [
+            "你的名字也会留在纪录里",
+            "我知道",
+            "你能先听我解释吗"
+          ]
+        }
+      ]
+    },
+    {
+      "shot": "n00-s3-c3",
+      "baselinePromptKind": "checked_production",
+      "inputSha256": "b62a50b306bf308e6b8a4c8531e33ce1109b6297da6a7f45cc2a0294dde54892",
+      "seed": "5980719615687449394",
+      "resolution": "832x480",
+      "fps": 24,
+      "aspectPolicy": "contain_pad",
+      "requestedSeconds": 11,
+      "frames": 277,
+      "originalCues": [
+        "明早新馆主就来接收了。你把卡和更正说明放进交接袋，他们就会知道真相。"
+      ],
+      "experimentalCues": [
+        "Míngzǎo xīn guǎnzhǔ jiù lái jiēshōu le。Nǐ bǎ kǎ hé gēngzhèng shuōmíng fàng jìn jiāojiē dài，tāmen jiù huì zhīdào zhēnxiàng。"
+      ],
+      "hanziPromptSha256": "a37beae9cd26a91280e3a80769d085014cab316c98ff27a012b3ab47f6a75c2e",
+      "pinyinPromptSha256": "48407305538daf9123bb227bba44c8f5ea25c5746a406b782be725af72fbdfc4",
+      "retainedQuality1Hanzi": {
+        "outputSha256": "4436ba4903658eab8201db665ffab66b1c416d2acd46dd358dcb71416f323c84",
+        "lowerFrameOcrDetections": 154,
+        "generationMs": 137601
+      },
+      "newTakes": [
+        {
+          "quality": 1,
+          "recipe": "lightx2v_fl2va_turbo4_v1_2",
+          "spokenRepresentation": "Pinyin",
+          "outputSha256": "d591ebc5ed776f5eb59d79163120236f762cd654516cafa55ad235a75eb9d8a1",
+          "generationMs": 137965,
+          "lowerFrameOcrDetections": 0,
+          "unpromptedAsr": [
+            "明早 新館主就來接收了",
+            "你把卡和更正說明放進夾奧接待",
+            "他們就會自鬥真相"
+          ]
+        }
+      ]
+    }
+  ],
+  "originalSelectedDialogueTakes": {
+    "quality": 1,
+    "frames": 3754,
+    "method": "Content-address verified retained original MP4s. Apple Vision OCR of the lower 45% on every decoded frame. Visually checked a detection on every positive shot, and full-frame samples at 2 fps on all five zero-detection clips. Unprimed Mandarin Whisper small on the latter five, compared after traditional-to-simplified conversion and punctuation/whitespace normalization.",
+    "shots": [
+      {
+        "shot": "e01-s1-c1",
+        "outputSha256": "ed2a479711f5e542bbae466e9be0d4e146d4bda4b75ff9f8e963f01f45841b9e",
+        "frames": 226,
+        "lowerFrameOcrDetections": 0,
+        "subtitlesSeen": false,
+        "asrExactAfterNormalization": true
+      },
+      {
+        "shot": "e01-s1-c2",
+        "outputSha256": "f7b8d64353f4995dfd7ce094b2381733323dee4d552e08db70fd78624eaca24e",
+        "frames": 277,
+        "lowerFrameOcrDetections": 79,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "e02-s1-c1",
+        "outputSha256": "778453aeb9832a8f49584783004f63bc16221214952e2553bbb6de80f36fc534",
+        "frames": 243,
+        "lowerFrameOcrDetections": 0,
+        "subtitlesSeen": false,
+        "asrExactAfterNormalization": true
+      },
+      {
+        "shot": "e02-s1-c2",
+        "outputSha256": "00acef9d0f4bf5858e40a22db44ca6d6b46961143896c869c9fd998f8715e99a",
+        "frames": 226,
+        "lowerFrameOcrDetections": 0,
+        "subtitlesSeen": false,
+        "asrExactAfterNormalization": false
+      },
+      {
+        "shot": "e03-s1-c1",
+        "outputSha256": "46d2050fc8d802221ebad839c775f1129327426ec9fe16b332bd764f8a17600b",
+        "frames": 362,
+        "lowerFrameOcrDetections": 0,
+        "subtitlesSeen": false,
+        "asrExactAfterNormalization": false
+      },
+      {
+        "shot": "e03-s1-c2",
+        "outputSha256": "d5da6325863d9c01abbb3f931ee3684e91a4474abb99883fc46cfc799426d9ef",
+        "frames": 243,
+        "lowerFrameOcrDetections": 0,
+        "subtitlesSeen": false,
+        "asrExactAfterNormalization": false
+      },
+      {
+        "shot": "n00-s3-c1",
+        "outputSha256": "a9cc1a9b8cadbf087b06b8e7477398c3fae5638163c73bbbf7b984a2d76d89d5",
+        "frames": 362,
+        "lowerFrameOcrDetections": 206,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n00-s3-c2",
+        "outputSha256": "6f3fa3607d89a56fc9418b6c1e5f902c44042e33aa0b19ea9d2fbac76c8d7d5d",
+        "frames": 328,
+        "lowerFrameOcrDetections": 105,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n00-s3-c3",
+        "outputSha256": "d198e7c67d8a34d599d8bd81d1600f1d0da7c1cdacba90e266e9ce15c778b0fb",
+        "frames": 277,
+        "lowerFrameOcrDetections": 188,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n00-s3-c4",
+        "outputSha256": "c818e182046c54ce48f7c21c67318c631cf1c6555134ac775cfe99551582a851",
+        "frames": 226,
+        "lowerFrameOcrDetections": 138,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n10-s1-c1",
+        "outputSha256": "825b80cf226c4ee07f2ff190efc775d9861fcf01e681e49c562c0cc3f74a2a0e",
+        "frames": 328,
+        "lowerFrameOcrDetections": 134,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n10-s1-c2",
+        "outputSha256": "86b4d8f6a25c73286039190fa2e68348e9569fb8753b30c74f16342120dd4181",
+        "frames": 328,
+        "lowerFrameOcrDetections": 228,
+        "subtitlesSeen": true
+      },
+      {
+        "shot": "n10-s1-c3",
+        "outputSha256": "86173b583116a036eea439eb70a0475565c270dcbee35f8a7416b03631afb5b0",
+        "frames": 328,
+        "lowerFrameOcrDetections": 250,
+        "subtitlesSeen": true
+      }
+    ]
+  }
+}

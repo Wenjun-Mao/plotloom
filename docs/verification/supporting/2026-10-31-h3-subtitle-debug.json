@@ -1,0 +1,65 @@
+{
+  "scope": "Last Projection controlled H3 subtitle diagnosis, 2026-10-31",
+  "sampling": "Full-frame visual samples at 4 fps. Apple Vision text recognition on the lower 45% of every frame. Counts are frames with at least one text detection.",
+  "comparedGatewayExecutionSnapshotDifferences": [
+    "quality",
+    "recipe"
+  ],
+  "pairs": [
+    {
+      "shot": "n00-s3-c4",
+      "promptKind": "compact",
+      "promptSha256": "8ca60e2caedc65f0b63e0fa1135036c68a25a34d47699e3bf25f229d06d0a1ac",
+      "inputSha256": "0e4bc483bdb40511d5c7a9450cad525fba0bb0149d6260f12e6efbb8f87cb7fc",
+      "seed": "4433825919846515280",
+      "resolution": "832x480",
+      "aspectPolicy": "contain_pad",
+      "requestedSeconds": 9,
+      "fps": 24,
+      "frameCount": 226,
+      "quality1": {
+        "outputSha256": "b4eead5f84d2cbba5a22418b4e0237632adcbf4cd4dde8a6dcd8f7238715433a",
+        "lowerFrameOcrDetections": 117,
+        "generationMs": 96770
+      },
+      "quality8": {
+        "outputSha256": "6edfbe738ba3a37ea6f12a3b8b8199543aec46072e263624d0e986830dc33301",
+        "lowerFrameOcrDetections": 0,
+        "generationMs": 380090,
+        "unpromptedAsr": [
+          "你的名字也会留在记录里",
+          "我知道",
+          "你能先听我解释吗"
+        ]
+      },
+      "pairedPrompt": "Visual: A static medium two-shot in the lamplit cinema projection room. The bob-haired woman holds the memory card beside the open handover bag. The woman in the olive jacket rests her hand over hers. They stay at the table throughout. The frame contains no written language, captions, subtitles, titles, lower thirds, signage, interface text, or typography.\nAudio: The bob-haired woman says the following line aloud in Mandarin in a clear, slightly dry voice: “你的名字也会留在记录里。” The woman in the olive jacket then replies aloud in a warm, slightly husky Mandarin voice: “我知道。你能先听我解释吗？” The dialogue exists only in the audio track; do not render the words visually.\nSound: N/A."
+    },
+    {
+      "shot": "n00-s3-c3",
+      "promptKind": "checked_production",
+      "promptSha256": "a37beae9cd26a91280e3a80769d085014cab316c98ff27a012b3ab47f6a75c2e",
+      "inputSha256": "b62a50b306bf308e6b8a4c8531e33ce1109b6297da6a7f45cc2a0294dde54892",
+      "seed": "5980719615687449394",
+      "resolution": "832x480",
+      "aspectPolicy": "contain_pad",
+      "requestedSeconds": 11,
+      "fps": 24,
+      "frameCount": 277,
+      "quality1": {
+        "outputSha256": "4436ba4903658eab8201db665ffab66b1c416d2acd46dd358dcb71416f323c84",
+        "lowerFrameOcrDetections": 154,
+        "generationMs": 137601
+      },
+      "quality8": {
+        "outputSha256": "c662d9806f1645525b1c6655787b74efa523ee952889c4feddf0779f7e36b32c",
+        "lowerFrameOcrDetections": 0,
+        "generationMs": 504445,
+        "unpromptedAsr": [
+          "明早新館主就來接收了",
+          "你把卡和更正說明放進交接袋",
+          "他們就會知道真相"
+        ]
+      }
+    }
+  ]
+}
