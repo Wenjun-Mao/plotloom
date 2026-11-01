@@ -119,6 +119,8 @@ def assert_video_batch_contracts(connection):
                     assert_authorization_operator(project_id, json.loads(origin[1]), package.get("intentAuthorization"))
         from .video_batch_evidence import retained_batch_drafts
         retained_batch_drafts(connection)
+        from .video_batch_successor_evidence import validate_successor_links
+        validate_successor_links(connection)
         for identifier, batch_id, raw, digest in connection.execute("SELECT id,batch_id,receipt,receipt_hash FROM v2_video_batch_receipts"):
             receipt = json.loads(raw)
             batch = connection.execute("SELECT project_id,manifest,manifest_hash,execution FROM v2_video_batches WHERE id=?", (batch_id,)).fetchone()

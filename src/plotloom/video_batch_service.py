@@ -37,6 +37,12 @@ class VideoBatchService:
             return current
 
     @scoped_proofs
+    def corrected_source_successor(self, project_id, command):
+        from .video_batch_successor import create_successor
+        with closing(self.storage.projects.open(project_id)) as store, store.repository.manual_command() as session:
+            return create_successor(self, store, session, project_id, command)
+
+    @scoped_proofs
     def retry_execution(self, project_id, command):
         from .codex_exec_contracts import CodexExecAttempt
         from .generation_retry_policy import repeatable_failure

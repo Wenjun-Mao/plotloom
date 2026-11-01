@@ -45,6 +45,11 @@ def register_video_batch_runtime(app, storage, registry, video):
     def setup(project_id: str, body: BatchSetup):
         return service.setup(project_id, body)
 
+    from ..video_batch_successor import CorrectedSourceSuccessor
+    @app.post(prefix + "/corrected-source-successor")
+    def corrected_source_successor(project_id: str, body: CorrectedSourceSuccessor):
+        return service.corrected_source_successor(project_id, body)
+
     @app.post(prefix + "/replace-rejected")
     def replace_rejected(project_id: str, body: BatchRejectedReplacement):
         return service.replace_rejected(project_id, body)

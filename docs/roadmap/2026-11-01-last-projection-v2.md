@@ -4,20 +4,32 @@
 
 Updated 2026-11-01, America/Toronto. Execution owner: Codex task
 `01a19575-c336-7c30-b7c3-d08913f4140d`, sole source and qualification owner.
-Baseline: local main `3af4b39c`; reviewed implementation checkpoints through
-`8e0ebee0`. Result: two retained-media endings and routes survived reload;
-a journal fork saved six seconds into logical slot `n00-s3-c4` before Apply.
-Two real Q8 candidates appeared inline without navigation; the corrected root
-uses the opening's actual final PNG, and its gateway prompt/scalars/START/output
-readback is exact. It remains unselected. Real stale-source, wrong-job and
-incomplete-chain proposals refused publication and preserved native selections.
-Independent review findings are resolved. Quick passed all 1,724 frontend tests
-and both type checks; deterministic rebuilt asset trees are identical. Blocked
-rows: remaining twelve final-frame continuations, real declared Apply, final
-ZIP/routes/restart. Next action: complete the serial native chain, inspect its
-seams and perform the frozen Apply on the same saved-game origin. Stop at the playable V2
-folder/ZIP, separate working creator/game addresses, a scoped local-main
-checkpoint and an honest handoff for personal review.
+Three final Q8 takes are retained and unselected, with exact gateway request,
+START and output readback. The baseline retains two completed routes/2-of-3
+endings after reload and a six-second logical `n00-s3-c4` save before Apply.
+Stale/wrong/incomplete proposals preserved the actual package and selections.
+
+The next native draft was cancelled before H3 so its source could preserve
+shot 3's actual final hand arrangement. Cancellation retained text `UNKNOWN`
+with local stop. ADR 0232 adds an explicit corrected-source successor that
+preserves that uncertainty/cost and requires fresh draft/check/Start. Independent
+Sol/High review findings are fixed; 18 focused successor contracts pass,
+including native fake-host preparation, competing commands, rollback and
+reopening. Native activation is next, followed by the remaining ten continuity
+takes, real declared Apply, final ZIP/routes/restart. No fourth final-chain H3
+submission has occurred. Keep the same saved-game origin.
+
+Existing unchanged evidence: quick passed all 1,724 frontend tests and both type
+checks; deterministic asset SHA-256 trees match. Media-quality finding: new shot
+2 contains embedded subtitles despite the exact audio-only prompt. It is
+retained as a scoped quality limitation; the plan excludes extra beauty takes.
+No owner personal creative acceptance is claimed. Stop at the playable V2
+folder/ZIP, working separate creator/game addresses, scoped local-main checkpoint
+and an honest handoff.
+
+| Repair claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| Corrected source can leave one cancelled pre-H3 text draft behind safely | Exact predecessor CAS/native local-stop proof, immutable UNKNOWN/cost link, same settings/budgets/backend, fresh identity/authorization, refusal and reopening tests | None for contract checks; resume only the approved chain | Provider-free checks and independent review passed; native activation pending |
 
 ## Intended experience
 
