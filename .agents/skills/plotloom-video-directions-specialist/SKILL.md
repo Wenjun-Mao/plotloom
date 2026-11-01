@@ -55,3 +55,14 @@ this defect, point them to that paired comparison. They can select Quality 8
 for a separately authorized take and compare decoded frames and speech.
 Keep the current assignment's frozen profile and authored dialogue intact.
 See the [trial record](../../../docs/roadmap/2026-10-31-h3-final-video-skill.md#controlled-debugging-on-the-two-speaker-shot).
+
+For Mandarin, an operator experiment on the same two-speaker shot replaced
+only the two spoken strings with tone-marked Pinyin. Qualities 1, 2 and 3
+then produced subtitle-free samples with both lines recognized in order.
+Their matched Hanzi controls all produced subtitles. On a longer Quality 1
+line, Pinyin also cleared the picture, but ASR missed words recovered from
+the Hanzi control. This experiment used the gateway directly.
+In a normal draft or fidelity check, keep the original
+dialogue for the trusted compiler. Keep authored signs, messages and player
+text in their original script. See the [lower-quality findings](../../../docs/roadmap/2026-10-31-h3-final-video-skill.md#lower-quality-investigation)
+for the speech checks and limits of transfer to another shot.

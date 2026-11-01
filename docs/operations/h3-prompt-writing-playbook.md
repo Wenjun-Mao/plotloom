@@ -49,6 +49,17 @@ subtitles. Its generation took about 6 minutes 20 seconds versus 1 minute
 compare its picture and speech when the task calls for a subtitle fix.
 [Paired renders](../roadmap/2026-10-31-h3-final-video-skill.md#controlled-debugging-on-the-two-speaker-shot)
 
+For the faster recipes, a controlled Mandarin experiment changed only the
+written representation of the spoken lines. On one two-speaker shot, the
+Hanzi prompt produced subtitles on Qualities 1, 2 and 3. Tone-marked Pinyin
+produced clean sampled frames at all three levels, with both lines recovered
+in order by unprompted ASR. On the longer handover line, the Quality 1
+Pinyin take cleared the picture but failed the exact-speech check. The
+experiment used the direct gateway. Production directions still preserve
+the authored dialogue verbatim. Qualities 2 and 3
+are gateway choices and are outside the Plotloom workbench catalog.
+[Lower-quality trials](../roadmap/2026-10-31-h3-final-video-skill.md#lower-quality-investigation)
+
 ## Ownership and review workflow
 
 1. Start from the current accepted shot, resolved dialogue, visible cast,

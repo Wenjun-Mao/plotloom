@@ -2,7 +2,14 @@
 
 ## Current status
 
-The bounded subtitle investigation is complete. Both previously failing shots
+The lower-quality investigation is complete. Tone-marked Pinyin eliminated
+visible subtitles in the two-speaker test at Qualities 1, 2 and 3. Both
+Mandarin lines were recognized in order. On a longer Quality 1 line the
+picture also cleared, but the exact-speech check failed. Pinyin remains a
+shot-specific experimental technique. The workbench offers Qualities 1 and
+8. Qualities 2 and 3 are available through the gateway.
+
+The earlier Quality 8 investigation is complete. Both previously failing shots
 have Quality 8 replacements with clean sampled pictures and all three intended
 Mandarin cues recovered by unprompted speech recognition. The operator-tested
 comparison game places both before the first choice. The other 13 clips match
@@ -13,6 +20,7 @@ reviewed the diagnosis and operator guidance. Quality 8 remains opt-in.
 
 | Claim | Evidence required | Fresh media | Status |
 |---|---|---|---|
+| Lower-quality subtitle suppression | Fixed-shot comparison on Qualities 1, 2 and 3 with visual inspection and spoken-cue check, plus a second-shot test | Yes, six new takes | Picture passed on both shots. Short-line ASR supported both cues at all three levels. The longer Quality 1 line failed exact-speech confirmation. |
 | Debug the failure | Same-shot controlled renders with decoded picture and spoken-cue comparison | Yes, existing outputs could not predict a changed prompt or recipe's effect | Both fixed-seed pairs passed the scoped picture and speech criteria on Quality 8 |
 | Final video workers receive the repo skill | Both draft and independent check use the exact hash-verified skill in native task input | No | Passed through the real supervisor assignment boundary |
 | Submitted prompt matches the policy | Offline multipart capture for dialogue, silent shots, intentional lettering, message treatment and reference bindings | No | Passed golden capture, omission controls and 15 retained request replays |
@@ -23,6 +31,60 @@ reviewed the diagnosis and operator guidance. Quality 8 remains opt-in.
 | Initial Quality 1 generation | Two checked single-shot requests through the installed workbench and owner's H3 gateway | Yes | Passed, two successful jobs and 20 requested seconds |
 | Initial Quality 1 picture and dialogue | Compare original and new MP4 frames and verify spoken cue content | Yes | Both failed visual inspection. Local speech recognition recovered all three lines. |
 | Playable Quality 8 replacements | Play both new takes in context and verify the other 13 media hashes | Reuse debug outputs | Passed in the separate comparison game in WebKit and Chromium |
+
+## Lower-quality investigation
+
+The 13 original Quality 1 dialogue clips provide an in-project baseline.
+They used the production compiler before the new skill. Scanning the lower
+45% of all 3,754 decoded frames found text in eight clips. A full-frame
+sample from each confirmed visible subtitles. The other five had no
+detections, and no subtitles were visible in full-frame samples taken
+twice a second. All five came from ending scenes.
+
+For two of those five, `e01-s1-c1` and `e02-s1-c1`, unprompted Mandarin
+ASR recovered the complete authored line after normalizing punctuation and
+simplified/traditional spelling. The transcripts for the other three had
+differences or omissions. The examples prove that Quality 1 can render
+subtitle-free dialogue in this game. The shots have different actions,
+lines, keyframes and seeds, so their differences cannot identify a fix.
+
+The specialist then tested the spoken representation on `n00-s3-c4`.
+Each comparison held the complete recipe, keyframe, seed, geometry, duration
+and other prompt bytes fixed. Only the two dialogue strings changed. For
+example, `我知道。你能先听我解释吗？` became
+`Wǒ zhīdào。Nǐ néng xiān tīng wǒ jiěshì ma？`. The model still generated
+the speech itself. No dubbing, cropping or subtitle removal was applied.
+Root checked the frozen gateway settings, bound image, prompt and downloaded
+MP4 digests. The original Quality 1 Hanzi control was reused.
+
+| Gateway recipe | Frames with lower-frame OCR hits, Hanzi | Frames with lower-frame OCR hits, Pinyin | Unprompted Mandarin ASR on Pinyin take |
+|---|---:|---:|---|
+| Quality 1, V1.2 four-step Euler | 117/226 | 0/226 | Both cues in order, with homophonic 纪录 for 记录 |
+| Quality 2, V1.0 four-step res_multistep | 111/226 | 0/226 | Both cues in order, transcribed in traditional characters |
+| Quality 3, V1.0 eight-step Euler | 105/226 | 0/226 | Both cues in order, with homophonic 纪录 for 记录 |
+
+The full-frame samples at four frames per second show dialogue-derived
+lettering in the Hanzi controls and clean pictures in the three Pinyin
+takes. The OCR scan covered the bottom 45% of every decoded frame.
+The tests establish a representation effect on this shot at this seed.
+ASR cannot establish voice identity, prosody or performance quality.
+
+On `n00-s3-c3`, the specialist replaced only the spoken string inside the
+existing `<d>[Chinese]` tag in the failed production prompt. The Quality 1
+Hanzi control showed subtitles and 154/277 lower-frame detections. Pinyin
+produced clean samples and 0/277 detections. The control's transcript
+contained both 交接袋 and 知道真相. For the Pinyin take, the recognizer
+returned 夾奧接待 and 自鬥真相. Whether the difference came from pronunciation
+or recognition remains unresolved. The take also shows A Lan lifting her
+hand despite the hold direction.
+
+The specialist stopped after six serial renders and 56 requested seconds.
+Root independently verified the gateway records and reviewed the original
+dialogue corpus. The normal compiler continues to insert verbatim authored
+dialogue. The repo skill records the diagnostic finding for operators.
+Private receipts are in `.local/h3-final-skill/lower-quality/` and
+`.local/h3-final-skill/q1-corpus/`. No deployment was needed for this study.
+[Matched controls, prompt substitutions, transcripts and corpus results](../verification/supporting/2026-10-31-h3-lower-quality-subtitles.json).
 
 ## Controlled debugging on the two-speaker shot
 
