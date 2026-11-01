@@ -4,15 +4,18 @@
 
 Updated 2026-11-01, America/Toronto. Execution owner: Codex task
 `01a19575-c336-7c30-b7c3-d08913f4140d`, sole source and qualification owner.
-Baseline: local main `3af4b39c`; player and prototype source checkpoints at
-`f98a64eb` and `80ef0be9`. Result: expanded retained-media route reached its
-ending; the first real Q8 candidate arrived on the open inline page and
-played/scrubbed while the old native selection and actual served ZIP stayed
-unchanged. Independent review findings have focused fixes and regression
-coverage. Blocked rows: corrected opening-to-admission START and descendants,
-real declared Apply, final ZIP/routes/restart. Next action: checkpoint the
-reviewed player/Apply-proposal UI over unchanged media, bind the actual opening
-final PNG, and produce the serial delivery chain. Stop at the playable V2
+Baseline: local main `3af4b39c`; reviewed implementation checkpoints through
+`8e0ebee0`. Result: two retained-media endings and routes survived reload;
+a journal fork saved six seconds into logical slot `n00-s3-c4` before Apply.
+Two real Q8 candidates appeared inline without navigation; the corrected root
+uses the opening's actual final PNG, and its gateway prompt/scalars/START/output
+readback is exact. It remains unselected. Real stale-source, wrong-job and
+incomplete-chain proposals refused publication and preserved native selections.
+Independent review findings are resolved. Quick passed all 1,724 frontend tests
+and both type checks; deterministic rebuilt asset trees are identical. Blocked
+rows: remaining twelve final-frame continuations, real declared Apply, final
+ZIP/routes/restart. Next action: complete the serial native chain, inspect its
+seams and perform the frozen Apply on the same saved-game origin. Stop at the playable V2
 folder/ZIP, separate working creator/game addresses, a scoped local-main
 checkpoint and an honest handoff for personal review.
 

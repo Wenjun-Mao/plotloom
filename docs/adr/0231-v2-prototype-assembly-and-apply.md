@@ -13,7 +13,7 @@ an unchanged native revision. A new game/save identity preserves V1.
 The production page lists completed native jobs as they arrive. Playback is
 optional and changes no selection. Regenerate uses a fresh single-shot native
 request even for a currently selected shot; it does not force rejection or
-unselection. Optional source editing uses the ordinary storyboard editor. New
+unselection. Optional source editing uses the ordinary shot-presentation amendment editor. New
 video directions retain the pinned final-video skill and Quality 8.
 
 The task-installed Apply extension prepares the whole actual package first,
