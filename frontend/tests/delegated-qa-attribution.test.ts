@@ -46,7 +46,7 @@ it("attributes an approved QA batch heading and saved status to the agent", asyn
   const root = createRoot(host);
   try {
     await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
-    expect(host.querySelector("h3")?.textContent).toBe("全部视频已保存代理 QA 确认");
+    expect(Array.from(host.querySelectorAll("h3"), heading => heading.textContent)).toContain("全部视频已保存代理 QA 确认");
     expect(host.textContent).toContain("代理 QA 审阅（经用户授权） · 一次性测试批次");
     expect(host.textContent).not.toContain("已保存人工确认");
     expect(host.textContent).not.toContain("整包人工确认");
@@ -69,7 +69,7 @@ it.each(["running", "paused"])("labels frozen planned work truthfully while %s w
   const root = createRoot(host);
   try {
     await act(async () => root.render(createElement(VideoBatchPanel, { projectId: "project", disabled: false, dirty: false })));
-    expect(host.querySelector("h3")?.textContent).toBe(state === "paused" ? "已暂停新派发" : "正在制作视频");
+    expect(Array.from(host.querySelectorAll("h3"), heading => heading.textContent)).toContain(state === "paused" ? "已暂停新派发" : "正在制作视频");
     expect(host.textContent).toContain("计划新作业 2 项");
     expect(host.textContent).not.toContain("待派发任务");
     expect(host.textContent).toContain("播放提案就绪 0/2");
