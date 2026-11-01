@@ -101,3 +101,15 @@ it("distinguishes an unbound current delivered image from stale history", () => 
   expect(generatedCandidateState("old", jobs)).toBe("history");
   expect(generatedCandidateState("import", jobs)).toBe("imported");
 });
+
+it("opens the presentation amendment directly for the Regenerate edit link", async () => {
+  const originalUrl = window.location.href;
+  window.history.replaceState({}, "", "#shot-presentation-review");
+  const scroll = vi.spyOn(HTMLElement.prototype, "scrollIntoView").mockImplementation(() => {});
+  try {
+    await act(async () => root.render(panel()));
+    expect(host.querySelector<HTMLDetailsElement>("#shot-presentation-review")?.open).toBe(true);
+    expect(host.querySelector("textarea[aria-label='呈现调整 构图与首帧']")).not.toBeNull();
+    expect(scroll).toHaveBeenCalled();
+  } finally { window.history.replaceState({}, "", originalUrl); }
+});

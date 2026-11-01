@@ -214,6 +214,8 @@ function render() {
     actions.replaceChildren();
     if (node.ending) {
       archive = recordRoute(archive, path);
+      const updatedDiscovery = discovery();
+      archiveButton.textContent = `结局档案 ${updatedDiscovery.found}/${updatedDiscovery.total}`;
       try { localStorage.setItem(`${key}:archive`, JSON.stringify(archive)); } catch { storageUnavailable = true; showStorageNotice(); }
       actions.append(element("h2", node.ending.title), element("p", node.ending.text, "ending-text"));
       const decisions = journal(story, path).map(entry => entry.label);

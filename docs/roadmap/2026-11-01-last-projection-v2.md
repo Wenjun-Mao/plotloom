@@ -4,14 +4,17 @@
 
 Updated 2026-11-01, America/Toronto. Execution owner: Codex task
 `01a19575-c336-7c30-b7c3-d08913f4140d`, sole source and qualification owner.
-Baseline: local main `3af4b39c` plus preserved player WIP. Additional planning
-review complete; execution resumed. Last outcome: expanded retained-media route reached its ending; focused
-player/gallery and atomic-publication contracts pass. First Q8 take is in flight
-under its known identity; no downstream take is admitted yet. Blocked rows: expanded
-playable slice, selected-take authoring loop and continuity media. Next action:
-retain the first completion, correct the root START to the opening final PNG,
-then advance the serial continuity chain and explicit Apply proof. Stop at playable V2 folder/ZIP, separate creator and game
-addresses, scoped local checkpoint and honest personal-review handoff.
+Baseline: local main `3af4b39c`; player and prototype source checkpoints at
+`f98a64eb` and `80ef0be9`. Result: expanded retained-media route reached its
+ending; the first real Q8 candidate arrived on the open inline page and
+played/scrubbed while the old native selection and actual served ZIP stayed
+unchanged. Independent review findings have focused fixes and regression
+coverage. Blocked rows: corrected opening-to-admission START and descendants,
+real declared Apply, final ZIP/routes/restart. Next action: checkpoint the
+reviewed player/Apply-proposal UI over unchanged media, bind the actual opening
+final PNG, and produce the serial delivery chain. Stop at the playable V2
+folder/ZIP, separate working creator/game addresses, a scoped local-main
+checkpoint and an honest handoff for personal review.
 
 ## Intended experience
 
@@ -52,7 +55,7 @@ transition where the authored action or passage of time benefits.
 | Tails survive and scenes play continuously | Compare original frame ranges with assembled media; play reported cutoff examples to natural end; constituent audio and captions remain correctly placed, with no decision merged across a branch | Reuse full originals where unchanged | Pending |
 | Reported physical discontinuity is addressed | Classify every adjacent seam; every same-view continuous pair binds the preceding selected final frame as the next take's frozen start reference; inspect those seams in the assembled game and record the observed hand/prop state | Yes where new continuation input is needed | Pending |
 | New videos use the agreed generation path | Read back pinned skill in the final-directions assignment and complete actual submitted arguments, Quality 8 recipe and reference hashes; authored words preserved | Relevant new story/continuation takes | Pending |
-| Finished clips are playable as they arrive | Keep the production page open while two jobs finish and ingest; without a reload or shot-by-shot navigation, play/scrub either clip inline by scene/shot/take while other jobs remain incomplete. Confirm at least one real V2 completion appears on that page. | Exercise the two-completion case offline if useful; reuse actual V2 work for the live readback | Pending |
+| Finished clips are playable as they arrive | Keep the production page open while two jobs finish and ingest; without a reload or shot-by-shot navigation, play/scrub either clip inline by scene/shot/take while other jobs remain incomplete. Confirm at least one real V2 completion appears on that page. | Exercise the two-completion case offline if useful; reuse actual V2 work for the live readback | Passed: two-completion provider-free UI fixture and real Q8 arrival/play/native-controls scrub; `.local/last-projection-v2/evidence/real-inline-native-controls.json.txt` |
 | Regenerate and Apply is usable in the same view | Start from a currently selected take in a published V2 draft. Use the authoring controls to create an alternative with an actual direction edit; inspect the new Q8 candidate. Both the prior project selection and served game still use the prior take. Apply and download the rebuilt game with only the intended slot and declared continuity-dependent replacements/assembly changed. Inspect the post-Apply seam. | A planned V2 replacement covers the real path | Pending |
 | Media replacement preserves player progress | Save before Apply, replace with a different-duration take, reload/Continue the updated package at the same logical shot/decision with a bounded valid offset; retain journal and discovered endings | Reuse produced media | Pending |
 | Tomorrow's deliverable works independently | Unpack delivered ZIP outside the checkout, play every distinct authored path including both values of the early choice and their later callbacks, all three endings, reload/continue and fork; open local-file entry and local static HTTP, verify desktop/mobile layout, game audio settings and standalone relative media | Reuse produced media | Pending |
@@ -314,3 +317,18 @@ opening seam. Before the next root take, import the exact opening final PNG;
 that changed input answers the missing continuity row. No downstream media has
 yet been generated from the first candidate, so the correction is confined to
 the root. The Regenerate arrival proof will reuse this already admitted take.
+
+Independent source review of `80ef0be9` found three concrete issues. Apply now
+prepares a visible, hashed proposal freezing every selected descendant job ID;
+newer arrivals cannot silently change it. A published child with a still-matching
+START is retained instead of forcing unnecessary regeneration. The edit link
+opens the existing presentation amendment directly and describes re-reviewing
+the START keyframe. New focused tests cover declared candidate identities,
+unchanged-final-frame reuse and the direct editor entry.
+
+The first live Q8 candidate completed and appeared on the open production page
+at 05:30:37 UTC without navigation/reload. Native controls played it and scrubbed
+3.34 → 11.53 seconds. Its old selected pointer and actual downloaded baseline
+archive remained unchanged. It remains unselected pending the corrected root
+reference. The two-completion fixture passed separately; no claim is made that
+two live jobs had completed at that observation.

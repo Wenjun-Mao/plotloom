@@ -31,6 +31,7 @@ it("opens a route-only choice over the final video frame as soon as playback end
     expect([...choices].map(button => button.textContent)).toEqual(["Leave", "Stay"]);
     choices[1].click();
     expect(document.querySelector(".ending-text")?.textContent).toBe("You stayed.");
+    expect([...document.querySelectorAll("header button")].some(button => button.textContent === "结局档案 1/2")).toBe(true);
     const back = [...document.querySelectorAll("button")].find(button => button.textContent === "返回上个选择")!;
     back.click();
     expect(document.querySelector(".choice-stage video")?.getAttribute("src")).toBe("opening.mp4");

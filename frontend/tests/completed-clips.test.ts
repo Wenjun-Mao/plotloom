@@ -47,3 +47,28 @@ it("uses the visual revision for a selected-shot alternative and retains command
     expect(host.textContent).toContain("stale source");
   } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
 });
+
+it("shows and freezes the exact continuity bundle before explicit Apply", async () => {
+  vi.useFakeTimers();
+  const rootJob = job("root-job", "ingested");
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [rootJob] });
+  const publication = { receiptHash: "a".repeat(64), sourceHash: "b".repeat(64), slots: {}, nativeSelections: {}, gameUrl: "/game", downloadUrl: "/download" };
+  const proposal = { proposalHash: "c".repeat(64), expectedReceiptHash: publication.receiptHash, expectedSourceHash: publication.sourceHash, rootJobId: rootJob.id,
+    replacements: [{ slot: "root", jobId: rootJob.id, oldJobId: "old-root", oldSha256: "d".repeat(64), newSha256: "e".repeat(64), dependsOn: null },
+      { slot: "child", jobId: "declared-child", oldJobId: "old-child", oldSha256: "f".repeat(64), newSha256: "1".repeat(64), dependsOn: "root" }] };
+  const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith("/prototype-prepare-apply") ? proposal : publication }));
+  vi.stubGlobal("fetch", fetcher);
+  const host = document.createElement("div"), root = createRoot(host); document.body.append(host);
+  try {
+    await act(async () => root.render(createElement(CompletedClips, { projectId: "p", disabled: false, onBatch: vi.fn(), onOperator: vi.fn() })));
+    await act(async () => [...host.querySelectorAll("button")].find(b => b.textContent === "应用到 V2 并重建")!.click());
+    expect(host.textContent).toContain("declared-child");
+    expect(fetcher.mock.calls.some(([url]) => url.endsWith("/prototype-apply"))).toBe(false);
+    vi.mocked(plotloomApi.getVideoJobs).mockResolvedValue({ jobs: [rootJob, job("newer-child", "ingested")] });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    await act(async () => [...host.querySelectorAll("button")].find(b => b.textContent === "确认应用这些原片并重建")!.click());
+    const call = (fetcher.mock.calls as unknown as [string, RequestInit][]).find(([url]) => url.endsWith("/prototype-apply"))!;
+    expect(JSON.parse(call[1].body as string)).toMatchObject({ replacementJobs: [rootJob.id, "declared-child"], proposalHash: proposal.proposalHash,
+      expectedReceiptHash: publication.receiptHash, expectedSourceHash: publication.sourceHash });
+  } finally { await act(async () => root.unmount()); vi.unstubAllGlobals(); }
+});

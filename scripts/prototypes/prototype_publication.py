@@ -39,11 +39,16 @@ CONTINUITY = {'n00-s3-c1': 'n00-s1-c1', 'n00-s3-c2': 'n00-s3-c1', 'n00-s3-c3': '
               'e03-s1-c1': 'n10-s1-c3', 'e03-s1-c2': 'e03-s1-c1'}
 
 
-class Apply(CamelModel):
+class PrepareApply(CamelModel):
     expected_receipt_hash: str = Field(pattern=r'^[a-f0-9]{64}$')
     expected_source_hash: str = Field(pattern=r'^[a-f0-9]{64}$')
     job_id: str = Field(min_length=1, max_length=100)
     operator: CodexTaskAttribution | None = None
+
+
+class Apply(PrepareApply):
+    proposal_hash: str = Field(pattern=r'^[a-f0-9]{64}$')
+    replacement_jobs: list[str] = Field(min_length=1, max_length=64)
 
 
 def current(store):
@@ -75,8 +80,10 @@ def frame_hash(binding, cache):
     return digest(target.read_bytes())
 
 
-def replacement_bundle(root_job, jobs, bindings, cache):
+def replacement_bundle(root_job, jobs, bindings, cache, declared_job_ids=None):
     """Find the declared downstream chain; refuse missing/wrong-frame candidates."""
+    if declared_job_ids is not None and len(declared_job_ids) != len(set(declared_job_ids)):
+        raise InvalidTransitionError('replacement bundle contains duplicate job identities')
     chosen = {root_job['snapshot']['shot']['id']: root_job}
     changed = dict(bindings)
     pending = list(chosen)
@@ -86,7 +93,8 @@ def replacement_bundle(root_job, jobs, bindings, cache):
         if not path.exists():
             raise InvalidTransitionError('candidate full output was not retained')
         changed[slot] = {'path': str(path), 'sha256': job['outputHash'], 'probe': probe(path), 'jobId': job['id'],
-                         'snapshotHash': stable_hash(job['snapshot']), 'sourceKind': 'native-current-Q8-candidate'}
+                         'snapshotHash': stable_hash(job['snapshot']), 'sourceKind': 'native-current-Q8-candidate',
+                         'startFrameSha256': job['snapshot']['keyframe']['originalHash']}
         predecessor = CONTINUITY.get(slot)
         if predecessor and predecessor not in chosen and job['snapshot']['keyframe']['originalHash'] != frame_hash(changed[predecessor], cache):
             raise InvalidTransitionError(f'{slot}: START does not bind the currently published predecessor final frame')
@@ -94,12 +102,20 @@ def replacement_bundle(root_job, jobs, bindings, cache):
         for child, parent in CONTINUITY.items():
             if parent != slot:
                 continue
+            published = bindings[child]
+            prior_job = next((j for j in jobs if j['id'] == published.get('jobId')), None)
+            published_start = published.get('startFrameSha256') or (prior_job['snapshot']['keyframe']['originalHash'] if prior_job else None)
+            if published_start == expected:
+                continue
             matching = [j for j in jobs if j['snapshot']['shot']['id'] == child and j['current'] and j['state'] == 'ingested'
                         and j['snapshot']['keyframe']['originalHash'] == expected and j['snapshot']['request']['quality'] == 8
-                        and j['outputHash'] != bindings[child]['sha256']]
-            if not matching:
+                        and j['outputHash'] != published['sha256']
+                        and (declared_job_ids is None or j['id'] in declared_job_ids)]
+            if not matching or (declared_job_ids is not None and len(matching) != 1):
                 raise InvalidTransitionError(f'连续镜头尚未齐备：{child} 必须从 {slot} 新原片的实际末帧开始。当前游戏保持原样。')
             chosen[child] = matching[0]; pending.append(child)
+    if declared_job_ids is not None and set(declared_job_ids) != {job['id'] for job in chosen.values()}:
+        raise InvalidTransitionError('declared replacement bundle differs from the necessary exact continuity scope')
     return chosen, changed
 
 
@@ -130,25 +146,72 @@ def publish_baseline(storage, pid, root, presentation):
         return row.receipt_hash, receipt
 
 
-def apply_candidate(storage, pid, root, request):
+def refresh_player(storage, pid, root):
+    """Explicit local UI checkpoint over identical bindings, before media Apply QA."""
     with closing(storage.projects.open(pid)) as store:
         before_hash, before = current(store)
         repository = ProjectVideoRepository(store, storage.application)
+        selections = selection_identity(repository, pid)
+        if selections != before['nativeSelections']:
+            raise InvalidTransitionError('cannot refresh a package with divergent native selections')
         source = source_binding(store)
-        if before_hash != request.expected_receipt_hash or stable_hash(source) != request.expected_source_hash:
-            raise InvalidTransitionError('发布版本或当前来源已变化；请重新读取，当前游戏保持原样。')
-        jobs = repository.list_video_jobs(pid)
-        candidate = next((j for j in jobs if j['id'] == request.job_id), None)
-        if not candidate or candidate['state'] != 'ingested' or not candidate['current'] or candidate['snapshot']['request']['quality'] != 8:
-            raise InvalidTransitionError('Apply requires a current ingested Q8 candidate')
-        cache = root / 'cache'
-        for job in jobs:
-            if job['state'] == 'ingested' and job['current']:
-                data = store.artifacts.get(repository.get_video_output_storage(pid, job['id'])['uri'])
-                if digest(data) != job['outputHash']:
-                    raise InvalidTransitionError('candidate bytes changed')
-                (cache / (job['outputHash'] + '.mp4')).write_bytes(data)
-        chosen, bindings = replacement_bundle(candidate, jobs, before['bindings'], cache)
+        archive, receipt = assemble(before['source'], before['bindings'], root / 'cache', Path(__file__).resolve().parents[2] / 'src/plotloom/player_static')
+        if receipt['archiveHash'] == before['archiveHash']:
+            return before_hash, before
+        if receipt['story']['assetVersion'] != before['story']['assetVersion'] or receipt['story']['storyRevision'] != before['story']['storyRevision']:
+            raise InvalidTransitionError('UI checkpoint must not adopt different story or media')
+        receipt |= {'presentation': before['presentation'], 'nativeSelections': selections, 'sourceBinding': source,
+                    'continuity': CONTINUITY, 'continuityStatus': before['continuityStatus'], 'priorUiReceiptHash': before_hash}
+        with store.repository.manual_command() as session:
+            if current(store)[0] != before_hash or selection_identity(repository, pid) != selections or source_binding(store) != source:
+                raise InvalidTransitionError('UI checkpoint inputs changed')
+            receipt, row = inventory_row(store, receipt, archive); session.add(row)
+        return row.receipt_hash, receipt
+
+
+def collect_inputs(store, storage, pid, root, request):
+    before_hash, before = current(store)
+    repository = ProjectVideoRepository(store, storage.application)
+    source = source_binding(store)
+    if before_hash != request.expected_receipt_hash or stable_hash(source) != request.expected_source_hash:
+        raise InvalidTransitionError('发布版本或当前来源已变化；请重新读取，当前游戏保持原样。')
+    jobs = repository.list_video_jobs(pid)
+    candidate = next((j for j in jobs if j['id'] == request.job_id), None)
+    if not candidate or candidate['state'] != 'ingested' or not candidate['current'] or candidate['snapshot']['request']['quality'] != 8:
+        raise InvalidTransitionError('Apply requires a current ingested Q8 candidate')
+    cache = root / 'cache'
+    for job in jobs:
+        if job['state'] == 'ingested' and job['current']:
+            data = store.artifacts.get(repository.get_video_output_storage(pid, job['id'])['uri'])
+            if digest(data) != job['outputHash']:
+                raise InvalidTransitionError('candidate bytes changed')
+            (cache / (job['outputHash'] + '.mp4')).write_bytes(data)
+    return before_hash, before, repository, source, jobs, candidate, cache
+
+
+def bundle_proposal(before_hash, before, source, root_job, chosen):
+    return {'expectedReceiptHash': before_hash, 'expectedSourceHash': stable_hash(source), 'rootJobId': root_job['id'],
+            'replacements': [{'slot': slot, 'jobId': job['id'], 'oldJobId': before['bindings'][slot].get('jobId'),
+                              'oldSha256': before['bindings'][slot]['sha256'], 'newSha256': job['outputHash'],
+                              'startFrameSha256': job['snapshot']['keyframe']['originalHash'], 'dependsOn': CONTINUITY.get(slot)}
+                             for slot, job in sorted(chosen.items())]}
+
+
+def prepare_apply(storage, pid, root, request):
+    with closing(storage.projects.open(pid)) as store:
+        before_hash, before, repository, source, jobs, candidate, cache = collect_inputs(store, storage, pid, root, request)
+        chosen, _ = replacement_bundle(candidate, jobs, before['bindings'], cache)
+        proposal = bundle_proposal(before_hash, before, source, candidate, chosen)
+        return proposal | {'proposalHash': stable_hash(proposal)}
+
+
+def apply_candidate(storage, pid, root, request):
+    with closing(storage.projects.open(pid)) as store:
+        before_hash, before, repository, source, jobs, candidate, cache = collect_inputs(store, storage, pid, root, request)
+        chosen, bindings = replacement_bundle(candidate, jobs, before['bindings'], cache, request.replacement_jobs)
+        proposal = bundle_proposal(before_hash, before, source, candidate, chosen)
+        if stable_hash(proposal) != request.proposal_hash:
+            raise InvalidTransitionError('替换范围或原片身份已变化；请重新核对完整提案。')
         expected_selections = selection_identity(repository, pid)
         if expected_selections != before['nativeSelections']:
             raise InvalidTransitionError('项目选择与已发布版本不同；请先核对，当前游戏保持原样。')
@@ -157,7 +220,7 @@ def apply_candidate(storage, pid, root, request):
         archive, receipt = assemble(before['source'], bindings, cache, Path(__file__).resolve().parents[2] / 'src/plotloom/player_static')
         receipt |= {'presentation': before['presentation'], 'sourceBinding': source, 'continuity': CONTINUITY,
                     'continuityStatus': 'exact-final-frame-inputs', 'priorReceiptHash': before_hash,
-                    'changedSlots': sorted(chosen), 'operator': request.operator.model_dump(mode='json', by_alias=True) if request.operator else {'kind': 'unnamed_creator'}}
+                    'changedSlots': sorted(chosen), 'appliedProposal': proposal, 'operator': request.operator.model_dump(mode='json', by_alias=True) if request.operator else {'kind': 'unnamed_creator'}}
         from plotloom.human_confirmation_contracts import UnnamedCreatorConfirmation
         actor = request.operator or UnnamedCreatorConfirmation()
         with store.repository.manual_command() as session:
@@ -209,6 +272,15 @@ def register(app, storage, pid, root, operator_task=None):
             raise HTTPException(404)
         with closing(storage.projects.open(pid)) as store:
             return view(store)
+
+    @app.post('/api/v2/projects/{project_id}/prototype-prepare-apply')
+    def prepare(project_id: str, body: PrepareApply):
+        if project_id != pid:
+            raise HTTPException(404)
+        try:
+            return prepare_apply(storage, pid, root, body)
+        except (InvalidTransitionError, ValueError, OSError, subprocess.CalledProcessError) as error:
+            raise HTTPException(409, str(error)) from None
 
     @app.post('/api/v2/projects/{project_id}/prototype-apply')
     def apply(project_id: str, body: Apply):

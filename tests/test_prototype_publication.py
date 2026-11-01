@@ -85,7 +85,9 @@ def draft(tmp_path, takes, monkeypatch):
         jobs = service.video.jobs(store)
         candidate = next(j for j in jobs if j['id'] != old['id'])
         assert next(j for j in jobs if j['id'] == old['id'])['selected']
-    body = publication.Apply(expectedReceiptHash=before_hash, expectedSourceHash=stable_hash(current_source), jobId=candidate['id'], operator=ACTOR)
+    prepare = publication.PrepareApply(expectedReceiptHash=before_hash, expectedSourceHash=stable_hash(current_source), jobId=candidate['id'], operator=ACTOR)
+    proposal = publication.prepare_apply(storage, pid, root, prepare)
+    body = publication.Apply(**prepare.model_dump(), proposal_hash=proposal['proposalHash'], replacement_jobs=[item['jobId'] for item in proposal['replacements']])
     return storage, pid, root, body, before_hash, before, old, candidate
 
 
@@ -154,3 +156,36 @@ def test_scene_assembly_preserves_all_component_frames_and_slot_offsets(tmp_path
     assert scene['segments'][1]['dialogue'][0]['text'] == 'Second'
     assert receipt['story']['nodes'][1]['clips'] == []
     assert digest(archive) == receipt['archiveHash']
+
+
+def test_same_final_frame_keeps_a_correct_published_child(tmp_path, takes, monkeypatch):
+    monkeypatch.setattr(publication, 'CONTINUITY', {'child': 'root'})
+    cache = tmp_path / 'cache'; cache.mkdir()
+    variant = tmp_path / 'variant.mp4'
+    subprocess.run(['ffmpeg', '-v', 'error', '-i', str(takes[0]), '-c', 'copy', '-metadata', 'comment=new-take', '-y', str(variant)], check=True)
+    sha = digest(variant.read_bytes()); (cache / (sha + '.mp4')).write_bytes(variant.read_bytes())
+    before = {'path': str(takes[0]), 'sha256': digest(takes[0].read_bytes()), 'probe': probe(takes[0])}
+    end = publication.frame_hash(before, cache)
+    child_binding = {'path': str(takes[1]), 'sha256': digest(takes[1].read_bytes()), 'probe': probe(takes[1]), 'startFrameSha256': end, 'jobId': 'published-child'}
+    job = {'id': 'new-root', 'outputHash': sha, 'current': True, 'state': 'ingested', 'snapshot': {'shot': {'id': 'root'}, 'keyframe': {'originalHash': 'start'}, 'request': {'quality': 8}}}
+    chosen, changed = publication.replacement_bundle(job, [job], {'root': before, 'child': child_binding}, cache, ['new-root'])
+    assert list(chosen) == ['root'] and changed['child'] == child_binding
+    assert sha != before['sha256'] and publication.frame_hash(changed['root'], cache) == end
+
+
+def test_apply_uses_the_declared_descendant_even_if_a_newer_candidate_matches(tmp_path, takes, monkeypatch):
+    monkeypatch.setattr(publication, 'CONTINUITY', {'child': 'root'})
+    cache = tmp_path / 'cache'; cache.mkdir()
+    bindings = {name: {'path': str(path), 'sha256': digest(path.read_bytes()), 'probe': probe(path), 'startFrameSha256': '0' * 64} for name, path in zip(['root', 'child'], takes, strict=True)}
+    for path in takes:
+        (cache / (digest(path.read_bytes()) + '.mp4')).write_bytes(path.read_bytes())
+    root = {'id': 'root-take', 'outputHash': bindings['root']['sha256'], 'state': 'ingested', 'current': True,
+            'snapshot': {'shot': {'id': 'root'}, 'request': {'quality': 8}, 'keyframe': {'originalHash': 'start'}}}
+    end = publication.frame_hash(bindings['root'], cache)
+    def child(identifier):
+        return {'id': identifier, 'outputHash': bindings['root']['sha256'], 'state': 'ingested', 'current': True,
+                'snapshot': {'shot': {'id': 'child'}, 'request': {'quality': 8}, 'keyframe': {'originalHash': end}}}
+    chosen, _ = publication.replacement_bundle(root, [child('newer-arrival'), child('declared'), root], bindings, cache, ['root-take', 'declared'])
+    assert chosen['child']['id'] == 'declared'
+    with pytest.raises(InvalidTransitionError, match='duplicate'):
+        publication.replacement_bundle(root, [root], bindings, cache, ['root-take', 'root-take'])

@@ -1,5 +1,5 @@
 import { useReviewEditorDraft } from "../../authoring/ReviewDraftContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../../../api";
 import { Button, ErrorNotice, Field } from "../../../components";
 import type { ApprovalDecision } from "../../../types";
@@ -22,6 +22,14 @@ export function ShotPresentationReview({ projectId, shotId, approval, storyboard
   readOnly: boolean; onLoaded: (revision: number) => void; onSaved: () => Promise<void>;
   quiescence?: ProjectDraftQuiescence;
 }) {
+  const editor = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const reveal = () => {
+      if (window.location.hash === "#shot-presentation-review" && editor.current) { editor.current.open = true; editor.current.scrollIntoView({ block: "start" }); }
+    };
+    reveal(); window.addEventListener("hashchange", reveal);
+    return () => window.removeEventListener("hashchange", reveal);
+  }, [projectId, shotId]);
   const [state, setState] = useState<ShotPresentationState>();
   const [physical, setPhysical] = useState<PhysicalPresentation>();
   const [literals, setLiterals] = useState<LiteralSource[]>([]);
@@ -73,7 +81,7 @@ export function ShotPresentationReview({ projectId, shotId, approval, storyboard
     } catch (error) { setError(error instanceof Error ? error.message : "呈现审阅保存失败"); }
     finally { setBusy(false); }
   };
-  return <details className="workbench-support" data-testid="shot-presentation-review"><summary>镜头呈现调整{state?.decision ? ` · r${state.revision}` : ""}</summary>
+  return <details ref={editor} id="shot-presentation-review" className="workbench-support" data-testid="shot-presentation-review"><summary>镜头呈现调整{state?.decision ? ` · r${state.revision}` : ""}</summary>
     <p>保留原始剧本与已批准分镜。这里明确审阅此镜头的画面调整；保存后重新审核其关键帧，其他镜头不受影响。</p>
     {state && physical && <fieldset disabled={readOnly || working.stale || busy}>
       {!state.current && <p role="alert">来源已有变化，请重新核对后保存。</p>}

@@ -18,8 +18,11 @@ video directions retain the pinned final-video skill and Quality 8.
 
 The task-installed Apply extension prepares the whole actual package first,
 checks exact current native sources and prior publication/selection identities,
-and requires descendants whose frozen START hashes equal the predecessor full
-take's actual final PNG. Missing descendants leave Apply pending. Selection and
+and prepares a visible complete replacement proposal with exact job IDs and a
+proposal hash. Apply freezes that declared list; a newer arriving candidate
+cannot silently replace a declared descendant. A published child is retained
+when its frozen START still matches the replacement's actual final PNG; only
+affected descendants propagate. Missing descendants leave Apply pending. Selection and
 the immutable PlayerExport inventory row commit in one native project command;
 the live game resolves that committed row. No file pointer can advance ahead of
 the selections. Stale versions, changed bytes, wrong sources, rejected or
