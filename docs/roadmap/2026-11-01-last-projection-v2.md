@@ -8,7 +8,11 @@ overnight V2 delivery through Relay Direct, then requested modest story
 expansion and explicitly required the H3 skill and Quality 8 for new videos.
 The owner subsequently included both items in the local to-do: inline finished
 clip playback and regeneration with explicit Apply, in the same authoring view.
-Both attended planning reviews are complete. Next action is covered execution.
+The first two planning reviews and the requested additional review are
+complete. The worker held execution for that review, preserving three local
+player-source edits; its initial type check found a `findLast` library-target
+mismatch. No provider job or project restore had started. Next action is to
+resume from that checkpoint under the revised brief.
 Stop at a playable standalone V2 folder and ZIP, source checkpoint, observed
 playback evidence and an honest handoff for the owner's personal review.
 
@@ -18,7 +22,9 @@ Keep Xu Wei, A-Lan, the cinema handover and three endings. Expand the story
 with an earlier consequential choice, more personal context and a later
 response to what the player chose. Aim for roughly two to four minutes per
 route, guided by the story and actual media. This is a creative target.
-The player should encounter a meaningful action during the opening beat.
+The player should encounter a meaningful action during the opening beat,
+before the long explanatory conversation. Each option should change what
+happens or what the player learns in a later playable scene.
 
 The game has a coherent cinema/archive visual treatment and persistent
 chapter/scene context. The title describes the saved position. A choice
@@ -26,6 +32,13 @@ journal and ending collection make the player's actions visible. Finishing
 one route reveals its outcome and discovery count, with concealed other
 endings and a useful way to try an earlier decision. An alternate run
 preserves the prior completed route and discoveries.
+
+Use the cinema handover file as a working design direction. From the title
+and during play, the player can find the chapter, named save and discovered
+ending count. An ending records the actual decision in the player's words,
+for example “I sealed the evidence before A-Lan could explain.” A locked
+entry conceals its outcome. Revisiting the decision leaves the earlier
+route readable. The owner will judge the result by playing it.
 
 Continuous footage plays as assembled scenes with complete spoken tails.
 Same-view continuations inherit the preceding selected video's final frame
@@ -42,8 +55,8 @@ transition where the authored action or passage of time benefits.
 | Tails survive and scenes play continuously | Compare original frame ranges with assembled media; play reported cutoff examples to natural end; constituent audio and captions remain correctly placed, with no decision merged across a branch | Reuse full originals where unchanged | Pending |
 | Reported physical discontinuity is addressed | Classify every adjacent seam; every same-view continuous pair binds the preceding selected final frame as the next take's frozen start reference; inspect those seams in the assembled game and record the observed hand/prop state | Yes where new continuation input is needed | Pending |
 | New videos use the agreed generation path | Read back pinned skill in the final-directions assignment and complete actual submitted arguments, Quality 8 recipe and reference hashes; authored words preserved | Relevant new story/continuation takes | Pending |
-| Finished clips are playable as they arrive | Keep the production page open while two jobs finish and ingest, then play/scrub either clip inline, identified by scene/shot/take, while other jobs remain incomplete | Offline completion fixture, then read back real V2 results | Pending |
-| Regenerate and Apply is usable in the same view | From a finished clip, use the normal regenerate path with an option to edit source directions; produce a distinct source-bound Q8 take, keep the prior take active until Apply, then rebuild/download V2 with the intended slot and declared continuity-dependent replacements/assembly changed; inspect the post-Apply seam | One relevant new V2 take can also prove this path | Pending |
+| Finished clips are playable as they arrive | Keep the production page open while two jobs finish and ingest; without a reload or shot-by-shot navigation, play/scrub either clip inline by scene/shot/take while other jobs remain incomplete. Confirm at least one real V2 completion appears on that page. | Exercise the two-completion case offline if useful; reuse actual V2 work for the live readback | Pending |
+| Regenerate and Apply is usable in the same view | Start from a currently selected take in a published V2 draft. Use the authoring controls to create an alternative with an actual direction edit; inspect the new Q8 candidate. Both the prior project selection and served game still use the prior take. Apply and download the rebuilt game with only the intended slot and declared continuity-dependent replacements/assembly changed. Inspect the post-Apply seam. | A planned V2 replacement covers the real path | Pending |
 | Media replacement preserves player progress | Save before Apply, replace with a different-duration take, reload/Continue the updated package at the same logical shot/decision with a bounded valid offset; retain journal and discovered endings | Reuse produced media | Pending |
 | Tomorrow's deliverable works independently | Unpack delivered ZIP outside the checkout, play every distinct authored path including both values of the early choice and their later callbacks, all three endings, reload/continue and fork; open local-file entry and local static HTTP, verify desktop/mobile layout, game audio settings and standalone relative media | Reuse produced media | Pending |
 | Original work remains available | Original project/media, V1 game and saves preserved; V2 has its own game/save identity and a retained source/media/build map | No | Pending |
@@ -83,10 +96,17 @@ source fidelity, native technical eligibility, explicit selections and
 unknown-dispatch safety.
 
 Extend the existing production/media workbench for the two local to-do items.
+Open it through the retained V2 project's ordinary production page. Its clip
+list reads the project's actual completed jobs and selections.
 Reuse native completion/retrieval, H3 directions and existing regeneration,
 candidate-selection and export operations. Provide a clean list of completed
 clips with inline playback and an adjacent Regenerate entry. A separate editor
-can carry source changes. A new generation becomes a candidate. Explicit Apply
+can carry source changes. Start the proof from a take already used in the
+downloadable game. The current rejected-take successor control serves a
+different operation, and ordinary missing-shot setup skips selected takes.
+Use a fresh alternative request whose admission leaves the prior take's
+selection and disposition intact. When edit/regenerate produces a candidate,
+verify the player still serves the previously published build. Explicit Apply
 adopts the source-bound replacement and publishes a new standalone package.
 Keep the prior package available until a replacement build succeeds. Verify
 that stale source, a wrong shot or a failed build cannot replace the current
@@ -98,9 +118,25 @@ identity so different media duration or assembly does not move the player to
 another shot; a position beyond a shorter take can clamp within that take.
 Scope this to the current V2 export/replacement workflow.
 
+Use the current published receipt, actual edited source and fresh candidate
+identity to prepare the new build before advancing its published reference.
+Reuse ordinary stale-revision and replay protection. If publication fails,
+the chosen take and package visible to the author must agree on which build
+is current. Preserve truthful dependency revisions when source directions
+change. A media swap can preserve logical story/slot identity without
+pretending its source or asset version stayed the same.
+
 Deliver a separate folder and ZIP under
 `~/Downloads/plotloom-the-last-projection-v2/` with an obvious launch file and
-brief play instructions. A local HTTP launch may accompany the file entry.
+brief play instructions. Supply a stable local game address for Continue
+across Apply. Browser saves belong to an origin; opening successive ZIPs
+from different paths or ports is not a valid before/after save check.
+Also verify the standalone file entry outside the checkout. Supply a separate
+authoring address, project entry and a restart command which reopens the
+correct V2 project and serves its latest successful package. Verify those
+instructions from the delivered state after cleanup: reopen the retained
+project, play and scrub its real takes, and open the current game. These are
+the two entry points for the owner's review tomorrow.
 Keep V1 accessible. Preserve a scoped local-main source commit and update
 this plan's current status with the game link and executed evidence.
 
@@ -123,11 +159,24 @@ this plan's current status with the game link and executed evidence.
    assembly path at this checkpoint, preserving native currentness guards,
    before broad new-media production.
    Establish the inline clip list early and use it to view the actual V2
-   results. A representative story/continuity replacement should exercise the
-   regenerate-to-candidate path and explicit Apply rather than become an extra
-   render solely for testing the new control.
-3. Restore full unchanged takes. Assemble contiguous material between decision
-   points. Preserve constituent shot offsets for captions, resume and source
+   results. Keep a playable internal draft available as the publication
+   baseline for Regenerate and Apply. A representative planned V2 replacement
+   should exercise the author-facing path. Compare the exact baseline and
+   downloaded replacement packages against their binding maps.
+3. Restore full unchanged takes. Check the existing subtitle-incident record
+   when choosing among retained takes. The eight known affected dialogue shots
+   and the two retained Quality 8 replacements are in the October 31 H3
+   record. Freeze the actual full-take hashes selected for V2, including the
+   adopted replacement identity where one exists. Compare them with the
+   delivered build. Prefer a suitable replacement when its authored content
+   and start frame still fit; disclose any carried-forward known defect.
+   A new continuity input requires its own bound take.
+   Stitch each uninterrupted sequence into a scene media file with a continuous
+   audio/video timeline; retain the component clips and their source map.
+   At the two reported speech-tail examples, compare the end of the original
+   line with what is heard in the assembled scene. If the original itself
+   cuts off speech, treat that as a source-take issue when planning a repair.
+   Preserve constituent shot offsets for captions, resume and source
    bindings. Use deliberate cuts and keep full dialogue tails. A transition
    must retain those tails. Keep editable originals for later regeneration.
 4. Produce only the new/changed shots the adopted V2 source needs. For
@@ -216,3 +265,14 @@ review found no concrete avoidable blocker. Its wording clarification makes
 the early direction check an execution-owner action. Both reviewers were
 read-only and performed no provider work. The existing owner execution
 authorization carries forward after these internal reviews.
+
+The owner's additional pre-kickoff review used a fresh read-only GPT-6.1
+Sol / Xhigh reviewer. It identified the selected-take Regenerate contract,
+the need for a working creator entry point after cleanup, and the risk of
+reintroducing known burned-in subtitles by restoring the wrong full original.
+The revised creator journey starts from a selected take in a published build,
+shows a real arrival on the open page and verifies both the live selection
+and package before and after Apply. The delivery check reopens the creator
+project and game at their provided locations. Media selection binds exact
+source/replacement hashes. The reviewer read those amendments and confirmed
+the findings were resolved.
