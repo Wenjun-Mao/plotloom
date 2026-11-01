@@ -1,5 +1,6 @@
 import "./player.css";
-import { lastChoicePath, validateSave, type Save, type Story } from "./state";
+import { lastChoicePath, logicalPosition, validateSave, type Save, type Story } from "./state";
+import { journal, readArchive, recordRoute } from "./archive";
 
 const story = JSON.parse(document.getElementById("story")!.textContent!) as Story;
 const root = document.getElementById("game")!;
@@ -12,6 +13,8 @@ if (stored) {
   try { saved = validateSave(story, JSON.parse(stored)); } catch { /* Malformed progress does not mean storage is denied. */ }
 }
 let path = [story.start], clip = 0, time = 0, finished = false;
+let archive = readArchive(story, null);
+try { archive = readArchive(story, JSON.parse(localStorage.getItem(`${key}:archive`) ?? "null")); } catch { /* Session play remains available. */ }
 // Keep one media element so a user gesture authorizes sound for subsequent clips.
 const video = document.createElement("video");
 video.controls = true;
@@ -44,7 +47,9 @@ function button(text: string, action: () => void, className = "") {
   return result;
 }
 function save() {
-  const value: Save = { revision: story.storyRevision, path: [...path], clip, time, finished };
+  const current = story.nodes.find(node => node.id === path.at(-1))?.clips[clip];
+  const position = logicalPosition(current, time);
+  const value: Save = { revision: story.storyRevision, path: [...path], clip, time, finished, ...(position ? { position } : {}) };
   saved = value;
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { storageUnavailable = true; showStorageNotice(); }
 }
@@ -65,9 +70,33 @@ function title() {
   panel.append(element("p", "互动短片", "eyebrow"), element("h1", story.title));
   if (story.intro) panel.append(element("p", story.intro, "intro"));
   panel.append(button("开始", () => { path = [story.start]; clip = time = 0; finished = false; pausedByUser = false; save(); render(); }, "primary"));
-  if (saved) panel.append(button("继续", () => { const value = saved!; path = [...value.path]; clip = value.clip; time = value.time; finished = value.finished; pausedByUser = false; render(); }));
+  if (saved) {
+    const node = story.nodes.find(node => node.id === saved!.path.at(-1))!;
+    panel.append(element("p", `已保存 · ${node.title}${saved.finished ? " · 已抵达" : ` · ${Math.floor(saved.time)} 秒`}`, "saved-position"));
+    panel.append(button("继续", () => { const value = saved!; path = [...value.path]; clip = value.clip; time = value.time; finished = value.finished; pausedByUser = false; render(); }));
+  }
+  panel.append(collection());
   root.append(panel);
   showStorageNotice();
+}
+function collection() {
+  const section = element("section", "", "collection");
+  const seen = new Set(archive.routes.map(route => route.ending));
+  const endings = story.nodes.filter(node => node.ending);
+  // Explicit structural branches may share the same authored ending.
+  const titles = new Set(endings.map(node => node.ending!.title));
+  const found = new Set(endings.filter(node => seen.has(node.id)).map(node => node.ending!.title));
+  section.append(element("h2", `结局档案 · ${found.size}/${titles.size}`));
+  for (const name of titles) section.append(element("p", found.has(name) ? `已发现 · ${name}` : "未发现 · 待开启的胶片"));
+  if (archive.routes.length) {
+    const retained = element("details"); retained.append(element("summary", `保留路线 · ${archive.routes.length}`));
+    for (const route of archive.routes) {
+      const ending = story.nodes.find(node => node.id === route.ending)!;
+      retained.append(element("p", `${journal(story, route.path).map(item => item.label).join(" → ")} → ${ending.ending!.title}`));
+    }
+    section.append(retained);
+  }
+  return section;
 }
 function lastFrame(src: string) {
   if (video.getAttribute("src") === src && video.ended && video.readyState >= 2) {
@@ -122,6 +151,7 @@ function render() {
   video.onvolumechange = () => { updateSoundButton(); rememberAudio(); };
   top.append(pause, mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
   shell.append(top);
+  shell.append(element("p", node.context || "旧影院 / 交接前夜", "eyebrow"));
   const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
   if (frame) {
     if (frame instanceof HTMLCanvasElement) stage.style.setProperty("--frame-ratio", String(frame.width / frame.height));
@@ -141,14 +171,19 @@ function render() {
     video.src = current.src;
     video.setAttribute("aria-label", node.title);
     const active = video;
-    const lines = [...current.visibleText, ...current.dialogue.map(line => `${line.speaker ? line.speaker + "：" : ""}${line.text}`)];
-    for (const line of lines) caption.append(element("p", line));
+    function updateCaptions() {
+      const segment = current.segments?.slice().reverse().find(item => active.currentTime >= item.start) ?? current;
+      const lines = [...segment.visibleText, ...segment.dialogue.map(line => `${line.speaker ? line.speaker + "：" : ""}${line.text}`)];
+      const text = lines.join("\n");
+      if (caption.textContent !== text) caption.textContent = text;
+    }
+    updateCaptions();
     active.onloadedmetadata = () => {
       if (epoch !== captured) return;
-      if (resumeTime > 0 && resumeTime < active.duration) active.currentTime = resumeTime;
+      if (resumeTime > 0) active.currentTime = Math.min(resumeTime, Math.max(0, active.duration - .1));
     };
     let lastSavedSecond = -1;
-    active.ontimeupdate = () => { if (epoch !== captured || active.readyState < 1) return; time = active.currentTime; const second = Math.floor(time); if (second !== lastSavedSecond) { lastSavedSecond = second; save(); } };
+    active.ontimeupdate = () => { if (epoch !== captured || active.readyState < 1) return; time = active.currentTime; updateCaptions(); const second = Math.floor(time); if (second !== lastSavedSecond) { lastSavedSecond = second; save(); } };
     active.onplay = () => { if (!active.paused) { pausedByUser = false; pause.textContent = "暂停"; status.textContent = ""; } };
     active.onpause = () => { if (epoch === captured && active.paused) { pause.textContent = "播放"; save(); } };
     active.onerror = () => { status.textContent = "视频无法播放。请确认完整解压了游戏文件。"; };
@@ -163,7 +198,10 @@ function render() {
   function showActions() {
     actions.replaceChildren();
     if (node.ending) {
+      archive = recordRoute(archive, path);
+      try { localStorage.setItem(`${key}:archive`, JSON.stringify(archive)); } catch { storageUnavailable = true; showStorageNotice(); }
       actions.append(element("h2", node.ending.title), element("p", node.ending.text, "ending-text"));
+      actions.append(collection());
     } else if (hasChoices) {
       if (!choosing) { render(); return; }
       const overlay = element("div", "", "choice-overlay");
@@ -183,7 +221,17 @@ function render() {
     save();
   }
   if (!choosing) shell.append(element("p", node.title, "node-title"));
+  if (node.text) shell.append(element("p", node.text, "story-note"));
   shell.append(stage, caption, status, actions);
+  const entries = journal(story, path);
+  if (entries.length) {
+    const notes = element("details", "", "journal"); notes.append(element("summary", `选择手记 · ${entries.length}`));
+    for (const entry of entries) {
+      notes.append(element("p", `${entry.title} / ${entry.label}`));
+      notes.append(button("从此处分支", () => { path = [...entry.path]; clip = Math.max(0, story.nodes.find(n => n.id === path.at(-1))!.clips.length - 1); time = 0; finished = true; save(); render(); }));
+    }
+    shell.append(notes);
+  }
   root.append(shell);
   showStorageNotice();
   if (finished) showActions();

@@ -16,10 +16,12 @@ import { ProjectQaContext, useProjectQa } from "../../components/ProjectQaContex
 import { batchStateLabels, canAuthorizeBatch, ProductionBriefReview } from "./production-review";
 import { WorkflowTiming } from "../../components/WorkflowTiming";
 import "./video-batch.css";
+import { CompletedClips } from "./CompletedClips";
 export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory }: {
   projectId?: string; disabled: boolean; dirty: boolean; onChanged?: () => Promise<void>; onStory?: () => void;
 }) {
   const [batch, setBatch] = useState<Batch | null>(null); const [backend, setBackend] = useState<VideoBackend | null>(null);
+  const [operator, setOperator] = useState<import("../../operator-attribution").CodexTaskAttribution | undefined>(undefined);
   const qa = useProjectQa(projectId);
   const statusLabel = batch?.state === "approved" && batch.execution.reviewAttribution?.kind === "agent_operated_qa"
     ? "全部视频已保存代理 QA 确认" : batch ? batchStateLabels[batch.state] || "任务状态需要核实" : "";
@@ -53,7 +55,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         const value = await batchApi.current(projectId, abort.signal);
         if (abort.signal.aborted) return;
         setBatch(old => old && value?.id === old.id && old.revision > value.revision ? old : value);
-        setReady(true); setError("");
+        setReady(true);
       } catch (failure) { if (!abort.signal.aborted) { setReady(false); setError(`读取批次失败；不会重发任务。${String(failure)}`); } }
       if (!abort.signal.aborted) timer = setTimeout(refresh, 5000);
     };
@@ -93,6 +95,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
   return <Panel className="video-batch-panel form-card" id="video-batch-production"><h2>{batch?.manifest.setup.singleRequest && !setupMode ? "本镜头制作批次" : "批量制作视频"}</h2>
     <p>{batch?.manifest.setup.singleRequest && !setupMode ? "此清单来自手动制作中的单镜头请求，沿用其原种子、规格、播放窗口与请求标识。生成后仍须明确选择视频与播放窗口；音画质量观察可选。" : "覆盖全部路线的唯一制作镜头。保留已有可用视频，只为真正缺失项制作；全部生成后统一选择视频与播放窗口；音画质量观察可选。"}</p>
     <ProjectQaContext qa={qa} />{working.notice}
+    {projectId && <CompletedClips projectId={projectId} disabled={disabled || dirty || !!busy} onOperator={setOperator} onBatch={value => { setBatch(value); setReady(true); setSetupMode(false); }} />}
     {error && <p role="alert">{error}<Button variant="quiet" onClick={() => setEpoch(value => value + 1)}>重新读取原批次</Button></p>}
     {busy && <p role="status" aria-live="polite">{busy}；请勿重复提交。</p>}
     {dirty && <p role="status">先保存当前修改，再准备或开始批次。</p>}
@@ -142,7 +145,7 @@ export function VideoBatchPanel({ projectId, disabled, dirty, onChanged, onStory
         {batch.state === "setup" && <Button disabled={locked || !!batch.manifest.blockers.length} onClick={() => void execute("正在准备供应商指令起草与独立检查", "draft", { expectedRevision: batch.revision })}>用助手起草并独立检查全部指令</Button>}
         {["checking", "translation_rejected"].includes(batch.state) && <Button disabled={locked || edited} onClick={() => void execute("正在核对当前候选的独立检查", "check", { expectedRevision: batch.revision })}>核对当前候选的助手检查</Button>}
         {batch.state === "translation_rejected" && <p role="alert">请修正列出的语义问题；修正来源后重新准备，或修改技术候选后重新检查。未发送视频。</p>}
-        {batch.state === "ready" && <Button variant="primary" disabled={locked || edited || qa.blocked || !canAuthorizeBatch(batch)} onClick={() => void execute("正在保存制作意图授权并开始生成", "start", { expectedRevision: batch.revision, manifestHash: batch.manifestHash, basis: "production-intent.v2", ...(qa.actor ? { attribution: qa.actor } : {}) }, true)}>授权全部制作意图并开始生成</Button>}
+        {batch.state === "ready" && <Button variant="primary" disabled={locked || edited || qa.blocked || !canAuthorizeBatch(batch)} onClick={() => void execute("正在保存制作意图授权并开始生成", "start", { expectedRevision: batch.revision, manifestHash: batch.manifestHash, basis: "production-intent.v2", ...(qa.actor ? { attribution: qa.actor } : operator ? { operator } : {}) }, true)}>授权全部制作意图并开始生成</Button>}
         {["running", "drafting", "checking"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => void execute("正在暂停新派发", "control", { batchId: batch.id, expectedControlRevision: batch.controlRevision, action: "pause" })}>暂停新派发</Button>}
         {["paused", "blocked"].includes(batch.state) && <Button disabled={locked} onClick={() => void execute("正在核对原清单并恢复", "control", { batchId: batch.id, expectedControlRevision: batch.controlRevision, action: "resume" }, true)}>继续原批次</Button>}
         {!["approved", "cancelled"].includes(batch.state) && <Button disabled={controlLocked} onClick={() => void execute("正在取消本地新派发", "control", { batchId: batch.id, expectedControlRevision: batch.controlRevision, action: "cancel" })}>取消新派发</Button>}

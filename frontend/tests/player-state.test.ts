@@ -27,3 +27,14 @@ describe("standalone route persistence", () => {
     expect(validateSave({ ...story, assetVersion: "media-v2" }, save)).toEqual(save);
   });
 });
+
+it("remaps a logical slot after a preceding take grows, and clamps a shorter replacement", () => {
+  const assembled: Story = { ...story, nodes: [{ ...story.nodes[0], clips: [{ slot: "scene", src: "scene.mp4", durationUnits: 15000, dialogue: [], visibleText: [], segments: [
+    { slot: "first", start: 0, durationUnits: 10000, dialogue: [], visibleText: [] },
+    { slot: "second", start: 10, durationUnits: 5000, dialogue: [], visibleText: [] },
+  ] }] }, ...story.nodes.slice(1)] };
+  const position = { revision: story.storyRevision, path: ["opening"], clip: 0, time: 6, finished: false, position: { slot: "second", offset: 8 } };
+  expect(validateSave(assembled, position)).toMatchObject({ clip: 0, time: 14.9, path: ["opening"] });
+  expect(validateSave(assembled, { ...position, position: { slot: "missing", offset: 1 } })).toBeNull();
+  expect(validateSave(assembled, { ...position, position: null })).toBeNull();
+});
