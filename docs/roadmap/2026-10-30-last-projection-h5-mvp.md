@@ -10,6 +10,38 @@ technical integrity, source fidelity and dispatch authority remain required.
 Media quality is unreviewed. M2 edit/regenerate/Apply and creative polish remain
 separate work. No hosted CI, push or public hosting was requested or performed.
 
+**Known-ID H3 retrieval follow-up, 2026-10-31.** The completed MVP remains
+complete; this is a small operational repair from its production friction. On
+the existing known prediction, the workbench should identify only the failed
+operation: output download, media probe/decode, or validation against the frozen
+output contract. Historical generic errors must remain explicitly uncertain.
+After the fixture recovers, the same prediction should ingest and clear its old
+error without another submit.
+
+| Claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| Operator sees safe, stage-specific retrieval guidance | Force download, probe/decode, and frozen-output-contract failures through the normal project-folder API; read the same job card and verify Chinese wording, stable job/prediction identity, and no raw exception/provider data | No; existing offline `FakeH3` bytes | Passed: focused API and job-card selectors; all three Chinese stage labels and safe fallback are covered |
+| Same known prediction recovers | Clear each fixture fault and use the existing 获取结果 action; API/card show ingested with no stale error, and the fixture records one submit for that job | No | Passed: API recovery preserved the job/prediction ID, ingested with `error=null`, and recorded one fake submit per job |
+| Existing ambiguity and safety remain intact | Generic old errors stay generic; verify known-ID recovery does not submit again or change cancellation/concurrency boundaries | No | Scoped checks passed for historical uncertainty, no second submit, and the existing cancel card. Cancellation/concurrency paths were unchanged. The full gate was owner-interrupted before completion and is not passed |
+
+Functional correctness is the acceptance here. Frozen request/final-request
+fidelity is unchanged and not requalified; generated-media quality remains
+unreviewed and outside this operational repair.
+
+Journey: prepare one job, submit once to the offline `FakeH3`, reconcile one
+forced failure, inspect the normal API/job-card readback, then reconcile the
+same prediction once the fixture succeeds. The three cases are bounded to the
+existing download, probe/decode, and frozen-contract checks; there are no live
+provider calls or new media. Runtime is the project-folder TestClient plus the
+existing frontend job-card tests; `pytest` temporary project homes own cleanup.
+The qualification owner removes any task-owned scratch. Scoped API/recovery,
+job-card, deterministic-asset and independent-review evidence passed. The single
+`verify.py full` run was interrupted on owner direction during the Python suite
+after collecting 5,092 cases; the suite and downstream gates have no result, so
+full qualification is not claimed. This closeout uses only the scoped evidence.
+No new action, retry behavior, media-quality gate, route preview, provider
+change, installation, push, or CI is in scope.
+
 **Player sound follow-up, 2026-10-31.** Wenjun reported that sound reverted to
 mute while playing the delivered game. Root owns this player-only repair,
 browser verification and cleanup of its disposable export project.

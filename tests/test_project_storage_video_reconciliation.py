@@ -213,6 +213,88 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     )
 
 
+def test_known_h3_retrieval_failures_are_stage_specific_and_recover_same_prediction(
+    tmp_path: Path,
+) -> None:
+    cases = (
+        ("download", "h3_output_download_failed"),
+        ("probe", "h3_output_media_probe_failed"),
+        ("contract", "h3_output_profile_mismatch"),
+    )
+    unsafe_detail = "https://gateway.example/private.mp4?token=fixture-secret /private/output.mp4"
+
+    for stage, expected_error in cases:
+        provider = FakeH3()
+        probe_mode = {"value": "valid"}
+
+        def probe(_content: bytes) -> ObservedVideo:
+            if probe_mode["value"] == "probe":
+                raise RuntimeError(f"decoder failed at {unsafe_detail}")
+            if probe_mode["value"] == "contract":
+                return ObservedVideo(5.167, 640, 1024, "h264", "aac", frame_rate=24, frame_count=124)
+            return ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124)
+
+        storage, client = _fixture_app(tmp_path / stage, provider, probe=probe)
+        store = storage.projects.create(FIXED_CHINESE_BRIEF)
+        project_id = store.manifest.project_id
+        ProjectPipelineExecutor(_FixtureResolver()).execute(
+            store, profile=_fixture_profile()
+        )
+        store.close()
+        approval, context = _approved_keyframe(client, storage, project_id)
+        prepared = _prepare_video(
+            client, project_id, approval, context, key=f"known-retrieval-{stage}"
+        )
+        submitted = client.post(
+            f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/submit"
+        )
+        assert submitted.status_code == 200 and submitted.json()["state"] == "submitted"
+        prediction_id = submitted.json()["providerPredictionId"]
+
+        if stage == "download":
+            provider.download_error = OSError(f"download failed: {unsafe_detail}")
+        else:
+            probe_mode["value"] = stage
+        failed = client.post(
+            f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/reconcile"
+        )
+        assert failed.status_code == 200
+        assert failed.json()["state"] == "retrieve_needed"
+        assert failed.json()["id"] == prepared["id"]
+        assert failed.json()["providerPredictionId"] == prediction_id
+        assert failed.json()["error"] == expected_error
+
+        card_readback = client.get(f"/api/v2/projects/{project_id}/video-jobs")
+        assert card_readback.status_code == 200
+        failed_card = next(item for item in card_readback.json()["jobs"] if item["id"] == prepared["id"])
+        assert failed_card["state"] == "retrieve_needed"
+        assert failed_card["providerPredictionId"] == prediction_id
+        assert failed_card["error"] == expected_error
+        assert unsafe_detail not in card_readback.text
+        assert len(provider.submits) == 1
+
+        # Repair only the fixture and use the same ordinary reconcile action.
+        provider.download_error = None
+        probe_mode["value"] = "valid"
+        recovered = client.post(
+            f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/reconcile"
+        )
+        assert recovered.status_code == 200
+        assert recovered.json()["state"] == "ingested"
+        assert recovered.json()["id"] == prepared["id"]
+        assert recovered.json()["providerPredictionId"] == prediction_id
+        assert recovered.json()["error"] is None
+        assert len(provider.submits) == 1
+        assert provider.poll_predictions == [prediction_id, prediction_id]
+        assert provider.downloads == 2
+
+        recovered_readback = client.get(f"/api/v2/projects/{project_id}/video-jobs")
+        recovered_card = next(item for item in recovered_readback.json()["jobs"] if item["id"] == prepared["id"])
+        assert recovered_card["state"] == "ingested"
+        assert recovered_card["providerPredictionId"] == prediction_id
+        assert recovered_card["error"] is None
+
+
 def test_h3_uncertain_submit_is_terminal_and_never_replays_the_post(
     tmp_path: Path,
 ) -> None:

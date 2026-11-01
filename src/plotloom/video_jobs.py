@@ -46,6 +46,31 @@ class VideoJobService:
         self.claim_before_provider_calls = claim_before_provider_calls
         self.verify_backend_binding = verify_backend_binding
 
+    @staticmethod
+    def _reconciliation_error_code(error: Exception, stage: str) -> str:
+        """Persist only safe, useful evidence for the operation that failed."""
+
+        if isinstance(error, VideoOutputContractError):
+            if error.code == "h3_gateway_output_expired":
+                return error.code
+            if error.code == "h3_output_profile_mismatch":
+                return (
+                    error.code if stage == "output_contract"
+                    else "h3_prediction_profile_mismatch"
+                )
+            if error.code == "audio_track_missing" and stage == "output_contract":
+                return error.code
+            return (
+                "h3_output_contract_failed" if stage == "output_contract"
+                else "h3_prediction_contract_failed"
+            )
+        return {
+            "output_reference": "h3_output_reference_invalid",
+            "download": "h3_output_download_failed",
+            "media_probe": "h3_output_media_probe_failed",
+            "output_contract": "h3_output_contract_failed",
+        }.get(stage, "retrieval_or_probe_failed")
+
     def prepare(
         self,
         project_id: str,
@@ -300,6 +325,7 @@ class VideoJobService:
             raise ValueError("video job not found")
         if job["state"] not in {"submitted", "retrieve_needed"} or not job["providerPredictionId"]:
             return job
+        failure_stage = "prediction"
         try:
             profile_id = self._profile_id(job["snapshot"])
             duration, frame_count, fps, seed = self._frozen_h3_output(job["snapshot"])
@@ -322,18 +348,24 @@ class VideoJobService:
             # never downloads, ingests, or adopts a candidate.
             if job.get("cancelRequestedAt"):
                 return job
+            failure_stage = "output_reference"
             self.adapter.validate_output_reference(output)
+            failure_stage = "backend_binding"
             self._assert_current_backend(video_job_id)
+            failure_stage = "download"
             content = self.provider.download(output)
+            failure_stage = "media_probe"
             observed = self.probe(content)
+            failure_stage = "output_contract"
             if observed.audio_codec is None:
-                raise ValueError("audio_track_missing")
+                raise VideoOutputContractError("audio_track_missing")
             self.adapter.validate_observed_output(
                 observed, profile_id=profile_id, requested_seconds=duration,
                 expected_frame_count=frame_count, expected_fps=fps,
                 expected_profile_version=profile_version, expected_width=width,
                 expected_height=height,
             )
+            failure_stage = "ingest"
             uri = self.artifacts.put(content)
             return self.repository.record_video_output(
                 project_id, video_job_id, uri=uri, digest=sha256(content).hexdigest(),
@@ -350,11 +382,7 @@ class VideoJobService:
             # Never persist provider body, URL, or exception text: those can
             # contain signed URLs and credentials.  Stable code is enough for
             # the operator to retry retrieval or inspect local safe evidence.
-            code = (
-                "audio_track_missing" if str(error) == "audio_track_missing"
-                else error.code if isinstance(error, VideoOutputContractError)
-                else "retrieval_or_probe_failed"
-            )
+            code = self._reconciliation_error_code(error, failure_stage)
             return self.repository.record_video_retrieve_needed(project_id, video_job_id, code)
 
     def _poll_current_backend(self, video_job_id: str, prediction_id: str) -> dict[str, Any]:

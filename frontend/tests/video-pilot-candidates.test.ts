@@ -9,6 +9,7 @@ import { VideoSegmentReview } from "../src/video-segment-review";
 import { plotloomApi } from "../src/api";
 import { isCurrentVideoSelection, videoNextAction } from "../src/features/media/video-next-action";
 import { frozenVideoSnapshot } from "../src/features/media/frozen-video-snapshot";
+import { videoJobErrorLabel } from "../src/features/media/video-job-label";
 import { bridgeState, installedProduction } from "./production-bridge-fixture";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 import { branchingFixture, deferred, endingJob, job, props, routeContext, selectedJob } from "./video-pilot-fixtures";
@@ -146,6 +147,48 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
   await render("project", "shot");
   const retrieve = [...host.querySelectorAll("button")].find((item) => item.textContent === "获取结果");
   expect(retrieve?.disabled).toBe(false);
+});
+
+it("shows a safe retrieval-stage diagnosis and clears it after the same known job recovers", async () => {
+  const failed = {
+    ...job("project", "shot-1"), id: "known-h3", state: "retrieve_needed" as const,
+    providerPredictionId: "prediction-known", error: "h3_output_download_failed",
+    snapshot: { provider: { adapterId: "minimax_h3_gateway" }, shot: { id: "shot-1", title: "Shot 1" } },
+  };
+  const recovered = { ...failed, state: "ingested" as const, outputHash: "a".repeat(64), error: null };
+  const readJobs = vi.spyOn(plotloomApi, "getVideoJobs")
+    .mockResolvedValueOnce({ jobs: [failed] }).mockResolvedValueOnce({ jobs: [recovered] });
+  const reconcile = vi.spyOn(plotloomApi, "reconcileVideoJob").mockResolvedValue(recovered);
+  await render("project", "shot-1");
+
+  const card = () => host.querySelector('[data-testid="video-job-known-h3"]');
+  expect(card()?.textContent).toContain("下载原片失败");
+  expect(card()?.textContent).not.toContain("h3_output_download_failed");
+  const retrieve = [...host.querySelectorAll("button")].find((item) => item.textContent === "获取结果");
+  await act(async () => { retrieve?.click(); await Promise.resolve(); });
+
+  expect(reconcile).toHaveBeenCalledWith("project", "known-h3");
+  expect(readJobs).toHaveBeenCalledTimes(2);
+  expect(card()?.textContent).toContain("待审原片");
+  expect(card()?.textContent).not.toContain("下载原片失败");
+  expect(card()?.textContent).not.toContain("h3_output_download_failed");
+});
+
+it("keeps historical generic retrieval errors uncertain and hides unknown raw details", () => {
+  const historical = videoJobErrorLabel("retrieval_or_probe_failed");
+  expect(historical).toContain("没有保留失败阶段");
+  expect(historical).not.toContain("下载原片失败");
+  expect(videoJobErrorLabel("h3_output_media_probe_failed")).toContain("媒体探测或解码失败");
+  expect(videoJobErrorLabel("h3_output_profile_mismatch")).toContain("冻结的视频输出规格核验");
+  expect(videoJobErrorLabel("audio_track_missing")).toContain("没有检测到音轨");
+  const unknownOutcome = videoJobErrorLabel("remote_outcome_unknown");
+  expect(unknownOutcome).toContain("请勿重复提交");
+  expect(unknownOutcome).not.toContain("获取结果");
+  const fallback = "任务保留了错误记录，但没有可安全展示的具体诊断。";
+  expect(videoJobErrorLabel("__proto__")).toBe(fallback);
+  expect(videoJobErrorLabel("constructor")).toBe(fallback);
+  expect(videoJobErrorLabel("/private/provider-path?token=fixture-secret"))
+    .not.toContain("fixture-secret");
 });
 
 it("pauses every native candidate peer before allowing a new candidate to play", async () => {

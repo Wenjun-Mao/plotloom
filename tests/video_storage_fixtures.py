@@ -35,6 +35,8 @@ class FakeH3:
         self.images: list[bytes] = []
         self.end_images: list[bytes | None] = []
         self.poll_calls = 0
+        self.poll_predictions: list[str] = []
+        self.download_error: Exception | None = None
         self.quality = 1
         self.resolution = "576x1024"
         self.before_preflight: Callable[[], None] | None = None
@@ -88,6 +90,7 @@ class FakeH3:
 
     def poll(self, prediction_id: str) -> dict:
         self.poll_calls += 1
+        self.poll_predictions.append(prediction_id)
         return _h3_job(
             "succeeded",
             True,
@@ -102,6 +105,8 @@ class FakeH3:
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
         self.downloads += 1
+        if self.download_error is not None:
+            raise self.download_error
         if self._outputs:
             return self._outputs[min(self.downloads - 1, len(self._outputs) - 1)]
         return b"offline-h3-project-video"
@@ -145,7 +150,11 @@ def _png(width: int = 576, height: int = 1024) -> bytes:
 
 
 def _fixture_app(
-    tmp_path: Path, provider: FakeH3, *, adapter: object | None = None
+    tmp_path: Path,
+    provider: FakeH3,
+    *,
+    adapter: object | None = None,
+    probe: Callable[[bytes], ObservedVideo] | None = None,
 ) -> tuple[ProjectFolderStorage, TestClient]:
     storage = ProjectFolderStorage(
         outputs_root=tmp_path / "source" / "outputs",
@@ -156,7 +165,7 @@ def _fixture_app(
             storage,
             video_provider=provider,
             video_adapter=adapter or MiniMaxH3GatewayAdapter(),  # type: ignore[arg-type]
-            video_probe=lambda _content: ObservedVideo(
+            video_probe=probe or (lambda _content: ObservedVideo(
                 {5: 124, 8: 192}[getattr(provider, "duration", 5)] / 24,
                 576,
                 1024,
@@ -164,7 +173,7 @@ def _fixture_app(
                 "aac",
                 frame_rate=24,
                 frame_count={5: 124, 8: 192}[getattr(provider, "duration", 5)],
-            ),
+            )),
         )
     )
 

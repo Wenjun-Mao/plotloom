@@ -143,7 +143,9 @@ class VideoJobPersistence(VideoJobPreparation):
                 raise NotFoundError("video job not found")
             if job.state not in {"submitted", "retrieve_needed"}:
                 raise InvalidTransitionError("video output can only be ingested from a known submitted attempt")
-            job.output_uri, job.output_hash, job.observed, job.state, job.updated_at = uri, digest, observed, "ingested", utc_now()
+            job.output_uri, job.output_hash, job.observed, job.state, job.error, job.updated_at = (
+                uri, digest, observed, "ingested", None, utc_now()
+            )
             return self._currentness.video_job_dict(session, job)
 
     def record_video_retrieve_needed(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
