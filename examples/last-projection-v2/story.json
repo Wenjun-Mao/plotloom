@@ -1,0 +1,728 @@
+{
+  "format": 1,
+  "gameId": "the-last-projection-v2",
+  "title": "放映室最后一夜 · V2",
+  "intro": "一份交接档案，一张被藏了半年的监控卡。你扮演许微，决定这一夜留下什么。每次选择都会记入手记；旧路线与已发现的结局会留下。",
+  "start": "opening",
+  "nodes": [
+    {
+      "id": "opening",
+      "title": "开袋之前",
+      "text": "明早八点，旧影院将把钥匙交给新馆主。你是许微。半年前一场火之后，你从放映岗调到了档案室。\n今晚，你在交接物里发现一张没有登记的监控卡。阿岚按住了你的手。",
+      "context": "交接档案 / 第一章 · 今夜",
+      "clips": [
+        {
+          "slot": "n00-s1-c1",
+          "dialogue": [],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "open",
+          "to": "early",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "early",
+      "title": "先留下什么？",
+      "text": "",
+      "context": "交接档案 / 第一章 · 今夜",
+      "clips": [],
+      "edges": [
+        {
+          "id": "watch",
+          "to": "watch-memory",
+          "label": "先看完整监控，让画面说话"
+        },
+        {
+          "id": "hear",
+          "to": "hear-confession",
+          "label": "先停下播放，让阿岚开口"
+        }
+      ],
+      "question": "卡已经读出。你先做什么？",
+      "ending": null
+    },
+    {
+      "id": "watch-memory",
+      "title": "先看那一晚",
+      "text": "你没有松开读卡器的播放键。阿岚没有再去碰播放键。你需要先知道，这半年究竟被什么遮住了。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s2-c1",
+          "dialogue": [],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "watch-first",
+          "to": "watch-second",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "watch-second",
+      "title": "口供",
+      "text": "画面没有替任何人解释。你转过身，等阿岚自己说出发生过什么。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s3-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "别放了。半年前那场火，是我碰倒了电暖器。"
+            },
+            {
+              "speaker": "许微",
+              "text": "报告上写的是我违规操作。你一直知道？"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "watch-second",
+          "to": "watch-context",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "watch-context",
+      "title": "空着的放映位",
+      "text": "调岗后，你仍记得第一卷胶片穿过齿轮的声音。父亲曾在这里做晚班，他教你的第一件事不是开机器，而是散场后等最后一位观众走出门。\n这半年，你只在走廊里听过放映机。今天你先看完了监控：至少这一回，记录不必等别人开口才存在。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [],
+      "edges": [
+        {
+          "id": "watch-context",
+          "to": "watch-admission",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "watch-admission",
+      "title": "半年沉默",
+      "text": "",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s3-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我把监控卡藏起来了。我怕他们追究我。"
+            },
+            {
+              "speaker": "许微",
+              "text": "这半年，我被调来整理档案，大家都以为是我。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n00-s3-c3",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "明早新馆主就来接收了。你把卡和更正说明放进交接袋，他们就会知道真相。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n00-s3-c4",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "你的名字也会留在记录里。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "我知道。你能先听我解释吗？"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "watch-admit",
+          "to": "watch-callback",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "watch-callback",
+      "title": "把决定留在自己手里",
+      "text": "你先看过那段监控。交接袋还在灯下，读卡器继续留着那一晚的画面。\n画面证明了谁碰倒电暖器，却不能替你决定：还要不要听她解释这半年的沉默。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [],
+      "edges": [
+        {
+          "id": "watch-callback",
+          "to": "watch-c01",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "clips": [],
+      "edges": [
+        {
+          "id": "watch-edge_submit_alone",
+          "to": "watch-e01",
+          "label": "现在写明真相并封存"
+        },
+        {
+          "id": "watch-edge_hear_explanation",
+          "to": "watch-n10",
+          "label": "先听阿岚解释"
+        }
+      ],
+      "ending": null,
+      "id": "watch-c01",
+      "question": "证据在这里。现在交出，还是继续听她说？",
+      "title": "第一次选择",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "n10-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "那晚我踢倒了电暖器，以为火已经灭了。后来他们说是你的机器出了问题。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n10-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "你看着我被调岗，什么都没说。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "是。我把卡藏了半年。每次想说，都怕自己要承担后果。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n10-s1-c3",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "我连再碰一次放映机都不敢。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "如果你决定交出去，我会亲手在说明上签名。你不用原谅我。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "watch-edge_explanation_choice",
+          "to": "watch-c02",
+          "label": null
+        }
+      ],
+      "ending": null,
+      "id": "watch-n10",
+      "question": "",
+      "title": "解释",
+      "context": "交接档案 / 第三章 · 留下的名字",
+      "text": "你看过原始监控，所以这一次，你请她把画面里没有的事说完整。"
+    },
+    {
+      "clips": [],
+      "edges": [
+        {
+          "id": "watch-edge_submit_together",
+          "to": "watch-e02",
+          "label": "让她签字，一起交接"
+        },
+        {
+          "id": "watch-edge_destroy_evidence",
+          "to": "watch-e03",
+          "label": "销毁卡，保留旧记录"
+        }
+      ],
+      "ending": null,
+      "id": "watch-c02",
+      "question": "听完解释以后，你要怎样结束这一夜？",
+      "title": "第二次选择",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e01-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "我等了半年。今天我要自己把它写下来。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e01-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我会承担。但你连让我说完的机会都没有。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "证据和更正说明随档案交出。\n\n许微为自己留下了证明，阿岚独自离开了放映室。",
+        "title": "独自交接"
+      },
+      "id": "watch-e01",
+      "question": "",
+      "title": "独自交接",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e02-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "这次，我会把我的名字写上去。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e02-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "先把真相留下。其他的事，以后再说。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "两人的说明和监控卡随档案交出。\n\n真相有了记录，她们也给彼此留下了继续说话的空间。",
+        "title": "共同交接"
+      },
+      "id": "watch-e02",
+      "question": "",
+      "title": "共同交接",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e03-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "你真的决定让旧记录留下？"
+            },
+            {
+              "speaker": "许微",
+              "text": "我知道别人还是会误会。我不想再把这一晚交给那场火。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e03-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我欠你的，不会因为这张卡消失。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "旧档案按原样交接，许微失去了最直接的证据。\n\n她选择私下结束这件事，也留下了那份误解。",
+        "title": "留下旧记录"
+      },
+      "id": "watch-e03",
+      "question": "",
+      "title": "留下旧记录",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "id": "hear-confession",
+      "title": "先听她开口",
+      "text": "你停住了画面，把播放权留在自己手里。阿岚看着那张卡，终于不再用“意外”两个字代替那一晚。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s3-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "别放了。半年前那场火，是我碰倒了电暖器。"
+            },
+            {
+              "speaker": "许微",
+              "text": "报告上写的是我违规操作。你一直知道？"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "hear-first",
+          "to": "hear-second",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "hear-second",
+      "title": "再看证据",
+      "text": "她说完后，你重新按下播放。你要听她，也要留下与她的说法可以互相核对的东西。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s2-c1",
+          "dialogue": [],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "hear-second",
+          "to": "hear-context",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "hear-context",
+      "title": "空着的放映位",
+      "text": "你和阿岚搭过七年的晚班。临时停电时，她替你照过手电；父亲病重那个月，她也接过你的班。那些旧事是真的，这半年她的沉默也是真的。\n你给了她先说话的机会。此刻你想知道的，不止是火怎么发生，也是谁决定让你一个人承担。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [],
+      "edges": [
+        {
+          "id": "hear-context",
+          "to": "hear-admission",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "hear-admission",
+      "title": "半年沉默",
+      "text": "",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [
+        {
+          "slot": "n00-s3-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我把监控卡藏起来了。我怕他们追究我。"
+            },
+            {
+              "speaker": "许微",
+              "text": "这半年，我被调来整理档案，大家都以为是我。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n00-s3-c3",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "明早新馆主就来接收了。你把卡和更正说明放进交接袋，他们就会知道真相。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n00-s3-c4",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "你的名字也会留在记录里。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "我知道。你能先听我解释吗？"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "hear-admit",
+          "to": "hear-callback",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "id": "hear-callback",
+      "title": "把决定留在自己手里",
+      "text": "是你先停下了播放。如今阿岚说完，你把监控重新看了一遍。她没有再伸手阻拦。\n你给过她开口的机会；这不等于她的解释可以代替更正记录。接下来要留下什么，仍由你决定。",
+      "context": "交接档案 / 第二章 · 画面与口供",
+      "clips": [],
+      "edges": [
+        {
+          "id": "hear-callback",
+          "to": "hear-c01",
+          "label": null
+        }
+      ],
+      "question": "",
+      "ending": null
+    },
+    {
+      "clips": [],
+      "edges": [
+        {
+          "id": "hear-edge_submit_alone",
+          "to": "hear-e01",
+          "label": "现在写明真相并封存"
+        },
+        {
+          "id": "hear-edge_hear_explanation",
+          "to": "hear-n10",
+          "label": "先听阿岚解释"
+        }
+      ],
+      "ending": null,
+      "id": "hear-c01",
+      "question": "证据在这里。现在交出，还是继续听她说？",
+      "title": "第一次选择",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "n10-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "那晚我踢倒了电暖器，以为火已经灭了。后来他们说是你的机器出了问题。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n10-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "你看着我被调岗，什么都没说。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "是。我把卡藏了半年。每次想说，都怕自己要承担后果。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "n10-s1-c3",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "我连再碰一次放映机都不敢。"
+            },
+            {
+              "speaker": "阿岚",
+              "text": "如果你决定交出去，我会亲手在说明上签名。你不用原谅我。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [
+        {
+          "id": "hear-edge_explanation_choice",
+          "to": "hear-c02",
+          "label": null
+        }
+      ],
+      "ending": null,
+      "id": "hear-n10",
+      "question": "",
+      "title": "解释",
+      "context": "交接档案 / 第三章 · 留下的名字",
+      "text": "你给过她先开口的机会。现在，你问起的不是事故本身，而是她看着你被调岗的那半年。"
+    },
+    {
+      "clips": [],
+      "edges": [
+        {
+          "id": "hear-edge_submit_together",
+          "to": "hear-e02",
+          "label": "让她签字，一起交接"
+        },
+        {
+          "id": "hear-edge_destroy_evidence",
+          "to": "hear-e03",
+          "label": "销毁卡，保留旧记录"
+        }
+      ],
+      "ending": null,
+      "id": "hear-c02",
+      "question": "听完解释以后，你要怎样结束这一夜？",
+      "title": "第二次选择",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e01-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "我等了半年。今天我要自己把它写下来。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e01-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我会承担。但你连让我说完的机会都没有。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "证据和更正说明随档案交出。\n\n许微为自己留下了证明，阿岚独自离开了放映室。",
+        "title": "独自交接"
+      },
+      "id": "hear-e01",
+      "question": "",
+      "title": "独自交接",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e02-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "这次，我会把我的名字写上去。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e02-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "许微",
+              "text": "先把真相留下。其他的事，以后再说。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "两人的说明和监控卡随档案交出。\n\n真相有了记录，她们也给彼此留下了继续说话的空间。",
+        "title": "共同交接"
+      },
+      "id": "hear-e02",
+      "question": "",
+      "title": "共同交接",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    },
+    {
+      "clips": [
+        {
+          "slot": "e03-s1-c1",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "你真的决定让旧记录留下？"
+            },
+            {
+              "speaker": "许微",
+              "text": "我知道别人还是会误会。我不想再把这一晚交给那场火。"
+            }
+          ],
+          "visibleText": []
+        },
+        {
+          "slot": "e03-s1-c2",
+          "dialogue": [
+            {
+              "speaker": "阿岚",
+              "text": "我欠你的，不会因为这张卡消失。"
+            }
+          ],
+          "visibleText": []
+        }
+      ],
+      "edges": [],
+      "ending": {
+        "text": "旧档案按原样交接，许微失去了最直接的证据。\n\n她选择私下结束这件事，也留下了那份误解。",
+        "title": "留下旧记录"
+      },
+      "id": "hear-e03",
+      "question": "",
+      "title": "留下旧记录",
+      "context": "交接档案 / 第三章 · 留下的名字"
+    }
+  ]
+}

@@ -2,19 +2,16 @@
 
 ## Current status
 
-Updated 2026-11-01, America/Toronto. Planning on clean local main at
-`395e814b`. Root owns planning and Relay coordination. The owner authorized
-overnight V2 delivery through Relay Direct, then requested modest story
-expansion and explicitly required the H3 skill and Quality 8 for new videos.
-The owner subsequently included both items in the local to-do: inline finished
-clip playback and regeneration with explicit Apply, in the same authoring view.
-The first two planning reviews and the requested additional review are
-complete. The worker held execution for that review, preserving three local
-player-source edits; its initial type check found a `findLast` library-target
-mismatch. No provider job or project restore had started. Next action is to
-resume from that checkpoint under the revised brief.
-Stop at a playable standalone V2 folder and ZIP, source checkpoint, observed
-playback evidence and an honest handoff for the owner's personal review.
+Updated 2026-11-01, America/Toronto. Execution owner: Codex task
+`01a19575-c336-7c30-b7c3-d08913f4140d`, sole source and qualification owner.
+Baseline: local main `3af4b39c` plus preserved player WIP. Additional planning
+review complete; execution resumed. Last outcome: expanded retained-media route reached its ending; focused
+player/gallery and atomic-publication contracts pass. First Q8 take is in flight
+under its known identity; no downstream take is admitted yet. Blocked rows: expanded
+playable slice, selected-take authoring loop and continuity media. Next action:
+retain the first completion, correct the root START to the opening final PNG,
+then advance the serial continuity chain and explicit Apply proof. Stop at playable V2 folder/ZIP, separate creator and game
+addresses, scoped local checkpoint and honest personal-review handoff.
 
 ## Intended experience
 
@@ -276,3 +273,44 @@ and package before and after Apply. The delivery check reopens the creator
 project and game at their provided locations. Media selection binds exact
 source/replacement hashes. The reviewer read those amendments and confirmed
 the findings were resolved.
+
+## V2 execution decisions
+
+- Expanded story uses two explicit structural early branches: evidence first or
+  admission first. Their playable ordering and personal-context/callback scenes
+  differ; the two later handover decisions and three endings remain. New context
+  appears as authored handover-file narration, without inventing spoken audio.
+- Before new H3 work, the blocked continuity row requires a new chain from the
+  present-night admission through every same-view successor. Retained take starts
+  do not bind their predecessor final frames and several Q1 takes have known
+  subtitles. Changed inputs are Q8, the pinned skill, the actual preceding final
+  PNG and a single frozen set of source-bound presentation amendments. Expected information is
+  a complete source-bound continuous chain with intact original dialogue/tails.
+  Stop per frozen finite single-shot job; no extra beauty takes.
+- Root n00-s3-c1 is the planned selected-take Regenerate proof. Its authored
+  direction now allows a beat after A-Lan's line before Xu Wei asks her question.
+  The old selected pointer/package remain; no rejection/unselection is used.
+  Initial START is an explicit import of the exact retained source PNG because
+  the native guard correctly refused the old generated-asset applicability.
+  All successor STARTs come from actual full-take final frames.
+
+The first direct-canonical amendment attempt was refused by native generation
+preflight because it invalidated the installed bridge. No provider submission
+occurred. After the two failed setup preflights (visual revision, then bridge
+provenance), the method was reassessed: a new supported restore in
+`.local/last-projection-v2/runtime-current` retains original installed heads and
+uses existing per-shot production-presentation amendments. The failed copy and
+receipts remain intact. The initial developer-only structured approval extension
+was removed because this supported source owner makes it unnecessary.
+
+A seam audit extended the dependency chain back to the opening itself: the
+present-night admission must begin from the actual last frame of n00-s1-c1,
+including on the hear-first branch. The first Q8 root submission had already
+crossed dispatch with its retained original START image (job
+`vj_968418f341a44d1886876e504c8477d0`, prediction
+`h3_4a26057ba9704773a0b0c6631c677663`). It will complete under that identity and
+remain an unselected retained candidate. It is not claimed to satisfy the new
+opening seam. Before the next root take, import the exact opening final PNG;
+that changed input answers the missing continuity row. No downstream media has
+yet been generated from the first candidate, so the correction is confined to
+the root. The Regenerate arrival proof will reuse this already admitted take.

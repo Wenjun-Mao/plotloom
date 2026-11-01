@@ -79,6 +79,12 @@ function title() {
   root.append(panel);
   showStorageNotice();
 }
+function discovery() {
+  const endings = story.nodes.filter(node => node.ending);
+  const seen = new Set(archive.routes.map(route => route.ending));
+  return { total: new Set(endings.map(node => node.ending!.title)).size,
+    found: new Set(endings.filter(node => seen.has(node.id)).map(node => node.ending!.title)).size };
+}
 function collection() {
   const section = element("section", "", "collection");
   const seen = new Set(archive.routes.map(route => route.ending));
@@ -150,7 +156,16 @@ function render() {
   updateSoundButton();
   video.onvolumechange = () => { updateSoundButton(); rememberAudio(); };
   top.append(pause, mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
+  const discoveries = discovery();
+  const archiveButton = button(`结局档案 ${discoveries.found}/${discoveries.total}`, () => {
+    const open = shell.querySelector(".in-play-archive");
+    if (open) { open.remove(); archiveButton.setAttribute("aria-expanded", "false"); }
+    else { const panel = collection(); panel.classList.add("in-play-archive"); shell.append(panel); archiveButton.setAttribute("aria-expanded", "true"); panel.scrollIntoView({ block: "nearest" }); }
+  });
+  archiveButton.setAttribute("aria-expanded", "false");
+  top.append(archiveButton);
   shell.append(top);
+  shell.append(element("p", `存档位置 · ${node.title}`, "save-status"));
   shell.append(element("p", node.context || "旧影院 / 交接前夜", "eyebrow"));
   const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
   if (frame) {
@@ -201,6 +216,8 @@ function render() {
       archive = recordRoute(archive, path);
       try { localStorage.setItem(`${key}:archive`, JSON.stringify(archive)); } catch { storageUnavailable = true; showStorageNotice(); }
       actions.append(element("h2", node.ending.title), element("p", node.ending.text, "ending-text"));
+      const decisions = journal(story, path).map(entry => entry.label);
+      if (decisions.length) actions.append(element("p", `这一夜，我选择：${decisions.join(" → ")}`, "ending-decision"));
       actions.append(collection());
     } else if (hasChoices) {
       if (!choosing) { render(); return; }

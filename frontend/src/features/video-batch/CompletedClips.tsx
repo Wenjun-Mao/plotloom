@@ -54,7 +54,7 @@ export function CompletedClips({ projectId, disabled, onBatch, onOperator }: { p
         shotIds: [shotId], singleRequest: { approvalId: review.activeApproval.id, shotId, storyboardRevision: review.head.revision,
           expectedSelectionRevision: visual.selectionRevision, idempotencyKey: crypto.randomUUID(), requestedDurationSeconds: Number(seconds),
           profileId, resolution: "832x480", audio: true, aspectPolicy: "contain_pad", allowLetterbox: true,
-          playbackIntent: "whole_take", seed: snapshot(editing).request?.seed } });
+          playbackIntent: "whole_take", automaticRetryLimit: 0, seed: snapshot(editing).request?.seed } });
       if (identity.current !== owner) return;
       onBatch(value); setEditing(null); setMessage("新候选清单已准备。请核对下方来源与指令，再明确开始生成；当前选择与已发布游戏保持原样。");
     } catch (failure) { if (identity.current === owner) setError(`准备结果待核实；不会自动重发。${String(failure)}`); }
