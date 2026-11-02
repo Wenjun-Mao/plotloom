@@ -58,7 +58,7 @@ def assert_corrected_manifest(original, manifest):
             or any(t['mode'] != 'generate' or t['jobId'] for t in old_targets + targets)
             or old_targets[0]['sourceHash'] == targets[0]['sourceHash']
             or original['sourceBinding'] == manifest['sourceBinding']):
-        _refuse('requires changed source, the same single-shot settings/backend/budgets, and a fresh unreviewed identity')
+        _refuse('requires changed source, the same single-shot settings, backend mode, and budgets, and a fresh unreviewed identity')
 
 
 def _stopped_predecessor(service, view, command):

@@ -24,6 +24,7 @@ ALLOWED_REPOSITORY_ROOTS = {
     "NOTICE",
     "README.md",
     "docs",
+    "examples",
     "frontend",
     "pyproject.toml",
     "scripts",

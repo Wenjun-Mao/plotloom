@@ -5,6 +5,16 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## 放映室最后一夜 V3
+
+The [V3 delivery plan](2026-11-02-last-projection-v3.md) owns the current
+film-first game implementation and acceptance. The owner authorized full
+implementation and delivery on retained local `main`, using the byte-pinned V2
+game and media as read-only inputs. No new media/provider jobs, V2 authoring
+changes, push or CI. The plan tracks the playable opening slice, six-route and
+three-ending playback, in-place evidence/archive books, preservation, local
+qualification and separate Downloads delivery.
+
 ## Final H3 video skill
 
 The [H3 final-video skill record](2026-10-31-h3-final-video-skill.md) covers

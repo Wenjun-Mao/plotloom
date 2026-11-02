@@ -1,10 +1,13 @@
 import "./player.css";
 import { lastChoicePath, logicalPosition, validateSave, type Save, type Story } from "./state";
 import { journal, readArchive, recordRoute } from "./archive";
+import { buildEvidenceBook, buildHandoverBook, readKnowledge, recordKnowledge } from "./books";
 
 const story = JSON.parse(document.getElementById("story")!.textContent!) as Story;
 const root = document.getElementById("game")!;
 const key = `plotloom-game:${story.gameId}`;
+const isV3 = story.gameId === "the-last-projection-v3";
+if (isV3) root.classList.add("v3-mode");
 let saved: Save | null = null;
 let storageUnavailable = false;
 let stored: string | null = null;
@@ -15,6 +18,14 @@ if (stored) {
 let path = [story.start], clip = 0, time = 0, finished = false;
 let archive = readArchive(story, null);
 try { archive = readArchive(story, JSON.parse(localStorage.getItem(`${key}:archive`) ?? "null")); } catch { /* Session play remains available. */ }
+let knowledge = readKnowledge(story, null);
+if (isV3) try { knowledge = readKnowledge(story, JSON.parse(localStorage.getItem(`${key}:knowledge`) ?? "null")); } catch { /* Session play remains available. */ }
+function rememberKnowledge(nodeId: string, completed = false) {
+  if (!isV3) return;
+  knowledge = recordKnowledge(knowledge, nodeId, completed);
+  try { localStorage.setItem(`${key}:knowledge`, JSON.stringify(knowledge)); }
+  catch { storageUnavailable = true; showStorageNotice(); }
+}
 // Keep one media element so a user gesture authorizes sound for subsequent clips.
 const video = document.createElement("video");
 video.controls = true;
@@ -127,6 +138,7 @@ function lastFrame(src: string) {
 
 function render() {
   const node = story.nodes.find(node => node.id === path.at(-1))!;
+  rememberKnowledge(node.id);
   const hasChoices = node.edges.some(edge => edge.label !== null);
   const choosing = hasChoices && (finished || !node.clips.length);
   const source = choosing && path.slice().reverse()
@@ -135,7 +147,9 @@ function render() {
   stop(); root.replaceChildren();
   const captured = epoch;
   const shell = element("section", "", "player");
+  if (isV3) shell.classList.add("film-player");
   const top = element("header");
+  if (isV3) top.className = "film-hud";
   top.append(element("span", story.title, "game-title"));
   const pause = button("播放", () => {
     pausedByUser = !video.paused;
@@ -150,8 +164,9 @@ function render() {
   });
   function updateSoundButton() {
     const silent = video.muted || video.volume === 0;
-    mute.textContent = silent ? "开启声音" : "静音";
+    mute.textContent = isV3 ? "声音" : silent ? "开启声音" : "静音";
     mute.setAttribute("aria-pressed", String(silent));
+    mute.setAttribute("aria-label", silent ? "开启声音" : "关闭声音");
   }
   updateSoundButton();
   video.onvolumechange = () => { updateSoundButton(); rememberAudio(); };
@@ -163,8 +178,51 @@ function render() {
     else { const panel = collection(); panel.classList.add("in-play-archive"); shell.append(panel); archiveButton.setAttribute("aria-expanded", "true"); panel.scrollIntoView({ block: "nearest" }); }
   });
   archiveButton.setAttribute("aria-expanded", "false");
-  top.append(archiveButton);
+  if (isV3) {
+    const openBook = (kind: "evidence" | "handover", opener: HTMLButtonElement) => {
+      const wasPlaying = !video.paused && !choosing;
+      if (video.readyState >= 1) time = video.currentTime;
+      save();
+      video.pause();
+      const dialog = document.createElement("dialog");
+      dialog.className = "book-dialog";
+      const close = button("合上", () => dialog.close());
+      close.className = "book-close";
+      const content = kind === "evidence"
+        ? buildEvidenceBook(story, knowledge.entered, knowledge.completed)
+        : buildHandoverBook(story, archive, path, forkPath);
+      dialog.append(close, content);
+      dialog.addEventListener("close", () => {
+        dialog.remove();
+        if (wasPlaying) play();
+        opener.focus();
+      }, { once: true });
+      shell.append(dialog);
+      dialog.showModal();
+      close.focus();
+    };
+    const evidenceButton = button("物证册", () => openBook("evidence", evidenceButton));
+    const handoverButton = button("交接簿", () => openBook("handover", handoverButton));
+    evidenceButton.className = handoverButton.className = "book-trigger";
+    top.append(evidenceButton, handoverButton);
+  } else top.append(archiveButton);
   shell.append(top);
+  if (isV3) {
+    const chapters = [...new Set(story.nodes.map(item => item.context).filter((value): value is string => !!value))];
+    const chapter = node.context ?? chapters[0] ?? "";
+    const chapterIndex = Math.max(0, chapters.indexOf(chapter));
+    const progress = element("div", "", "chapter-progress");
+    progress.setAttribute("role", "progressbar");
+    progress.setAttribute("aria-valuemin", "1");
+    progress.setAttribute("aria-valuemax", String(chapters.length));
+    progress.setAttribute("aria-valuenow", String(chapterIndex + 1));
+    progress.setAttribute("aria-label", `故事进度：第 ${chapterIndex + 1} 章，共 ${chapters.length} 章`);
+    progress.append(element("span", chapter.split("/ ").at(-1) ?? ""));
+    const track = element("span", "", "progress-track");
+    const fill = element("span", "", "progress-fill");
+    fill.style.width = `${((chapterIndex + 1) / Math.max(1, chapters.length)) * 100}%`;
+    track.append(fill); progress.append(track); shell.append(progress);
+  }
   shell.append(element("p", `存档位置 · ${node.title}`, "save-status"));
   shell.append(element("p", node.context || "旧影院 / 交接前夜", "eyebrow"));
   const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
@@ -205,11 +263,17 @@ function render() {
     active.onended = () => {
       if (epoch !== captured || !active.ended) return;
       if (clip + 1 < node.clips.length) { clip++; time = 0; save(); render(); }
-      else { finished = true; save(); showActions(); }
+      else { finished = true; rememberKnowledge(node.id, true); save(); showActions(); }
     };
     stage.append(active);
   } else finished = true;
   function move(to: string) { path.push(to); clip = time = 0; finished = false; pausedByUser = false; save(); render(); }
+  function forkPath(routePath: string[]) {
+    const lastDecision = routePath.slice(0, -1).reverse().find(id => story.nodes.find(item => item.id === id)?.edges.some(edge => edge.label !== null));
+    const decisionPath = lastDecision ? routePath.slice(0, routePath.lastIndexOf(lastDecision) + 1) : [story.start];
+    path = decisionPath; clip = Math.max(0, story.nodes.find(item => item.id === path.at(-1))!.clips.length - 1);
+    time = 0; finished = true; pausedByUser = true; save(); render();
+  }
   function showActions() {
     actions.replaceChildren();
     if (node.ending) {
