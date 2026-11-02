@@ -18,9 +18,13 @@ In the opening, A-Lan still has her hand on Xu Wei’s. Only on the “hear her 
 
 Use Quality 8 for final H3 clips. Give H3 the exact authored words as speech and place intentional writing, such as a sign, on its specified object. The standalone player displays captions and choice labels. Once the clip is technically usable, continue production. [Final H3 directions skill](../../.agents/skills/plotloom-video-directions-specialist/SKILL.md)
 
-## 4. Put choices on the frame where the action stops
+## 4. Let the film run until the player needs to decide or read
 
-Let the preceding clip end naturally. Hold its final frame and place the untimed, clickable options inside the picture immediately. At the first decision in *The Last Projection*, the player should see the card and the two women while deciding what to do. Try each option at desktop and phone widths. Use Back and reload/Continue at a decision to verify that its background comes from the route actually played. [Standalone player contract](../adr/0227-standalone-player-export.md)
+When a scene has one predetermined next step, play the clip through its natural end and go straight to that step. In *The Last Projection* V3, choosing to watch the surveillance recording has already settled what happens next. When **先看那一晚** ends, cut directly to A-Lan’s response.
+
+At a decision, hold the preceding clip’s final frame and show the untimed choices inside the picture. The first choice should leave the card and both women visible. On a text-only passage, let the player read at their own pace and show one **进入下一幕** button. At the end of a route, show the ending card.
+
+Keep pause and replay with the video controls. Put deliberate returns to earlier decisions in the route journal (V3’s **交接簿**). During playtesting, watch a scene transition without touching the controls, wait on a reading passage, then try each choice at desktop and phone widths. Revisit a decision through the journal and reload there to check that its held frame belongs to the route actually played. [Standalone player contract](../adr/0227-standalone-player-export.md)
 
 ## 5. Carry the player’s sound settings across clips
 
