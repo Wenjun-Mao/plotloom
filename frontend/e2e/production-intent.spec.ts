@@ -13,6 +13,8 @@ async function mockApi(page: Page, initial: Batch | null, qaRequired = false) {
     let body: unknown;
     if (name === "qa-context") body = { eligible: false, required: qaRequired, attribution: null };
     else if (name === "video-backend") body = { enabled: false };
+    else if (name === "video-jobs") body = { jobs: [] };
+    else if (name === "prototype-publication") body = null;
     else if (url.pathname.endsWith("/prompt-preview")) body = { sourceHash, compiledPrompt: null, sources: [{ path: "shot.action", label: "动作", text: "守灯人把保险丝放回原处。" }] };
     else if (route.request().method() === "POST") {
       const data = route.request().postDataJSON(); commands.push({ name, body: data });

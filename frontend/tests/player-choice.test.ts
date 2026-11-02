@@ -39,3 +39,38 @@ it("opens a route-only choice over the final video frame as soon as playback end
     vi.restoreAllMocks();
   }
 });
+
+it("keeps ending dialogue visible during its clip and hides it after playback ends", async () => {
+  vi.resetModules();
+  const story = { format: 1, gameId: "the-last-projection-v3", storyRevision: "r1", assetVersion: "media-v1",
+    start: "ending", title: "Test", intro: "", nodes: [
+      { id: "ending", title: "Ending", context: "Last scene", text: "", question: "",
+        clips: [{ slot: "ending", src: "ending.mp4", durationUnits: 3000, visibleText: [], dialogue: [{ speaker: "A-Lan", text: "我明白了。" }] }],
+        edges: [], ending: { title: "Ending", text: "The scene is over." } },
+    ] };
+  document.body.innerHTML = '<main id="game"></main><script id="story" type="application/json"></script>';
+  document.querySelector("#story")!.textContent = JSON.stringify(story);
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+  try {
+    await import("../src/player/player");
+    document.querySelector<HTMLButtonElement>("#game button")!.click();
+    const shell = document.querySelector(".film-player")!;
+    const captions = shell.querySelector<HTMLElement>(".captions")!;
+    const video = shell.querySelector("video")!;
+    expect(captions.textContent).toContain("A-Lan：我明白了。");
+    expect(shell.classList.contains("film-ending")).toBe(false);
+
+    Object.defineProperty(video, "ended", { value: true, configurable: true });
+    video.dispatchEvent(new Event("ended"));
+    expect(shell.classList.contains("film-ending")).toBe(true);
+    expect(captions.textContent).toContain("A-Lan：我明白了。");
+
+    Object.defineProperty(video, "paused", { value: false, configurable: true });
+    video.dispatchEvent(new Event("play"));
+    expect(shell.classList.contains("film-ending")).toBe(false);
+  } finally {
+    vi.restoreAllMocks();
+  }
+});

@@ -19,9 +19,12 @@ graph and media bytes. V3 saves use a distinct game-ID namespace. Evidence-book
 facts are source-owned and reveal only after the corresponding route beat is
 entered or completed. Encountered and completed beats persist independently
 from the current route and ending archive, so unfinished route abandonment does
-not erase a completed discovery. The handover book reads explicit route choices and
-archived endings; opening or browsing it never forks a route. Only a deliberate
-route-return action changes the current path.
+not erase a completed discovery. Evidence follows the source dialogue phases:
+the initial admission records the heater action, while the later explanation
+adds the belief that the fire had gone out. The handover book exposes a deliberate
+return to every encountered choice in the current and archived routes, plus the
+current unanswered choice; opening, browsing, and closing it never changes the
+current path or route archive. Only an explicit return action changes the path.
 
 Use V2's mixed audio track through native video audio and present one `声音`
 control. Do not imply independent music control without a separable music stem.

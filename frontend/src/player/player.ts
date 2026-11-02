@@ -147,7 +147,10 @@ function render() {
   stop(); root.replaceChildren();
   const captured = epoch;
   const shell = element("section", "", "player");
-  if (isV3) shell.classList.add("film-player");
+  if (isV3) {
+    shell.classList.add("film-player");
+    if (node.ending && finished) shell.classList.add("film-ending");
+  }
   const top = element("header");
   if (isV3) top.className = "film-hud";
   top.append(element("span", story.title, "game-title"));
@@ -162,6 +165,7 @@ function render() {
     updateSoundButton();
     rememberAudio();
   });
+  if (isV3) mute.className = "sound-trigger";
   function updateSoundButton() {
     const silent = video.muted || video.volume === 0;
     mute.textContent = isV3 ? "声音" : silent ? "开启声音" : "静音";
@@ -190,7 +194,7 @@ function render() {
       close.className = "book-close";
       const content = kind === "evidence"
         ? buildEvidenceBook(story, knowledge.entered, knowledge.completed)
-        : buildHandoverBook(story, archive, path, forkPath);
+        : buildHandoverBook(story, archive, path, returnToChoice);
       dialog.append(close, content);
       dialog.addEventListener("close", () => {
         dialog.remove();
@@ -204,7 +208,10 @@ function render() {
     const evidenceButton = button("物证册", () => openBook("evidence", evidenceButton));
     const handoverButton = button("交接簿", () => openBook("handover", handoverButton));
     evidenceButton.className = handoverButton.className = "book-trigger";
-    top.append(evidenceButton, handoverButton);
+    const bookDock = element("nav", "", "book-dock");
+    bookDock.setAttribute("aria-label", "故事记录");
+    bookDock.append(evidenceButton, handoverButton);
+    shell.append(bookDock);
   } else top.append(archiveButton);
   shell.append(top);
   if (isV3) {
@@ -257,7 +264,7 @@ function render() {
     };
     let lastSavedSecond = -1;
     active.ontimeupdate = () => { if (epoch !== captured || active.readyState < 1) return; time = active.currentTime; updateCaptions(); const second = Math.floor(time); if (second !== lastSavedSecond) { lastSavedSecond = second; save(); } };
-    active.onplay = () => { if (!active.paused) { pausedByUser = false; pause.textContent = "暂停"; status.textContent = ""; } };
+    active.onplay = () => { if (!active.paused) { shell.classList.remove("film-ending"); pausedByUser = false; pause.textContent = "暂停"; status.textContent = ""; } };
     active.onpause = () => { if (epoch === captured && active.paused) { pause.textContent = "播放"; save(); } };
     active.onerror = () => { status.textContent = "视频无法播放。请确认完整解压了游戏文件。"; };
     active.onended = () => {
@@ -268,15 +275,17 @@ function render() {
     stage.append(active);
   } else finished = true;
   function move(to: string) { path.push(to); clip = time = 0; finished = false; pausedByUser = false; save(); render(); }
-  function forkPath(routePath: string[]) {
-    const lastDecision = routePath.slice(0, -1).reverse().find(id => story.nodes.find(item => item.id === id)?.edges.some(edge => edge.label !== null));
-    const decisionPath = lastDecision ? routePath.slice(0, routePath.lastIndexOf(lastDecision) + 1) : [story.start];
-    path = decisionPath; clip = Math.max(0, story.nodes.find(item => item.id === path.at(-1))!.clips.length - 1);
+  function returnToChoice(choicePath: string[]) {
+    const choice = story.nodes.find(item => item.id === choicePath.at(-1));
+    if (!choice?.edges.some(edge => edge.label !== null)) return;
+    path = [...choicePath]; clip = Math.max(0, choice.clips.length - 1);
     time = 0; finished = true; pausedByUser = true; save(); render();
   }
   function showActions() {
     actions.replaceChildren();
     if (node.ending) {
+      shell.classList.add("film-ending");
+      actions.classList.add("ending-actions");
       archive = recordRoute(archive, path);
       const updatedDiscovery = discovery();
       archiveButton.textContent = `结局档案 ${updatedDiscovery.found}/${updatedDiscovery.total}`;
@@ -301,6 +310,10 @@ function render() {
     if (node.ending) actions.append(button("重新开始", () => { path = [story.start]; clip = time = 0; finished = false; save(); render(); }, "primary"));
     const previous = lastChoicePath(story, path);
     if (previous) actions.append(button("返回上个选择", () => { path = previous; const target = story.nodes.find(item => item.id === path.at(-1))!; clip = Math.max(0, target.clips.length - 1); time = 0; finished = true; save(); render(); }));
+    if (node.ending) {
+      const archivePanel = actions.querySelector(".collection");
+      if (archivePanel) for (const action of actions.querySelectorAll(":scope > button")) actions.insertBefore(action, archivePanel);
+    }
     save();
   }
   if (!choosing) shell.append(element("p", node.title, "node-title"));
