@@ -138,6 +138,11 @@ function lastFrame(src: string) {
 
 function render() {
   const node = story.nodes.find(node => node.id === path.at(-1))!;
+  // Older V3 saves can record a fully watched film node before its new
+  // continuous successor rule was applied. Continue from that proven end.
+  if (isV3 && finished && node.clips.length && node.edges.length === 1 && node.edges[0].label === null) {
+    move(node.edges[0].to); return;
+  }
   rememberKnowledge(node.id);
   const hasChoices = node.edges.some(edge => edge.label !== null);
   const choosing = hasChoices && (finished || !node.clips.length);
@@ -174,7 +179,8 @@ function render() {
   }
   updateSoundButton();
   video.onvolumechange = () => { updateSoundButton(); rememberAudio(); };
-  top.append(pause, mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
+  if (isV3) top.append(mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
+  else top.append(pause, mute, button("返回标题", () => { if (video.readyState >= 1) time = video.currentTime; save(); title(); }));
   const discoveries = discovery();
   const archiveButton = button(`结局档案 ${discoveries.found}/${discoveries.total}`, () => {
     const open = shell.querySelector(".in-play-archive");
@@ -242,8 +248,15 @@ function render() {
   const actions = element("div", "", "actions");
   const current = node.clips[clip];
   function play() {
-    void video.play().catch(() => {
-      if (epoch === captured && video.paused) { pause.textContent = "播放"; status.textContent = "点击播放以继续。"; }
+    void video.play().catch((error: unknown) => {
+      if (epoch !== captured || !video.paused) return;
+      const blocked = typeof error === "object" && error !== null && "name" in error && error.name === "NotAllowedError";
+      if (isV3 && blocked) {
+        actions.replaceChildren(button("点击播放以继续", play, "primary playback-recovery"));
+        status.textContent = "浏览器已阻止自动播放。";
+      } else if (isV3) {
+        if (!video.error) status.textContent = "视频暂时无法播放。";
+      } else { pause.textContent = "播放"; status.textContent = "点击播放以继续。"; }
     });
   }
   if (current && !choosing) {
@@ -264,12 +277,21 @@ function render() {
     };
     let lastSavedSecond = -1;
     active.ontimeupdate = () => { if (epoch !== captured || active.readyState < 1) return; time = active.currentTime; updateCaptions(); const second = Math.floor(time); if (second !== lastSavedSecond) { lastSavedSecond = second; save(); } };
-    active.onplay = () => { if (!active.paused) { shell.classList.remove("film-ending"); pausedByUser = false; pause.textContent = "暂停"; status.textContent = ""; } };
+    active.onplay = () => {
+      if (!active.paused) {
+        shell.classList.remove("film-ending"); pausedByUser = false; pause.textContent = "暂停"; status.textContent = "";
+        actions.querySelector(".playback-recovery")?.remove();
+      }
+    };
     active.onpause = () => { if (epoch === captured && active.paused) { pause.textContent = "播放"; save(); } };
     active.onerror = () => { status.textContent = "视频无法播放。请确认完整解压了游戏文件。"; };
     active.onended = () => {
       if (epoch !== captured || !active.ended) return;
       if (clip + 1 < node.clips.length) { clip++; time = 0; save(); render(); }
+      else if (isV3 && node.edges.length === 1 && node.edges[0].label === null) {
+        rememberKnowledge(node.id, true);
+        move(node.edges[0].to);
+      }
       else { finished = true; rememberKnowledge(node.id, true); save(); showActions(); }
     };
     stage.append(active);
@@ -302,13 +324,15 @@ function render() {
       stage.append(overlay);
     } else if (node.edges.length === 1) {
       const next = story.nodes.find(item => item.id === node.edges[0].to);
-      if (current && next && !next.clips.length && next.edges.some(edge => edge.label !== null)) {
+      if (isV3 && !current && node.edges[0].label === null) {
+        actions.append(button("进入下一幕", () => move(node.edges[0].to), "primary"));
+      } else if (current && next && !next.clips.length && next.edges.some(edge => edge.label !== null)) {
         move(next.id); return;
       }
-      actions.append(button("继续", () => move(node.edges[0].to), "primary"));
+      else if (!isV3) actions.append(button("继续", () => move(node.edges[0].to), "primary"));
     }
     if (node.ending) actions.append(button("重新开始", () => { path = [story.start]; clip = time = 0; finished = false; save(); render(); }, "primary"));
-    const previous = lastChoicePath(story, path);
+    const previous = isV3 ? null : lastChoicePath(story, path);
     if (previous) actions.append(button("返回上个选择", () => { path = previous; const target = story.nodes.find(item => item.id === path.at(-1))!; clip = Math.max(0, target.clips.length - 1); time = 0; finished = true; save(); render(); }));
     if (node.ending) {
       const archivePanel = actions.querySelector(".collection");
@@ -320,7 +344,7 @@ function render() {
   if (node.text) shell.append(element("p", node.text, "story-note"));
   shell.append(stage, caption, status, actions);
   const entries = journal(story, path);
-  if (entries.length) {
+  if (entries.length && !isV3) {
     const notes = element("details", "", "journal"); notes.append(element("summary", `选择手记 · ${entries.length}`));
     for (const entry of entries) {
       notes.append(element("p", `${entry.title} / ${entry.label}`));

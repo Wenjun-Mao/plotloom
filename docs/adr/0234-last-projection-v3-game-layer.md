@@ -26,6 +26,17 @@ return to every encountered choice in the current and archived routes, plus the
 current unanswered choice; opening, browsing, and closing it never changes the
 current path or route archive. Only an explicit return action changes the path.
 
+For V3 playback, a film node with one predetermined successor advances once
+after its media ends naturally, including across another film or a reading
+passage. A text-only passage waits for `进入下一幕`; decisions hold the preceding
+frame and show only their authored choices; endings settle on their existing
+card. Native video controls own pause and replay. The HUD does not duplicate
+transport or route-history controls; route revisiting stays in the handover
+book. A browser autoplay-policy rejection offers one user-start action that
+disappears once playback succeeds, while media failures retain their own
+diagnostic. Existing finished saves on a single-successor film continue to that
+successor when resumed.
+
 Use V2's mixed audio track through native video audio and present one `声音`
 control. Do not imply independent music control without a separable music stem.
 Generate the embedded player assets deterministically from `frontend/src/player/`
