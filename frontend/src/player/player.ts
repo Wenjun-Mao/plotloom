@@ -129,7 +129,7 @@ function lastFrame(src: string) {
   const still = element("video");
   still.muted = true; still.playsInline = true; still.preload = "auto";
   still.onloadedmetadata = () => {
-    if (still.videoHeight) still.parentElement?.style.setProperty("--frame-ratio", String(still.videoWidth / still.videoHeight));
+    if (!isV3 && still.videoHeight) still.parentElement?.style.setProperty("--frame-ratio", String(still.videoWidth / still.videoHeight));
     if (Number.isFinite(still.duration)) still.currentTime = Math.max(0, still.duration - 0.5 / 24);
   };
   still.src = src;
@@ -233,14 +233,15 @@ function render() {
     progress.append(element("span", chapter.split("/ ").at(-1) ?? ""));
     const track = element("span", "", "progress-track");
     const fill = element("span", "", "progress-fill");
-    fill.style.width = `${((chapterIndex + 1) / Math.max(1, chapters.length)) * 100}%`;
+    fill.classList.add(`step-${chapterIndex + 1}-of-${chapters.length}`);
     track.append(fill); progress.append(track); shell.append(progress);
   }
   shell.append(element("p", `存档位置 · ${node.title}`, "save-status"));
   shell.append(element("p", node.context || "旧影院 / 交接前夜", "eyebrow"));
   const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
+  if (isV3 && frame) stage.classList.add("v3-frame");
   if (frame) {
-    if (frame instanceof HTMLCanvasElement) stage.style.setProperty("--frame-ratio", String(frame.width / frame.height));
+    if (!isV3 && frame instanceof HTMLCanvasElement) stage.style.setProperty("--frame-ratio", String(frame.width / frame.height));
     frame.setAttribute("aria-hidden", "true"); stage.append(frame);
   }
   const caption = element("div", "", "captions");

@@ -31,6 +31,12 @@ it("advances a V3 film cut naturally, waits on text, and settles at the ending",
   try {
     await start();
     finish(document.querySelector("video")!);
+    const openingChoice = document.querySelector<HTMLElement>(".choice-stage")!;
+    expect(openingChoice.classList.contains("v3-frame")).toBe(true);
+    expect(openingChoice.hasAttribute("style")).toBe(false);
+    const progressFill = document.querySelector<HTMLElement>(".progress-fill")!;
+    expect(progressFill.classList.contains("step-1-of-3")).toBe(true);
+    expect(progressFill.hasAttribute("style")).toBe(false);
     const watch = [...document.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent === "先看完整监控，让画面说话")!;
     watch.click();
     const memory = document.querySelector("video")!;
