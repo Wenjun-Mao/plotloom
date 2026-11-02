@@ -35,3 +35,14 @@ Start the exported game, turn sound on with the native video control and set a r
 Early in production, use retained media in a small complete fixture to exercise an opening, a choice, an ending, and restart. At delivery, download the game from the installed app, unpack it outside the checkout, and play it with Plotloom unavailable. Follow every route from the map. Check the dialogue, choice labels, ending cards, replay, and resume after reload.
 
 For *The Last Projection*, the installed download matched the delivery ZIP byte for byte. All three routes played in Chromium and WebKit over static HTTP. Opening the local file in Safari covered the short route. Record playback coverage separately from any judgment about acting, visuals, or sound. Those creative qualities remained unreviewed in this run. [Executed playback checks](../verification/2026-10-31-last-projection-functional-closeout.md#executed-functional-coverage)
+
+### V3 recap, reading pause and chapter progress
+
+A short route recap immediately before a decision belongs with that held-frame
+decision: keep its route-owned words available through an optional disclosure,
+with choices usable immediately. Do not add a recap advance button or timer.
+A substantive reading passage with new story material remains a deliberate
+reading pause, displaying the preceding route film frame and one advance action.
+Chapter progress follows the displayed narrative node, independently of recap
+copy. Preserve graph, route/archive/knowledge identities and current-position
+Continue, including saves located at a pre-choice recap.

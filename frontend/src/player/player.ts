@@ -143,10 +143,19 @@ function render() {
   if (isV3 && finished && node.clips.length && node.edges.length === 1 && node.edges[0].label === null) {
     move(node.edges[0].to); return;
   }
+  // The two route recaps introduce the decision; retain their graph/save identity
+  // while presenting their words alongside the following choice.
+  if (isV3 && ["watch-callback", "hear-callback"].includes(node.id) && node.edges.length === 1) {
+    rememberKnowledge(node.id, true);
+    move(node.edges[0].to); return;
+  }
   rememberKnowledge(node.id);
   const hasChoices = node.edges.some(edge => edge.label !== null);
   const choosing = hasChoices && (finished || !node.clips.length);
-  const source = choosing && path.slice().reverse()
+  const reading = isV3 && ["watch-context", "hear-context"].includes(node.id);
+  const recap = isV3 && ["watch-c01", "hear-c01"].includes(node.id)
+    ? story.nodes.find(item => item.id === node.id.replace("c01", "callback")) : undefined;
+  const source = (choosing || reading) && path.slice().reverse()
     .map(id => story.nodes.find(item => item.id === id)?.clips.at(-1)).find(Boolean);
   const frame = source ? lastFrame(source.src) : null;
   stop(); root.replaceChildren();
@@ -238,8 +247,9 @@ function render() {
   }
   shell.append(element("p", `存档位置 · ${node.title}`, "save-status"));
   shell.append(element("p", node.context || "旧影院 / 交接前夜", "eyebrow"));
-  const stage = element("div", "", choosing ? "stage choice-stage" : "stage");
+  const stage = element("div", "", choosing || reading ? "stage choice-stage" : "stage");
   if (isV3 && frame) stage.classList.add("v3-frame");
+  if (reading) shell.classList.add("reading-pause");
   if (frame) {
     if (!isV3 && frame instanceof HTMLCanvasElement) stage.style.setProperty("--frame-ratio", String(frame.width / frame.height));
     frame.setAttribute("aria-hidden", "true"); stage.append(frame);
@@ -343,6 +353,11 @@ function render() {
   }
   if (!choosing) shell.append(element("p", node.title, "node-title"));
   if (node.text) shell.append(element("p", node.text, "story-note"));
+  if (recap?.text) {
+    const disclosure = element("details", "", "decision-recap");
+    disclosure.append(element("summary", recap.title), element("p", recap.text));
+    shell.append(disclosure);
+  }
   shell.append(stage, caption, status, actions);
   const entries = journal(story, path);
   if (entries.length && !isV3) {

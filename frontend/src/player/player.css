@@ -77,3 +77,8 @@ body{background:radial-gradient(ellipse at 25% 0%,#302a23 0,transparent 55%),#10
 .film-player .progress-fill.step-2-of-3{width:66.666667%}
 .film-player .progress-fill.step-3-of-3{width:100%}
 @media(max-width:700px){.film-player .actions:not(.ending-actions){bottom:calc(1vh + 56px)}}
+
+.film-player .decision-recap{position:absolute;z-index:8;top:110px;left:24px;width:min(30rem,38vw);padding:8px 14px;color:#ebdfc8;background:#10110fe8;font-size:.9rem}
+.decision-recap p{white-space:pre-wrap;line-height:1.7;max-height:24vh;overflow:auto}
+@media(max-width:700px){.film-player .decision-recap{top:148px;left:12px;width:calc(100% - 24px);font-size:.8rem}.decision-recap p{max-height:14svh}.film-player.reading-pause .story-note{z-index:6}}
+@media(max-width:480px) and (orientation:portrait){.film-player .decision-recap{top:47svh;max-height:10svh;overflow:auto}.decision-recap p{max-height:8svh}.film-player.reading-pause .story-note{top:57svh;max-height:23svh}}

@@ -1,10 +1,29 @@
 # 放映室最后一夜 V3
 
-## Current status
+## Current follow-up — recap and reading presentation
+
+Status: complete. Both callback recap gates are removed, substantive reading passages hold their route-correct film frame, and the updated Downloads folder/ZIP are served at the existing stable URL. Agent-operated functional inspection is complete; owner personal media-quality acceptance is not inferred. Journey: both retained V3 routes, isolated Chromium/WebKit desktop and 390×844 phone; no generation, unchanged eight-media package. This worker owns delivery and isolated-session cleanup.
+
+| Claim | Required evidence | Fresh media | Status |
+|---|---|---|---|
+| Recaps flow into Chapter 3 choices | Natural admission end on both branches, correct prose and immediate decision interaction | No | PASS: candidate WebKit natural endings on both routes at desktop/phone; exact released WebKit natural watch/hear screenshots and Chapter 3 readback; immediate choices and route-specific disclosure. |
+| Substantive reading pause retains preceding frame | Both route-specific context passages with decoded held pixels and one deliberate advance | No | PASS: actual 832×480 decoded held frames on both routes, including the distinct surveillance frame on hear-context; source-matching prose and exactly one reading advance. Final desktop/390×844 pixels inspected. |
+| Identity and delivery preserved | Old callback Continue; unchanged graph/save/media identities; exact served/folder/ZIP bytes | No | PASS: exact released Chromium old callback saves with finished=false/true on both routes; WebKit retained old-save checks; existing IDs/graph/revision and all eight media byte-identical. Every served game file and all 16 ZIP members match the Downloads folder. ZIP SHA-256 `14f437737efc62f5e590891f12a6bbb4a2894de365574d4c35b95c0858b0fcea`. |
+| Local qualification | Frontend unit/type checks, deterministic build, affected isolated browser journeys, stable review | No | PASS: 1,738 unfiltered frontend tests, both type checks, six focused V3 regressions, two-build SHA-256 equality across nine generated assets, independent GPT-6 Luna/Max read-only review with no findings, final Chromium desktop/phone/landscape interaction and WebKit natural playback. |
+
+Risk scope: the diff is confined to V3 standalone presentation, existing-edge progression and its regression coverage. Backend APIs/request payloads, persistence schemas and identity keys, admission/auth/provider/prompt behavior, dependencies, build tooling and package contracts are unchanged. Callback IDs remain in the path and entered/completed knowledge; archive ownership is unchanged. This qualifies for the documented frontend scope, with actual standalone browser journeys rather than unrelated authoring UI specs. No full local gate, new media, push or hosted CI is part of this follow-up.
+
+Evidence: `.local/last-projection-v3/evidence/recap-candidate-results.json`, `recap-chrome-results.json`, `recap-final-hear-results.json`, `recap-final-watch-natural-readback.log`, `recap-delivery-bytes.json`, final frontend/typecheck/build logs, and `output/playwright/v3-recap-final/` / `v3-recap-chrome/`. Natural admission observations were ~37.45 seconds for the unchanged 36.75-second clip; no synthetic ended events or accelerated playback were used for photographed natural transitions. Reload/Continue probes use retained media and isolated browser storage.
+
+Fixture failures remain retained: the first multi-case probe installed a save before the current page's normal page-exit save, so it was corrected to return to title first. The initial released WebKit geometry assertion then indexed the book dock as the recap because DOM order differed; its natural watch screenshots and exact canvas/save readback are retained. Corrected checks identify panels by class: the phone recap ends at y481.06 and choices begin at y489.52. Reused the proven watch natural-ending evidence and ran the corrected remaining hear natural journeys plus Chromium interaction/save checks. These were fixture failures, not bypassed product assertions. The known screenshot-tool CSP effect was not reinvestigated.
+
+Earlier status and evidence below are historical for this follow-up.
+
+## Historical status — continuous playback delivery
 
 Updated: 2026-11-02. The continuous-playback follow-up is implemented, independently reviewed and verified from the exact published V3 package; source, review fixes, regression tests, ADR and generated player assets are checkpointed on local `main`. Final WebKit natural playback crossed `先看那一晚` → `口供` → `空着的放映位` without intervening clicks. Chromium desktop and 390×844 WebKit checks passed; the text passage's only action clears the phone book dock. All eight clips are unchanged. The Downloads folder/ZIP at the stable address now contain the updated package; ZIP SHA-256 is `10df1d9bf4ab4f4a9f8df1442a81c02c7cf004227fb7d03bc1784f90d43b5cf4`. Director readback on the delivered game found zero stylesheet violations during the natural cut and reading stop. Each of two Playwright WebKit screenshots then inserted a temporary `body {}` stylesheet and produced one `style-src-elem` violation. This identifies the reported notice as a screenshot-tool effect. The game keeps its strict CSP. No owner Safari tab was opened, controlled or reloaded. No new media, provider work, push or CI. Cleanup owner: this coordinator, limited to its isolated browser sessions and task evidence.
 
-## Continuous playback — current acceptance
+## Continuous playback — historical acceptance
 
 | Claim | Required evidence | Fresh media | Status / evidence |
 |---|---|---|---|

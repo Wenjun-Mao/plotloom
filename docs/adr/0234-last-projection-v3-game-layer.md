@@ -28,7 +28,13 @@ current path or route archive. Only an explicit return action changes the path.
 
 For V3 playback, a film node with one predetermined successor advances once
 after its media ends naturally, including across another film or a reading
-passage. A text-only passage waits for `进入下一幕`; decisions hold the preceding
+passage. The substantive `watch-context` and `hear-context` reading passages hold the
+preceding route film frame and wait for `进入下一幕`. The `watch-callback` and
+`hear-callback` recaps flow immediately into their following decision, retaining
+their IDs in the path and knowledge record; their route-owned prose remains in
+an optional disclosure beside the decision. Chapter progress follows the actual
+decision node (Chapter 3), independently of the recap prose. Existing callback
+saves resume through the same graph edge without a migration. Decisions hold the preceding
 frame and show only their authored choices; endings settle on their existing
 card. Native video controls own pause and replay. The HUD does not duplicate
 transport or route-history controls; route revisiting stays in the handover
