@@ -14,7 +14,7 @@ Local qualification remains composite: the original `full` invocation failed bec
 | Data and provenance preservation | Exact historical DDL, online backup identity, all table row counts/digests, FK/index/integrity checks | No | Private trials and actual live readback against the fresh activation backup passed; only the intended CHECK changed |
 | Provider request fidelity | Existing H3/Qwen and image-input regression behavior | No | No public request or prompt edits; affected regressions and composite local qualification passed, with original full failure retained |
 | Generated-media quality | Separate source and audiovisual review | Separately scoped | Out of scope; no generation in this repair |
-| Live activation | Coordinated idle window, backup/recovery, one migration, exact readback and normal service health | No | Distinct corrected operation committed once; original gateway restored and independently verified at 04:32:11 Toronto; earlier failed operation preserved |
+| Live activation | Coordinated idle window, backup/recovery, one migration, exact readback and normal service health | No | The corrected operation committed once. The controller verified restoration at 04:32:11 Toronto. The director independently checked the database and gateway at 04:32:51. |
 
 ## Scope and method
 
