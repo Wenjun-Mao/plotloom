@@ -11,6 +11,7 @@ from .contracts import (
     MANAGED_OUTPUT_RETENTION_HOURS,
     GatewayError,
 )
+from .frame_binding_schema import ASSET_INDEX, CURRENT_TABLE, align_frame_binding_schema
 
 
 def _has_retired_contract(connection: sqlite3.Connection) -> bool:
@@ -44,6 +45,7 @@ class GatewayStore:
                 raise RuntimeError(
                     "gateway state reset required: retired profileId state cannot use the quality contract"
                 )
+            align_frame_binding_schema(connection)
             connection.executescript(_CURRENT_SCHEMA)
             self._migrate(connection)
             from .lane import initialize_lane
@@ -70,15 +72,6 @@ class GatewayStore:
         for name, declaration in additions.items():
             if name not in columns:
                 connection.execute(f"ALTER TABLE jobs ADD COLUMN {name} {declaration}")
-        frame_columns = {
-            str(row["name"])
-            for row in connection.execute("PRAGMA table_info(job_frame_bindings)")
-        }
-        # SQLite cannot widen the historical role CHECK in place. A source
-        # reference is modeled as the existing start role in old databases;
-        # new databases have the wider check in _CURRENT_SCHEMA.
-        if "role" not in frame_columns:
-            raise RuntimeError("gateway state reset required: frame binding contract is invalid")
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._path)
@@ -342,13 +335,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE IF NOT EXISTS job_frame_bindings (
-  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK(role IN ('start', 'end', 'source')),
-  asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,
-  PRIMARY KEY(job_id, role)
-);
-CREATE INDEX IF NOT EXISTS job_frame_bindings_asset_idx ON job_frame_bindings(asset_id);
+""" + CURRENT_TABLE.replace("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ", 1) + ";\n" + ASSET_INDEX.replace("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ", 1) + ";\n" + """
 CREATE TABLE IF NOT EXISTS job_voice_bindings (
   job_id TEXT PRIMARY KEY REFERENCES jobs(id) ON DELETE CASCADE,
   source_sha256 TEXT NOT NULL, prepared_sha256 TEXT NOT NULL,

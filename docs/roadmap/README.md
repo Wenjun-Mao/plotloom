@@ -5,6 +5,9 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+The [H3 frame-binding schema alignment](2026-11-03-h3-frame-binding-schema-alignment.md)
+tracks the bounded historical SQLite CHECK repair and its separate live-activation gate.
+
 ## 放映室最后一夜 V3
 
 The [V3 delivery plan](2026-11-02-last-projection-v3.md) owns the current
