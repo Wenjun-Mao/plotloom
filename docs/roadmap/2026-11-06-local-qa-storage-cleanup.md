@@ -2,15 +2,17 @@
 
 ## Current status
 
-Updated: 2026-11-06. Owner: main Plotloom coordinator. Baseline: clean local
-`main` at `ae59abb2637c106ddf79efb97ceccfbcd78117f4` before this documentation-only
-review. Result: both roots inventoried; read-only necessity reviews and current
-consumer checks collected; independent stable-plan review and documentation
-checks passed. Review/planning is complete. Next action, if deletion is later
-authorized: refresh exact targets and execute the 14.100 GiB first batch. The
-stopping condition is met: dispositions and routine procedure are documented.
-The owner's request authorizes review and planning, not deletion or scheduled
-automation.
+Updated: 2026-11-06. Owner: main Plotloom coordinator, sole deletion owner.
+The owner approved the reviewed `b72fd01d` plan with “Sounds good. Go.”
+Execution is complete: **41.621 GiB of allocated artifacts removed**, W absent,
+and D reduced to **652.496 MiB** of current inputs and bounded holds. All 4,329
+retained entries and the live project/media/settings/guard/runtime/recovery
+baseline are unchanged. Both current project contexts and all 15 playback
+streams match before/after; historical schema errors remain unchanged. Routine
+cleanup is adopted in ADR 0236 and the developer guide. Documentation checks and independent
+closeout review passed; the assignment is complete. No provider operation, service
+restart, scheduled automation, push or CI. The remaining holds are intentional
+active dependencies with release events, not unfinished deletion work.
 
 ## Acceptance
 
@@ -19,7 +21,8 @@ automation.
 | Storage accounted for | Exact roots, no-follow inventory and allocated sizes | No | PASS: 42.26 GiB total at 2026-11-06 16:19 Toronto; see inventory |
 | Necessary retention identified | Named current consumer and deletion consequence, with bounded release action | No | PASS: current consumers and narrow release conditions recorded below |
 | Removal candidates reviewable | Explicit paths/exclusions and lifecycle prerequisites | No | PASS: complete W/D dispositions, measured first batch, independent review closed |
-| Routine cleanup defined | Owner, trigger, default dispositions, exceptions and verification | No | Proposed below; no timer or deletion service installed |
+| Routine cleanup defined | Owner, trigger, default dispositions, exceptions and verification | No | Adopted: ADR 0236 and developer guide; no scheduler |
+| Approved storage retired | Exact frozen leaves, absent targets, retained-byte and live-state comparison | No | PASS: 41.621 GiB removed; 4,329 retained entries unchanged; full baseline matches |
 
 ## Scope, authority and evidence
 
@@ -27,8 +30,8 @@ automation.
 - `D`: `/Users/wjmao/plotloom-canaries/2026-11-01-last-projection-v2-media-diagnosis`.
 - `G`: `/Users/wjmao/.codex/visualizations/2026/09/13/01a0983e-0e5f-7171-950e-011adaf53303/h3-reliability-goal`.
 
-The user requested a cleanup review of W/D and a routine plan. Root owns this
-plan and any later approved cleanup. Two GPT-6.1 Sol / Medium read-only reviewers
+The user requested a cleanup review of W/D and a routine plan, then approved
+its staged execution. Root owns this plan and the cleanup. Two GPT-6.1 Sol / Medium read-only reviewers
 inspected W and D independently of the plan writer. Inspection used filesystem
 metadata, existing receipts, tracked source, current mounted/runtime ownership,
 read-only databases and current H3 task/package records. No fixture, model,
@@ -46,7 +49,7 @@ source is on main, current production/recovery lives elsewhere, and the old
 qualification fixtures have no current exact-fixture consumer. No provider
 proof or fresh media is needed for this decision.
 
-## Inventory and practical meaning
+## Reviewed inventory — historical baseline
 
 | Root | Allocated KiB | Approx. GiB | Regular files / symlinks |
 |---|---:|---:|---:|
@@ -66,7 +69,7 @@ this batch. So are installed projects, Downloads V2/V3 games and media, G,
 primary `.local/b37` and primary `.local/codex-exec`. W's nested directories with
 similar names are distinct historical copies.
 
-## W: recommend retiring the entire root
+## W: entire root retired
 
 | Relative path | Allocated KiB | Reason it can go |
 |---|---:|---|
@@ -114,13 +117,15 @@ selects D's interpreter; `offline_rehearsal.py` reads its plate and START; the
 calibration manifest reads its selected media/source. The active sparse-guide
 review explicitly consumes D's pinned native layout files.
 
-The [advisory path inventory](2026-11-06-local-qa-storage-paths.json) records 248
-observed top-level entries, exact keep/hold paths, the first batch and measured
-sizes. It is a static review artifact, not a deletion script. Its top-level
+The initial inventory recorded 248 observed top-level entries, exact keep/hold
+paths and the first batch. It is now retired after execution; the same
+[path list](2026-11-06-local-qa-storage-paths.json) contains only remaining
+current dependencies/holds and the concise result. The initial review below is
+historical baseline evidence, not a new removal instruction. Its top-level
 name list does not identify new nested children or authorize recursive erasure.
 New or changed paths are outside the reviewed removal scope. Hashes are
-observations, including for mutable active plans; refresh them at execution. The parent corrected the first proposed keep set to also
-retain the review pages' linked START images, astronaut prompt, original media
+observations, including for mutable active plans; refresh them at execution.
+The parent corrected the first proposed keep set to also retain the review pages' linked START images, astronaut prompt, original media
 paths and three corpus-summary links. Otherwise the seven playable examples
 would have retained their videos while losing useful source links.
 
@@ -135,13 +140,24 @@ would have retained their videos while losing useful source links.
 | Seven `native-positive-controls-review/media` clips, current pages/manifest/owner review and the exact source/START/original paths listed in the inventory | Owner-reviewed native controls used to formulate the preferred native route; current pages and frozen source bindings still name these paths | Retain while used as selected calibration/owner-valued examples. H3 director may retire duplicate originals only after actual consumers no longer need those paths; do not silently rewrite frozen evidence |
 | `native-corpus-assessment/{REPORT.md,primary-takes.json}` and `native-corpus-director-review.md` | The working positive-control index links these source summaries | Retire with that consumer or update its current view deliberately; no need to keep the full old corpus |
 
-Together these current dependencies occupy **0.303 GiB**. Most is the one
+At review these current dependencies occupied **0.303 GiB**. Execution also
+retained the 3.684 MiB self-contained
+`latentsync-pilot-preparation/director-review/index.html`: the current n10
+calibration report links it. This preserves that working view without editing
+its source report. It releases with that calibration consumer. Most is the one
 working Python environment. Retention is functional, not a promise to keep
 these historical directory layouts forever. No whole diagnosis root is needed.
 
 ### Temporary holds with specific end conditions
 
-These selections add **0.330 GiB**. The H3 director owns their disposition at the
+At review these selections added **0.330 GiB**. The fresh execution check added
+seven files (40 KiB) under
+`latentsync-pilot-preparation/gateway_candidate/src/plotloom_h3_gateway/`:
+`__init__.py`, `contracts.py`, `profile_catalog.py`, `workflow.py`, `naming.py`,
+`vae_policy.py` and `profiles/minimax_h3_template_v2.json`. Current v4
+`native-proof/build_packet.py` imports/loads them. They release only after an
+accepted proof and verified source rebind, or explicit retirement of that
+workflow. No surrounding candidate/cache/deployment subtree is retained. The H3 director owns their disposition at the
 next same-scene/source-method freeze, before approving another large diagnostic
 archive. The main coordinator checks any unresolved exception at the next weekly
 maintenance review. Do not renew a hold merely because its old script is runnable.
@@ -156,7 +172,7 @@ maintenance review. Do not renew a hold merely because its old script is runnabl
 | `portrait-speech-first-development/plate.mp4` and `native` | Possible F3 transfer/lineage input. One old lineage input is already missing, so no claim of a viable complete old workflow. At method freeze, either identify the exact still-used subset or release it |
 | Three quiet-tail envelope/index JSONs, roundtrip `installed-envelope.json`/`sources/main.py`, and `latentsync-reuse-preparation/{sync_adapter,REPORT.md}` | Exact source/envelope inputs of old weather/quiet-pose tooling. The next maintained-method selection either adopts them or releases them; it does not retain raw RGB, tensor dumps or the old postmortem |
 
-### Remaining D disposition
+### Reviewed D disposition — executed
 
 The five largest study families total about **17.73 GiB**: Teacher selector,
 closed-reference pair, F2 reframe, Teacher CPU preparation and crossed face/audio.
@@ -173,14 +189,14 @@ case by itself.
 | Student runtime (~1.56 GiB), reusable two-speaker (~1.16 GiB), fruit joint review (~1.05 GiB), N10 CPU (~0.92 GiB), LatentSync pilot (~0.85 GiB) | Partial: retain only keep/hold entries; retire captured fixtures, repeated frames, copies, inactive environments and historical outputs |
 | Remaining observed entries | Disposal candidates except the explicitly listed keep/hold files. Their exact observed names are in the inventory; this is not a wildcard authorization for new work or new files |
 
-The diagnosis proposal leaves **0.634 GiB** of identified current/temporarily
+The historical diagnosis proposal left **0.634 GiB** of identified current/temporarily
 held files and makes approximately **36.502 GiB** a disposal candidate. With W,
 that is **41.625 GiB** of reviewed potential removal, inclusive of the first
 batch below. This is a planning estimate. Active work, identity changes or newly
 established current consumers must be checked before execution. The full
 proposal should be staged; it is not a command to delete everything else now.
 
-## First D batch: independently removable bulk
+## First D batch — executed
 
 The following nonoverlapping paths total **9,414,280 KiB / 8.978 GiB**. They are
 closed synthetic proofs, reconstructible caches and unneeded transport bundles.
@@ -204,7 +220,7 @@ The tensor captures are synthetic validation outputs, not installed model
 weights. A transport archive being old is insufficient alone: check that it is
 not the sole required source of any retained member before unlinking it.
 
-## Execution plan for a later approved batch
+## Approved staged execution procedure
 
 1. Before a later removal, bind the exact files or unchanged subtrees and
    exclusions to a fresh no-follow manifest at the authorized cleanup boundary,
@@ -235,7 +251,7 @@ not the sole required source of any retained member before unlinking it.
    qualification for storage-only work. Report actual removed allocation and
    remaining narrowly justified exceptions; no guaranteed free-space claim.
 
-## Proposed routine cleanup
+## Routine cleanup — adopted 2026-11-06
 
 | Trigger | Responsible owner | Required action |
 |---|---|---|
@@ -268,12 +284,12 @@ standalone TTL to `delivery` subdirectories. Retire completed disposable QA
 projects through their supported lifecycle and then their isolated envelope.
 
 Within future assignments, ordinary authorized scratch cleanup belongs to the
-same closeout, not repeated milestone approvals. This plan alone does not grant
-blanket deletion of existing directories or user assets. No new daemon, cron,
+same closeout, not repeated milestone approvals. This approved batch does not grant
+blanket deletion outside its exact reviewed scope or of user assets. No new daemon, cron,
 Codex automation, quota or generation ceiling is proposed for this first step.
 
 
-## Review and validation closeout
+## Planning review — historical
 
 Independent GPT-6.1 Sol / Medium review reconciled all totals, all 50 keep paths,
 43 holds and 22 first-batch paths; recorded hashes/sizes matched and selections
@@ -292,9 +308,71 @@ cleanup should mark the latter historical unless a current consumer is named.
 Neither is a reason to keep a whole historical directory, and no concurrent
 H3 source or report was edited by this review.
 
-No W/D file, service or user media player was modified. The generated advisory
-JSON is small metadata, not a copied evidence corpus or new cleanup framework.
-Retire that inventory after its batch is reconciled; retain the concise outcome
-and any still-open exceptions in this plan.
+The planning review changed no W/D file, service or user media player. Execution
+below supersedes that no-deletion status. The completed removal inventory has
+been retired; only the concise result and current exception list remain.
 The README entry is a narrow navigation edit to an existing long roadmap; no
 unrelated document restructuring is warranted.
+
+
+## Execution result and preservation
+
+| Stage | Removed allocation | Result |
+|---|---:|---|
+| Small closed fixture (`W/validation-quality-boundaries`) | 40,960 bytes | Seven entries removed; all live preservation sections matched before scaling |
+| W remainder plus 22 D bulk paths | 15,140,126,720 bytes | W absent; live state still exact |
+| Remaining eligible D paths | 29,550,063,616 bytes | Every unprotected candidate absent; current dependencies and holds remain |
+| Total | **44,690,231,296 bytes / 41.621 GiB** | 199,526 file/directory/symlink entries retired |
+
+D now holds 684,191,744 allocated bytes / 652.496 MiB, 3,923 regular files and
+three symlinks. This and the removed allocation reconcile exactly to the frozen
+root inventory. Allocated bytes are not a measured APFS free-space gain.
+No archive or relocation copy was made. The task's temporary inventories and
+one-off operator are retired after independent closeout; they are not a product
+cleanup tool or another standing evidence store.
+
+Before deletion, exact no-follow membership/identity/change snapshots and an
+open-handle check were taken. Only the kept active plan had changed since review.
+No candidate had new mtime/ctime or new nested membership. The private operator
+was independently checked: actual root descriptor identity, fresh parent-chain
+checks, immediate leaf checks, no symlink traversal, refusal of optimized Python,
+and empty-only directory removal. The same-UID cooperative/quiescent boundary
+was used; no protection against a hostile simultaneous same-UID rename is
+claimed. QuickTime and both open comparison clips remain untouched.
+
+All 4,329 kept entry identities/content hashes match, including the added gateway
+source and linked view. The seven native controls' working source/START/media
+links remain available. Current application data, project data (20 logical
+SQLite databases), installed host state, settings/credential hashes, runtime
+source/container/bridge identities and all three current recovery members match
+the pre-delete baseline. The installed two UNKNOWN reservations and five
+revocation guards are unchanged. The retired isolated QA envelope's two remote
+outcomes remain unknown; no replay, migration, settlement or reservation release
+was performed. Consolidation source snapshots/refs, qualification campaigns,
+primary working data and user deliveries were excluded.
+
+The read-only HTTP status/digest records match before/after: health/catalog,
+both current project contexts and all 15 selected playback streams return 200;
+recorded successful content hashes are unchanged. Fourteen historical context
+requests and two historical playback statuses remained 422. The unsupported-schema
+message was inspected during preflight; failed response bodies were not compared
+by the final harness. This pre-existing compatibility finding was not repaired
+or reclassified by storage work.
+
+Operational checks initially refused a system-Python `hashlib.file_digest`
+lookup before manifest publication; the operator then used the existing locked
+Python 3.12.13 envelope. A subsequent compile caught an indentation error before
+deletion. The first-batch readback encountered a transient disappearing SQLite
+SHM file; filtering already-excluded transient filenames before `lstat` corrected
+the observer race, and the unchanged logical/file baseline then passed. These
+were operator/observer issues, not bypassed product failures or weakened checks.
+
+Historical worktree availability notices were updated without rewriting
+canonical receipts, results or failed outcomes. ADR 0236 records the prospective
+closeout procedure; it does not install a timer or broaden deletion authority.
+
+Independent final review confirmed the exact live baseline comparison, HTTP
+status/digest records, stage/journal accounting and all 101 retained path
+selections. No retention or outcome blocker remained. Documentation-only
+validation covered added links, JSON consistency and whitespace; no product
+full/browser suite was required for this storage-only change.

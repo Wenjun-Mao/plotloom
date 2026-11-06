@@ -1,5 +1,11 @@
 # Disposable QA runtime authorization repair
 
+> Storage update, 2026-11-06: historical worktree artifacts later moved under
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](2026-11-06-local-qa-storage-cleanup.md).
+> Their paths below are historical, not available replay inputs. Recorded outcomes
+> and limitations remain unchanged; current projects, qualification roots and
+> the separate current recovery package were outside that removal scope.
+
 Status: runtime repair implemented, independently reviewed, scoped-composite
 qualified and activated, 2026-10-27. The original full run remains FAILED.
 Source owner uses retained main at `/Users/wjmao/.codex/worktrees/b30f/plotloom`.

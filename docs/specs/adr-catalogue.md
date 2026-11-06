@@ -288,3 +288,5 @@ Cohorts below are discovery aids, not exclusive roles or approval classification
 | [0217-feature-oriented-specification-authority](../adr/0217-feature-oriented-specification-authority.md) | Status: documentation organization approved by the owner, 2026-10-22. |
 
 - [0225 Bounded generation retries and local capacity](../adr/0225-bounded-generation-retries-and-local-capacity.md): distinct attempts, persisted allowance, stopped local ownership, truthful costs, and job-scoped failure.
+
+- [0236 Task-owned local QA cleanup](../adr/0236-task-owned-local-qa-cleanup.md): task-closeout ownership, current-consumer retention, bounded exceptions and exact deletion scopes.

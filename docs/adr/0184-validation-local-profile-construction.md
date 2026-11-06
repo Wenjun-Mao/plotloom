@@ -1,5 +1,11 @@
 # ADR 0184: Validation-invocation-local profile construction
 
+> Storage update, 2026-11-06: historical worktree artifacts later moved under
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](../roadmap/2026-11-06-local-qa-storage-cleanup.md).
+> Their paths below are historical, not available replay inputs. Recorded outcomes
+> and limitations remain unchanged; current projects, qualification roots and
+> the separate current recovery package were outside that removal scope.
+
 Status: Root-authorized bounded current-source implementation, October 17, 2026.
 Candidate over `19793455446b327a9a2cc47146fa607e8ede22bc`; correctness and
 independent review remain separate. [Scope and evidence](../roadmap/2026-10-17-profile-construction.md).

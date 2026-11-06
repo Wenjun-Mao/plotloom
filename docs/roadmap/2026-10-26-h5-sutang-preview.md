@@ -1,5 +1,11 @@
 # Su Tang six-clip game preview
 
+> Storage update, 2026-11-06: historical worktree artifacts later moved under
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](2026-11-06-local-qa-storage-cleanup.md).
+> Their paths below are historical, not available replay inputs. Recorded outcomes
+> and limitations remain unchanged; current projects, qualification roots and
+> the separate current recovery package were outside that removal scope.
+
 Status: six real H3 clips and exact ten-second playback windows are confirmed
 through agent-operated QA, exported and naturally playable with restart. Independent
 manager frame/playback/preservation review passed. See the [completion record](../verification/2026-10-26-h5-sutang-preview.md)

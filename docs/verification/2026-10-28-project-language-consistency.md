@@ -1,5 +1,11 @@
 # Project-language implementation evidence
 
+> Storage update, 2026-11-06: historical worktree artifacts later moved under
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](../roadmap/2026-11-06-local-qa-storage-cleanup.md).
+> Their paths below are historical, not available replay inputs. Recorded outcomes
+> and limitations remain unchanged; current projects, qualification roots and
+> the separate current recovery package were outside that removal scope.
+
 ## Browser repair and retained-media checkpoint — 2026-10-29
 
 The unfiltered browser gate on4af2db95 remains **failed**:289 passed/77 failed,

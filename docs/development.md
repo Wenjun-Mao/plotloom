@@ -103,6 +103,18 @@ new information. Keep prior results as history, including failures, without
 leaving old next steps as competing instructions. This does not add an approval
 gate or reduce applicable final qualification.
 
+## Local QA storage closeout
+
+Each producing task owns its authorized scratch cleanup at known-terminal
+closeout, including failures. Release superseded captures, transport archives
+and environments once their consumers are gone. Record any retained path's
+current consumer, deletion consequence, owner and release event in the existing
+plan; review unresolved exceptions at the next weekly maintenance session.
+Do not apply age-based deletion to project-owned delivery files or live safety
+state. Follow [ADR 0236](adr/0236-task-owned-local-qa-cleanup.md) and the
+[scoped cleanup procedure](roadmap/2026-11-06-local-qa-storage-cleanup.md#approved-staged-execution-procedure).
+This is an operator procedure, not an installed scheduler.
+
 ## Repository shape
 
 ```text

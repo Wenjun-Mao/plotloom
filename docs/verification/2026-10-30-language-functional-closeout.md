@@ -1,5 +1,11 @@
 # Bilingual functional qualification and activation
 
+> Storage update, 2026-11-06: historical worktree artifacts later moved under
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](../roadmap/2026-11-06-local-qa-storage-cleanup.md).
+> Their paths below are historical, not available replay inputs. Recorded outcomes
+> and limitations remain unchanged; current projects, qualification roots and
+> the separate current recovery package were outside that removal scope.
+
 Root is the single source and execution owner. This records agent-operated QA of
 disposable Chinese and English stories, under the owner's functional-only
 amendment. It does not claim creative quality acceptance or personal owner review.
