@@ -5,6 +5,16 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## 《别叫我的名字》 — story reading draft
+
+The [complete story and branching-choice draft](2026-11-06-dont-say-my-name-story.md)
+was written by the owner-requested GPT-6.1 Terra / Max subagent. It develops the
+convenience-store thriller through full Chinese scenes, dialogue, endings and
+an explicit map of how early actions change later events. The coordinator's
+causal and continuity read is complete. Wenjun will read and discuss the story
+before any production; no canonical project, game implementation or media
+generation is part of this writing assignment.
+
 The [local QA storage review and routine cleanup plan](2026-11-06-local-qa-storage-cleanup.md)
 accounts for the retained worktree and media-diagnosis directories, identifies
 current H3 dependencies and bounded holds, and records task-closeout cleanup.
