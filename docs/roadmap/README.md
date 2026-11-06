@@ -5,6 +5,11 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+The [local QA storage review and routine cleanup plan](2026-11-06-local-qa-storage-cleanup.md)
+accounts for the retained worktree and media-diagnosis directories, identifies
+current H3 dependencies and bounded holds, and proposes task-closeout cleanup.
+Review and planning only: no files deleted and no scheduled automation installed.
+
 The [H3 frame-binding schema alignment](2026-11-03-h3-frame-binding-schema-alignment.md)
 tracks the bounded historical SQLite CHECK repair and its separate live-activation gate.
 

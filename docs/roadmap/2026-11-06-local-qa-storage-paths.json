@@ -1,0 +1,1935 @@
+{
+  "purpose": "Advisory cleanup review; no deletion authorized or executed. Revalidate current consumers, identity, terminal state and open files before any later approved removal. Not an executable deletion manifest.",
+  "observed": "2026-11-06T16:19:32.616116-05:00",
+  "diagnosis_root": "/Users/wjmao/plotloom-canaries/2026-11-01-last-projection-v2-media-diagnosis",
+  "retained_worktree_root": "/Users/wjmao/projects/HU/plotloom/.local/retained-worktree-evidence",
+  "retained_worktree_candidate_allocated_KiB": 5371040,
+  "summary": {
+    "root_allocated_bytes": 39874478080,
+    "keep_allocated_bytes": 325705728,
+    "hold_allocated_bytes": 354582528,
+    "candidate_allocated_bytes": 39194189824,
+    "first_batch_allocated_bytes": 9640222720
+  },
+  "keep": [
+    {
+      "path": "cases/e02-s1-c1/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 1142784,
+      "sha256": "7890fb59a5ddbc31d7a036d7f58df012982be921b20dd930c76ea336a38d40f5"
+    },
+    {
+      "path": "cases/e02-s1-c1/snapshot.json",
+      "kind": "file",
+      "allocated_bytes": 36864,
+      "sha256": "5062eeae951afe9532f365ab5ae23a9bd0f3203facf1a0d4509febc3a23996a7"
+    },
+    {
+      "path": "cases/e02-s1-c1/start.png",
+      "kind": "file",
+      "allocated_bytes": 520192,
+      "sha256": "b4277ed7d1359fee35a27acb4709ae1f08d0a5928869c6e1736494118d78c437"
+    },
+    {
+      "path": "cases/n00-s3-c1/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 868352,
+      "sha256": "cee933dd89872abccb64fd5e360a1dd7ca80bd524624489b511ca0a6c0dbe5be"
+    },
+    {
+      "path": "cases/n00-s3-c1/snapshot.json",
+      "kind": "file",
+      "allocated_bytes": 36864,
+      "sha256": "ef9089faa39f23237a84fedbb58a5451b4f0ccfb4bf43c489525459b82ca031d"
+    },
+    {
+      "path": "cases/n00-s3-c1/start.png",
+      "kind": "file",
+      "allocated_bytes": 450560,
+      "sha256": "8d25a7ca7cba1cf2cd3b3a496365ce4989c6a74f0bbe7f42b929b01db9e915aa"
+    },
+    {
+      "path": "cases/n00-s3-c2/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 851968,
+      "sha256": "0764cad2f94fc740bc900479c62bfc722c500d4095e7c25f2f2253a7a6dffd30"
+    },
+    {
+      "path": "cases/n00-s3-c2/snapshot.json",
+      "kind": "file",
+      "allocated_bytes": 36864,
+      "sha256": "e980ae2dfc2c14b22f2d1b2abbafce0335e13349d0e6f4445d0e36da22103d23"
+    },
+    {
+      "path": "cases/n00-s3-c2/start.png",
+      "kind": "file",
+      "allocated_bytes": 434176,
+      "sha256": "e226e1005f25c39756015f32c8544e5d742ab0b3ef1971481815b85f400df8b7"
+    },
+    {
+      "path": "conditioning-audit/installed/comfy/ldm/minimax/model.py",
+      "kind": "file",
+      "allocated_bytes": 40960,
+      "sha256": "8e4cdda6ffd6994baa29085fb6d6a826a399ed094f0ec8e85387083877a4d518"
+    },
+    {
+      "path": "conditioning-audit/installed/comfy/text_encoders/minimax.py",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "0e16e44100d6db2bdfd1292eafd1b2f8d71147c546f49afe292fe4d2cdcefe8a"
+    },
+    {
+      "path": "conditioning-audit/installed/comfy_extras/nodes_minimax_h3.py",
+      "kind": "file",
+      "allocated_bytes": 32768,
+      "sha256": "108ceff11e5a5c9a34a57bbc380447cf9941beb673a1bd421abc818de54ccd5c"
+    },
+    {
+      "path": "h3-reliable-recipe-plan.before-e2e-pilot-2026-11-06.md",
+      "kind": "file",
+      "allocated_bytes": 57344,
+      "sha256": "4799e0ff59e4fc4b629cb698054a4d109d546070f1290f62999ece50506aff2a"
+    },
+    {
+      "path": "h3-reliable-recipe-plan.md",
+      "kind": "file",
+      "allocated_bytes": 32768,
+      "sha256": "8ce3d0e2dfca80c2d530827065849651b06a7affbbe227aabf6ff18812932fff"
+    },
+    {
+      "path": "latentsync-director-review.md",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "39a42e8fba3bc43ec7defb10e5513734dbd2a426d79adb495d663a601777eb58"
+    },
+    {
+      "path": "latentsync-pilot-preparation/.venv",
+      "kind": "directory",
+      "allocated_bytes": 297549824
+    },
+    {
+      "path": "latentsync-pilot-preparation/inputs/START.png",
+      "kind": "file",
+      "allocated_bytes": 507904,
+      "sha256": "94882503c962a7e964e037bcf6f58e2ccf9058bd0f93a6a7c1c0e84d2d812e4f"
+    },
+    {
+      "path": "latentsync-pilot-preparation/inputs/plate.mp4",
+      "kind": "file",
+      "allocated_bytes": 1196032,
+      "sha256": "b4e0ed727f8c6e99657460c767d43daa288250a7a212f58a1466574c54a4f8ea"
+    },
+    {
+      "path": "latentsync-pilot-preparation/inputs/source.json",
+      "kind": "file",
+      "allocated_bytes": 36864,
+      "sha256": "c000054a72362802c6605a3212a25438c90966fee5d8ca3e8b679f3c4eb5da8d"
+    },
+    {
+      "path": "latentsync-pilot-preparation/inspection/sync-review.mp4",
+      "kind": "file",
+      "allocated_bytes": 1699840,
+      "sha256": "cd611abe8b03c4e04ec6bd802ded9017b2d400071880afa1f19150c3d64634f7"
+    },
+    {
+      "path": "lighthouse-ordinary-baseline/START.png",
+      "kind": "file",
+      "allocated_bytes": 1019904,
+      "sha256": "4237ad89a723b7f059d3238eb3aca92acc6373d726b07b7161ef7e37af932d10"
+    },
+    {
+      "path": "lighthouse-ordinary-baseline/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 1404928,
+      "sha256": "70b4d6f4e96c0b8718c4fabe1b3a04d7709f3e9cccb18836a20e0096cc379bb6"
+    },
+    {
+      "path": "lighthouse-ordinary-baseline/source-mapping.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "0a1e6e3f607deb069334b58384169710bcf19f9f7515c8bc1ef94676cd1fdf22"
+    },
+    {
+      "path": "native-corpus-assessment/REPORT.md",
+      "kind": "file",
+      "allocated_bytes": 28672,
+      "sha256": "5643aa142c0e0886358ab3c2e0507a77ff6dd8ae3162af500b789f1f4527976c"
+    },
+    {
+      "path": "native-corpus-assessment/primary-takes.json",
+      "kind": "file",
+      "allocated_bytes": 921600,
+      "sha256": "e97bfb1fc58dff43d4adcd632d4f2ce3db8d37598b13ef6a087a294952df55e6"
+    },
+    {
+      "path": "native-corpus-director-review.md",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "ec039d7f2e78571fbc872d324deb3e9625e85d4daac7d45485dd45a0a288f2c7"
+    },
+    {
+      "path": "native-positive-controls-review/README.md",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "f8e69978eeb4f787afa509f1e4a3659c5854f3674dcda3ef441e406085335621"
+    },
+    {
+      "path": "native-positive-controls-review/clip-01.html",
+      "kind": "file",
+      "allocated_bytes": 1171456,
+      "sha256": "cf8568f2d61e51581062d990c328432f30773d09601c8c4b319b574d4bb7016f"
+    },
+    {
+      "path": "native-positive-controls-review/clip-02.html",
+      "kind": "file",
+      "allocated_bytes": 1146880,
+      "sha256": "37e52a29dae73d4f5ddd9269ef3bab2badd682ed1f0c6a4182cb5ffb6ec78b67"
+    },
+    {
+      "path": "native-positive-controls-review/clip-03.html",
+      "kind": "file",
+      "allocated_bytes": 1536000,
+      "sha256": "b255b723b7c560aeef0742760d024609abc697da056050449d7f0ffe9319235b"
+    },
+    {
+      "path": "native-positive-controls-review/clip-04.html",
+      "kind": "file",
+      "allocated_bytes": 888832,
+      "sha256": "d288a581bfbab3c96fca796f74275d70f8d79e0c514c7fbd6ed32afa278dc788"
+    },
+    {
+      "path": "native-positive-controls-review/clip-05.html",
+      "kind": "file",
+      "allocated_bytes": 1208320,
+      "sha256": "d3ee90c4c359dc94b823db9e822fd7c6a23e33f9e77b646c564eafdf1c2957a2"
+    },
+    {
+      "path": "native-positive-controls-review/clip-06.html",
+      "kind": "file",
+      "allocated_bytes": 1884160,
+      "sha256": "aacd5facbc882c4014f5f8de6a0abb0f292ee78ad0260adf31eca248d9ff212d"
+    },
+    {
+      "path": "native-positive-controls-review/clip-07.html",
+      "kind": "file",
+      "allocated_bytes": 692224,
+      "sha256": "248f775278c880d201bb6d0c28f0f494ac269eb9cd613661acfa919ad23bf7a3"
+    },
+    {
+      "path": "native-positive-controls-review/index.html",
+      "kind": "file",
+      "allocated_bytes": 40960,
+      "sha256": "30f8fea59156823154d641dddf70fa7fb44ca27fe16d362314c959f199225300"
+    },
+    {
+      "path": "native-positive-controls-review/manifest.json",
+      "kind": "file",
+      "allocated_bytes": 28672,
+      "sha256": "38d6f83dd2ca7f3588db40a6053ee77b4b4901eaaa0c6665a21ff84fd2d87ac4"
+    },
+    {
+      "path": "native-positive-controls-review/media",
+      "kind": "directory",
+      "allocated_bytes": 6332416
+    },
+    {
+      "path": "native-positive-controls-review/owner-review.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "36bcca24bb8646706c6fafd557731af5f92768ab6a5dc836351315c176d94323"
+    },
+    {
+      "path": "native-positive-controls-review/owner-review.md",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "9cd0be8f64e331896a68515b9a84d338c1962b4cda542c8d93a1a304302dbd52"
+    },
+    {
+      "path": "native-positive-controls-review/review.md",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "9608cf5f5fc23fca565957cbbe2029103508f0588e81f6caf3693b800e4780e3"
+    },
+    {
+      "path": "native-short-dialogue-execution/01-seed-130117-5s/actual-raw-start.png",
+      "kind": "file",
+      "allocated_bytes": 1232896,
+      "sha256": "36d6534d670d477ea24e642a3cd12ca6c1e80e1d4c55d8cdb97917e34b9f90c1"
+    },
+    {
+      "path": "native-short-dialogue-execution/01-seed-130117-5s/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 512000,
+      "sha256": "c9f6ddb74095cddd4108ec39e1aed186141a19c61a613480bfc355bd3df6e5b1"
+    },
+    {
+      "path": "native-short-dialogue-preparation/inputs/historical-prompt.txt",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98"
+    },
+    {
+      "path": "standing-authority.md",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "75f7de3e8ee368ad2611fe6621a1910046eb1500d7fe0224805ffaaed327b82e"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/README.md",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "0ef792671595f69f88c65752e707cc1513f880b61b8273d7a2940524aa68c3c9"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/adapter.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "3105e1651f5cd2cc3fac3dbe617844dca6b7c2d58fbebc8b6bbbbe76eb1debc1"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/clock_contract.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "fc97e5ba72e7b89e85c6f4ca4a5f9b08445122439e515259d14f5e8f9d84c88e"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/contract.py",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "4da018ea5f4c9535404b3f28e9442e81366b66056cdf710d83d438393b44732f"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/media_io.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "fa862ddf2b4350eb1b846b5cbde691c659133daaa43bef5f6d2cd5f7239f6803"
+    },
+    {
+      "path": "tbdub-reusable-two-speaker-preparation/native_cpu.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "a4ebde8a14efba4d1bc33fdcc2afcb1d7540e3c45ec1281d0d6cfdabbe7d938b"
+    }
+  ],
+  "temporary_holds": [
+    {
+      "path": "h3-full-source-vae-roundtrip/installed-envelope.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "dc9d5f397da93ca1282348b3a723a4afdf155c18865bc0afc2a48a3f42c5b8c8"
+    },
+    {
+      "path": "h3-full-source-vae-roundtrip/sources/main.py",
+      "kind": "file",
+      "allocated_bytes": 28672,
+      "sha256": "c53127164070bdb209401967faea6d4d458780d8f3518126339393fcaae90019"
+    },
+    {
+      "path": "h3-quiet-tail-masked-edit-preparation/asset-readback.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "eb3181873f44046313171667122885971f8e19f2b62db485f1e02931ec142392"
+    },
+    {
+      "path": "h3-quiet-tail-masked-edit-preparation/prospective-source-index.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "7a1c7936198a34f44da1b0fb92e0b77935b44df225692e94608510503314a999"
+    },
+    {
+      "path": "h3-quiet-tail-masked-edit-preparation/runtime-envelope.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "32002e1c6a83f420f006ea7aca4df9ebb8bcad9d9c760f84621bfaf550cc04e0"
+    },
+    {
+      "path": "latentsync-pilot-preparation/geometry-review.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "7fbbf6f8926f6bba45015455fa3cd809ca2ff3293c41ea10d9a0bda90540954f"
+    },
+    {
+      "path": "latentsync-pilot-preparation/geometry.json",
+      "kind": "file",
+      "allocated_bytes": 4833280,
+      "sha256": "9fc076af334964d0dc18d36eb2033ec8ca30dc630beda7ca5849ee1116cea989"
+    },
+    {
+      "path": "latentsync-pilot-preparation/runs/dfa041239f74457ca19f682940ea36e4/source-faithful.nut",
+      "kind": "file",
+      "allocated_bytes": 125292544,
+      "sha256": "b4ea92d7a795ef04e4379aa7cda58f40c37689dc506141b7de0c2660304e233e"
+    },
+    {
+      "path": "latentsync-reuse-preparation/REPORT.md",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "2ac8721d008c5e60d9f531407e8b8b38218333b03a2407b3861450943792678d"
+    },
+    {
+      "path": "latentsync-reuse-preparation/sync_adapter",
+      "kind": "directory",
+      "allocated_bytes": 53248
+    },
+    {
+      "path": "native-start-package-director-review.md",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "ec19e8a5422749725e056a7eff2d17b4da3b3a457f6e459fc777aba824b06709"
+    },
+    {
+      "path": "native-start-package-execution/OCT31_START_DIAGNOSTIC/actual-graph.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "2cd037a7b49530c42cc64e25279ceebda8b98302696431867f5ef0ce8a344b9a"
+    },
+    {
+      "path": "native-start-package-execution/OCT31_START_DIAGNOSTIC/actual-prepared-start.png",
+      "kind": "file",
+      "allocated_bytes": 532480,
+      "sha256": "a596ec5ab5e2f881c75be151e902176f04b65547563fada94b763ba283f7b16b"
+    },
+    {
+      "path": "native-start-package-execution/OCT31_START_DIAGNOSTIC/http-request-body.bin",
+      "kind": "file",
+      "allocated_bytes": 2011136,
+      "sha256": "1d3533bf7776e960aacd0074572546b92877e2677e15fa6c57b166fe97c8597b"
+    },
+    {
+      "path": "native-start-package-execution/OCT31_START_DIAGNOSTIC/original-start.png",
+      "kind": "file",
+      "allocated_bytes": 2007040,
+      "sha256": "b62a50b306bf308e6b8a4c8531e33ce1109b6297da6a7f45cc2a0294dde54892"
+    },
+    {
+      "path": "native-start-package-execution/OCT31_START_DIAGNOSTIC/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 892928,
+      "sha256": "6f4e8d1424c1e367b28f0a2b98228c9f421dcd68b28215ced842fe34a7261748"
+    },
+    {
+      "path": "native-start-package-execution/REPORT.md",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "584d2120580e12f24eddfe3ac56c81cb87434bde6075a44f75adff49335fbb41"
+    },
+    {
+      "path": "native-start-package-execution/V2_CHAIN_CONTROL/actual-graph.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "b2dbdf5c9a0a014ed091ec0fa8a6cf644a7df452320682a4f091e8d27b547519"
+    },
+    {
+      "path": "native-start-package-execution/V2_CHAIN_CONTROL/actual-prepared-start.png",
+      "kind": "file",
+      "allocated_bytes": 434176,
+      "sha256": "74e4a35b3196b0460e8b13ac76d5e9d7d69a3415c2586759239060dc43e30e8b"
+    },
+    {
+      "path": "native-start-package-execution/V2_CHAIN_CONTROL/http-request-body.bin",
+      "kind": "file",
+      "allocated_bytes": 454656,
+      "sha256": "4da8626c656052d4a1ec8cbbab67b9d6d018ff176761f34a603077570fe72272"
+    },
+    {
+      "path": "native-start-package-execution/V2_CHAIN_CONTROL/original-start.png",
+      "kind": "file",
+      "allocated_bytes": 450560,
+      "sha256": "61814dc2ea1cf7bef85af2737a0df28c59a5a255a0c801ae99322bd5526a8254"
+    },
+    {
+      "path": "native-start-package-execution/V2_CHAIN_CONTROL/output.mp4",
+      "kind": "file",
+      "allocated_bytes": 872448,
+      "sha256": "2c30adfde0cd48dae50ce4108983ed592f074e76184f45362875d29588173d35"
+    },
+    {
+      "path": "native-start-package-execution/pair-technical-comparison.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "d656390157bb4d2b2ccaf591d95800dc6c9935e7f043f2ae2c37982f8b88b266"
+    },
+    {
+      "path": "portrait-speech-first-development/native",
+      "kind": "directory",
+      "allocated_bytes": 79273984
+    },
+    {
+      "path": "portrait-speech-first-development/plate.mp4",
+      "kind": "file",
+      "allocated_bytes": 700416,
+      "sha256": "28b9c58079ae4a6f5b660ce171fce8bd0fc244f2b94a5ecf06b72eed361a9f54"
+    },
+    {
+      "path": "tbdub-crossed-director/RESULT-ASSESSMENT.md",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "026dafb0d98e240d74cbc3aea9d5669db15f629bc8ac7c8d7a3edd9cb5d09667"
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/live-execution/review/REPORT.md",
+      "kind": "file",
+      "allocated_bytes": 16384,
+      "sha256": "63b1dce88513d96d9798ff421919c84756142eb57418b6e9514b68ba23e79d1c"
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/live-execution/review/media/F1-A2-comparison.mp4",
+      "kind": "file",
+      "allocated_bytes": 3411968,
+      "sha256": "c878d37d08401a7e36c916fb6cb3462434c9b19b260445d59f715e2e4092f68a"
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/live-execution/review/media/F2-A1-comparison.mp4",
+      "kind": "file",
+      "allocated_bytes": 3149824,
+      "sha256": "7494891d0016dddc400c10fa7faf1105b489cc552618e025a618edc451049a4e"
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/live-execution/review/media-review-index.json",
+      "kind": "file",
+      "allocated_bytes": 24576,
+      "sha256": "b566aba5e18f814b45c5a36886450e42d2ccbfc7b304572a01f8d828b535dc62"
+    },
+    {
+      "path": "tbdub-fruit-stall-joint-retained-review/REPORT.md",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "54f091c7ef90dba1a6b515536e28de4cf891f20e43b13606a3ee12d7f935a335"
+    },
+    {
+      "path": "tbdub-fruit-stall-joint-retained-review/media/joint-candidate.mp4",
+      "kind": "file",
+      "allocated_bytes": 3260416,
+      "sha256": "dc73769ddd789cc28229794eb78976b41776383b414dd7abe2fa066743463802"
+    },
+    {
+      "path": "tbdub-fruit-stall-joint-retained-review/media/source-picture-same-master.mp4",
+      "kind": "file",
+      "allocated_bytes": 3448832,
+      "sha256": "744650acd05908d502c5f5dc05226bbb916dc6395865efb1bfb3bf845ff0a3ca"
+    },
+    {
+      "path": "tbdub-n10-independent-cpu-transfer/inputs/canonical-original-rgb.nut",
+      "kind": "file",
+      "allocated_bytes": 123265024,
+      "sha256": "0a0093e17b1596491c94ab0af3cab92c5839371444db60e122b36b2ba487f0c3"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/asset-readback.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "6f9d754a86aebaf0e55bac59875e527d682812c6b63ab9d1a41c880d1e385b0c"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/context.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "83a634ac1d4e7356228b2cf93b3faf686514d3538f12c9886737f68930593f60"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/image-identity.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "0e482def3392bc3d44ef40c26cb9afa69cdf98f3074930c388e55cff7ee3f1d4"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/selected-assets.json",
+      "kind": "file",
+      "allocated_bytes": 4096,
+      "sha256": "1ed109a6475ac92df016364df1accb2edd585a035d57b74053b13f6526be0441"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/source/diffsynth/thirdparties/audio_processor.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "ca8ebe072fa03fe0954e8778d55f14753f495ce6aea8979e07fd168e67894816"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/source/diffsynth/thirdparties/utils.py",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "926c981e6711d37b53633ce5a9fd251ae9afa37639167bd5a27f10e2e877f670"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/source/inference.py",
+      "kind": "file",
+      "allocated_bytes": 24576,
+      "sha256": "84175a8e644980eaf0ce03cf0c58c182f5219780f3555b4ff1597c8f28547f55"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/source/video_utils.py",
+      "kind": "file",
+      "allocated_bytes": 12288,
+      "sha256": "d7a4347b95351010c923910d5590fe1f19a271355910644f50084deb3f0a445f"
+    },
+    {
+      "path": "tbdub-student-runtime-preparation/source-identity.json",
+      "kind": "file",
+      "allocated_bytes": 8192,
+      "sha256": "efab1ad950187d21076ef802d981c2193fc6aa326ea416825c7b758722956f2d"
+    }
+  ],
+  "first_diagnosis_batch": [
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof",
+      "kind": "directory",
+      "allocated_bytes": 467079168
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt1",
+      "kind": "directory",
+      "allocated_bytes": 774144
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt2",
+      "kind": "directory",
+      "allocated_bytes": 811008
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt3",
+      "kind": "directory",
+      "allocated_bytes": 416288768
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt4",
+      "kind": "directory",
+      "allocated_bytes": 416288768
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt5",
+      "kind": "directory",
+      "allocated_bytes": 466649088
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt6",
+      "kind": "directory",
+      "allocated_bytes": 466649088
+    },
+    {
+      "path": "closed-reference-paired-study/numerical-fake-proof-attempt7",
+      "kind": "directory",
+      "allocated_bytes": 466681856
+    },
+    {
+      "path": "closed-reference-paired-study/role-proof",
+      "kind": "directory",
+      "allocated_bytes": 414707712
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/delivery-stage.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 273600512,
+      "sha256": "56da98a3e758480b098f7e7ceb5f0942390c2e2c6d050e6cd03747c7dfa711cc"
+    },
+    {
+      "path": "tbdub-crossed-face-audio-preparation/preparation-packet.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 230907904,
+      "sha256": "528c5216d1e0963cb41f70491faff40026c6f3989bc5b9ef86053ad1db7ca74b"
+    },
+    {
+      "path": "tbdub-f2-reframe-preparation/cpu-replacement-evidence.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 232804352,
+      "sha256": "9d58d55a674aa9567326848cc3a127e9645e5e41d14d4dd950ae6674004fb10c"
+    },
+    {
+      "path": "tbdub-f2-reframe-preparation/delivery-stage.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 353587200,
+      "sha256": "53ea5d64825ae119cea8348ef3e764ff2e14e906823f40318dbd2b2cb4f80914"
+    },
+    {
+      "path": "tbdub-f2-reframe-preparation/evidence/cpu-proof-r2-c243ca37125b",
+      "kind": "directory",
+      "allocated_bytes": 867336192
+    },
+    {
+      "path": "tbdub-f2-reframe-preparation/preparation-packet.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 176701440,
+      "sha256": "21ffec125d595422429bc96b90b48a9c2655ab3bcd2ef8d2ef9f0b88e1853384"
+    },
+    {
+      "path": "tbdub-teacher-asset-cpu-preparation/first-stage.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 173101056,
+      "sha256": "8affdf23b7bd3b7f221754c3afbec3e24102ab41235c7a27bfc9fae256eeead0"
+    },
+    {
+      "path": "tbdub-teacher-asset-cpu-preparation/proof-candidate.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 173051904,
+      "sha256": "6a87346a33c01a6a5927414783926ba9d1a55c6eaa7ba75904931618812d7e33"
+    },
+    {
+      "path": "tbdub-teacher-asset-cpu-preparation/retained",
+      "kind": "directory",
+      "allocated_bytes": 2101891072
+    },
+    {
+      "path": "tbdub-teacher-asset-cpu-preparation/retained-evidence.tar.gz",
+      "kind": "file",
+      "allocated_bytes": 1184006144,
+      "sha256": "5173e8623131a3af1278419893a557c635f03ef75bd229bca7a8c0f2280d8b53"
+    },
+    {
+      "path": "tbdub-teacher-selector-retained-review/.cache",
+      "kind": "directory",
+      "allocated_bytes": 37281792
+    },
+    {
+      "path": "tbdub-teacher-selector-retained-review/.venv",
+      "kind": "directory",
+      "allocated_bytes": 38187008
+    },
+    {
+      "path": "tbdub-teacher-selector-retained-review/teacher-original-F2-A2-portable-review.zip",
+      "kind": "file",
+      "allocated_bytes": 681836544,
+      "sha256": "9c9ede11667b070ad0e2a3d8212f07eef7418c2341752fd257b0bad7f3af05af"
+    }
+  ],
+  "reviewed_top_level_entries": [
+    {
+      "name": "audio-guide-feasibility",
+      "allocated_bytes": 180224,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "audio-guide-n10-proposal",
+      "allocated_bytes": 53248,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "audio-guide-n10-study",
+      "allocated_bytes": 29503488,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "cases",
+      "allocated_bytes": 52436992,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "closed-mouth-reference-feasibility",
+      "allocated_bytes": 15888384,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "closed-mouth-reference-feasibility.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "closed-reference-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "closed-reference-pair-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "closed-reference-paired-study",
+      "allocated_bytes": 4173230080,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "closed-reference-paired-study.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "conditioning-audit",
+      "allocated_bytes": 18759680,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "controlled-speech-sync-feasibility",
+      "allocated_bytes": 401408,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "development",
+      "allocated_bytes": 6152192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "development-live",
+      "allocated_bytes": 36028416,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "development-v2",
+      "allocated_bytes": 737280,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "development-v2-live",
+      "allocated_bytes": 12668928,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "diffusion-precision-study",
+      "allocated_bytes": 8536064,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "director-checkpoints-history",
+      "allocated_bytes": 122880,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "director-checkpoints.md",
+      "allocated_bytes": 122880,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-candidate-execution",
+      "allocated_bytes": 26546176,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-candidate-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-control-execution",
+      "allocated_bytes": 17997824,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-control-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-preparation",
+      "allocated_bytes": 5292032,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "e03-aux-transfer-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "existing-q1-comparison",
+      "allocated_bytes": 27238400,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "external-research-review",
+      "allocated_bytes": 49152,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-binding-live-migration",
+      "allocated_bytes": 532480,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-binding-live-migration-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-binding-root-context-preparation",
+      "allocated_bytes": 819200,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-binding-schema-repair",
+      "allocated_bytes": 12591104,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-binding-schema-repair-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "frame-diagnosis.json",
+      "allocated_bytes": 32768,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "fruit-stall-man-handoff-repair-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "fruit-stall-man-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-caption-countercondition-execution",
+      "allocated_bytes": 19898368,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-caption-countercondition-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-caption-countercondition-preparation",
+      "allocated_bytes": 2318336,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-caption-countercondition-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-cpu-proof",
+      "allocated_bytes": 241664,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-cpu-proof-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-single-take-execution",
+      "allocated_bytes": 20070400,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-single-take-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-single-take-preparation",
+      "allocated_bytes": 1736704,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-cfg-single-take-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fixed-audio-cpu-proof",
+      "allocated_bytes": 37056512,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fixed-audio-cpu-proof-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fixed-audio-masked-feasibility",
+      "allocated_bytes": 1241088,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fixed-audio-masked-feasibility-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-full-frame-permission-preparation",
+      "allocated_bytes": 323518464,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-full-frame-permission-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-full-source-vae-roundtrip",
+      "allocated_bytes": 2089738240,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "h3-full-source-vae-roundtrip-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-asset-cpu-loader",
+      "allocated_bytes": 19034112,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-asset-cpu-loader-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-audit-root-recheck",
+      "allocated_bytes": 81920,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-bootstrap-checkpoint.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-r1-root-coordination.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-r1-root-postreap.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-r2-root-coordination.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-r2-root-postreap.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-root-coordination.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-root-operation.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-cpu-root-postreap.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-live-director",
+      "allocated_bytes": 135168,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-quiet-tail-director-actual-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-quiet-tail-director-preflight-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-quiet-tail-gpu",
+      "allocated_bytes": 1358716928,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-quiet-tail-gpu-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-trained-contract-audit",
+      "allocated_bytes": 647168,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-fun2-trained-contract-audit-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-performance-mechanism-selection",
+      "allocated_bytes": 65241088,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-performance-mechanism-selection-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-performance-selection-criteria-repair.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-post-cfg-director-decision.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-post-fun2-direction.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-post-roi-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-post-roi-method-assessment",
+      "allocated_bytes": 16384,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-post-roi-method-assessment.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-quiet-tail-masked-edit-preparation",
+      "allocated_bytes": 1662750720,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "h3-quiet-tail-masked-edit-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-quiet-tail-offline-postmortem-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-reliable-recipe-plan.before-e2e-pilot-2026-11-06.md",
+      "allocated_bytes": 57344,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "h3-reliable-recipe-plan.md",
+      "allocated_bytes": 32768,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "h3-resumption-decision-2026-11-03.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-trained-inpainting-feasibility",
+      "allocated_bytes": 2887680,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-trained-inpainting-feasibility-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-trained-inpainting-preparation",
+      "allocated_bytes": 461963264,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "h3-trained-inpainting-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "historical-short-dialogue-reconciliation.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "initial-diagnosis.json",
+      "allocated_bytes": 16384,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "initial-diagnosis.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "inspection.log",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "joint-recipe-strategic-checkpoint",
+      "allocated_bytes": 36864,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "joint-recipe-strategic-checkpoint-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "landscape-plate-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "landscape-redub-probe",
+      "allocated_bytes": 15667200,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "landscape-redub-probe.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "landscape-speech-first-preparation",
+      "allocated_bytes": 307081216,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "landscape-speech-first-preparation.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "latentsync-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "latentsync-next-stage.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "latentsync-one-job-gpu-decision.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "latentsync-pilot-preparation",
+      "allocated_bytes": 912809984,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "latentsync-reuse-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "latentsync-reuse-preparation",
+      "allocated_bytes": 1208320,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "latentsync-reuse-preparation.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "lexical-prompt-ablation",
+      "allocated_bytes": 12959744,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "lighthouse-ordinary-baseline",
+      "allocated_bytes": 14311424,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "listen.html",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "listening-review.json",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-access-contract-correction.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-access-contract-repair",
+      "allocated_bytes": 499712,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-c-l-director-decision.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-c-l-execution",
+      "allocated_bytes": 545353728,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-c-l-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-isolated-preparation",
+      "allocated_bytes": 485855232,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-isolated-preparation.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-main-bootstrap-diagnosis",
+      "allocated_bytes": 25497600,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-main-bootstrap-diagnosis.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-neutral-lip-feasibility",
+      "allocated_bytes": 212992,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-neutral-lip-feasibility.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-pair-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-preparation-completion.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-repaired-gpu-decision.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "liveportrait-role-bound-gpu-decision.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "manifest.json",
+      "allocated_bytes": 20480,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-candidate-execution",
+      "allocated_bytes": 106496,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-candidate-execution-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-control-director-parity.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-control-execution",
+      "allocated_bytes": 7467008,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-control-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-readmission-execution",
+      "allocated_bytes": 16871424,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-readmission-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-readmission-preparation",
+      "allocated_bytes": 3035136,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-readmission-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-reference-preparation",
+      "allocated_bytes": 3297280,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-aux-reference-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-corpus-assessment",
+      "allocated_bytes": 1617920,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-corpus-assessment-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-corpus-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-duration-director-decision.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-duration-pair-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-execution",
+      "allocated_bytes": 19980288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-feasibility",
+      "allocated_bytes": 2686976,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-feasibility-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-preparation",
+      "allocated_bytes": 6074368,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-endpoint-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-positive-controls-pack-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-positive-controls-review",
+      "allocated_bytes": 40484864,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-positive-transfer",
+      "allocated_bytes": 53248,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-positive-transfer-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-short-dialogue-execution",
+      "allocated_bytes": 37031936,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-short-dialogue-preparation",
+      "allocated_bytes": 7516160,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-short-dialogue-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "native-start-package-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-start-package-execution",
+      "allocated_bytes": 19415040,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "native-start-package-execution-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "overlay-comparison-1.jpg",
+      "allocated_bytes": 438272,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "overlay-comparison-2.jpg",
+      "allocated_bytes": 471040,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "overlay-comparison-3.jpg",
+      "allocated_bytes": 479232,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "owner-listening-2026-11-01.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "portrait-speech-first-development",
+      "allocated_bytes": 294711296,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "portrait-speech-first-development.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "portrait-speech-first-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "post-e03-strategic-review",
+      "allocated_bytes": 294912,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "post-e03-strategic-review-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "post-teacher-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "post-teacher-method-checkpoint",
+      "allocated_bytes": 102400,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "post-teacher-method-checkpoint-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-alignment-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-alignment-feasibility",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-alignment-feasibility.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-bridge-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-bridge-preparation",
+      "allocated_bytes": 673918976,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-bridge-preparation.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-cpu-diagnostic",
+      "allocated_bytes": 324964352,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-cpu-diagnostic.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-cpu-director-review.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-learned-diagnostic",
+      "allocated_bytes": 211779584,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-learned-diagnostic.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "profile-roi-learned-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "proposed-standing-authority.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "retained-records",
+      "allocated_bytes": 73728,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "seed-policy-study",
+      "allocated_bytes": 53112832,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "source-quote-erratum.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "standing-authority.md",
+      "allocated_bytes": 4096,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-cpu-resumption-decision.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-crossed-director",
+      "allocated_bytes": 151552,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-crossed-face-audio-preparation",
+      "allocated_bytes": 2756845568,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-crossed-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-f2-reframe-preparation",
+      "allocated_bytes": 4073046016,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-f2-reframe-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-feasibility-root-readback.json",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-fruit-stall-joint-retained-review",
+      "allocated_bytes": 1124503552,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-fruit-stall-man-director",
+      "allocated_bytes": 405504,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-fruit-stall-man-handoff-r1",
+      "allocated_bytes": 328310784,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-fruit-stall-man-handoff-r1-director",
+      "allocated_bytes": 720896,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-fruit-stall-man-preparation",
+      "allocated_bytes": 329654272,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-live-director",
+      "allocated_bytes": 188416,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-director-review",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-execution-brief.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-independent-cpu-transfer",
+      "allocated_bytes": 991264768,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-n10-independent-cpu-transfer-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-learned-retained-review",
+      "allocated_bytes": 1644363776,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-live-director",
+      "allocated_bytes": 118784,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-startup-repair-live-director",
+      "allocated_bytes": 139264,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-telemetry-startup-repair",
+      "allocated_bytes": 606576640,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-two-actor-learned-preparation",
+      "allocated_bytes": 467238912,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-two-actor-learned-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-underarticulation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-n10-underarticulation-diagnosis",
+      "allocated_bytes": 172032,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reference-path-audit",
+      "allocated_bytes": 15069184,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reference-path-audit-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reframe-director",
+      "allocated_bytes": 143360,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reusable-director-review",
+      "allocated_bytes": 16384,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reusable-two-speaker-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-reusable-two-speaker-preparation",
+      "allocated_bytes": 1241522176,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-runtime-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-runtime-repair-execution-brief.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-runtime-repair-live-director",
+      "allocated_bytes": 176128,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-single-operation-execution-brief.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-student-feasibility-director-review.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-student-operational-extension-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-student-runtime-preparation",
+      "allocated_bytes": 1672372224,
+      "disposition": "partial: protect exact keep/hold entries"
+    },
+    {
+      "name": "tbdub-student-runtime-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-asset-cpu-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-asset-cpu-preparation",
+      "allocated_bytes": 3810197504,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-director",
+      "allocated_bytes": 53248,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-feasibility",
+      "allocated_bytes": 1024000,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-feasibility-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-learned-director",
+      "allocated_bytes": 217088,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-learned-execution-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-learned-preparation",
+      "allocated_bytes": 1793622016,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-learned-preparation-brief.md",
+      "allocated_bytes": 12288,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-selector-director",
+      "allocated_bytes": 557056,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-selector-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-selector-retained-review",
+      "allocated_bytes": 4225200128,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-selector-review",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-selector-root-controls-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-uma-admission-director",
+      "allocated_bytes": 241664,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-uma-execution-brief.md",
+      "allocated_bytes": 4096,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tbdub-teacher-uma-preparation-brief.md",
+      "allocated_bytes": 8192,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "tools",
+      "allocated_bytes": 40960,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "visual-only-plate-proposal",
+      "allocated_bytes": 20480,
+      "disposition": "candidate: no current necessary consumer identified"
+    },
+    {
+      "name": "visual-only-plate-study",
+      "allocated_bytes": 228450304,
+      "disposition": "candidate: no current necessary consumer identified"
+    }
+  ]
+}
