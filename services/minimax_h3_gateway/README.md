@@ -70,7 +70,7 @@ vertical-first qualification matrix declared in
 It compares complete recipes only; it is not a gateway operation or a public
 profile selector.
 
-The local service contract has six bearer-authenticated client operations plus
+The H3 video contract has seven bearer-authenticated client operations plus
 one unauthenticated health route. Ordinary FL2VA creation uses a required exact
 `resolution` and optional `quality` (default `1`); it never accepts `profileId`:
 
@@ -81,12 +81,25 @@ one unauthenticated health route. Ordinary FL2VA creation uses a required exact
 3. `POST /v1/video-jobs/from-image-with-voice` accepts one first frame and one
    short voice-reference WAV for the separate Ref2VA Base-20 path. It does not
    accept FL2VA `quality` or an end frame; see [ADR 0205](../../docs/adr/0205-h3-ref2va-per-job-voice-reference.md).
-4. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
+4. `POST /v1/video-jobs/from-reference-images` accepts 1–9 ordered opaque stills
+   and integer-millisecond anchors, using fixed Ref2VA Base-20. JSON uses
+   ordered `references: [{sourceUrl, atMs}]`; multipart uses one `request` JSON
+   field and repeated `images` files in the same order. It accepts `durationMs`
+   5000–15000 and canvases 960x544 or 576x1024, with no voice or quality selector.
+5. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
    frame count, actual duration, and backend elapsed timing.
-5. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
-6. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
-7. `GET /health` exposes safe readiness, input modes and queue counts without
+6. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
+7. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+8. `GET /health` exposes safe readiness, input modes and queue counts without
    a bearer key.
+
+`referenceImagesReady` is separate from `voiceReferenceReady`. Readiness checks
+node/model availability; measured learned capacity requires qualification.
+Requested times snap to nearest 24 Hz frames (half ties upward); duplicate or
+out-of-range resolved anchors are refused. For 11300 ms, the native output is
+277 frames (277/24 seconds); anchors 0/2500/4500/6800/9000 ms resolve to
+0/60/108/163/216. Creation and GET return the requested and resolved mapping.
+See the client guide for complete JSON, multipart and download examples.
 
 `POST /v1/assets` and `POST /v1/video-jobs` are deliberately retired. There
 is no public asset-ID, idempotency-key, or compatibility creation path.

@@ -5,7 +5,7 @@
 与 `resolution`；独立的声线参考路径使用固定 Ref2VA 配方。调用者不能传模型
 文件、节点参数或工作流。
 
-本文只提供 **Bruno** 示例。部署和维护请看
+本文提供 **Bruno** 示例，多参考图部分另含 curl 示例。部署和维护请看
 [H3 网关运维手册](minimax-h3-gateway-manual.md)。Qwen-Image 文生图与单图编辑
 使用独立的 [Qwen-Image API 使用指南](qwen-image-gateway-client-guide.md)，不要把
 图片字段或画布合同混入本视频 API。
@@ -45,7 +45,8 @@ http:
 
 ## 2. 选择质量、画布和时长
 
-每个新请求都必须有 `resolution`；`quality` 可省略，省略时为 `1`。
+普通 FL2VA 请求必须有 `resolution`；`quality` 可省略，省略时为 `1`。
+两种 Ref2VA 路径使用第 7A、7B 节的独立字段与尺寸合同。
 
 | `quality` | 路径 | 适用预期 |
 | ---: | --- | --- |
@@ -98,6 +99,7 @@ WebP，最大 20 MiB、3,000 万像素。
 | `GET /health` | 服务、ComfyUI、质量/尺寸合同与队列检查，无需 Bearer |
 | `POST /v1/video-jobs/from-image` | 起始图必填、末帧可选的 I2V |
 | `POST /v1/video-jobs/from-image-with-voice` | 起始图 + 短声线参考音频；固定 Ref2VA Base-20 |
+| `POST /v1/video-jobs/from-reference-images` | 1–9 张有序静态参考图 + 毫秒时间点；固定 Ref2VA Base-20 |
 | `POST /v1/video-jobs/from-text` | 仅探索用途的 T2V，不是 Plotloom 创作模式 |
 | `GET /v1/video-jobs/{id}` | 查询状态、seed、帧数和生成计时 |
 | `GET /v1/video-jobs/{id}/output` | 下载完成 MP4 |
@@ -256,6 +258,73 @@ SHA-256，供调用方比对自己的候选音频。后续普通状态不重复�
 Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网关 72 小时视频
 与最多 30 天任务/输入清理不应作为 Plotloom 声音素材的保留政策。
 
+## 7B. 有序参考图与时间点（Ref2VA）
+
+`POST /v1/video-jobs/from-reference-images` 接受 1–9 张不透明单帧 JPEG、PNG
+或 WebP，全部图片合计最多 20 MiB，每张最多 3,000 万像素。不接受动画、透明
+像素、音频、`quality`、`durationSeconds` 或模型选择。画布仅 `960x544`、
+`576x1024`；`durationMs` 必填，为 5000–15000 的整数毫秒。`aspectPolicy`
+可用第 3 节的三种策略，`seed` 可省略。
+
+顺序就是 `<Picture 1>`、`<Picture 2>`……的顺序。每项 `atMs` 为整数毫秒，
+第一项必须是 0，后续严格递增且早于请求结束。时间按最近的 24 fps 帧取整，
+恰好半帧向上取整；若取整后重叠或超出实际帧范围，直接拒绝。总帧数向上取
+`17k+5`。提示词原样传入，不会自动翻译、补写台词或调整图片顺序。
+
+先查 `/health` 的 `referenceImagesReady`；它独立于 `voiceReferenceReady`。
+就绪只说明节点与模型文件可用，不表示已验证任意参考图数量、时长的显存容量。
+
+JSON 方式（URL 必须能由 Spark 下载）：
+
+```json
+{
+  "prompt": "<Picture 1> establishes the room. Follow <Picture 2>, <Picture 3>, <Picture 4>, then <Picture 5>. Natural motion and room tone.",
+  "resolution": "960x544",
+  "aspectPolicy": "reject_mismatch",
+  "durationMs": 11300,
+  "seed": 42,
+  "references": [
+    {"sourceUrl": "https://example.internal/1.png", "atMs": 0},
+    {"sourceUrl": "https://example.internal/2.png", "atMs": 2500},
+    {"sourceUrl": "https://example.internal/3.png", "atMs": 4500},
+    {"sourceUrl": "https://example.internal/4.png", "atMs": 6800},
+    {"sourceUrl": "https://example.internal/5.png", "atMs": 9000}
+  ]
+}
+```
+
+把它保存为 `reference-urls.json`，使用私密环境中的 Bearer：
+
+```sh
+curl --fail-with-body "$H3_BASE/v1/video-jobs/from-reference-images" \
+  -H "Authorization: Bearer $H3_GATEWAY_BEARER" \
+  -H 'Content-Type: application/json' --data-binary @reference-urls.json
+```
+
+本地文件方式：保存相同 JSON 为 `reference-upload.json`，但 `references` 每项
+只留 `atMs`，删除所有 `sourceUrl`。Bruno 的 Multipart Form 填一个 Text 类型
+`request`（整个 JSON），再按顺序填五个同名 File 类型 `images`。不要手写
+`Content-Type`，也不要把 `prompt` 等拆成独立表单字段。等价 curl：
+
+```sh
+curl --fail-with-body "$H3_BASE/v1/video-jobs/from-reference-images" \
+  -H "Authorization: Bearer $H3_GATEWAY_BEARER" \
+  --form-string "request=$(cat reference-upload.json)" \
+  -F 'images=@1.png;type=image/png' -F 'images=@2.png;type=image/png' \
+  -F 'images=@3.png;type=image/png' -F 'images=@4.png;type=image/png' \
+  -F 'images=@5.png;type=image/png'
+```
+
+`H3_BASE` 设置为第 1 节基地址。创建返回 202 与任务 `id`。本例响应为
+`inputMode: reference_images`、`requestedDurationMs: 11300`、
+`requestedDurationSeconds: 11.3`、`frameCount: 277`、
+`actualDurationSeconds: 11.541666666666666`。`references` 中保留 `atMs`，
+并给出 `frameIndex: 0/60/108/163/216`、`effectiveTimeSeconds` 与原图/处理图
+SHA-256；`promptSha256` 供比对原始 UTF-8 提示词。后续 GET 保留这些字段。
+若持久化快照损坏，状态仍可读取，参考图元数据返回 `null`，不会用于生成。
+
+按第 8 节轮询已知 `id`，成功后下载；超时或 `outcome_unknown` 不可盲目重发。
+
 ## 8. 查询与下载
 
 将 `h3_替换为任务ID` 换成创建响应的 `id`：
@@ -275,6 +344,13 @@ auth:
 响应的 `generationElapsedMs` 从 ComfyUI 接受工作流到观察到完成，不含下载图片、
 比例处理和移入网关目录。仅 `status: succeeded` 且 `outputReady: true` 可下载。
 
+下载示例（`H3_JOB_ID` 使用创建响应的 `id`）：
+
+```sh
+curl --fail-with-body "$H3_BASE/v1/video-jobs/$H3_JOB_ID/output" \
+  -H "Authorization: Bearer $H3_GATEWAY_BEARER" --output result.mp4
+```
+
 完成 MP4 保留 72 小时；SQLite 任务记录与网关上传图片最多保留 30 天。
 
 ## 9. 常见错误
@@ -290,6 +366,10 @@ auth:
 | `voice_size_invalid` / `voice_duration_invalid` | 声线参考超出 2 MiB 或 1–10 秒 |
 | `voice_resolution_not_supported` / `voice_duration_not_supported` | Ref2VA 仅支持上文两个画布与 5–8 秒 |
 | `comfy_voice_profile_unavailable` | Ref2VA 模型或节点尚未就绪；请联系 Spark 运维，不要反复提交 |
+| `reference_request_invalid` / `reference_image_count_mismatch` | 有序图字段、数量或毫秒时间点不合法 |
+| `reference_images_size_invalid` | 全部参考图合计超过 20 MiB |
+| `reference_image_must_be_single_still` / `reference_image_transparency_not_supported` | 需要不透明的单帧图片 |
+| `comfy_reference_profile_unavailable` | 有序参考图的模型/节点合同不可用，请联系运维 |
 | `input_aspect_mismatch` | 先准备正确画布，或明确选择裁切/黑边策略 |
 | `source_url_invalid` / `source_url_fetch_failed` | URL 不是可下载 http(s) 图片，或网络不可达 |
 | `gateway_output_expired` | MP4 已超过 72 小时，需要重新提交 |

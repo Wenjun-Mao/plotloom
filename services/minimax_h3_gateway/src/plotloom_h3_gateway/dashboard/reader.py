@@ -9,13 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..naming import is_gateway_job_id, is_owned_storage_name
+from ..reference_execution import is_reference_job
 
 FIELDS = (
     "id", "backend", "input_mode", "h3_contract", "quality", "resolution",
     "aspect_policy", "seed", "requested_duration_seconds", "frame_count", "fps",
     "status", "comfy_prompt_id", "generation_submitted_at_ms", "generation_completed_at_ms",
     "managed_output_name", "output_sha256", "output_size_bytes", "output_mime_type",
-    "output_expires_at", "error_code", "created_at", "updated_at",
+    "output_expires_at", "error_code", "created_at", "updated_at", "execution_snapshot_json",
 )
 STATUSES = {
     "queued", "submitting", "submitted", "running", "transfer_pending",
@@ -186,7 +187,8 @@ class DashboardReader:
         video = row["backend"] == "h3_video"
         return {
             "id": row["id"], "backend": row["backend"], "status": row["status"],
-            "inputMode": "image_voice" if row["h3_contract"] == "ref2va" else row["input_mode"],
+            "inputMode": "reference_images" if is_reference_job(row) else (
+                "image_voice" if row["h3_contract"] == "ref2va" else row["input_mode"]),
             "quality": row["quality"] if video else None, "resolution": row["resolution"],
             "aspectPolicy": row["aspect_policy"], "seed": str(row["seed"]),
             "requestedDurationSeconds": row["requested_duration_seconds"] if video else None,

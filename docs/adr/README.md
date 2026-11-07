@@ -138,6 +138,7 @@ The owner authorized source consolidation on October 22; the
 maps the original specialist numbers to the reserved main sequence.
 
 - [0205 Per-job Ref2VA](0205-h3-ref2va-per-job-voice-reference.md)
+- [0237 Ordered timed H3 reference images](0237-h3-ordered-reference-images.md)
 - [0206 Voice Lab candidate boundary](0206-spark-voice-lab-candidate-boundary.md)
 - [0207 Project-scoped voices and published identities](0207-voice-lab-projects-and-published-voice-identity.md)
 - [0208 Observed queue and generation progress](0208-voice-lab-observed-job-progress.md)

@@ -38,7 +38,7 @@ class GatewayFiles:
         self.managed_outputs_dir = self.settings.data_dir / "outputs"
         self.managed_outputs_dir.mkdir(parents=True, exist_ok=True)
 
-    def add_asset(self, content: bytes) -> dict[str, Any]:
+    def add_asset(self, content: bytes, *, private: bool = False) -> dict[str, Any]:
         """Persist a supported image using its decoded format, never a caller header."""
 
         if not content or len(content) > MAX_UPLOAD_BYTES:
@@ -57,15 +57,19 @@ class GatewayFiles:
         asset_id = f"asset_{uuid.uuid4().hex}"
         suffix = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[mime_type]
         path = self.assets_dir / timestamped_storage_name(asset_id, suffix)
-        path.write_bytes(content)
-        return self.store.put_asset(
-            asset_id=asset_id,
-            mime_type=mime_type,
-            width=width,
-            height=height,
-            digest=sha256(content).hexdigest(),
-            path=path,
-        )
+        if private:
+            from .private_files import write_new
+            write_new(path, content)
+        else:
+            path.write_bytes(content)
+        try:
+            return self.store.put_asset(
+                asset_id=asset_id, mime_type=mime_type, width=width,
+                height=height, digest=sha256(content).hexdigest(), path=path,
+            )
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
 
     def asset_content(self, asset: dict[str, Any]) -> bytes:
         """Read one database-owned source image for the local Qwen request."""

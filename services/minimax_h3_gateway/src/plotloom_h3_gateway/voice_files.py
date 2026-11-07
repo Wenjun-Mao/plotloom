@@ -1,7 +1,6 @@
 """Private per-job Ref2VA audio files and bounded retention."""
 from __future__ import annotations
 
-import os
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,7 @@ from .contracts import GatewayError, GatewaySettings
 from .media import GatewayFiles
 from .naming import is_gateway_job_id, is_owned_storage_name, timestamped_storage_name
 from .store import GatewayStore
+from .private_files import write_new as _write_new
 from .voice_reference import CanonicalVoice
 
 
@@ -128,15 +128,3 @@ class VoiceFiles:
         except OSError:
             return None
         return candidate
-
-
-def _write_new(path: Path, content: bytes, *, owner: tuple[int, int] | None = None) -> None:
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(content)
-            if owner is not None:
-                os.fchown(stream.fileno(), *owner)
-    except OSError:
-        path.unlink(missing_ok=True)
-        raise

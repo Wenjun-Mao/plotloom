@@ -352,7 +352,9 @@
           "tests/test_finished_example_qa_scopes.py",
           "tests/test_provider_budgets.py",
           "tests/test_minute_example_qa_scope.py",
-          "tests/test_sutang_preview_qa_scope.py"
+          "tests/test_sutang_preview_qa_scope.py",
+          "tests/test_frozen_video_authority.py",
+          "tests/test_prototype_publication.py"
         ],
         "vitest": [
           "frontend/tests/art-reference-preparation.test.ts",
@@ -376,7 +378,8 @@
           "frontend/tests/video-pilot-review.test.ts",
           "frontend/tests/video-pilot-routes.test.ts",
           "frontend/tests/frozen-selected-playback.test.ts",
-          "frontend/tests/video-pilot-timing.test.ts"
+          "frontend/tests/video-pilot-timing.test.ts",
+          "frontend/tests/completed-clips.test.ts"
         ],
         "playwright": [
           "frontend/e2e/cast-image-direction-edit.spec.ts",
@@ -406,7 +409,8 @@
           "tests/test_video_review_reopen_retention.py",
           "tests/test_video_segments.py",
           "tests/test_player_export.py",
-          "tests/test_player_graph_scope.py"
+          "tests/test_player_graph_scope.py",
+          "tests/test_last_projection_v3_build.py"
         ],
         "vitest": [
           "frontend/tests/play-view-read-recovery.test.ts",
@@ -419,7 +423,10 @@
           "frontend/tests/player-audio.test.ts",
           "frontend/tests/player-choice.test.ts",
           "frontend/tests/player-state.test.ts",
-          "frontend/tests/player-export-action.test.ts"
+          "frontend/tests/player-export-action.test.ts",
+          "frontend/tests/player-archive.test.ts",
+          "frontend/tests/player-books.test.ts",
+          "frontend/tests/player-continuous-v3.test.ts"
         ],
         "playwright": [
           "frontend/e2e/archived-play-guidance.spec.ts",
@@ -646,6 +653,9 @@
           "tests/services/minimax_h3_gateway/test_dashboard_health.py",
           "tests/services/minimax_h3_gateway/test_dashboard_submission.py",
           "tests/services/minimax_h3_gateway/test_packaging.py",
+          "tests/services/minimax_h3_gateway/test_frame_binding_schema.py",
+          "tests/services/minimax_h3_gateway/test_reference_images.py",
+          "tests/services/minimax_h3_gateway/test_reference_lifecycle.py",
           "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
           "tests/services/minimax_h3_gateway/test_runtime_qualification.py",
           "tests/services/minimax_h3_gateway/test_shared_lane.py",
@@ -1526,7 +1536,7 @@
     },
     {
       "suite": "playwright",
-      "path": "frontend/e2e/image-jobs/identity-review-refusal.ts",
+      "path": "frontend/e2e/image-jobs/identity-observation-eligibility.ts",
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "media-lifecycle"

@@ -175,8 +175,23 @@ class GatewayStore:
                    assets.id, assets.mime_type, assets.width, assets.height, assets.sha256, assets.path
                    FROM job_frame_bindings bindings JOIN assets ON assets.id = bindings.asset_id
                    WHERE bindings.job_id = ?
-                   ORDER BY CASE bindings.role WHEN 'start' THEN 0 WHEN 'end' THEN 1 ELSE 2 END""", (job_id,),
+                   ORDER BY CASE bindings.role WHEN 'start' THEN 0 WHEN 'end' THEN 1 ELSE 2 END,
+                            bindings.role""", (job_id,),
             ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_due_reference_inputs(self) -> list[dict[str, Any]]:
+        """Release failed reference inputs only after retention and lane release."""
+        with self._connect() as connection:
+            rows = connection.execute("""SELECT jobs.* FROM jobs
+                WHERE jobs.h3_contract = 'ref2va'
+                AND jobs.status IN ('failed', 'cancelled', 'outcome_unknown')
+                AND jobs.created_at <= datetime('now', ?)
+                AND EXISTS (SELECT 1 FROM job_frame_bindings frames
+                            WHERE frames.job_id = jobs.id AND frames.role = 'reference_1')
+                AND NOT EXISTS (SELECT 1 FROM generation_lane lane
+                                WHERE lane.owner = 'gateway' AND lane.job_id = jobs.id AND lane.state = 'active')
+                ORDER BY jobs.rowid""", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",)).fetchall()
         return [dict(row) for row in rows]
 
     def recover_interrupted_dispatches(self) -> None:

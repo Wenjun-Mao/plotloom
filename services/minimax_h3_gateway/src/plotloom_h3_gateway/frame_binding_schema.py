@@ -2,13 +2,17 @@
 
 import sqlite3
 
-CURRENT_TABLE = """CREATE TABLE job_frame_bindings (
+PREVIOUS_TABLE = """CREATE TABLE job_frame_bindings (
   job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK(role IN ('start', 'end', 'source')),
   asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,
   PRIMARY KEY(job_id, role)
 )"""
-LEGACY_TABLE = CURRENT_TABLE.replace("'end', 'source'", "'end'")
+CURRENT_TABLE = PREVIOUS_TABLE.replace(
+    "'start', 'end', 'source'",
+    "'start', 'end', 'source', " + ", ".join(f"'reference_{index}'" for index in range(1, 10)),
+)
+LEGACY_TABLE = PREVIOUS_TABLE.replace("'end', 'source'", "'end'")
 FRESH_TABLE = CURRENT_TABLE.replace('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ', 1)
 ASSET_INDEX = "CREATE INDEX job_frame_bindings_asset_idx ON job_frame_bindings(asset_id)"
 _COLUMNS = "job_id, role, asset_id, prepared_input_name"
@@ -25,7 +29,9 @@ def align_frame_binding_schema(connection: sqlite3.Connection) -> None:
     ddl = row[0]
     if ddl in (CURRENT_TABLE, FRESH_TABLE):
         return
-    if ddl != LEGACY_TABLE:
+    supported_previous = (LEGACY_TABLE, PREVIOUS_TABLE,
+                          PREVIOUS_TABLE.replace('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ', 1))
+    if ddl not in supported_previous:
         raise RuntimeError("gateway frame binding schema is unknown; migration refused")
     if connection.execute("PRAGMA foreign_keys").fetchone()[0] != 1:
         raise RuntimeError("gateway frame binding migration requires foreign keys")

@@ -128,6 +128,13 @@ def verify_dashboard(base: str, root: Path, package: Path) -> None:
 
 
 def verify_gateway(base: str) -> None:
+    paths = json.loads(request(base, "/openapi.json")[1])["paths"]
+    route = "/v1/video-jobs/from-reference-images"
+    assert "post" in paths[route]
+    assert request(base, route, data=b"{}", headers={"Content-Type": "application/json"})[0] == 401
+    assert request(base, route, data=b"{}", headers={
+        "Authorization": "Bearer isolated-smoke-key", "Content-Type": "application/json",
+    })[0] == 422
     status, body = request(base, "/health")
     # The artifact runs without inference backends; do not conflate API startup
     # with model readiness or weaken the existing fail-closed health contract.

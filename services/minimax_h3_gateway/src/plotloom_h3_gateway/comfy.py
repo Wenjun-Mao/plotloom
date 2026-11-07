@@ -101,6 +101,10 @@ class ComfyClient:
         ):
             raise GatewayError("comfy_voice_profile_unavailable", 503)
 
+    def preflight_references(self, count: int) -> None:
+        from .reference_preflight import preflight_references
+        preflight_references(self, count)
+
     def submit(self, *, workflow: dict[str, Any], client_id: str) -> str:
         try:
             response = self.session.post(

@@ -342,6 +342,7 @@ The following is a private service contract; it is not a browser API.
 | `GET /health` | no bearer header | Checks ComfyUI and catalog; returns status, direct input modes, safe profile descriptors, queue count and fixed concurrency |
 | `POST /v1/video-jobs/from-image` | bearer | Required start image plus optional end image: multipart `image`/`endImage`, or JSON `sourceUrl`/`endSourceUrl`; queues one I2V job |
 | `POST /v1/video-jobs/from-image-with-voice` | bearer | Separate Ref2VA Base-20 path: one start frame and one bounded WAV, multipart `image`/`voiceAudio` or JSON `sourceUrl`/`voiceSourceUrl` |
+| `POST /v1/video-jobs/from-reference-images` | bearer | Ordered 1–9 opaque stills and integer-ms anchors, JSON URLs or one multipart `request` JSON plus repeated `images`; fixed Ref2VA Base-20 |
 | `POST /v1/video-jobs/from-text` | bearer | JSON text exploration only; no Plotloom authoring path and no image/aspect fields |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
 | `POST /v1/video-jobs/{id}/cancel` | bearer | Cancels only a job that is still `queued` |
@@ -360,10 +361,34 @@ Valid states are `reserved` (legacy only),
 remain `succeeded` with `outputReady: false` after its MP4 expires.
 New jobs return `queued`; the gateway's single worker owns the only transition
 that can submit to ComfyUI.
-Only the Ref2VA creation receipt adds `voiceReferenceSha256` for caller-side
+Only the image-and-voice Ref2VA creation receipt adds `voiceReferenceSha256` for caller-side
 provenance comparison; ordinary status does not expose the voice file, hash,
 URL or path. Its status projects `inputMode=image_voice`, `quality=8`; the
 `h3_contract=ref2va` database field distinguishes it from FL2VA Base-20.
+
+The ordered-image Ref2VA route instead projects `inputMode=reference_images`.
+It accepts `durationMs` 5000–15000 and 960×544/576×1024, no quality selector or
+reference audio. JSON references contain `sourceUrl` and `atMs`; multipart has
+one `request` JSON field whose references contain only `atMs`, and repeated
+`images` in the same order. All image bytes total at most 20 MiB, each decodes
+to at most 30 million pixels, and animations/transparency are refused. The
+first anchor is zero; later integer-ms anchors increase strictly before the
+requested end. Nearest-24-Hz rounding uses half ties upward and refuses
+collisions or indices outside the actual native frame range. Total frame count
+ceils to 17k+5: 11300 ms produces 277 frames, while 0/2500/4500/6800/9000 ms
+map to 0/60/108/163/216. Responses add `referenceContractVersion`,
+`requestedDurationMs`, `promptSha256` and ordered `references` with requested
+`atMs`, resolved `frameIndex`/`effectiveTimeSeconds` and source/prepared SHA-256.
+If frozen metadata is damaged, these metadata values are null while lifecycle
+status stays readable; dispatch still refuses integrity violations.
+`referenceImagesReady` is independent of `voiceReferenceReady`, and probes
+node/model availability, not a learned capacity or quality guarantee. Before
+activation, retain exact installed source/package identity and protected-state
+readback. Five-image/277-frame learned capacity requires its own coordinated
+smoke; do not infer it from health. [ADR 0237](../adr/0237-h3-ordered-reference-images.md)
+and [the client examples](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
+cover the frozen contract, JSON, multipart and completed MP4 download. Both
+Ref2VA modes retain the original AV latent and existing UNKNOWN/FIFO safety.
 
 Ref2VA is an optional checkpoint under `/home/wjmao/models/comfyui-h3`.
 `/health` reports `voiceReferenceReady` independently; admission performs a

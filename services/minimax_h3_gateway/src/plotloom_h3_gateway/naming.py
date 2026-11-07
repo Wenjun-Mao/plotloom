@@ -31,7 +31,7 @@ def is_owned_storage_name(
     return any(
         re.fullmatch(
             rf"{_TIMESTAMP_PREFIX}_{re.escape(object_id)}"
-            rf"{'(?:_(?:start|end))?' if allow_frame_label else '(?:_voice)?' if allow_voice_label else ''}{re.escape(suffix)}",
+            rf"{'(?:_(?:start|end|reference_[1-9]))?' if allow_frame_label else '(?:_voice)?' if allow_voice_label else ''}{re.escape(suffix)}",
             name,
         )
         for suffix in suffixes

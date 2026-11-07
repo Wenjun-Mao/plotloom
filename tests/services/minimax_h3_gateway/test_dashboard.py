@@ -97,6 +97,19 @@ def test_light_list_excludes_prompts_paths_and_secrets(installation):
     assert prompt.headers["content-type"].startswith("application/json")
 
 
+@pytest.mark.parametrize("mode", ["reference_images", "image_voice"])
+def test_ref2va_subtype_is_consistent_in_list_and_detail(installation, mode):
+    root, _, client = installation
+    with sqlite3.connect(root / "gateway.sqlite3") as db:
+        db.execute("UPDATE jobs SET h3_contract='ref2va',execution_snapshot_json=? WHERE id=?",
+                   (json.dumps({"inputMode": mode, "privatePath": "/secret/image.png"}), JOB))
+    for path in ("/dashboard/api/jobs", f"/dashboard/api/jobs/{JOB}"):
+        response = client.get(path)
+        row = response.json()["jobs"][0] if path.endswith("/jobs") else response.json()
+        assert row["inputMode"] == mode
+        assert "privatePath" not in response.text and "/secret" not in response.text
+
+
 def test_pagination_filters_and_literal_search(installation):
     root, _, client = installation
     add_job(root, IMAGE, backend="qwen_image", seed=7)

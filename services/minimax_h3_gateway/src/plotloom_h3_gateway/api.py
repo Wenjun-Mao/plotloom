@@ -73,6 +73,8 @@ def create_app(
 
     from .voice_api import install_voice_api
     install_voice_api(app, gateway, authorize)
+    from .reference_api import install_reference_api
+    install_reference_api(app, gateway, authorize, _job_response)
 
     @app.post("/v1/video-jobs/from-image", dependencies=[Depends(authorize)], status_code=202)
     async def create_video_job_from_image(request: Request) -> dict[str, Any]:
@@ -166,12 +168,16 @@ def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
             "seed": job["seed"], "outputContentType": job["output_mime_type"],
             "outputWidth": job["output_width"], "outputHeight": job["output_height"],
         }
-    return {
+    response = {
         **common, "quality": job["quality"], "resolution": job["resolution"],
         "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
         "requestedDurationSeconds": job["requested_duration_seconds"], "frameCount": job["frame_count"],
         "actualDurationSeconds": job["frame_count"] / job["fps"],
     }
+    from .reference_execution import is_reference_job, reference_response
+    if is_reference_job(job):
+        response.update(reference_response(job))
+    return response
 
 
 def _require_backend(job: dict[str, Any], backend: str) -> None:
