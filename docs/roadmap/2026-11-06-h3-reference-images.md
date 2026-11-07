@@ -10,8 +10,8 @@ The typed route, frozen snapshot, native graph and lifecycle implementation
 are complete. Independent Sol/High source review is closed after fixing the
 dashboard subtype projection. Focused checks (61 tests), isolated gateway and
 dashboard wheel installs, 14 dashboard UI checks, retained-AV functional QA and
-the pinned native CPU ordering/layout proof pass. Final full local qualification
-is running; shared activation and the one learned smoke remain unperformed and
+the pinned native CPU ordering/layout proof pass. All 5,173 Python cases passed in the final full gate; its unfiltered
+browser and root-wheel steps remain running; shared activation and the one learned smoke remain unperformed and
 require manager coordination. No shared service has been changed. Stop at the qualified generic gateway handoff and exact install
 readback. The matched-B experiment remains paused.
 
@@ -21,9 +21,9 @@ readback. The matched-B experiment remains paused.
 | --- | --- | --- | --- |
 | Ordered timed images reach the native encoder and guides | Authenticated public request, durable restart, exact full Comfy envelope, original prompt and image bindings | No | Passed: authenticated API/restart and complete envelope, retained AV download; pinned real native CPU methods with inert leaves |
 | The ordinary lifecycle remains safe | Input refusals, partial rollback, FIFO, cancellation, UNKNOWN, tamper and retention checks, existing-route regressions | No | Passed focused contracts including existing dashboard/voice/schema regressions; final full gate running |
-| Five references work with the installed learned runtime | One retained-image fixture through public API to terminal download and exact graph/readback | One short coordinated smoke | Uncovered model/conditioning integration, admission pending |
-| The package can be activated | Stable independent review, applicable full local gate, exact package and installed source readback, protected-state preservation | No | Independent source review and isolated wheel proof passed; full gate running, activation pending |
-| Shuohao source fidelity | Exact UTF-8 source prompt and five requested times preserved in final request | No | Original prompt SHA-256 and requested five times match the final fake-transport request; five story images do not exist |
+| Five references work with the installed learned runtime | Exact manager-admitted E01-01 request through public API to terminal download and native graph/readback | One actual story job replacing the generic fixture | Await final cash-frame manifest and exact dispatch admission |
+| The package can be activated | Stable independent review, applicable full local gate, exact package and installed source readback, protected-state preservation | No | Independent review, Mac wheel and exact ARM64 image smokes passed; full Python5173 passed, browser/root-wheel running; activation pending |
+| Shuohao source fidelity | Exact UTF-8 source prompt and five requested times preserved in final request | No | Exact prompt and times match the final fake-transport request; final story frames are under cash-reference revision |
 
 ## API and ownership
 
@@ -92,15 +92,22 @@ image encodes and memory relative to the current single-image voice route.
 No measured five-image capacity or runtime is available. Keep `ref_image_size`
 at `match` and retain the shared single-inference FIFO.
 
-After offline checks, the only proposed learned smoke uses five retained QA
-images at 960x544 for 11.3 requested seconds, with a separate short fixture
-prompt and times 0, 2.5, 4.5, 6.8, 9. This covers the target five-image count,
-277-frame native shape and exact guide indices in one take. This answers whether the installed model, encoder
-and chained conditioning execute together and return valid native AV. The
-Shuohao story and its missing five frames are outside this fixture. Preserve
-the first outcome and stop after terminal readback or a known failure. UNKNOWN
-requires exact reconciliation without replay. Quality/reliability is outside
-this functional smoke.
+The initially proposed generic retained-image learned smoke is superseded,
+unperformed. The owner's later explicit overnight real-story authority permits
+ONE exact E01-01 production job to supply the same five-reference, 277-frame
+integration evidence and the separate creative review input. It uses the final
+manager-frozen five cash-corrected frames, original byte-exact Shuohao prompt,
+960x544, 11300 requested milliseconds, times 0/2500/4500/6800/9000 and the
+manager-issued seed and dispatch identity. Do not treat current frame paths as
+admitted while they are under revision. No separate generic POST is necessary.
+
+This substitution changes the prospective fixture, not the gateway contract.
+It answers whether installed model, encoder and chained conditioning execute
+together and return valid native AV. Preserve the first outcome and stop after
+terminal readback or a known failure. UNKNOWN requires exact reconciliation
+without replay. Technical AV integration and source fidelity do not establish
+creative quality; the manager owns the production plan and creative judgment.
+No story submission is authorized until its final exact package and fresh window.
 
 Root coordinates with the manager before every shared service mutation or
 live job. The manager confirms resource quiescence and ownership, and owns
@@ -165,3 +172,32 @@ ARM64 Linux image smokes. Both currently serving roles import the package from
 `/app/src` overlay would not update these installed artifacts. Prepare source-only
 overlays at the actual installed location, preserving the exact existing runtime
 dependency closures, and prove their image config digests/rootfs separately.
+
+## Staging and recovery decision
+
+Runtime source is local commit `12f99bab4fac3f982782cc0a091e13091b4dd652`.
+Two source-only ARM64 Linux overlays passed their isolated zero-generation
+smokes, with 50 exact installed members, networking disabled, no production
+mounts, GPU or Docker socket. Gateway image config SHA-256 is
+`972a7bb1afa95c5bc6055461a3fd574c633e1d8c9044cdcf04023c4faf26c590`
+(Python 3.12.14); dashboard is
+`d685e60c768e31ffffb44e5f4c038470adc14a391108c1384530af60d006de6d`
+(Python 3.12.15). Each retains its pinned base rootfs layers plus the source
+layer. The manager accepted staging evidence; serving cutover remains separately
+admitted. Exact image/rootfs, wheel/lock, dependency and interpreter evidence is
+consolidated in `.local/ref2va/qualification-receipt.json` pending closeout.
+
+The manager selected **gateway forward repair on the expanded current schema**
+for this rollout. Preserve the preceding gateway container stopped and with
+restart disabled for audit only. Do not restore that old binary after migration,
+reverse the schema, reset/copy data or add a compatibility layer. If startup
+fails, retain admission/UNKNOWN evidence and diagnose a bounded forward fix.
+Dashboard recovery remains independent, subject to fresh idle/uncertainty checks.
+Record original restart policies durably before stopping either selected role.
+
+This is an explicit recovery preference, not a claim that the preceding serving
+binary cannot read the schema. The Git parent has a strict DDL guard that rejects
+the expansion; the actual serving image lacks that guard and its captured
+`Store._migrate` accepts the expanded synthetic schema. The local method check
+does not qualify an operational binary rollback. No serving change or schema
+reversal was performed by that investigation.

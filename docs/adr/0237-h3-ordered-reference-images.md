@@ -35,8 +35,10 @@ UNKNOWN holds protect active inputs and forbid resubmission.
 
 Expose route-specific readiness and requested/resolved timeline readback.
 Preserve existing FL2VA, voice and Qwen route contracts. Verify the generic
-gateway with retained fixtures and one separately coordinated minimal learned
-smoke only for the uncovered five-reference conditioning integration question.
+gateway with retained fixtures and one separately coordinated learned job for
+the uncovered five-reference conditioning integration question. The later owner
+authority prospectively substitutes the exact E01-01 story job for the generic
+fixture; original prompt and final manager-frozen frames remain source-owned.
 The owning plan is `docs/roadmap/2026-11-06-h3-reference-images.md`.
 
 ## Consequences
@@ -45,3 +47,10 @@ An 11.3-second request maps to 277 native frames, with its actual duration
 reported separately. Caller-visible rounding makes fractional timing reviewable.
 Reference blocks and timed guides add memory and compute. Node availability
 alone does not establish runtime capacity, reliability or creative quality.
+
+For this rollout, recovery uses a bounded gateway forward fix on the expanded
+current schema. Retain the preceding gateway stopped/restart-disabled for audit;
+no old-gateway restoration, schema reversal/reset/copy or compatibility layer is
+authorized. Preserve admission and UNKNOWN evidence. Dashboard recovery remains
+independent after fresh idle checks. This is a selected current-contract recovery
+policy, not an assertion that the actual preceding binary rejects the new DDL.

@@ -388,7 +388,11 @@ readback. Five-image/277-frame learned capacity requires its own coordinated
 smoke; do not infer it from health. [ADR 0237](../adr/0237-h3-ordered-reference-images.md)
 and [the client examples](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 cover the frozen contract, JSON, multipart and completed MP4 download. Both
-Ref2VA modes retain the original AV latent and existing UNKNOWN/FIFO safety.
+Ref2VA modes retain the original AV latent and existing UNKNOWN/FIFO safety. For
+this rollout, gateway recovery uses a bounded forward repair on the current
+schema; retain the preceding gateway stopped/restart-disabled for audit only.
+Do not reverse/reset/copy the schema or data or restore the old gateway.
+Dashboard recovery remains independent after fresh idle/uncertainty checks.
 
 Ref2VA is an optional checkpoint under `/home/wjmao/models/comfyui-h3`.
 `/health` reports `voiceReferenceReady` independently; admission performs a
