@@ -5,7 +5,13 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## 《别叫我的名字》 — story reading draft
+## 《别叫我的名字》 — source manuscript and branching draft
+
+The [standalone Chinese short novel](2026-11-06-dont-say-my-name-novella.md)
+develops the cash-return route into a complete linear story. Wenjun will read
+the manuscript first. After agreeing on the source and the first outline
+prompt, he will create the separate Shuohao task and send each adaptation
+prompt himself. The earlier automated trial stopped during outlining.
 
 The [complete story and branching-choice draft](2026-11-06-dont-say-my-name-story.md)
 was written by the owner-requested GPT-6.1 Terra / Max subagent. It develops the
