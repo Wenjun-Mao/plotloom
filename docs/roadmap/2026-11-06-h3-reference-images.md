@@ -2,7 +2,7 @@
 
 ## Current status
 
-Updated November 6, 2026. Implementation and qualification owner is the H3
+Updated November 7, 2026. Implementation and qualification owner is the H3
 specialist, chat 01a0983e-0e5f-7171-950e-011adaf53303. Manager and final
 closeout owner is chat 01a1902a-80b6-7d80-a166-9c980850982f. Authoritative
 checkout is local Plotloom main with existing owner storyboard changes.
@@ -10,20 +10,26 @@ The typed route, frozen snapshot, native graph and lifecycle implementation
 are complete. Independent Sol/High source review is closed after fixing the
 dashboard subtype projection. Focused checks (61 tests), isolated gateway and
 dashboard wheel installs, 14 dashboard UI checks, retained-AV functional QA and
-the pinned native CPU ordering/layout proof pass. All 5,173 Python cases passed in the final full gate; its unfiltered
-browser and root-wheel steps remain running; shared activation and the one learned smoke remain unperformed and
-require manager coordination. No shared service has been changed. Stop at the qualified generic gateway handoff and exact install
-readback. The matched-B experiment remains paused.
+the pinned native CPU ordering/layout proof pass. The final full local gate
+passed: 5173 Python, 1738 frontend and 366 browser cases, types, deterministic
+assets and installed root wheel. Manager-admitted activation and exact installed
+readback passed, including protected data and real private HTTPS playback,
+seek and original download hashes. The single admitted E01-01 production job
+succeeded; its accepted/terminal native graphs, full snapshot and all five
+source/prepared hashes match the frozen package. Original native AV downloaded
+and decoded, and real HTTPS playback/seek/download passed. The generic gateway
+technical handoff is complete. The manager owns actual picture/native-audio
+creative review and any further production. The matched-B experiment remains paused.
 
 ## Acceptance
 
 | Claim | Required evidence | Fresh media | Status |
 | --- | --- | --- | --- |
 | Ordered timed images reach the native encoder and guides | Authenticated public request, durable restart, exact full Comfy envelope, original prompt and image bindings | No | Passed: authenticated API/restart and complete envelope, retained AV download; pinned real native CPU methods with inert leaves |
-| The ordinary lifecycle remains safe | Input refusals, partial rollback, FIFO, cancellation, UNKNOWN, tamper and retention checks, existing-route regressions | No | Passed focused contracts including existing dashboard/voice/schema regressions; final full gate running |
-| Five references work with the installed learned runtime | Exact manager-admitted E01-01 request through public API to terminal download and native graph/readback | One actual story job replacing the generic fixture | Await final cash-frame manifest and exact dispatch admission |
-| The package can be activated | Stable independent review, applicable full local gate, exact package and installed source readback, protected-state preservation | No | Independent review, Mac wheel and exact ARM64 image smokes passed; full Python5173 passed, browser/root-wheel running; activation pending |
-| Shuohao source fidelity | Exact UTF-8 source prompt and five requested times preserved in final request | No | Exact prompt and times match the final fake-transport request; final story frames are under cash-reference revision |
+| The ordinary lifecycle remains safe | Input refusals, partial rollback, FIFO, cancellation, UNKNOWN, tamper and retention checks, existing-route regressions | No | Passed focused contracts including existing dashboard/voice/schema regressions; final full gate passed |
+| Five references work with the installed learned runtime | Exact manager-admitted E01-01 request through public API to terminal download and native graph/readback | One actual story job replacing the generic fixture | Passed one actual five-image/277-frame run: native success, exact graph, authenticated original download and full AV decode; no repeated-run or nine-image capacity claim |
+| The package can be activated | Stable independent review, applicable full local gate, exact package and installed source readback, protected-state preservation | No | Passed: independent review, full local gate, Mac wheel, exact ARM64 smokes and serving readback; protected data and private HTTPS playback/download retained |
+| Shuohao source fidelity | Exact UTF-8 source prompt and five requested times preserved in final request | No | Passed against actual accepted native graph, persisted snapshot and source/prepared files; no creative acceptance implied |
 
 ## API and ownership
 
@@ -89,8 +95,10 @@ FL2VA, voice, Qwen and shared-lane tests supply regression evidence.
 Five reference images are encoded for the text encoder and native reference
 blocks, and again for five timed guide states. This adds conditioning tokens,
 image encodes and memory relative to the current single-image voice route.
-No measured five-image capacity or runtime is available. Keep `ref_image_size`
-at `match` and retain the shared single-inference FIFO.
+The admitted five-image/277-frame case completed in 1213.457 seconds from
+submission to gateway completion observation. One measured execution does not
+qualify repeated-run performance or the nine-image capacity envelope. Keep
+`ref_image_size` at `match` and retain the shared single-inference FIFO.
 
 The initially proposed generic retained-image learned smoke is superseded,
 unperformed. The owner's later explicit overnight real-story authority permits
@@ -107,7 +115,8 @@ together and return valid native AV. Preserve the first outcome and stop after
 terminal readback or a known failure. UNKNOWN requires exact reconciliation
 without replay. Technical AV integration and source fidelity do not establish
 creative quality; the manager owns the production plan and creative judgment.
-No story submission is authorized until its final exact package and fresh window.
+Any further story submission needs its final exact package and fresh manager
+admission; the first job's one-POST grant cannot be replayed or expanded.
 
 Root coordinates with the manager before every shared service mutation or
 live job. The manager confirms resource quiescence and ownership, and owns
@@ -125,8 +134,8 @@ local full gate on the stable candidate. CI and push remain off.
 ## Qualification evidence
 
 Root owns all execution; independent reviewers reused the stable diff and did
-not duplicate suites. Scratch evidence is `.local/ref2va/` pending the final
-retained package receipt. The functional journey used five distinct retained
+not duplicate suites. Evidence is `.local/ref2va/`, with separate frozen
+qualification, activation and terminal technical receipts. The functional journey used five distinct retained
 QA images, the byte-exact Shuohao source prompt and real SQLite/API/restart,
 then one captured fake Comfy submission and a derived retained AV file. The
 original story JSON SHA-256 is
@@ -166,12 +175,12 @@ Its 50 packaged source/resource members match the checkout exactly; the manifest
 SHA-256 is `fbe1724c84a31c7a30c17d8e1938a2413efa47ac711b4a84c6037c080d3c3e2a`.
 The service lock hash is
 `023b29e28d045d44610fe5425123d02403bfabe10d1fd59338607454f2fbf15c`.
-The Mac proof used Python 3.12.13/arm64. It does not replace the required exact
-ARM64 Linux image smokes. Both currently serving roles import the package from
+The Mac proof used Python 3.12.13/arm64. Separate exact ARM64 Linux image
+smokes passed as recorded below. Both serving roles import the package from
 `/opt/venv/lib/python3.12/site-packages/plotloom_h3_gateway`; a historical
-`/app/src` overlay would not update these installed artifacts. Prepare source-only
-overlays at the actual installed location, preserving the exact existing runtime
-dependency closures, and prove their image config digests/rootfs separately.
+`/app/src` overlay would not update these installed artifacts. The source-only
+overlays use the actual installed location and preserve the exact existing runtime
+dependency closures; their image config digests/rootfs are independently retained.
 
 ## Staging and recovery decision
 
@@ -183,9 +192,10 @@ mounts, GPU or Docker socket. Gateway image config SHA-256 is
 (Python 3.12.14); dashboard is
 `d685e60c768e31ffffb44e5f4c038470adc14a391108c1384530af60d006de6d`
 (Python 3.12.15). Each retains its pinned base rootfs layers plus the source
-layer. The manager accepted staging evidence; serving cutover remains separately
-admitted. Exact image/rootfs, wheel/lock, dependency and interpreter evidence is
-consolidated in `.local/ref2va/qualification-receipt.json` pending closeout.
+layer. The manager accepted staging evidence and separately admitted serving
+cutover. Exact image/rootfs, wheel/lock, dependency and interpreter evidence is
+frozen in `.local/ref2va/qualification-receipt.json`; activation evidence is
+separate in `.local/ref2va/activation/activation-receipt.json`.
 
 The manager selected **gateway forward repair on the expanded current schema**
 for this rollout. Preserve the preceding gateway container stopped and with
@@ -201,3 +211,100 @@ the expansion; the actual serving image lacks that guard and its captured
 `Store._migrate` accepts the expanded synthetic schema. The local method check
 does not qualify an operational binary rollback. No serving change or schema
 reversal was performed by that investigation.
+
+The final E01-01 input packet was admitted for exactly one POST:
+`docs/roadmap/别叫我的名字-shuohao-production/attempts/E01-01/attempt-01`.
+Manifest SHA-256 is
+`66945a73607d6b7f6ef47dfb453f6e9b62a29667f73467fc9c454e36f18340b3`;
+request SHA-256 is
+`fe459c9902c6c6662e2d9f06de9b42573777098bac68753b959dcf02b8c64f12`.
+The manager selects `contain_pad` for all five 1672×941 opaque RGB PNGs,
+totaling 10,397,354 bytes. All eight input members match after routine transfer
+to `/home/wjmao/h3-shuohao-20261106-E01-01-attempt-01/input`. The subsequent
+manager admission, rather than packet preparation, authorized submission.
+The manager owns actual motion/native-audio creative review. The generic
+learned fixture is superseded and has never been submitted.
+
+Fresh read-only model preflight hashed the entire 20,970,379,616-byte Ref2VA
+checkpoint and confirmed the expected `9255f52b…5779` identity with unchanged
+file stat. Actual installed native node `108ceff1…5ccd5c` and model-source
+`8e4cdda6…a4d518` match the pinned CPU proof. The check did not load weights,
+access a GPU or invoke cache maintenance.
+
+## Activation and first actual request
+
+Activation completed at 04:50 UTC on November 7. Gateway container is
+`07ddbbc91602c1bb1128cabbd719e42c577b8634fb61dc3eb54d441dcdee32b4`;
+dashboard is
+`8525a2c75c992b9c42cc372d69d8120cb3eebc04adbda369fd4f91dbef56dddc`.
+Both have the exact 50 source/resource members. Effective configuration,
+private environment, mounts/security and pre-existing gateway/voice database
+rows/inodes were preserved. Comfy, Voice Lab and Tailscale identities/configuration
+were unchanged. Preceding containers remain stopped with restart disabled.
+Actual private HTTPS playback advanced and sought to 7.25 seconds without a
+media error; a 206 range and the complete original download matched the
+pre-activation SHA-256 `b45d61de…8d8`.
+
+Two bounded activation failures are retained. The first configuration guard
+found only Docker's `OomKillDisable: null` to `false` default normalization.
+The first continuation then refused before mutation because of case-sensitive
+human error-text matching. After reassessment, a separately admitted continuation
+used successful structured inventory, the preserved actual gateway bind and
+only the exact normalization. It reused the created gateway and created only
+the pending dashboard. No original operation was replayed.
+
+First-story admission SHA-256 is
+`57f6d9a562edcab1e074fda01b2753c533bc1a15f1c8cddd9f8e42ac1d283a07`.
+One authenticated POST created queued job
+`h3_fa5120f9d10146de8f134369a3e27fe7`. Ordinary dispatch then submitted
+that same job as native prompt `8fd69ec6-ed4f-465d-949d-894e963e6492` at
+05:00:54 UTC. Durable intent, multipart body, creation response and known job
+identity are retained; no generic or duplicate POST occurred.
+
+The actual accepted queue record has 27 graph nodes. Its complete graph and
+`client_id` equal an independently built full expectation. Comfy adds only
+`create_time` to envelope metadata; no node annotation was ignored. Persisted
+prompt UTF-8 bytes, snapshot, ordered bindings, all original/prepared hashes,
+0600 file modes and guide frames 0/60/108/163/216 pass. This is native accepted
+request/readback evidence, not a claim of intercepted transport bytes.
+Evidence is `.local/ref2va/story-E01-01-attempt-01/actual/`.
+
+The first readback helper could not read a private container-owned original
+through the host UID. Its traceback is retained. Read-only access through the
+existing gateway container resolved that capture issue without changing file
+permissions, product code or the running job. The same known job is followed
+through its ordinary status/output endpoints; terminal evidence follows.
+
+## Terminal technical outcome
+
+The same job succeeded. Its terminal history retains the same exact 27-node
+graph, with no annotations ignored. Original authenticated output is H.264,
+960×544, 277 frames at 24 fps (11.541667 seconds), plus AAC stereo 32 kHz audio
+(11.542 seconds). All streams decode fully with ffmpeg exit 0 and no error
+stderr. The 1,567,741-byte original SHA-256 is
+`7cf18263855afdd42740e256fa99a94915106ae844d1246c327e047809821f11`.
+It matches SQLite, authenticated output and the actual private HTTPS download
+link. Real browser playback advanced, sought to 7.25 seconds and served 206
+byte ranges without a media error. This browser check was muted; it does not
+claim subjective native-audio inspection.
+
+Native execution ran 1212.623 seconds; submit-to-gateway-completion was
+1213.457 seconds (05:00:54.761–05:21:08.218 UTC). Existing logs did not emit
+sampler step timings. Native history records four cached loader/configuration
+nodes, not cached reference conditioning. These are one-run measurements,
+not a general throughput estimate.
+
+Fresh ordinary readback confirms an empty Comfy queue, all 363 lane rows done,
+one new succeeded job (329 total, two historical failed), no voice binding for
+this job, unchanged Voice counts/service identities/database device and inode,
+no foreign-key violations and SQLite integrity `ok`. No extra generation,
+service operation or cache action occurred. The manager owns producer-hold
+release and any expansion.
+
+Technical receipt is
+`.local/ref2va/story-E01-01-attempt-01/actual/technical-receipt.json`.
+The byte-identical original is retained locally beside it and independently at
+`/home/wjmao/h3-shuohao-20261106-E01-01-attempt-01/original-native-av.mp4`,
+outside gateway-managed 72-hour expiry. The manager received the exact file
+and measured result for the separate creative gate. See the
+[verification record](../verification/2026-11-07-h3-ordered-reference-images.md).
