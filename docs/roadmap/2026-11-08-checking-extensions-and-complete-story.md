@@ -20,7 +20,7 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Authoring-handoff extension works | Three-episode normalized packages, existing deterministic source gates, semantic handoff review and targeted counterexamples | None | Delivered v0.1.1; 7 tests; three current source reconciliations pass |
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; current selection counts derive from progress readback |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
-| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batch13 completed40/40 and exited0; current retries19 are held pending prospective exact grant/prelaunch; old12 remains failed/held |
+| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batch13 completed40/40 and exited0; checked exact19 batch014 is live underfc4/e06/455; old12 remains failed/held |
 | All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01 complete; E02 filling gaps; current counts derive from assembly-progress readback, not manual totals |
 | Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
 
@@ -114,10 +114,15 @@ terminal seals,19 exact unused identities, sharedVoice idle, no controllers,
 UNKNOWN or nonterminal/non-DONE state. Root’s retained exact-phase review
 `b99dc2a8...` verifies those bindings and authorizes ONE serial19 launch with
 existing owning checks; no automatic replay/relaunch or scope expansion.
-First actual bundle host-idle/POST/postjob guard integration is still to observe.
+Batch014 launched once at18:22:24UTC: controller718505/UID1000/startTicks411604469,
+supervisor718500/startTicks411604467; follower16499. First accepted E02-11a04
+job `h3_5d9311963b414a8cadfceddf65a34879`. First pre-POST/source binding (`4c30b164...`) and DONE/postjob guard
+(`80b36ea9...`) pass, with protected98 and checkpoint0→1. Root reviewed
+those actual retained proofs (`85cbbf2f...`). E02-11a04 passed Terra/high and
+is selected; the same controller continues E02-17a03.
 The grant’s issue-time lifecycle metadata stays immutable; phase proofs and
-root’s exact GO are separate. Native owner must report the actual launch identity
-and first accepted packet. Current media checking remains pinned0.1.2.
+root’s exact GO are separate. The native owner retains the exact live launch and first-job evidence.
+Current media checking remains pinned0.1.2.
 The caption index records12 positives, SHA
 `35a67f933f0b21aca29215f70da5cd40574a5483caa8b8f2bf6b3eba01faf300`.
 No prevention study is in scope.
@@ -143,7 +148,10 @@ prior checkpoints, decisions and evidence.
   work and old reports; distinguish troubleshooting from routine review. An isolated
   0.1.3 candidate is already prepared (`7d375214...`), with 23 focused tests,
   validator and two retained-case forward results. It is not activated; recheck
-  the canonical base and apply after selection/export work completes.
+  the canonical base and apply after selection/export work completes. A separate
+  assembly-progress0.1.1 documentation candidate (`63d1978f...`) captures the
+  observed local admission-registry troubleshooting route; it also remains
+  unapplied through completion.
 
 The goal API readback still reports paused; it cannot edit or resume the
 unfinished objective. Operational authorization is separate from that backend
