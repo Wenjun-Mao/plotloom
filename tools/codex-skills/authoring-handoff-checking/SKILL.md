@@ -2,7 +2,7 @@
 name: authoring-handoff-checking
 description: Check a bounded story authoring handoff against its current source, from outline through script, staging, storyboard and prompt. Reports evidence-backed recommendations without rewriting or selecting media.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Authoring handoff checking
@@ -13,7 +13,8 @@ Prepare a pinned compact case per episode, then independently compare the actual
 
 Use a GPT-6.1 Terra / high reviewer when available, with bounded independent episode assignments and native model/effort fields. If unavailable, disclose the actual model/effort. Give workers only this skill and their current case, never earlier failure labels or intended conclusions. The reviewer reads all case evidence, including scene transitions and adjacent cuts. Examine:
 
-- hook and opening as enacted, not the hook metadata alone;
+- hook and opening as enacted, not the hook metadata alone. Before finding a story event missing, compare the neighboring episode ending and opening in the pinned case and cite them. Distinguish an event shifted across an episode boundary from an event absent from the story; assess placement separately against the actual requirement. An unheard question need not become intelligible unless the source requires it.
+- For example, an outline places an answer at the end of one episode but the script gives it in the next opening: the event is present, while its placement differs. If neither boundary nor the relevant current story contains the answer, the event may be missing; cite the relevant source and downstream evidence or mark insufficient coverage as `needs_review`.
 - exact spoken words and speaker ownership, including voiceover and offscreen speech;
 - what is visible versus what continues offscreen, including preserved prop and character state. A cutaway or omitted view does not itself erase that state;
 - which shot owns each action's start and endpoint, including across cut boundaries;

@@ -8,7 +8,7 @@ For this project only, from the repository root, use a new output directory:
 python3 tools/codex-skills/authoring-handoff-checking/scripts/prepare_project.py --project "$PWD" --output /absolute/new-output-directory
 ```
 
-It emits E01.json, E02.json and E03.json. Each case contains current episode outline, script, matching staging scenes and current segment cuts, blocking, soundscapes and prompts, plus pins for owning sources and override files. The adapter fails closed for stale manifest, source or override and differing reconstruction. It does not make semantic decisions, inspect actual provider requests or outputs, or compare source dialogue mechanically.
+It emits E01.json, E02.json and E03.json. Each case contains current episode outline, script, matching staging scenes and current segment cuts, blocking, soundscapes and prompts, plus neighboring episode outline/script and boundary segment evidence, and pins for owning sources and override files. The adapter fails closed for stale manifest, source or override and differing reconstruction. It does not make semantic decisions, inspect actual provider requests or outputs, or compare source dialogue mechanically.
 
 Run the existing, unchanged Shuohao validators on current inputs for mechanical contracts; inspect their actual outputs and record failures/limits separately. For this production the storyboard validation command is:
 
@@ -22,7 +22,7 @@ A report is JSON:
 
 ```json
 {
-  "schemaVersion": 1, "skillVersion": "0.1.0", "caseId": "E01", "caseSha256": "<sha256 of case file>",
+  "schemaVersion": 1, "skillVersion": "0.1.1", "caseId": "E01", "caseSha256": "<sha256 of case file>",
   "reviewer": {"model": "gpt-6.1-terra", "reasoning": "high"},
   "decision": "pass", "summary": "Conclusion with scope.",
   "checks": [

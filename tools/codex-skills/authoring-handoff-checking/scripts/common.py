@@ -39,7 +39,7 @@ def evidence(source, path, ident):
 
 
 def verify_case(case):
-    if case.get("schemaVersion") != 1 or case.get("skillVersion") != "0.1.0":
+    if case.get("schemaVersion") != 1 or case.get("skillVersion") != "0.1.1":
         raise ValueError("unsupported case version")
     sources = case["sources"]
     for name, row in sources.items():

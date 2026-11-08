@@ -209,3 +209,6 @@ invoked Terra/high checker, evidence reuse, sampling audits and versioned learni
 
 [ADR 0239](0239-source-handoff-frame-and-assembly-checking.md) extends that pattern
 to source handoffs, reference-frame roles and deterministic assembly/progress.
+
+[ADR 0240](0240-prospective-task-retention-aware-dispatch-guard.md) records exact
+retention-compatible state checks for new story task grants, preserving old failures.

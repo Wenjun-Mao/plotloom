@@ -21,10 +21,10 @@ class ReportContractTest(unittest.TestCase):
             'cut': {'view': 'A looks away; drawer offscreen', 'state': 'drawer remains closed', 'speaker': 'A', 'line': 'Stay here.'}
         }))
         self.case_file = self.root / 'case.json'
-        case = {'schemaVersion': 1, 'skillVersion': '0.1.0', 'caseId': 'E01',
+        case = {'schemaVersion': 1, 'skillVersion': '0.1.1', 'caseId': 'E01',
                 'sources': {'s': pin(self.source)}, 'evidence': [evidence('s', '/'+x, x) for x in ('outline', 'script', 'cut')]}
         save(self.case_file, case)
-        self.report = {'schemaVersion': 1, 'skillVersion': '0.1.0', 'caseId': 'E01', 'caseSha256': digest(self.case_file),
+        self.report = {'schemaVersion': 1, 'skillVersion': '0.1.1', 'caseId': 'E01', 'caseSha256': digest(self.case_file),
                        'reviewer': {'model': 'test', 'reasoning': 'high'}, 'decision': 'pass', 'summary': 'Scoped comparison',
                        'checks': [{'aspect': a, 'status': 'pass', 'notes': 'Compared', 'evidence': [{'id': 'script', 'pointer': ''}, {'id': 'cut', 'pointer': ''}]} for a in ASPECTS],
                        'findings': [], 'limitations': []}

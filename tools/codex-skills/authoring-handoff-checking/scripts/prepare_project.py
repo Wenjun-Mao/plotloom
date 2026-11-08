@@ -61,12 +61,21 @@ def prepare(root, output):
             raise ValueError("episode order mismatch")
         ev = [evidence("outline", f"/episodes/{i}", "outline"), evidence("script", f"/episodes/{i}", "script")]
         ev += [evidence("staging", f"/scenes/{j}", f"staging-{j+1}") for j, x in enumerate(staging["scenes"]) if x["ep"] == n]
+        for direction, neighbor in (("previous", i - 1), ("next", i + 1)):
+            if 0 <= neighbor < len(combined["episodes"]):
+                ev.append(evidence("outline", f"/episodes/{neighbor}", f"{direction}:outline"))
+                ev.append(evidence("script", f"/episodes/{neighbor}", f"{direction}:script"))
+                neighbor_segments = combined["episodes"][neighbor]["segments"]
+                j = len(neighbor_segments) - 1 if direction == "previous" else 0
+                for key in ("cuts", "blocking", "soundscape", "h3Prompt"):
+                    if key in neighbor_segments[j]:
+                        ev.append(evidence("storyboard", f"/episodes/{neighbor}/segments/{j}/{key}", f"{direction}:{key}"))
         for j, segment in enumerate(ep["segments"]):
             sid = segment["id"]
             for key in ("cuts", "blocking", "soundscape", "h3Prompt"):
                 if key in segment:
                     ev.append(evidence("storyboard", f"/episodes/{i}/segments/{j}/{key}", f"{sid}:{key}"))
-        case = {"schemaVersion": 1, "skillVersion": "0.1.0", "caseId": f"E{n:02}", "sources": sources, "evidence": ev}
+        case = {"schemaVersion": 1, "skillVersion": "0.1.1", "caseId": f"E{n:02}", "sources": sources, "evidence": ev}
         verify_case(case)
         save(Path(output) / f"E{n:02}.json", case)
 
