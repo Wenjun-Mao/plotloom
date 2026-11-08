@@ -78,79 +78,58 @@ independent deliverable rather than declaring unproduced episodes complete.
 
 ## Current execution
 
-The original batch13 completed 40/40 and controller4145081 exited0 at17:41:37UTC.
-Closure `09ef0e4e...` and independent completeness review preserve that outcome;
-old failed12 remains failed/held. The current canonical source is still
-`432ceb0ed9853fb082e96424a6de2f226ef99d658f616499d8238c857dbeadeb`.
+Exact batch014 `fc4/e06/455` completed19/19 normally; controller718505 and
+follower16499 exited0 with no relaunch. Actual closure `98dd89ff...` establishes
+zeroUNKNOWN, quiescence, full current-job/frozen-terminal equality and all116
+protected owned bindings. The native owner is preparing the authorized LOCAL
+62-prior/116-protected completeness freeze. It is unlaunchable and grants no
+future POST. Original failed12 remains failed/held; batch13 completed40 normally.
 
-The exact retry19 grant is `fc4b20335096b1357880b14790c14f16491fb3b85d7e585e8c045dd2a9adfc71`,
-bundle `e06c2c64df067fea08e0c720b047fa9b068ce7ca9411db53e7807e593163ca6a`,
-contract `455244487116a3d7535fce63a2797f60d21878dfbbb10d13cf7f1479f848e027`.
-It preserves the original base54 plus explicit prior43, with 97 owned bindings
-protected at launch. Local source inventory, code, freeze and exact-package
-reviews passed. Stage readback `d40aec82...`, fresh native prelaunch `635c9a9c...`
-and root exact-phase review `b99dc2a8...` precede the separate root GO. The grant’s
-issue-time lifecycle fields remain immutable; later phase evidence is separate.
+Terra QA disposed all19 outputs (10 selected,9 rejected), stopped its receipt
+watch and reports no active prep/ASR/adoption writers. Final readback
+[`progress-final.json`](../../.local/checking-extensions/run/video-reviews/batch14/progress-final.json)
+(`5fe399d7...`) records61/70 selected: E01 21/21, E02 21/22, E03 19/27.
+The nine remaining gaps are E02-17 and E03-04/06/07/10/13/24/25/27. Root's
+fixed random13/27 and targeted17 audits are complete, with case-specific bounds.
+E03-27's ticket is actually pulled out; intent/departure is not inferred.
 
-One controller started18:22:24UTC: PID718505/UID1000/startTicks411604469;
-supervisor718500/startTicks411604467; follower16499. First accepted E02-11a04
-was `h3_5d9311963b414a8cadfceddf65a34879`. Actual prePOST/fullgraph/source
-binding `4c30b164...` and first DONE/postjob guard `80b36ea9...` pass with
-protected98/checkpoint0→1; root review `85cbbf2f...` confirms the bounded
-integration. No relaunch, replay, other-provider fallback or source adoption.
+All nine pure-Shuohao source candidates have independent narrow compatibility
+reviews and structural validation. The prospective combined source is
+`649c7a83a3364f0340a1efff8c5f020bc226775190cec660bd085f1e88ff1fd3`,
+with61 unaffected segments, all93 dialogue blocks and all cuts/guides/times
+preserved. Earlier eight/four-source rehearsals remain historical. Only the
+four-source handoff used a synthetic mirror, not live authority. Historical hash
+drift/E03-07 POV and deliberate model-facing conditioning reductions remain
+qualified. No prospective provider result or full raw-request equivalence.
 
-At the dated [frontier12 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier12-20261108.json)
-(`33250e24...`), 57/70 segments are selected: E01 21/21, E02 21/22, E03 15/27.
-Twelve of19 retry outputs are technically ready. Six are selected; E02-17 and
-E03-04/06/07/10/13 are held after second-generation material failures. Seven exact
-retries remain running/queued, currently E03-14a02 under the same controller.
-The fixed random E03-13a02 audit confirmed the repeated background actor-position
-event; E03-27a02 remains the next random audit. Targeted E02-17a03 and all six
-original fixed samples were audited with case-specific limitations, not a general
-accuracy guarantee.
+Root approved INPUT ADOPTION ONLY in
+[`root-input-adoption-go.json`](../../.local/checking-extensions/run/source-candidates/adoption-nine-preflight/root-input-adoption-go.json)
+(`513698b8...`), binding actual closure and QA writer barrier. One Terra source
+owner is copying reviewed bytes and reconciling authority with explicit input-only
+decisions and retained prior versions. Current canonical at GO is still432ceb0e…;
+actual adoption/readback and fresh REAL handoff cases precede future packet
+freeze. No successor executable grant, staging or provider GO exists.
 
-Six isolated pure-Shuohao candidates have official structural gates and
-independent scoped source-compatibility evidence: E02-17 positive hands,
-E03-04 portrait hold, E03-06 stationary confrontation, E03-07 owned cutaways and
-E03-10 masked hesitation and E03-13 solo set-down-v2. The latter restores explicit
-head lowering after independent source review found a gaze-only omission in v1. World facts remain authoritative in existing
-metadata, while model-facing constraints intentionally change. No third packet,
-canonical adoption, provider result or full raw-request-equivalence is claimed.
-Historical dependency-hash and reference-POV qualifications remain. A four-source
-isolated merge/handoff rehearsal passed, explicitly on a synthetic mirror rather
-than live authority. It does not establish current production adoption.
-
-E02-19a02 is selected with residual-door-motion uncertainty; literal stopping and
-perceived audio are ungraded. E03-12a02 is selected after one unhinted narrow
-same-model window represented its missing required line. Original needs_review
-is retained; this is recognition evidence, not independent recognition, hearing,
-silence, balance or lip-sync acceptance. Details and artifact hashes are in the
-[historical run log](2026-11-08-checking-extensions-run-log.md).
-
-Native caption records retain12 positives; current index SHA
-`ed9f24500d89e8fd27278e95f881eb62999e1a064ee36be34552005854b98df5`
-includes E03-01a02’s sampled-not-observed retry outcome without erasing its
-original positive. No prevention study is in scope. All active media checking
-remains video-checking0.1.2, with Terra/medium coordination and Terra/high primaries.
+Caption records retain13 factual positives, index
+`f83304e38e6dcf922a4a0e755822c491a1081db238e587fae57643654eeb9177`.
+E03-20a02's sampled non-observation and E03-24a02's factual positive retain
+original inputs/history. The24 source change addresses independent lost-scar/
+invented-seating state, not caption prevention. No permanent-caption study.
+E03-12a02 selection uses one unhinted same-model required-line window; no actual
+hearing/independent recognizer/silence/balance/lip-sync acceptance is claimed.
 
 ## Remaining closeout
 
-- Finish the current exact 19-packet batch and its Terra dispositions. The
-  [frontier12 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier12-20261108.json)
-  (`33250e24...`) records 57/70 selected (21/21, 21/22, 15/27). Root holds
-  E02-17 and E03-04/06/07/10/13 after repeated material failures. Six isolated
-  Shuohao source candidates have structural and independent scoped source
-  evidence. No canonical adoption or third
-  packet has occurred. Model-facing constraints deliberately differ; existing
-  world metadata remains authoritative. Historical input/POV qualifications
-  remain. These are untested source experiments.
-- Only after normal 19/19 completion, exit 0 and quiescence may the native owner
-  prepare the conditional LOCAL62/116 completeness freeze (original54 + prior43
-  + actual19). Preserve original base/fields and exact prior43 entries. A guard
-  stop or partial frontier requires a new root decision. No future executable
-  grant, staging or POST follows automatically. Root adopts/rechecks eligible
-  source candidates at a safe frontier, freezes the actual remaining gaps, then
-  reviews a new exact grant/prelaunch before GO.
+- Complete approved nine-source input adoption/current-authority readback,
+  then fresh REAL authoring-handoff cases/reconciliation and applicable unchanged
+  reference eligibility reuse with its qualifications. Preserve historical inputs,
+  packets and reviews; no synthetic mirror counts as live authority.
+- Review LOCAL62/116 completeness and freeze only the actual nine remaining
+  current-source packets with supported default seeds. These source revisions are
+  not seed-only retries; do not change freezer contracts or relabel old packets.
+  Review a new exact finite grant, register its already-approved bytes in the
+  supported local registry, stage/read back and obtain fresh native prelaunch
+  before root provider GO.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
   audits and retained uncertainty notes. E01 preview evidence and its bounded

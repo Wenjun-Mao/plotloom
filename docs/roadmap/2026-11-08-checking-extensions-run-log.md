@@ -813,3 +813,34 @@ updated official27/83 structural gates. Independent narrow v2 source review
 `285f58c97ae8a5f2f3cca8d672c9ae5ac12b70c9949a5ced19ddd9ce709eb118`
 passes using verified retained invariants and new exact delta. No full upstream
 qualification, media result, canonical adoption or third freeze is implied.
+
+## November 8 — normal19 closure and nine-source input-adoption GO
+
+Actual closure98dd89ffa412d57e6289fa8a149806fe71604576e4ace64841c30d262f57d5f0
+binds normal19/exit0/no relaunch/quiescence/zeroUNKNOWN/full current==frozen job
+rows, all19 native/local originals and protected116. Terra QA19/19 stopped with
+no active prep/ASR/adoption writers. Final adapter
+5fe399d7a34a60fc5b1f8629132e06dcbd178a42ba3011a06ddcbcbef88b9a90
+records61/70 (21/21,21/22,19/27),10 selected/9 rejected in this batch.
+
+Root27 fixed random audit6dfe164e87ecd563287b5e96cc68a910c38444a38aea8dd7e7e8df8e15a2226e
+confirms ticket removal at sampled324/336, not an inferred departure decision.
+Both required lines are ASR represented, no hearing.24 method7dc351fe… separates
+factual captions from lost-scar/invented-seating/jacket state;25 method4a6cfd06…
+reuses Terra's jacket-handling observation, not a new root pixel audit. Caption
+index f83304e… retains13 positives, complete inputs and old lifecycle evidence.
+
+Nine independent narrow source checks and merged structural gates pass. Candidate
+649c7a83a3364f0340a1efff8c5f020bc226775190cec660bd085f1e88ff1fd3
+preserves61 other segments,93 ordered dialogue blocks and all cuts/times/refs.
+Detailed candidate pins/reviews remain in adoption-nine-preflight/bindings.json
+9a1eb8f35f24477ddad5489b3209946af7955bfe98ef3be5b9b5f5c7a8dfd355.
+
+Root input-only GO513698b83a1722bf398149beee09db8bf97d02a268f56bbfc51f9285f449ed13
+allows ONE Terra source owner to reconcile the exact reviewed inputs. Old432
+remains current at GO; fresh actual authority/handoff readback is still required.
+No provider GO, future grant/stage or packet freeze follows. Two root reader
+attempts stopped before mutation (mistyped expected pin; empty controller-list
+mistaken for numeric zero); actual schema was read and only root assertions
+corrected. Native evidence/guard and source stayed unchanged. Conditional LOCAL
+62/116 completeness preparation remains independent and unlaunchable.
