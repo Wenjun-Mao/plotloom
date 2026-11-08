@@ -21,8 +21,8 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; actual current readback 21/21,8/22,0/27 selected |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
 | Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Successor13 live: one controller, first09a05 accepted; native graph/reference and first live guard checkpoint pass; old12 remains failed/held |
-| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | 30/70 current selections; E01 complete, E02 9/22, E03 0/27; 09a04 rejected for confirmed captions |
-| Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; full package pending |
+| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01 complete; E02 filling gaps; current counts derive from assembly-progress readback, not manual totals |
+| Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
 
 Journey: frozen source -> authoring handoff -> reference-frame review -> safe H3
 serial execution -> video-checking -> explicit selection -> assembly/progress
@@ -59,7 +59,8 @@ Do not falsely mark the old objective complete merely to replace it.
 
 ## Evidence reuse and completion
 
-Use the installed `video-checking` v0.1.1 and the three new extensions. Preserve
+Use the installed `video-checking` v0.1.2 and the three new extensions. Preserve
+older v0.1.1 results as attributed historical evidence. Preserve
 original review versions. Reuse byte-identical existing observations with clear
 attribution and current source comparison; this is not a fresh full inspection.
 Audit reproducible samples of both passes and rejections against actual media,
@@ -230,7 +231,9 @@ completed-retention receipts for these exact 42 packets. It prepares cached
 evidence, delegates actual primary checks to fresh bounded Terra/medium reviewers,
 and validates reports. Root authorizes routine adoption of unambiguous passes
 through the separate exclusive-write selection helper after technical/source
-binding checks; the first live helper route runs dry before adoption. Failures and
+binding checks; the first live helper route runs dry before adoption. After path qualification,
+routine unchanged-helper adoption runs once with all validation intact; a redundant
+dry run is reserved for relevant tool changes or concrete uncertainty. Failures and
 uncertainties are reported to root without automatic selection, retries or source
 edits. Root owns selection policy, exceptions, random pass/reject audits and final
 delivery; routine agent-operated QA is not owner personal review. This keeps
@@ -439,3 +442,92 @@ not certify speech, lipreading or every-frame correctness. Actual pixel audit:
 Pending/future primaries use0.1.2; four selected clips receive narrowly attributed
 coverage-only sidecars, bound at assembly without rewriting old decisions. Native
 rendering continues independently; source, prompt and guide bytes are unchanged.
+
+Four already selected clips now have source/hash-bound uniform-coverage-only
+Terra supplements, all compatible in the reviewed scope. Index
+`.local/checking-extensions/run/video-reviews/batch13/repaired-coverage-index.json`,
+SHA `dcbe5882b1dc7e95fa6a3d96a72a5c32deb79c9c2aed5273efe8eb6b3b504627`.
+Root accepts these as repair of the missing uniform evidence, preserving old
+primary/adoption records and their audio/other limitations. Root's actually viewed
+E1pages are byte-identical to the final current-code pages. E1export metadata
+binds this supplement without rebuilding the unchanged native-preserving MP4.
+
+Proper11a03 coverage exposed a real material generated-picture failure: frame211
+shows an abstract blue/orange full-frame interruption. Root actually viewed the
+primary native detail and independently extracted frames199/202/205/208/211/214/
+217/220/223;208 and214 are normal,211 is corrupt. Full extent/cause and hearing
+remain ungraded. Native graph/inputs/decode still pass; this is a picture-quality
+rejection, not evidence of incorrect transport. Terra0.1.2 primary failure and
+exclusive rejected review are preserved. Root audit
+`.local/checking-extensions/run/audits/E02-11-attempt03/root-rejection.json`.
+Source-identical fresh-seed11a04 is frozen for a later exact retry grant, manifest
+`b871ce60fa5df1363824e8dfa47dc7ed33734b3c651342ef95ce0cc448f6c4e0`;
+not staged/admitted/submitted or inserted into active40. Existing H3 specialist
+retained the observation separately from caption positives; no prevention study
+or additional ASR was initiated. The same native controller continues.
+
+Root's first fixed random sample13a03 agrees with the bounded0.1.2 primary pass:
+independent nativeframes18/88/151/231 retain left-hand bag/right-hand low knife
+and compatible setting/crops; no overlay/corrupt frame seen in those samples.
+Record `.local/checking-extensions/run/audits/E02-13-attempt03/root-audit.json`.
+No continuous stash motion, hidden props or hearing was inferred.13 and14 were
+selected;11 remains a later fresh-seed retry.
+
+The remaining live retention-transition claim is now demonstrated from existing
+successful checkpoints only, without newSQL/API/provider probes: old000002 at
+08:09:07UTC removed5/protected58; new000003 at08:36:20UTC removed6/protected59.
+Exactly one enumerated unowned successful job and matching DONEseq35 became
+absent after its08:14:34UTC eligibility boundary. All original57owned identities
+and prior owned seal pins stayed protected; the new10a04 owned completion was
+added. Proof `batch-013-live-20261108/first-eligible-unowned-transition-proof.json`,
+SHA `13bf17db35dbd745df7296571dd6f605a5b3354c1d272c459ef8b7d82e6e3ae7`.
+This demonstrates accepted eligible identity-pair disappearance and guarded
+continuation, not deletion actor/exact time or intervening Voice state. One
+positive transition proof closes this claim; no further periodic retention
+audits are requested.
+
+Latest derived progress after16a02:21/21E1,15/22E2,0/27E3, no selection errors
+(`video-reviews/batch13/progress-after-E02-16.json`). Fixed random sample17a02
+then failed the explicit no-reaching action: root viewed independent frames18/
+91/166/195 and targeted84/96; frame84 shows a brief hand extension toward the
+bag, unlike the source instruction. No money taking, agreement, intent or
+continuous extent was inferred. Root upheld the bounded action failure and the
+checker wrote the exclusive rejected review with both validated details. Root
+audit `audits/E02-17-attempt02/root-rejection.json`. Fresh-seed17a03 is frozen
+for later, manifest`edff7f356809d4a6e45ff6a0e329d1ed6278ea9b5b9cdb8b0b437229bba7c809`,
+not staged/admitted/submitted. Future retry set is now11a04+17a03, separate from
+the continuing immutable40 grant. The existing H3 specialist retained these two
+non-caption observations without new inspections/ASR/study; caption positives
+remain9. Remaining fixed sample IDs are20a01 andE3-15/23/25.
+
+18a02 primary recognition missed its first line; ONE blind same-model window
+then represented the exact clause at2.86–3.92s. Root selected with explicitly
+attributed Terra picture observations and cropped-foot/exact-step uncertainty,
+without fresh root visual review or hearing. Decision/supplemental hashes are in
+`audits/E02-18-attempt02/root-adoption.json` and the exclusive selection note.
+Targeted window recognition is troubleshooting only for missing required words;
+not routine extra ASR on passes, source prompting, language forcing or automatic
+acceptance. Future such uncertainty still needs root disposition.
+
+19a01 failed its authored endpoint: root actually viewed final-shot start/end
+(10s/12.916667s); the door remains broadly open instead of returning to a narrow
+gap. Rejected review and root audit retained; hearing/bell and unseen motion
+ungraded. Fresh-seed19a02 is frozen only, manifest
+`a562e7f58189a224ee8d7bfdab1899ec1739e0543851d22e42c71cd2826322ef`.
+Future retry set:11a04,17a03,19a02; active40 unchanged.
+
+The literal-three prior-owned helper would block a later exact retry grant.
+Native owner checked the existing operation contract: current-run completed rows
+resolve only the current immutable packet grant; no supported import avoids
+changing that grant/baseline. Separate local mandatory-list candidate now changes
+only `prior_owned_rows`, sourceSHA
+`a33cb16123ccd17c5cd0d96f8be73bb65b034b39c18a51830683630cb579f673`,
+under `prior-owned-list-candidate-20261108/`. Terra/medium's seven focused tests
+and independent Terra/high static review pass; root removed an unnecessary
+legacy fallback. Original guard/readback/active bundle remain unchanged.
+This is approved local code only. After normal40/40 predecessor completion and
+quiescence, future freeze must prove original54+unchangedfirst3+actual40 owned
+identities (not a self-consistent omitted list), old seal/native/output bindings
+and exact derived counters. No future frontier, contract, launchable bundle,
+grant, stage or POST is yet established; fresh native prelaunch/rootGO remain
+required. ADR0240 records this bounded prospective contract.

@@ -85,3 +85,23 @@ new protected counters from the exact added identities. This is prospective
 authority, not rebaselining current counts, reconstructing a failed checkpoint or
 resuming/replaying the failed batch. New candidate hashes and local/live evidence
 are recorded in the owning plan before activation.
+
+## Later exact retry grants
+
+A later successor requires an explicit nonempty unique `priorOwnedJobIds` list
+whenever an addendum exists, with exact entry membership and cardinality. Remove
+the prospective helper's hardcoded-three assumption; do not add an old-schema
+fallback. Existing active pinned operators/contracts remain unchanged. Retain
+all row, lane, native/output-binding, original-seal, DONE, Voice and UNKNOWN
+checks; this list is identity authority, not aggregate tolerance.
+
+List/entry self-consistency cannot prove predecessor completeness. Before a new
+grant, freeze proof must bind the immutable original contract, exact unchanged
+first-three predecessor entries and every actual newly completed owned job/seal/
+native-output binding from the finished predecessor batch. Derive protected
+counters from those exact additions, never current totals. Freeze only after
+normal terminal completion and quiescence; preserve failed/historical evidence.
+A fresh native prelaunch and one separately authorized exact grant/GO remain
+required. The local mandatory-list candidate has seven focused causal tests and
+independent Terra/high static review; actual future frontier/completeness and
+activation are separate, unclaimed until recorded in the owning plan.
