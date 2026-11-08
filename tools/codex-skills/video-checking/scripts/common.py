@@ -95,6 +95,11 @@ def contained(root, relative):
     return p
 
 
+def preparation_code():
+    scripts = Path(__file__).resolve().parent
+    return {name: sha(scripts/name) for name in ('prepare_review.py', 'common.py')}
+
+
 def verify_bundle(root):
     root = Path(root).resolve()
     b = read(root / 'bundle.json')
@@ -105,6 +110,8 @@ def verify_bundle(root):
         raise ValueError('invalid cache key')
     if digest({k: v for k, v in b.items() if k != 'fingerprint'}) != b.get('fingerprint'):
         raise ValueError('invalid bundle fingerprint')
+    if manifest.get('code') != preparation_code():
+        raise ValueError('bundle preparation code is stale; prepare fresh evidence')
     sources = manifest.get('sources')
     if not isinstance(sources, dict) or not sources:
         raise ValueError('missing original source pins')

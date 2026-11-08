@@ -20,7 +20,7 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Authoring-handoff extension works | Three-episode normalized packages, existing deterministic source gates, semantic handoff review and targeted counterexamples | None | Delivered v0.1.1; 7 tests; three current source reconciliations pass |
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; actual current readback 21/21,8/22,0/27 selected |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
-| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batch12 stopped safely after three originals; no fourth POST; prospective exact successor blocked on bounded terminal-seal repair |
+| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Successor13 live: one controller, first09a05 accepted; native graph/reference and first live guard checkpoint pass; old12 remains failed/held |
 | All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | 30/70 current selections; E01 complete, E02 9/22, E03 0/27; 09a04 rejected for confirmed captions |
 | Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; full package pending |
 
@@ -341,3 +341,101 @@ this repair. ADR0240 records the prospective contract. Staging uses the locked
 project interpreter; an earlier system-Python invocation failed before SSH and
 created no remote effect. Fresh native prelaunch and new exact grant remain
 required before one successor launch.
+
+## Successor13 dispatch authorization
+
+Separate staging/readback passes: bundle00a034/contractd2a0, all40 packet metadata,
+images and exact prompt/seed unused checks; original bundle/contract/seals intact.
+Readback SHA `03aca5f04c68a37a32f918ef7bfcec6a631fa606f2ed3763a523ca78ec92b071`.
+Terra/medium applied the assembly-progress extension:30 current selections and40
+unique gaps. Existing source/handoff/reference/retained QA pins were reused;09a05
+current-source fidelity and exact same creative inputs exceptseed were checked
+separately, with attribution to09a04 reference observations. Checking proof
+`.local/checking-extensions/run/continuation40-checking-proof.json`, SHA
+`c73e3dd1b27fd4ef2dca1f11e8804e16d1345e89f9c1024eec95a80df2028da2`.
+
+Root issued `.local/ref2va/manager/admissions/batch-013-checked-current40.json`,
+SHA `d47b4ce9d57fd60f01bbead636da611620940197f1df322c193dbd4beea22c67`,
+batchId `shuohao-20261108-checking-current40-batch13`:09a05 first plus the39
+unstarted old12 identities,40 unique segments excluding30 selections, onePOST
+per packet and maxActive1. New finite36hour window plus60second prior clock
+skew allowance is prospective; old011/012 remain held/failed.
+Independent Terra/high exact-grant/codefield review passed against retained local
+evidence; no tests or remote calls were repeated by that reviewer.
+
+ONE authorized fresh native prelaunch passed at07:49:44UTC, SHA
+`64fea1c4fb98f0decd91177b27c2e5c36c0cd946a65c733f3414300f1af6fdbe`:57
+SQL/native/output/DONE owned bindings,5 exact eligible unowned absences,unused40,
+zeroUNKNOWN/nonterminal/nonDONE, native/sharedVoice idle, unchanged service/model/
+installed-policy/observer and full-record unordered mounts, old12grant/head/five
+checkpoints/seals unchanged. Root checked proof/hash while fresh and sent exact
+GO for ONE successor controller. Actual acceptance and future-seal/checkpoint
+integration remain separate live observations. Native collection continues
+without old inspection/ASR; Terra/medium coordinator resumed on only this40,
+with fresh primary workers, routine pass adoption and root exception/sample
+review. The six previously sampled unchanged packet identities remain the root
+audit schedule. Caption case09a04 was recorded by the H3 specialist with complete
+inputs and retry lifecycle; no caption prevention investigation was added.
+
+The actual successor controller started07:52:02.348204UTC:PID4145081/UID1000/
+startTicks407822255,supervisor4145079; follow only this identity.09a05 accepted
+07:52:04UTC as job`h3_a03eabe74a794a0cb139801a62d23ca1`, native
+`dfbd5af6-bcae-4521-9335-efc040f6964d`, seed7059261396795034922. Complete
+actual graph and three source/prepared guide hashes match. First actual Host.idle
+prePOST checkpoint`890a762c9182a1fffc920ea24a56fd55b18a56797f91408e231ba117924bd377`
+passes under the new contract/grant/head. Accepted-binding proof
+`batch-013-live-20261108/first-accepted-binding.json`, SHA
+`551d854cb52b83bdba509d434c6a8978be70bf746e436cb2777ac561900a39fa`.
+A local launch-helper basename typo failed before marker/log/Popen/POST; its
+failed evidence and absence proof are retained. Correcting the literal basename
+preceded this one actual launch; no controller replay/relaunch occurred.
+Future DONE seal and post-completion checkpoint are not yet claimed.
+
+First successor completion09a05 is locally retained: nativeSHA
+`26cd00d744983e4adb350324432ecf8cba57f583c5ba007143e0d7ecdecccc05`,
+1,070,740 bytes,1,017.088seconds native execution. Actual future Host.finish
+produced a validated DONE seal with NULL nativeerror and unchanged full terminal
+job; following Host.idle/checkpoint/head passed. Integration proof
+`batch-013-live-20261108/first-live-postjob-guard.json`,SHA
+`d6d82657381c71cbd3bc3b678cc45e15cadbf02f1ba1cbf713f0abf6705dfc96`.
+This proves the future seal/completion route, not that a transient wait was
+necessarily consumed. The same controller accepted10a04 at08:09:09UTC.
+
+09a05 primary review remains needs_review because whole-clip recognition missed
+the opening clause. ONE blind same-model window subsequently represented it at
+6.14–7.72s with a near-sound final character; primary recognition represented
+the latter clause. Root adopted with explicit recognition/hearing limitations,
+actually viewed nativeanchor7 without the earlier caption overlay, and retained
+all primary/supplemental/root records separately under
+`.local/checking-extensions/run/audits/E02-09-attempt05/`. No continuous
+caption absence, perceived exact speech or owner listening was inferred; no
+speculative extra render was submitted. Caption retry bookkeeping was requested
+from the H3 specialist.
+
+## Observed checking weakness and skill0.1.2
+
+E02-11a03 Terra review correctly held on malformed contact pages: twelve declared
+frames were overlapped into323x202pixels rather than1280x600. The generated-sheet
+route affected six current packets (20a03,08a04,09a04/a05,10a04,11a03); separate
+960x544anchors and their observations remain valid. The confirmed09a04 caption
+rejection was independently anchored, so no reversal or media regeneration is
+needed. Four already selected clips require only missing uniform-coverage
+supplements;11 remains pending until proper current review. Retained28 reused
+prior inspection/QA are not relabeled new inspections or blanket-rechecked.
+
+Terra/medium fixed numeric xstack offsets, added PNG geometry readback, and bumped
+video-checking to0.1.2. Real FFmpeg regressions first reproduced the wrong output
+then proved every colored tile position on12/6/1-input sheets. Independent
+Terra/high review found a second concrete gap: an old malformed bundle could be
+paired with a new-version report because validation ignored current code pins.
+The small current-code check now rejects that route in primary/detail validation;
+the reviewer confirmed closure.22 focused skill tests and skill validation pass;
+no product runtime/API/frontend/provider/dependency changed, so no product full
+suite was applicable. Old caches/reports are immutable, new keys use final code;
+ASR/decode are reused. Root actually viewed the first repaired E1pages0/1, each
+showing twelve distinct cells and compatible mask/lip states; these samples do
+not certify speech, lipreading or every-frame correctness. Actual pixel audit:
+`.local/checking-extensions/run/audits/contact-sheet-fix/root-actual-pixel-audit.json`.
+Pending/future primaries use0.1.2; four selected clips receive narrowly attributed
+coverage-only sidecars, bound at assembly without rewriting old decisions. Native
+rendering continues independently; source, prompt and guide bytes are unchanged.

@@ -39,3 +39,20 @@ cost and speed savings require comparable measurements and are not assumed.
 No provider, service, production-state, CI or publishing changes are included.
 The bounded plan and evidence are recorded in
 `docs/roadmap/2026-11-08-video-checking-skill.md`.
+
+## Generated contact coverage correction
+
+Version0.1.2 fixes a production-discovered evidence bug: literal multiplication
+expressions in xstack offsets overlapped the declared uniform frames. Generate
+numeric coordinates and check PNG dimensions against the declared tile grid
+before recording coverage. Current review/detail validation also requires exact
+current preparation-code pins, so a stale malformed bundle cannot be relabeled
+with a newer review version. Old reports/caches remain immutable historical
+evidence, not valid current primary bundles.
+
+Real FFmpeg colored-tile regressions prove geometry and every input position for
+full, partial and single-frame pages; a rebound malformed legacy bundle is
+rejected by current review/detail validation. Four already selected clips receive
+source-bound coverage-only supplements while their original anchor/recognition
+judgments stay attributed. This is repair of inspection evidence, not a reason
+to regenerate media or repeat unaffected full reviews.

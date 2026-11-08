@@ -40,6 +40,9 @@ Apply supplied requirements without inventing stricter action or continuity dema
 
 ## Reuse and honest claims
 
+Confirm contact-sheet dimensions match declared frame coverage before relying on it;
+a mismatch is a preparation issue, not a media-quality rejection.
+
 Reuse content-bound technical evidence; avoid repeating an unchanged full inspection
 solely for a new manager. A source fix does not automatically invalidate a usable
 older take: compare its actual output against current requirements first.

@@ -2,7 +2,7 @@
 name: video-checking
 description: Review generated clips against supplied story actions, references and dialogue using cached evidence, Terra/high reviewers and sampling audits. Produces review recommendations; does not generate, repair or select production media.
 metadata:
-  version: "0.1.1"
+  version: "0.1.2"
 ---
 
 # Video checking
@@ -30,7 +30,8 @@ installation or download is implicit.
   Source/reference/reuse/code changes invalidate the relevant cache key. Validation
   checks the current original inputs; a frozen cache is not proof that they remain current.
 - Use uniform contact coverage of every shot and native-resolution anchors. Existing
-  uniform derivatives may be reused; prior reviewer-picked failure images must not
+  uniform derivatives may be reused; confirm contact-sheet dimensions match their
+  declared frame coverage before review. Prior reviewer-picked failure images must not
   be the sole evidence in a blinded evaluation.
 - Additional detail extraction preserves the original and records its frame/hash.
   Preparation/cache errors are tool/input problems, not media-quality rejections.

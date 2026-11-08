@@ -6,9 +6,10 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import tempfile
 
-from common import digest, extract, number, pinned, probe, read, run, sha, source, verify_bundle, write
+from common import digest, extract, number, pinned, preparation_code, probe, read, run, sha, source, verify_bundle, write
 
 
 def validate(case_path):
@@ -89,8 +90,7 @@ def validate(case_path):
         for s in shots:
             if not any(s['startSeconds'] <= meta['frameTimes'][x] < s['endSeconds'] for x in covered):
                 raise ValueError('inspection does not cover every shot')
-    script_dir = Path(__file__).resolve().parent
-    code = {name: sha(script_dir/name) for name in ('prepare_review.py', 'common.py')}
+    code = preparation_code()
     versions = {name: run([name, '-version']).decode(errors='replace').splitlines()[0] for name in ('ffmpeg', 'ffprobe')}
     inputs = {'case': (case_path, sha(case_path)), 'video': (video, video_sha)}
     inputs.update({eid: (p, h) for eid, p, h, _ in refs})
@@ -112,14 +112,21 @@ def nearest(times, target, lo, hi):
 
 
 def sheet(images, out):
+    if not 1 <= len(images) <= 12:
+        raise ValueError('contact sheet requires 1 to 12 images')
     args = ['ffmpeg', '-v', 'error']
     for image in images:
         args += ['-i', str(image)]
     filters = ''.join(f'[{i}:v]scale=320:200:force_original_aspect_ratio=decrease,pad=320:200:(ow-iw)/2:(oh-ih)/2[v{i}];' for i in range(len(images)))
-    filters += ''.join(f'[v{i}]' for i in range(len(images))) + f'xstack=inputs={len(images)}:layout=' + '|'.join(f'{i%4}*320_{i//4}*200' for i in range(len(images))) + '[out]'
+    filters += ''.join(f'[v{i}]' for i in range(len(images))) + f'xstack=inputs={len(images)}:layout=' + '|'.join(f'{(i%4)*320}_{(i//4)*200}' for i in range(len(images))) + '[out]'
     if len(images) == 1:
         filters = '[0:v]scale=320:200:force_original_aspect_ratio=decrease,pad=320:200:(ow-iw)/2:(oh-ih)/2[out]'
     run(args + ['-filter_complex', filters, '-map', '[out]', '-frames:v', '1', '-y', str(out)])
+    with out.open('rb') as f:
+        header = f.read(24)
+    expected = (min(len(images), 4) * 320, ((len(images) + 3) // 4) * 200)
+    if len(header) != 24 or header[:16] != b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR' or struct.unpack('>II', header[16:24]) != expected:
+        raise ValueError('contact sheet PNG dimensions do not match declared coverage')
 
 
 def prepare(case_path, out):

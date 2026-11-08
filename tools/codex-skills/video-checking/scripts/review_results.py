@@ -7,7 +7,7 @@ import random
 
 from common import contained, number, probe, read, sha, verify_bundle
 
-SKILL_VERSION = '0.1.1'
+SKILL_VERSION = '0.1.2'
 
 
 def validate(review_path, bundle_path, detail_dirs=()):
