@@ -99,24 +99,33 @@ binding `4c30b164...` and first DONE/postjob guard `80b36ea9...` pass with
 protected98/checkpoint0→1; root review `85cbbf2f...` confirms the bounded
 integration. No relaunch, replay, other-provider fallback or source adoption.
 
-At the dated [frontier9 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier9.json)
-(`bf219c56...`), 56/70 segments are selected: E01 21/21, E02 21/22, E03 14/27.
-Nine of19 retry outputs are technically ready. Five are selected; E02-17 and
-E03-04/06/07 are held after second-generation material failures. Ten exact
-retries remain running/queued, currently E03-10a02 under the same controller.
-The next root random audits are E03-13a02/E03-27a02, fixed before generation;
-targeted E02-17a03 was audited. All six original fixed samples were audited
-with case-specific limitations, not a general accuracy guarantee.
+At the dated [frontier12 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier12-20261108.json)
+(`33250e24...`), 57/70 segments are selected: E01 21/21, E02 21/22, E03 15/27.
+Twelve of19 retry outputs are technically ready. Six are selected; E02-17 and
+E03-04/06/07/10/13 are held after second-generation material failures. Seven exact
+retries remain running/queued, currently E03-14a02 under the same controller.
+The fixed random E03-13a02 audit confirmed the repeated background actor-position
+event; E03-27a02 remains the next random audit. Targeted E02-17a03 and all six
+original fixed samples were audited with case-specific limitations, not a general
+accuracy guarantee.
 
-Four isolated pure-Shuohao v2 candidates have official structural gates and
+Six isolated pure-Shuohao candidates have official structural gates and
 independent scoped source-compatibility evidence: E02-17 positive hands,
-E03-04 portrait hold, E03-06 stationary confrontation and E03-07 owned cutaways.
-World facts remain authoritative in existing metadata, while model-facing
-constraints intentionally change. No third packet, canonical adoption, provider
-result or full raw-request-equivalence is claimed. Historical dependency-hash
-and reference-POV qualifications remain. E02-19a02 is selected with explicit
-residual-door-motion uncertainty; literal stopping and perceived audio are
-ungraded. Details and artifact hashes are in the [historical run log](2026-11-08-checking-extensions-run-log.md).
+E03-04 portrait hold, E03-06 stationary confrontation, E03-07 owned cutaways and
+E03-10 masked hesitation and E03-13 solo set-down-v2. The latter restores explicit
+head lowering after independent source review found a gaze-only omission in v1. World facts remain authoritative in existing
+metadata, while model-facing constraints intentionally change. No third packet,
+canonical adoption, provider result or full raw-request-equivalence is claimed.
+Historical dependency-hash and reference-POV qualifications remain. A four-source
+isolated merge/handoff rehearsal passed, explicitly on a synthetic mirror rather
+than live authority. It does not establish current production adoption.
+
+E02-19a02 is selected with residual-door-motion uncertainty; literal stopping and
+perceived audio are ungraded. E03-12a02 is selected after one unhinted narrow
+same-model window represented its missing required line. Original needs_review
+is retained; this is recognition evidence, not independent recognition, hearing,
+silence, balance or lip-sync acceptance. Details and artifact hashes are in the
+[historical run log](2026-11-08-checking-extensions-run-log.md).
 
 Native caption records retain12 positives; current index SHA
 `ed9f24500d89e8fd27278e95f881eb62999e1a064ee36be34552005854b98df5`
@@ -127,13 +136,14 @@ remains video-checking0.1.2, with Terra/medium coordination and Terra/high prima
 ## Remaining closeout
 
 - Finish the current exact 19-packet batch and its Terra dispositions. The
-  [frontier9 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier9.json)
-  (`bf219c56...`) records 56/70 selected (21/21, 21/22, 14/27). Root holds
-  E02-17 and E03-04/06/07 after repeated material failures. Four local Shuohao
-  v2 candidates have structural and independent scoped source-compatibility
-  evidence; no canonical adoption or third packet has occurred. Model-facing
-  constraints deliberately differ; existing world metadata remains authoritative.
-  Historical input/POV qualifications remain. These are untested source experiments.
+  [frontier12 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier12-20261108.json)
+  (`33250e24...`) records 57/70 selected (21/21, 21/22, 15/27). Root holds
+  E02-17 and E03-04/06/07/10/13 after repeated material failures. Six isolated
+  Shuohao source candidates have structural and independent scoped source
+  evidence. No canonical adoption or third
+  packet has occurred. Model-facing constraints deliberately differ; existing
+  world metadata remains authoritative. Historical input/POV qualifications
+  remain. These are untested source experiments.
 - Only after normal 19/19 completion, exit 0 and quiescence may the native owner
   prepare the conditional LOCAL62/116 completeness freeze (original54 + prior43
   + actual19). Preserve original base/fields and exact prior43 entries. A guard

@@ -747,3 +747,69 @@ Four ISOLATED pure-Shuohao variants now pass official structural gates and bound
 - `E03-07-owned-cutaways-v2` candidate `6b401add7b37741d3acd9ba70e669fdfddc861b13f8a783e07d7ec7dfac25729`, independent review `a3dc8f00b7945682ee166fd949bc61cf1293afe886772adf93ce9e2c6e5ca064`.
 
 All are prepared only: no canonical adoption, third packets, future grants or POSTs while active19. Any source adoption later must freshly bind current authority and preserve every unaffected segment and all93public dialogue blocks. Native owner received conditional authorization ONLY after normal19/19 collection + controllerexit0 + quiescence/zeroUNKNOWN to prepare LOCAL next62/116 owned freeze: preserve originalb006/base912/non-addendum fields and exact current43entryobjects from455, add ALL19 actualcompleted owned identities/seals/fullterminal/native/output/local bindings reconciled independently againstfc4grant/logs. Derive62/116 from identities, never currentaggregates; failed/partial/UNKNOWN does not satisfy this condition. Reuseunchangeda33code/evidence, no new executable grant, remote staging, activation or provider POST. Root will review actualclosure and final source-bound gap set before prospective grant/prelaunch/GO.
+
+## November 8 — batch014 frontier12 and source experiments
+
+The dated adapter readback `progress-frontier12-20261108.json` is
+`33250e249cd3f6644871e6abbce6a85445c01cde9ec86829d9b4ea2190750f8a`:
+57/70 selected (21/21,21/22,15/27). Twelve of19 native retry originals collected;
+six selected, six held, seven still in the same exact active controller. E03-14a02
+is accepted as `h3_6c5155bb0ea04033851e21e1dcce1422`. Technical completion is
+separate from these agent-operated QA selections. No owner personal review.
+
+E03-10a02 raw `0a1254776b4ec22b6429054ec79df997a18890e3bd42ba584359965d9f65aa91`
+failed for mask below mouth/raised knife and additional apron-clad person. Root
+actually viewed references, anchors and page0; method record
+`8fdc5814861fd4437232223a53fe1fefca5026f765f90cef60dc2928ff7eefa7`
+confirms second-generation hold without third-seed freeze. Pure-Shuohao isolated
+masked-hesitation candidate `c49147d446d88d7c900345d30bf1f2caec00af7c24c46c443b6d6a45f1cee1d7`
+passed official gates and independent narrow source review
+`0ab4575835a5e69ebbc52dfc9e8adf9deb484e3bee271aa04ac847f2e8a2408a`.
+Only target blocking/H3 change; removed model-facing constraints remain an explicit
+untested conditioning reduction, with original world ledger retained in metadata.
+
+E03-12a02 raw `038fcb80ed538c685bc81fa1a9567a66719f17ca1b074b625d32ffeebbefd336`
+had sampled compatible visuals/minor cutaway and a missing required ASR line.
+One authorized unhinted4.5–7.5s same-model window represented “你现在连我都怕”
+at4.50–6.58s. Recognition `78e182395ab4a6db54fc07b27f158e79bb10239f6904885a94f04006ff0ae5d2`
+and root selection note `66dd5120f4b50a277834d47e487852789ba360110a3da6051d1f45058ed83197`
+are pinned. Primary needs_review unchanged; root reused Terra/high visual evidence,
+not a fresh visual audit. No actual hearing, independent recognizer, perceived
+silence, balance or lip-sync claim.
+
+Fixed random E03-13a02 raw
+`abf0e5eb07944b5a136c0f18351700fadc75491fa60fddbbe1ee209ccdd6f662`
+was audited at random7/107/139/191 plus all3 guides, pages0/1 and native120.
+Sample `7e2e4d35652d902b370c093ee18939d88193df15bc229867d5b6a4f894784158`
+and method record `9e6256e245b4444bcfc82168b9c8cc7cf05dde9e758af6bc865a11dfa1a6404e`
+confirm a bag-carrying woman crosses the background instead of remaining offscreen
+by the shelf; destination/identity are not established. Knife set-down succeeds;
+early cut/full handle are minor, not the rejection basis. Terra primary remains,
+clip rejection `9a8c3fefbb53bf883b677d7ac4cdf0ce8c7877dbc5a2e0897507686f4ec9d1ed`.
+Initial local extraction used removed ffmpeg-vsync flag and produced no images;
+only flag changed to fps_mode passthrough, preserving predetermined indices.
+Isolated source candidate `18c891df1d8f685f7961eb4a60fbf459f6ea862135d7f6718df34aeeec618272`
+passes official27-segment/83-cut gates; independent review pending. No third freeze.
+
+Read-only four-source prospective merge
+`b3719bd140b661a0b356a0aaa4ed27f9a6990ad084803444398de08c7bc4c6d0`
+preserves66 unaffected segments/all93 public blocks. Real handoff0.1.1 adapter
+and report validation passed only on an explicitly synthetic mirror. That result
+is not live production authority, source adoption, a current full-chain semantic
+reinspection or provider fidelity. Current canonical remains432ceb0e…; old
+source/metadata drift and E03-07 POV uncertainty remain qualified. Post-adoption
+actual cases are still required at the later safe frontier.
+
+Native owner received coalesced dispositions/source-local status. Active exact19
+inputs/controller unchanged. Conditional LOCAL62/116 preparation remains gated on
+normal19/exit0/quiescence/zeroUNKNOWN; no successor activation or provider request.
+
+E03-13 v1 independent source check found that the revised prompt only lowered
+gaze where screenplay beat26 explicitly lowers the head. This gap also existed
+in prior selected H3; v1 and its finding remain. Distinct v2
+`6defe41d850369ada5598b54c2eff8e035d436346b30acc807a6310daeca1846`
+changes only that Shot1 sentence, restores head plus gaze lowering and passes
+updated official27/83 structural gates. Independent narrow v2 source review
+`285f58c97ae8a5f2f3cca8d672c9ae5ac12b70c9949a5ced19ddd9ce709eb118`
+passes using verified retained invariants and new exact delta. No full upstream
+qualification, media result, canonical adoption or third freeze is implied.
