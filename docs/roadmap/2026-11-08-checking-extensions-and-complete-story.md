@@ -28,8 +28,11 @@ Journey: frozen source -> authoring handoff -> reference-frame review -> safe H3
 serial execution -> video-checking -> explicit selection -> assembly/progress
 checking -> watchable delivery. Runtime is the existing local Python/ffmpeg and
 owner H3 gateway. Use one native execution owner and one source owner per bounded
-file set; disjoint extension implementations are parallel. Terra/medium coordinates execution; new E03 primary reviews use Terra/high. Root owns audits, source adoption, final selection and later
-scoped scratch cleanup. Preserve original media and user-valued work.
+file set; disjoint extension implementations are parallel. Terra/medium coordinates execution; new E03 primary reviews use Terra/high. Root owns audits, source adoption, exceptional selection and later
+scoped scratch cleanup. Under this run’s host authority, Terra may adopt routine
+clear passes and evidence-bound unambiguous visual rejections and prepare one
+first seed-only retry; uncertainty and repeated failure return to root. Provider
+admission and GO remain with root and the sole native execution owner. Preserve original media and user-valued work.
 
 ## Authority and boundaries
 

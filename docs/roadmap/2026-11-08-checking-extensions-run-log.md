@@ -635,3 +635,19 @@ historical bytes beginning Extension checkpoint are unchanged, SHA
 `ab9e428c1ca9d94886a03ef7f379bcc1278db028404343ab72f952128ca3d992`.
 Current operational status/acceptance remain in the linked short plan; this
 cohesive chronological journal retains historical checkpoints and their limits.
+
+11a01 selected with subtle tissue-wobble uncertainty: core bag-to-shelf endpoint
+represented, sampled stills do not prove the small secondary motion absent. No
+dense extra review or speculative render; primary needs_review stays immutable,
+visuals attributed Terra/high, exact motion/audio/listening ungraded. Root decision
+`audits/E03-11-attempt01/root-adoption.json`, SHA
+`2d059945f31501b058a26cc1027683760cba1022fe7a5a87a5eb2e14a966e8db`.
+Current held10 unchanged; native40 continues12.
+
+## E03-12 physical-state rejection
+
+At 2026-11-08T14:32:39.716377+00:00, the Terra/high primary failure was confirmed by root viewing actual source f1, native frames30/59, and the uniform contact sheet. The older employee appears behind the man, places her shoulder bag on the counter, and removes/carries the jacket from the red stool; the authored state keeps her at the east tissue shelf with bag on shoulder and jacket on stool. This is a new physical action, not camera drift. The novella supplies no intervening jacket-removal action. Missing recognition of the man’s line remains unresolved and did not drive rejection. Root record `audits/E03-12-attempt01/root-rejection.json` SHA `ee897799f484696d0ed9dcdfd9beddfb5e676eef989cbaec5277a89ffa9f2a8f`. Terra froze one exact fresh-seed attempt02 locally: freeze `726012665aff0a71e658fc64c666b597c16e71457156b6d1510032f1d392a97e`, manifest `36efbd00b8d4f5e76b85d12611769ab7ff79831e5aa4824a0f80dcb066b8495c`. No prompt/source change, repeated ASR, staging, grant or POST. Held retries now11. Active originals continue E03-13 under the same batch13 controller.
+
+## Bounded Terra authority for clear visual rejections
+
+At 2026-11-08T14:39:37.370655+00:00, root confirmed E03-13’s concrete added woman walking toward the entrance in source-bound actual frames; the knife set-down endpoint itself was present. Root record SHA `f4a706e677a8620a94ca2652d6e932b04c7c6e050050c0beb3113f77632ee58e`. Repeating root inspection of every obvious high-primary failure was duplicating work against the owner’s cost/speed objective. Prospectively, the Terra coordinator may adopt a Terra/high primary’s unambiguous material visual rejection and prepare one first seed-only retry under this run’s delegated host authority. Each requires the literal source constraint and actual PNG evidence of a concrete added actor/action, prop ownership/state change, required visible endpoint violation or image corruption. Camera variation, subtle cues unconfirmed by sampling, inferred intent and ambiguous UI do not qualify. Root retains fixed random audits, uncertainty/source decisions, later grants and native GO. Second actual failure on the same packet/criterion requires root method reassessment. No source/prompt changes, staging, admissions or POSTs are delegated. This does not change the generic skill’s recommendations-only boundary.
