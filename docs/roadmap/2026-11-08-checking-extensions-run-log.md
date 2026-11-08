@@ -844,3 +844,36 @@ attempts stopped before mutation (mistyped expected pin; empty controller-list
 mistaken for numeric zero); actual schema was read and only root assertions
 corrected. Native evidence/guard and source stayed unchanged. Conditional LOCAL
 62/116 completeness preparation remains independent and unlaunchable.
+
+## November 8 — adopted source9, frozen packets and LOCAL batch015
+
+Actual adopted source649c7a83a3364f0340a1efff8c5f020bc226775190cec660bd085f1e88ff1fd3
+reconstructs from exact candidate copies. Metadataa6929ae9…/overridesf033d53f…;
+source history retained before adoption. Fresh REAL handoff cases/reviews for3
+validate under1.1; old full semantic/reference observations are attributed.
+Adoption-records92bea1b78754f3808b2fdff0838c3da4c7663a653f1922944a538ffa33f5111f
+and reference-reuse evidence retain historical drift/07 POV/conditioning limits.
+No fresh full visual inspection or future request/provider proof inferred.
+
+Frozen9inventory31d2eb099abc37f439779fd9b367857331311517f088b5401370f49b59a84f46
+matches E02-17a04/E03-04,06,07,10,13,24,25,27a03. Supported default seeds,
+no seedChoice, creative prompts changed and guide hashes/roles/times unchanged.
+Independent inventoryafb29a2856375730a329ca8550610fd4888b7e668065d5c1eb9b74bdead49b50
+passes actual local fidelity/bindings/unused state, not native non-admission.
+
+Post14contract6a744b0caacf78ce4ed6fc0a4f5cb4af4406915e654a2c46e4a5e3b41c804af1
+and completenessd5e7c785… preserve originalb006/base912/nonaddendum/exact43,
+add all19 and derive62/116 without aggregate rebaseline. Independent review
+94aeebbd20fbfa4c9038bfaf88f362f580b8cd22f8200c2df5b62021401b3a06
+passes; a33 code/7 tests reused, no new guard or native check in that review.
+
+LOCALbatch015bundle65825241e2b76b9067494be059867ce2f91c86f73015cc79aa53b2580191b893
+grant10324dbd09f0481c90b45eb46b3f0f913ee10de7c06f10dd47b6357ea1335933
+and package-review2f21f99fd2ca8553820555fd44df01e8d12c911758d33f4e23000277cca3f0d3
+qualify exact9/current typed inputs and unchanged controls/code. Issue23:16:17UTC,
+36h/latestStart November10 11:16:17UTC,−60s notBefore only/no late grace.
+Native owner is authorized only additive staging/readback and ONE fresh native
+prelaunch; no provider GO yet. Local supported registry registration is explicitly
+required before firstPOST, not a new auto-registration contract.
+Root preset38702d185f9af5631e96e457806281dceb518e8380d3bc133f4c8dae2d22321c
+chooses random24a03 and targeted17a04 before outputs; actual hearing unclaimed.
