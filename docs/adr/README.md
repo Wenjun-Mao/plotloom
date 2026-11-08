@@ -203,3 +203,6 @@ freezes the prospective execution envelope before fresh authorization.
 [ADR 0233](0233-explicit-h3-speaker-identity-bindings.md) makes the model-owned
 pictured speaker aliases explicit while preserving compiler-owned cue labels,
 order and original speech.
+
+[ADR 0238](0238-manual-video-checking-skill.md) records the optional manually
+invoked Terra/high checker, evidence reuse, sampling audits and versioned learning.

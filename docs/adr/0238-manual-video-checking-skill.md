@@ -1,0 +1,41 @@
+# ADR 0238 — Manually invoked video checking
+
+Accepted November 8, 2026 for the owner-authorized checker pilot.
+
+## Decision
+
+Keep a self-contained personal Codex skill in
+`tools/codex-skills/video-checking/`, with personal discovery linked to that
+versioned source. Disable implicit invocation. This is optional agent review,
+not a Plotloom runtime dependency or a new mandatory production gate; ADR 0226
+continues to apply. Checking grants no generation, retry, source-edit or
+production-selection authority and preserves an existing generation pause.
+
+The author supplies actions, world state, references and dialogue. Local tools
+own hashing, current-source binding, decode-evidence reuse, frame extraction,
+report validation and reproducible audit selection. GPT-6.1 Terra/high workers
+own bounded primary observations and recommendations. The coordinator audits
+samples from both passes and rejections against independently chosen actual
+frames, handles uncertainty and decides narrow skill improvements.
+
+Review results pin their skill version and complete evidence-bundle fingerprint.
+The mechanical cache excludes review prose, so instruction updates do not
+require extracting unchanged frames again. Current validation rechecks pinned
+originals; a retained snapshot alone does not prove the source is still current.
+Fingerprints detect ordinary changes/corruption, not deliberate forgery. JSON
+declarations of viewed evidence require actual tool trace or audit support.
+
+Missing required recognition blocks a pass, but an independent observed material
+picture defect can already support rejection. ASR is not perceptual listening,
+voice/acting acceptance, literal spoken-word certification or lip-sync review.
+Correctly caught output defects are not checker defects. Improve demonstrated
+misses, false rejections and wasted work with narrow changes and regression
+examples; retain old reports with their actual version and inspection limits.
+
+## Consequences
+
+The first pilot uses retained media only. Actual elapsed time can be recorded;
+cost and speed savings require comparable measurements and are not assumed.
+No provider, service, production-state, CI or publishing changes are included.
+The bounded plan and evidence are recorded in
+`docs/roadmap/2026-11-08-video-checking-skill.md`.
