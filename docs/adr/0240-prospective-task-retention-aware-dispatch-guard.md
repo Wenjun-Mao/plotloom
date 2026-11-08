@@ -58,3 +58,30 @@ The unchanged H3 recipe, services, cleanup code and production database are not
 modified. No unrelated producer or gateway API semantics change, and no CI/push
 is implied. The owning execution plan is
 `docs/roadmap/2026-11-08-checking-extensions-and-complete-story.md`.
+
+## Terminal seal amendment
+
+The first live batch stopped after its third technical completion: an immutable
+owned seal had captured jobSUCCEEDED while the matching lane was still ACTIVE.
+A later atomic read showed the same lane DONE with unchanged job/native/output
+binding. Native success publication and lane completion are separate operations.
+The failed batch, seal, external head, original base and old contract stay intact.
+
+For future seals, validate the entire captured same-known completion before any
+seal or technical-receipt write. Allow at most30seconds for only a stable
+ACTIVE-to-DONE lane transition. Read the complete terminal job, matching allocation
+identity and native hold/error metadata, and Voice bindings atomically. An ACTIVE
+row with a native error code is held, not merely pending; fail immediately.
+Missing/multiple rows, held/unknown/unexpected states, binding or identity drift,
+Voice state and timeout also hold. Keep the downstream exact-row guard unchanged
+in strictness and keep native service/retention code unchanged. This wait never
+authorizes a new POST, repair of prior seals or clearing remote uncertainty.
+
+A new finite successor may explicitly add the three completed owned projections
+to the original54 protected identities. Pin the original contract and original
+seal bytes, unchanged job/native/output bindings, later matching DONE projections
+and incident evidence. Preserve every original contract field and derive the
+new protected counters from the exact added identities. This is prospective
+authority, not rebaselining current counts, reconstructing a failed checkpoint or
+resuming/replaying the failed batch. New candidate hashes and local/live evidence
+are recorded in the owning plan before activation.
