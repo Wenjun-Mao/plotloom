@@ -905,3 +905,24 @@ count is specific to that read-only reader; the controller has firstacceptedPOST
 Terra/medium dispatcher/Terrahigh primaries watch exact9 on active0.1.2, no
 candidate skill activation. Root random24a03/target17a04 preset before outputs;
 otherclearpasses mayadopt, failures returnforrootmethod, no furtherpacketfreeze.
+
+## November 8 — revised17 selected, E02 footage complete
+
+First postjob proof4cee4b3fe45260df2d5ddf0db20b00a63f7e0964490235c2a83620a7806cb8b7
+passes full current==frozen terminal, DONE seal4a5f9809… and checkpoint079fa357…
+protected117. First accepted5432deda… and postjobproof were read by root; no further
+unchanged guard qualification is required per normal job. E02-17a04 original
+1cd3cd416e4339acb9ae6d157655374ec0c1b7db6faa1696c247996ec8b79aab
+is Terra/highPASS plus targeted root sample18/91/166/195/242, audit
+53749909fef3be7c2752dd0dc3abc8c704e03e3dd7ef9ce9d532b13040409efb.
+Youngerhandsdown/no observedreach-transfer; bag returned and released oncounter.
+Root reuses four unchanged guides from prior actualview, not fresh reinspection;
+minor one-frame cuts accepted. No dialogue/noASR; actual speech/silence/hearing,
+performance/lipsync and real-currency authenticity remain ungraded. Actualselected.
+
+Current649-source adapter6d337c522415bb622557143d07ef873a142bdfd42cc6e4f17cee65cb4b71dd75
+derives62/70 (21/21,22/22,19/27). E02 all22 footage selected, no newpreview/assembly.
+Same controller1072759/follower84580 proceeds to E03-04a03 accepted
+h3_1014d6ef83c84f78814c6c41dbf34397; eight E03 replacements remain. No newfuture
+packet freeze/grant or source mutation authorized automatically. Root/nativeowner
+recorded17QA outcome; current caption13positive index unchanged.

@@ -21,7 +21,7 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; current selection counts derive from progress readback |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
 | Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batch13 and14 completed normally; revised exact9 batch015 passed local reviews and is staging/prelaunch only; old12 remains failed/held |
-| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01 complete; E02 filling gaps; current counts derive from assembly-progress readback, not manual totals |
+| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01/E02 footage selected; E03 filling gaps; current counts derive from assembly-progress readback, not manual totals |
 | Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
 
 Journey: frozen source -> authoring handoff -> reference-frame review -> safe H3
@@ -127,15 +127,23 @@ started23:39:09UTC November8: PID1072759/UID1000/startTicks413504961,
 supervisor1072757/startTicks413504958. Follower84580/PID8590/SSH8591 continues.
 First E02-17a04 accepted as `h3_4bb52339a2f4485a81fe43f0428dedbb`. Actual binding
 `5432deda...` passes complete graph/source/prepared4guides/seed/execution snapshot
-and PREPOST Host.idle/checkpoint `b8868491...` protected116. Root read that proof;
-this supplies first actual-request fidelity, not media quality. First postjob
-DONE seal/checkpoint is still pending. No relaunch or successor authorization.
+and PREPOST Host.idle/checkpoint `b8868491...` protected116. First postjob DONE
+proof `4cee4b3f...` passes full current==frozen terminal and checkpoint1, now
+protected117. Root read both proofs; guard/source qualification is reused thereafter.
+No relaunch or successor authorization.
 
 Terra/medium local watch with Terra/high blinded primaries covers only exact9,
 using active video-checking0.1.2. Root preset `38702d18...` chooses random
 E03-24a03 plus targeted first E02-17a04; adoption is held for those audits.
-No new native/source-variant video result is reviewed yet. Unchanged primary
-observations are reused with attribution; actual hearing remains unestablished.
+The first revised E02-17a04 passes independent Terra/high and targeted root
+sample18/91/166/195/242. Younger hands remain at sides in samples; the man
+returns/releases the filled bag onto the counter. Root audit `53749909...` reuses
+unchanged guide observations, accepts minor one-frame cuts, and claims no hearing.
+Actual selection is recorded. Dated current-source readback `6d337c52...` at
+[progress-after-first.json](../../.local/checking-extensions/run/video-reviews/batch15/progress-after-first.json)
+derives62/70 (21/21,22/22,19/27): E02 footage is complete, not yet assembled.
+Eight revised E03 packets remain in the same finite batch; E03-04a03 is accepted
+as `h3_1014d6ef83c84f78814c6c41dbf34397`. Actual hearing remains unestablished.
 
 Caption index `f83304e3...` retains13 positives/all original inputs/history.
 E03-24 source revision addresses independent lost-scar/invented-seating state,
@@ -145,8 +153,8 @@ Earlier synthetic handoff rehearsals remain historical, not live authority proof
 
 ## Remaining closeout
 
-- Finish first postjob DONE/retention integration, then the current exact9
-  technical collection and Terra/root dispositions. Reuse unchanged guard and
+- Finish the current exact9 technical collection and Terra/root dispositions.
+  First live DONE/retention integration passes; reuse unchanged guard and
   source qualification; no old grant replay or UNKNOWN clearing.
 - Complete finite9 renders with Terra/high video-checking0.1.2 primaries and root
   samples/uncertainties. Repeated material failures return to root method review;
