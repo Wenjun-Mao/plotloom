@@ -106,8 +106,18 @@ and unlaunchable template are ready. Independent Terra/high data review passed
 missing linked-review artifact without changing earlier pending records. Root
 read the exact bounded guard patch and these reports. ADR0240 records this
 prospective qualification. Local bundle/exact19-grant packaging may follow.
-No future grant, staging or POST is authorized by those local artifacts alone;
-root reviews the final data, then a fresh exact grant/prelaunch/GO is required.
+The exact19 package is staged and read back: bundle `e06c2c64...`, unchanged
+final grant `fc4b2033...`, maxPosts19/per-packet1/maxActive1. Independent
+Terra/high package review passed (`cb942acc...`). Native stage readback
+`d40aec82...` and fresh prelaunch `635c9a9c...` pass:97 owned/43 prior full
+terminal seals,19 exact unused identities, sharedVoice idle, no controllers,
+UNKNOWN or nonterminal/non-DONE state. Root’s retained exact-phase review
+`b99dc2a8...` verifies those bindings and authorizes ONE serial19 launch with
+existing owning checks; no automatic replay/relaunch or scope expansion.
+First actual bundle host-idle/POST/postjob guard integration is still to observe.
+The grant’s issue-time lifecycle metadata stays immutable; phase proofs and
+root’s exact GO are separate. Native owner must report the actual launch identity
+and first accepted packet. Current media checking remains pinned0.1.2.
 The caption index records12 positives, SHA
 `35a67f933f0b21aca29215f70da5cd40574a5483caa8b8f2bf6b3eba01faf300`.
 No prevention study is in scope.
@@ -119,7 +129,9 @@ prior checkpoints, decisions and evidence.
 - The future list candidate `a33cb...` is local only. Normal 40/40, exit 0
   and quiescence are evidenced. Explicit43/97 source-complete freeze and independent
   code/data reviews pass. Package/review a fresh exact 19-packet finite grant and bundle,
-  then stage/read back and run fresh native prelaunch before root’s exact GO.
+  stage/readback and fresh native prelaunch have passed. Root authorizes one
+  exact serial19 launch; record actual launch/first integration before claiming
+  live success.
   Do not treat local artifacts or held retries as admitted.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
