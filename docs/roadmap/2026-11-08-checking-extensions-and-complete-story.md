@@ -81,20 +81,23 @@ independent deliverable rather than declaring unproduced episodes complete.
 This is a dated checkpoint, not a live counter. The exact batch 13 grant
 `d47b4ce9d57fd60f01bbead636da611620940197f1df322c193dbd4beea22c67`,
 bundle `00a034` / contract `d2a0`, and controller `4145081` remain the active
-execution envelope. At this checkpoint 23 of 40 originals were ready through
-E03-10, and E03-11 had been accepted. E01 is ready; E02 has gaps 11, 17 and 19, and E03
-quality checking continues. The [derived frontier](../../.local/checking-extensions/run/video-reviews/batch13/progress-frontier20.json)
-reported 41 selected as of frontier 20; E03-08 and E03-09 were subsequently
-selected. Consult the [derived progress and known-work ETA](../../.local/checking-extensions/run/video-reviews/batch13/progress-and-known-work-eta.json)
-for its stated observation time and assumptions, and refresh through the existing
-progress mechanism when needed rather than maintaining manual live totals here.
+execution envelope. At this checkpoint 27 of 40 originals were ready through
+E03-14, and E03-15 had been accepted. The [source-bound progress readback](../../.local/checking-extensions/run/video-reviews/batch13/progress-frontier27.json)
+(SHA `ba3349b1f47de7918ac23d7e3ecc821133c56810583b1166f6195c80e7005d27`)
+reports E01 21/21, E02 19/22 and E03 4/27 current explicit selections, with no
+selection errors. E03-14 was subsequently rejected by Terra/high under the delegated clear-visual
+policy; technically ready is not selected.
+The earlier [known-work ETA](../../.local/checking-extensions/run/video-reviews/batch13/progress-and-known-work-eta.json)
+retains its original observation time and assumptions, not a live estimate.
 
-Ten retries are held, not admitted: E02-11a04, E02-17a03, E02-19a02,
-E03-01a02, E03-02a02, E03-04a02, E03-05a02, E03-06a02, E03-07a02 and E03-10a02.
+Thirteen retries are held, not admitted: E02-11a04, E02-17a03, E02-19a02,
+E03-01a02, E03-02a02, E03-04a02, E03-05a02, E03-06a02, E03-07a02,
+E03-10a02, E03-12a02, E03-13a02 and E03-14a02.
 The combined source remains pinned to
 `432ceb0ed9853fb082e96424a6de2f226ef99d658f616499d8238c857dbeadeb`.
 The Terra/medium coordinator continues the current run; new E03 primary reviews
-use Terra/high. Fixed root samples E03-15, E03-23 and E03-25 remain to inspect.
+use Terra/high. E03-15’s later fixed random audit agreed with Terra/high; E03-23 and E03-25
+remain to inspect.
 See the [historical run log](2026-11-08-checking-extensions-run-log.md) for
 prior checkpoints, decisions and evidence.
 
@@ -112,7 +115,10 @@ prior checkpoints, decisions and evidence.
 
 - Complete the post-media skill knowledge closeout in a new version: UI role,
   camera materiality and one unhinted ASR window. Preserve in-flight v0.1.2
-  work and old reports; distinguish troubleshooting from routine review.
+  work and old reports; distinguish troubleshooting from routine review. An isolated
+  0.1.3 candidate is already prepared (`7d375214...`), with 23 focused tests,
+  validator and two retained-case forward results. It is not activated; recheck
+  the canonical base and apply after selection/export work completes.
 
 The goal API readback still reports paused; it cannot edit or resume the
 unfinished objective. Operational authorization is separate from that backend
