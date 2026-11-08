@@ -114,13 +114,28 @@ and replace only contract data. MaxPosts9/perPacket1/maxActive1/holdUNKNOWN/
 noReplay/technical-stop/preserveothers and Quality8/model/recipe are unchanged.
 Issue23:16:17UTC November8, window36h, notBefore−60s documented skew/no late grace.
 
-Root approved STAGING + ONE FRESH READ-ONLY PRELAUNCH ONLY for these exact bytes.
-Native state/unused9 identities and prompt-seed keys must be observed before
-separate provider GO. Approved grant is not yet in local manager-admissions;
-register exact bytes before firstPOST, preserving all old entries. No successor
-controller, POST, source-variant output or actual provider fidelity is claimed yet.
-Root preset sample plan `38702d18...` chooses random E03-24a03 plus targeted
-first E02-17a04; unaudited primary evidence is reused with attribution.
+Stage `037f0272...` and fresh prelaunch `1cab6c43...` passed exact9 unused
+identities/prompt-seed keys,116 protected/62 prior, idle/zeroUNKNOWN/no controllers
+and unchanged envelope/window. Historical summary count19 remains retained;
+corrected `81cc57fc...` derives actual9/75 newfiles/1094 preserved old files.
+No restaging or approved input changes. Root phase review `0c8eb0ab...` passes;
+local registry proof `57718c8e...` registers exact10324 bytes BEFORE firstPOST,
+all21 old entries unchanged/exactly1 digest match. No automatic registry contract.
+
+Root issued separate PROVIDER GO for ONLY this exact finite9. One controller
+started23:39:09UTC November8: PID1072759/UID1000/startTicks413504961,
+supervisor1072757/startTicks413504958. Follower84580/PID8590/SSH8591 continues.
+First E02-17a04 accepted as `h3_4bb52339a2f4485a81fe43f0428dedbb`. Actual binding
+`5432deda...` passes complete graph/source/prepared4guides/seed/execution snapshot
+and PREPOST Host.idle/checkpoint `b8868491...` protected116. Root read that proof;
+this supplies first actual-request fidelity, not media quality. First postjob
+DONE seal/checkpoint is still pending. No relaunch or successor authorization.
+
+Terra/medium local watch with Terra/high blinded primaries covers only exact9,
+using active video-checking0.1.2. Root preset `38702d18...` chooses random
+E03-24a03 plus targeted first E02-17a04; adoption is held for those audits.
+No new native/source-variant video result is reviewed yet. Unchanged primary
+observations are reused with attribution; actual hearing remains unestablished.
 
 Caption index `f83304e3...` retains13 positives/all original inputs/history.
 E03-24 source revision addresses independent lost-scar/invented-seating state,
@@ -130,9 +145,9 @@ Earlier synthetic handoff rehearsals remain historical, not live authority proof
 
 ## Remaining closeout
 
-- Review exact native staging/readback and fresh prelaunch. Register approved
-  grant bytes in the supported local registry, then issue a separate exact9
-  provider GO if actual readiness passes. No old grant replay or UNKNOWN clearing.
+- Finish first postjob DONE/retention integration, then the current exact9
+  technical collection and Terra/root dispositions. Reuse unchanged guard and
+  source qualification; no old grant replay or UNKNOWN clearing.
 - Complete finite9 renders with Terra/high video-checking0.1.2 primaries and root
   samples/uncertainties. Repeated material failures return to root method review;
   do not silently freeze further retries or update active skills mid-batch.

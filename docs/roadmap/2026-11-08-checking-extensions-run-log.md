@@ -877,3 +877,31 @@ prelaunch; no provider GO yet. Local supported registry registration is explicit
 required before firstPOST, not a new auto-registration contract.
 Root preset38702d185f9af5631e96e457806281dceb518e8380d3bc133f4c8dae2d22321c
 chooses random24a03 and targeted17a04 before outputs; actual hearing unclaimed.
+
+## November 8 — exact batch015 live
+
+Stage037f0272cd714ed96fec56dd7f60dc3a40ccf14954263884d173074e51916f37
+and fresh nativeprelaunch1cab6c43a2672aea9432c0242ed12b223f0d4c34cc0f95f9d388ac7cab6bf566
+passed at23:31:07UTC. Nine exactunused IDs/prompt-seed keys/116protected/62prior,
+idle/zeroUNKNOWN/full terminal bindings/envelope/window are observed, not inferred
+from localnon-use. Historicalstage-summary literal19 retained, corrected81cc57fc…
+and correction evidence actual9/75files/1094oldcriticalpreserved; no restage.
+Rootphase0c8eb0ab7dc0b9f82685517378d0a4e14fe3d5725fb87a82be90ffe2d9cea694
+and registry57718c8e1f350f8f809e939429ddfaca7ea700e147d1ef3ab6d5f60d92437042
+pass beforefirstPOST. All21oldregistryfiles unchanged,1matchingapproved10324.
+
+Separate rootproviderGO starts ONE exact9 controller23:39:09UTC:
+PID1072759/UID1000/startTicks413504961, supervisor1072757/start413504958;
+follower84580/PID8590 UID501/SSH8591. First E02-17a04 acceptedjob
+h3_4bb52339a2f4485a81fe43f0428dedbb. Firstactualbinding
+5432deda3a895f6b7135a5e7fb4e911ed652af92d89e9decf2f248d476e83a06
+passes completegraph/source+prepared4guides/seed20263123/10000ms/243frames/
+execution snapshot, only cacheis_changed annotations excluded. Actual PREPOST
+Host.idle/checkpointb8868491… protected116 passes. Root read retained proof;
+first postjobDONE integration remains pending. No reviewed output/media quality,
+relaunch, additionalpacket/grant/freeze authority inferred. The reader's0POST
+count is specific to that read-only reader; the controller has firstacceptedPOST.
+
+Terra/medium dispatcher/Terrahigh primaries watch exact9 on active0.1.2, no
+candidate skill activation. Root random24a03/target17a04 preset before outputs;
+otherclearpasses mayadopt, failures returnforrootmethod, no furtherpacketfreeze.
