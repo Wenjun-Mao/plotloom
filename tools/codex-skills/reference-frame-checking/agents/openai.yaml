@@ -1,0 +1,6 @@
+interface:
+  display_name: "Reference Frame Checking"
+  short_description: "Check source-bound stills before video"
+  default_prompt: "Use $reference-frame-checking to review these reference stills against their source."
+policy:
+  allow_implicit_invocation: false

@@ -206,3 +206,6 @@ order and original speech.
 
 [ADR 0238](0238-manual-video-checking-skill.md) records the optional manually
 invoked Terra/high checker, evidence reuse, sampling audits and versioned learning.
+
+[ADR 0239](0239-source-handoff-frame-and-assembly-checking.md) extends that pattern
+to source handoffs, reference-frame roles and deterministic assembly/progress.

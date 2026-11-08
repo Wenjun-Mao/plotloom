@@ -1,0 +1,6 @@
+interface:
+  display_name: "Assembly Progress Checking"
+  short_description: "Check assembly coverage and evidence bindings"
+  default_prompt: "Use $assembly-progress-checking to report ordered coverage and verify the supplied assembly evidence."
+policy:
+  allow_implicit_invocation: false
