@@ -78,76 +78,69 @@ independent deliverable rather than declaring unproduced episodes complete.
 
 ## Current execution
 
-Batch13 grant `d47b4ce9d57fd60f01bbead636da611620940197f1df322c193dbd4beea22c67`
-completed all 40 original submissions and local collections. Controller4145081
-exited normally with code0 at17:41:37UTC; follower10915 finished40/40.
-The final 345-frame clip took1649.237 native seconds. A bounded known-job
-snapshot during its long run showed RUNNING, not a demonstrated halt; no replay
-or new controller was used.
-
-All40 have Terra QA dispositions. The [current source-bound progress](../../.local/checking-extensions/run/video-reviews/batch13/progress-final.json)
-(SHA `180f44cd2ef9b9d2ca0aae13751b35fcff1d19f067a675b10adfbe98aa2407f2`)
-reports E01 21/21, E02 19/22 and E03 11/27 explicit selections:51/70.
-The [exact local retry inventory](../../.local/checking-extensions/run/video-reviews/batch13/held-retry-inventory.json)
-(SHA `066925b036d4a6305bb85181e6b206e64957977d3e9b3aa67532dd6c2ffddd7b`)
-maps all19 current gaps one-to-one to first fresh-seed retries, in source order:
-E02-11/17/19 and E03-01/02/04/05/06/07/10/12/13/14/16/20/23/24/25/27.
-They are locally prepared, not admitted or submitted. Independent Terra/high
-inventory review passed (`5a5385a6...`), without native eligibility or future-wire claims. Routine coordination uses Terra/medium; new
-primary reviews use Terra/high. All six predefined original root samples were
-audited with case-specific limits; no general accuracy claim follows.
-
-The combined source remains pinned to
+The original batch13 completed 40/40 and controller4145081 exited0 at17:41:37UTC.
+Closure `09ef0e4e...` and independent completeness review preserve that outcome;
+old failed12 remains failed/held. The current canonical source is still
 `432ceb0ed9853fb082e96424a6de2f226ef99d658f616499d8238c857dbeadeb`.
-Native closure (`09ef0e4e...`) binds normal exit 0, quiescence and zero UNKNOWN.
-The LOCAL43/97 freeze (`45524448...` contract, `21e4b03a...` completeness)
-and unlaunchable template are ready. Independent Terra/high data review passed
-(`21a8830e...`); a newly retained static guard review (`faad62b2...`) closes the
-missing linked-review artifact without changing earlier pending records. Root
-read the exact bounded guard patch and these reports. ADR0240 records this
-prospective qualification. Local bundle/exact19-grant packaging may follow.
-The exact19 package is staged and read back: bundle `e06c2c64...`, unchanged
-final grant `fc4b2033...`, maxPosts19/per-packet1/maxActive1. Independent
-Terra/high package review passed (`cb942acc...`). Native stage readback
-`d40aec82...` and fresh prelaunch `635c9a9c...` pass:97 owned/43 prior full
-terminal seals,19 exact unused identities, sharedVoice idle, no controllers,
-UNKNOWN or nonterminal/non-DONE state. Root’s retained exact-phase review
-`b99dc2a8...` verifies those bindings and authorizes ONE serial19 launch with
-existing owning checks; no automatic replay/relaunch or scope expansion.
-Batch014 launched once at18:22:24UTC: controller718505/UID1000/startTicks411604469,
+
+The exact retry19 grant is `fc4b20335096b1357880b14790c14f16491fb3b85d7e585e8c045dd2a9adfc71`,
+bundle `e06c2c64df067fea08e0c720b047fa9b068ce7ca9411db53e7807e593163ca6a`,
+contract `455244487116a3d7535fce63a2797f60d21878dfbbb10d13cf7f1479f848e027`.
+It preserves the original base54 plus explicit prior43, with 97 owned bindings
+protected at launch. Local source inventory, code, freeze and exact-package
+reviews passed. Stage readback `d40aec82...`, fresh native prelaunch `635c9a9c...`
+and root exact-phase review `b99dc2a8...` precede the separate root GO. The grant’s
+issue-time lifecycle fields remain immutable; later phase evidence is separate.
+
+One controller started18:22:24UTC: PID718505/UID1000/startTicks411604469;
 supervisor718500/startTicks411604467; follower16499. First accepted E02-11a04
-job `h3_5d9311963b414a8cadfceddf65a34879`. First pre-POST/source binding (`4c30b164...`) and DONE/postjob guard
-(`80b36ea9...`) pass, with protected98 and checkpoint0→1. Root reviewed
-those actual retained proofs (`85cbbf2f...`). E02-11a04 passed Terra/high and
-is selected; the same controller continues E02-17a03.
-The grant’s issue-time lifecycle metadata stays immutable; phase proofs and
-root’s exact GO are separate. The first3 technical outputs are ready. The [post-three source-bound progress](../../.local/checking-extensions/run/video-reviews/batch14/progress-after-first3.json)
-(`03cbfb11...`) reports E01 21/21, E02 21/22 and E03 11/27 selected.
-E02-17a03 repeated the forbidden reach and is rejected after root audit; one
-isolated Shuohao positive-hands variant2 (`5cbbee11...`, independent review
-`d68d8764...`) is prepared only. It preserves explicit no-agreement, all four
-references and timing. Historical staging-hash qualifications are retained;
-provider adherence is untested. Canonical adoption/third packet waits until the
-active19 is safely finished and a later exact grant exists. E02-19a02 is selected
-with explicit residual-door-motion uncertainty, not a certified stopped endpoint.
-The same controller continues E03-01a02.
-The native owner retains the exact live launch and first-job evidence.
-Current media checking remains pinned0.1.2.
-The caption index records12 positives, SHA
-`35a67f933f0b21aca29215f70da5cd40574a5483caa8b8f2bf6b3eba01faf300`.
-No prevention study is in scope.
-See the [historical run log](2026-11-08-checking-extensions-run-log.md) for
-prior checkpoints, decisions and evidence.
+was `h3_5d9311963b414a8cadfceddf65a34879`. Actual prePOST/fullgraph/source
+binding `4c30b164...` and first DONE/postjob guard `80b36ea9...` pass with
+protected98/checkpoint0→1; root review `85cbbf2f...` confirms the bounded
+integration. No relaunch, replay, other-provider fallback or source adoption.
+
+At the dated [frontier9 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier9.json)
+(`bf219c56...`), 56/70 segments are selected: E01 21/21, E02 21/22, E03 14/27.
+Nine of19 retry outputs are technically ready. Five are selected; E02-17 and
+E03-04/06/07 are held after second-generation material failures. Ten exact
+retries remain running/queued, currently E03-10a02 under the same controller.
+The next root random audits are E03-13a02/E03-27a02, fixed before generation;
+targeted E02-17a03 was audited. All six original fixed samples were audited
+with case-specific limitations, not a general accuracy guarantee.
+
+Four isolated pure-Shuohao v2 candidates have official structural gates and
+independent scoped source-compatibility evidence: E02-17 positive hands,
+E03-04 portrait hold, E03-06 stationary confrontation and E03-07 owned cutaways.
+World facts remain authoritative in existing metadata, while model-facing
+constraints intentionally change. No third packet, canonical adoption, provider
+result or full raw-request-equivalence is claimed. Historical dependency-hash
+and reference-POV qualifications remain. E02-19a02 is selected with explicit
+residual-door-motion uncertainty; literal stopping and perceived audio are
+ungraded. Details and artifact hashes are in the [historical run log](2026-11-08-checking-extensions-run-log.md).
+
+Native caption records retain12 positives; current index SHA
+`ed9f24500d89e8fd27278e95f881eb62999e1a064ee36be34552005854b98df5`
+includes E03-01a02’s sampled-not-observed retry outcome without erasing its
+original positive. No prevention study is in scope. All active media checking
+remains video-checking0.1.2, with Terra/medium coordination and Terra/high primaries.
 
 ## Remaining closeout
 
-- The future list candidate `a33cb...` is local only. Normal 40/40, exit 0
-  and quiescence are evidenced. Explicit43/97 source-complete freeze and independent
-  code/data reviews pass. Package/review a fresh exact 19-packet finite grant and bundle,
-  stage/readback and fresh native prelaunch have passed. Root authorizes one
-  exact serial19 launch; record actual launch/first integration before claiming
-  live success.
-  Do not treat local artifacts or held retries as admitted.
+- Finish the current exact 19-packet batch and its Terra dispositions. The
+  [frontier9 readback](../../.local/checking-extensions/run/video-reviews/batch14/progress-frontier9.json)
+  (`bf219c56...`) records 56/70 selected (21/21, 21/22, 14/27). Root holds
+  E02-17 and E03-04/06/07 after repeated material failures. Four local Shuohao
+  v2 candidates have structural and independent scoped source-compatibility
+  evidence; no canonical adoption or third packet has occurred. Model-facing
+  constraints deliberately differ; existing world metadata remains authoritative.
+  Historical input/POV qualifications remain. These are untested source experiments.
+- Only after normal 19/19 completion, exit 0 and quiescence may the native owner
+  prepare the conditional LOCAL62/116 completeness freeze (original54 + prior43
+  + actual19). Preserve original base/fields and exact prior43 entries. A guard
+  stop or partial frontier requires a new root decision. No future executable
+  grant, staging or POST follows automatically. Root adopts/rechecks eligible
+  source candidates at a safe frontier, freezes the actual remaining gaps, then
+  reviews a new exact grant/prelaunch before GO.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
   audits and retained uncertainty notes. E01 preview evidence and its bounded
