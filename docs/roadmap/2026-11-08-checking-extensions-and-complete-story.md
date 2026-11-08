@@ -121,7 +121,17 @@ job `h3_5d9311963b414a8cadfceddf65a34879`. First pre-POST/source binding (`4c30b
 those actual retained proofs (`85cbbf2f...`). E02-11a04 passed Terra/high and
 is selected; the same controller continues E02-17a03.
 The grant’s issue-time lifecycle metadata stays immutable; phase proofs and
-root’s exact GO are separate. The native owner retains the exact live launch and first-job evidence.
+root’s exact GO are separate. The first3 technical outputs are ready. The [post-three source-bound progress](../../.local/checking-extensions/run/video-reviews/batch14/progress-after-first3.json)
+(`03cbfb11...`) reports E01 21/21, E02 21/22 and E03 11/27 selected.
+E02-17a03 repeated the forbidden reach and is rejected after root audit; one
+isolated Shuohao positive-hands variant2 (`5cbbee11...`, independent review
+`d68d8764...`) is prepared only. It preserves explicit no-agreement, all four
+references and timing. Historical staging-hash qualifications are retained;
+provider adherence is untested. Canonical adoption/third packet waits until the
+active19 is safely finished and a later exact grant exists. E02-19a02 is selected
+with explicit residual-door-motion uncertainty, not a certified stopped endpoint.
+The same controller continues E03-01a02.
+The native owner retains the exact live launch and first-job evidence.
 Current media checking remains pinned0.1.2.
 The caption index records12 positives, SHA
 `35a67f933f0b21aca29215f70da5cd40574a5483caa8b8f2bf6b3eba01faf300`.
