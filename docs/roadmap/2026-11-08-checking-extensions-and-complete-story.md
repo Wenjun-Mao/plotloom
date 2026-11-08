@@ -20,7 +20,7 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Authoring-handoff extension works | Three-episode normalized packages, existing deterministic source gates, semantic handoff review and targeted counterexamples | None | Delivered v0.1.1; 7 tests; three current source reconciliations pass |
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; current selection counts derive from progress readback |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
-| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Successor13 live under the exact grant; native graph/reference and first live guard checkpoint pass; old12 remains failed/held |
+| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batch13 completed40/40 and exited0; current retries19 are held pending prospective exact grant/prelaunch; old12 remains failed/held |
 | All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01 complete; E02 filling gaps; current counts derive from assembly-progress readback, not manual totals |
 | Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
 
@@ -78,36 +78,49 @@ independent deliverable rather than declaring unproduced episodes complete.
 
 ## Current execution
 
-This is a dated checkpoint, not a live counter. The exact batch 13 grant
-`d47b4ce9d57fd60f01bbead636da611620940197f1df322c193dbd4beea22c67`,
-bundle `00a034` / contract `d2a0`, and controller `4145081` remain the active
-execution envelope. At this checkpoint 27 of 40 originals were ready through
-E03-14, and E03-15 had been accepted. The [source-bound progress readback](../../.local/checking-extensions/run/video-reviews/batch13/progress-frontier27.json)
-(SHA `ba3349b1f47de7918ac23d7e3ecc821133c56810583b1166f6195c80e7005d27`)
-reports E01 21/21, E02 19/22 and E03 4/27 current explicit selections, with no
-selection errors. E03-14 was subsequently rejected by Terra/high under the delegated clear-visual
-policy; technically ready is not selected.
-The earlier [known-work ETA](../../.local/checking-extensions/run/video-reviews/batch13/progress-and-known-work-eta.json)
-retains its original observation time and assumptions, not a live estimate.
+Batch13 grant `d47b4ce9d57fd60f01bbead636da611620940197f1df322c193dbd4beea22c67`
+completed all 40 original submissions and local collections. Controller4145081
+exited normally with code0 at17:41:37UTC; follower10915 finished40/40.
+The final 345-frame clip took1649.237 native seconds. A bounded known-job
+snapshot during its long run showed RUNNING, not a demonstrated halt; no replay
+or new controller was used.
 
-Thirteen retries are held, not admitted: E02-11a04, E02-17a03, E02-19a02,
-E03-01a02, E03-02a02, E03-04a02, E03-05a02, E03-06a02, E03-07a02,
-E03-10a02, E03-12a02, E03-13a02 and E03-14a02.
+All40 have Terra QA dispositions. The [current source-bound progress](../../.local/checking-extensions/run/video-reviews/batch13/progress-final.json)
+(SHA `180f44cd2ef9b9d2ca0aae13751b35fcff1d19f067a675b10adfbe98aa2407f2`)
+reports E01 21/21, E02 19/22 and E03 11/27 explicit selections:51/70.
+The [exact local retry inventory](../../.local/checking-extensions/run/video-reviews/batch13/held-retry-inventory.json)
+(SHA `066925b036d4a6305bb85181e6b206e64957977d3e9b3aa67532dd6c2ffddd7b`)
+maps all19 current gaps one-to-one to first fresh-seed retries, in source order:
+E02-11/17/19 and E03-01/02/04/05/06/07/10/12/13/14/16/20/23/24/25/27.
+They are locally prepared, not admitted or submitted. Independent Terra/high
+inventory review passed (`5a5385a6...`), without native eligibility or future-wire claims. Routine coordination uses Terra/medium; new
+primary reviews use Terra/high. All six predefined original root samples were
+audited with case-specific limits; no general accuracy claim follows.
+
 The combined source remains pinned to
 `432ceb0ed9853fb082e96424a6de2f226ef99d658f616499d8238c857dbeadeb`.
-The Terra/medium coordinator continues the current run; new E03 primary reviews
-use Terra/high. E03-15’s later fixed random audit agreed with Terra/high; E03-23 and E03-25
-remain to inspect.
+Native closure (`09ef0e4e...`) binds normal exit 0, quiescence and zero UNKNOWN.
+The LOCAL43/97 freeze (`45524448...` contract, `21e4b03a...` completeness)
+and unlaunchable template are ready. Independent Terra/high data review passed
+(`21a8830e...`); a newly retained static guard review (`faad62b2...`) closes the
+missing linked-review artifact without changing earlier pending records. Root
+read the exact bounded guard patch and these reports. ADR0240 records this
+prospective qualification. Local bundle/exact19-grant packaging may follow.
+No future grant, staging or POST is authorized by those local artifacts alone;
+root reviews the final data, then a fresh exact grant/prelaunch/GO is required.
+The caption index records12 positives, SHA
+`35a67f933f0b21aca29215f70da5cd40574a5483caa8b8f2bf6b3eba01faf300`.
+No prevention study is in scope.
 See the [historical run log](2026-11-08-checking-extensions-run-log.md) for
 prior checkpoints, decisions and evidence.
 
 ## Remaining closeout
 
-- The future list candidate `a33cb...` is local only. After normal 40/40
-  completion, controller exit 0 and quiescence, freeze the future set against the
-  original 54, unchanged first three and actual 40, and establish the explicit
-  43/97 proof. Only then prepare a fresh finite grant, prelaunch and GO for its
-  authorized scope. Do not treat a candidate or held retry as admitted.
+- The future list candidate `a33cb...` is local only. Normal 40/40, exit 0
+  and quiescence are evidenced. Explicit43/97 source-complete freeze and independent
+  code/data reviews pass. Package/review a fresh exact 19-packet finite grant and bundle,
+  then stage/read back and run fresh native prelaunch before root’s exact GO.
+  Do not treat local artifacts or held retries as admitted.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
   audits and retained uncertainty notes. E01 preview evidence and its bounded
