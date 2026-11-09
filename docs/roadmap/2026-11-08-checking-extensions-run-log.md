@@ -962,3 +962,25 @@ Native owner retains conditional LOCAL71/125 data-only permission after normal9
 closure, all9retained/fullcurrent==sealed/quiescence/zeroUNKNOWN. Exact6a62entries
 and originalb006/base912/nonaddendum/54 preserved; addALL9incl10reject. No payload
 before condition, no automatic future packetset/grant/stage/activation/POST.
+
+## November 8 — scar-detail variant selected, final15 render running
+
+24a03 original12bfda5b1bc8d4c5903b82a39bf8089655ebb5c7eb145f88e8fc263d54a4d60a
+passes Terra/high plus root fixedrandom40/90/174/225. Actualscar/dryknuckle
+hold persists through ending; no captions observed in those4frames, not every
+frame. Rootaudit5f58ad66b7d2e9551509869dda9f3e6ef29ffde73ce5f921a284bc6c399d27cb
+reuses identicalguides/prioractualview7dc… and primaryASR; offscreenhead/lips and
+actualvoice/performance/silence ungraded. Actualselected.25a03 original
+fcb5edfce62643e372a321b5123eadf862a4603bc42eadfbbcea913932e54ef5
+also selected from Terra palms-up/rub/return-knees, not newrootpixels/audio.
+Same1072759/84580 now runs final27a03 h3_b1d4cbe7f54f4ca4b7b9eb353e7b350e.
+Seven of eight ready15 outputs selected,10 held; no new source/skill changes.
+
+Nativeowner caption index now41bac5c264994e092736f4102126a379eb00addf7084a82c9b3071f45178c5f0,
+still13 positives. Originalf833 retained; all13facts and a01/a02 overlays and
+seed-onlycomparison/history preserved. Distincta02→a03 actualchanged-input
+comparison binds sourcePROMPT/seed change plus exactsameguides/settings,
+fullruntime/body/graph/output/QA/root/lifecycle. No prevention/causation/seed-only
+or everyframeabsence claim. Knownimmutablefile reader once, no nativepoll/study.
+Future10a04 staysLOCAL/prepared, singlepacketreview1b4da… reused subject to final
+map/sourcebinding; future packetset/grant/GO await normal9/data71/125 boundary.

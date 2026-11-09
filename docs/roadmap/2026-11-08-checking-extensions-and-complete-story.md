@@ -156,7 +156,12 @@ locally frozen (seed477683616770678621), proof `aa767159...`, independent single
 packet review `1b4da321...`. Same prompt/settings/guides, no source changes. It is
 not admitted and native unused remains unproved. Further failure returns to root.
 
-Three exact15 jobs remain24/25/27, with random24 adoption held. Normal9/exit0/
+Random24a03 now passes Terra/high plus root40/90/174/225: scar/knuckle detail
+holds, no caption observed in these samples. Audit `5f58ad66...` reuses unchanged
+guides and primary ASR, not hearing/every-frame proof.25a03 is also selected
+from Terra palms-up/rub/return-knees observations. Seven of eight ready15 takes
+are selected (13 via explicit crop exception),10 is held and final27 is running.
+Normal9/exit0/
 all9 receipts plus final quiescence/zeroUNKNOWN/full current-frozen equality may
 trigger only the conditional LOCAL71-prior/125-protected completeness freeze,
 preserving6a744 exact62 entries/all original fields and adding ALL9 owned jobs.
@@ -164,7 +169,8 @@ No future complete packet set, executable grant, staging or POST follows. Partia
 or technical-stop frontier does not satisfy this condition. Actual hearing remains
 unestablished throughout.
 
-Caption index `f83304e3...` retains13 positives/all original inputs/history.
+Caption index `41bac5c2...` retains13 positives/all original inputs/history;
+24a03 is a changed-source sampled-not-observed outcome, with priorf833 retained.
 E03-24 source revision addresses independent lost-scar/invented-seating state,
 not caption prevention; stochastic caption policy remains. No actual hearing,
 independent recognition, perceived silence/balance or lip-sync acceptance claimed.
