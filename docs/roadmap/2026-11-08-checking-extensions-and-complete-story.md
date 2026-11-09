@@ -20,7 +20,7 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | Authoring-handoff extension works | Three-episode normalized packages, existing deterministic source gates, semantic handoff review and targeted counterexamples | None | Delivered v0.1.1; 7 tests; three current source reconciliations pass |
 | Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; current selection counts derive from progress readback |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
-| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batches13–15 completed normally; current exact2 replacements are locally frozen/reviewed, not admitted; old12 remains failed/held |
+| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batches13–15 completed normally; exact2 replacements staged/prelaunched/registered and separate GO issued; old12 remains failed/held |
 | All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01/E02 footage selected; E03 filling gaps; current counts derive from assembly-progress readback, not manual totals |
 | Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
 
@@ -118,10 +118,16 @@ FINALtwo local proposal is `3289c6d7...`: source-order10a04 then27a04.10 is
 same-input freshseed;27 is changed-source DEFAULTseed, with six unchanged guides.
 New27 fullfidelity `fe57518a...`, independent exact-two inventory `f5ee30e9...`
 pass. Old68 media/selected leaves are reused with source-map equivalence, not
-fresh full reviews. Both packets remain local/unadmitted; native unused and
-actual future tool arguments remain unproved. Native owner is preparing only
-LOCAL exact2 bundle/grant; review/stage/freshprelaunch/registry/providerGO are
-separate pending phases. No further native generation has started.
+fresh full reviews. Exact bundle `15c1cdec...`/grant `008c78c6...` passes independent
+controls `0c2cf498...`. Additive stage `e96875d4...` preserves1200 old hashes and
+adds27 immutable files. One native prelaunch `7825dbf4...` at02:27:26UTC Nov9
+proves protected125/prior71, both identities/request/prompt-seed keys unused,
+idle/noUNKNOWN/no controllers and current envelope/window. Root reviewed actual
+proofs (`72a57b4c...`), registered byte-identical grant (`087bfc0a...`;22 prior
+registry files unchanged), then issued separate exact2 providerGO. Launch and
+actual tool/output proof remain execution-owner follow-through, not inferred
+from this prelaunch. Terra/high primaries hold both adoptions for root targets
+(`38a425a7...`): persistent mask and final ticket scene.
 
 Caption index `41bac5c2...` retains13 positives/all original input/history;
 24a03 is changed-source sampled-not-observed, not seed-only/prevention/causality.
@@ -132,9 +138,8 @@ Calibration informed by this example is not held-out accuracy. Nothing activated
 
 ## Remaining closeout
 
-- Complete LOCAL exact2 package review, then additive staging, fresh native
-  prelaunch, supported byte-identical local registration and separate provider GO.
-  No old grant replay/UNKNOWN clearing. Two seed modes must remain explicit.
+- Follow the authorized exact2 native run through normal closure; no old grant
+  replay/UNKNOWN clearing. Two seed modes remain explicit.
 - Generate and check only exact10a04/27a04 with active0.1.2/Terra-high primaries;
   root handles uncertain/failed cases and audits the persistent mask cue. No
   automatic further retry or skill activation before completion.
