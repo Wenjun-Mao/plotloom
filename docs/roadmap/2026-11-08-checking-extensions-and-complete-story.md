@@ -52,11 +52,11 @@ permanent-caption-fix study. After two unsuccessful attempts on one criterion,
 retain evidence and reassess the method before another dispatch; this is not a
 requirement to invent a prevention mechanism.
 
-The native goal still returned `paused` at assignment start. Its API supports
-neither objective editing nor resuming an unfinished goal. This plan carries the
-expanded objective; work proceeds under the user's explicit resume instruction.
-The owner was asked to use the app's Resume control for automatic continuation.
-Do not falsely mark the old objective complete merely to replace it.
+The native goal returned `paused` at assignment start; work proceeded under the
+explicit user continuation. The owner has now activated Goal mode in the app;
+fresh readback returns `active` with the existing full-three-episode objective.
+This plan also carries the checking extensions. Do not mark it complete before
+actual delivery.
 
 ## Evidence reuse and completion
 
@@ -129,7 +129,7 @@ registry files unchanged), then issued separate exact2 providerGO. One controlle
 `e2e13e14...` preserves large integer seed; actual firstDONE `a882a178...` proves
 current-frozen full rows/seal/DONElane/protected126. Final27 remains in flight.
 
-10a04 is rejected: Terra primary `d642b735...` and root actual six-image audit
+10a04 was initially rejected: Terra primary `d642b735...` and root actual six-image audit
 `5460e869...` show a mouth-shaped hole through the mask in shot2. Required speech
 is recognized, not heard. After two compact-source failures, root changed method
 instead of another seed-only retry. Isolated sourcev3 `6cdb5212...` changes ONLY
@@ -138,9 +138,20 @@ opening source beat, guides/cuts/times/voice/dialogue stay intact. Independent
 review `0949bff2...` and prospective combined gates3/70/254 pass. This is a plausible
 masked realization; jaw motion does not prove an unseen mouth opens. Proposed
 combined91e3ce41…/override299f8ff7…/metadata743f183e… preserve69 other objects/owners,
-including27v2. Nothing adopted/frozen yet; wait current exact2 closure and stopped
-readers. Local73/127 successor data only is conditionally authorized after normal
-closure, not another grant or generation. Root target27/ending review is pending.
+including27v2. The candidate remains UNADOPTED; the next-render path is superseded
+by the owner's later baseline tolerance. Root target27/ending review is pending.
+
+The owner reports this same mask defect in the previously shown E1 and accepts
+minor imperfections in the foundation run; E1 repair is discretionary. Root keeps
+E1 and accepts10a04 under explicit baseline waiver `8b80d49f...`. Original primary
+FAIL/rootreject remain unchanged; prior rejected head2de618… is byte-exact archived
+under `quality-decisions/revision-history/e03-10-attempt04-baseline-quality-waiver-20261109/`.
+New rootneeds_review `d12ebad0...` retains the observed material finding, and the
+unchanged validator accepts explicit uncertain selection head `ac7da7f8...`.
+This revises selection tolerance, not literal costume correctness or historical
+review. E1 defect location is user-reported, not newly located/inspected by root.
+No further10render/sourceadoption; unused successor-data work is cancelled if
+not started. Final progress awaits27 and actual assembly readback.
 
 Caption index `41bac5c2...` retains13 positives/all original input/history;
 24a03 is changed-source sampled-not-observed, not seed-only/prevention/causality.
@@ -153,10 +164,8 @@ Calibration informed by this example is not held-out accuracy. Nothing activated
 
 - Follow the authorized exact2 native run through normal closure; no old grant
   replay/UNKNOWN clearing. Two seed modes remain explicit.
-- Finish27a04 with active0.1.2/Terra-high primary and root target. After current
-  normal2 closure, adopt independently reviewed10v3, reconcile actual source and
-  freeze one changed-source10a05; reviewed prospective native package/GO remain
-  necessary. No automatic retry or skill activation before completion.
+- Finish27a04 with active0.1.2/Terra-high primary and root target. Preserve explicit
+  baseline exceptions. No automatic retry or skill activation before completion.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
   audits and retained uncertainty notes. E01 preview evidence and its bounded
@@ -177,6 +186,4 @@ Calibration informed by this example is not held-out accuracy. Nothing activated
   observed local admission-registry troubleshooting route; it also remains
   unapplied through completion.
 
-The goal API readback still reports paused; it cannot edit or resume the
-unfinished objective. Operational authorization is separate from that backend
-state; do not misrepresent it or replace its evidence.
+Goal mode is now active by owner action, confirmed through native readback.

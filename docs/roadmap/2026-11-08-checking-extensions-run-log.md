@@ -1056,3 +1056,19 @@ Prospective merged91e3ce41…/override299f8ff7…/metadata743f183e… reconstruc
 retain69otherowners/objects/current27v2; existing gate3/70/254 passes, recipeSKIP.
 No adoption/freeze yet. Conditional postnormal16 LOCAL73/127data preparation
 authorized; no successor grant/stage/GO. Final27 remains root-held for target audit.
+
+## November 8 owner steering — baseline tolerance and active Goal mode
+
+Owner reports same mask defect was missed in previously shown E1; minor issues
+are acceptable in this foundation run and E1 repair is discretionary. Root keeps
+E1 and accepts10a04 under explicit baseline waiver8b80d49fa0aeeeaeb2ffad0f17caef8aea42224b662c4b0f64e2160f4b354f10.
+Oldprimaryd642/rootreject5460 remain unchanged; original rejected cliphead2de618…
+is byte-exact archived, not rewritten. New rootneeds_reviewd12ebad0b03f277e7924915112fc8a76e54638b26a098b3c87756972f0905464
+keeps actual material mask finding and root six-image/ASR scope; unchangedvalidator
+and explicitacceptuncertainty produce selectedheadac7da7f8118b69ad099490a7cac5da520b61c520ad79180cf9dfaaa26af2003a.
+Firstrootdraft failed evidence-IDvalidation before any production mutation;
+retainedinvaliddraft, corrected to actuallyviewed IDs, validated before archiving
+oldhead/newexclusivecreate. No new source/ref/provider change. Source10v3/prospective
+91e3 stay UNADOPTED; next-render path superseded. Conditional unusedsuccessordata
+cancelled ifnotstarted; no grant/batch17. E1 defect not independently localized.
+GoalAPI freshreadback nowACTIVE after user appaction; old paused state historical.
