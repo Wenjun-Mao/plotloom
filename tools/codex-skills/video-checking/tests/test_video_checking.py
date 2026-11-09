@@ -6,12 +6,23 @@ import subprocess
 import sys
 
 import pytest
+import yaml
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
 from common import digest, sha, write
 from prepare_review import detail, prepare, sheet
-from review_results import batch, validate
+from review_results import SKILL_VERSION, batch, validate
+
+
+def test_skill_version_matches_validator_and_result_contract():
+    skill_dir = SCRIPTS.parent
+    frontmatter = (skill_dir / 'SKILL.md').read_text().split('---', 2)[1]
+    version = yaml.safe_load(frontmatter)['metadata']['version']
+    contract = (skill_dir / 'references' / 'contracts.md').read_text()
+    result_section = contract.split('## Primary review result', 1)[1]
+    example = json.loads(result_section.split('```json', 1)[1].split('```', 1)[0])
+    assert version == SKILL_VERSION == example['skillVersion']
 
 
 @pytest.fixture
@@ -28,7 +39,7 @@ def case(tmp_path):
 
 def review(bundle, path, decision='pass'):
     b = json.loads((bundle/'bundle.json').read_text())
-    r = {'schemaVersion': 1, 'caseId': b['caseId'], 'bundleFingerprint': b['fingerprint'], 'skillVersion': '0.1.2',
+    r = {'schemaVersion': 1, 'caseId': b['caseId'], 'bundleFingerprint': b['fingerprint'], 'skillVersion': '0.1.3',
          'reviewer': {'model': 'test', 'reasoning': 'high'}, 'decision': decision, 'summary': 'Reviewed.',
          'findings': ([{'category': 'action', 'severity': 'material', 'claim': 'Wrong action', 'startSeconds': 0, 'endSeconds': 1, 'evidenceIds': ['anchor:0']}] if decision == 'fail' else []), 'evidenceViewed': ['overview', 'anchor:0', 'reference:a:1'],
          'speech': {'status': 'not_required', 'notes': ''}, 'limitations': ['sampled']}

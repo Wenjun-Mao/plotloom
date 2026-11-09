@@ -81,7 +81,7 @@ skill version.
   "schemaVersion": 1,
   "caseId": "clip-a",
   "bundleFingerprint": "...",
-  "skillVersion": "0.1.2",
+  "skillVersion": "0.1.3",
   "reviewer": {"model": "gpt-6.1-terra", "reasoning": "high"},
   "decision": "pass",
   "summary": "Concise source-bound conclusion.",

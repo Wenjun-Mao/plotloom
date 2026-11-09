@@ -18,11 +18,11 @@ the complete source, avoiding implicit duplicate rendering or selection.
 | --- | --- | --- | --- |
 | Reference-frame extension works | Current image/source bindings, actual Terra observations, passing and failing examples, independent sample | Retained frames first | Delivered; 9 tests; all 70 current cases applied with attribution |
 | Authoring-handoff extension works | Three-episode normalized packages, existing deterministic source gates, semantic handoff review and targeted counterexamples | None | Delivered v0.1.1; 7 tests; three current source reconciliations pass |
-| Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Built/independently reviewed; 8 tests; current selection counts derive from progress readback |
+| Assembly/progress extension works | Counts from explicit selections/receipts, missing/duplicate/stale negatives, retained E1 ordering/audio/clocks evidence | Retained E1 export | Delivered; 8 tests; final70 selections and four assembly proofs pass; future0.1.1 adds troubleshooting only |
 | Complete source is reviewed with new skills | Current 70 segments and their reference roles, source-owned dialogue/sound/visible state; material discrepancies resolved or honestly bounded | Only demonstrated necessary frame repair | Complete input eligibility: 65 reference passes, 5 bounded uncertainties with root dispositions; E01-20 repaired |
-| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batches13–15 completed normally; exact2 replacements staged/prelaunched/registered and separate GO issued; old12 remains failed/held |
-| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | E01/E02 footage selected; E03 filling gaps; current counts derive from assembly-progress readback, not manual totals |
-| Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | Updated E1 preview-v2 passes frame/PCM/clock proofs and bounded changed-join/ending audit; repaired uniform-coverage sidecar qualified; full package pending |
+| Dispatch resumes safely | Actual current native state, exact unused frontier and source identity; new finite exact grant and no unknown/duplicate execution | Remaining story renders | Batches13–16 completed normally; final16 closure07b22 proves127protected/zeroUNKNOWN/exit0; old12 remains failed/held |
+| All three episodes are selected and watchable | 70 explicit current-source selections, Terra video-checking recommendations and coordinator samples | Remaining originals and targeted retries | Delivered:70/70 selected, E01 21/E02 22/E03 27; three episode MP4s and combined viewer ready |
+| Delivery preserves native AV | Three episodes plus combined export, ordering/decoded frames/PCM/clock proofs and actual joins/end review | Assembly only | All4 exports pass ordered-frame/pre-AAC-PCM/clock/full-decode proofs; root actual11-output-still audit and independent evidence review pass |
 
 Journey: frozen source -> authoring handoff -> reference-frame review -> safe H3
 serial execution -> video-checking -> explicit selection -> assembly/progress
@@ -60,9 +60,10 @@ actual delivery.
 
 ## Evidence reuse and completion
 
-Use the installed `video-checking` v0.1.2 and the three new extensions. Preserve
-older v0.1.1 results as attributed historical evidence. Preserve
-original review versions. Reuse byte-identical existing observations with clear
+Production and exports used `video-checking` v0.1.2 and assembly-progress v0.1.0;
+older v0.1.1 video results remain attributed historical evidence. Future manual
+invocations now use video v0.1.3 and assembly-progress v0.1.1. Preserve original
+review versions. Reuse byte-identical existing observations with clear
 attribution and current source comparison; this is not a fresh full inspection.
 Audit reproducible samples of both passes and rejections against actual media,
 and handle material uncertainty explicitly. Technically complete, reviewed and
@@ -76,114 +77,77 @@ watch index; deterministic AV/export proofs and proportionate actual-output audi
 If external state blocks execution, preserve exact evidence and continue every
 independent deliverable rather than declaring unproduced episodes complete.
 
-## Current execution
+## Delivered outcome
 
-Batch015 `10324/658252/6a744` completed9/9 normally: controller1072759 and
-follower84580 exited0/no relaunch. Closure `e6ce814b...` proves quiescence,
-zeroUNKNOWN/DONElanes/full current-frozen row equality/native+local originals,
-all125 protected. LOCAL71/125 contract
-`5d66dc6ac359833d40a1dc1a06a778ead5035c83ceccc3f07f84dc0f8ca8ecbb`
-preserves exact6a62 entries/all originalb006/base912/nonaddendum/54 and addsALL9,
-including quality rejects. Independent data review `280bdcb8...` passes; a33 code/
-tests reused. Derived451success/2failed/485DONE, observed440/2/474 with11 policy-
-eligible unowned missing entries; no aggregate rebaseline or deletion-cause claim.
+All three extensions are installed and qualified; current canonical versions are
+reference-frame0.1.0, authoring-handoff0.1.1, assembly-progress0.1.1 and video0.1.3.
+All four personal skill links remain manual-only. Terra carried out routine
+checks; root audited samples and made source/selection/exception decisions.
 
-Terra disposed9 (7selected/2rejected), stopped its watch/no activeprep-ASR-adoption
-writers. Final [readback](../../.local/checking-extensions/run/video-reviews/batch15/progress-final.json)
-(`89ad57ab...`) derives68/70: E01 21/21,E02 22/22,E03 25/27.10 and27 remain.
-13 is selected under explicit crop exception (`73a79774...`/`a91a9423...`), original
-primaryFAIL retained. Root random24 (`5f58ad66...`) holds scar detail/no caption
-in reviewed samples; no actualhearing/everyframeabsence/offscreen-lips proof.
+The final source remains `7b0fc3e73631f111edb660c16f566b97eff2f5821cc22d96ddef64eae3036ae9`.
+All70 segments/254 cuts/93 ordered dialogue blocks have explicit source ownership.
+Final progress `dcf7dbfc...` derives21/22/27 selections, errors0; frozen full map
+`a424c4a5...` binds exact selected heads. Old28 observations are attributed reuse,
+not fresh reviews. Reference eligibility retains65 passes/5 bounded uncertainties;
+historical staging/continuity/plan hash drift remains qualified. No inference of
+owner personal approval or unseen-output inspection is made.
 
-10a03's mask removal is rejected. Root method `3451db62...` permits one same-input
-freshseed10a04:477683616770678621, proof `aa767159...`, review `1b4da321...`.
-27a03 is rejected after actual root/primary third-person and ticket-handling
-observations (`176a7b3f...`); full ticket clearance/intent is not inferred.
-Its first-shot H3 still had the long world ledger, so the next candidate uses
-compact two-person actions and a fixed object-only ticket corner, retaining
-all world facts in existing metadata. Independent narrow review `b0920235...`
-and exact combined3/70/254 gates pass; no permanent/provider/caption-fix claim.
+[Watch three episodes and combined video](别叫我的名字-shuohao-production/exports/three-episode-baseline-v1/index.html):
+E01 252.29s, E02 228.42s, E03 227.33s; combined708.04s/16993frames at24fps.
+Video SHA prefixes: E01 `3c0d9703` (byte-identical preview-v2), E02 `045f184f`,
+E03 `b1213b92`, combined `309e3346`. Final manifest `94c259ad...` and delivery
+record `7dce8571...` preserve the70 source-order selection/receipt bindings.
+All4 exports pass complete decoded-frame ordering, native PCM prefix/bounded
+EOF-zero-tail, full-decode and clock checks. PCM proof is before one lossy AAC
+encode, not decoded AAC bit identity or perceived listening.
 
-The ONLY newly adopted source change is27v2. Actual current-authority reconstructs
-`7b0fc3e73631f111edb660c16f566b97eff2f5821cc22d96ddef64eae3036ae9`;
-metadata `171156bd...`, overrides `e249da0e...`, input decision `2308c12d...`.
-Root input-only GO `e0c09ea5...` binds reviewed c38d1325… source/exact mergedbytes;
-prior649 authority is retained in dated revision history.69 other segments/owners,
-93 dialogue blocks/all cuts/times/guides are unchanged. Fresh REAL handoff cases/
-reconciliation validate; current map `6f2ce389...` rebinds unchanged10c491 leaf and
-all8 prepared10a04 files without repeating its full qualification. Historical
-provenance drift/E03-07 POV/model-facing constraint reductions remain qualified.
+Root actual11-output-still audit `c5bc2aaf...` checks start, both episode boundaries,
+new E03-10 joins and final ticket image. Independent evidence review `8463d02b...`
+passes against preserved pre-audit candidate bytes. The final metadata addendum
+attaches both reports; media/selection/12 proof files remain unchanged. All12
+relative viewer links resolve. Browser playback and actual hearing were not
+performed. Folded viewer notes preserve material exceptions and uncertainty.
 
-FINALtwo local proposal is `3289c6d7...`: source-order10a04 then27a04.10 is
-same-input freshseed;27 is changed-source DEFAULTseed, with six unchanged guides.
-New27 fullfidelity `fe57518a...`, independent exact-two inventory `f5ee30e9...`
-pass. Old68 media/selected leaves are reused with source-map equivalence, not
-fresh full reviews. Exact bundle `15c1cdec...`/grant `008c78c6...` passes independent
-controls `0c2cf498...`. Additive stage `e96875d4...` preserves1200 old hashes and
-adds27 immutable files. One native prelaunch `7825dbf4...` at02:27:26UTC Nov9
-proves protected125/prior71, both identities/request/prompt-seed keys unused,
-idle/noUNKNOWN/no controllers and current envelope/window. Root reviewed actual
-proofs (`72a57b4c...`), registered byte-identical grant (`087bfc0a...`;22 prior
-registry files unchanged), then issued separate exact2 providerGO. One controller
-1274379/follower69294 started02:32:26UTC. Actual first graph/snapshot/ref binding
-`e2e13e14...` preserves large integer seed; actual firstDONE `a882a178...` proves
-current-frozen full rows/seal/DONElane/protected126. Final27 remains in flight.
+The owner reports a missed mask artifact in previously shown E1 and accepts
+minor imperfections in this foundation run. Root keeps E1 without retrospective
+localization/rerender. E03-10a04 material mask finding/primaryFAIL/rootrejection
+stay historical; old rejected head2de618… is byte-exact archived. Explicit
+baseline waiver `8b80d49f...` and valid needs_review `d12ebad0...` produce selected
+head `ac7da7f8...`, not literal costume compliance. E03-27 selection `3da7ce3c...`
+retains an unestablished nod and earlier cuts; actual root samples show two actors
+and held ticket ending. Camera/crop/UI/ASR exceptions remain linked in the viewer.
+Source10v3/prospective91e3 remains UNADOPTED; its planned render path is superseded.
 
-10a04 was initially rejected: Terra primary `d642b735...` and root actual six-image audit
-`5460e869...` show a mouth-shaped hole through the mask in shot2. Required speech
-is recognized, not heard. After two compact-source failures, root changed method
-instead of another seed-only retry. Isolated sourcev3 `6cdb5212...` changes ONLY
-H3Shot2 to jaw lowering underneath continuous wet fabric; the original mouth-
-opening source beat, guides/cuts/times/voice/dialogue stay intact. Independent
-review `0949bff2...` and prospective combined gates3/70/254 pass. This is a plausible
-masked realization; jaw motion does not prove an unseen mouth opens. Proposed
-combined91e3ce41…/override299f8ff7…/metadata743f183e… preserve69 other objects/owners,
-including27v2. The candidate remains UNADOPTED; the next-render path is superseded
-by the owner's later baseline tolerance. Root target27/ending review is pending.
+Native batches13–16 closed normally; final16 `07b22e0c...` proves exact2 collection,
+full current-frozen terminal/seal/native+local bindings, controller/followerexit0,
+quiescence/zeroUNKNOWN/allDONElanes/protected127. Failed12/old grants remain
+historical/held, never replayed. Cancelled successor-data derivation never started;
+no batch17, successor grant or further generation. Caption index `41bac5c2...`
+retains13 factual positives, inputs/seeds/retry records, without permanent-fix or
+correlation study. Native and local watchers/review writers have stopped.
 
-The owner reports this same mask defect in the previously shown E1 and accepts
-minor imperfections in the foundation run; E1 repair is discretionary. Root keeps
-E1 and accepts10a04 under explicit baseline waiver `8b80d49f...`. Original primary
-FAIL/rootreject remain unchanged; prior rejected head2de618… is byte-exact archived
-under `quality-decisions/revision-history/e03-10-attempt04-baseline-quality-waiver-20261109/`.
-New rootneeds_review `d12ebad0...` retains the observed material finding, and the
-unchanged validator accepts explicit uncertain selection head `ac7da7f8...`.
-This revises selection tolerance, not literal costume correctness or historical
-review. E1 defect location is user-reported, not newly located/inspected by root.
-No further10render/sourceadoption; unused successor-data work is cancelled if
-not started. Final progress awaits27 and actual assembly readback.
+## Knowledge closeout and remaining limits
 
-Caption index `41bac5c2...` retains13 positives/all original input/history;
-24a03 is changed-source sampled-not-observed, not seed-only/prevention/causality.
-Active video-checking stays0.1.2 through ALL media/export completion. Next isolated
-0.1.3variant2 `9a32afa7...` has docs-only crop-materiality example,23 unchanged tests
-reused/validator pass and actual retained calibration `1150ef82...` needs_review.
-Calibration informed by this example is not held-out accuracy. Nothing activated.
+After all media/export work, activated reviewed video0.1.3 variant3 tree
+`2728bec8...` and assembly0.1.1 tree `63d1978f...`. Actual canonical baselines match;
+only7 changed skill files plus ADR0238/0239 changed. Lessons cover UI ambiguity,
+camera/crop materiality, masked-face integrity, bounded ASR troubleshooting and
+conditional exact-admission registry repair. No new routine gate, automatic skill
+invocation, provider retry or historical report relabeling. Framing calibration
+`1150ef82...` is an example-informed check, not held-out accuracy. E1's reported
+miss is unlocalized; E03-10 was caught by the production skill.
 
-## Remaining closeout
+Native locked video tests pass23; all4 skill validators pass. The repository
+focused runner refused the unregistered skill-test selector before tests ran;
+retained native pytest is scoped skill evidence. Unchanged9/7/8 extension tests
+are reused. Independent activation review `1fbea5f8...` found one attribution
+wording ambiguity; exact documentation correction `b4d85f85...` resolves it with
+no remaining findings. No application/frontend/API/persistence or dependency
+change; no full release suite needed for this bounded skill change. CI and push
+were not requested/run. Preserve the scoped local main checkpoint and unrelated
+README/untracked story/media work.
 
-- Follow the authorized exact2 native run through normal closure; no old grant
-  replay/UNKNOWN clearing. Two seed modes remain explicit.
-- Finish27a04 with active0.1.2/Terra-high primary and root target. Preserve explicit
-  baseline exceptions. No automatic retry or skill activation before completion.
-- Finish explicit selections and three episode exports plus the combined watch
-  index, with source/selection and native AV proofs, proportionate actual-output
-  audits and retained uncertainty notes. E01 preview evidence and its bounded
-  limitations remain available in the [preview manifest](别叫我的名字-shuohao-production/exports/episode1-preview-v2/assembly-manifest.json).
-
-- Complete the post-media skill knowledge closeout in a new version: UI role,
-  camera materiality and one unhinted ASR window. Preserve in-flight v0.1.2
-  work and old reports; distinguish troubleshooting from routine review. An isolated
-  0.1.3 variant2 (`9a32afa7...`) adds a frame-edge-fingers/handle materiality
-  example; original7d375214… and its two retained-case results remain historical.
-  Variant2 changes only rules documentation, reuses23 unchanged focused tests
-  and passes validator/doc checks. One actual retained13 calibration returns
-  needs_review (`1150ef82...`), not an unsupported material fail. This example
-  informed the rule, so it is calibration, not held-out accuracy. Nothing is
-  activated; recheck canonical base and apply only after ALL selection/export
-  work, including any future retry, completes. A separate
-  assembly-progress0.1.1 documentation candidate (`63d1978f...`) captures the
-  observed local admission-registry troubleshooting route; it also remains
-  unapplied through completion.
-
-Goal mode is now active by owner action, confirmed through native readback.
+The owner resumed native Goal mode; no replacement goal or rewritten pause
+history. This assignment's production and extensions are delivered. Further
+quality refinement, perceived-audio review and future skill invocation remain
+separate owner-directed work; they do not block the accepted baseline cut.

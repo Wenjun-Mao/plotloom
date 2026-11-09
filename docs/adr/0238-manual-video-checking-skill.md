@@ -56,3 +56,15 @@ rejected by current review/detail validation. Four already selected clips receiv
 source-bound coverage-only supplements while their original anchor/recognition
 judgments stay attributed. This is repair of inspection evidence, not a reason
 to regenerate media or repeat unaffected full reviews.
+
+## Future checking guidance
+
+Version 0.1.3 aligns the result validator and fixture with the skill version and
+adds narrow guidance on source-fidelity materiality and face-covering integrity.
+An unmet crop remains a deviation; a coordinator's explicit quality exception
+does not erase observed findings or establish literal compliance. The framing
+example is calibrated from retained evidence, not a held-out accuracy result.
+New production reviews remained on 0.1.2; retained older reviews keep their
+original versions and attribution. The new guidance applies to future invocations.
+Retain original findings and reviews under their actual version, including when
+a coordinator selects media under a quality waiver.

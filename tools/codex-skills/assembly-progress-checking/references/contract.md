@@ -45,3 +45,16 @@ or partial. Without the flag, uniquely valid per-take decisions count; conflicts
 remain gaps. The full decision inventory is informational in both modes.
 The preview command validates retained hash bindings and reports historical claims;
 it is not a fresh verification of frames, PCM, timestamps or listening.
+
+
+## Troubleshooting
+
+If the Plotloom checker reports a missing exact grant binding, treat it as an
+artifact handoff gap, not a media failure or provider permission. The owning
+lookup matches `evidence/post-intent.json` → `admissionSha256` against
+`.local/ref2va/manager/admissions/*.json`. The authorized coordinator may register
+a verified byte-exact, already approved and admitted grant in that registry,
+preserving existing files and avoiding duplicate digest matches. Do not synthesize a grant, weaken the check, broaden lookup or
+automatically copy or authorize anything. The checker remains read-only and
+reports the gap until the owning workflow resolves it. This is conditional
+troubleshooting, not an additional routine production preflight.

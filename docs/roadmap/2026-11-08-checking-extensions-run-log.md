@@ -1072,3 +1072,38 @@ oldhead/newexclusivecreate. No new source/ref/provider change. Source10v3/prospe
 91e3 stay UNADOPTED; next-render path superseded. Conditional unusedsuccessordata
 cancelled ifnotstarted; no grant/batch17. E1 defect not independently localized.
 GoalAPI freshreadback nowACTIVE after user appaction; old paused state historical.
+
+
+## November 8 owner day — all three episodes delivered and skill closeout
+
+Final27primary1af4…needs_review retains uncertainnod/earlycuts; root9f07…actual8
+pictures/ASR and decision3da7… acceptbaselinewithoutassertingnodorhearing.
+FinalAPdcf7dbfc8346a73924226f9d9361c14ffe03bf3d7ca17090b102669a3437220d
+proves70/70 (21/22/27), errors0. Native exact16 normal2 closure
+07b22e0cb90e5aca241328bc547e3836c144c21dd818b83cd01c0bd70fc9864a
+proves fullbindings/exit0/quiescence/zeroUNKNOWN/protected127. Allwatchersstop;
+cancelled73/127data neverstarted/no successor/batch17. Source7b0 unchanged;
+10v3candidate91e3 path superseded/unadopted underownerbaseline tolerance.
+
+Terra/high assembly freezes70mapa424c4a54106982eb0dbe75eda616df982b80ccf5dbd5ac5f95dbdcb39ce5f26
+and produces three-episode-baseline-v1: E16055frames/252.29s/E25482/228.42s/
+E35456/227.33s/combined16993/708.04s. All4 ordereddecodedframes/nativePCM-prefix/
+boundedEOFzeros/full_decode/clocks pass; beforeAACproof is not lossyAACidentity
+orlistening. Root actually opens11 originalres combined outputstills, start,
+6054/55,11536/37,13349/50,13592/93,16648,16992: c5bc2aaf828affd248be160fdacc71c546f072ae7afa7ac3ebcd360d4f9b9467
+boundedPASS, no continuousplayback/hearing/everyframeclaim. E1SHA3c0dunchanged
+preview-v2 and oldboundedoutputaudit reused. Independentretainedevidence8463d02b95686b582000aa349c729b7ddf1690640f30b0abba92ca27c6feb47b
+PASS, notfreshmediainspection. Pre-auditindex/manifest/evidencekeptbyteexact;
+finalmetadataaddendumcopiestworeports/updatesonlyacceptancefields, allfourMP4s/
+map/12proofsunchanged,12relative linksexist. Final indexaf0b846a…, manifest94c259ad…,
+delivery7dce8571…; folded notes retainmask/nod/crop/UI/ASR andactualaudio limits.
+
+Post-exportknowledgeactivationvideo0.1.3variant3 tree2728bec823f968b736294ca3dcf1acf5c72fed146ad9f435129b1b9d28e378a3
+and AP0.1.1tree63d1978fc05a91d553e35cd9c1d7a0f47f32d27e98b23aed5e48e943bf8d5eac
+matchreviewedcandidates afterexactbasecheck;7skillfiles/2ADRsonly. Newguidance
+forfutureinvocations; currentproductionoldversions/originalFAILs retained.
+Focusedrunnerunknownselectorrefusal exit2 retained; native locked skillpytest
+23passed, all4quickvalidatepass, other9/7/8evidence reused. Independentreview
+1fbea5f8… hasonlyADRwordingfinding; correctionreviewb4d85f85e204c282542b430eb84717f22427780c6a66a765168a7077526ca23c
+resolvesit, nofurtherfindings. Canonicaltreeshashesunchangedbydocfix. NoCI/push,
+fullappqualification ornewproviders. Userfuturemanualskillpreference preserved.

@@ -2,7 +2,7 @@
 name: assembly-progress-checking
 description: Report ordered assembly progress and validate source-bound selection and export evidence without choosing takes or generating media.
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # Assembly progress checking
@@ -30,6 +30,8 @@ project's locked `uv` environment. It reports every qualifying technical attempt
 without implicitly selecting one. It accepts a supplied partial selection; the final
 assembler's full preflight remains authoritative before an actual export. The adapter
 and historical preview verifier are project-specific; the normalized reporter is not.
+For a missing exact admission binding, see the conditional troubleshooting in
+[contract.md](references/contract.md#troubleshooting).
 
 Default to GPT-6.1 Terra/medium for routine delegated checking; use high for uncertain
 material discrepancies, subject to available native settings and explicit user choice.

@@ -40,3 +40,12 @@ provider fallback, permanent-caption-fix study, CI or push is implied.
 These remain optional checking workflows rather than new Plotloom runtime gates.
 The expanded plan is
 `docs/roadmap/2026-11-08-checking-extensions-and-complete-story.md`.
+
+## Future assembly troubleshooting
+
+Assembly checking 0.1.1 documents conditional troubleshooting when the exact
+post-intent admission digest is absent from the owning local registry. An
+authorized coordinator may resolve a demonstrated registry issue; the read-only
+checker does not register grants automatically. This adds no routine gate or
+dispatch authority. This run used 0.1.0; the guidance applies to future
+invocations and does not rebind historical evidence.

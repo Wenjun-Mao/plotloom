@@ -2,7 +2,7 @@
 name: video-checking
 description: Review generated clips against supplied story actions, references and dialogue using cached evidence, Terra/high reviewers and sampling audits. Produces review recommendations; does not generate, repair or select production media.
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
 ---
 
 # Video checking
