@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 1,
+  "study": "H3 cross-framework caption comparison, 2026-11-09",
+  "status": "COMPLETE_BOUNDED_INVESTIGATION",
+  "repoBaseline": "7bed67a59ee8eecf2eb0886a478ef9f2d6422ae2",
+  "seedsDecimal": [
+    "8903669569368281099",
+    "4809202367604096106"
+  ],
+  "executionOrder": [
+    "C1",
+    "A1",
+    "B1",
+    "B2",
+    "A2",
+    "C2"
+  ],
+  "fixture": {
+    "promptSha256": "0a7482de70c372a12a81e03ea75f4970e54b4a882e2c49d8fa6a832c1d27b407",
+    "width": 960,
+    "height": 544,
+    "frames": 260,
+    "fps": 24,
+    "orderedReferenceCount": 3,
+    "additionalGuideFrames": [
+      0,
+      60,
+      120
+    ],
+    "requestedDurationMs": 10300
+  },
+  "sources": {
+    "comfyCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+    "comfyVersion": "0.38.0",
+    "vllmOmniCommit": "f6a7f54a545839b860c09e20eb09482d83672aab",
+    "vllmVersion": "0.33.0",
+    "torch": "2.14.0+cu130",
+    "vendorRevision": "42ed227ee7df40d41602854ae760620d6eb651fe",
+    "comfyExportsRevision": "54472221d27c695fca9621b0c3ed52f06c4af707",
+    "executedAdapterSnapshots": {
+      "C1Denoising": "17",
+      "otherH3AndDecoding": "18",
+      "remainingPrimaryPerceptionAndRestoration": "19",
+      "audioClarification": "Pinned supplemental review_native_av.py in bundle"
+    },
+    "buildInputs": {
+      "runtime-source/Dockerfile.cuda.task-v3": {
+        "sha256": "192a2f27456f22d5b556fdc2724f5d4d234b4dcd9f6e7fddd39212eae09a8591",
+        "bytes": 10410
+      },
+      "repair_cusparselt_wheel.py": {
+        "sha256": "134a185506a1af58de085907fac2d9de48cd475be10ebceda06c55efe0e89f68",
+        "bytes": 4876
+      },
+      "runtime-source/vllm-omni.tar.gz": {
+        "sha256": "0ac595cc398373036c2aa2e65c9586d58fc825b7099218f24364cda99ce4f98e",
+        "bytes": 47269298
+      }
+    },
+    "executedSourcesArchive": {
+      "bytes": 190604,
+      "sha256": "96ec428c03547a4f1e02a02934dd12525aac1f45214ea25d7317888a1339992e"
+    }
+  },
+  "modelIdentityReceipts": [
+    "a-model-pins.json",
+    "dit-logical-audit.json",
+    "qwen-logical-audit.json",
+    "vae-logical-audit.json"
+  ],
+  "cells": [
+    {
+      "cell": "A1",
+      "arm": "A",
+      "seedIndex": 1,
+      "blindId": "clip-06",
+      "nativeAV": {
+        "sha256": "741485135398cf6f33acd12262f0bed8d4d1cc0fdcaa73d8d76ee4075d82fa28",
+        "bytes": 1044891
+      },
+      "technical": "PASS",
+      "captionScore": "FAIL",
+      "sourceWordsPrimaryScore": "PASS",
+      "videoModelEos": false,
+      "videoModelQualification": "Partial/unqualified: token cap and invented extra cuts",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-06/original-native-av.mp4"
+    },
+    {
+      "cell": "B1",
+      "arm": "B",
+      "seedIndex": 1,
+      "blindId": "clip-02",
+      "nativeAV": {
+        "sha256": "05d4de73aefe35099f822af6de0e3262893e9fb25802615fa38e0159c9106125",
+        "bytes": 1025222
+      },
+      "technical": "PASS",
+      "captionScore": "PASS",
+      "sourceWordsPrimaryScore": "PASS",
+      "videoModelEos": true,
+      "videoModelQualification": "Fallible low-resolution supporting description; primary native-frame observations govern",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-02/original-native-av.mp4"
+    },
+    {
+      "cell": "C1",
+      "arm": "C",
+      "seedIndex": 1,
+      "blindId": "clip-04",
+      "nativeAV": {
+        "sha256": "13f4d8b803fd63143dfe15f3cdb517e1d2390aef92bf0f362e921e97104fa7b7",
+        "bytes": 6829703
+      },
+      "technical": "PASS",
+      "captionScore": "PASS",
+      "sourceWordsPrimaryScore": "PASS",
+      "videoModelEos": true,
+      "videoModelQualification": "Fallible low-resolution supporting description; primary native-frame observations govern",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-04/original-native-av.mp4"
+    },
+    {
+      "cell": "A2",
+      "arm": "A",
+      "seedIndex": 2,
+      "blindId": "clip-05",
+      "nativeAV": {
+        "sha256": "fc6d61f79ddea923be82940682ee64deeb82b02eb53888b7689b0b4b93f17444",
+        "bytes": 1163703
+      },
+      "technical": "PASS",
+      "captionScore": "PASS",
+      "sourceWordsPrimaryScore": "PASS",
+      "videoModelEos": true,
+      "videoModelQualification": "Fallible low-resolution supporting description; primary native-frame observations govern",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-05/original-native-av.mp4"
+    },
+    {
+      "cell": "B2",
+      "arm": "B",
+      "seedIndex": 2,
+      "blindId": "clip-01",
+      "nativeAV": {
+        "sha256": "6e54c7e6f5762075ea04d12e4418f1fc80950c147b9b78f79390d9ca7bd45c12",
+        "bytes": 1143636
+      },
+      "technical": "PASS",
+      "captionScore": "PASS",
+      "sourceWordsPrimaryScore": "UNCERTAIN",
+      "videoModelEos": true,
+      "videoModelQualification": "Fallible low-resolution supporting description; primary native-frame observations govern",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-01/original-native-av.mp4"
+    },
+    {
+      "cell": "C2",
+      "arm": "C",
+      "seedIndex": 2,
+      "blindId": "clip-03",
+      "nativeAV": {
+        "sha256": "f8d5416368725f250985643c27aeffb1749816ad3b105ce1556c5ee2add5630d",
+        "bytes": 7130288
+      },
+      "technical": "PASS",
+      "captionScore": "PASS",
+      "sourceWordsPrimaryScore": "PASS",
+      "videoModelEos": true,
+      "videoModelQualification": "Fallible low-resolution supporting description; primary native-frame observations govern",
+      "fullNativeFramesReviewed": 260,
+      "nativeOriginalRelativePath": "blind/clip-03/original-native-av.mp4"
+    }
+  ],
+  "limits": [
+    "Two retained seeds in one scene; no population rate or reliable framework ranking",
+    "A/B changes the configuration package; B/C changes the whole native path including declared posterior/arithmetic differences",
+    "B2 speech remains unresolved after one neutral supplemental review; not a usable-clip pass",
+    "All speech findings are qualified native AI observations, not human listening or owner creative acceptance",
+    "Precise gaze/spatial relations, ambience, subtle cutoff, stereo spatial quality and synchronization remain bounded",
+    "Video-only model descriptions are supporting and fallible; A1 failed EOS and hallucinated cuts",
+    "Real browser playback reached end for all6; clip01 reported3presentation frame drops, others0; native files all260frames separately inspected",
+    "Scene/action coverage is partial in every cell; precise gaze and shared spatial relationships are not certified.",
+    "No cell is a full usable-clip or owner creative-acceptance pass."
+  ],
+  "controlledClaim": "Common raw fixture/logical weights/consumed noise/solver boundaries with own encoders; declared native posterior and arithmetic differences retained. No identical-effective-input or isolated-kernel claim.",
+  "restoration": {
+    "strictPrestartEquality": "PASS",
+    "strictPoststartEquality": "FAILED_PRESERVED",
+    "reconciliation": "Exact original table/three file-tree digests reproduced in copied memory; every removed output/source has a verified retained copy",
+    "nativeRetentionRemovals": {
+      "outputs": 10,
+      "sourceAssets": 3,
+      "preparedInputs": 3,
+      "assetFlagsChanged": 3
+    },
+    "resetOrRecreatedExpiredPaths": false,
+    "sameRuntimeModelsCapabilities": "PASS",
+    "postStartProtectedStateStable": true,
+    "activeTaskGpuContainers": 0,
+    "activeTaskObserversOrControllers": 0
+  },
+  "privateArchive": {
+    "status": "PASS_ALL_ARCHIVE_MEMBERS_AND_SIX_ORIGINAL_MEDIA",
+    "archive": {
+      "path": "/Users/wjmao/projects/HU/plotloom/.local/ref2va/cross-framework-caption-20261109/delivery/h3-cross-framework-caption-20261109-private-evidence-v2.tar.gz",
+      "bytes": 80961396,
+      "sha256": "dd290a4006f4644177be77310169a6ada218ae0681e8ad0a1db05f7455a84594"
+    },
+    "memberManifest": {
+      "bytes": 97391,
+      "sha256": "4bfeb960d31e83ee43bb06e57fa5b68f56099c3ceab1cc768653916beccf2c03"
+    },
+    "payloadMembers": 617,
+    "archiveMembersIncludingManifest": 618,
+    "credentialAccessUrlScan": "No candidate in selected textual payloads",
+    "excludedPayloads": [
+      "Model checkpoints",
+      "Container images",
+      "Numerical tensor dumps",
+      "Contact PNG corpora"
+    ],
+    "selfContainedRuntime": false,
+    "sixMediaHashesVerified": true,
+    "supersedes": "v1 passed member hashes but its external original-model directory pointer was wrong. v2 derives the pointer from pinned native HostConfig mounts; original v1 archive/receipt retained."
+  },
+  "locations": {
+    "localTaskRoot": "/Users/wjmao/projects/HU/plotloom/.local/ref2va/cross-framework-caption-20261109",
+    "sparkTaskRoot": "/home/wjmao/h3-cross-framework-caption-20261109",
+    "originalComfyModelRootOnSpark": "/home/wjmao/models/comfyui-h3",
+    "separatelyRetained": "Large checkpoints, runtime images, diagnostic tensors and PNG contacts remain on owner machines; private archive index names their directories and owning pin receipts."
+  },
+  "receiptPinsRelativeToLocalTaskRoot": {
+    "fixture/manifest.json": {
+      "bytes": 4822,
+      "sha256": "30f9d3d92fb16bf4358905d3514566f17481748b89a60d35a65c369fa3c1ea93"
+    },
+    "a-model-pins.json": {
+      "bytes": 1024,
+      "sha256": "eed76b96554deaa22f7962a3efb0cd8df718639f2aad92752a3b0ab349faf91e"
+    },
+    "dit-logical-audit.json": {
+      "bytes": 356158,
+      "sha256": "ee498109d1687030579499f180b4e6294b00771708f8ea4f7a4473be14470c09"
+    },
+    "qwen-logical-audit.json": {
+      "bytes": 625473,
+      "sha256": "70f4d96a3c7691352ac5a389a02d0901548e86c21738c3a29e63ccca2b1a4d84"
+    },
+    "vae-logical-audit.json": {
+      "bytes": 653518,
+      "sha256": "588a84b8cba650d9d3c53978dfe1571a607271971e1ac57cdb1131297f40c65a"
+    },
+    "qualification-contract-v3.json": {
+      "bytes": 5444,
+      "sha256": "cf7edf99e47961a468879f1c7d75ffec0c1751cb43fa1b57c643ecfb9c1034de"
+    },
+    "first-step-qualification.json": {
+      "bytes": 2701,
+      "sha256": "72171e9bd6c18ff19b728e6c68040058303b317e08b762e4f66d8557646fc879"
+    },
+    "all-seed-consumed-noise-controls-01.json": {
+      "bytes": 3373,
+      "sha256": "e20af413d03750899c48160eef439cd6a9b4b52bb69ff0d5a25969b89734e9a0"
+    },
+    "encoder-comparison-v3-result.json": {
+      "bytes": 2323,
+      "sha256": "8cea467c982f5267d327cc12ae5b94778c37e5d39ce622cefe183bfebb156932"
+    },
+    "common-precision.json": {
+      "bytes": 684,
+      "sha256": "5605157d6b8080500d5b25bc9a14c8a26afa903c6cfe24e3a0878bd906c8053c"
+    },
+    "audio-readiness-qualification.json": {
+      "bytes": 1554,
+      "sha256": "993353cf22c35ee587ca0a216c4dfbaa4be6a618b7f85e108b53cab1ed363544"
+    },
+    "blind-assessment-protocol.json": {
+      "bytes": 2429,
+      "sha256": "e93860aae3e0e550f44b8714abfc91ec9cf110067a28bccc45c526bcc48fc2ba"
+    },
+    "media-assessment-summary.json": {
+      "bytes": 4841,
+      "sha256": "75c99a34ecf3474ecbb81f01ebc0114c56a77ed54341792feecc9f15d8d30089"
+    },
+    "browser-playback-01.json": {
+      "bytes": 3146,
+      "sha256": "fbf2b7830b8a378cdd0bd283597ae8179f509fd2d4dacd709ae91ae8b9e99fdc"
+    },
+    "restoration-final-live-01.json": {
+      "bytes": 14716,
+      "sha256": "089e77be7a9187c1a28d50ff4e9ae46b1cf841e472765e85174fe375413fe86a"
+    },
+    "restoration-retention-reconciliation-01.json": {
+      "bytes": 16021,
+      "sha256": "ff82ebb5749050f411da7fe8cddafb68b4577e7cfc095549f754817d00662883"
+    },
+    "restoration-poststart-differences-01.json": {
+      "bytes": 1499,
+      "sha256": "abb7f71eb70eea0ec1724393b8ae0bb748ad31810d6fe2906c037ac84637b0c1"
+    },
+    "restoration-runtime-01/summary.json": {
+      "bytes": 222,
+      "sha256": "9fd4565fd72870507bafb6ae942de13f4f224d075bc2810dc1974c14b39cf2cb"
+    },
+    "restoration-runtime-01/native-a-source-model.json": {
+      "bytes": 4088,
+      "sha256": "4b24b3e04253c286c3fbd0c343a8994f73ff294d02812a2cc0607bc08f1af30f"
+    },
+    "resource-observers-closure-01.json": {
+      "bytes": 3610,
+      "sha256": "f25bc65c7653f9e428b83dc787e674ac5bb5ed904fe0e74646c0ef5b156eede7"
+    },
+    "final-evidence-review.md": {
+      "bytes": 1363,
+      "sha256": "8da439c5f3a91c143308b0ce58d62ba6b230106df4609047d66fa9163d9f7b19"
+    },
+    "full-A-s1/native-contract.json": {
+      "bytes": 678,
+      "sha256": "e3cbe6865c0f871c59339712b053656c09d51163c85076b95c905dc77271d70b"
+    },
+    "blind/clip-06/technical.json": {
+      "bytes": 14515,
+      "sha256": "cf78c1f469c760bb7c6952737b15d74927337d18879ddcb6c8e67dd4837d40d3"
+    },
+    "blind/clip-06/visual-review-fixed.json": {
+      "bytes": 2625,
+      "sha256": "13fda6b37171f0b03c3ee29604dcecb59861f07b35c613fe63274a8af81569c0"
+    },
+    "blind/clip-06/audio-source-check-fixed.json": {
+      "bytes": 891,
+      "sha256": "ee00efce385f1644864a6c6aea24eeff622d5bf38f56bde77e5c61f77f7adcc2"
+    },
+    "blind/clip-06/audio-review-01/audible.json": {
+      "bytes": 4349,
+      "sha256": "d1a0d7c07abe91bc63329f8870eccce31aa765e91fad74fb8e34bc45664ea205"
+    },
+    "blind/clip-06/video-review-01/visual.json": {
+      "bytes": 16089,
+      "sha256": "b2d5a3e6af73070a35a48f37ddfeb7e81b5749fcfd2bc4e99d5afb18f90ec52c"
+    },
+    "full-B-s1/native-contract.json": {
+      "bytes": 2536,
+      "sha256": "bebd534f609d093caac5a9e7cae0b6dc121531021ff5d066f20d741f01b605c2"
+    },
+    "blind/clip-02/technical.json": {
+      "bytes": 14516,
+      "sha256": "8a8a270f5ff36c7883836e94b0e46793163f378e1223704de45ad37e272b1ce8"
+    },
+    "blind/clip-02/visual-review-fixed.json": {
+      "bytes": 2132,
+      "sha256": "6ae22aa164d46448444dc6f848fe662b7df3539f33919e54ada9ed9b9599373c"
+    },
+    "blind/clip-02/audio-source-check-fixed.json": {
+      "bytes": 892,
+      "sha256": "b0eddecc4545f3a39e7183b47219aa5e059d377569a8e12467cfc756368b435a"
+    },
+    "blind/clip-02/audio-review-01/audible.json": {
+      "bytes": 4334,
+      "sha256": "864875098b82dc20db1c11adf4c3fd05ed0dd5b0235d1dcd1f1c9915c42decb3"
+    },
+    "blind/clip-02/video-review-01/visual.json": {
+      "bytes": 7519,
+      "sha256": "5a95e053366f9ba5c76c5b72fa7e24328047d86dc5cd66b5658fb62f49790f7d"
+    },
+    "full-C-s1/native-contract.json": {
+      "bytes": 6100,
+      "sha256": "6b7fdfbc415461c717ba34e63c4837150b6d4b2a7c9eb5c95b9c2d14f159a229"
+    },
+    "full-C-s1/decoder/native-contract.json": {
+      "bytes": 582,
+      "sha256": "23dcc1a7194db2701cf6943209a047b8e8d4296f2416cf09bb7aee5473fbf512"
+    },
+    "blind/clip-04/technical.json": {
+      "bytes": 14515,
+      "sha256": "648c2e58c88c9a2e2eced31c029b16aaffba688e2ba2c9c32b8749241feb2f6f"
+    },
+    "blind/clip-04/visual-review-fixed.json": {
+      "bytes": 3186,
+      "sha256": "65dd0ba077960a6c7f8ef87add6d098d2cab9cc9c00dc802ab2e8198cc6db44d"
+    },
+    "blind/clip-04/audio-source-check-fixed.json": {
+      "bytes": 916,
+      "sha256": "ba3b4f6953cc591c2f28d4b84696fcffe2dc6eb9f843c4195f94151b15e0b8b7"
+    },
+    "blind/clip-04/audio-review-01/audible.json": {
+      "bytes": 4335,
+      "sha256": "63f08e0de6644ab29e26966ffc2b0b1e8dae18c019a425734d0bd66872ef551f"
+    },
+    "blind/clip-04/video-review-01/visual.json": {
+      "bytes": 7383,
+      "sha256": "a9f5c02106b67de165e042681b5675c53b2b35c037034d41a2d89c06a4bd58ba"
+    },
+    "full-A-s2/native-contract.json": {
+      "bytes": 679,
+      "sha256": "b0822fdf1f1d67e053da8865d544f47c5184a5fa9f88cdeb6d7c704f4ec6e1dd"
+    },
+    "blind/clip-05/technical.json": {
+      "bytes": 14515,
+      "sha256": "a5cca1384f0e39203a42c29bdb5a0dbf556626b09661139b7beac07d0ad35a02"
+    },
+    "blind/clip-05/visual-review-fixed.json": {
+      "bytes": 2208,
+      "sha256": "dc5a38c8d089c7e5b412d3cf573dee112eb5f228f02a3f507a71331c5ad97a97"
+    },
+    "blind/clip-05/audio-source-check-fixed.json": {
+      "bytes": 891,
+      "sha256": "6cf8ee8d66269a68507cc5f4fb5ba942db0f9d27cbbae8dc3922419b1603ac1a"
+    },
+    "blind/clip-05/audio-review-01/audible.json": {
+      "bytes": 4154,
+      "sha256": "382cb3e024629c90e53526e384af3c1a9848b6526e004fb0ce058d9c373b7567"
+    },
+    "blind/clip-05/video-review-01/visual.json": {
+      "bytes": 5588,
+      "sha256": "0caa355b3b79844ac2a49327a4634c6e7b9d9cab4006abfcdb8578d09218818c"
+    },
+    "full-B-s2/native-contract.json": {
+      "bytes": 2536,
+      "sha256": "ae1f96064c813e4de247976164b83743bc977f7245de6d22bc2e5aa6ab864c08"
+    },
+    "blind/clip-01/technical.json": {
+      "bytes": 14517,
+      "sha256": "0e520a629a0cebddb390a1c5136fc28c2ffca4253ed0fe2a1abc4ed22e22035b"
+    },
+    "blind/clip-01/visual-review-fixed.json": {
+      "bytes": 2049,
+      "sha256": "c9fb51b7d50e397627788aa1699933602341ed062cac06a85149f632e63afc06"
+    },
+    "blind/clip-01/audio-source-check-fixed.json": {
+      "bytes": 994,
+      "sha256": "f6970c67bf374521eb80681b37b2134846256f4e2f875dd4de88d8d41d76211c"
+    },
+    "blind/clip-01/audio-review-01/audible.json": {
+      "bytes": 3805,
+      "sha256": "6b87100e7d796181049fa528f286611b6dde1594e2a21acfff3d2707401fc1ac"
+    },
+    "blind/clip-01/video-review-01/visual.json": {
+      "bytes": 5373,
+      "sha256": "c1d4738cc9e030ec9575358931c6efcbcc779515835221d52efd62dfde5d4b1d"
+    },
+    "full-C-s2/native-contract.json": {
+      "bytes": 6100,
+      "sha256": "f30b869a3539f29ee829eeb73883a69709d359395a587751f15e2880b9f2cba2"
+    },
+    "full-C-s2/decoder/native-contract.json": {
+      "bytes": 582,
+      "sha256": "46d9b380dd50aaa4b5052f443af163d97b13f6738fa2fef7067f09faf03bc9ec"
+    },
+    "blind/clip-03/technical.json": {
+      "bytes": 14519,
+      "sha256": "18d87a7b6139a70c04726a5b720b5dd4967399933da01f1e5b500fd5e432edf4"
+    },
+    "blind/clip-03/visual-review-fixed.json": {
+      "bytes": 1901,
+      "sha256": "66cfdb9db81515de924927fcfec6127189e1d8931a24f3a493ce22ff6e605e6f"
+    },
+    "blind/clip-03/audio-source-check-fixed.json": {
+      "bytes": 891,
+      "sha256": "676087ba80593daeb7614799a60da27cd78bb8b6ac8ac11deaceef4050736239"
+    },
+    "blind/clip-03/audio-review-01/audible.json": {
+      "bytes": 4310,
+      "sha256": "9e4f6ee1ab2b9b16a61371cc40b60901b8e06db68c2a719734a88f7b83e75efc"
+    },
+    "blind/clip-03/video-review-01/visual.json": {
+      "bytes": 6377,
+      "sha256": "09db242c1abadd13337e0d766eb038a391794db33ea74212b27896419f430ea4"
+    },
+    "blind/clip-01/audio-clarification-01/audible.json": {
+      "bytes": 2862,
+      "sha256": "6a97cf9fc4eeeb39ebfb8256281e418d7f5aebd2d18b5d5d2bf457d4dcc7c47a"
+    },
+    "blind/clip-01/audio-clarification-assessment-fixed.json": {
+      "bytes": 546,
+      "sha256": "7571a9506be7a26133960b8471dc3d59ccba270cced8e3a7d1959ced7081154b"
+    },
+    "final-closeout-review.md": {
+      "bytes": 918,
+      "sha256": "3bad642bcfaea693ec10d17b7295f8c842a7b7add67dc87ee6079b1d1f2808f7"
+    },
+    "completion-checks-01.json": {
+      "bytes": 863,
+      "sha256": "e39c5e58cb22dbd11ba586ec5660547009358684ddaa72f6f4057d8f9a77e4c6"
+    }
+  },
+  "completionEvidence": "All six fixed outcomes, protocol limits, restoration reconciliation, resource closure and verified private archive; this is not a product release.",
+  "publication": "Local main checkpoint only; push/CI not requested or run.",
+  "postPackageVerification": "Final closeout review and outer verification receipts are external to the archive; their identities are pinned here."
+}
