@@ -1039,3 +1039,20 @@ prelaunch is point-in-time, not actual launch/tool/output proof. Terra watch
 resumed with active0.1.2/high primaries, both adoptions held for root planned
 targets38a425a76cfc5945a7a307f993277b6add9c713710755f5e45d6894322827f17.
 Assembly Terra/high owner prepared only readiness; exports await actual70.
+
+Exact16 controller1274379/UID1000/start414544649, supervisor1274378/start414544648,
+follower69294/PID63597 started02:32:26UTC. Actual first bindinge2e13e146ee5016702ff105ab95c3bc535ecfe0455523730f3100d00c2e85966
+proves integer477683616770678621/243frames/request9500ms/full graph+snapshot+4refs,
+PREPOST03ec37ff… protected125. Actual firstDONEa882a178644858f5a18c8168c0222b4af7d9e4eb54212ee14eec1be7d09ca951
+proves full terminal/seal/DONElane/checkpoint/protected126; final27 continues.
+10a04 native170b0f129f36fa2074daeea2569933add64a086b238717311fbab7f6d4be17f0
+FAIL primaryd642b735…; root actually viewedpages0/1,anchors4/5/6/11. Mouth-hole
+mask failure at3.75/4.958s then intact5s is material. Root5460e869f2faa2401b197a4b57d6c88e69a907e36d3b70352de706fbffa11bf3
+records reject/two-failure method reassessment, no new ASR or caption finding.
+SingleH3Shot2 sourcev36cdb5212… replaces literal mouth-open with physical jaw
+lowering beneath intact wetcloth; sourceBeat16/allguides/cuts/93lines unchanged.
+Independent0949bff2… PASS plausible realization, not actual unseen mouth proof.
+Prospective merged91e3ce41…/override299f8ff7…/metadata743f183e… reconstruct70,
+retain69otherowners/objects/current27v2; existing gate3/70/254 passes, recipeSKIP.
+No adoption/freeze yet. Conditional postnormal16 LOCAL73/127data preparation
+authorized; no successor grant/stage/GO. Final27 remains root-held for target audit.

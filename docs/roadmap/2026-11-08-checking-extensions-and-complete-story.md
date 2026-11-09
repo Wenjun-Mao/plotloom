@@ -124,10 +124,23 @@ adds27 immutable files. One native prelaunch `7825dbf4...` at02:27:26UTC Nov9
 proves protected125/prior71, both identities/request/prompt-seed keys unused,
 idle/noUNKNOWN/no controllers and current envelope/window. Root reviewed actual
 proofs (`72a57b4c...`), registered byte-identical grant (`087bfc0a...`;22 prior
-registry files unchanged), then issued separate exact2 providerGO. Launch and
-actual tool/output proof remain execution-owner follow-through, not inferred
-from this prelaunch. Terra/high primaries hold both adoptions for root targets
-(`38a425a7...`): persistent mask and final ticket scene.
+registry files unchanged), then issued separate exact2 providerGO. One controller
+1274379/follower69294 started02:32:26UTC. Actual first graph/snapshot/ref binding
+`e2e13e14...` preserves large integer seed; actual firstDONE `a882a178...` proves
+current-frozen full rows/seal/DONElane/protected126. Final27 remains in flight.
+
+10a04 is rejected: Terra primary `d642b735...` and root actual six-image audit
+`5460e869...` show a mouth-shaped hole through the mask in shot2. Required speech
+is recognized, not heard. After two compact-source failures, root changed method
+instead of another seed-only retry. Isolated sourcev3 `6cdb5212...` changes ONLY
+H3Shot2 to jaw lowering underneath continuous wet fabric; the original mouth-
+opening source beat, guides/cuts/times/voice/dialogue stay intact. Independent
+review `0949bff2...` and prospective combined gates3/70/254 pass. This is a plausible
+masked realization; jaw motion does not prove an unseen mouth opens. Proposed
+combined91e3ce41…/override299f8ff7…/metadata743f183e… preserve69 other objects/owners,
+including27v2. Nothing adopted/frozen yet; wait current exact2 closure and stopped
+readers. Local73/127 successor data only is conditionally authorized after normal
+closure, not another grant or generation. Root target27/ending review is pending.
 
 Caption index `41bac5c2...` retains13 positives/all original input/history;
 24a03 is changed-source sampled-not-observed, not seed-only/prevention/causality.
@@ -140,9 +153,10 @@ Calibration informed by this example is not held-out accuracy. Nothing activated
 
 - Follow the authorized exact2 native run through normal closure; no old grant
   replay/UNKNOWN clearing. Two seed modes remain explicit.
-- Generate and check only exact10a04/27a04 with active0.1.2/Terra-high primaries;
-  root handles uncertain/failed cases and audits the persistent mask cue. No
-  automatic further retry or skill activation before completion.
+- Finish27a04 with active0.1.2/Terra-high primary and root target. After current
+  normal2 closure, adopt independently reviewed10v3, reconcile actual source and
+  freeze one changed-source10a05; reviewed prospective native package/GO remain
+  necessary. No automatic retry or skill activation before completion.
 - Finish explicit selections and three episode exports plus the combined watch
   index, with source/selection and native AV proofs, proportionate actual-output
   audits and retained uncertainty notes. E01 preview evidence and its bounded
