@@ -142,8 +142,27 @@ unchanged guide observations, accepts minor one-frame cuts, and claims no hearin
 Actual selection is recorded. Dated current-source readback `6d337c52...` at
 [progress-after-first.json](../../.local/checking-extensions/run/video-reviews/batch15/progress-after-first.json)
 derives62/70 (21/21,22/22,19/27): E02 footage is complete, not yet assembled.
-Eight revised E03 packets remain in the same finite batch; E03-04a03 is accepted
-as `h3_1014d6ef83c84f78814c6c41dbf34397`. Actual hearing remains unestablished.
+Subsequent actual dispositions select E03-04/06/07a03. E03-13a03 is selected
+under a scoped root needs_review composition exception: a few frame-edge fingers
+and full handle differ from the literal crop, while the empty-counter/knife
+set-down event remains. Original primary FAIL is retained; root adjudication
+`73a79774...` and adoption `a91a9423...` bind the actually inspected detail132/
+anchor120/end191/page1. No ownership/hearing or literal-crop pass is inferred.
+
+E03-10a03 is rejected for mask removal; root method `3451db62...` reuses Terra
+observations, not new root pixels. This was the first take of the compact source;
+no input/transport mismatch is demonstrated. ONE exact-input fresh-seed10a04 is
+locally frozen (seed477683616770678621), proof `aa767159...`, independent single
+packet review `1b4da321...`. Same prompt/settings/guides, no source changes. It is
+not admitted and native unused remains unproved. Further failure returns to root.
+
+Three exact15 jobs remain24/25/27, with random24 adoption held. Normal9/exit0/
+all9 receipts plus final quiescence/zeroUNKNOWN/full current-frozen equality may
+trigger only the conditional LOCAL71-prior/125-protected completeness freeze,
+preserving6a744 exact62 entries/all original fields and adding ALL9 owned jobs.
+No future complete packet set, executable grant, staging or POST follows. Partial
+or technical-stop frontier does not satisfy this condition. Actual hearing remains
+unestablished throughout.
 
 Caption index `f83304e3...` retains13 positives/all original inputs/history.
 E03-24 source revision addresses independent lost-scar/invented-seating state,
@@ -167,9 +186,14 @@ Earlier synthetic handoff rehearsals remain historical, not live authority proof
 - Complete the post-media skill knowledge closeout in a new version: UI role,
   camera materiality and one unhinted ASR window. Preserve in-flight v0.1.2
   work and old reports; distinguish troubleshooting from routine review. An isolated
-  0.1.3 candidate is already prepared (`7d375214...`), with 23 focused tests,
-  validator and two retained-case forward results. It is not activated; recheck
-  the canonical base and apply after selection/export work completes. A separate
+  0.1.3 variant2 (`9a32afa7...`) adds a frame-edge-fingers/handle materiality
+  example; original7d375214… and its two retained-case results remain historical.
+  Variant2 changes only rules documentation, reuses23 unchanged focused tests
+  and passes validator/doc checks. One actual retained13 calibration returns
+  needs_review (`1150ef82...`), not an unsupported material fail. This example
+  informed the rule, so it is calibration, not held-out accuracy. Nothing is
+  activated; recheck canonical base and apply only after ALL selection/export
+  work, including any future retry, completes. A separate
   assembly-progress0.1.1 documentation candidate (`63d1978f...`) captures the
   observed local admission-registry troubleshooting route; it also remains
   unapplied through completion.

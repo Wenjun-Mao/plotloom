@@ -926,3 +926,39 @@ Same controller1072759/follower84580 proceeds to E03-04a03 accepted
 h3_1014d6ef83c84f78814c6c41dbf34397; eight E03 replacements remain. No newfuture
 packet freeze/grant or source mutation authorized automatically. Root/nativeowner
 recorded17QA outcome; current caption13positive index unchanged.
+
+## November 8 — materiality calibration and one later seed-only packet
+
+Subsequent exact15 outputs04/06/07a03 are selected from Terra/high observations,
+not fresh root image audits.07 preserves puddle/clenched-hand/masked exchange;
+nail contact/offscreen state unverified.10a03 originalc34f11de… is rejected for
+mask removed3–4.958s. Rootmethod3451db62f0867546d325dedd7474e5791e4beb463f141053cc0ddb79beeba8f7
+allows one seed-only10a04 with same current prompt/guides/settings, no newsource:
+seed477683616770678621, manifest a188d55d…/request216af8a4…/promptadad9127…;
+proofaa7671599409b10002f18ede39db8c791c096bc7cb383b9bcf1490c72f235737.
+Independent singlepacketreview1b4da321077fec41c74785a1ec0e3accaa80b3ea46c8cb59e970d73afcb8ce74
+passes current10leaf/request/freshpriorseed/localnonuse, not nativeunused/GO.
+Future completepacketset remains unknown; current9 unchanged.
+
+13a03 original49509006… primaryFAIL for frame-edge fingers/fullhandle was
+reconciled by actual root detail132/anchor120/end191/page1. Knifesetdown/flatend
+preserved; literal crop unmet but no separate actor/handover/lostcriticalevent
+established. Scopedneeds_review73a79774a5bf6a7c96e945cbaa352f2ffb93b51f6f0ac19a5b87329f0b7d03fd
+and rootadoptiona91a94233cd4312a543e2766c6b18fcdc2563faa539057689df71239a48d5f78
+support explicit selected composition exception; originalFAIL retained. No extra
+render/source rewrite for this crop; no root full-shot/hearing/ownership claims.
+
+Isolated next-skill0.1.3variant2 tree
+9a32afa77644e7e51255c7bf2c18b858e3126a7192b9738537651a7d0d164d72
+adds a narrow generic materiality example only in rules docs. Original7d375…
+remains; scripts/tests unchanged,23tests reused and validator/docs pass.
+SeparateTerra calibration1150ef8251c508c1f76db9f122d45b0f9de86461e488ece52ebb1c7a2ee35eef
+returnsneeds_review on this actual retained case, matching explicit-crop
+qualification ratherthan automatic materiality. Candidate-native validator passes;
+no newprovider/ASR/audio. Not held-out accuracy or a new production selection.
+Activation remains held until ALL renders/selections/exports finish.
+
+Native owner retains conditional LOCAL71/125 data-only permission after normal9
+closure, all9retained/fullcurrent==sealed/quiescence/zeroUNKNOWN. Exact6a62entries
+and originalb006/base912/nonaddendum/54 preserved; addALL9incl10reject. No payload
+before condition, no automatic future packetset/grant/stage/activation/POST.
