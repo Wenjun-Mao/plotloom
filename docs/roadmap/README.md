@@ -5,6 +5,10 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## H3 mixed-style Group 1
+
+Group 1 is complete: 24 original videos across four new scenarios, two styles and three H3 methods, with independent Terra reviews. The [browsable report](http://127.0.0.1:50828/group1-report/index.html) and [results record](h3-multistyle-group1-results.md) retain all outcomes: one observed caption failure, mixed phone-listener adherence and explicit audio/sync unknowns. Exact Mac/Spark preservation, all-24 playback, report reopening and shared-service/RDP checks passed. The [execution plan](h3-multistyle-group1-execution-plan.md) records acceptance. Group 2 remains undecided.
+
 ## 《别叫我的名字》 — source manuscript and branching draft
 
 The [standalone Chinese short novel](2026-11-06-dont-say-my-name-novella.md)
