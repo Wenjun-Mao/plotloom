@@ -1,0 +1,73 @@
+{
+  "status": "COMPLETE",
+  "scope": "Spark staging/work copies created for Shuohao production; Mac is retained canonical media.",
+  "authority": [
+    "Owner clarified project causation, not executing chat, defines scope.",
+    "Owner keeps final selected videos for all3episodes.",
+    "Owner requests Spark duplicates removed when Mac copy exists.",
+    "Owner chose to discard Spark-only raw request bodies/prepared images."
+  ],
+  "finishedUtc": "2026-11-13T03:04:33.765163+00:00",
+  "affectedRoots": [
+    "/home/wjmao/h3-shuohao-20261106-E01-01-attempt-01",
+    "/home/wjmao/h3-shuohao-production-20261107"
+  ],
+  "removedFiles": 1227,
+  "removedCounts": {
+    "mp4WorkCopies": 127,
+    "pngInputsAndPreparedCopies": 970,
+    "multipartBodies": 127,
+    "compiledPythonCaches": 3
+  },
+  "removedAllocatedBytes": 2557497344,
+  "removedEmptyDirectories": 143,
+  "retainedSparkControlFiles": 3833,
+  "retainedSparkControlAllocatedBytes": 22896640,
+  "retainedFunction": "Shared job durability/admission guard reads known-job, receipt, intent, original contract and prior seal metadata. Shared admission.py/evict_once.py stay. Release when those maintained consumers are migrated or retired.",
+  "selectedMacClipCount": 70,
+  "selectedMacExportCount": 4,
+  "selectionFile": "/Users/wjmao/projects/HU/plotloom/.local/checking-extensions/run/assembly-final-preflight/final-selection-70.json",
+  "selectionSha256": "a424c4a54106982eb0dbe75eda616df982b80ccf5dbd5ac5f95dbdcb39ce5f26",
+  "exports": [
+    {
+      "name": "E01",
+      "file": "/Users/wjmao/projects/HU/plotloom/docs/roadmap/别叫我的名字-shuohao-production/exports/three-episode-baseline-v1/别叫我的名字-E01.mp4",
+      "sha256FromAssembly": "3c0d9703fe03a0bbc69020b62178b4a500f780c43e29c19ef6d4d603563cc0cd",
+      "bytesFromAssembly": 28858192
+    },
+    {
+      "name": "E02",
+      "file": "/Users/wjmao/projects/HU/plotloom/docs/roadmap/别叫我的名字-shuohao-production/exports/three-episode-baseline-v1/别叫我的名字-E02.mp4",
+      "sha256FromAssembly": "045f184f48a8745a01f88dca84ea82337de34158ebe7f399f009c5d65e25004c",
+      "bytesFromAssembly": 28134452
+    },
+    {
+      "name": "E03",
+      "file": "/Users/wjmao/projects/HU/plotloom/docs/roadmap/别叫我的名字-shuohao-production/exports/three-episode-baseline-v1/别叫我的名字-E03.mp4",
+      "sha256FromAssembly": "b1213b9298c4bb882006c8c68146819a3c89f053e0d7d3c34bb6066aa982148f",
+      "bytesFromAssembly": 27356677
+    },
+    {
+      "name": "全三集",
+      "file": "/Users/wjmao/projects/HU/plotloom/docs/roadmap/别叫我的名字-shuohao-production/exports/three-episode-baseline-v1/别叫我的名字-全三集.mp4",
+      "sha256FromAssembly": "309e3346b8100ec1ebae30571bdf22e2bee766e8c53bc344466c6a3abca4f6e5",
+      "bytesFromAssembly": 84456531
+    }
+  ],
+  "postPreservation": {
+    "status": "PASS",
+    "selectionAndClipMetadataFilesUnchanged": 351,
+    "selectedMacVideosUnchanged": 74,
+    "sharedSparkHelpersUnchanged": {
+      "/home/wjmao/h3-display-cache-20261105/evict_once.py": "ab8cf6fd042230bcd55cab17207bd2f14814421845e2ff6580d89f041aa5d3e9",
+      "/home/wjmao/h3-sparse-guide-native-cpu-20261106/admission.py": "49b293baeb7e7f23c73c8c4f9fc3553e72162b752eb0b8d9e35597448176303a"
+    },
+    "retainedSparkFilesUnchanged": 3833
+  },
+  "cleanupPlanSha256": "b7ad7139c2c9765ba054cf7e912392f4c529a2774eb366f1aa448497375e7863",
+  "effectCodeSha256": "c2dd5d0db64475d3d675380b0c585ab2cd6d1b1eca838c9ea170c39b122c50b9",
+  "effectResultSha256": "2091c2396b4a395263179ff45a7c298380d57c18c7df1a491480d016dfccd24b",
+  "retiredAvailability": "Old Spark packet/media/request-body paths are no longer live payload sources. Retained metadata is historical or guard state; it does not authorize replay of spent admissions. Mac authored sources, final selections, local clips and exports remain. Exact Spark-only prepared PNG/multipart bytes were discarded at owner direction; no new archive was created.",
+  "excluded": "Separate caption/cross-framework studies, services, databases, models, provider-managed output retention and all Mac project data.",
+  "verificationLimits": "Accessible-process and Docker-mount guards plus operator lock provide cooperative-host checks, not universal visibility into inaccessible other-user processes. Free-space deltas can include concurrent activity. No generated-media or application acceptance claim."
+}

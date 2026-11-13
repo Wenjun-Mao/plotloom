@@ -151,3 +151,14 @@ The owner resumed native Goal mode; no replacement goal or rewritten pause
 history. This assignment's production and extensions are delivered. Further
 quality refinement, perceived-audio review and future skill invocation remain
 separate owner-directed work; they do not block the accepted baseline cut.
+
+## November12 storage disposition
+
+The owner chose Mac retention and Spark payload retirement. The
+[scoped cleanup](2026-11-12-shuohao-spark-cleanup.md) removed2.38GiB of Spark
+work-copy MP4s, PNGs, multipart bodies and compiled caches, including explicitly
+discarded Spark-only prepared/body data. The3 episode exports, combined cut,
+70 selected Mac originals and selection metadata were verified unchanged.
+Old Spark raw paths in historical receipts are retired availability, not current
+replay inputs. Small shared control/seal records and helpers remain for maintained
+consumers; separate H3 studies and provider-managed data were not changed.
