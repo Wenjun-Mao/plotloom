@@ -13,6 +13,8 @@ Group 2 is complete: all 12 originals across six matched pairs are retained, rev
 
 Group 3 is complete: three new A first attempts on the exact Group 2 confession seeds all produced unwanted subtitles, as did the six retained B/C originals. The [nine-video report](http://127.0.0.1:50830/group3-report/index.html), [results](h3-caption-group3-results.md) and [execution plan](h3-caption-group3-execution-plan.md) retain the conditional comparison and its limits. All-nine playback/reopening, 328 HTTP bodies, exact Mac/Spark preservation, delivery mirroring and shared-service/RDP checks passed. The next caption intervention remains for discussion.
 
+Group 4 is complete: 48 native A first outcomes have independent Terra caption reviews and qualified audio word checks. The [comparison](http://127.0.0.1:50831/group4-report/index.html) and [results](h3-caption-group4-results.md) retain one word-preserving template benefit on one confession seed, a masked-scene reversal, and no observed shortening gain. All originals and evidence have exact Mac/Spark preservation; shared services and RDP were restored. The [execution plan](h3-caption-group4-execution-plan.md) retains the protocol.
+
 ## 《别叫我的名字》 — source manuscript and branching draft
 
 The [standalone Chinese short novel](2026-11-06-dont-say-my-name-novella.md)

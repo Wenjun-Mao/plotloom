@@ -1,66 +1,64 @@
-# Group 4 prompt comparison · interim results
+# Group 4 · Template format and shortening
 
-**Two rounds complete; execution active.** The first 32 originals have independent fixed Terra caption reviews. Every second-round version was visually clear. In particular, the confession scene changed from all four versions captioned on its first seed to all four clear on its second seed. The first masked template-short caption did not recur on its second seed. [Open the two-round preview](http://127.0.0.1:50831/two-round-preview/index.html) or the [live comparison](http://127.0.0.1:50831/group4-report/index.html). Speech checks remain pending.
+**Completed.** All 48 scheduled first outcomes were generated on native H3 arm A and independently reviewed with GPT-6.1 Terra selected at high reasoning. Seven contained unwanted dialogue subtitles and 41 were visually clear. [Open the playable comparison](http://127.0.0.1:50831/group4-report/index.html). The [execution plan](h3-caption-group4-execution-plan.md) retains all literal prompts, matched seeds and controls.
 
-| Two rounds, eight matched scene–seed sets | Caption-positive clips | Visually clear clips |
-|---|---:|---:|
-| Current full | 1/8 | 7/8 |
-| Creator template full | 1/8 | 7/8 |
-| Current short | 1/8 | 7/8 |
-| Creator template short | 2/8 | 6/8 |
+| Prompt | Captioned | Visually clear | Clear + words verified | Uncertain | Technical failure |
+|---|---:|---:|---:|---:|---:|
+| Current full | 2/12 | 10/12 | 8/12 | 0 | 0 |
+| Creator template full | 1/12 | 11/12 | 10/12 | 0 | 0 |
+| Current short | 2/12 | 10/12 | 10/12 | 0 | 0 |
+| Creator template short | 2/12 | 10/12 | 10/12 | 0 | 0 |
 
-No captioned-to-clear gain has been observed in any of the four planned matched contrasts. CS→TS and TF→TS each contain the same one clear-to-captioned masked case from round one. All other comparable outcomes were both clear or both captioned. This is a descriptive result on selected scenes, with no general H3 rate or usable-fix claim. The simultaneous all-four change in confession shows why a clear fresh-seed result alone cannot establish a prompt benefit.
+The template has one matched visual benefit on one confession seed. Shortening has no observed caption-removal benefit in these samples. Template short also introduces captions on one masked-scene seed. Both clear template versions in that confession set retained the intended words in qualified audio evidence. These are descriptive findings on selected scenes.
 
-## Two-round checkpoint review
+## What changed within matched sets
 
-Relay Review decision: continue the fixed third round. The intended 48-outcome investigation is incomplete, with 16 scheduled outcomes, speech checks, final preservation and service restoration still required. The first two rounds answer different recurrence questions without a pairing, coverage, generation or storage defect that calls for changing direction. Spark had 125.5 GiB free at this checkpoint; the original coordinator was verified live with slot 33 running. The native controls and RDP accommodation remain in force. No production intervention is selected.
+Each row covers the same 12 scene–seed sets. A captioned-to-clear change is counted separately from a clear-to-captioned reversal.
 
-All 33 originals available during checkpoint closeout played through in the real browser at rate 1, from zero to native ended events, muted for the test and without media errors. The newly arrived third-round clip remains pending caption review. Final delivery checks remain. Earlier first-round technical evidence remains valid; final accounting will cover every actual request and native outcome.
+| Change | Captioned → clear | With words verified | Clear → captioned | Both clear | Both captioned |
+|---|---:|---:|---:|---:|---:|
+| Current full → Template full | 1 | 1 | 0 | 10 | 1 |
+| Current short → Template short | 1 | 1 | 1 | 9 | 1 |
+| Current full → Current short | 0 | 0 | 0 | 10 | 2 |
+| Template full → Template short | 0 | 0 | 1 | 10 | 1 |
 
-## Retained first-round checkpoint
+The two apparent template gains are the full and short comparisons on the **same third confession seed**, not two independent successful seeds. Both pass the intended-word checks. The gain therefore recurs at both detail levels within one seed; it has not recurred across independent seeds here.
 
-The following records describe the earlier 16-outcome checkpoint; later progress is stated above.
+## Where captions occurred
 
-**First round complete; execution active.** Sixteen of 48 planned first outcomes are collected and independently assessed. All four prompts produced dialogue subtitles on the first confession seed. In the first masked-dialogue set, only template short produced subtitles. All phone and illustrated-exchange versions were clear on their first seeds. [Open the first-round preview](http://127.0.0.1:50831/first-round-preview/index.html) or the [live full comparison](http://127.0.0.1:50831/group4-report/index.html). The [execution plan](h3-caption-group4-execution-plan.md) owns all 48 cells, prompt texts and paired seeds.
+Each cell is captioned clips out of three fresh seeds.
 
-| First round, four scenes | Caption-positive clips | Visually clear clips |
-|---|---:|---:|
-| Current full | 1/4 | 3/4 |
-| Creator template full | 1/4 | 3/4 |
-| Current short | 1/4 | 3/4 |
-| Creator template short | 2/4 | 2/4 |
+| Scene | Current full | Template full | Current short | Template short |
+|---|---:|---:|---:|---:|
+| Unmasked confession | 2/3 | 1/3 | 2/3 | 1/3 |
+| Masked dialogue | 0/3 | 0/3 | 0/3 | 1/3 |
+| Realistic phone | 0/3 | 0/3 | 0/3 | 0/3 |
+| Illustrated exchange | 0/3 | 0/3 | 0/3 | 0/3 |
 
-These are descriptive outcomes from four matched scene–seed sets. No captioned-to-clear gain was observed in the four planned contrasts. The masked set supplies a clear-to-captioned change for CS→TS and TF→TS. The two remaining predeclared fresh-seed rounds continue automatically. Speech checks are pending.
+For confession, all four versions were captioned on seed `2800242269852570`, all four were clear on `1313521207232448`, and only the current-format versions were captioned on `2205374283373774`. The last set supplies the visual template benefit. The first set shows that the template does not consistently remove this defect.
 
-| First confession seed 2800242269852570 | Caption intervals, inclusive native frames | Finding |
-|---|---|---|
-| Current full | 66–87, 115–140 | Dialogue subtitles present |
-| Creator template full | 64–86, 114–140 | Dialogue subtitles present |
-| Current short | 66–87, 115–140 | Dialogue subtitles present |
-| Creator template short | 66–87, 115–140 | Dialogue subtitles present |
+For masked dialogue, only template short was captioned on seed `1642821163400470`. All four versions were clear on each of `2324315853370889` and `242714137204921`. Thus the first caption introduction did not recur on either later seed.
 
-The Chinese rows reproduce “我叫陆远” and “刀是我带来的”, with smaller garbled Latin-script rows below. Neither guide image contains these screen-space overlays. Each fresh review context was requested with GPT-6.1 Terra/high, viewed all full-frame and bottom-contact pages, fixed raw observations, then viewed the shared source words and guide images before fixing its source-aware judgment. These four reviews cover all 564 native frames across 108 pages, with no reported coverage gaps.
+The phone and illustrated exchange supplied clean controls on every sampled seed. They reveal no caption-removal benefit because their current-format controls were already clear. No speech bubbles or other substitute text were recorded as a replacement for dialogue subtitles.
 
-For this selected confession scene and seed, all four authored prompt packages retain the caption problem.
+## Word preservation and interpretation
 
-| First masked seed 1642821163400470 | Caption finding | Intervals, inclusive native frames |
-|---|---|---|
-| Current full | None observed | — |
-| Creator template full | None observed | — |
-| Current short | None observed | — |
-| Creator template short | Dialogue subtitles present | 144–185, 202–256 |
+The audio-only speech/silence readiness pair passed on the retained, pinned local Qwen model. It transcribed the known Mandarin line from the spoken recording and reported no audible speech for the zero-waveform control. Both responses ended on EOS; neither received pictures or the source words. This qualifies the planned audio evidence path, not the new clips themselves.
 
-The fourth version rendered “王昊说明早还不上” and “就把聊天记录给一起干活的人看” as lower-screen Chinese rows. The three guides contain neither row. These four independently fixed reviews cover all 260 frames per clip, with raw observations fixed before common source disclosure. The physical-label transcription limit in review 05 remains retained alongside its clarification of no actual spatial or temporal coverage gaps.
+All 48 unhinted audio observations were fixed before source comparison. Fresh Terra contexts then compared the intended Mandarin clauses in order, accepting the genuine homophones 路/陆 (lù) and 浩/昊 (hào). Forty-five clips have full-word evidence, three were reported as containing no audible speech, and none remains uncertain. These are qualified audio AI observations followed by textual adjudication, not human listening.
 
-The masked set contains a clear-to-captioned contrast for both CS→TS and TF→TS. It supplies no observed caption-removal gain. Remaining fresh seeds and scenes are pending. Speech qualification is pending and no intervention is selected for production.
+The three no-speech observations are all visually clear masked clips: current full on rounds 1 and 2, and template full on round 3. Their images remain caption-clear, but they are excluded from dialogue-preserving clear counts. This leaves 38 caption-clear clips with verified source words. No new generation or speech repair was attempted.
 
-All four originals passed complete native AV decoding at 960×544 and 24 fps with 141 frames each. The first actual request and terminal native graph match their frozen compiled input, with 20 native evaluations. The other first outcomes retain the same native provenance for final accounting. The four players loaded error-free in the real browser with their expected 5.875-second durations. Full playback, final preservation and restored-service checks are pending.
+Some Qwen onset/end estimates exceed native clip duration. Those estimates are retained and unused; this check concerns transcribed words. Acting, voice identity, timing and synchronization are ungraded.
 
-Evidence is under `.local/ref2va/caption-factorial-group4-20261113/` on the Mac and `/home/wjmao/h3-caption-factorial-group4-20261113` on Spark. Fixed assessments, raw reviewer responses, neutral source cards and the first native journey and browser receipts are retained there.
+The four prompt packages include scene-specific detail removals. Template formatting also adds words, so the result does not isolate token count as a single cause. These selected scenes and seeds do not establish general H3 caption rates or a production default. Earlier Groups 1–3 remain contextual evidence and are not pooled into this sample.
 
+## Evidence and completion state
 
-## First-round checkpoint review
+All 48 actual requests and terminal native graphs match the frozen inputs, with 20 native evaluations per clip. Every retained original passed complete 960×544, 24 fps AV decode and stereo checks. Native first-outcome accounting found no technical failures.
 
-Relay Review checkpoint decision is to continue the agreed two fresh-seed rounds. The investigation is incomplete with 32 scheduled outcomes and speech qualification pending. The completed round already distinguishes a shared confession failure from an introduced subtitle on one combined-prompt case. More seeds can show whether either observation recurs. No generation, provenance, coverage or resource defect requires a direction change.
+Fresh review contexts inspected all 8,400 native frames through 1,608 full-frame and lower-region contact pages. Raw observations were fixed before common source words and guide images were disclosed; prompt versions, seeds and history remained hidden. Source-aware judgments and proof intervals are retained. Tiny physical-label transcription limits were recorded separately from coverage gaps.
 
-All 16 actual native requests and terminal graphs match the frozen compiled inputs, including prompts and exact seeds, with 20 native evaluations each and complete original AV decode. The round contains 2,800 native frames. Sixteen real-browser players loaded error-free in the static preview. Final full playback, speech evidence, full retention and service restoration remain pending. The actual native timings remain close to the forecast, giving roughly 5.4 hours of generation for the remaining two rounds before collection and closeout overhead.
+Every original played through in the real browser at rate 1, from zero to native ended events, with no media errors; playback was muted for the functional check. Both windows exited successfully and their shared-service restorations were verified against the original identities. Fresh readback found no running study GPU resources and confirmed RDP service and port availability. Final reopening passed with 48 unique ready players and 48 word-evidence links. All 2,102 served media and review-evidence bodies matched their retained pins. Exact Mac/Spark preservation passed for 13,350 files (44,659,217,053 logical bytes), including all 48 originals and 960 hardlink groups. A fresh Terra/high outcome audit found no substantive findings and independently checked every preserved original against the native, caption and audio records. The [preservation receipt](../../.local/ref2va/caption-factorial-group4-20261113/preservation-receipts/group4-final-01.json) retains the exact archive and snapshot pins.
+
+Evidence roots: `/Users/wjmao/projects/HU/plotloom/.local/ref2va/caption-factorial-group4-20261113` and `/home/wjmao/h3-caption-factorial-group4-20261113`. Native accounting and caption coverage receipts are under `delivery-final-01/`. The first-round and two-round previews remain retained alongside the live comparison. No intervention has been selected for production and no next group has been started.
