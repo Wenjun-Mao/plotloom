@@ -7,8 +7,8 @@
 | Claim | Evidence required | Fresh media | Current state |
 |---|---|---|---|
 | The two interventions are inspectable | Four literal English prompts per scene, named deletions, source dialogue, guide identity, seed and run order | None | Verified original bytes, identical dialogue, six template sections and 12 unique seeds |
-| Each new result belongs to the intended comparison | Compiled and actual native request, weights, seed, timed guides, settings, complete decode and one first outcome per cell | 48 scheduled first attempts | First16 actual native graphs/originals verified; two rounds continue |
-| The findings answer the caption question | Coverage of all frames, independent fixed judgments, source of any writing, unhinted audio evidence for clear clips, paired gains and reversals | Same originals | First16 independent Terra assessments fixed; remaining review/speech/delivery pending |
+| Each new result belongs to the intended comparison | Compiled and actual native request, weights, seed, timed guides, settings, complete decode and one first outcome per cell | 48 scheduled first attempts | First16 actual native graphs verified; 32 originals collected; third round continues |
+| The findings answer the caption question | Coverage of all frames, independent fixed judgments, source of any writing, unhinted audio evidence for clear clips, paired gains and reversals | Same originals | First32 independent Terra assessments fixed; final16, speech and delivery pending |
 | The user can examine and resume from the evidence | Playable grouped originals, partial and final tables, proof frames, Mac/Spark retained evidence and shared-service restoration | Same originals | Pending |
 
 ## The 16 prompts

@@ -1,5 +1,26 @@
 # Group 4 prompt comparison · interim results
 
+**Two rounds complete; execution active.** The first 32 originals have independent fixed Terra caption reviews. Every second-round version was visually clear. In particular, the confession scene changed from all four versions captioned on its first seed to all four clear on its second seed. The first masked template-short caption did not recur on its second seed. [Open the two-round preview](http://127.0.0.1:50831/two-round-preview/index.html) or the [live comparison](http://127.0.0.1:50831/group4-report/index.html). Speech checks remain pending.
+
+| Two rounds, eight matched scene–seed sets | Caption-positive clips | Visually clear clips |
+|---|---:|---:|
+| Current full | 1/8 | 7/8 |
+| Creator template full | 1/8 | 7/8 |
+| Current short | 1/8 | 7/8 |
+| Creator template short | 2/8 | 6/8 |
+
+No captioned-to-clear gain has been observed in any of the four planned matched contrasts. CS→TS and TF→TS each contain the same one clear-to-captioned masked case from round one. All other comparable outcomes were both clear or both captioned. This is a descriptive result on selected scenes, with no general H3 rate or usable-fix claim. The simultaneous all-four change in confession shows why a clear fresh-seed result alone cannot establish a prompt benefit.
+
+## Two-round checkpoint review
+
+Relay Review decision: continue the fixed third round. The intended 48-outcome investigation is incomplete, with 16 scheduled outcomes, speech checks, final preservation and service restoration still required. The first two rounds answer different recurrence questions without a pairing, coverage, generation or storage defect that calls for changing direction. Spark had 125.5 GiB free at this checkpoint; the original coordinator was verified live with slot 33 running. The native controls and RDP accommodation remain in force. No production intervention is selected.
+
+All 33 originals available during checkpoint closeout played through in the real browser at rate 1, from zero to native ended events, muted for the test and without media errors. The newly arrived third-round clip remains pending caption review. Final delivery checks remain. Earlier first-round technical evidence remains valid; final accounting will cover every actual request and native outcome.
+
+## Retained first-round checkpoint
+
+The following records describe the earlier 16-outcome checkpoint; later progress is stated above.
+
 **First round complete; execution active.** Sixteen of 48 planned first outcomes are collected and independently assessed. All four prompts produced dialogue subtitles on the first confession seed. In the first masked-dialogue set, only template short produced subtitles. All phone and illustrated-exchange versions were clear on their first seeds. [Open the first-round preview](http://127.0.0.1:50831/first-round-preview/index.html) or the [live full comparison](http://127.0.0.1:50831/group4-report/index.html). The [execution plan](h3-caption-group4-execution-plan.md) owns all 48 cells, prompt texts and paired seeds.
 
 | First round, four scenes | Caption-positive clips | Visually clear clips |
