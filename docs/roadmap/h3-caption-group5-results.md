@@ -1,5 +1,7 @@
 # Group 5 · Fresh-seed recurrence of the full-template caption benefit
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 Updated: 2026-11-14. **All 16 first outcomes, caption reviews, intended-word checks, functional delivery and exact Mac/Spark preservation are verified. The final independent Terra/high outcome audit passed.** The [execution plan](h3-caption-group5-execution-plan.md) retains the frozen protocol and authority. The [playable comparison](http://127.0.0.1:50832/group5-report/index.html) exposes every original and its fixed evidence.
 
 The full-template benefit recurred on **one new independent seed with the intended words retained**. Current full was captioned on 3/8 seeds and creator-template full on 2/8. The template remained captioned on two other seeds. This is a limited recurrence on the selected confession scene, not a dependable remedy or a production default.

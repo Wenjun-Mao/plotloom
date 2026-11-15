@@ -1,5 +1,7 @@
 # Group 4 · Does changing the prompt reduce unwanted burned-in dialogue subtitles?
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 **Intended result.** Give Wenjun a playable, matched comparison of the creator’s Ref2VA format and scene-specific prompt shortening on native H3. Show where either change removes captions, where it introduces them, and whether the intended words can still be heard in a clear clip.
 
 **Status.** Completed: all 48 first outcomes, caption and word checks, final delivery, exact preservation and outcome review are verified. The run is based on Plotloom main `d6e2c6b5e036` with unrelated local work. Four scenes, three fresh seeds per scene, four prompts per seed, 48 first outcomes on arm A. The execution director owns the Spark window, collection, evidence and restoration. A user kickoff covers the entire group through final review and delivery. The 10–12 hours describe the owner's absence.

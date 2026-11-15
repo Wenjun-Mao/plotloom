@@ -1,5 +1,7 @@
 # Group 3: A on the three caption-positive confession seeds
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 Status: authorized by the owner's “Go ahead with this direction with Group 3” on 2026-11-13. Completed: all three A originals are retained and source-aware caption reviews are fixed; all three contain subtitles. The [results](h3-caption-group3-results.md) and [nine-video report](http://127.0.0.1:50830/group3-report/index.html) record the caption-only comparison. Operational closeout passed, with no new Goal or subsequent group started.
 
 | Claim | Required evidence | Fresh media | Status |

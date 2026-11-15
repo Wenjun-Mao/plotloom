@@ -1,5 +1,7 @@
 # Group 4 · Template format and shortening
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 **Completed.** All 48 scheduled first outcomes were generated on native H3 arm A and independently reviewed with GPT-6.1 Terra selected at high reasoning. Seven contained unwanted dialogue subtitles and 41 were visually clear. [Open the playable comparison](http://127.0.0.1:50831/group4-report/index.html). The [execution plan](h3-caption-group4-execution-plan.md) retains all literal prompts, matched seeds and controls.
 
 | Prompt | Captioned | Visually clear | Clear + words verified | Uncertain | Technical failure |

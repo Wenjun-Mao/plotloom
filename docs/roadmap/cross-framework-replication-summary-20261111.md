@@ -1,5 +1,7 @@
 # H3 cross-framework replication: partial study record
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 > Historical snapshot, superseded by later execution. The campaign eventually reached 23 completed paired blocks (69 fixed assessments), plus A/B originals in partial block 24; C in that block remained unstarted and the last window 26 was restored. The owner then cancelled the remaining fixed-272 plan in favor of staged mixed-style groups. The 14-block counts and open-hold observations below remain the record of the November 11 pause, not the final checkpoint or a current service-health claim. See the [November 13 direction review](h3-multistyle-group1-results.md#direction-review-after-completion--2026-11-13) for the reconciled results and their limits.
 
 **Status at pause, November 11, 2026.** Fourteen of the planned 272 paired blocks were completed and assessed: 42 of 816 first-attempt outcomes. Three first-generation outputs in block 15 were produced, but the block was not fully collected or assessed. The study is paused. The owner is reconsidering its value while moving toward native H3; no further study execution is implied by this document.

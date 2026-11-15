@@ -1,5 +1,7 @@
 # Group 1 mixed-style H3 results
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 Completed 2026-11-13 using Relay Direct and independent GPT-6.1 Terra reviews. [Open all 24 originals and assessments](http://127.0.0.1:50828/group1-report/index.html). The [first-six preview](http://127.0.0.1:50828/first-six-preview-complete/index.html) remains available.
 
 All 24 frozen first outcomes were retained and fully decoded: four new non-episode Mandarin/no-speech scenarios × realistic/hand-drawn 2D × three native configurations. One seed per scenario was committed before outputs. There were no quality replacements. Raw visual observations were method-, seed- and runtime-blind; source materials were then disclosed for adherence scoring while the method key stayed hidden until each assessment was fixed.

@@ -1,5 +1,7 @@
 # Group 2 caption recurrence results
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 Completed 2026-11-13 with Relay Direct and independent reviews requested with GPT-6.1 Terra/high. [Open all 12 originals and assessments](http://127.0.0.1:50829/group2-report/index.html). The [execution plan](h3-caption-group2-execution-plan.md) owns acceptance.
 
 The owner authorized 12 first attempts: three fresh matched seeds for the retained realistic phone input on A/B and three for the retained unmasked confession on B/C. All 12 originals were retained, with no quality replacements, extra seeds or model/decode failures. Group 2 replaces no original assessment and does not resume the cancelled 272-block campaign.

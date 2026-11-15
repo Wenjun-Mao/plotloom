@@ -1,5 +1,7 @@
 # Test B against recurring burned-in dialogue subtitles in Group 2
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 ## Current status
 
 Completed 2026-11-13 after the owner's “Go” authorization. The [results record](h3-caption-group2-results.md) and [12-video report](http://127.0.0.1:50829/group2-report/index.html) contain all six frozen pairs / 12 first outcomes. All originals fully decoded and all 12 independent caption assessments are fixed: phone A/B are clear on each of three fresh seeds; confession B/C both have subtitles on each of three fresh seeds. No pair shows B clear while its comparator has subtitles. B therefore has three confirmed conventional subtitle failures in this group. The phone input leaves B's relative advantage unresolved because A's prior subtitle failure did not recur. These selected inputs support no general failure-rate, overall ranking or isolated precision claim. Audio/sync/general quality remain deferred, and Group 3 remains undecided.

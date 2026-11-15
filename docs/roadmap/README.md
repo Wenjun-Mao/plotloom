@@ -5,17 +5,19 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
-## H3 mixed-style Group 1
+## H3 caption investigation · paused for production
 
-Group 1 is complete: 24 original videos across four new scenarios, two styles and three H3 methods, with independent Terra reviews. The [browsable report](http://127.0.0.1:50828/group1-report/index.html) and [results record](h3-multistyle-group1-results.md) retain all outcomes: one observed caption failure, mixed phone-listener adherence and explicit audio/sync unknowns. Exact Mac/Spark preservation, all-24 playback, report reopening and shared-service/RDP checks passed. The [execution plan](h3-multistyle-group1-execution-plan.md) records acceptance.
+The [full review and restart handoff](h3-caption-investigation-review-20261114.md) consolidates the cancelled campaign and Groups 1–5. The bounded comparisons completed; no dependable caption remedy or production default was established. The full template helped on one confession seed in Group 4 and one fresh seed in Group 5, while failing on others. Story-required characters and dialogue stay fixed.
 
-Group 2 is complete: all 12 originals across six matched pairs are retained, reviewed and viewable in the [report](http://127.0.0.1:50829/group2-report/index.html). The [results](h3-caption-group2-results.md) show no subtitles on phone A/B across three fresh seeds, and subtitles on confession B/C across all three seeds. No pair showed B clear while its comparator had subtitles. Exact Mac/Spark preservation, all-12 playback/reopening, delivery mirroring and shared-service/RDP checks passed. The [Group 2 plan](h3-caption-group2-execution-plan.md) records acceptance.
+Most study media, frame/tensor buffers, compiler caches and full archives were intentionally retired on 2026-11-14 after retaining text, exact inputs and 12 illustrative original clips. Historical full-cohort report/player links are retired. Start with the review and its retained-example/outcome maps. Models, shared runtime/source assets and production work are excluded from cleanup.
 
-Group 3 is complete: three new A first attempts on the exact Group 2 confession seeds all produced unwanted subtitles, as did the six retained B/C originals. The [nine-video report](http://127.0.0.1:50830/group3-report/index.html), [results](h3-caption-group3-results.md) and [execution plan](h3-caption-group3-execution-plan.md) retain the conditional comparison and its limits. All-nine playback/reopening, 328 HTTP bodies, exact Mac/Spark preservation, delivery mirroring and shared-service/RDP checks passed. The next caption intervention remains for discussion.
-
-Group 4 is complete: 48 native A first outcomes have independent Terra caption reviews and qualified audio word checks. The [comparison](http://127.0.0.1:50831/group4-report/index.html) and [results](h3-caption-group4-results.md) retain one word-preserving template benefit on one confession seed, a masked-scene reversal, and no observed shortening gain. All originals and evidence have exact Mac/Spark preservation; shared services and RDP were restored. The [execution plan](h3-caption-group4-execution-plan.md) retains the protocol.
-
-Group 5 is complete: 16 native A first outcomes across eight fresh matched confession seeds have independent Terra caption reviews and qualified intended-word checks. The [comparison](http://127.0.0.1:50832/group5-report/index.html) and [results](h3-caption-group5-results.md) show current full captioned 3/8 and exact creator-template full 2/8: one new word-preserving gain, zero reversals, five both clear and two both captioned. The benefit is limited to this selected scene; all originals/evidence have exact Mac/Spark preservation, the final Terra audit passed and shared services were restored. The [execution plan](h3-caption-group5-execution-plan.md) retains the protocol.
+| Completed comparison | Historical results |
+|---|---|
+| Group 1 · 24 originals, mixed scenes/styles, A/B/C | [Results](h3-multistyle-group1-results.md) |
+| Group 2 · 12 phone/confession recurrence outputs | [Results](h3-caption-group2-results.md) |
+| Group 3 · 3 new A outputs on selected confession seeds | [Results](h3-caption-group3-results.md) |
+| Group 4 · 48 full/short × current/template outputs | [Results](h3-caption-group4-results.md) |
+| Group 5 · 16 fresh matched CF/TF confession outputs | [Results](h3-caption-group5-results.md) |
 
 ## 《别叫我的名字》 — source manuscript and branching draft
 

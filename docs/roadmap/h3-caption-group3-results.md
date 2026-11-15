@@ -1,5 +1,7 @@
 # Group 3 supplemental caption results
 
+> **Retention update · 2026-11-14:** This investigation is paused for production. Most original videos, derived visual/tensor evidence and full archives were intentionally retired after a text handoff and minimal-example retention were verified. Completion/preservation claims below describe their historical closeout. See the [current review and retention record](h3-caption-investigation-review-20261114.md); old full-cohort player links are retired.
+
 Completed 2026-11-13 with Relay Direct and independent reviews requested with GPT-6.1 Terra/high. All three authorized A first attempts and all six retained B/C comparators are viewable. [Open the nine-video comparison](http://127.0.0.1:50830/group3-report/index.html).
 
 **A also produced unwanted burned-in dialogue subtitles on all three selected confession seeds.** Together with the six retained Group 2 B/C originals, all nine videos have conventional dialogue subtitles. There were no quality rerolls, extra seeds, model/decode failures or uncertain subtitle judgments. This completes the scientific comparison specified in the [execution plan](h3-caption-group3-execution-plan.md); operational closeout also passed.
