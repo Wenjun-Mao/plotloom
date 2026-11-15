@@ -15,7 +15,7 @@ Group 3 is complete: three new A first attempts on the exact Group 2 confession 
 
 Group 4 is complete: 48 native A first outcomes have independent Terra caption reviews and qualified audio word checks. The [comparison](http://127.0.0.1:50831/group4-report/index.html) and [results](h3-caption-group4-results.md) retain one word-preserving template benefit on one confession seed, a masked-scene reversal, and no observed shortening gain. All originals and evidence have exact Mac/Spark preservation; shared services and RDP were restored. The [execution plan](h3-caption-group4-execution-plan.md) retains the protocol.
 
-Group 5 has a [reviewed execution plan](h3-caption-group5-execution-plan.md): eight fresh matched confession seeds, current full versus the exact Group 4 creator-template full, 16 native A first outcomes. It tests recurrence of the caption benefit with intended-word checks. The first pair and four-pair midpoint will be inspectable; execution has not started.
+Group 5 is complete: 16 native A first outcomes across eight fresh matched confession seeds have independent Terra caption reviews and qualified intended-word checks. The [comparison](http://127.0.0.1:50832/group5-report/index.html) and [results](h3-caption-group5-results.md) show current full captioned 3/8 and exact creator-template full 2/8: one new word-preserving gain, zero reversals, five both clear and two both captioned. The benefit is limited to this selected scene; all originals/evidence have exact Mac/Spark preservation, the final Terra audit passed and shared services were restored. The [execution plan](h3-caption-group5-execution-plan.md) retains the protocol.
 
 ## 《别叫我的名字》 — source manuscript and branching draft
 
