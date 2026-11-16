@@ -5,6 +5,15 @@ explicit evidence per claim, and clearly historical superseded instructions.
 The [validation method](../development.md#validation-without-new-media) defaults
 internal changes to request comparisons and retained-media functional journeys.
 
+## H3 ordered references · optional voices planned
+
+The [existing reference-images plan](2026-11-06-h3-reference-images.md) now covers
+optional zero-to-three character voice references alongside the current 1–9
+ordered images and timestamps. The reviewed plan preserves image-only requests,
+requires per-line voice-assignment evidence and keeps instructions in the
+existing manuals. Planning is complete; implementation and activation await
+execution authorization. The caption investigation below remains paused.
+
 ## H3 caption investigation · paused for production
 
 The [full review and restart handoff](h3-caption-investigation-review-20261114.md) consolidates the cancelled campaign and Groups 1–5. The bounded comparisons completed; no dependable caption remedy or production default was established. The full template helped on one confession seed in Group 4 and one fresh seed in Group 5, while failing on others. Story-required characters and dialogue stay fixed.

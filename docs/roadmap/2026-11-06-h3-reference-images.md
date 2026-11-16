@@ -1,319 +1,111 @@
-# Native ordered Ref2VA images through the public gateway
+# H3 ordered reference images · optional character voice references
 
 ## Current status
 
-Updated November 7, 2026. Implementation and qualification owner is the H3
-specialist, chat 01a0983e-0e5f-7171-950e-011adaf53303. Manager and final
-closeout owner is chat 01a1902a-80b6-7d80-a166-9c980850982f. Authoritative
-checkout is local Plotloom main with existing owner storyboard changes.
-The typed route, frozen snapshot, native graph and lifecycle implementation
-are complete. Independent Sol/High source review is closed after fixing the
-dashboard subtype projection. Focused checks (61 tests), isolated gateway and
-dashboard wheel installs, 14 dashboard UI checks, retained-AV functional QA and
-the pinned native CPU ordering/layout proof pass. The final full local gate
-passed: 5173 Python, 1738 frontend and 366 browser cases, types, deterministic
-assets and installed root wheel. Manager-admitted activation and exact installed
-readback passed, including protected data and real private HTTPS playback,
-seek and original download hashes. The single admitted E01-01 production job
-succeeded; its accepted/terminal native graphs, full snapshot and all five
-source/prepared hashes match the frozen package. Original native AV downloaded
-and decoded, and real HTTPS playback/seek/download passed. The generic gateway
-technical handoff is complete. The manager owns actual picture/native-audio
-creative review and any further production. The matched-B experiment remains paused.
+Updated: 2026-11-16. Owner: one Relay Direct source/qualification owner, coordinating with the existing Plotloom production director. Baseline: local main `a9c6366b`; unrelated Shuohao roadmap/earlier-caption-plan edits remain outside this work. **Planning complete: reviewed plan, ready for execution approval. Implementation has not begun.** The user requests optional audio on the existing section-7B endpoint and selected support for up to three character voices per generation. Existing image-only requests must continue to work. Next: carry this plan into execution when authorized; implementation/activation awaits that authorization. No Goal is created.
+
+**Intended result.** `POST /v1/video-jobs/from-reference-images` accepts its existing 1–9 ordered stills and timestamps, optionally with 1–3 reusable character voice clips. The gateway preserves the image timeline and binds every supplied voice to its ordered native audio slot, with an explicit caller-owned speaker mapping. Demonstrate that the combined path returns valid native AV and that the selected voices can remain recognizable across new dialogue in a bounded qualification. This is not a universal voice-cloning, speaker-attribution, lip-sync or caption-prevention guarantee.
 
 ## Acceptance
 
-**Documentation follow-up · 2026-11-16:** Complete. The
-[colleague guide’s ordered-reference section](../operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
-now provides full Bruno/curl upload and URL examples, timeline/readback and
-route-specific limits. Existing entry points and operator/dashboard/timing docs
-were aligned. Actual parser, shell syntax, local-link checks and read-only Spark
-health passed; the independent Terra/high finding was resolved. See the
-[documentation verification](../verification/2026-11-16-h3-reference-images-docs.md).
-This follow-up changed no runtime or creation behavior and dispatched no job.
-
 | Claim | Required evidence | Fresh media | Status |
-| --- | --- | --- | --- |
-| Ordered timed images reach the native encoder and guides | Authenticated public request, durable restart, exact full Comfy envelope, original prompt and image bindings | No | Passed: authenticated API/restart and complete envelope, retained AV download; pinned real native CPU methods with inert leaves |
-| The ordinary lifecycle remains safe | Input refusals, partial rollback, FIFO, cancellation, UNKNOWN, tamper and retention checks, existing-route regressions | No | Passed focused contracts including existing dashboard/voice/schema regressions; final full gate passed |
-| Five references work with the installed learned runtime | Exact manager-admitted E01-01 request through public API to terminal download and native graph/readback | One actual story job replacing the generic fixture | Passed one actual five-image/277-frame run: native success, exact graph, authenticated original download and full AV decode; no repeated-run or nine-image capacity claim |
-| The package can be activated | Stable independent review, applicable full local gate, exact package and installed source readback, protected-state preservation | No | Passed: independent review, full local gate, Mac wheel, exact ARM64 smokes and serving readback; protected data and private HTTPS playback/download retained |
-| Shuohao source fidelity | Exact UTF-8 source prompt and five requested times preserved in final request | No | Passed against actual accepted native graph, persisted snapshot and source/prepared files; no creative acceptance implied |
+|---|---|---|---|
+| Audio is genuinely optional | Existing JSON/upload requests, omitted/empty audio, exact v1 image-only graph/snapshot/readback and lifecycle regression checks; no new reference-audio dependency on this branch | None | Planned |
+| 1–3 character clips bind faithfully | Strict URL/upload contracts; ordered labels, original/canonical WAV hashes and immutable snapshot; real API → SQLite → restart → complete captured native graph with expected `audio_vae`, all image guides and all audio slots | Retained media for functional QA | Planned |
+| Private data and lane ownership stay safe | Atomic reservation/rollback; file ownership/digest/name checks; tamper refusal; FIFO/cancellation/UNKNOWN/recovery and expiry/purge tests for all supplied clips | None | Planned |
+| Native joint conditioning works | Actual pinned ReferenceToVideo/AddGuide/PackedLayout CPU proof, followed by real public-API requests, accepted/terminal graph comparison, native AV decode and original-byte downloads | Small bounded new qualification | Planned |
+| Reused voices support the production purpose | Two takes with the same frozen voice references and different held-out dialogue; actual listening comparison of each reference and each authored speaker/line in both outputs against a frozen expected voice map, with mismatches/uncertainty recorded | Same qualification originals | Planned; no claim from ASR or hashes alone |
+| Installed feature and handoff are usable | Exact built/installed package, protected-state preservation, unaffected routes, dashboard/readback, real playback/seek/download and existing-manual examples; service restoration and compact retention | Same originals/retained media | Planned |
 
-## API and ownership
+Technical delivery, native integration and perceived voice continuity are separate judgments. If listening is unavailable, the first two can be reported with voice continuity still pending; do not call the complete intended result achieved. A voice mismatch requires diagnosis or a plainly stated model limitation, not a substituted success criterion. This qualification adds no mandatory per-clip review step to normal production.
 
-Add authenticated POST `/v1/video-jobs/from-reference-images`. Callers own the
-original prompt, ordered images, requested times, duration, seed, resolution
-and aspect policy. Trusted gateway code validates those values, freezes all
-input identities, derives native frame indices and constructs the graph.
-The route accepts 1–9 single stills, one guide per image, with no reference
-audio, free-form graph, quality selector or model override.
+## Agreed direction and proposed engineering defaults
 
-JSON carries `prompt`, `resolution`, `aspectPolicy`, `durationMs`, optional
-`seed`, and ordered `references` entries containing `sourceUrl` and integer
-`atMs`. Multipart carries one `request` JSON field with the same typed fields
-and ordered reference metadata without URLs, plus repeated `images` parts in
-the corresponding order. Reject mixed URL/upload entries, duplicate JSON keys,
-unknown fields and duplicate scalar parts. Bound total upload bytes to 20 MiB and each input
-to the existing image decoding limits.
+**User decisions:** extend the existing 7B route; audio is optional; support up to three character voices; retain ordered-image/timing behavior; keep colleague instructions in the existing manuals. Character identity and authored dialogue remain story requirements. The caption investigation remains paused.
 
-Use the existing Ref2VA canvases 960x544 and 576x1024, and requested duration
-5000–15000 integer milliseconds. Preserve requested millisecond values. First reference is
-at zero, subsequent times are strictly increasing and precede the requested
-end. Resolve to the nearest 24 Hz video frame with positive half ties upward.
-Reject collisions after quantization. Each guide is exactly one still, so
-interval overlap and negative/end-relative interpretation are absent from
-this contract. Ceil requested frame count onto the native 17k+5 grid.
-The Shuohao example requests 11.3 seconds, produces 277 frames, and maps
-0, 2.5, 4.5, 6.8, 9 seconds to frames 0, 60, 108, 163, 216. Return both requested
-and resolved times and the actual 277/24-second output clock.
+**Proposed defaults selected by the planner:** reuse 7A's strict WAV contract and native conditioning rather than introduce a new model or service; accept per-job file/URL inputs, with stable speaker labels and deterministic audio order. The caller keeps approved reference clips stable across generations. A global character/Voice-ID library, automatic Voice Lab lookup, TTS, dubbing, video inputs and a new creation endpoint are outside scope. The same node already has both image and audio inputs; there is no useful alternative requiring a separate generation pipeline for this brief.
 
-## Storage and native binding
+These are implementation defaults, not claims the user specified field names. Ordinary naming/module details remain with the source owner if they preserve this contract and evidence. Existing 7A, FL2VA, Qwen and Voice Lab routes retain their separate contracts.
 
-Use the existing Ref2VA model family and immutable versioned
-`inputMode=reference_images` snapshot. Keep the parent jobs contract intact.
-Extend the exact known frame-binding child schema with `reference_1` through
-`reference_9`, using its lossless known-shape migration and existing asset
-retention. Freeze original and prepared hashes, ordered filenames, requested
-times, guide indices, prompt SHA, seed, canvas, clock, renderer and VAE policy.
-The snapshot enters the existing lane commitment. Dispatch cross-checks all
-job columns, binding rows and actual files before its one native submit.
+### Proposed request and model-facing mapping
 
-The pinned Comfy node uses ordered `ref_images.ref_image_0` onward for
-`<Picture 1>` onward. Every image also enters its matching AddGuide node.
-Chain AddGuide conditioning into BasicGuider and keep the original AV latent
-from ReferenceToVideo. AddGuide returns conditioning only. Prompt bytes pass
-directly to ReferenceToVideo without translation or rewriting.
+- Keep current `prompt`, `resolution`, `aspectPolicy`, `durationMs`, optional `seed` and ordered image `references` unchanged. Keep canvases 960x544/576x1024, integer duration 5000–15000 ms, image count 1–9 and combined image limit 20 MiB.
+- Add optional `audioReferences`, default empty. Omitted or `[]` means the current image-only behavior; explicit `null`, duplicate/empty speaker labels and more than three entries are validation errors. Each entry has a unique caller-owned `speaker` label. Labels identify the author's speaker in this job; the gateway does not resolve an external character record.
+- JSON URL mode adds `{speaker, sourceUrl}` entries. Multipart keeps one `request` JSON field and repeated `images`, adding repeated file fields `audios`; audio metadata contains `{speaker}` only. File order must match its metadata array exactly. Raise the multipart parser’s total file allowance from 9 to 12, while independently enforcing images ≤9 and audios ≤3, one scalar `request` field and the existing metadata limit. Use the existing all-URL or all-upload style; do not ambiguously provide a file and URL for one reference. Images and voices retain independent counts and byte checks.
+- Reuse `canonical_voice`: each nonempty reference is PCM16 mono 32 kHz WAV, 1–10 seconds, at most 2 MiB. Up to three therefore adds at most 6 MiB of original WAVs; this does not reduce the existing image allowance. Do not silently trim, resample, transcode, merge speakers, deduplicate slots or drop a supplied voice. Prepare canonical WAV headers and preserve original/canonical hashes.
+- A supplied clip should contain the intended single character's voice. That is caller/source selection, not a new automatic ASR/diarization gate. The caller can retrieve an authenticated Voice Lab H3 export and upload it; the gateway does not forward its bearer to arbitrary source URLs or resolve a take ID.
+- Audio entry 1 maps to native `ref_audios.ref_audio_0` / `<Audio 1>`, and so on through three. Native image order remains `<Picture 1>` onward. Audio references guide the voice globally; there is no audio `atMs` or waveform replacement. The prompt explicitly links each `<Audio n>` to its corresponding character and supplies the new dialogue.
+- Speaker labels are persisted/read back as provenance; they are not a native forced speaker-assignment mechanism. Preserve the caller's prompt bytes unchanged. Document the required prompt association and verify it in the qualification fixture; do not infer/insert dialogue or secretly rewrite prompts from metadata.
 
-Ref2VA uses `minimax_h3_ref2va_pruned_int8_convrot.safetensors`, expected SHA
-`9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779`, Base-20
-RES/simple and the adopted VAE policy. Existing readiness checks establish
-node/filename availability, which is distinct from a fresh full weight hash
-and learned capacity. Verify those separately before the live smoke. The
-image-only route has independent readiness from the voice-reference route.
+For example, proposed multipart metadata may include:
 
-## Small journey, resources and qualification
+```json
+{
+  "prompt": "<Audio 1> is the voice reference for Speaker A; <Audio 2> is the voice reference for Speaker B. Use the authored scene and new dialogue here.",
+  "resolution": "960x544",
+  "aspectPolicy": "contain_pad",
+  "durationMs": 8000,
+  "references": [{"atMs": 0}, {"atMs": 4000}],
+  "audioReferences": [{"speaker": "Speaker A"}, {"speaker": "Speaker B"}]
+}
+```
 
-First exercise one public five-image request with retained PNGs through a real
-local API, SQLite, restart, fake Comfy transport, retained MP4 transfer and
-download. Compare the entire submitted graph and exact UTF-8 prompt bytes.
-Offline tests refuse unexpected real submission. Test 1/5/9 images and all
-timing, count, multipart, geometry, rollback and tamper refusals. Existing
-FL2VA, voice, Qwen and shared-lane tests supply regression evidence.
+This is a proposed metadata example, not a runnable production prompt or a currently accepted audio request. The implementer supplies actual source images, distinct single-speaker WAVs and complete authored dialogue before qualification.
 
-Five reference images are encoded for the text encoder and native reference
-blocks, and again for five timed guide states. This adds conditioning tokens,
-image encodes and memory relative to the current single-image voice route.
-The admitted five-image/277-frame case completed in 1213.457 seconds from
-submission to gateway completion observation. One measured execution does not
-qualify repeated-run performance or the nine-image capacity envelope. Keep
-`ref_image_size` at `match` and retain the shared single-inference FIFO.
+### Persistence, rendering and API readback
 
-The initially proposed generic retained-image learned smoke is superseded,
-unperformed. The owner's later explicit overnight real-story authority permits
-ONE exact E01-01 production job to supply the same five-reference, 277-frame
-integration evidence and the separate creative review input. It uses the final
-manager-frozen five cash-corrected frames, original byte-exact Shuohao prompt,
-960x544, 11300 requested milliseconds, times 0/2500/4500/6800/9000 and the
-manager-issued seed and dispatch identity. Do not treat current frame paths as
-admitted while they are under revision. No separate generic POST is necessary.
+Keep active image-only snapshots/readback at their current strict version and preserve existing persisted jobs. Use a separately identifiable audio-enabled snapshot/renderer revision; proposed implementation is renderer version 2 plus an audio-contract version, with image-only renderer version 1 remaining an active supported branch. No backfill rewrites to older snapshots or audio invention for old jobs. Publish capability/version fields so callers can distinguish image and optional-audio support.
 
-This substitution changes the prospective fixture, not the gateway contract.
-It answers whether installed model, encoder and chained conditioning execute
-together and return valid native AV. Preserve the first outcome and stop after
-terminal readback or a known failure. UNKNOWN requires exact reconciliation
-without replay. Technical AV integration and source fidelity do not establish
-creative quality; the manager owns the production plan and creative judgment.
-Any further story submission needs its final exact package and fresh manager
-admission; the first job's one-POST grant cannot be replayed or expanded.
+Add a one-to-many reference-audio binding table keyed by job and ordinal, with unique speaker label, source/prepared digest and size/duration/name/release fields. Keep 7A's one-to-one `job_voice_bindings` and behavior intact. Admission registers the job, image rows, all audio rows and the lane entry atomically. On any download, preparation, third-file, reservation or lane failure, discard only that attempt's newly owned inputs and leave no partial admitted job.
 
-Root coordinates with the manager before every shared service mutation or
-live job. The manager confirms resource quiescence and ownership, and owns
-final closeout. Preserve existing jobs, holds, database identity, voices and
-unrelated files. Use normal source-only package activation and exact installed
-readback. Run focused checks during implementation and the required final
-local full gate on the stable candidate. CI and push remain off.
+Use dedicated reference-audio lifecycle/store helpers. Reuse pure WAV validation, private-file writing and ownership rules; calling `VoiceFiles.prepare` three times unchanged would collide on its single per-job name, and its cleanup assumes one start frame. Names must be indexed and owned by the job, never formed from unchecked speaker strings. Retain private source copies and Comfy-readable private prepared copies. Validate all identities and snapshot/file hashes again at dispatch.
 
-## Primary native sources
+When audio is supplied, connect `audio_vae` and every ordered `LoadAudio` output to the same ReferenceToVideo node used by all image references; keep every AddGuide and the original target AV latent. Supplying only token labels without audio-VAE conditioning is not sufficient. With zero references, retain the existing graph and reference-image-specific preflight; add no new LoadAudio/audio-reference requirements. Existing native output-audio dependencies remain unchanged.
 
-- [Pinned Comfy node](https://github.com/Comfy-Org/ComfyUI/blob/6b747c0428c343e1417219641db93a4fb7cb69ae/comfy_extras/nodes_minimax_h3.py)
-- [Comfy multiframe workflow](https://docs.comfy.org/tutorials/video/minimax/minimax-h3-multiframe)
-- [MiniMax model specifications](https://github.com/MiniMax-AI/MiniMax-H3#model-variants-and-input-specifications)
+Add optional-audio readiness/count/format metadata separately from existing image readiness and 7A voice readiness. Preflight the actual requested image/audio counts and installed audio schema/VAE/nodes. Health is node/model readiness, not voice quality or proof of every maximum-size combination.
 
-## Qualification evidence
+Audio-enabled create/GET readback includes the ordered speaker-to-slot mapping, original/prepared digests and duration, without raw WAVs, source URLs, private paths or secrets. Image-only response shape remains unchanged. The dashboard reads both active snapshot forms, displays mapping/readback and outputs, and remains read-only apart from its existing FL2VA submission facade. No new multi-image/audio form is required by this scope; the existing API manual covers direct callers.
 
-Root owns all execution; independent reviewers reused the stable diff and did
-not duplicate suites. Evidence is `.local/ref2va/`, with separate frozen
-qualification, activation and terminal technical receipts. The functional journey used five distinct retained
-QA images, the byte-exact Shuohao source prompt and real SQLite/API/restart,
-then one captured fake Comfy submission and a derived retained AV file. The
-original story JSON SHA-256 is
-`e52fec3505f90b5e8be564654cac3c0a4978d242f5a5079b01be2b93ad27ddee`;
-the prompt SHA-256 is
-`294da25badb73f39f1c3a0a83a8fbf19be921ea9edd450f7a5e3ae54fec17fab`.
-The download decoded as H.264/AAC, 960×544, 277 frames/24 fps, 32 kHz audio.
-It is a scaled/trimmed retained MP4, not newly generated Ref2VA output.
+Protect all nonterminal and unresolved held inputs, including UNKNOWN work, until native ownership is reconciled. Successful transient inputs follow output expiry; failed/cancelled inputs follow the existing 30-day policy. Coordinate image/audio cleanup and job purging so every clip is released or protected before deletion. Do not introduce durable Voice Lab retention into gateway storage or make it a global voice library.
 
-The CPU proof executes actual pinned ReferenceToVideo, AddGuide and PackedLayout
-methods against the captured graph, with inert CLIP/VAE/management/image leaves:
-five ordered encoder items, five reference blocks, ten VAE calls, five guides at
-0/60/108/163/216, original AV latent unchanged. Five reference spans correctly
-shift the target origin to text length + 5. Target AV positions match a baseline
-with the same references and no guides. No learned weights, GPU or live service
-was used. This cannot establish learned capacity or image adherence.
+## Implementation and verification sequence
 
-Initial fixture failures are retained: a missing fake Qwen health response, a
-file-versus-prompt hash assertion in the standalone QA, a lane-release assertion
-made before the ordinary next dispatcher tick, and absent local NumPy for the
-CPU shim. These were fixture/envelope issues, not hidden live retries. The same
-terminal QA job was read on restart and released by the ordinary dispatcher;
-no new submission was made. NumPy 2.2.6 was installed only into ignored scratch.
-`media.py` remains 478 lines: its small change extends existing asset storage
-with private writes and rollback; new ordered-reference responsibilities are
-separate modules. No handwritten source exceeds 500 lines due to this change.
+1. **Confirm source ownership and envelope.** Use the retained main checkout and one source writer; coordinate overlapping files/current production reservations with the Plotloom director. Reuse the installed model/runtime and canonical `/home/wjmao/models`; inspect actual serving artifact/configuration, current slots and capacity before live work. RDP stays available; no separate RDP monitor or disconnection request. GPU contention does not prevent independent coding/offline checks.
+2. **Close native feasibility on CPU.** Reuse `.local/ref2va/native_cpu.py` and `functional/native-cpu-report.json` as historical setup, not fresh proof. Execute pinned actual ReferenceToVideo/AddGuide/PackedLayout with inert learned leaves for zero/one/three audio and up to nine images. Assert ordered tokenizer items, actual audio reference blocks, Audio-VAE calls, every image guide, target origin/AV positions against a same-reference no-guide baseline, and unchanged target AV latent. Refuse hidden drops, reordering or inference from schema alone. If joint layout fails, diagnose before learned work.
+3. **Implement the bounded extension.** Amend ADR 0237 for the optional-audio ownership contract while preserving the current 7A decision. Extend typed parsing, count/byte enforcement and error projection. Add versioned snapshot/render/readback, one-to-many binding/lifecycle modules, atomic store hooks and branch-specific preflight. Update dashboard projection and package resources as needed. Keep CPU control dependencies separate from model inference. Evaluate extraction before substantial changes to `store.py` (currently 361 lines), and keep the new multi-audio responsibility in a cohesive module instead of growing a monolith.
+4. **Exercise the complete supported journey without a model.** Through real authenticated FastAPI, temporary on-disk SQLite/private files and an explicit captured fake Comfy transport: submit 0/1/2/3 audio via both URL and upload, including a nine-image/three-audio multipart admission with 12 files, restart, dispatch, transfer a retained valid MP4, query and download exact bytes. Compare the complete accepted native graph and persisted snapshot to an independently constructed source expectation. Include distinct voices/images so swapped order is detectable. Verify cleanup/lifecycle separately from media quality. Preserve legacy current image-only requests/jobs and 7A/FL2VA/Qwen/Voice Lab behavior.
+5. **Stable local qualification and artifacts.** Run focused reference/audio/store/naming/retention/FIFO/dashboard tests during edits, with negative cases below. Because API/persistence/renderer contracts change, run the repository's required final local full gate once on the stable candidate, alongside the service-owned locked tests, dashboard Node checks, wheel installs and isolated ARM64 gateway/dashboard image smokes. Reuse unchanged inputs/results; rerun affected checks after repairs, not the entire suite automatically. No hosted CI or push. Record package/lock/image identities and select only affected serving roles for activation.
+6. **Activate safely.** Use [media-service maintenance](../operations/media-services.md) and existing actual launch/mount/security configuration. Obtain a director-coordinated quiet cutover with fresh FIFO, Comfy and UNKNOWN/hold checks; do not cancel production/colleague jobs. Change only gateway and contract-affected dashboard artifacts, preserve existing SQLite inode/rows and service identities, and never start a second worker. Preflight exact additive migration against a retained current-schema fixture. Once audio-enabled jobs exist, use a bounded forward repair on current data unless old-artifact safety is specifically proven; no schema reversal/reset, live database copy, forced uncertainty clearing or replay. Keep preceding artifacts stopped/restart-disabled when retained.
+7. **Qualify the uncovered learned integration and voice use.** Freeze owned reference files, source/canonical hashes, complete prompts/mapping, timing, native graph expectations and dispatch identities before each case. Start with a short representative combined request; verify its actual accepted/terminal graph, conditioning inputs, runtime outcome, resource release, native AV and original-byte download. Use the same three voice references in a second take with different held-out dialogue and fresh seed; each speaker must be represented in both outputs. Freeze a per-take map of speaker label, exact new line and expected audio-reference ordinal before dispatch. If the initial case used fewer than three voices, include an explicit three-voice native case. Separately qualify a maximum joint-count request (nine images plus three voices) at a declared short duration as a separate capacity case. CPU nine-plus-three proof alone cannot establish that capacity, and a short native pass does not qualify every 15-second/10-second-reference envelope. Preserve failures; do not silently lower counts or drop audio to obtain a pass.
+8. **Assess and hand off.** A designated reviewer capable of actual listening, or Wenjun, compares each selected reference with both original generated tracks and records each spoken line’s identity and intended-word survival, its matched reference voice, expected speaker/voice assignment, cross-take continuity and uncertainty. A voice speaking another character’s line is an assignment failure even when all three voices are recognizable and all words survive; uncertain assignment leaves this row unproven. Visible-speaker review follows the fixture’s intended identities without claiming general lip-sync qualification. References must be distinguishable and target words different from the reference recordings, so waveform copying or transcript recovery cannot masquerade as voice consistency. Hashes, silent browser playback, ASR text and inert CPU proof are insufficient for this row. Model obedience/quality limits remain explicit; failed or unassessed continuity is not a successful voice-consistency delivery. Then update section 7B, shared authentication/query/error sections, operator/dashboard guides and route examples in existing manuals; show optional 0–3 behavior and actual qualification bounds. Real preview/seek/download/reopening checks cover the installed served originals; they do not establish listening.
+9. **Close out and retain compactly.** Verify shared-lane release and original service readiness, preserve current production assets and voices, and remove only task-owned disposable build/probe buffers after retaining their deciding evidence. Keep text requests/snapshots, source/hash/graph and assessment receipts, exact small inputs and the few qualification originals on Mac/Spark. Reuse original bytes and avoid full research archives, duplicated models, raw RGB buffers and permanent contact-sheet collections. Save a scoped local main checkpoint, leave unrelated edits untouched, and report installation, technical integration and voice judgment separately.
 
-Native ownership discovery exposed pre-existing map drift: one renamed browser
-support path and seven existing V3/publication test files lacked current owners.
-Only those exact path/selector entries were corrected, with independent read-only
-classification. No test bodies or unrelated runtime behavior changed. Native
-ownership discovery now passes for all three suites.
+### Negative cases that decide the contract
 
-The independently installed pure-Python gateway wheel is SHA-256
-`701e39cdabb5ceafbcfbe9c083356e77a6f9212d3364bc7b106cac01643ed27e`.
-Its 50 packaged source/resource members match the checkout exactly; the manifest
-SHA-256 is `fbe1724c84a31c7a30c17d8e1938a2413efa47ac711b4a84c6037c080d3c3e2a`.
-The service lock hash is
-`023b29e28d045d44610fe5425123d02403bfabe10d1fd59338607454f2fbf15c`.
-The Mac proof used Python 3.12.13/arm64. Separate exact ARM64 Linux image
-smokes passed as recorded below. Both serving roles import the package from
-`/opt/venv/lib/python3.12/site-packages/plotloom_h3_gateway`; a historical
-`/app/src` overlay would not update these installed artifacts. The source-only
-overlays use the actual installed location and preserve the exact existing runtime
-dependency closures; their image config digests/rootfs are independently retained.
+Cover omitted/empty audio, one/three and over-limit counts; file/metadata mismatch; duplicate/blank speaker labels and unknown fields; mixed URL/file ambiguity; invalid size/format/rate/channels/duration/truncation; reordering, source/canonical tamper, renamed/path-traversal/symlink/wrong-owner/missing files; prompt/snapshot/mapping mismatch; exact v1 and new audio-enabled restart/readback; late preparation/transaction/lane rollback; queued cancellation, output expiry and 30-day cleanup; UNKNOWN/held inputs; migration with existing 7A/image-only/lane/Voice Lab/dashboard state; and body/transport failure before/after submission. Unknown submission is reconciled by exact identity, never retried merely after a timeout.
 
-## Staging and recovery decision
+Source entrypoints: `services/minimax_h3_gateway/src/plotloom_h3_gateway/{reference_contracts,reference_api,reference_jobs,reference_execution,reference_files,reference_preflight,voice_reference,voice_files,private_files,naming,store,gateway,api}.py`, `dashboard/reader.py` and affected static assets; `tests/services/minimax_h3_gateway/test_reference_images.py`, `test_voice_reference.py` and affected store/lane/dashboard tests. Use the service's own lock and package checks from its README. New responsibilities belong in focused modules; do not refactor unrelated oversized source.
 
-Runtime source is local commit `12f99bab4fac3f982782cc0a091e13091b4dd652`.
-Two source-only ARM64 Linux overlays passed their isolated zero-generation
-smokes, with 50 exact installed members, networking disabled, no production
-mounts, GPU or Docker socket. Gateway image config SHA-256 is
-`972a7bb1afa95c5bc6055461a3fd574c633e1d8c9044cdcf04023c4faf26c590`
-(Python 3.12.14); dashboard is
-`d685e60c768e31ffffb44e5f4c038470adc14a391108c1384530af60d006de6d`
-(Python 3.12.15). Each retains its pinned base rootfs layers plus the source
-layer. The manager accepted staging evidence and separately admitted serving
-cutover. Exact image/rootfs, wheel/lock, dependency and interpreter evidence is
-frozen in `.local/ref2va/qualification-receipt.json`; activation evidence is
-separate in `.local/ref2va/activation/activation-receipt.json`.
+## Authority, forecast and review points
 
-The manager selected **gateway forward repair on the expanded current schema**
-for this rollout. Preserve the preceding gateway container stopped and with
-restart disabled for audit only. Do not restore that old binary after migration,
-reverse the schema, reset/copy data or add a compatibility layer. If startup
-fails, retain admission/UNKNOWN evidence and diagnose a bounded forward fix.
-Dashboard recovery remains independent, subject to fresh idle/uncertainty checks.
-Record original restart policies durably before stopping either selected role.
+This request authorizes brainstorming, source inspection, plan edits, native read-only discovery and the two independent planning reviews. It does not authorize implementation, live generation, service replacement or a new Goal yet. The execution handoff will carry this whole plan and any later user amendments. Existing owner instructions pre-authorize relevant development H3/ImageGen within authorized work, routine internal delegation, local checks and scoped local main checkpoints; do not invent extra per-call approval, provider quotas or deadlines. Do not revive an old frozen study/QA grant or its submission identities. Use the actual applicable prospective authority for new qualification; native confirmations and unknown-dispatch safeguards still apply.
 
-This is an explicit recovery preference, not a claim that the preceding serving
-binary cannot read the schema. The Git parent has a strict DDL guard that rejects
-the expansion; the actual serving image lacks that guard and its captured
-`Store._migrate` accepts the expanded synthetic schema. The local method check
-does not qualify an operational binary rollback. No serving change or schema
-reversal was performed by that investigation.
+Once execution is authorized for this plan, the source owner can make ordinary field/module/fixture/test choices, fix in-scope defects, coordinate the existing production director for windows, carry out the described package activation, qualification and safe task cleanup, and continue after internal reviews pass. Additional user decisions are needed only for material scope changes, new providers/paid fallbacks, model/runtime changes, destructive production-data actions, publishing/CI or an unresolvable source/voice choice that the user owns. Do not turn the director's resource coordination into repeated user approval. Human listening is an explicit source-quality assessment when no qualified listening reviewer is available; it does not block independent engineering work or become a routine production gate.
 
-The final E01-01 input packet was admitted for exactly one POST:
-`docs/roadmap/别叫我的名字-shuohao-production/attempts/E01-01/attempt-01`.
-Manifest SHA-256 is
-`66945a73607d6b7f6ef47dfb453f6e9b62a29667f73467fc9c454e36f18340b3`;
-request SHA-256 is
-`fe459c9902c6c6662e2d9f06de9b42573777098bac68753b959dcf02b8c64f12`.
-The manager selects `contain_pad` for all five 1672×941 opaque RGB PNGs,
-totaling 10,397,354 bytes. All eight input members match after routine transfer
-to `/home/wjmao/h3-shuohao-20261106-E01-01-attempt-01/input`. The subsequent
-manager admission, rather than packet preparation, authorized submission.
-The manager owns actual motion/native-audio creative review. The generic
-learned fixture is superseded and has never been submitted.
+Forecast: roughly **8–14 hours E2E**, including source changes, review fixes, final local qualification (the previous full gate alone took about 68 minutes), artifact build/activation, a few short learned runs, actual voice comparison and cleanup. This assumes the current runtime and usable owned reference clips. Production queue/access waits and waiting for an actual listener are separate external time. This is a forecast, not a time cap or an authorization for unlimited experimentation.
 
-Fresh read-only model preflight hashed the entire 20,970,379,616-byte Ref2VA
-checkpoint and confirmed the expected `9255f52b…5779` identity with unchanged
-file stat. Actual installed native node `108ceff1…5ccd5c` and model-source
-`8e4cdda6…a4d518` match the pinned CPU proof. The check did not load weights,
-access a GPU or invoke cache maintenance.
+Review the direction after CPU joint-layout/retained functional proof and after the first representative learned outcome. Bring review forward for missing conditioning, image-only regression, source/voice swap, unsound memory expectations or a native/model limitation. Preserve a valid image-only service while resolving the optional branch. Internal review adds no routine owner gate. No watchdog or new polling framework is required.
 
-## Activation and first actual request
+## Planning reviews
 
-Activation completed at 04:50 UTC on November 7. Gateway container is
-`07ddbbc91602c1bb1128cabbd719e42c577b8634fb61dc3eb54d441dcdee32b4`;
-dashboard is
-`8525a2c75c992b9c42cc372d69d8120cb3eebc04adbda369fd4f91dbef56dddc`.
-Both have the exact 50 source/resource members. Effective configuration,
-private environment, mounts/security and pre-existing gateway/voice database
-rows/inodes were preserved. Comfy, Voice Lab and Tailscale identities/configuration
-were unchanged. Preceding containers remain stopped with restart disabled.
-Actual private HTTPS playback advanced and sought to 7.25 seconds without a
-media error; a 206 range and the complete original download matched the
-pre-activation SHA-256 `b45d61de…8d8`.
+The fresh outcome/completeness context was requested with GPT-6.1 Terra/xhigh under the user’s established Terra preference. It found two cases where checks could pass without the intended result: recognizable voices consistently swapped between authored lines, and the existing nine-file multipart parser rejecting a nine-image/three-audio request even when smaller requests and a URL-mode capacity test pass. The plan now requires a frozen per-character/per-line expected voice map with actual per-line matching, a 12-file parser allowance with independent per-type limits, and a public-API multipart 9+3 case using retained inputs. These corrections change neither the feature scope nor the number of learned voice-comparison takes.
 
-Two bounded activation failures are retained. The first configuration guard
-found only Docker's `OomKillDisable: null` to `false` default normalization.
-The first continuation then refused before mutation because of case-sensitive
-human error-text matching. After reassessment, a separately admitted continuation
-used successful structured inventory, the preserved actual gateway bind and
-only the exact normalization. It reused the created gateway and created only
-the pending dashboard. No original operation was replayed.
+The separate fresh avoidable-restrictions context was requested with GPT-6.1 Terra/medium. It found no plan-created approval loop, arbitrary request/retry ceiling, unnecessary serialization or unresolved ordinary choice requiring correction. It proposed no change to success, assistance or evidence. The first review’s two corrections are incorporated above; planning reviews add no routine execution approval gate.
 
-First-story admission SHA-256 is
-`57f6d9a562edcab1e074fda01b2753c533bc1a15f1c8cddd9f8e42ac1d283a07`.
-One authenticated POST created queued job
-`h3_fa5120f9d10146de8f134369a3e27fe7`. Ordinary dispatch then submitted
-that same job as native prompt `8fd69ec6-ed4f-465d-949d-894e963e6492` at
-05:00:54 UTC. Durable intent, multipart body, creation response and known job
-identity are retained; no generic or duplicate POST occurred.
+## Historical image-only delivery and retained evidence
 
-The actual accepted queue record has 27 graph nodes. Its complete graph and
-`client_id` equal an independently built full expectation. Comfy adds only
-`create_time` to envelope metadata; no node annotation was ignored. Persisted
-prompt UTF-8 bytes, snapshot, ordered bindings, all original/prepared hashes,
-0600 file modes and guide frames 0/60/108/163/216 pass. This is native accepted
-request/readback evidence, not a claim of intercepted transport bytes.
-Evidence is `.local/ref2va/story-E01-01-attempt-01/actual/`.
+The original endpoint was accepted under [ADR 0237](../adr/0237-h3-ordered-reference-images.md), implemented/deployed on November 7 and then documented in the existing manuals. Its complete source/functional/CPU/full-local/artifact/activation and one actual five-image/277-frame learned execution evidence is in [the November 7 verification](../verification/2026-11-07-h3-ordered-reference-images.md). The original source package was `12f99bab4fac3f982782cc0a091e13091b4dd652`; later planning/doc checkpoints did not add audio support. The typed base contract remains the source for all image/timeline rules.
 
-The first readback helper could not read a private container-owned original
-through the host UID. Its traceback is retained. Read-only access through the
-existing gateway container resolved that capture issue without changing file
-permissions, product code or the running job. The same known job is followed
-through its ordinary status/output endpoints; terminal evidence follows.
+The original single E01-01 authority substituted that exact real production job for a generic learned smoke; it is spent historical authority, not permission to replay it or its seed/dispatch identity. Its request was 960x544/11300 ms, five anchors 0/2500/4500/6800/9000 mapped to 0/60/108/163/216, native 277 frames/24 fps. It proved execution/source fidelity and technical AV, not all nine-image capacity or broad creative quality. The old matched-B/caption investigations remain paused.
 
-## Terminal technical outcome
-
-The same job succeeded. Its terminal history retains the same exact 27-node
-graph, with no annotations ignored. Original authenticated output is H.264,
-960×544, 277 frames at 24 fps (11.541667 seconds), plus AAC stereo 32 kHz audio
-(11.542 seconds). All streams decode fully with ffmpeg exit 0 and no error
-stderr. The 1,567,741-byte original SHA-256 is
-`7cf18263855afdd42740e256fa99a94915106ae844d1246c327e047809821f11`.
-It matches SQLite, authenticated output and the actual private HTTPS download
-link. Real browser playback advanced, sought to 7.25 seconds and served 206
-byte ranges without a media error. This browser check was muted; it does not
-claim subjective native-audio inspection.
-
-Native execution ran 1212.623 seconds; submit-to-gateway-completion was
-1213.457 seconds (05:00:54.761–05:21:08.218 UTC). Existing logs did not emit
-sampler step timings. Native history records four cached loader/configuration
-nodes, not cached reference conditioning. These are one-run measurements,
-not a general throughput estimate.
-
-Fresh ordinary readback confirms an empty Comfy queue, all 363 lane rows done,
-one new succeeded job (329 total, two historical failed), no voice binding for
-this job, unchanged Voice counts/service identities/database device and inode,
-no foreign-key violations and SQLite integrity `ok`. No extra generation,
-service operation or cache action occurred. The manager owns producer-hold
-release and any expansion.
-
-Technical receipt is
-`.local/ref2va/story-E01-01-attempt-01/actual/technical-receipt.json`.
-The byte-identical original is retained locally beside it and independently at
-`/home/wjmao/h3-shuohao-20261106-E01-01-attempt-01/original-native-av.mp4`,
-outside gateway-managed 72-hour expiry. The manager received the exact file
-and measured result for the separate creative gate. See the
-[verification record](../verification/2026-11-07-h3-ordered-reference-images.md).
+The November 16 documentation-only refresh validated both JSON forms, time mapping, shell syntax, links and current read-only health; a native-frame bound omission was corrected. The user asked to keep the walkthrough in the existing colleague manual, so the standalone guide was removed. [Documentation verification](../verification/2026-11-16-h3-reference-images-docs.md) and [section 7B](../operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va) describe current image-only behavior. They must not claim optional audio is already implemented. Detailed previous qualification/recovery chronology stays in the immutable verification records and Git history rather than being duplicated here.
