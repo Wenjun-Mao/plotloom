@@ -24,7 +24,7 @@ creative review and any further production. The matched-B experiment remains pau
 ## Acceptance
 
 **Documentation follow-up · 2026-11-16:** Complete. The
-[dedicated colleague guide](../operations/minimax-h3-reference-images-client-guide.md)
+[colleague guide’s ordered-reference section](../operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 now provides full Bruno/curl upload and URL examples, timeline/readback and
 route-specific limits. Existing entry points and operator/dashboard/timing docs
 were aligned. Actual parser, shell syntax, local-link checks and read-only Spark

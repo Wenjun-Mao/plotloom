@@ -16,7 +16,7 @@
   成功后自动打开新任务。当前控制台只提供图生视频，不提供 T2V、Qwen 生成、
   声音输入、批量任务、取消或删除按钮。
   需要 1–9 张有序参考图及毫秒时间点时，使用
-  [多参考图 API 的 Bruno/curl 指南](../../../docs/operations/minimax-h3-reference-images-client-guide.md)。
+  [多参考图 API 的 Bruno/curl 指南](../../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。
   该路由独立于本页的首尾帧生成表单；看板可查看通过 API 创建的参考图任务、
   时间点与输出，不能把多图任务的「复用设置」当作恢复全部参考图。
 - **任务记录**：按 ID 查找，或按服务、状态筛选；默认每页 50 条。

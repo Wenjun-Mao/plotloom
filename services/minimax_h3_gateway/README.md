@@ -11,7 +11,7 @@ sets are intentionally separate:
 
 - **H3 video:** [operator manual](../../docs/operations/minimax-h3-gateway-manual.md),
   [Chinese client guide](../../docs/operations/minimax-h3-gateway-client-guide.md),
-  [1–9 ordered reference images: Bruno/curl](../../docs/operations/minimax-h3-reference-images-client-guide.md),
+  [1–9 ordered reference images: Bruno/curl](../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va),
   [reproducible setup](docs/h3-reproducible-setup.md), and
   [sampling rationale](docs/h3-rationale-and-operations.md).
 - **Qwen image:** [operator manual](../../docs/operations/qwen-image-gateway-manual.md),
@@ -100,7 +100,7 @@ Requested times snap to nearest 24 Hz frames (half ties upward); duplicate or
 out-of-range resolved anchors are refused. For 11300 ms, the native output is
 277 frames (277/24 seconds); anchors 0/2500/4500/6800/9000 ms resolve to
 0/60/108/163/216. Creation and GET return the requested and resolved mapping.
-See the [multi-reference client guide](../../docs/operations/minimax-h3-reference-images-client-guide.md)
+See the [multi-reference client guide](../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 for complete JSON, multipart and download examples. `aspectPolicy` is required;
 the 20 MiB input limit applies to all reference images combined. The historical
 learned-run verification covers five images, not all nine-image combinations.

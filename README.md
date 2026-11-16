@@ -78,7 +78,7 @@ H3 提供受审核的横竖屏档位；默认是 576×1024，另有 832×480、9
 `POST /v1/video-jobs/from-reference-images`：接受 **1–9 张有序静态参考图**，
 显式填写毫秒时间点、`durationMs`（5000–15000）和 `aspectPolicy`，固定使用
 Ref2VA Base-20，支持 `960x544` / `576x1024`。同事可直接使用
-[Bruno/curl 多参考图指南](docs/operations/minimax-h3-reference-images-client-guide.md)。
+[Bruno/curl 多参考图指南](docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。
 这是独立的网关输入合同；Plotloom 创作界面和控制台首尾帧表单各有自己的接入范围。
 
 ### 私有 Qwen-Image-2.1 图片端点

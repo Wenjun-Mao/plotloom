@@ -70,7 +70,7 @@ pixels only; it is not a creative-quality or production-ready claim.
 Separate Ref2VA routes accept one image plus a voice-reference WAV, or **1–9
 ordered still images with millisecond anchors**. The latter uses required
 `durationMs` 5000–15000, fixed Base-20 sampling and only 960x544/576x1024.
-The [dedicated colleague guide](minimax-h3-reference-images-client-guide.md)
+The [colleague guide’s ordered-reference section](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 contains complete local-upload and URL requests; these gateway contracts do
 not imply equivalent controls in Plotloom's authoring UI.
 
@@ -404,7 +404,7 @@ activation, retain exact installed source/package identity and protected-state
 readback. The [November 7 verification](../verification/2026-11-07-h3-ordered-reference-images.md)
 records one successful five-image/277-frame learned run, separately from health;
 it does not qualify every nine-image/duration combination. [ADR 0237](../adr/0237-h3-ordered-reference-images.md)
-and [the complete multi-reference client guide](minimax-h3-reference-images-client-guide.md)
+and [the complete multi-reference client guide](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 cover the frozen contract, JSON, multipart and completed MP4 download. Both
 Ref2VA modes retain the original AV latent and existing UNKNOWN/FIFO safety. For
 this rollout, gateway recovery uses a bounded forward repair on the current

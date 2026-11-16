@@ -6,7 +6,7 @@ This is a working note, not a qualified reusable repo skill. Update it after
 reviewed trials; retain failed prompt/media receipts unchanged.
 
 For the current ordered-image gateway route, use the
-[1–9 reference-image client guide](minimax-h3-reference-images-client-guide.md).
+[1–9 reference-image client guide](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va).
 It defines picture order, required millisecond anchors and the unchanged prompt
 boundary. The single-image trial notes below remain scoped to their original
 inputs; timed image guidance does not certify an exact cut or creative result.

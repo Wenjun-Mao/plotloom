@@ -1,9 +1,10 @@
 # H3 reference-image documentation refresh · 2026-11-16
 
 The colleague workflow for `POST /v1/video-jobs/from-reference-images` is now
-available as a dedicated [Chinese Bruno/curl guide](../operations/minimax-h3-reference-images-client-guide.md).
-The existing general guide keeps its section 7B entry point and links to the
-complete walkthrough. Repository/service/operations indexes, the operator manual,
+available in the [Chinese colleague guide, section 7B](../operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va).
+The complete walkthrough is integrated into the existing general guide as
+section 7B; shared authentication, querying and error handling remain in that
+manual. Repository/service/operations indexes, the operator manual,
 prompt playbook, dashboard guide and timing-table scope point to the same contract.
 
 The endpoint already existed. This is a documentation-only refresh against
@@ -39,7 +40,7 @@ dependency or generation behavior changed.
 | Invalid request examples | Quality selector, seconds field, missing aspect policy, quantized collision and anchor outside native frame range all refused |
 | Time mapping | 11300 ms → 277 frames; anchors → 0/60/108/163/216 |
 | Shell examples | All five shell blocks passed `sh -n`; no curl submission was executed |
-| Local documentation links | 170 referenced local paths existed at the final candidate |
+| Local documentation links | 165 referenced local paths existed at the final candidate |
 | Live read-only Spark health | `status=ok`, reference version 1, ready=true, max=9, canvases 960x544/576x1024, duration 5000–15000 ms |
 | Independent GPT-6.1 Terra/high review | Native-frame boundary omission found, corrected and narrowly rechecked; no remaining finding |
 
@@ -53,5 +54,13 @@ the [November 7 record](2026-11-07-h3-ordered-reference-images.md).
 
 The operator manual remains above 500 lines because it is the cohesive runbook
 for one service's deployment, lifecycle, retention and recovery. This pass makes
-bounded corrections within those responsibilities. The longer colleague API
-walkthrough was separated into its own guide; no unrelated restructuring was needed.
+bounded corrections within those responsibilities. The 509-line colleague guide
+also remains one cohesive API-caller manual, sharing authentication, lifecycle
+and troubleshooting across its route sections. The owner requested this
+integrated layout; another extraction is not warranted. Its route-specific instructions share authentication, lifecycle and
+troubleshooting sections with the other endpoints; no standalone manual is retained.
+
+The initial standalone walkthrough was folded back into the existing manual at
+the owner’s request. Both JSON examples are unchanged and passed the actual
+parser again; all five shell blocks passed syntax checks. The §7B links and
+removal of the extra file passed a narrow independent Terra/high recheck.
