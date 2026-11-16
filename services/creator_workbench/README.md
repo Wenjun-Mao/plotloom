@@ -36,6 +36,35 @@ frontend assets when changing the frontend; these static bytes are served from
 the mount without a backend restart. Coordinate any schema admission and wait
 for a quiet dispatch checkpoint before activating a changed backend.
 
+## Request source IPs
+
+Uvicorn access logs include the client IP. Behind Docker and Tailscale Serve,
+the default log may show only the Docker gateway. At an idle maintenance
+checkpoint, inspect the workbench network's current gateway and explicitly
+configure only that proxy address, for example:
+
+```sh
+docker inspect --format '{{json .NetworkSettings.Networks}}' plotloom-creator-workbench-1
+uv run --locked python services/creator_workbench/manage.py start --trusted-proxy-ips 127.0.0.1,192.168.156.1
+```
+
+Use the checkout that owns the deployed runtime. `start` rebuilds/recreates it;
+do not switch a retained deployment to another checkout just to change logging.
+The selected exact IPs persist in installation-local `deployment.json`.
+Without this option the default remains `127.0.0.1`; `--trusted-proxy-ips ''`
+disables forwarded-header trust. Wildcards, subnets and hostnames are rejected.
+Recheck the gateway if Docker recreates the network. This configuration does
+not start or stop either Tailscale endpoint.
+
+Pinned Tailscale Serve replaces `X-Forwarded-For` with the actual connecting
+tailnet IP; Uvicorn uses it only when the transport peer is trusted. Map a
+logged tailnet IP to its machine with `tailscale status --json`. Direct local
+requests through the same Docker gateway can supply their own forwarded
+address, so these logs support troubleshooting, not authenticated identity or
+authorization. Existing gateway-only logs cannot recover past original IPs.
+No extra headers, request bodies or credentials are logged. See
+[ADR 0241](../../docs/adr/0241-workbench-request-source-ip.md).
+
 ## Private colleague access over Tailscale
 
 For the requested app-specific name `plotloom.tail6040ad.ts.net`, use the

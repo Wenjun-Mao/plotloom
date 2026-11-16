@@ -10,6 +10,7 @@ import stat
 import subprocess
 import sys
 from hashlib import sha256
+from ipaddress import ip_address
 from pathlib import Path
 
 from h3_configuration import read_h3_configuration
@@ -94,6 +95,9 @@ def compose(config, *arguments):
         "PLOTLOOM_BRIDGE_TOKEN_FILE": config["token"],
         "PLOTLOOM_UID": str(os.getuid()),
         "PLOTLOOM_GID": str(os.getgid()),
+        "PLOTLOOM_CREATOR_TRUSTED_PROXY_IPS": trusted_proxy_ips(
+            config.get("trusted_proxy_ips", "127.0.0.1")
+        ),
     }
     command = ["docker", "compose", "-f", str(SERVICE / "compose.yaml")]
     if config.get("h3_config"):
@@ -103,6 +107,25 @@ def compose(config, *arguments):
         [*command, *arguments],
         env=environment,
     )
+
+
+def trusted_proxy_ips(value):
+    """Accept exact proxy IPs only; an empty value disables forwarded trust."""
+    if value == "":
+        return ""
+    try:
+        addresses = [str(ip_address(part.strip())) for part in value.split(",")]
+    except ValueError as error:
+        raise ValueError("trusted proxies must be comma-separated exact IP addresses") from error
+    return ",".join(dict.fromkeys(addresses))
+
+
+def configure_trusted_proxies(config, value=None):
+    if value is not None:
+        selected = trusted_proxy_ips(value)
+        if selected != config.get("trusted_proxy_ips", "127.0.0.1"):
+            config["trusted_proxy_ips"] = selected
+            CONFIG.write_text(json.dumps(config, indent=2) + "\n")
 
 
 def configure_h3(config, path=None, *, disable=False):
@@ -192,6 +215,10 @@ def main():
         "action", choices=["start", "status", "logs", "stop", "check-bridge"]
     )
     parser.add_argument("--data-root", type=Path)
+    parser.add_argument(
+        "--trusted-proxy-ips", type=trusted_proxy_ips,
+        help="Comma-separated exact proxy IPs for access-log attribution; empty disables trust",
+    )
     h3 = parser.add_mutually_exclusive_group()
     h3.add_argument(
         "--h3-config", type=Path,
@@ -204,12 +231,15 @@ def main():
     args = parser.parse_args()
     if args.action != "start" and (args.h3_config is not None or args.disable_h3):
         parser.error("H3 configuration changes require start")
+    if args.action != "start" and args.trusted_proxy_ips is not None:
+        parser.error("trusted proxy configuration changes require start")
     if sys.platform != "darwin":
         parser.error(
             "this creator deployment requires Docker on macOS and the native Codex app"
         )
     config = load_config(args.data_root)
     if args.action == "start":
+        configure_trusted_proxies(config, args.trusted_proxy_ips)
         configure_h3(config, args.h3_config, disable=args.disable_h3)
         compose(config, "build")
         install_bridge(config)

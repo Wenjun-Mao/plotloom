@@ -18,6 +18,7 @@ services:
       PLOTLOOM_CODEX_BRIDGE_URL: http://host.docker.internal:8842
       PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE: /run/secrets/codex_bridge_token
       PLOTLOOM_CREATOR_ENABLE_H3: "false"
+      FORWARDED_ALLOW_IPS: ${PLOTLOOM_CREATOR_TRUSTED_PROXY_IPS-127.0.0.1}
     secrets:
       - codex_bridge_token
     volumes:
