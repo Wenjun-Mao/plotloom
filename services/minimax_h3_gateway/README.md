@@ -11,6 +11,7 @@ sets are intentionally separate:
 
 - **H3 video:** [operator manual](../../docs/operations/minimax-h3-gateway-manual.md),
   [Chinese client guide](../../docs/operations/minimax-h3-gateway-client-guide.md),
+  [1–9 ordered reference images: Bruno/curl](../../docs/operations/minimax-h3-reference-images-client-guide.md),
   [reproducible setup](docs/h3-reproducible-setup.md), and
   [sampling rationale](docs/h3-rationale-and-operations.md).
 - **Qwen image:** [operator manual](../../docs/operations/qwen-image-gateway-manual.md),
@@ -99,7 +100,10 @@ Requested times snap to nearest 24 Hz frames (half ties upward); duplicate or
 out-of-range resolved anchors are refused. For 11300 ms, the native output is
 277 frames (277/24 seconds); anchors 0/2500/4500/6800/9000 ms resolve to
 0/60/108/163/216. Creation and GET return the requested and resolved mapping.
-See the client guide for complete JSON, multipart and download examples.
+See the [multi-reference client guide](../../docs/operations/minimax-h3-reference-images-client-guide.md)
+for complete JSON, multipart and download examples. `aspectPolicy` is required;
+the 20 MiB input limit applies to all reference images combined. The historical
+learned-run verification covers five images, not all nine-image combinations.
 
 `POST /v1/assets` and `POST /v1/video-jobs` are deliberately retired. There
 is no public asset-ID, idempotency-key, or compatibility creation path.
@@ -118,7 +122,9 @@ The authenticated `/v1/voice-takes` facade delegates voice resolution and durabl
 audio ownership to the CPU Voice Lab control service, not gateway media tables.
 See the [Chinese client guide](../qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
 and [deployment/recovery](../qwen3_tts_voice_lab/docs/reproduction-and-operations.md).
-H3 video still requires explicit audio bytes; no hidden TTS or ID lookup is added.
+The image-and-voice route requires explicit WAV input through file bytes or its
+URL field; it does not resolve a voice-take ID. Ordered-image Ref2VA generates
+native audio from its prompt and accepts no voice-reference input.
 
 After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then

@@ -23,6 +23,15 @@ creative review and any further production. The matched-B experiment remains pau
 
 ## Acceptance
 
+**Documentation follow-up · 2026-11-16:** Complete. The
+[dedicated colleague guide](../operations/minimax-h3-reference-images-client-guide.md)
+now provides full Bruno/curl upload and URL examples, timeline/readback and
+route-specific limits. Existing entry points and operator/dashboard/timing docs
+were aligned. Actual parser, shell syntax, local-link checks and read-only Spark
+health passed; the independent Terra/high finding was resolved. See the
+[documentation verification](../verification/2026-11-16-h3-reference-images-docs.md).
+This follow-up changed no runtime or creation behavior and dispatched no job.
+
 | Claim | Required evidence | Fresh media | Status |
 | --- | --- | --- | --- |
 | Ordered timed images reach the native encoder and guides | Authenticated public request, durable restart, exact full Comfy envelope, original prompt and image bindings | No | Passed: authenticated API/restart and complete envelope, retained AV download; pinned real native CPU methods with inert leaves |

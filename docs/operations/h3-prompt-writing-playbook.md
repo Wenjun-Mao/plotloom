@@ -5,6 +5,12 @@ Checked 2026-09-24 against MiniMax H3 commit
 This is a working note, not a qualified reusable repo skill. Update it after
 reviewed trials; retain failed prompt/media receipts unchanged.
 
+For the current ordered-image gateway route, use the
+[1–9 reference-image client guide](minimax-h3-reference-images-client-guide.md).
+It defines picture order, required millisecond anchors and the unchanged prompt
+boundary. The single-image trial notes below remain scoped to their original
+inputs; timed image guidance does not certify an exact cut or creative result.
+
 ## Official rules used by Plotloom
 
 - [H3 prompt-writing skill](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md): identify I2VA for one initial image; write rewritten directions in English while preserving dialogue, lyrics, and visible text in their original language.

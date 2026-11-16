@@ -3,6 +3,10 @@
 更新日期：2026-09-25。此页是**静态排程参考**，不是 API、实时倒计时或完成时限承诺。
 从 [`MiniMax-H3 网关：同事 API 使用指南`](minimax-h3-gateway-client-guide.md) 选择 `quality`、`resolution` 和 `durationSeconds` 后，在下表交叉查找。
 
+本表仅适用于普通 FL2VA 的质量档位；声线参考和
+[1–9 张有序参考图 Ref2VA](minimax-h3-reference-images-client-guide.md) 使用独立配方。
+多图请求的 `durationMs`、参考数量和条件编码开销没有在本表中测量，请勿套用。
+
 ## 读表前先区分两种时间
 
 - 表内数字只估计**单个 H3 作业的生成阶段**：ComfyUI 接受工作流后，到观察到生成完成。它不含 FIFO 排队、下载 URL 图片、输入裁切/补边、MP4 移入网关存储、网络传输或人工审核。

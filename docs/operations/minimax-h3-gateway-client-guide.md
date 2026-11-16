@@ -2,10 +2,11 @@
 
 这是 Spark 上仅供团队通过 Tailscale 调用的内部视频生成 API。它不是公开服务，
 也不是任意 ComfyUI 工作流代理。普通视频路径只能选择已经审核过的 `quality`
-与 `resolution`；独立的声线参考路径使用固定 Ref2VA 配方。调用者不能传模型
+与 `resolution`；声线参考与有序多图两条路径使用各自固定的 Ref2VA 合同。调用者不能传模型
 文件、节点参数或工作流。
 
-本文提供 **Bruno** 示例，多参考图部分另含 curl 示例。部署和维护请看
+本文提供 **Bruno** 示例；多参考图的完整 Bruno / curl 流程见
+[1–9 张有序参考图指南](minimax-h3-reference-images-client-guide.md)。部署和维护请看
 [H3 网关运维手册](minimax-h3-gateway-manual.md)。Qwen-Image 文生图与单图编辑
 使用独立的 [Qwen-Image API 使用指南](qwen-image-gateway-client-guide.md)，不要把
 图片字段或画布合同混入本视频 API。
@@ -48,6 +49,9 @@ http:
 普通 FL2VA 请求必须有 `resolution`；`quality` 可省略，省略时为 `1`。
 两种 Ref2VA 路径使用第 7A、7B 节的独立字段与尺寸合同。
 
+选择输入方式：起始/末帧用第 5、6 节；第一帧加声线 WAV 用第 7A 节；
+有序的 1–9 张图与毫秒时间点用第 7B 节；纯文本探索用第 7 节。
+
 | `quality` | 路径 | 适用预期 |
 | ---: | --- | --- |
 | `1` | V1.2 Turbo-4 / Euler / 6:3 | 默认、最快的日常迭代 |
@@ -85,7 +89,7 @@ WebP，最大 20 MiB、3,000 万像素。
 
 | `aspectPolicy` | 比例不同怎么办 | 使用场景 |
 | --- | --- | --- |
-| `reject_mismatch` | 拒绝 | 默认；先完成正确构图 |
+| `reject_mismatch` | 拒绝 | 普通 I2V 默认；先完成正确构图。多图路由须显式填写 |
 | `contain_pad` | 等比缩小并补黑边 | 明确想保留黑边的画面 |
 | `cover_center_crop` | 中心裁切再缩放 | 已审核中央裁切安全的图片 |
 
@@ -260,70 +264,24 @@ Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网�
 
 ## 7B. 有序参考图与时间点（Ref2VA）
 
-`POST /v1/video-jobs/from-reference-images` 接受 1–9 张不透明单帧 JPEG、PNG
-或 WebP，全部图片合计最多 20 MiB，每张最多 3,000 万像素。不接受动画、透明
-像素、音频、`quality`、`durationSeconds` 或模型选择。画布仅 `960x544`、
-`576x1024`；`durationMs` 必填，为 5000–15000 的整数毫秒。`aspectPolicy`
-可用第 3 节的三种策略，`seed` 可省略。
+多参考图请使用独立的 **[1–9 张有序参考图 API 指南](minimax-h3-reference-images-client-guide.md)**：
+提供完整的 Bruno 本地上传表单、可直接保存的上传/URL JSON、curl、时间取整示例、
+响应与下载步骤，以及本路由专用错误码。
 
-顺序就是 `<Picture 1>`、`<Picture 2>`……的顺序。每项 `atMs` 为整数毫秒，
-第一项必须是 0，后续严格递增且早于请求结束。时间按最近的 24 fps 帧取整，
-恰好半帧向上取整；若取整后重叠或超出实际帧范围，直接拒绝。总帧数向上取
-`17k+5`。提示词原样传入，不会自动翻译、补写台词或调整图片顺序。
+`POST /v1/video-jobs/from-reference-images` 使用固定 Ref2VA Base-20。
+它接受 1–9 张有序不透明单帧图片，合计最多 20 MiB；画布仅 `960x544` 或
+`576x1024`。**`aspectPolicy` 和整数毫秒 `durationMs`（5000–15000）均必填**。
+第一项 `atMs` 为 0，后续递增且早于请求结束，取整后须落在不同的 24 fps 帧。
+请求中不传 `quality`、`durationSeconds` 或声线音频。
 
-先查 `/health` 的 `referenceImagesReady`；它独立于 `voiceReferenceReady`。
-就绪只说明节点与模型文件可用，不表示已验证任意参考图数量、时长的显存容量。
+JSON 使用有序的 `references: [{sourceUrl, atMs}]`。本地上传使用一个 Text
+类型的 `request`（整个 JSON，参考项只含 `atMs`）和按同一顺序重复的 File
+类型 `images` 字段；不要把参数拆成额外表单字段。图片顺序对应 `<Picture 1>`
+至 `<Picture 9>`，每张图同时提供参考编码和对应时刻的帧引导。
 
-JSON 方式（URL 必须能由 Spark 下载）：
-
-```json
-{
-  "prompt": "<Picture 1> establishes the room. Follow <Picture 2>, <Picture 3>, <Picture 4>, then <Picture 5>. Natural motion and room tone.",
-  "resolution": "960x544",
-  "aspectPolicy": "reject_mismatch",
-  "durationMs": 11300,
-  "seed": 42,
-  "references": [
-    {"sourceUrl": "https://example.internal/1.png", "atMs": 0},
-    {"sourceUrl": "https://example.internal/2.png", "atMs": 2500},
-    {"sourceUrl": "https://example.internal/3.png", "atMs": 4500},
-    {"sourceUrl": "https://example.internal/4.png", "atMs": 6800},
-    {"sourceUrl": "https://example.internal/5.png", "atMs": 9000}
-  ]
-}
-```
-
-把它保存为 `reference-urls.json`，使用私密环境中的 Bearer：
-
-```sh
-curl --fail-with-body "$H3_BASE/v1/video-jobs/from-reference-images" \
-  -H "Authorization: Bearer $H3_GATEWAY_BEARER" \
-  -H 'Content-Type: application/json' --data-binary @reference-urls.json
-```
-
-本地文件方式：保存相同 JSON 为 `reference-upload.json`，但 `references` 每项
-只留 `atMs`，删除所有 `sourceUrl`。Bruno 的 Multipart Form 填一个 Text 类型
-`request`（整个 JSON），再按顺序填五个同名 File 类型 `images`。不要手写
-`Content-Type`，也不要把 `prompt` 等拆成独立表单字段。等价 curl：
-
-```sh
-curl --fail-with-body "$H3_BASE/v1/video-jobs/from-reference-images" \
-  -H "Authorization: Bearer $H3_GATEWAY_BEARER" \
-  --form-string "request=$(cat reference-upload.json)" \
-  -F 'images=@1.png;type=image/png' -F 'images=@2.png;type=image/png' \
-  -F 'images=@3.png;type=image/png' -F 'images=@4.png;type=image/png' \
-  -F 'images=@5.png;type=image/png'
-```
-
-`H3_BASE` 设置为第 1 节基地址。创建返回 202 与任务 `id`。本例响应为
-`inputMode: reference_images`、`requestedDurationMs: 11300`、
-`requestedDurationSeconds: 11.3`、`frameCount: 277`、
-`actualDurationSeconds: 11.541666666666666`。`references` 中保留 `atMs`，
-并给出 `frameIndex: 0/60/108/163/216`、`effectiveTimeSeconds` 与原图/处理图
-SHA-256；`promptSha256` 供比对原始 UTF-8 提示词。后续 GET 保留这些字段。
-若持久化快照损坏，状态仍可读取，参考图元数据返回 `null`，不会用于生成。
-
-按第 8 节轮询已知 `id`，成功后下载；超时或 `outcome_unknown` 不可盲目重发。
+查看 `/health` 的 `referenceImagesReady` 与 `referenceMaxImages`。
+就绪检查节点/模型合同；已有五图运行记录不代表九图或任意时长组合的容量保证。
+后续查询、取消和下载仍使用第 8 节的普通任务接口。
 
 ## 8. 查询与下载
 
@@ -359,14 +317,14 @@ curl --fail-with-body "$H3_BASE/v1/video-jobs/$H3_JOB_ID/output" \
 | --- | --- |
 | `request_body_invalid` / `request_fields_invalid` | JSON 与 multipart 混用、字段拼写错误或重复字段 |
 | `request_invalid` | 请求含 `profileId`、`assetId`、`idempotencyKey` 或不属于该路由的字段 |
-| `quality_not_supported` | 只可使用 `1`、`2`、`3`、`8` |
+| `quality_not_supported` | 普通 FL2VA 只可使用 `1`、`2`、`3`、`8`；多图请求不传 `quality` |
 | `resolution_not_supported` | 使用上表中的精确 `resolution` |
 | `image_file_required` | multipart I2V 缺少 `image` |
 | `voice_file_required` / `voice_format_not_supported` | 声线参考缺失，或不是 32 kHz 单声道 PCM16 WAV |
 | `voice_size_invalid` / `voice_duration_invalid` | 声线参考超出 2 MiB 或 1–10 秒 |
-| `voice_resolution_not_supported` / `voice_duration_not_supported` | Ref2VA 仅支持上文两个画布与 5–8 秒 |
+| `voice_resolution_not_supported` / `voice_duration_not_supported` | 单图加声线路由仅支持上文两个画布与 5–8 秒；多图使用 5000–15000 ms |
 | `comfy_voice_profile_unavailable` | Ref2VA 模型或节点尚未就绪；请联系 Spark 运维，不要反复提交 |
-| `reference_request_invalid` / `reference_image_count_mismatch` | 有序图字段、数量或毫秒时间点不合法 |
+| `reference_request_invalid` / `reference_request_fields_invalid` / `reference_image_count_mismatch` | 见[多图指南的错误表](minimax-h3-reference-images-client-guide.md#6-常见错误) |
 | `reference_images_size_invalid` | 全部参考图合计超过 20 MiB |
 | `reference_image_must_be_single_still` / `reference_image_transparency_not_supported` | 需要不透明的单帧图片 |
 | `comfy_reference_profile_unavailable` | 有序参考图的模型/节点合同不可用，请联系运维 |

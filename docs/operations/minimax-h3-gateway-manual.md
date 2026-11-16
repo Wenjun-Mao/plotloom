@@ -60,12 +60,19 @@ Quality 1 remains the gateway's omitted-field default. Plotloom explicitly
 offers quality 1 for development and quality 8 for production-review
 candidates; its new-work initial choice is quality 8. Neither is a creative
 acceptance guarantee.
-The gateway can render zero, one, or two H3 frame sockets: text exploration,
-start-frame I2V, or start/end-frame I2V. It accepts requested
+The ordinary FL2VA routes can render zero, one, or two H3 frame sockets: text exploration,
+start-frame I2V, or start/end-frame I2V. Those routes accept requested
 whole-second durations 5–15 and snaps them to the node's 24 fps `17k + 5`
 frame grid (5 seconds is 124 frames, about 5.167 seconds). Output is H.264/AAC.
 Portrait 576×1024 is Plotloom's new-job default. “High resolution” means more
 pixels only; it is not a creative-quality or production-ready claim.
+
+Separate Ref2VA routes accept one image plus a voice-reference WAV, or **1–9
+ordered still images with millisecond anchors**. The latter uses required
+`durationMs` 5000–15000, fixed Base-20 sampling and only 960x544/576x1024.
+The [dedicated colleague guide](minimax-h3-reference-images-client-guide.md)
+contains complete local-upload and URL requests; these gateway contracts do
+not imply equivalent controls in Plotloom's authoring UI.
 
 It is **not** a general ComfyUI proxy. Neither Plotloom nor a browser can send
 arbitrary graph JSON, custom node names, model paths, seed overrides outside a
@@ -223,6 +230,12 @@ An expected health response is structurally equivalent to:
   "defaultQuality": 1,
   "qualities": [1, 2, 3, 8],
   "resolutions": ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"],
+  "inputModes": ["image", "text", "image_voice", "reference_images"],
+  "referenceContractVersion": 1,
+  "referenceImagesReady": true,
+  "referenceMaxImages": 9,
+  "referenceResolutions": ["960x544", "576x1024"],
+  "referenceDurationMs": {"min": 5000, "max": 15000},
   "queuedJobs": 0,
   "activeDispatches": 0,
   "dispatchConcurrency": 1
@@ -232,6 +245,10 @@ An expected health response is structurally equivalent to:
 `/health` intentionally performs a ComfyUI/profile preflight. A running
 container is therefore not enough: do not enable Plotloom until `/health`
 returns `ok` with all four quality paths and contract version.
+Ordered-image clients also inspect the independent reference fields above;
+`referenceImagesReady` checks the maximum nine-slot node/model contract. A
+failed maximum-slot check needs route-specific investigation; it is not a
+learned-capacity measurement for a smaller input count.
 
 For an ordinary restart after configuration-free changes:
 
@@ -349,7 +366,7 @@ The following is a private service contract; it is not a browser API.
 | `GET /v1/video-jobs/{id}/output` | bearer | Streams the known gateway-managed completed MP4 |
 
 `POST /v1/assets` and `POST /v1/video-jobs` are retired and return 404.
-Job response fields are deliberately closed: `id`, `status`, `inputMode`,
+Common job response fields are deliberately closed: `id`, `status`, `inputMode`,
 resolved `quality`, `resolution`, `aspectPolicy`, `seed`, `requestedDurationSeconds`,
 `frameCount`, `actualDurationSeconds`, `generationSubmittedAt`,
 `generationCompletedAt`, `generationElapsedMs`, `error`, and `outputReady`.
@@ -368,7 +385,7 @@ URL or path. Its status projects `inputMode=image_voice`, `quality=8`; the
 
 The ordered-image Ref2VA route instead projects `inputMode=reference_images`.
 It accepts `durationMs` 5000–15000 and 960×544/576×1024, no quality selector or
-reference audio. JSON references contain `sourceUrl` and `atMs`; multipart has
+reference audio. `aspectPolicy` is required, not defaulted. JSON references contain `sourceUrl` and `atMs`; multipart has
 one `request` JSON field whose references contain only `atMs`, and repeated
 `images` in the same order. All image bytes total at most 20 MiB, each decodes
 to at most 30 million pixels, and animations/transparency are refused. The
@@ -384,9 +401,10 @@ status stays readable; dispatch still refuses integrity violations.
 `referenceImagesReady` is independent of `voiceReferenceReady`, and probes
 node/model availability, not a learned capacity or quality guarantee. Before
 activation, retain exact installed source/package identity and protected-state
-readback. Five-image/277-frame learned capacity requires its own coordinated
-smoke; do not infer it from health. [ADR 0237](../adr/0237-h3-ordered-reference-images.md)
-and [the client examples](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
+readback. The [November 7 verification](../verification/2026-11-07-h3-ordered-reference-images.md)
+records one successful five-image/277-frame learned run, separately from health;
+it does not qualify every nine-image/duration combination. [ADR 0237](../adr/0237-h3-ordered-reference-images.md)
+and [the complete multi-reference client guide](minimax-h3-reference-images-client-guide.md)
 cover the frozen contract, JSON, multipart and completed MP4 download. Both
 Ref2VA modes retain the original AV latent and existing UNKNOWN/FIFO safety. For
 this rollout, gateway recovery uses a bounded forward repair on the current
