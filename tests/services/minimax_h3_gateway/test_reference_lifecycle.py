@@ -33,6 +33,7 @@ def test_terminal_transfer_download_and_expiry_preserve_unrelated_inputs(tmp_pat
     assert response.status_code == 200 and response.content == b"retained-transport-fixture"
     assert not output.exists()
     assert gateway.store.get_job(job_id)["status"] == "succeeded"
+    assert gateway.dispatch_once() is None  # Observe completion and release lane ownership.
     frames = gateway.store.get_job_frames(job_id)
     originals = [gateway.files.gateway_asset_path(frame) for frame in frames]
     prepared = [gateway.files.prepared_input_path(job_id=job_id, frame=frame) for frame in frames]

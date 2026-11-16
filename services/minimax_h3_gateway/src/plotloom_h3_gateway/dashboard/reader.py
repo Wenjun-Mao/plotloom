@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..naming import is_gateway_job_id, is_owned_storage_name
-from ..reference_execution import is_reference_job
+from ..reference_execution import is_reference_job, reference_response
 
 FIELDS = (
     "id", "backend", "input_mode", "h3_contract", "quality", "resolution",
@@ -148,6 +148,8 @@ class DashboardReader:
             } if isinstance(snapshot, dict) else None
         except (TypeError, ValueError):
             result["frozenSettings"] = None
+        if is_reference_job(row):
+            result.update(reference_response(row))
         return result
 
     def output_name(self, row: dict) -> str | None:

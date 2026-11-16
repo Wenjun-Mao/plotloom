@@ -350,6 +350,7 @@ def test_queued_voice_inputs_are_not_pruned_at_day_thirty(tmp_path: Path) -> Non
     assert asset_path.is_file()
     assert gateway.voice_files.prepared_path(job_id, voice).is_file()
     gateway.cancel_job(job_id)
+    assert gateway.dispatch_once() is None
     gateway.cleanup_expired_gateway_keyframes()
     assert not asset_path.exists()
     assert gateway.store.get_job_voice(job_id)["released_at"] is not None

@@ -32,6 +32,7 @@ ALLOWED_REPOSITORY_ROOTS = {
     "src",
     "tests",
     "third_party",
+    "tools",  # Source-owned manual skills: ADRs 0238 and 0239.
     "uv.lock",
 }
 IGNORED_WORKTREE_ROOTS = {

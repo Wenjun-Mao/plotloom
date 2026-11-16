@@ -24,7 +24,7 @@ Each image occupies its ordered Ref2VA text-encoder slot and exactly one timed
 AddGuide. Use Ref2VA INT8 ConvRot, Base-20, `ref_image_size=match` and the adopted
 VAE policy. The submitted prompt passes unchanged. Callers author prose, image
 order and requested times. Trusted code owns validation, quantization and graph
-binding. Exclude audio references, videos, arbitrary graphs and model overrides.
+binding. The original scope excluded audio references; the November 16 amendment below extends only that exclusion. Videos, arbitrary graphs and model overrides remain excluded.
 
 Store `h3_contract=ref2va` with a distinct versioned reference-images snapshot.
 Extend only the exact known child frame-binding role schema losslessly. Reuse
@@ -54,3 +54,39 @@ no old-gateway restoration, schema reversal/reset/copy or compatibility layer is
 authorized. Preserve admission and UNKNOWN evidence. Dashboard recovery remains
 independent after fresh idle checks. This is a selected current-contract recovery
 policy, not an assertion that the actual preceding binary rejects the new DDL.
+
+## November 16 amendment — optional per-character audio
+
+Wenjun authorized extending the same endpoint with optional `audioReferences`
+(default empty, explicit null rejected), up to three uniquely labelled speakers.
+URL mode supplies `{speaker,sourceUrl}`; uploads supply ordered `audios` files
+with `{speaker}` metadata. Permit twelve multipart files, enforcing separate
+nine-image/three-audio limits. Reuse ADR 0205's PCM16 mono 32 kHz, 1–10-second,
+2 MiB-per-WAV contract without implicit trimming or resampling. Image timing,
+geometry, prompt bytes and the separate 7A route retain their current contracts.
+
+Callers own speaker labels, audio order and explicit prompt associations between
+each character and `<Audio n>`. Labels are provenance, not forced native speaker
+assignment. Trusted code owns validation, ordered zero-based native slots,
+private indexed source/canonical files, digests, immutable bindings and graph
+construction. Connect the audio VAE so every audio becomes actual conditioning,
+while preserving all timed image guides and the original target AV latent.
+
+Keep image-only snapshots/readback at renderer v1. Audio-enabled snapshots use
+renderer v2 and reference-audio contract v1; admit audio bindings atomically with
+the existing image/job/lane rows. No backfill or new voice-library ownership.
+Expose authenticated mapping, hashes and durations without URLs/private names.
+Dashboard readback displays that mapping; this amendment adds no creation form.
+
+Release audio at output expiry or after failed/cancelled 30-day retention.
+Protect UNKNOWN and every unresolved lane entry. Audio release rows also guard
+record purging until all prepared images have been removed/proven absent.
+Check each source/canonical identity again before dispatch. Preserve current
+production data and SQLite identity during the additive activation; use forward
+repair on expanded current data.
+
+Readiness and technical AV prove neither voice identity nor assignment. Record
+a separate per-line listening assessment across two novel-dialogue takes using
+the same three references. A swapped or uncertain character assignment is not
+voice-continuity success. Qualify nine-image/three-audio learned capacity
+separately from schema/CPU evidence; no claim covers every maximum-duration case.

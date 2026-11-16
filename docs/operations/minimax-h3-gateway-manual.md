@@ -68,7 +68,8 @@ Portrait 576×1024 is Plotloom's new-job default. “High resolution” means mo
 pixels only; it is not a creative-quality or production-ready claim.
 
 Separate Ref2VA routes accept one image plus a voice-reference WAV, or **1–9
-ordered still images with millisecond anchors**. The latter uses required
+ordered still images with millisecond anchors**, optionally with up to three
+character voice-reference WAVs. The latter uses required
 `durationMs` 5000–15000, fixed Base-20 sampling and only 960x544/576x1024.
 The [colleague guide’s ordered-reference section](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 contains complete local-upload and URL requests; these gateway contracts do
@@ -234,6 +235,10 @@ An expected health response is structurally equivalent to:
   "referenceContractVersion": 1,
   "referenceImagesReady": true,
   "referenceMaxImages": 9,
+  "referenceAudioContractVersion": 1,
+  "referenceAudioReady": true,
+  "referenceMaxAudios": 3,
+  "referenceAudioFormat": {"container":"wav","codec":"pcm_s16le","channels":1,"sampleRate":32000,"minDurationMs":1000,"maxDurationMs":10000,"maxBytes":2097152},
   "referenceResolutions": ["960x544", "576x1024"],
   "referenceDurationMs": {"min": 5000, "max": 15000},
   "queuedJobs": 0,
@@ -384,10 +389,20 @@ URL or path. Its status projects `inputMode=image_voice`, `quality=8`; the
 `h3_contract=ref2va` database field distinguishes it from FL2VA Base-20.
 
 The ordered-image Ref2VA route instead projects `inputMode=reference_images`.
-It accepts `durationMs` 5000–15000 and 960×544/576×1024, no quality selector or
-reference audio. `aspectPolicy` is required, not defaulted. JSON references contain `sourceUrl` and `atMs`; multipart has
+It accepts `durationMs` 5000–15000 and 960×544/576×1024, no quality selector.
+Optional `audioReferences` adds up to three unique caller-labelled voices; omitted
+or empty keeps the exact image-only branch, while null is rejected. `aspectPolicy` is required, not defaulted. JSON references contain `sourceUrl` and `atMs`; multipart has
 one `request` JSON field whose references contain only `atMs`, and repeated
-`images` in the same order. All image bytes total at most 20 MiB, each decodes
+`images` in the same order. Optional audio URL entries use `{speaker,sourceUrl}`;
+upload metadata uses `{speaker}` plus repeated ordered `audios` files. Each is
+PCM16 mono 32 kHz WAV, 1–10 seconds and at most 2 MiB, independent of the image
+limit. The twelve-file parser permits nine images plus three audios. Speaker
+labels map to `<Audio n>` by array order; callers author the association in the
+unchanged prompt. They do not force native speaker assignment. Audio-enabled
+snapshots use renderer v2/audio contract v1 with `audio_vae` connected; image-only
+snapshots stay v1. Authenticated API/dashboard mapping exposes ordered labels,
+hashes and duration without URLs/private paths. `referenceAudioReady` and format
+metadata are independent of image readiness. All image bytes total at most 20 MiB, each decodes
 to at most 30 million pixels, and animations/transparency are refused. The
 first anchor is zero; later integer-ms anchors increase strictly before the
 requested end. Nearest-24-Hz rounding uses half ties upward and refuses
@@ -460,10 +475,17 @@ values. Audio and its prepared first frame remain while queued/running,
 then are released at successful MP4 expiry or after 30 days for terminal
 unsuccessful jobs. A 30-day record purge cannot bypass an audio-file deletion
 failure.
+Ordered-image audio files instead use indexed `_audio_reference_1.wav` through
+`_audio_reference_3.wav`, with atomic one-to-many bindings. Release waits for
+output expiry or failed/cancelled day 30 and no unresolved lane; UNKNOWN inputs
+remain protected. Audio release rows also prevent record purge until every
+prepared image and both copies of each WAV were released. Additive activation
+preserves the current SQLite inode/data; use forward repair on expanded data.
+Voice consistency and per-line assignment need separate listening evidence.
 The timestamp tells an operator when the gateway created its copy; use the
 embedded `asset_…` or `h3_…` ID for API requests and forensic correlation.
-Deploy this as a clean gateway-state cutover: reset prior gateway SQLite and
-managed files instead of carrying a second filename convention.
+The earlier filename migration is historical. Current optional-audio activation
+is additive: preserve gateway SQLite and managed files; do not reset them.
 
 Gateway-managed MP4s are deleted 72 hours after that handoff. Their SQLite job
 record remains `succeeded`, but its `outputReady` flag is false and an output

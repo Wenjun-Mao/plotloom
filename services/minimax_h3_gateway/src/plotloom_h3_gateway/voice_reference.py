@@ -105,7 +105,7 @@ def canonical_voice(content: bytes) -> CanonicalVoice:
                 raise GatewayError("voice_format_not_supported", 422)
             frames = source.getnframes()
             duration_ms = frames * 1000 // VOICE_SAMPLE_RATE
-            if not MIN_VOICE_DURATION_MS <= duration_ms <= MAX_VOICE_DURATION_MS:
+            if not MIN_VOICE_DURATION_MS * VOICE_SAMPLE_RATE <= frames * 1000 <= MAX_VOICE_DURATION_MS * VOICE_SAMPLE_RATE:
                 raise GatewayError("voice_duration_invalid", 422)
             samples = source.readframes(frames)
             if len(samples) != frames * 2:

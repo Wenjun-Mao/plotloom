@@ -23,6 +23,7 @@ def timestamped_storage_name(object_id: str, suffix: str, *, label: str | None =
 def is_owned_storage_name(
     name: object, *, object_id: str, suffixes: tuple[str, ...],
     allow_frame_label: bool = False, allow_voice_label: bool = False,
+    allow_reference_audio_label: bool = False,
 ) -> bool:
     """Validate a timestamped gateway filename for one stable object ID."""
 
@@ -31,7 +32,7 @@ def is_owned_storage_name(
     return any(
         re.fullmatch(
             rf"{_TIMESTAMP_PREFIX}_{re.escape(object_id)}"
-            rf"{'(?:_(?:start|end|reference_[1-9]))?' if allow_frame_label else '(?:_voice)?' if allow_voice_label else ''}{re.escape(suffix)}",
+            rf"{'(?:_(?:start|end|reference_[1-9]))?' if allow_frame_label else '(?:_voice)?' if allow_voice_label else '_audio_reference_[1-3]' if allow_reference_audio_label else ''}{re.escape(suffix)}",
             name,
         )
         for suffix in suffixes

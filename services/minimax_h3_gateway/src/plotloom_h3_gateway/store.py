@@ -12,6 +12,7 @@ from .contracts import (
     GatewayError,
 )
 from .frame_binding_schema import ASSET_INDEX, CURRENT_TABLE, align_frame_binding_schema
+from . import reference_audio_store
 
 
 def _has_retired_contract(connection: sqlite3.Connection) -> bool:
@@ -47,6 +48,7 @@ class GatewayStore:
                 )
             align_frame_binding_schema(connection)
             connection.executescript(_CURRENT_SCHEMA)
+            connection.execute(reference_audio_store.SCHEMA)
             self._migrate(connection)
             from .lane import initialize_lane
             initialize_lane(connection)
@@ -103,6 +105,7 @@ class GatewayStore:
     def reserve_job(
         self, values: dict[str, Any], frames: list[dict[str, str]],
         voice: dict[str, Any] | None = None,
+        *, reference_audio: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Atomically admit one job and all of its immutable input bindings."""
 
@@ -132,11 +135,14 @@ class GatewayStore:
                                :source_size_bytes, :duration_ms, :source_name, :prepared_input_name)""",
                     {**voice, "job_id": values["id"]},
                 )
+            reference_audio_store.insert(connection, values["id"], reference_audio or [])
             from .lane import media_binding, register
             row = connection.execute("SELECT * FROM jobs WHERE id=?", (values["id"],)).fetchone()
             register(connection, "gateway", row["backend"], row["id"], media_binding(row))
             connection.commit()
-        return self.get_job(values["id"])
+        # Ownership transferred at commit. A later read failure must never make
+        # admission callers delete files belonging to a committed queued job.
+        return dict(row)
 
     def get_job_voice(self, job_id: str) -> dict[str, Any] | None:
         with self._connect() as connection:
@@ -185,12 +191,12 @@ class GatewayStore:
         with self._connect() as connection:
             rows = connection.execute("""SELECT jobs.* FROM jobs
                 WHERE jobs.h3_contract = 'ref2va'
-                AND jobs.status IN ('failed', 'cancelled', 'outcome_unknown')
+                AND jobs.status IN ('failed', 'cancelled')
                 AND jobs.created_at <= datetime('now', ?)
                 AND EXISTS (SELECT 1 FROM job_frame_bindings frames
                             WHERE frames.job_id = jobs.id AND frames.role = 'reference_1')
                 AND NOT EXISTS (SELECT 1 FROM generation_lane lane
-                                WHERE lane.owner = 'gateway' AND lane.job_id = jobs.id AND lane.state = 'active')
+                                WHERE lane.owner = 'gateway' AND lane.job_id = jobs.id AND lane.state != 'done')
                 ORDER BY jobs.rowid""", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",)).fetchall()
         return [dict(row) for row in rows]
 
@@ -233,7 +239,10 @@ class GatewayStore:
 
     def list_expired_managed_outputs(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM jobs WHERE status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= CURRENT_TIMESTAMP ORDER BY rowid ASC").fetchall()
+            rows = connection.execute("""SELECT * FROM jobs WHERE status = 'succeeded'
+                AND output_expires_at IS NOT NULL AND output_expires_at <= CURRENT_TIMESTAMP
+                AND NOT EXISTS (SELECT 1 FROM generation_lane lane WHERE lane.owner='gateway'
+                    AND lane.job_id=jobs.id AND lane.state!='done') ORDER BY rowid ASC""").fetchall()
         return [dict(row) for row in rows]
 
     def output_is_retained(self, job_id: str) -> bool:
@@ -244,10 +253,13 @@ class GatewayStore:
     def list_purgeable_completed_job_records(self) -> list[dict[str, Any]]:
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
-            rows = connection.execute("""SELECT * FROM jobs WHERE status = 'succeeded'
+            rows = connection.execute(f"""SELECT * FROM jobs WHERE status = 'succeeded'
                 AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)
                 AND NOT EXISTS (SELECT 1 FROM job_voice_bindings voice
                                 WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)
+                AND {reference_audio_store.UNRELEASED}
+                AND NOT EXISTS (SELECT 1 FROM generation_lane lane WHERE lane.owner='gateway'
+                    AND lane.job_id=jobs.id AND lane.state!='done')
                 ORDER BY rowid ASC""", (f"-{audit_hours} hours",)).fetchall()
         return [dict(row) for row in rows]
 
@@ -255,10 +267,13 @@ class GatewayStore:
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            deleted = connection.execute("""DELETE FROM jobs WHERE id = ? AND status = 'succeeded'
+            deleted = connection.execute(f"""DELETE FROM jobs WHERE id = ? AND status = 'succeeded'
                 AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)
                 AND NOT EXISTS (SELECT 1 FROM job_voice_bindings voice
-                                WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)""",
+                                WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)
+                AND {reference_audio_store.UNRELEASED}
+                AND NOT EXISTS (SELECT 1 FROM generation_lane lane WHERE lane.owner='gateway'
+                    AND lane.job_id=jobs.id AND lane.state!='done')""",
                 (job_id, f"-{audit_hours} hours"))
             if deleted.rowcount == 1:
                 connection.execute("DELETE FROM generation_lane WHERE owner='gateway' AND job_id=? AND state='done'", (job_id,))
@@ -271,7 +286,11 @@ class GatewayStore:
                    AND NOT EXISTS (
                      SELECT 1 FROM job_frame_bindings bindings JOIN jobs ON jobs.id = bindings.job_id
                      WHERE bindings.asset_id = ? AND (jobs.status != 'succeeded' OR jobs.output_expires_at IS NULL OR jobs.output_expires_at > CURRENT_TIMESTAMP)
-                   )""", (asset_id, asset_id),
+                   ) AND NOT EXISTS (
+                     SELECT 1 FROM job_frame_bindings bindings JOIN generation_lane lane
+                       ON lane.owner='gateway' AND lane.job_id=bindings.job_id
+                     WHERE bindings.asset_id=? AND lane.state!='done'
+                   )""", (asset_id, asset_id, asset_id),
             )
         return claimed.rowcount == 1
 
@@ -284,11 +303,11 @@ class GatewayStore:
                    AND NOT EXISTS (
                      SELECT 1 FROM job_frame_bindings bindings JOIN jobs ON jobs.id = bindings.job_id
                      WHERE bindings.asset_id = assets.id
-                       AND jobs.status NOT IN ('succeeded', 'failed', 'cancelled', 'outcome_unknown')
+                       AND jobs.status NOT IN ('succeeded', 'failed', 'cancelled')
                    ) AND NOT EXISTS (
                      SELECT 1 FROM job_frame_bindings bindings JOIN generation_lane lane
                        ON lane.owner='gateway' AND lane.job_id=bindings.job_id
-                     WHERE bindings.asset_id=assets.id AND lane.state='active'
+                     WHERE bindings.asset_id=assets.id AND lane.state!='done'
                    )""", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",)
             )
             connection.commit()

@@ -42,6 +42,7 @@ from .voice_jobs import VoiceJobs
 from .reference_jobs import ReferenceJobs
 from .reference_contracts import REFERENCE_MAX_IMAGES, REFERENCE_RESOLUTIONS
 from .reference_execution import REFERENCE_CONTRACT_VERSION, is_reference_job
+from .reference_audio_contracts import REFERENCE_AUDIO_CONTRACT_VERSION, REFERENCE_MAX_AUDIOS, REFERENCE_AUDIO_FORMAT
 from .voice_reference import VOICE_CONTRACT_VERSION, VOICE_RESOLUTIONS
 from .workflow import load_h3_template, render_workflow, single_output_descriptor
 
@@ -96,6 +97,11 @@ class H3Gateway:
             references_ready = True
         except GatewayError:
             references_ready = False
+        try:
+            self.comfy.preflight_references(REFERENCE_MAX_IMAGES, REFERENCE_MAX_AUDIOS)
+            reference_audio_ready = True
+        except GatewayError:
+            reference_audio_ready = False
         queued, active = self.lane.counts()
         return {
             "status": "ok", "generationContractVersion": GENERATION_CONTRACT_VERSION,
@@ -107,6 +113,9 @@ class H3Gateway:
             "voiceResolutions": list(VOICE_RESOLUTIONS),
             "referenceContractVersion": REFERENCE_CONTRACT_VERSION,
             "referenceImagesReady": references_ready, "referenceMaxImages": REFERENCE_MAX_IMAGES,
+            "referenceAudioContractVersion": REFERENCE_AUDIO_CONTRACT_VERSION,
+            "referenceAudioReady": reference_audio_ready, "referenceMaxAudios": REFERENCE_MAX_AUDIOS,
+            "referenceAudioFormat": REFERENCE_AUDIO_FORMAT,
             "referenceResolutions": list(REFERENCE_RESOLUTIONS),
             "referenceDurationMs": {"min": 5000, "max": 15000},
             "imageResolutions": [canvas.resolution for canvas in QWEN_IMAGE_CANVASES],
@@ -318,19 +327,21 @@ class H3Gateway:
 
     def cleanup_expired_outputs(self) -> int:
         return (self.files.cleanup_expired_outputs() + self.voice_files.cleanup_due()
-                + self.reference_jobs.files.cleanup_due())
+                + self.reference_jobs.audio_files.cleanup_due() + self.reference_jobs.files.cleanup_due())
 
     def cleanup_due_job_records(self) -> int:
         self.voice_files.cleanup_due()
+        self.reference_jobs.audio_files.cleanup_due()
         self.reference_jobs.files.cleanup_due()
         self.lane.purge_finished_voice_records()
         return self.files.cleanup_due_job_records()
 
     def cleanup_expired_gateway_keyframes(self) -> int:
         return (self.reference_jobs.files.cleanup_due() + self.files.cleanup_expired_gateway_keyframes()
-                + self.voice_files.cleanup_due())
+                + self.voice_files.cleanup_due() + self.reference_jobs.audio_files.cleanup_due())
     def cleanup_expired_gateway_inputs_and_assets(self) -> int:
-        return self.reference_jobs.files.cleanup_due() + self.files.cleanup_expired_gateway_inputs_and_assets()
+        return (self.reference_jobs.audio_files.cleanup_due() + self.reference_jobs.files.cleanup_due()
+                + self.files.cleanup_expired_gateway_inputs_and_assets())
     def cleanup_pending_asset_purges(self) -> int: return self.files.cleanup_pending_asset_purges()
 
     def _managed_output_path(self, job: dict[str, Any]) -> Path | None: return self.files.managed_output_path(job)

@@ -86,7 +86,10 @@ one unauthenticated health route. Ordinary FL2VA creation uses a required exact
    and integer-millisecond anchors, using fixed Ref2VA Base-20. JSON uses
    ordered `references: [{sourceUrl, atMs}]`; multipart uses one `request` JSON
    field and repeated `images` files in the same order. It accepts `durationMs`
-   5000–15000 and canvases 960x544 or 576x1024, with no voice or quality selector.
+   5000–15000 and canvases 960x544 or 576x1024, with no quality selector.
+   Optional `audioReferences` binds up to three ordered character WAVs: URL items
+   `{speaker,sourceUrl}` or multipart `{speaker}` metadata plus repeated `audios`.
+   Omitted/empty keeps image-only behavior. Each WAV is PCM16 mono32kHz,1–10s,2MiB.
 5. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
    frame count, actual duration, and backend elapsed timing.
 6. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
@@ -94,7 +97,8 @@ one unauthenticated health route. Ordinary FL2VA creation uses a required exact
 8. `GET /health` exposes safe readiness, input modes and queue counts without
    a bearer key.
 
-`referenceImagesReady` is separate from `voiceReferenceReady`. Readiness checks
+`referenceImagesReady`, `referenceAudioReady` and `voiceReferenceReady` are separate;
+`referenceAudioFormat` publishes supported WAV limits. Readiness checks
 node/model availability; measured learned capacity requires qualification.
 Requested times snap to nearest 24 Hz frames (half ties upward); duplicate or
 out-of-range resolved anchors are refused. For 11300 ms, the native output is
@@ -103,7 +107,10 @@ out-of-range resolved anchors are refused. For 11300 ms, the native output is
 See the [multi-reference client guide](../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)
 for complete JSON, multipart and download examples. `aspectPolicy` is required;
 the 20 MiB input limit applies to all reference images combined. The historical
-learned-run verification covers five images, not all nine-image combinations.
+learned-run verification covers five images. The [optional-audio verification](../../docs/verification/2026-11-16-h3-optional-reference-audio.md)
+adds two8-second3+3 runs and one5-second9+3 run, with full graphs and decoded AV;
+voice identity/assignment remains unassessed by listening, and longer maximum
+envelopes are not qualified by that short capacity case.
 
 `POST /v1/assets` and `POST /v1/video-jobs` are deliberately retired. There
 is no public asset-ID, idempotency-key, or compatibility creation path.
@@ -123,8 +130,10 @@ audio ownership to the CPU Voice Lab control service, not gateway media tables.
 See the [Chinese client guide](../qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
 and [deployment/recovery](../qwen3_tts_voice_lab/docs/reproduction-and-operations.md).
 The image-and-voice route requires explicit WAV input through file bytes or its
-URL field; it does not resolve a voice-take ID. Ordered-image Ref2VA generates
-native audio from its prompt and accepts no voice-reference input.
+URL field; it does not resolve a voice-take ID. Ordered-image Ref2VA optionally
+accepts up to three explicit WAVs; speaker labels preserve provenance, while the
+caller prompt associates each character with its ordered `<Audio n>` slot.
+Neither path guarantees voice assignment or continuity from readiness alone.
 
 After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then
@@ -169,7 +178,7 @@ From the repository root:
 
 ```sh
 uv sync --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable
-uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable pytest --confcutdir tests/services/minimax_h3_gateway -q tests/services/minimax_h3_gateway
+uv run --project services/minimax_h3_gateway --locked --extra gateway --group test --no-editable python -m pytest --confcutdir tests/services/minimax_h3_gateway -q tests/services/minimax_h3_gateway
 uv run --project services/minimax_h3_gateway --locked --no-sync pytest --noconftest -q tests/test_media_service_boundaries.py
 node --test tests/services/minimax_h3_gateway/test_dashboard*_ui.mjs
 sh services/minimax_h3_gateway/tools/packaging/verify_install.sh

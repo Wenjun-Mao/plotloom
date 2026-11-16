@@ -139,7 +139,14 @@ def test_real_registered_helper_reaps_without_followup_rpc_and_preserves_outcome
         # Direct immutable-ledger observations do not call status/admit/cancel
         # and cannot reap a child, grant capacity or reconcile its outcome.
         _until(lambda: json.loads(supervisor._row(attempt.attempt_id)["status_json"])["state"] == outcome)
-        _until(lambda: str(attempt.attempt_id) not in supervisor._workers)
+        def local_cleanup_observed():
+            if str(attempt.attempt_id) in supervisor._workers:
+                return False
+            # Handle removal precedes the reaper's durable slot release. Wait
+            # for both using read-only observations, without a follow-up RPC.
+            with closing(supervisor._connect()) as connection:
+                return supervisor._capacity_counts(connection) == {"text": 0, "image": 0}
+        _until(local_cleanup_observed)
         _assert_reaped(worker)
         row = supervisor._row(attempt.attempt_id)
         assert row["attempt_json"] == original

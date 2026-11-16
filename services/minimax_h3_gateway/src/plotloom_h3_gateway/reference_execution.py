@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt
 from .reference_contracts import CreateReferenceJobRequest, reference_frame, reference_frame_count
 from .vae_policy import ADOPTED_VAE_POLICY, bind_vae_policy
 from .voice_reference import VOICE_MODEL, VOICE_MODEL_SHA256
+from .reference_audio_contracts import ReferenceAudio, REFERENCE_AUDIO_CONTRACT_VERSION
 
 REFERENCE_CONTRACT_VERSION = 1
 REFERENCE_RENDERER_VERSION = 1
@@ -35,6 +36,7 @@ class ReferenceExecution:
     seed: int
     prompt_sha256: str
     images: tuple[ReferenceImage, ...]
+    audios: tuple[ReferenceAudio, ...] = ()
 
     @property
     def frame_count(self) -> int:
@@ -42,7 +44,7 @@ class ReferenceExecution:
 
     def snapshot(self) -> dict[str, Any]:
         width, height = map(int, self.resolution.split("x"))
-        return {
+        result = {
             "referenceContractVersion": REFERENCE_CONTRACT_VERSION,
             "workflowRendererVersion": REFERENCE_RENDERER_VERSION,
             "inputMode": "reference_images", "model": VOICE_MODEL,
@@ -55,6 +57,11 @@ class ReferenceExecution:
             "references": [image.model_dump() for image in self.images],
             "vaePolicy": ADOPTED_VAE_POLICY.snapshot(),
         }
+        if self.audios:
+            result.update(workflowRendererVersion=2,
+                referenceAudioContractVersion=REFERENCE_AUDIO_CONTRACT_VERSION,
+                audioReferences=[audio.model_dump() for audio in self.audios])
+        return result
 
     def snapshot_json(self) -> str:
         return json.dumps(self.snapshot(), sort_keys=True, separators=(",", ":"))
@@ -77,12 +84,16 @@ def reference_execution_from_snapshot(value: str) -> ReferenceExecution:
             "aspectPolicy": "reject_mismatch", "durationMs": payload["requestedDurationMs"],
             "seed": payload["seed"],
             "references": [{"atMs": row["atMs"]} for row in payload["references"]],
+            "audioReferences": [{"speaker": row["speaker"]} for row in payload.get("audioReferences", [])],
         })
         images = tuple(ReferenceImage.model_validate(row) for row in payload["references"])
+        audios = tuple(ReferenceAudio.model_validate(row) for row in payload.get("audioReferences", []))
         if request.seed is None:
             raise ValueError
         if any(image.index != index or image.frameIndex != reference_frame(image.atMs)
                for index, image in enumerate(images, 1)):
+            raise ValueError
+        if any(audio.index != index for index, audio in enumerate(audios, 1)):
             raise ValueError
         prompt_hash = payload["promptSha256"]
         if not isinstance(prompt_hash, str) or len(prompt_hash) != 64 or any(
@@ -90,7 +101,7 @@ def reference_execution_from_snapshot(value: str) -> ReferenceExecution:
         ):
             raise ValueError
         result = ReferenceExecution(request.resolution, request.duration_ms, request.seed,
-                                    prompt_hash, images)
+                                    prompt_hash, images, audios)
         if result.snapshot_json() != json.dumps(payload, sort_keys=True, separators=(",", ":")):
             raise ValueError
         return result
@@ -106,7 +117,7 @@ def reference_response(job: dict[str, Any]) -> dict[str, Any]:
         # unvalidated timing or hashes from a damaged execution snapshot.
         return {"inputMode": "reference_images", "referenceContractVersion": REFERENCE_CONTRACT_VERSION,
                 "requestedDurationMs": None, "promptSha256": None, "references": None}
-    return {
+    result = {
         "inputMode": "reference_images", "referenceContractVersion": REFERENCE_CONTRACT_VERSION,
         "requestedDurationMs": execution.duration_ms, "promptSha256": execution.prompt_sha256,
         "references": [{"index": row.index, "atMs": row.atMs, "frameIndex": row.frameIndex,
@@ -114,6 +125,10 @@ def reference_response(job: dict[str, Any]) -> dict[str, Any]:
                         "sourceSha256": row.sourceSha256, "preparedSha256": row.preparedSha256}
                        for row in execution.images],
     }
+    if execution.audios:
+        result.update(referenceAudioContractVersion=REFERENCE_AUDIO_CONTRACT_VERSION,
+                      audioReferences=[audio.public() for audio in execution.audios])
+    return result
 
 
 def render_reference_workflow(template: dict[str, Any], execution: ReferenceExecution, prompt: str) -> dict[str, Any]:
@@ -144,6 +159,12 @@ def render_reference_workflow(template: dict[str, Any], execution: ReferenceExec
             "image": [image_node, 0], "frame_idx": row.frameIndex,
         }}
         positive = [guide_node, 0]
+    if execution.audios:
+        inputs["audio_vae"] = ["105:24", 0]
+        for audio in execution.audios:
+            node = f"reference_audio_{audio.index}"
+            graph[node] = {"class_type": "LoadAudio", "inputs": {"audio": audio.audioName}}
+            inputs[f"ref_audios.ref_audio_{audio.index - 1}"] = [node, 0]
     graph["105:104"] = {"class_type": "MiniMaxH3ReferenceToVideo", "inputs": inputs}
     graph["105:16"]["inputs"] = {"model": ["105:6", 0], "conditioning": positive}
     return graph

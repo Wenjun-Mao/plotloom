@@ -431,6 +431,7 @@ def test_gateway_expired_output_cleanup_preserves_unrelated_files_and_never_rege
     source.write_bytes(b"managed-output-fixture")
     completed = client.get(f"/v1/video-jobs/{job['id']}", headers=AUTH)
     assert completed.json()["status"] == "succeeded"
+    assert client.app.state.gateway.dispatch_once() is None
     stored = client.app.state.gateway.store.get_job(job["id"])
     managed = tmp_path / "data" / "outputs" / str(stored["managed_output_name"])
     unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"

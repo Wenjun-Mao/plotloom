@@ -4,7 +4,7 @@ from .vae_policy import require_vae_runtime
 from .voice_reference import VOICE_MODEL
 
 
-def preflight_references(client, count: int) -> None:
+def preflight_references(client, count: int, audio_count: int = 0) -> None:
     client._get_json("/system_stats", code="comfy_unavailable")
     info = client._get_json("/object_info", code="comfy_reference_profile_unavailable")
     try:
@@ -33,5 +33,16 @@ def preflight_references(client, count: int) -> None:
                 or not {"LoadImage", "PrimitiveInt", "KSamplerSelect", "BasicScheduler",
                         "BasicGuider", "SamplerCustomAdvanced"}.issubset(info)):
             raise ValueError
+        if audio_count:
+            audios = reference["input"]["optional"]["ref_audios"]
+            audio_template = audios[1]["template"]
+            if (audios[0] != "COMFY_AUTOGROW_V3"
+                    or audio_template["prefix"] != "ref_audio_"
+                    or audio_template["min"] != 0 or type(audio_template["max"]) is not int
+                    or not 1 <= audio_count <= min(3, audio_template["max"])
+                    or audio_template["input"]["required"]["ref_audio"][0] != "AUDIO"
+                    or reference["input"]["optional"]["audio_vae"][0] != "VAE"
+                    or "LoadAudio" not in info):
+                raise ValueError
     except (KeyError, IndexError, TypeError, ValueError) as error:
         raise GatewayError("comfy_reference_profile_unavailable", 503) from error

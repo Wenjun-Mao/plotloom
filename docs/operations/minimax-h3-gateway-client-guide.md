@@ -273,12 +273,13 @@ Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网�
 ## 7B. 有序参考图与时间点（Ref2VA）
 
 请求地址为 `POST /v1/video-jobs/from-reference-images`，接受 **1–9 张有序
-静态图片、每张图片的毫秒时间点和原始提示词**，输出带原生音频的 MP4。
+静态图片、每张图片的毫秒时间点和原始提示词**，可选再提供 **1–3 个角色声线 WAV**，输出带原生音频的 MP4。
 使用第 1 节的基地址和 Bearer；本节完整覆盖本地上传、URL 和时间 readback。
 
 `/health` 无需 Bearer。关注 `referenceContractVersion`、
 `referenceImagesReady`、`referenceMaxImages`、`referenceResolutions` 和
-`referenceDurationMs`。本路由的就绪与 `voiceReferenceReady` 分开。
+`referenceDurationMs`。可选声线另看 `referenceAudioReady`、`referenceMaxAudios`、
+`referenceAudioContractVersion` 和 `referenceAudioFormat`；它不改变图片分支的就绪。
 就绪检查节点、模型和输入插槽合同；显存容量、实际生成时间和成片效果以实际
 运行结果为准。[已有的学习运行验证](../verification/2026-11-07-h3-ordered-reference-images.md)
 覆盖一次五图、277 帧请求，不代表所有九图/时长组合均已验证。
@@ -293,10 +294,11 @@ Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网�
 | `durationMs` | 是 | 5000–15000 的整数毫秒，例如 11300；本路由使用毫秒 |
 | `seed` | 否 | 0–9223372036854775807 的整数；省略后由服务生成并回显 |
 | `references` | 是 | 1–9 项有序数组，格式依 JSON URL / 本地上传方式而异 |
+| `audioReferences` | 否 | 0–3 项角色声线；省略或 `[]` 保持原图片模式，`null` 拒绝；见 7B.5 |
 
 固定使用 **Ref2VA Base-20**，响应中的 `quality` 为 `8`。它与普通 FL2VA 的
 `quality=8` 是不同模型路径。请求字段严格校验：`quality`、`durationSeconds`、
-声线音频、起始/末帧字段、模型和工作流参数均不属于此路由。
+旧路由的 `voiceAudio`、起始/末帧字段、模型和工作流参数均不属于此路由。
 
 图片需满足：
 
@@ -441,6 +443,66 @@ URL 在接纳请求时下载，图片合计仍限 20 MiB；URL 本身不进入�
 后续使用第 8 节的共享查询、下载与取消接口。参考元数据若为 `null` 或出现输入
 完整性错误，保留已知任务 ID 并联系运维；生命周期状态仍可读取。
 
+### 7B.5. 可选的多角色声线
+
+同一请求可增加 `audioReferences`。每项 `speaker` 是调用方自定且唯一的
+非空标签（1–128 字符，不带首尾空白/控制字符）。第 1 项对应 `<Audio 1>`，
+第 2、3 项依此类推。标签用于追溯；**提示词仍须明确写出哪个角色使用哪个
+`<Audio n>`**。网关不改写提示词，也不强制模型正确分配角色声音。
+
+每个 WAV 必须为 **PCM16、单声道、32 kHz、1–10 秒、最多 2 MiB**，
+最多三份合计 6 MiB，与图片的 20 MiB 限制分开。不会自动裁剪、重采样、
+丢弃或合并参考。使用稳定的单角色声音片段，跨请求复用同一文件。
+可下载 Voice Lab 已有的 H3 合格 WAV，再作为本请求文件；这里不接收 Voice/Take ID。
+
+在第 7B.2 节的 `request` JSON 中增加：
+
+```json
+{"audioReferences": [{"speaker":"角色甲"},{"speaker":"角色乙"}]}
+```
+
+Bruno 的 Multipart Form 中，保留一个 `request` 文本及原有多个 `images`
+文件，再按上述数组顺序添加两个同名 `audios` File 字段。声线不带 `atMs`。
+例如完整上传请求可写成（`request-with-audio.json` 包含原有全部必填字段）：
+
+```sh
+curl --fail-with-body -sS \
+  -H "Authorization: Bearer $H3_GATEWAY_BEARER" \
+  -F 'request=<request-with-audio.json;type=application/json' \
+  -F 'images=@reference-1.png' \
+  -F 'images=@reference-2.png' \
+  -F 'audios=@character-a.wav;type=audio/wav' \
+  -F 'audios=@character-b.wav;type=audio/wav' \
+  http://100.64.35.71:8090/v1/video-jobs/from-reference-images
+```
+
+元数据示例（台词与角色映射应换成实际创作内容）：
+
+```json
+{
+  "prompt": "<Picture 1> establishes the scene. The woman uses <Audio 1>; the man uses <Audio 2>. The woman says <d>[Chinese] 窗户已经关好了。</d> The man replies <d>[Chinese] 那我们现在出发。</d>",
+  "resolution": "960x544",
+  "aspectPolicy": "contain_pad",
+  "durationMs": 8000,
+  "references": [{"atMs":0},{"atMs":4000}],
+  "audioReferences": [{"speaker":"角色甲"},{"speaker":"角色乙"}]
+}
+```
+
+URL 模式保留第 7B.3 节的图片 `sourceUrl`，每个声线项改为
+`{"speaker":"角色甲","sourceUrl":"https://your-private-source/character-a.wav"}`。
+一次请求统一使用 URL 或上传模式；上传元数据不能夹带 `sourceUrl`。
+鉴权规则与图片 URL 相同，网关不会将 Bearer 转发给源服务器。
+
+音频请求的创建/GET 额外返回 `referenceAudioContractVersion:1` 和有序
+`audioReferences`，每项含 `index`、`speaker`、`sourceSha256`、
+`preparedSha256`、`sourceSizeBytes`、`durationMs`。原始与规范 WAV 头的 hash
+可能不同；不回显 URL、私有文件名或音频字节。看板任务详情也展示这份映射。
+图片模式不新增这些响应字段，提示词、图片顺序和时间取整规则均不变。
+
+参考音频用于引导新生成的声音，不是精确复制、配音或跨镜头声线一致性的保证。
+[当前验证](../verification/2026-11-16-h3-optional-reference-audio.md)已通过两个三图/三声线的 8 秒请求，以及一个九图/三声线的 5 秒请求；不代表所有最大时长组合。实际声线身份与台词分配尚未完成听感判断。
+
 ## 8. 查询与下载
 
 将 `h3_替换为任务ID` 换成创建响应的 `id`：
@@ -492,6 +554,8 @@ multipart 解析层的数量/大小限制也可能直接返回框架错误。
 | `quality_not_supported` | 普通 FL2VA 只可使用 `1`、`2`、`3`、`8`；多图请求不传 `quality` |
 | `resolution_not_supported` | 使用上表中的精确 `resolution` |
 | `image_file_required` | multipart I2V 缺少 `image` |
+| `reference_audio_count_mismatch` / `reference_request_invalid` | 多角色声线文件与元数据数量不匹配，或标签/字段不合法 |
+| `reference_audio_integrity_mismatch` / `reference_audio_snapshot_mismatch` | 已接纳声线的文件或映射与冻结记录不一致；保留任务 ID，联系运维 |
 | `voice_file_required` / `voice_format_not_supported` | 声线参考缺失，或不是 32 kHz 单声道 PCM16 WAV |
 | `voice_size_invalid` / `voice_duration_invalid` | 声线参考超出 2 MiB 或 1–10 秒 |
 | `voice_resolution_not_supported` / `voice_duration_not_supported` | 单图加声线路由仅支持上文两个画布与 5–8 秒；多图使用 5000–15000 ms |

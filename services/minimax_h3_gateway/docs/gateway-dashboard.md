@@ -128,3 +128,11 @@ uv run --project services/minimax_h3_gateway --locked --group test ruff check se
 用保留文件或测试夹具验证真实浏览器播放、拖动、下载、刷新和状态轮询。
 页面不会自动播放；轮询不替换当前视频元素。不把软件解码通过当成所有浏览器
 必定播放成功，也不把看板上线当成同事反馈的问题已经修复。
+
+## 有序图片与可选角色声线的只读详情
+
+API 接纳的 `reference_images` 任务显示图片模式；带声线时，冻结设置区
+额外显示每个音频索引、speaker 标签、原始/规范 hash、字节数和时长。
+这些值来自校验后的冻结快照，不暴露源 URL 或服务私有文件名。
+看板不新增此模式的创建表单，也不把它复用为现有 FL2VA 表单请求。
+直接创建参见现有[同事指南 7B](../../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。

@@ -221,7 +221,12 @@ function renderDetail(j) {
     dd.textContent = v ?? "—";
     dl.append(dt, dd);
   }
-  text("frozen", JSON.stringify(j.frozenSettings, null, 2));
+  const frozen = { ...j.frozenSettings };
+  if (j.audioReferences) {
+    frozen.referenceAudioContractVersion = j.referenceAudioContractVersion;
+    frozen.audioReferences = j.audioReferences;
+  }
+  text("frozen", JSON.stringify(frozen, null, 2));
   $("reuse-settings").hidden =
     j.backend !== "h3_video" || j.inputMode !== "image";
   $("reuse-settings").onclick = async () => {

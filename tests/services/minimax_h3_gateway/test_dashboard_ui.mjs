@@ -297,3 +297,20 @@ test("completed navigation reveals after layout, once only, and return cancels i
   assert.equal(panel.scrollCount, returned);
   assert.equal(vm.runInContext("window.history.scrollRestoration", context), "manual");
 });
+
+test("reference audio mapping is visible as text without changing the submission form", () => {
+  const { context, document } = harness();
+  context.job = {
+    id: "h3_" + "a".repeat(32), backend: "h3_video", inputMode: "reference_images",
+    output: "pending", frozenSettings: { workflowRendererVersion: 2 },
+    referenceAudioContractVersion: 1,
+    audioReferences: [{ index: 1, speaker: "<script>Character A</script>",
+      durationMs: 1000, sourceSha256: "a".repeat(64), preparedSha256: "b".repeat(64) }],
+  };
+  vm.runInContext("renderDetail(job)", context);
+  const frozen = JSON.parse(document.getElementById("frozen").textContent);
+  assert.equal(frozen.audioReferences[0].speaker, "<script>Character A</script>");
+  assert.equal(frozen.audioReferences[0].durationMs, 1000);
+  assert.equal(frozen.referenceAudioContractVersion, 1);
+  assert.equal(document.getElementById("reuse-settings").hidden, true);
+});

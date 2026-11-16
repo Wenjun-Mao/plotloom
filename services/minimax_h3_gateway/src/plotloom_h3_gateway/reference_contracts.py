@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 from .contracts import AspectPolicy, SourceUrlAssetRequest
+from .reference_audio_contracts import ReferenceAudioRequest, ReferenceAudioSource, REFERENCE_MAX_AUDIOS
 
 REFERENCE_MAX_IMAGES = 9
 REFERENCE_MAX_BYTES = 20 * 1024 * 1024
@@ -40,6 +41,8 @@ class CreateReferenceJobRequest(BaseModel):
     duration_ms: StrictInt = Field(alias="durationMs", ge=5_000, le=15_000)
     seed: StrictInt | None = Field(default=None, ge=0, le=2**63 - 1)
     references: list[ReferenceTime] = Field(min_length=1, max_length=REFERENCE_MAX_IMAGES)
+    audio_references: list[ReferenceAudioRequest] = Field(
+        default_factory=list, alias="audioReferences", max_length=REFERENCE_MAX_AUDIOS)
 
     @model_validator(mode="after")
     def validate_timeline(self) -> CreateReferenceJobRequest:
@@ -53,8 +56,13 @@ class CreateReferenceJobRequest(BaseModel):
             raise ValueError("quantized reference frames must be distinct and increasing")
         if frames[-1] >= reference_frame_count(self.duration_ms):
             raise ValueError("reference frame must be inside the native video")
+        speakers = [audio.speaker for audio in self.audio_references]
+        if len(set(speakers)) != len(speakers):
+            raise ValueError("audio references must have unique speaker labels")
         return self
 
 
 class CreateReferenceJobFromUrlsRequest(CreateReferenceJobRequest):
     references: list[ReferenceSource] = Field(min_length=1, max_length=REFERENCE_MAX_IMAGES)
+    audio_references: list[ReferenceAudioSource] = Field(
+        default_factory=list, alias="audioReferences", max_length=REFERENCE_MAX_AUDIOS)
