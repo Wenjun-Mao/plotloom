@@ -172,3 +172,8 @@ composite qualification is separate from installed activation and owner acceptan
 [ADR 0223](0223-durable-runtime-grant-identity.md) replaces durable filesystem-stat
 grant identity with DB-attached installation-local metadata while preserving exact
 QA scopes, truthful attribution and supported copy/restore refusal.
+
+## Media-service repository ownership
+
+- [0242: Independent media-services consumer boundary](0242-independent-media-services-consumer.md).
+- [0237: Ordered-reference HTTP contract](0237-h3-ordered-reference-images.md).

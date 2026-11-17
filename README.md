@@ -50,7 +50,7 @@ Vite 默认使用 `5173`，并把 `/api/v2` 代理到 `127.0.0.1:8775`。可用 
 ### 私有 MiniMax-H3 视频端点
 
 完整的部署、维护、故障恢复和已验证边界见
-[MiniMax-H3 gateway operator and maintainer manual](docs/operations/minimax-h3-gateway-manual.md)。
+[MiniMax-H3 gateway operator and maintainer manual](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/minimax-h3-gateway-manual.md)。
 
 Spark 上的 H3 使用一个带 bearer key 的私有网关，ComfyUI 本身只监听
 `127.0.0.1`。在 `.env` 中填写网关的 Tailscale `VIDEO_BASE_URL`、
@@ -78,10 +78,10 @@ H3 提供受审核的横竖屏档位；默认是 576×1024，另有 832×480、9
 
 Qwen-Image-2.1 是与 H3 共用 Spark 网关 FIFO 的本地图片后端，但它有独立的
 图片合同和维护边界。运维与恢复见
-[Qwen-Image gateway operator and maintainer manual](docs/operations/qwen-image-gateway-manual.md)，
+[Qwen-Image gateway operator and maintainer manual](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/qwen-image-gateway-manual.md)，
 同事调用见中文 [Qwen-Image API 使用指南](docs/operations/qwen-image-gateway-client-guide.md)，
 复现实机安装见
-[Qwen-Image-2.1 Spark reproducible setup](services/minimax_h3_gateway/docs/qwen-image-spark-setup.md)。
+[Qwen-Image-2.1 Spark reproducible setup](https://github.com/Wenjun-Mao/media-services/blob/main/services/minimax_h3_gateway/docs/qwen-image-spark-setup.md)。
 
 Qwen 只接受经过验证的七个精确画布：`1024x1024`、横版
 `832x480` / `960x544` / `1280x704`，以及竖版
@@ -147,3 +147,5 @@ uv run --locked --no-sync python scripts/verify.py full
 ## 版本边界
 
 产品、包、CLI、配置和浏览器身份已经统一为 Plotloom。首个独立基线暂时保留 `/api/v2`、`/v2/` 和 `v2_*` 数据表，因为它们代表经过验证的 API／schema 合同版本，而不是 V1 运行时依赖。详见 [ADR 0010](docs/adr/0010-plotloom-clean-repository.md)。
+
+Media-service implementation is maintained in private [Wenjun-Mao/media-services](https://github.com/Wenjun-Mao/media-services). [Service usage manuals](docs/operations/media-services.md) remain accessible here; using the services needs no source checkout.

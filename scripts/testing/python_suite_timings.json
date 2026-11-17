@@ -236,34 +236,6 @@
       "teardown_seconds": 0.0010986280103679746
     },
     {
-      "call_seconds": 0.5664748749841237,
-      "case_count": 22,
-      "path": "tests/services/minimax_h3_gateway/test_app.py",
-      "setup_seconds": 0.0048504570077057,
-      "teardown_seconds": 0.0010574579937383533
-    },
-    {
-      "call_seconds": 0.10871137500362238,
-      "case_count": 3,
-      "path": "tests/services/minimax_h3_gateway/test_image_intake.py",
-      "setup_seconds": 0.0009703329997137189,
-      "teardown_seconds": 0.00018783399718813598
-    },
-    {
-      "call_seconds": 0.007110374004696496,
-      "case_count": 10,
-      "path": "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
-      "setup_seconds": 0.0005012919937144034,
-      "teardown_seconds": 0.00035370801924727857
-    },
-    {
-      "call_seconds": 0.2130778730061138,
-      "case_count": 11,
-      "path": "tests/services/minimax_h3_gateway/test_qwen_image.py",
-      "setup_seconds": 0.002901918014686089,
-      "teardown_seconds": 0.0006297519939835183
-    },
-    {
       "call_seconds": 5.559831374994246,
       "case_count": 10,
       "path": "tests/test_accepted_review_lifecycle.py",
