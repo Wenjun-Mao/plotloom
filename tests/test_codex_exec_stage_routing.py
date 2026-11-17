@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -15,6 +14,7 @@ from plotloom.autopilot_brief_style import (
     freeze_brief_style,
 )
 from plotloom.cast_style import freeze_cast_style
+from plotloom.codex_exec_python_environment import inspect_checked_python_environment
 from plotloom.codex_exec_resources import codex_exec_source_resources
 from plotloom.codex_exec_validation import expand_validation_argv, validation_plan_from_package
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
@@ -110,7 +110,7 @@ def _run_frozen_plan(tmp_path: Path, stage: str) -> str:
     }
     expected_paths.add((ROOT / "scripts/provider-literal-context.mjs").resolve())
     if stage in {"characters", "storyboard"}:
-        expected_paths.update({ROOT / "scripts/creative_field_validation.py", ROOT / ("scripts/text-content-validation.mjs" if stage == "characters" else "scripts/storyboard-content-validation.mjs"), ROOT / "src", ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / ".local/codex-exec/python-env", tools["uv"], Path(sys.base_prefix).resolve(),
+        expected_paths.update({ROOT / "scripts/creative_field_validation.py", ROOT / ("scripts/text-content-validation.mjs" if stage == "characters" else "scripts/storyboard-content-validation.mjs"), ROOT / "src", ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / ".local/codex-exec/python-env", tools["uv"], inspect_checked_python_environment(ROOT).runtime_root,
             *(ROOT / f"third_party/shuohao-skills/skills/novel-{owner}/scripts/provider-literals.mjs" for owner in ("art", "characters", "storyboard"))})
     if stage == "storyboard":
         expected_paths.add((ROOT / "scripts/storyboard-dialogue-timing.mjs").resolve())
@@ -199,7 +199,7 @@ def test_preset_control_keeps_existing_adapter_and_allowlist(
     if stage == "characters":
         expected.update({ROOT / "scripts/creative_field_validation.py", ROOT / "scripts/text-content-validation.mjs",
             ROOT / "src", ROOT / "pyproject.toml", ROOT / "uv.lock", ROOT / ".local/codex-exec/python-env",
-            tools["uv"], Path(sys.base_prefix).resolve(),
+            tools["uv"], inspect_checked_python_environment(ROOT).runtime_root,
             *(ROOT / f"third_party/shuohao-skills/skills/novel-{owner}/scripts/provider-literals.mjs" for owner in ("art", "characters", "storyboard"))})
     assert set(resources.read_paths) == expected
     assert (ROOT / neutral_adapter).resolve() not in resources.read_paths

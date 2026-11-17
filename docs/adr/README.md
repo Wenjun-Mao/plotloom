@@ -212,3 +212,7 @@ to source handoffs, reference-frame roles and deterministic assembly/progress.
 
 [ADR 0240](0240-prospective-task-retention-aware-dispatch-guard.md) records exact
 retention-compatible state checks for new story task grants, preserving old failures.
+
+## Media-service repository ownership
+
+- [0242: Independent media-services consumer boundary](0242-independent-media-services-consumer.md).

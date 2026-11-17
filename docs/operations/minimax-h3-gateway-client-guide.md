@@ -281,7 +281,7 @@ Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网�
 `referenceDurationMs`。可选声线另看 `referenceAudioReady`、`referenceMaxAudios`、
 `referenceAudioContractVersion` 和 `referenceAudioFormat`；它不改变图片分支的就绪。
 就绪检查节点、模型和输入插槽合同；显存容量、实际生成时间和成片效果以实际
-运行结果为准。[已有的学习运行验证](../verification/2026-11-07-h3-ordered-reference-images.md)
+运行结果为准。[已有的学习运行验证](https://github.com/Wenjun-Mao/media-services/blob/main/docs/verification/2026-11-07-h3-ordered-reference-images.md)
 覆盖一次五图、277 帧请求，不代表所有九图/时长组合均已验证。
 
 ### 7B.1. 请求字段与限制
@@ -501,7 +501,7 @@ URL 模式保留第 7B.3 节的图片 `sourceUrl`，每个声线项改为
 图片模式不新增这些响应字段，提示词、图片顺序和时间取整规则均不变。
 
 参考音频用于引导新生成的声音，不是精确复制、配音或跨镜头声线一致性的保证。
-[当前验证](../verification/2026-11-16-h3-optional-reference-audio.md)已通过两个三图/三声线的 8 秒请求，以及一个九图/三声线的 5 秒请求；不代表所有最大时长组合。实际声线身份与台词分配尚未完成听感判断。
+[当前验证](https://github.com/Wenjun-Mao/media-services/blob/main/docs/verification/2026-11-16-h3-optional-reference-audio.md)已通过两个三图/三声线的 8 秒请求，以及一个九图/三声线的 5 秒请求；不代表所有最大时长组合。实际声线身份与台词分配尚未完成听感判断。
 
 ## 8. 查询与下载
 
