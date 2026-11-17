@@ -154,3 +154,5 @@ uv run --locked --no-sync python scripts/verify.py full
 ## 版本边界
 
 产品、包、CLI、配置和浏览器身份已经统一为 Plotloom。首个独立基线暂时保留 `/api/v2`、`/v2/` 和 `v2_*` 数据表，因为它们代表经过验证的 API／schema 合同版本，而不是 V1 运行时依赖。详见 [ADR 0010](docs/adr/0010-plotloom-clean-repository.md)。
+
+Media-service implementation is maintained in private [Wenjun-Mao/media-services](https://github.com/Wenjun-Mao/media-services). [Service usage manuals](docs/operations/media-services.md) remain accessible here; using the services needs no source checkout.

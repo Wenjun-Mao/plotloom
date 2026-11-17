@@ -216,3 +216,4 @@ retention-compatible state checks for new story task grants, preserving old fail
 ## Media-service repository ownership
 
 - [0242: Independent media-services consumer boundary](0242-independent-media-services-consumer.md).
+- [0237: Ordered-reference HTTP contract](0237-h3-ordered-reference-images.md).
