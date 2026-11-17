@@ -1,8 +1,8 @@
 # Voice Lab audio pipeline and intended use
 
 Scope: the specialist Spark Lab, separate from Plotloom authoring.
-[ADR 0209](../../../docs/adr/0209-voice-lab-independent-engines-and-delivery.md)
-defines the multi-engine contract; [ADR 0212](../../../docs/adr/0212-published-voice-performance-takes-and-shared-admission.md)
+[ADR 0209](https://github.com/Wenjun-Mao/media-services/blob/main/docs/adr/0209-voice-lab-independent-engines-and-delivery.md)
+defines the multi-engine contract; [ADR 0212](https://github.com/Wenjun-Mao/media-services/blob/main/docs/adr/0212-published-voice-performance-takes-and-shared-admission.md)
 adds published-identity takes and shared admission.
 
 ## Two separate decisions
@@ -29,12 +29,12 @@ Project + shared audition line + explicit candidate directions
 All four creation/reuse combinations are supported by the contract and tests.
 The initial 2026-09-30 matrix retained a Qwen → Index CUDA failure; a controlled
 image-service pause subsequently passed that path. The separately authorized
-[closeout](../../../docs/verification/2026-09-30-voice-specialist-reliability-closeout.md)
+[closeout](https://github.com/Wenjun-Mao/media-services/blob/main/docs/verification/2026-09-30-voice-specialist-reliability-closeout.md)
 now passes a fresh nine-call matrix and the exact neutral path before and after
 H3, with Qwen-Image running. It also verifies publication, exact H3 consumption
 and idle Lab restart. These are bounded serialized technical results, not
 broad memory/concurrency reliability or new human identity/acting approval.
-The [deployment receipt](../../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
+The [deployment receipt](https://github.com/Wenjun-Mao/media-services/blob/main/docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
 retains the initial failure rather than retroactively claiming that batch passed.
 Same-person identity,
 pronunciation, naturalness and acting are separate judgments.
@@ -83,7 +83,7 @@ Chinese-description Index urgency and reassurance passed bounded listening.
 Fear/surprise numeric control sounded anxious, not decisive urgency.
 Calm-heavy frustration missed the target; anger-heavy control was too angry;
 explicit anger `0.25` passed restrained frustration twice.
-These [captured observations](../../../docs/roadmap/2026-09-29-voice-lab-multi-engine-plan.md)
+These [captured observations](../roadmap/2026-09-29-voice-lab-multi-engine-plan.md)
 are not statistical rankings or guarantees for a new voice.
 
 ## Identity and media contracts
@@ -124,7 +124,7 @@ Lost execution acknowledgements are queried, never resubmitted. Uncertainty
 blocks later work. Memory/ComfyUI checks remain supplementary; direct backend
 clients and unrelated GPU services are outside managed admission.
 
-See [reproduction and operations](reproduction-and-operations.md) for ARM64
+See [reproduction and operations](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md) for ARM64
 dependencies, licenses, migration and recovery.
 
 The H3 video creation endpoint takes audio bytes, not Voice/Take IDs. The new
@@ -141,13 +141,13 @@ in Plotloom-owned storage, freeze it in production snapshots, and distinguish
 identity from dialogue-specific delivery. The matched owner review favored the
 urgent line-specific Index take for that shot; this is not a universal automatic
 default or exact-waveform dubbing claim.
-The [handoff note](../../../docs/verification/2026-09-26-voice-candidate-handoff-draft.md)
+The [handoff note](https://github.com/Wenjun-Mao/media-services/blob/main/docs/verification/2026-09-26-voice-candidate-handoff-draft.md)
 is held; no director message/integration is authorized here.
 
 ## Source map
 
-[API](../src/plotloom_voice_lab/app.py) ·
-[engine registry](../src/plotloom_voice_lab/engines/catalog.py) ·
-[supervisor](../src/plotloom_voice_lab/engines/process.py) ·
-[media preparation](../src/plotloom_voice_lab/media.py) ·
-[publication](../src/plotloom_voice_lab/voices.py).
+[API](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/src/plotloom_voice_lab/app.py) ·
+[engine registry](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/src/plotloom_voice_lab/engines/catalog.py) ·
+[supervisor](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/src/plotloom_voice_lab/engines/process.py) ·
+[media preparation](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/src/plotloom_voice_lab/media.py) ·
+[publication](https://github.com/Wenjun-Mao/media-services/blob/main/services/qwen3_tts_voice_lab/src/plotloom_voice_lab/voices.py).

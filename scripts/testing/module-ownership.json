@@ -306,9 +306,6 @@
       "selectors": {
         "pytest": [
           "tests/backend_core/test_artifacts.py",
-          "tests/services/minimax_h3_gateway/test_image_intake.py",
-          "tests/services/minimax_h3_gateway/test_qwen_coordination.py",
-          "tests/services/minimax_h3_gateway/test_qwen_image.py",
           "tests/test_art_reference_additional_candidate.py",
           "tests/test_candidate_asset_provenance.py",
           "tests/test_character_reference_revision_refinement.py",
@@ -648,23 +645,6 @@
           "tests/services/creator_workbench/test_text_correction_budget.py",
           "tests/services/creator_workbench/test_text_retry_controls.py",
           "tests/services/creator_workbench/test_text_retry_journey.py",
-          "tests/services/minimax_h3_gateway/test_app.py",
-          "tests/services/minimax_h3_gateway/test_dashboard.py",
-          "tests/services/minimax_h3_gateway/test_dashboard_health.py",
-          "tests/services/minimax_h3_gateway/test_dashboard_submission.py",
-          "tests/services/minimax_h3_gateway/test_packaging.py",
-          "tests/services/minimax_h3_gateway/test_frame_binding_schema.py",
-          "tests/services/minimax_h3_gateway/test_reference_images.py",
-          "tests/services/minimax_h3_gateway/test_reference_lifecycle.py",
-          "tests/services/minimax_h3_gateway/test_prompt_robustness_study.py",
-          "tests/services/minimax_h3_gateway/test_runtime_qualification.py",
-          "tests/services/minimax_h3_gateway/test_shared_lane.py",
-          "tests/services/minimax_h3_gateway/test_vae_adoption_canary.py",
-          "tests/services/minimax_h3_gateway/test_vae_adoption_deploy.py",
-          "tests/services/minimax_h3_gateway/test_vae_policy.py",
-          "tests/services/minimax_h3_gateway/test_vae_qualification.py",
-          "tests/services/minimax_h3_gateway/test_voice_reference.py",
-          "tests/services/minimax_h3_gateway/test_voice_takes_api.py",
           "tests/test_acceptance_metrics.py",
           "tests/test_cli_handoff_capsule.py",
           "tests/test_cli_handoff_receiver.py",
@@ -1938,15 +1918,6 @@
     },
     {
       "suite": "pytest",
-      "path": "tests/services/minimax_h3_gateway/conftest.py",
-      "kind": "conftest",
-      "consumers": [
-        "media-lifecycle",
-        "shared-provider-dispatch"
-      ]
-    },
-    {
-      "suite": "pytest",
       "path": "tests/source_graph_fixtures.py",
       "kind": "shared-fixture-or-helper",
       "consumers": [
@@ -2148,14 +2119,6 @@
       "kind": "shared-fixture-or-helper",
       "consumers": [
         "media-lifecycle"
-      ]
-    },
-    {
-      "suite": "pytest",
-      "path": "tests/services/minimax_h3_gateway/dashboard_browser_fixture.py",
-      "kind": "shared-fixture-or-helper",
-      "consumers": [
-        "shared-provider-dispatch"
       ]
     },
     {

@@ -15,9 +15,9 @@ read-only SQLite contract, without combining their distinct storage lifetimes.
 | --- | --- | --- |
 | Chinese colleague API guide | [H3 client guide](minimax-h3-gateway-client-guide.md) | [Qwen client guide](qwen-image-gateway-client-guide.md) |
 | Ordered 1–9 images with millisecond anchors | [H3 multi-reference Bruno/curl guide](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va) | Not an image-generation API mode |
-| Deploy, operate, or troubleshoot | [H3 operator manual](minimax-h3-gateway-manual.md) | [Qwen operator manual](qwen-image-gateway-manual.md) |
-| Reproduce the engine installation | [H3 reproducible setup](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md) | [Qwen reproducible setup](../../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md) |
-| Understand sampling or evaluation choices | [H3 rationale and operations](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md) | [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md) and [ADR 0073](../adr/0073-qwen-image-reviewed-canvas-contract.md) |
+| Deploy, operate, or troubleshoot | [H3 operator manual](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/minimax-h3-gateway-manual.md) | [Qwen operator manual](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/qwen-image-gateway-manual.md) |
+| Reproduce the engine installation | [H3 reproducible setup](https://github.com/Wenjun-Mao/media-services/blob/main/services/minimax_h3_gateway/docs/h3-reproducible-setup.md) | [Qwen reproducible setup](https://github.com/Wenjun-Mao/media-services/blob/main/services/minimax_h3_gateway/docs/qwen-image-spark-setup.md) |
+| Understand sampling or evaluation choices | [H3 rationale and operations](https://github.com/Wenjun-Mao/media-services/blob/main/services/minimax_h3_gateway/docs/h3-rationale-and-operations.md) | [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md) and [ADR 0073](../adr/0073-qwen-image-reviewed-canvas-contract.md) |
 | Draft and review provider prompts | [Living H3 prompt-writing playbook](h3-prompt-writing-playbook.md); ordered-image inputs are covered in the multi-reference guide above | Not applicable |
 
 H3 clients choose separate creation contracts: ordinary start/optional-end I2V

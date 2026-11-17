@@ -7,21 +7,7 @@ import pytest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-ALLOWED_SERVICE_DIRECTORIES = {
-    "minimax_h3_gateway", "qwen3_tts_voice_lab", "creator_workbench",
-}
-PACKAGED_SERVICE_LOCAL_DIRECTORIES = {
-    "minimax_h3_gateway": {".venv", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist"},
-    "qwen3_tts_voice_lab": {".venv", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist"},
-}
-
-
-def _declared_local_service_artifact(relative: Path) -> bool:
-    # Only named roots in the two independently packaged services may contain
-    # local environments/artifacts. A nested source directory is still source.
-    return len(relative.parts) >= 2 and relative.parts[1] in (
-        PACKAGED_SERVICE_LOCAL_DIRECTORIES.get(relative.parts[0], set())
-    )
+ALLOWED_SERVICE_DIRECTORIES = {"creator_workbench"}
 
 
 def _assert_declared_services(root: Path, tracked_paths: list[Path]) -> None:
@@ -59,7 +45,6 @@ def _assert_declared_services(root: Path, tracked_paths: list[Path]) -> None:
         and "__pycache__" not in path.parts
         and path.suffix != ".pyc"
         and path.name != ".DS_Store"
-        and not _declared_local_service_artifact(path.relative_to(services_root))
     }
     assert actual_service_paths == tracked_service_paths, (
         "services must contain only tracked service files; unexpected: "
@@ -128,19 +113,9 @@ def test_each_service_root_must_not_be_a_symlink(service_tree, name):
         _assert_declared_services(root, tracked)
 
 
-@pytest.mark.parametrize("service", sorted(PACKAGED_SERVICE_LOCAL_DIRECTORIES))
-@pytest.mark.parametrize("folder", [".venv", ".pytest_cache", ".ruff_cache", ".mypy_cache", "build", "dist"])
-def test_packaged_services_allow_declared_local_artifact_roots(service_tree, service, folder):
-    root, tracked = service_tree
-    artifact = root / "services" / service / folder / "local-artifact"
-    artifact.parent.mkdir()
-    artifact.touch()
-    _assert_declared_services(root, tracked)
-
-
 @pytest.mark.parametrize("relative", [
-    "minimax_h3_gateway/src/.venv/hidden.py",
-    "qwen3_tts_voice_lab/.undeclared/hidden.py",
+    "creator_workbench/src/.venv/hidden.py",
+    "creator_workbench/.undeclared/hidden.py",
     "creator_workbench/.venv/hidden.py",
 ])
 def test_other_hidden_and_nested_service_files_remain_rejected(service_tree, relative):

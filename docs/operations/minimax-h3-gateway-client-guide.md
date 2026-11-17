@@ -6,7 +6,7 @@
 文件、节点参数或工作流。
 
 本文提供 **Bruno 和 curl** 示例；第 7B 节完整介绍 1–9 张有序参考图。部署和维护请看
-[H3 网关运维手册](minimax-h3-gateway-manual.md)。Qwen-Image 文生图与单图编辑
+[H3 网关运维手册](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/minimax-h3-gateway-manual.md)。Qwen-Image 文生图与单图编辑
 使用独立的 [Qwen-Image API 使用指南](qwen-image-gateway-client-guide.md)，不要把
 图片字段或画布合同混入本视频 API。
 
@@ -264,7 +264,7 @@ auth:
 创建响应额外给出一次性的 `voiceReferenceSha256`：它是提交的原始 WAV 字节的
 SHA-256，供调用方比对自己的候选音频。后续普通状态不重复这个哈希，也不返回
 音频、URL 或私有路径。视频接口只接收此任务的 WAV，不解析 Voice ID 或 Take ID。
-现在可先用独立的 [台词表演 API](../../services/qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
+现在可先用独立的 [台词表演 API](voice-takes-client-guide.md)
 生成、试听并下载 H3 WAV；再作为 `voiceAudio` 上传。声线和表演由 Voice Lab
 长期保存，重新生成不覆盖旧结果；全部生成共享 FIFO。
 Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网关 72 小时视频

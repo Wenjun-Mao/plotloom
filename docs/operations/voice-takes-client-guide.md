@@ -91,7 +91,7 @@ source 保留模型的原生 WAV；h3 为单独的 32 kHz 单声道 PCM16 副本
 此副本作为 **voiceAudio** 文件上传，另提供 image 和原有字段。
 有序图片的 7B 路由也可将最多三份已有 WAV 作为重复 `audios` 文件上传，
 并在 `audioReferences` 元数据和提示词中明确各角色的顺序映射；音频是可选的。
-完整请求见[H3 同事指南 7B](../../../docs/operations/minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。
+完整请求见[H3 同事指南 7B](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。
 不要把 Take/Voice ID 放到视频请求；视频 endpoint 不自动生成/查询语音。
 H3 会生成新的声轨，参考 WAV 不是精确复制或自动配音/口型保证。
 Plotloom 后续须自行保存选中的音频、hash 和来源，不能依赖临时视频保留期。

@@ -5,7 +5,7 @@
 任意尺寸。视频请使用独立的 [H3 API 使用指南](minimax-h3-gateway-client-guide.md)。
 
 本文只提供 **Bruno** 示例。部署、保留期、故障恢复与维护请看
-[Qwen-Image 网关运维手册](qwen-image-gateway-manual.md)。
+[Qwen-Image 网关运维手册](https://github.com/Wenjun-Mao/media-services/blob/main/docs/operations/qwen-image-gateway-manual.md)。
 
 ## 1. 连接、认证与共享队列
 
