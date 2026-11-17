@@ -6,7 +6,7 @@ Use these practices when taking an authored branching story through Plotloom to 
 
 For each decision, write the exact label the player sees, where it leads, and what changes because they chose it. Trace every path from the opening to its ending. Use that same map when checking the exported game.
 
-In *The Last Projection*, sealing the evidence immediately ends with Xu Wei handing it over alone. Hearing A-Lan out gives the player a second choice between submitting the evidence together and destroying it. The short route needs one decision and the other two need two. Keeping that asymmetry preserves the consequence of acting immediately. [Authored route map](../roadmap/2026-10-30-first-h5-story.md#complete-route-graph)
+In *The Last Projection*, sealing the evidence immediately ends with Xu Wei handing it over alone. Hearing A-Lan out gives the player a second choice between submitting the evidence together and destroying it. The short route needs one decision and the other two need two. Keeping that asymmetry preserves the consequence of acting immediately. [Authored route map](../../.local/stories/放映室最后一夜/2026-10-30-first-h5-story.md#complete-route-graph)
 
 ## 2. State what stays true until the player chooses
 

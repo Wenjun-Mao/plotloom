@@ -7,6 +7,11 @@ product/UX, engineering and architecture owners, a complete ADR catalogue,
 consolidated workbench requirements, unresolved conflicts and the deviation audit.
 Decision history, delivery scope and executed evidence remain separate.
 
+## Plans and local projects
+
+- [Product roadmap](roadmap/README.md) — plans and planning history.
+- [Local story projects](creator/local-story-projects.md) — creative inputs, assets, records and deliveries outside Git.
+
 ## Creator guide
 
 - [中文创作者手册](creator/manual.zh-CN.md) — 从故事想法、审阅和双结局分支，到镜头媒体选择与播放检查。

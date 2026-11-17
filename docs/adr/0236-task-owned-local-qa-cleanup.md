@@ -3,7 +3,7 @@
 ## Status
 
 Accepted 2026-11-06 after the owner approved the
-[reviewed cleanup plan](../roadmap/2026-11-06-local-qa-storage-cleanup.md).
+[reviewed cleanup plan](../verification/2026-11-06-local-qa-storage-cleanup.md).
 
 ## Context
 

@@ -112,7 +112,7 @@ current consumer, deletion consequence, owner and release event in the existing
 plan; review unresolved exceptions at the next weekly maintenance session.
 Do not apply age-based deletion to project-owned delivery files or live safety
 state. Follow [ADR 0236](adr/0236-task-owned-local-qa-cleanup.md) and the
-[scoped cleanup procedure](roadmap/2026-11-06-local-qa-storage-cleanup.md#approved-staged-execution-procedure).
+[scoped cleanup procedure](verification/2026-11-06-local-qa-storage-cleanup.md#approved-staged-execution-procedure).
 This is an operator procedure, not an installed scheduler.
 
 ## Repository shape

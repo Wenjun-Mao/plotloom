@@ -14,7 +14,7 @@ Capture concrete production friction in the existing Plotloom workflow as work
 proceeds. These owner requirements supersede the initial proposed creative-
 quality acceptance. Wenjun then requested a Terra / Max subagent to draft an
 original story directly, using Last Call's compact viability as the reference.
-The resulting [working draft, The Last Projection](2026-10-30-first-h5-story.md),
+The resulting [working draft, The Last Projection](../../.local/stories/放映室最后一夜/2026-10-30-first-h5-story.md),
 has two characters, one room, two decision screens and three complete endings.
 Root checked routing and assembly practicality and retained the first draft.
 Wenjun subsequently requested permanently disabling forced audiovisual inspection
@@ -127,7 +127,7 @@ language do not establish voice, music or mix quality.
 ## First iteration: assembly and game presentation
 
 Start with **one complete original short interactive H5 game**, using
-[The Last Projection](2026-10-30-first-h5-story.md) as the working draft. Use
+[The Last Projection](../../.local/stories/放映室最后一夜/2026-10-30-first-h5-story.md) as the working draft. Use
 Last Call to bound the first release and Xuanwu Gate to guide consequence
 explanations and later expansion. The draft needs two characters, one location,
 one or two decisions per route and three endings. Its rough 1–2 minute estimate

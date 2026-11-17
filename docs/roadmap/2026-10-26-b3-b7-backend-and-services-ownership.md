@@ -1,7 +1,7 @@
 # B3–B7: Qualification, exchange, storage and service ownership
 
 > Storage update, 2026-11-06: historical worktree artifacts later moved under
-> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](2026-11-06-local-qa-storage-cleanup.md).
+> `.local/retained-worktree-evidence/` were retired by the [approved cleanup](../verification/2026-11-06-local-qa-storage-cleanup.md).
 > Their paths below are historical, not available replay inputs. Recorded outcomes
 > and limitations remain unchanged; current projects, qualification roots and
 > the separate current recovery package were outside that removal scope.

@@ -37,7 +37,7 @@ metadata, existing receipts, tracked source, current mounted/runtime ownership,
 read-only databases and current H3 task/package records. No fixture, model,
 provider, service mutation, broad qualification, push or CI was run.
 
-Apply the owner's [existing necessity rule](2026-10-25-top-five-cleanup.md#owners-preservation-rule):
+Apply the owner's [existing necessity rule](../roadmap/2026-10-25-top-five-cleanup.md#owners-preservation-rule):
 keep only a named current function, owner-valued work or necessary recovery.
 Uniqueness, sunk cost, old hashes, historical audit and possible future reuse are
 not retention reasons. An obsolete runnable helper is not a current consumer.
@@ -81,7 +81,7 @@ similar names are distinct historical copies.
 | `8f80` | 716 | Review manifests and obsolete helpers; 72 final file hashes and five deletions match adopted ancestor `708a56b8` |
 | `validation-quality-boundaries` | 40 | Closed logs/checkpoint |
 
-The [consolidation receipt](../verification/2026-10-31-worktree-consolidation.md)
+The [consolidation receipt](2026-10-31-worktree-consolidation.md)
 explains the original move: preserve bytes while retiring worktrees. It did not
 establish a permanent storage requirement. Separate consolidation source
 snapshots and refs remain outside scope. Current source preserves the adopted
