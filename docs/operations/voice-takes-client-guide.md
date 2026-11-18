@@ -87,7 +87,7 @@ source 保留模型的原生 WAV；h3 为单独的 32 kHz 单声道 PCM16 副本
 重采样/增益。不会裁剪、拉伸或修改原始音频。只有 `h3Eligible=true` 才能
 取得 h3 副本（1–10 秒、不超过 2 MiB）。不合格时仍可试听原生结果。
 
-所有新 Ref2VA 视频都提交到 7B 的 `POST /v1/video-jobs/from-reference-images`，单图单声线也走这条路径。7A 暂留给旧客户端，使用情况仍在核查。
+所有新 Ref2VA 视频都提交到 7B 的 `POST /v1/video-jobs/from-reference-images`，单图单声线也走这条路径。7A 新建入口随网关候选版本部署而关闭。已有任务可凭原 ID 查询、取消排队或下载结果，详见[7A 退役说明](minimax-h3-gateway-client-guide.md#7a-旧声线接口退役与历史任务)。
 
 1. 选定已发布的声线或台词表演，下载其 H3 WAV。将文件的 SHA-256 与对应记录的 `h3Sha256` 核对一致。选用表演时，使用上面的 `kind=h3` 下载结果。
 2. 在 Bruno 的 Multipart Form 添加一个 `request` 文本字段。JSON 中填写提示词、画布、比例策略、整数毫秒 `durationMs`（如 5000）、`"references": [{"atMs": 0}]` 和 `"audioReferences": [{"speaker": "母亲"}]`。提示词用 `<Picture 1>` 指明首图，用 `<Audio 1>` 指明母亲的声线，同时写出本次要说的台词。

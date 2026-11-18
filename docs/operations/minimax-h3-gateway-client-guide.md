@@ -109,7 +109,7 @@ WebP，最大 20 MiB、3,000 万像素。
 | --- | --- |
 | `GET /health` | 服务、ComfyUI、质量/尺寸合同与队列检查，无需 Bearer |
 | `POST /v1/video-jobs/from-image` | 起始图必填、末帧可选的 I2V |
-| `POST /v1/video-jobs/from-image-with-voice` | 7A 旧客户端兼容接口，使用情况核查中 |
+| `POST /v1/video-jobs/from-image-with-voice` | 7A 旧接口；候选版本部署后停止接收新任务，见第 7A 节 |
 | `POST /v1/video-jobs/from-reference-images` | 7B，用于所有新 Ref2VA 任务；1–9 张定时参考图，可附 0–3 份声线 WAV |
 | `POST /v1/video-jobs/from-text` | 仅探索用途的 T2V，不是 Plotloom 创作模式 |
 | `GET /v1/video-jobs/{id}` | 查询状态、seed、帧数和生成计时 |
@@ -197,9 +197,11 @@ auth:
   token: "{{H3_GATEWAY_BEARER}}"
 ```
 
-## 7A. 旧声线接口的兼容状态
+## 7A. 旧声线接口退役与历史任务
 
-`POST /v1/video-jobs/from-image-with-voice` 暂供旧客户端兼容，待运维核查既有调用后决定是否退役。已有 `inputMode: image_voice` 的任务用原任务 ID 按第 8 节查询或下载。新建任务请使用第 7B 节。
+Media Services 的候选网关版本已从源码移除 `POST /v1/video-jobs/from-image-with-voice`。该变更随网关部署生效。截至 2026-11-17，此次迁移尚未部署到 Spark；当前服务已支持第 7B 节，所有新 Ref2VA 任务均使用 7B。
+
+已有的 `inputMode: image_voice` 任务沿用原 ID 和原保留期限。按第 8 节查询状态、取消仍在 `queued` 的任务，或下载已完成且仍在保留期内的输出。
 
 ## 7B. 有序参考图与时间点（Ref2VA）
 
