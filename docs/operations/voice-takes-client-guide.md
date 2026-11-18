@@ -87,13 +87,15 @@ source 保留模型的原生 WAV；h3 为单独的 32 kHz 单声道 PCM16 副本
 重采样/增益。不会裁剪、拉伸或修改原始音频。只有 `h3Eligible=true` 才能
 取得 h3 副本（1–10 秒、不超过 2 MiB）。不合格时仍可试听原生结果。
 
-在现有 `POST /v1/video-jobs/from-image-with-voice` 的 multipart 请求里，将
-此副本作为 **voiceAudio** 文件上传，另提供 image 和原有字段。
-有序图片的 7B 路由也可将最多三份已有 WAV 作为重复 `audios` 文件上传，
-并在 `audioReferences` 元数据和提示词中明确各角色的顺序映射；音频是可选的。
-完整请求见[H3 同事指南 7B](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va)。
-不要把 Take/Voice ID 放到视频请求；视频 endpoint 不自动生成/查询语音。
-H3 会生成新的声轨，参考 WAV 不是精确复制或自动配音/口型保证。
+所有新 Ref2VA 视频都提交到 7B 的 `POST /v1/video-jobs/from-reference-images`，单图单声线也走这条路径。7A 暂留给旧客户端，使用情况仍在核查。
+
+1. 选定已发布的声线或台词表演，下载其 H3 WAV。将文件的 SHA-256 与对应记录的 `h3Sha256` 核对一致。选用表演时，使用上面的 `kind=h3` 下载结果。
+2. 在 Bruno 的 Multipart Form 添加一个 `request` 文本字段。JSON 中填写提示词、画布、比例策略、整数毫秒 `durationMs`（如 5000）、`"references": [{"atMs": 0}]` 和 `"audioReferences": [{"speaker": "母亲"}]`。提示词用 `<Picture 1>` 指明首图，用 `<Audio 1>` 指明母亲的声线，同时写出本次要说的台词。
+3. 添加 `images` 文件字段上传首图，再用 `audios` 文件字段上传这份 WAV。有多份素材时重复相应字段名，图片和声音分别按 `references` 和 `audioReferences` 的顺序对应。视频接口直接接收文件；Voice ID 和 Take ID 留在调用方记录中。
+4. 收到 202 后保存任务 ID。核对响应中 `audioReferences[0].speaker` 和 `audioReferences[0].sourceSha256`，后者应与步骤 1 的 `h3Sha256` 相同。若不符，保留该任务 ID 并复查所选 WAV。H3 用参考声音生成新声轨，最终台词和口型仍须看片判断。
+
+[完整 7B 请求及单声线 curl 示例](minimax-h3-gateway-client-guide.md#7b5-可选的多角色声线)
+
 Plotloom 后续须自行保存选中的音频、hash 和来源，不能依赖临时视频保留期。
 
 ## 4. 删除单个表演

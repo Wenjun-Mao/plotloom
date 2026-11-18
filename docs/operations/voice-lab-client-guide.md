@@ -129,10 +129,9 @@ dependencies, licenses, migration and recovery.
 
 The H3 video creation endpoint takes audio bytes, not Voice/Take IDs. The new
 gateway [take facade](voice-takes-client-guide.md) creates/downloads durable
-audio separately; it does not hide TTS inside video creation. The Ref2VA boundary
-remains one image plus a mono 32-kHz PCM16 reference, 960×544 or 576×1024,
-requested 5–8 seconds. The closeout verified one real job with exact published
-reference bytes; it adds no gateway Voice ID lookup.
+audio separately; it does not hide TTS inside video creation. For new Ref2VA jobs, including one image with one published WAV, use
+[the ordered-reference endpoint (7B)](minimax-h3-gateway-client-guide.md#7b-有序参考图与时间点ref2va).
+The original Voice Lab closeout verified one 7A job against the published WAV checksum.
 A reference guides identity; it is not an exact soundtrack/lip-sync guarantee.
 Review words, mouth timing, extra speech and subtitles separately.
 
